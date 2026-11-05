@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import { OperatorFacts } from "./operator-facts";
 import { OperatorCard } from "./operator-card";
 import { OperatorNotice } from "./operator-notice";
@@ -191,12 +192,7 @@ export function MetersBlock(props: {
           data-tone={item.tone ?? "neutral"}
         >
           <dt {...stylex.props(progress.label)}>{item.label}</dt>
-          <dd
-            {...stylex.props(
-              progress.value,
-              item.tone && item.tone !== "neutral" && progress[item.tone],
-            )}
-          >
+          <dd {...stylex.props(progress.value, toneText(item.tone))}>
             <span>
               {item.value}
               {item.unit ? ` ${item.unit}` : ""}
@@ -228,14 +224,7 @@ export function ProgressBlock(props: {
     >
       <header {...stylex.props(progress.header)}>
         <strong {...stylex.props(progress.title)}>{props.block.label}</strong>
-        <span
-          {...stylex.props(
-            progress.state,
-            props.block.tone &&
-              props.block.tone !== "neutral" &&
-              progress[props.block.tone],
-          )}
-        >
+        <span {...stylex.props(progress.state, toneText(props.block.tone))}>
           {props.block.state}
         </span>
       </header>

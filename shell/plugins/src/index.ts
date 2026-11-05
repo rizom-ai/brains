@@ -84,6 +84,13 @@ export {
   type SaveProcessedEntityRequest,
   type SaveProcessedEntityResult,
 } from "./entity/pending-ingestion";
+export { entityViewFields, type EntityViewFields } from "./entity/entity-view";
+export { createUploadSaveHandler } from "./entity/upload-save";
+export {
+  isTextUploadMediaType,
+  repeatsUploadFileName,
+  uploadTitle,
+} from "./entity/upload-title";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 export {
@@ -417,6 +424,9 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateQuestion,
+  CreateCheck,
+  CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,
@@ -478,6 +488,7 @@ export {
   canWriteVisibility,
   contentVisibilitySchema,
   emptyFrontmatterSchema,
+  ENTITY_SYSTEM_FIELDS,
   internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,
@@ -651,7 +662,6 @@ export {
   type MessageWithPayload,
 } from "./contracts/messaging";
 export type {
-  ConversationDigestPayload,
   GetMessagesOptions,
   IConversationService,
 } from "@brains/conversation-service";
@@ -660,7 +670,6 @@ export {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,
-  conversationDigestPayloadSchema,
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
@@ -820,6 +829,17 @@ export {
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export {
+  checkEntityText,
+  continueWithEntityText,
+  entityTextError,
+  readEntityText,
+  statedDateSchema,
+  type EntityText,
+  type EntityTextQuestion,
+  type EntityTextResult,
+  type ReadEntityTextOptions,
+} from "./entity/create-from-text";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
@@ -893,6 +913,7 @@ export {
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioOperatorViewStatus,
+  type RuntimeStudioOperatorViewFact,
   type RuntimeStudioOperatorDetailBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorView,

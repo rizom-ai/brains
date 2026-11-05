@@ -58,9 +58,9 @@ for (const width of [1440, 390]) {
         </>,
       );
       const totals = doc.querySelector("dl"),
-        master = doc.querySelector(".declarative-detail-master"),
-        pane = doc.querySelector(".declarative-detail-pane"),
-        back = doc.querySelector(".declarative-detail-back");
+        master = doc.querySelector("[data-detail-master]"),
+        pane = doc.querySelector("[data-operator-detail-pane]"),
+        back = doc.querySelector("[data-detail-back]");
       if (!totals || !master || !pane || !back)
         throw new Error("Missing collection parts");
       expect(window.getComputedStyle(totals).display).toBe("flex");

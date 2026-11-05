@@ -21,10 +21,10 @@ function widgets(
 }
 
 describe("conversation memory in Studio", () => {
-  it("shows a decision's origin as facts and its people by name", () => {
+  it("shows a decision's origin as facts, without its routing ids, and its people by name", () => {
     expect(widgets(decisionMetadataSchema.shape)).toEqual({
-      conversationId: "provenance",
-      channelId: "provenance",
+      conversationId: "hidden",
+      channelId: "hidden",
       channelName: "provenance",
       interfaceType: "provenance",
       timeRange: "provenance",
@@ -34,9 +34,9 @@ describe("conversation memory in Studio", () => {
     });
   });
 
-  it("shows a summary's origin as facts, its participants by name, and hides its hash", () => {
+  it("shows a summary's origin as facts, its participants by name, and hides its hash and channel id", () => {
     expect(widgets(summaryMetadataSchema.shape)).toEqual({
-      channelId: "provenance",
+      channelId: "hidden",
       channelName: "provenance",
       interfaceType: "provenance",
       timeRange: "provenance",

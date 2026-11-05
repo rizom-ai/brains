@@ -1,0 +1,80 @@
+id: multi-turn-playbook-status-after-transition
+name: Playbook Status Reports The Advanced Step
+description: Verifies that a status request on an active onboarding run uses playbook_manage action=status after runtime evidence has advanced the run past Brain identity, and reports the current step instead of the starting one.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: web-chat-eval-playbook-status-transition
+  channelName: Web Chat Eval
+tags:
+  - recipe-professional
+  - onboarding
+  - playbooks
+  - multi-turn
+
+turns:
+  - userMessage: "Start playbook onboarding."
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_manage
+          shouldBeCalled: true
+          argsContain:
+            action: start
+            playbookId: onboarding
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "Tune Brain's brain identity: Brain should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: brain-character
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "Approve saving that brain identity."
+    confirmPendingAction: true
+    successCriteria:
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+  - userMessage: "What's the status of the onboarding playbook now? Which step am I on?"
+    successCriteria:
+      expectedTools:
+        - toolName: playbook_manage
+          shouldBeCalled: true
+          argsContain:
+            action: status
+            playbookId: onboarding
+        - toolName: playbook_manage
+          shouldBeCalled: false
+          argsContain:
+            action: send-event
+        - toolName: system_update
+          shouldBeCalled: false
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+      responseCriteria:
+        - "Says the onboarding run is on the anchor profile step, with brain identity already done; it does not say the run is still on brain identity or that onboarding is finished."
+
+successCriteria:
+  expectedTools:
+    - toolName: playbook_manage
+      shouldBeCalled: true
+      argsContain:
+        action: status
+        playbookId: onboarding
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 120000

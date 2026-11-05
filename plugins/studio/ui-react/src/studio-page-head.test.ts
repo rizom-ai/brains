@@ -168,6 +168,26 @@ describe("Studio page-head normalization", () => {
     }
   });
 
+  it("lists a view's status facts under the title, each with its tone", () => {
+    const head = declarativeStudioPageHead(workspace, {
+      facts: [
+        { label: "Brain running", tone: "good" },
+        { label: "1 failed job", tone: "warn" },
+      ],
+      blocks: [],
+    });
+    const html = renderToStaticMarkup(
+      createElement(StudioPageHead, { model: head }),
+    );
+
+    expect(head.facts).toHaveLength(2);
+    expect(html).toMatch(
+      /<ul[^>]*aria-label="Status"[^>]*>.*Brain running.*1 failed job.*<\/ul>/,
+    );
+    expect(html).toContain('data-tone="good"');
+    expect(html).toContain('data-tone="warn"');
+  });
+
   it("prefers a source title and otherwise falls back to the admitted workspace", () => {
     expect(
       declarativeStudioPageHead(workspace, { title: "People", blocks: [] })

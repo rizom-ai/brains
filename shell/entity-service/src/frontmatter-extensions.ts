@@ -3,18 +3,11 @@ import {
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
+import { ENTITY_SYSTEM_FIELDS } from "./frontmatter";
 import type { FrontmatterSchema } from "./types";
 
 const recordSchema = z.record(z.string(), z.unknown());
-const policyKeys = new Set([
-  "id",
-  "entityType",
-  "content",
-  "contentHash",
-  "created",
-  "updated",
-  "visibility",
-]);
+const policyKeys: ReadonlySet<string> = new Set(ENTITY_SYSTEM_FIELDS);
 
 /** How a registered field whose stored value fails its own schema is treated. */
 export type InvalidFieldPolicy = "reject" | "omit";

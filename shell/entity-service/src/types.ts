@@ -354,6 +354,11 @@ export interface CreateInput {
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;
+  /**
+   * Frontmatter fields the caller states for the new entity that are not part
+   * of its source text, such as the original publication date of an essay.
+   */
+  fields?: Record<string, unknown>;
 }
 
 /**
@@ -413,7 +418,47 @@ export type CreateResult =
         attachment?: CreateResultAttachment;
       };
     }
-  | { success: false; error: string };
+  | {
+      success: false;
+      error: string;
+    };
+
+/**
+ * What a create asks the user for before it is confirmed: a title or field
+ * (`fields`), or where a deck's slides break (`slide-breaks`).
+ */
+export type CreateQuestion = "fields" | "slide-breaks";
+
+/**
+ * A type's check of a system_create before the user is asked to confirm it.
+ * A save that needs an answer asks before the confirmation, so the user
+ * answers once and approves once, seeing the complete save.
+ */
+export type CreateCheckResult =
+  /** Ready to confirm, with what the type fills in: the title and fields it derived. */
+  | { kind: "ready"; title?: string; fields?: Record<string, unknown> }
+  /**
+   * Ask the user first. `question` is put to the user as written;
+   * `answerWith` tells the agent how to pass the answer, and stays with it.
+   * The source text is pinned for the retry, so the answer cannot change it.
+   */
+  | {
+      kind: "question";
+      asks: CreateQuestion;
+      question: string;
+      answerWith: string;
+    }
+  /** The create cannot go ahead as given. */
+  | { kind: "error"; error: string };
+
+/**
+ * Runs before system_create asks the user to confirm a create. It reads
+ * and never writes: the confirmed create runs the type's interceptor.
+ */
+export type CreateCheck = (
+  input: CreateInput,
+  executionContext: CreateExecutionContext,
+) => Promise<CreateCheckResult>;
 
 /**
  * Plugin create interceptors can either fully handle creation,
@@ -1191,6 +1236,9 @@ export interface IEntitiesNamespace {
     interceptor: CreateInterceptor,
   ): void;
 
+  /** Register the check a create of this plugin's entity type passes before it is confirmed */
+  registerCreateCheck(entityType: string, check: CreateCheck): void;
+
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 
@@ -1407,6 +1455,10 @@ export interface EntityRegistry {
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined;
+
+  registerCreateCheck(type: string, check: CreateCheck): void;
+
+  getCreateCheck(type: string): CreateCheck | undefined;
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 

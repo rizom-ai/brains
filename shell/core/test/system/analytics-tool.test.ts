@@ -380,6 +380,23 @@ describe("system_analytics tool", () => {
       expect(analyticsTool.description).toContain("custom-range");
     });
 
+    it("describes each report once, in the tool description", () => {
+      services.analytics.register(rangeReport([]));
+      const analyticsTool = findTool(
+        createSystemTools(services),
+        "system_analytics",
+      );
+
+      const schema = JSON.stringify(
+        z.toJSONSchema(z.object(analyticsTool.inputSchema)),
+      );
+      expect(analyticsTool.description).toContain(
+        "custom-range (A plugin report over a number of days.)",
+      );
+      expect(schema).toContain('"Params for custom-range"');
+      expect(schema).not.toContain("A plugin report over a number of days.");
+    });
+
     it("keeps a report above the caller's level from them", async () => {
       services.analytics.register(
         defineAnalyticsReport({

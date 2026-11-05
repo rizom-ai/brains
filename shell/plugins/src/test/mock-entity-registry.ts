@@ -1,5 +1,6 @@
 import {
   type BaseEntity,
+  type CreateCheck,
   type CreateInterceptor,
   type EntityAdapter,
   type IEntityRegistry,
@@ -18,6 +19,7 @@ export function createMockEntityRegistry(
   store: MockEntityStore,
 ): IEntityRegistry {
   const createInterceptors = new Map<string, CreateInterceptor>();
+  const createChecks = new Map<string, CreateCheck>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
 
   const registry: IEntityRegistry = {
@@ -31,6 +33,7 @@ export function createMockEntityRegistry(
       store.adapters.delete(type);
       store.typeConfigs.delete(type);
       createInterceptors.delete(type);
+      createChecks.delete(type);
     },
     getSchema: (): never => {
       throw new Error("Not implemented");
@@ -71,6 +74,10 @@ export function createMockEntityRegistry(
       createInterceptors.set(type, interceptor);
     },
     getCreateInterceptor: (type) => createInterceptors.get(type),
+    registerCreateCheck: (type, check) => {
+      createChecks.set(type, check);
+    },
+    getCreateCheck: (type) => createChecks.get(type),
     registerUploadSaveHandler: (registration): void => {
       uploadSaveHandlers.push(registration);
     },

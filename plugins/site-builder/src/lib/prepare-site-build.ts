@@ -1,8 +1,4 @@
-import type {
-  RouteDefinition,
-  SectionDefinition,
-  SiteMetadata,
-} from "@brains/site-composition";
+import type { SectionDefinition, SiteMetadata } from "@brains/site-composition";
 import {
   collectRouteAssets,
   collectRouteScripts,
@@ -27,6 +23,7 @@ import type {
   SiteBuilderOptions,
 } from "../types/site-builder-types";
 import { buildSiteLayoutInfo } from "./build-site-layout-info";
+import type { BuildRoute } from "./collect-build-routes";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { resolveSiteSectionContent } from "./content-resolver";
 import { fingerprintPreparedRoute } from "./site-input-fingerprint";
@@ -38,7 +35,7 @@ const sectionContentSchema = z.record(z.string(), z.unknown());
 export interface PrepareSiteBuildOptions {
   buildId: string;
   preparedAt: string;
-  routes: RouteDefinition[];
+  routes: BuildRoute[];
   parsedOptions: Pick<
     SiteBuilderOptions,
     "environment" | "siteConfig" | "themeCSS"
@@ -47,6 +44,8 @@ export interface PrepareSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
   siteMetadata: SiteMetadata;
+  /** The environment's public URL, for absolute links between languages. */
+  siteUrl?: string | undefined;
   publicDir: string;
   signal: AbortSignal;
 }
@@ -153,6 +152,7 @@ export async function prepareSiteBuild(
     staticAssets,
     publicAssets,
     globalHeadScripts: options.buildOptions.headScripts ?? [],
+    ...(options.siteUrl !== undefined && { siteUrl: options.siteUrl }),
   });
 
   // Each page leaves only its summary, digest and diagnostics, kept in its
@@ -214,7 +214,7 @@ export async function prepareSiteBuild(
 }
 
 interface PrepareRouteOptions {
-  route: RouteDefinition;
+  route: BuildRoute;
   siteTitle: string;
   publishedOnly: boolean;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
@@ -245,6 +245,14 @@ async function prepareRoute(
     route: {
       id: options.route.id,
       path: options.route.path,
+      language: options.route.language,
+      alternates: options.route.alternates,
+      ...(options.route.siteNavigation !== undefined && {
+        siteNavigation: options.route.siteNavigation,
+      }),
+      ...(options.route.siteTranslation !== undefined && {
+        siteTranslation: options.route.siteTranslation,
+      }),
       title: options.route.title,
       ...(options.route.pageLabel !== undefined && {
         pageLabel: options.route.pageLabel,

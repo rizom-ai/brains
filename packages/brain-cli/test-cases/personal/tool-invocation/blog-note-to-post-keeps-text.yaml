@@ -1,0 +1,34 @@
+id: tool-invocation-blog-note-to-post-keeps-text
+name: Note to Post Keeps the Note's Text
+description: Verifies "turn my note into a draft post, keep my text" creates the post from the note itself rather than generating new text from it.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - blog
+  - finalized-content
+  - regression
+  - recipe-professional
+
+turns:
+  - userMessage: 'Turn my note "Green Software Engineering Principles" into a draft post. Keep my text.'
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+        source.kind: entity
+        source.entityType: note
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I generated"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 46000

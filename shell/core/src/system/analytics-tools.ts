@@ -20,9 +20,7 @@ function displayParams(definition: AnalyticsReportDefinition): z.ZodObject {
       return [key, described.optional()];
     }),
   );
-  return z
-    .looseObject(shape)
-    .describe(`Params for ${definition.type}: ${definition.description}`);
+  return z.looseObject(shape).describe(`Params for ${definition.type}`);
 }
 
 function inputSchema(definitions: AnalyticsReportDefinition[]): z.ZodObject<{

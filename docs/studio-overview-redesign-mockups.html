@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="en" data-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Studio Overview redesign</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      :root,
+      [data-climate="paper"] {
+        --bg: #f4ede0;
+        --frame: #faf4e6;
+        --muted: #ebe2cb;
+        --deep: #e3d9bf;
+        --text: #18132a;
+        --text-muted: #443c54;
+        --text-light: #756c80;
+        --border: #ddd2c4;
+        --accent: #b8410c;
+        --secondary: #4b2a63;
+        --ok: #2d6a42;
+        --warn: #7a4a05;
+        --err: #8f2f2f;
+        --light-glow: 0 0 0 0 transparent;
+        --band-bg: #efe6d3;
+        color-scheme: light;
+      }
+      [data-climate="instrument"] {
+        --bg: #0a0819;
+        --frame: #100d24;
+        --muted: #1b1638;
+        --deep: #05040f;
+        --text: #faf4e6;
+        --text-muted: rgb(251 247 239 / 0.72);
+        --text-light: rgb(251 247 239 / 0.48);
+        --border: rgb(255 255 255 / 0.12);
+        --accent: #ff8b3d;
+        --secondary: #8c82c8;
+        --ok: #86efac;
+        --warn: #fde68a;
+        --err: #fca5a5;
+        --band-bg: #05040f;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--deep);
+        color: var(--text);
+        font:
+          15px/1.5 "IBM Plex Sans",
+          system-ui,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      /* Review controls (not part of the design) */
+      .review {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        align-items: end;
+        justify-content: space-between;
+        padding: 20px 24px 16px;
+        max-width: 1488px;
+        margin: 0 auto;
+      }
+      .review h1 {
+        margin: 0;
+        font:
+          500 22px/1.2 "Fraunces",
+          serif;
+      }
+      .review p {
+        margin: 2px 0 0;
+        color: var(--text-light);
+        font-size: 13px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--frame);
+        padding: 2px;
+      }
+      .seg button {
+        border: 0;
+        background: none;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--text);
+        color: var(--frame);
+      }
+
+      /* Device frame */
+      .device {
+        margin: 0 auto 32px;
+        max-width: 1440px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--bg);
+        transition: max-width 0.3s ease;
+      }
+      .device[data-viewport="phone"] {
+        max-width: 390px;
+      }
+      .app {
+        container-type: inline-size;
+        min-height: 920px;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      /* Studio chrome — unchanged from the current console */
+      .chrome {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 56px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--border);
+        background: var(--frame);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font:
+          500 12px "JetBrains Mono",
+          monospace;
+        letter-spacing: 0.08em;
+      }
+      .brand b {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border: 1.5px solid var(--accent);
+        border-radius: 50%;
+        color: var(--accent);
+        font:
+          500 14px "Fraunces",
+          serif;
+        letter-spacing: 0;
+      }
+      .where {
+        padding-left: 16px;
+        border-left: 1px solid var(--border);
+        font-size: 13px;
+      }
+      .chrome .spacer {
+        flex: 1;
+      }
+      .search {
+        width: 230px;
+        height: 36px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        color: var(--text-light);
+        font-size: 13px;
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+        font:
+          500 11px "JetBrains Mono",
+          monospace;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 124px 1fr;
+        min-height: 0;
+      }
+      .nav {
+        background: var(--muted);
+        border-right: 1px solid var(--border);
+        padding: 20px 10px;
+        font-size: 13px;
+      }
+      .nav a {
+        display: flex;
+        gap: 10px;
+        padding: 12px 6px;
+        border-radius: 6px;
+        color: var(--text);
+        text-decoration: none;
+      }
+      .nav a small {
+        font:
+          400 11px "JetBrains Mono",
+          monospace;
+        color: var(--text-light);
+      }
+      .nav a[aria-current] {
+        background: var(--frame);
+        box-shadow: inset 0 0 0 1px var(--border);
+      }
+      .nav a[aria-current] small {
+        color: var(--accent);
+      }
+      .nav .badge {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      @container (max-width: 700px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .nav,
+        .search,
+        .brand span {
+          display: none;
+        }
+        .where {
+          border: 0;
+          padding: 0;
+          flex: 1;
+          text-align: center;
+        }
+      }
+
+      /* ---------- Overview ---------- */
+      .page {
+        padding: 40px 44px 64px;
+        min-width: 0;
+      }
+      @container (max-width: 700px) {
+        .page {
+          padding: 24px 16px 48px;
+        }
+      }
+
+      .brief {
+        max-width: 62rem;
+      }
+      .brief h1 {
+        margin: 0;
+        font-family: "Fraunces", serif;
+        font-weight: 500;
+        font-size: clamp(30px, 3cqi, 40px);
+        line-height: 1.1;
+        letter-spacing: -0.015em;
+        font-variation-settings: "opsz" 120;
+        text-wrap: balance;
+      }
+      .pulse {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 22px;
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+      .pulse li {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-light);
+        flex: none;
+      }
+      .dot.good {
+        background: var(--ok);
+      }
+      .dot.warn {
+        background: var(--warn);
+      }
+      .dot.error {
+        background: var(--err);
+      }
+
+      /* Last 24 hours — the one bold element */
+      .day {
+        margin: 32px 0 44px;
+      }
+      .day-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .day-head strong {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .band {
+        position: relative;
+        height: 108px;
+        border-radius: 8px;
+        background: var(--band-bg);
+        overflow: hidden;
+      }
+      [data-climate="instrument"] .band {
+        box-shadow: inset 0 0 0 1px var(--border);
+      }
+      .band .night {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        background: color-mix(in srgb, var(--text) 4%, transparent);
+      }
+      .band .tick {
+        position: absolute;
+        bottom: 0;
+        height: 100%;
+        border-left: 1px dashed color-mix(in srgb, var(--text) 10%, transparent);
+      }
+      .band .tick span {
+        position: absolute;
+        bottom: 6px;
+        left: 6px;
+        font:
+          400 11px "JetBrains Mono",
+          monospace;
+        color: var(--text-light);
+      }
+      .band .now {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(100% - 19px);
+        width: 2px;
+        background: var(--accent);
+      }
+      .light {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: 28px;
+        height: 28px;
+        border: 0;
+        padding: 0;
+        background: none;
+        cursor: pointer;
+        border-radius: 50%;
+      }
+      .light::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        transition: transform 0.15s ease;
+      }
+      .light.good::before {
+        background: var(--ok);
+      }
+      .light.warn::before {
+        background: var(--warn);
+      }
+      .light.error::before {
+        inset: 5px;
+        background: var(--err);
+      }
+      .light.error::after {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border-radius: 50%;
+        border: 1.5px solid var(--err);
+        opacity: 0.5;
+      }
+      [data-climate="instrument"] .light::before {
+        box-shadow: 0 0 10px 2px
+          color-mix(in srgb, currentColor 0%, var(--text-muted) 55%);
+      }
+      [data-climate="instrument"] .light.good::before {
+        box-shadow: 0 0 12px 3px color-mix(in srgb, var(--ok) 55%, transparent);
+      }
+      [data-climate="instrument"] .light.warn::before {
+        box-shadow: 0 0 12px 3px
+          color-mix(in srgb, var(--warn) 55%, transparent);
+      }
+      [data-climate="instrument"] .light.error::before {
+        box-shadow: 0 0 18px 5px color-mix(in srgb, var(--err) 70%, transparent);
+      }
+      .light:hover::before,
+      .light.is-active::before {
+        transform: scale(1.5);
+      }
+      .light.dim {
+        opacity: 0;
+      }
+      .light.on {
+        opacity: 1;
+        transition: opacity 0.5s ease;
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-light);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend .dot {
+        width: 7px;
+        height: 7px;
+      }
+
+      /* Grid */
+      .grid {
+        display: grid;
+        gap: 48px;
+      }
+      @container (min-width: 960px) {
+        .grid {
+          grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+          gap: 56px;
+          align-items: start;
+        }
+      }
+      .col {
+        display: grid;
+        gap: 48px;
+        min-width: 0;
+        align-content: start;
+      }
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 0 0 14px;
+      }
+      .section-head h2 {
+        margin: 0;
+        font:
+          500 22px/1.2 "Fraunces",
+          serif;
+        letter-spacing: -0.005em;
+      }
+      .section-head .count {
+        font-size: 14px;
+        color: var(--text-light);
+      }
+      .section-head .aside {
+        margin-left: auto;
+        font-size: 13px;
+        color: var(--text-light);
+      }
+
+      /* Needs you */
+      .queue {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .ask {
+        display: grid;
+        grid-template-columns: 4px minmax(0, 1fr);
+        background: var(--frame);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .ask .rail {
+        background: var(--warn);
+      }
+      .ask.error .rail {
+        background: var(--err);
+      }
+      .ask .body {
+        padding: 14px 18px 16px;
+        display: grid;
+        gap: 4px;
+      }
+      @container (min-width: 960px) {
+        .ask .body {
+          grid-template-columns: minmax(0, 1fr) auto;
+          column-gap: 24px;
+        }
+        .ask .body > :not(.actions) {
+          grid-column: 1;
+        }
+        .ask .actions {
+          grid-column: 2;
+          grid-row: 1 / span 3;
+          align-self: center;
+          flex-direction: column;
+          align-items: stretch;
+          margin-top: 0;
+        }
+      }
+      .ask .src {
+        font-size: 13px;
+        color: var(--text-light);
+        display: flex;
+        gap: 10px;
+      }
+      .ask .src time {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+      }
+      .ask h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      .ask.error h3 {
+        color: var(--err);
+      }
+      .ask p {
+        margin: 0;
+        color: var(--text-muted);
+        max-width: 60ch;
+      }
+      .ask .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        background: transparent;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text);
+      }
+      .btn.primary {
+        background: var(--text);
+        border-color: var(--text);
+        color: var(--frame);
+      }
+      .btn:hover {
+        border-color: var(--text-muted);
+      }
+
+      .rest-note {
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        padding: 18px 20px;
+        color: var(--text-muted);
+      }
+
+      /* What happened */
+      .log {
+        display: grid;
+        gap: 22px;
+      }
+      .log h3 {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-light);
+      }
+      .log ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .log li {
+        display: grid;
+        grid-template-columns: 52px 14px minmax(0, 1fr);
+        align-items: baseline;
+        gap: 4px;
+        padding: 5px 6px;
+        border-radius: 6px;
+        transition: background 0.2s;
+      }
+      .log li.is-active {
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+      }
+      .log time {
+        font:
+          400 12px "JetBrains Mono",
+          monospace;
+        color: var(--text-light);
+      }
+      .log .dot {
+        width: 7px;
+        height: 7px;
+        transform: translateY(-1px);
+      }
+      .log .what a {
+        color: var(--text);
+        font-weight: 500;
+        text-decoration: none;
+      }
+      .log .what a:hover {
+        text-decoration: underline;
+      }
+      .log .what span {
+        color: var(--text-muted);
+      }
+      .log .what small {
+        display: block;
+        color: var(--text-light);
+        font-size: 13px;
+      }
+
+      /* Sources ledger */
+      .ledger {
+        border-top: 1px solid var(--border);
+      }
+      .ledger details {
+        border-bottom: 1px solid var(--border);
+      }
+      .ledger summary {
+        list-style: none;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 16px;
+        align-items: center;
+        padding: 14px 2px;
+      }
+      .ledger summary::-webkit-details-marker {
+        display: none;
+      }
+      .ledger .name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .ledger .name::before {
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 5px solid var(--text-light);
+        border-top: 4px solid transparent;
+        border-bottom: 4px solid transparent;
+        transition: transform 0.15s;
+      }
+      .ledger details[open] .name::before {
+        transform: rotate(90deg);
+      }
+      .figs {
+        display: flex;
+        gap: 18px;
+        justify-content: end;
+      }
+      .fig {
+        text-align: right;
+        min-width: 44px;
+      }
+      .fig b {
+        display: block;
+        font:
+          500 19px/1.1 "IBM Plex Sans",
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      .fig small {
+        display: block;
+        font-size: 11.5px;
+        color: var(--text-light);
+        white-space: nowrap;
+      }
+      .fig.warn b {
+        color: var(--warn);
+      }
+      .fig.error b {
+        color: var(--err);
+      }
+      .fig.good b {
+        color: var(--ok);
+      }
+      .fig.word b {
+        font-size: 15px;
+        padding-top: 3px;
+      }
+      .spark {
+        display: block;
+        width: 72px;
+        height: 22px;
+      }
+      .spark path {
+        fill: none;
+        stroke: var(--secondary);
+        stroke-width: 1.5;
+      }
+      .detail {
+        padding: 0 2px 18px 15px;
+        color: var(--text-muted);
+        font-size: 14px;
+        display: grid;
+        gap: 8px;
+      }
+      .detail ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 6px;
+      }
+      .detail li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .detail a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .brain {
+        margin-top: 4px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 24px;
+        margin: 0;
+      }
+      .brain div {
+        display: grid;
+        gap: 1px;
+      }
+      .brain dt {
+        font-size: 12px;
+        color: var(--text-light);
+      }
+      .brain dd {
+        margin: 0;
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Review notes (not part of the design) */
+      .notes {
+        max-width: 1440px;
+        margin: 0 auto 64px;
+        padding: 0 24px;
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+      .notes h2 {
+        font:
+          500 17px "Fraunces",
+          serif;
+        color: var(--text);
+        margin: 0 0 8px;
+      }
+      .notes ul {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 6px;
+      }
+      .notes code {
+        font:
+          12.5px "JetBrains Mono",
+          monospace;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review">
+      <div>
+        <h1>Studio Overview redesign</h1>
+        <p>
+          Mockup for review. Studio chrome is unchanged; only the page is new.
+        </p>
+      </div>
+      <div class="controls">
+        <div class="seg" data-control="state" aria-label="Sample state">
+          <button data-value="busy" aria-pressed="true">Needs you</button
+          ><button data-value="rest" aria-pressed="false">At rest</button
+          ><button data-value="degraded" aria-pressed="false">Degraded</button>
+        </div>
+        <div class="seg" data-control="climate" aria-label="Climate">
+          <button data-value="paper" aria-pressed="true">Paper</button
+          ><button data-value="instrument" aria-pressed="false">
+            Instrument
+          </button>
+        </div>
+        <div class="seg" data-control="viewport" aria-label="Viewport">
+          <button data-value="desktop" aria-pressed="true">Desktop</button
+          ><button data-value="phone" aria-pressed="false">Phone</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="device" id="device" data-viewport="desktop">
+      <div class="app">
+        <header class="chrome">
+          <div class="brand">
+            <b>R</b><span>ROVER COLLECTIVE / STUDIO</span>
+          </div>
+          <div class="where">Overview</div>
+          <div class="spacer"></div>
+          <div class="search">Search or run a command…</div>
+          <div class="avatar">MR</div>
+        </header>
+        <div class="shell">
+          <nav class="nav" aria-label="Studio areas">
+            <a href="#" aria-current="page"
+              ><small>00</small>Overview<span class="badge" id="navBadge"
+                >4</span
+              ></a
+            >
+            <a href="#"><small>01</small>Chat</a>
+            <a href="#"><small>02</small>Library</a>
+            <a href="#"><small>03</small>Work</a>
+            <a href="#"><small>04</small>Admin<span class="badge">1</span></a>
+            <a href="#"><small>05</small>System</a>
+          </nav>
+          <main class="page" id="page"></main>
+        </div>
+      </div>
+    </div>
+
+    <section class="notes">
+      <div>
+        <h2>What changes</h2>
+        <ul>
+          <li>
+            The title stays “Overview”; one quiet status line under it says
+            whether the brain is healthy. The count of what needs you sits on
+            the Needs you heading.
+          </li>
+          <li>
+            Last 24 hours shows every event as a light on a time band. Selecting
+            one highlights its row below.
+          </li>
+          <li>
+            Needs you is ranked: failures first, then reviews, then queues. Each
+            item carries its own actions.
+          </li>
+          <li>
+            What happened leaves out anything already in Needs you, groups by
+            time of day, and names things in plain words.
+          </li>
+          <li>
+            Sources show their figures while collapsed; expanding reveals the
+            source’s own view.
+          </li>
+          <li>
+            Brain facts are always visible instead of hidden in two disclosures.
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h2>What it needs from the runtime</h2>
+        <ul>
+          <li>
+            Status line: a <code>facts</code> list on the view, each a label and
+            tone, composed from readiness.
+          </li>
+          <li>
+            Band: a new <code>timeline</code> panel block; the activity registry
+            keeps 24 hours instead of the last 12 events.
+          </li>
+          <li>
+            Needs you: <code>attention</code> list items gain severity rank and
+            inline <code>actions</code> (list items already carry actions).
+          </li>
+          <li>
+            Sources: <code>disclosure</code> cards render their digest lines in
+            the summary row.
+          </li>
+          <li>
+            Brain: the System and Network cards merge into one plain
+            <code>key-values</code> card.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <script>
+      const NOW = 16 * 60 + 40; // 16:40 UTC
+      const hm = (h, m) => h * 60 + m;
+      const clock = (t) =>
+        `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+      const ago = (t) => {
+        const d = NOW - t;
+        if (d < 1) return "just now";
+        if (d < 60) return `${d} min ago`;
+        return `${Math.floor(d / 60)} h ago`;
+      };
+
+      const baseActivity = [
+        {
+          id: "a2",
+          t: hm(16, 28),
+          tone: "neutral",
+          title: "Quiet infrastructure",
+          verb: "updated",
+          type: "Note",
+        },
+        {
+          id: "a4",
+          t: hm(14, 10),
+          tone: "good",
+          title: "Commons-based peer production",
+          verb: "saved",
+          type: "Link",
+        },
+        {
+          id: "a5",
+          t: hm(13, 2),
+          tone: "neutral",
+          title: "3 messages",
+          verb: "arrived",
+          type: "Inbox",
+          note: "From email and the site contact form",
+        },
+        {
+          id: "a6",
+          t: hm(11, 5),
+          tone: "good",
+          title: "Notes on stewardship",
+          verb: "published",
+          type: "Post",
+        },
+        {
+          id: "a7",
+          t: hm(11, 4),
+          tone: "good",
+          title: "Live site",
+          verb: "rebuilt",
+          type: "Site",
+          note: "Built in 48 s",
+        },
+        {
+          id: "a8",
+          t: hm(9, 12),
+          tone: "good",
+          title: "14 changes",
+          verb: "pulled from git",
+          type: "Directory sync",
+        },
+        {
+          id: "a9",
+          t: hm(2, 0),
+          tone: "good",
+          title: "Search index",
+          verb: "refreshed",
+          type: "Nightly job",
+          note: "1,906 entries",
+        },
+        {
+          id: "a10",
+          t: hm(-3, -20),
+          tone: "neutral",
+          title: "Weekly digest",
+          verb: "drafted",
+          type: "Newsletter",
+        },
+      ];
+
+      const asks = {
+        build: {
+          id: "a1",
+          t: hm(16, 40),
+          tone: "error",
+          src: "Site",
+          title: "The preview build failed",
+          text: "The render stopped before finishing. The build log is kept so you can read it before retrying.",
+          actions: [
+            ["Retry build", true],
+            ["Read build log", false],
+          ],
+        },
+        draft: {
+          id: "a3",
+          t: hm(15, 52),
+          tone: "warn",
+          src: "Publishing",
+          title: "“Why brains forget” is ready for review",
+          text: "Generated from your notes on memory and forgetting. Nothing is published until you approve it.",
+          actions: [["Review draft", true]],
+        },
+        inbox: {
+          id: "a5b",
+          t: hm(13, 2),
+          tone: "warn",
+          src: "Inbox",
+          title: "One high-priority message",
+          text: "A partner asked about the March workshop dates.",
+          actions: [["Open message", true]],
+        },
+        blocked: {
+          id: "a11",
+          t: hm(10, 30),
+          tone: "warn",
+          src: "Action items",
+          title: "“Confirm workshop venue” is blocked",
+          text: "Waiting on a reply since Tuesday.",
+          actions: [["Open the board", false]],
+        },
+        stalled: {
+          id: "a0",
+          t: hm(16, 2),
+          tone: "error",
+          src: "Brain",
+          title: "Jobs have stopped processing",
+          text: "5 jobs are waiting; the oldest has waited 38 minutes. The worker stopped reporting at 16:02.",
+          actions: [
+            ["Open system", true],
+            ["Restart worker", false],
+          ],
+        },
+      };
+
+      const states = {
+        busy: {
+          pulse: [
+            ["good", "Brain running"],
+            ["", "Queue idle"],
+            ["warn", "1 failed job"],
+          ],
+          asks: [asks.build, asks.draft, asks.inbox, asks.blocked],
+          extraLights: [asks.build, asks.draft, asks.blocked],
+          badge: 4,
+          runtime: "Running",
+          jobs: "Idle",
+          site: [
+            ["Preview", "Failed", "error", true],
+            ["Live", "OK", "good", true],
+          ],
+        },
+        rest: {
+          pulse: [
+            ["good", "Brain running"],
+            ["", "Queue idle"],
+          ],
+          asks: [],
+          extraLights: [],
+          badge: 0,
+          runtime: "Running",
+          jobs: "Idle",
+          site: [
+            ["Preview", "OK", "good", true],
+            ["Live", "OK", "good", true],
+          ],
+        },
+        degraded: {
+          pulse: [
+            ["error", "Brain degraded"],
+            ["warn", "5 jobs waiting"],
+          ],
+          asks: [asks.stalled, asks.draft],
+          extraLights: [asks.stalled, asks.draft],
+          badge: 2,
+          runtime: "Degraded",
+          jobs: "5 waiting",
+          site: [
+            ["Preview", "OK", "good", true],
+            ["Live", "OK", "good", true],
+          ],
+        },
+      };
+
+      const spark = (points) => {
+        const max = Math.max(...points);
+        const step = 72 / (points.length - 1);
+        const d = points
+          .map(
+            (p, i) =>
+              `${i ? "L" : "M"}${(i * step).toFixed(1)} ${(20 - (p / max) * 18).toFixed(1)}`,
+          )
+          .join(" ");
+        return `<svg class="spark" viewBox="0 0 72 22" aria-hidden="true"><path d="${d}"/></svg>`;
+      };
+      const fig = ([label, value, tone = "", word = false]) =>
+        `<span class="fig ${tone}${word ? " word" : ""}"><b>${value}</b><small>${label}</small></span>`;
+
+      function sources(s) {
+        const busy = s.asks.length > 0;
+        return [
+          {
+            name: "Inbox",
+            figs: [
+              ["open", 7],
+              ["high priority", busy ? 1 : 0, busy ? "warn" : ""],
+            ],
+            detail: [
+              ["Email", "4 open"],
+              ["Site contact form", "2 open"],
+              ["Discord", "1 open"],
+            ],
+            link: "Open inbox",
+          },
+          {
+            name: "Publishing",
+            figs: [
+              ["to review", 1, "warn"],
+              ["queued", 2],
+              ["published", 18],
+            ],
+            detail: [
+              ["Why brains forget", "awaiting review"],
+              ["Commons and code", "queued"],
+              ["Field notes 12", "queued"],
+            ],
+            link: "Open publishing",
+          },
+          {
+            name: "Site",
+            figs: s.site,
+            detail: [
+              [
+                "Preview",
+                s.site[0][1] === "Failed"
+                  ? "failed at 16:40"
+                  : "built at 16:31",
+              ],
+              ["Live", "built at 11:04"],
+            ],
+            link: "Open site",
+          },
+          {
+            name: "Traffic",
+            figsHtml: `${spark([112, 140, 131, 168, 201, 176, 214])}${fig(["pageviews, 7 days", "1,284"])}${fig(["vs last week", "+12%", "good"])}`,
+            detail: [
+              ["Top page", "Notes on stewardship"],
+              ["Top referrer", "newsletter"],
+            ],
+            link: "Open analytics",
+          },
+          {
+            name: "Action items",
+            figs: [
+              ["open", 6],
+              ["blocked", busy ? 1 : 0, busy ? "warn" : ""],
+            ],
+            detail: [
+              ["Confirm workshop venue", busy ? "blocked" : "open"],
+              ["Send draft agenda", "open"],
+            ],
+            link: "Open the board",
+          },
+          {
+            name: "Invitations",
+            figs: [
+              ["expiring", 0],
+              ["failed", 0],
+            ],
+            detail: [["Pending", "2 invitations"]],
+            link: "Open invitations",
+          },
+        ];
+      }
+
+      function render(stateKey) {
+        const s = states[stateKey];
+        const page = document.getElementById("page");
+        document.getElementById("navBadge").textContent = s.badge || "";
+        const shown = new Set(s.asks.map((a) => a.id));
+        const activity = baseActivity.filter(
+          (a) =>
+            !shown.has(a.id) &&
+            !(stateKey === "busy" && a.id === "a5" && false),
+        );
+        const lights = [...activity, ...s.extraLights].sort(
+          (a, b) => a.t - b.t,
+        );
+
+        const groups = [
+          ["This hour", (a) => a.t > NOW - 60],
+          ["Earlier today", (a) => a.t <= NOW - 60 && a.t >= hm(6, 0)],
+          ["Overnight", (a) => a.t < hm(6, 0)],
+        ];
+
+        const frac = (t) => (t - (NOW - 1440)) / 1440;
+        // A fixed inset keeps the newest light inside the band at any width.
+        const at = (t) => `calc(18px + (100% - 36px) * ${frac(t)})`;
+        const ticks = [-24, -18, -12, -6].map((h) => NOW + h * 60);
+        let lane = 0;
+        let prev = -Infinity;
+        const lightHtml = lights
+          .map((a) => {
+            lane = a.t - prev < 40 ? (lane + 1) % 3 : 0;
+            prev = a.t;
+            const y = [50, 28, 72][lane];
+            const label = a.src
+              ? `${clock(a.t)} ${a.title}`
+              : `${clock(a.t)} ${a.title} ${a.verb}`;
+            return `<button class="light ${a.tone} dim" style="left:${at(a.t)};top:${y - 8}%" data-target="${a.id}" aria-label="${label}" title="${label}"></button>`;
+          })
+          .join("");
+
+        page.innerHTML = `
+          <section class="brief" aria-label="Situation">
+            <h1>Overview</h1>
+            <ul class="pulse">${s.pulse.map(([tone, text]) => `<li><span class="dot ${tone}"></span>${text}</li>`).join("")}</ul>
+          </section>
+
+          <section class="day" aria-label="Last 24 hours">
+            <div class="day-head"><strong>Last 24 hours</strong><span>${lights.length} events</span></div>
+            <div class="band">
+              <div class="night" style="left:${at(hm(-2, 0))};width:calc((100% - 36px) * ${frac(hm(6, 0)) - frac(hm(-2, 0))})"></div>
+              ${ticks.map((t) => `<div class="tick" style="left:${at(t)}"><span>${clock((t + 1440) % 1440)}</span></div>`).join("")}
+              <div class="now" title="Now, 16:40"></div>
+              ${lightHtml}
+            </div>
+            <div class="legend">
+              <span><span class="dot good"></span>Done</span>
+              <span><span class="dot"></span>Changed</span>
+              <span><span class="dot warn"></span>Waiting on you</span>
+              <span><span class="dot error"></span>Failed</span>
+            </div>
+          </section>
+
+          <div class="grid">
+            <div class="col">
+              ${
+                s.asks.length
+                  ? `<section aria-labelledby="needs">
+                      <div class="section-head"><h2 id="needs">Needs you</h2><span class="count">${s.asks.length}</span><span class="aside">Most urgent first</span></div>
+                      <ol class="queue">${s.asks
+                        .map(
+                          (
+                            a,
+                          ) => `<li class="ask ${a.tone}" id="${a.id}"><span class="rail"></span><div class="body">
+                            <div class="src"><span>${a.src}</span><time>${ago(a.t)}</time></div>
+                            <h3>${a.title}</h3><p>${a.text}</p>
+                            <div class="actions">${a.actions.map(([l, p]) => `<button class="btn${p ? " primary" : ""}">${l}</button>`).join("")}</div>
+                          </div></li>`,
+                        )
+                        .join("")}</ol>
+                    </section>`
+                  : ""
+              }
+              <section aria-labelledby="happened">
+                <div class="section-head"><h2 id="happened">What happened</h2></div>
+                <div class="log">${groups
+                  .map(([label, test]) => {
+                    const rows = activity.filter(test);
+                    if (!rows.length) return "";
+                    return `<div><h3>${label}</h3><ol>${rows
+                      .map(
+                        (
+                          a,
+                        ) => `<li id="${a.id}"><time>${clock((a.t + 1440) % 1440)}</time><span class="dot ${a.tone}"></span>
+                          <span class="what"><a href="#">${a.title}</a> <span>${a.verb}</span><small>${a.type}${a.note ? `. ${a.note}` : ""}</small></span></li>`,
+                      )
+                      .join("")}</ol></div>`;
+                  })
+                  .join("")}</div>
+              </section>
+            </div>
+
+            <div class="col">
+              <section aria-labelledby="sources">
+                <div class="section-head"><h2 id="sources">Sources</h2></div>
+                <div class="ledger">${sources(s)
+                  .map(
+                    (
+                      src,
+                    ) => `<details><summary><span class="name">${src.name}</span><span class="figs">${src.figsHtml ?? src.figs.map(fig).join("")}</span></summary>
+                      <div class="detail"><ul>${src.detail.map(([k, v]) => `<li><span>${k}</span><span>${v}</span></li>`).join("")}</ul><a href="#">${src.link}</a></div></details>`,
+                  )
+                  .join("")}</div>
+              </section>
+              <section aria-labelledby="brain">
+                <div class="section-head"><h2 id="brain">Brain</h2></div>
+                <dl class="brain">
+                  <div><dt>Runtime</dt><dd>${s.runtime}</dd></div>
+                  <div><dt>Jobs</dt><dd>${s.jobs}</dd></div>
+                  <div><dt>Version</dt><dd>0.48.2</dd></div>
+                  <div><dt>Failed jobs today</dt><dd>${stateKey === "busy" ? 1 : 0}</dd></div>
+                  <div><dt>Channels</dt><dd>4</dd></div>
+                  <div><dt>Inbox sources</dt><dd>3 of 3 online</dd></div>
+                  <div><dt>Interactions</dt><dd>6</dd></div>
+                  <div><dt>Entity types</dt><dd>21</dd></div>
+                </dl>
+              </section>
+            </div>
+          </div>`;
+
+        // One orchestrated moment: the day's lights come on left to right.
+        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        page.querySelectorAll(".light").forEach((el, i) => {
+          if (reduce) el.classList.add("on");
+          else setTimeout(() => el.classList.add("on"), 120 + i * 70);
+          el.addEventListener("click", () => {
+            page
+              .querySelectorAll(".is-active")
+              .forEach((n) => n.classList.remove("is-active"));
+            el.classList.add("is-active");
+            const row = document.getElementById(el.dataset.target);
+            if (!row) return;
+            row.classList.add("is-active");
+            row.scrollIntoView({
+              block: "nearest",
+              behavior: reduce ? "auto" : "smooth",
+            });
+          });
+        });
+      }
+
+      const state = { state: "busy" };
+      document.querySelectorAll(".seg").forEach((seg) => {
+        seg.addEventListener("click", (event) => {
+          const button = event.target.closest("button");
+          if (!button) return;
+          seg
+            .querySelectorAll("button")
+            .forEach((b) =>
+              b.setAttribute("aria-pressed", String(b === button)),
+            );
+          const key = seg.dataset.control;
+          const value = button.dataset.value;
+          if (key === "climate")
+            document.documentElement.dataset.climate = value;
+          if (key === "viewport")
+            document.getElementById("device").dataset.viewport = value;
+          if (key === "state") render(value);
+        });
+      });
+      render(state.state);
+    </script>
+  </body>
+</html>

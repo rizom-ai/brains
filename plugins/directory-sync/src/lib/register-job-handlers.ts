@@ -2,6 +2,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { IDirectorySync } from "../types";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import type { GitReconciliationService } from "./git-reconciliation";
 import {
   DirectoryExportJobHandler,
   DirectoryImportJobHandler,
@@ -21,6 +22,7 @@ export function registerDirectorySyncJobHandlers(
   logger: Logger,
   getDirectorySync: () => IDirectorySync = () => directorySync,
   operationStatus?: DirectorySyncOperationStatusService,
+  reconciliation?: Pick<GitReconciliationService, "requireFullScan">,
 ): void {
   const childLogger = (name: string): Logger => logger.child(name);
 
@@ -48,6 +50,7 @@ export function registerDirectorySyncJobHandlers(
       context,
       directorySync,
       operationStatus,
+      reconciliation,
     ),
   );
   context.jobs.registerHandler(

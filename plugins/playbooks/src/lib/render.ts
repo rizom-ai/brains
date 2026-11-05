@@ -1,10 +1,10 @@
 /**
  * Render
  *
- * Operator/agent-facing text for playbook runs: per-state guidance, the
- * active-playbook agent context item, and the plugin's registered
- * instructions. Pure functions over run/playbook data — store lookups
- * stay in the plugin and results are passed in.
+ * Operator/agent-facing text for playbook runs: the active-playbook agent
+ * context item and the plugin's registered instructions. Pure functions
+ * over run/playbook data — store lookups stay in the plugin and results
+ * are passed in.
  */
 
 import type { AgentContextItem } from "@brains/contracts";
@@ -15,65 +15,7 @@ import {
   formatVerifierStatus,
   getBlockedTransitions,
   getValidTransitions,
-  sameGoal,
 } from "./run-machine";
-
-export function buildStateGuidance(
-  run: PlaybookRun,
-  body: PlaybookBody,
-  state: PlaybookState,
-): string {
-  const allValidTransitions = getValidTransitions(run, body, state);
-  const validTransitions = allValidTransitions.filter(
-    (transition) => transition.operatorAction !== true,
-  );
-  const operatorActions = allValidTransitions.filter(
-    (transition) => transition.operatorAction === true,
-  );
-  const blockedTransitions = getBlockedTransitions(run, body, state);
-  const verdict = run.gateVerdicts.find(
-    (candidate) =>
-      candidate.stateId === state.id &&
-      sameGoal(candidate.goal, state.doneWhen),
-  );
-  return [
-    `Current state: ${state.id} (${state.title})`,
-    "Instructions:",
-    ...state.instructions.map((instruction) => `- ${instruction}`),
-    "Done When:",
-    ...(state.doneWhen.length > 0
-      ? state.doneWhen.map((condition) => `- ${condition}`)
-      : ["- none"]),
-    "Goal status:",
-    verdict
-      ? `- ${verdict.met ? "Met" : "Not yet met"}: ${verdict.reason}`
-      : "- Not checked yet.",
-    "Current-state information rules:",
-    "- If this state asks the operator for information, ask the operator for the missing current-run information.",
-    "- If the current operator message partially answers the state's prompt, do not repeat the original prompt; ask only for the next missing detail required by the state instructions.",
-    "- Do not answer the state's operator-facing prompt from memory, existing durable records, profile data, search, or retrieval tools.",
-    "- Setup facts must come from current-run evidence or current operator input, not ambient records.",
-    "Event selection rules:",
-    "- Blocked events are not valid events; do not call playbook_manage action=send-event with a blocked event.",
-    "- For gated durable states, operator-provided details are not enough to send NEXT; first complete the required system_create/system_update/system_delete action or use existing current-run evidence that the Done When condition has already been met.",
-    "- If the operator explicitly says they have not chosen, selected, asked for, or used one of the available actions, do not send any event.",
-    '- Operator actions and choices are not generic continuation events; even if only one operator action is available, generic continuation like "yes", "next", or "continue" is not a valid selection.',
-    "- If multiple events are available, ask the operator to pick one labeled action.",
-    "- A Skip-style operator action is never a default continuation; send it only when the operator positively selects or asks to skip.",
-    "Valid continuation events:",
-    ...(validTransitions.length > 0
-      ? validTransitions.map((transition) => formatTransition(transition))
-      : ["- none"]),
-    "Available operator actions:",
-    ...(operatorActions.length > 0
-      ? operatorActions.map((transition) => formatTransition(transition))
-      : ["- none"]),
-    "Blocked events:",
-    ...(blockedTransitions.length > 0
-      ? blockedTransitions.map((transition) => formatTransition(transition))
-      : ["- none"]),
-  ].join("\n");
-}
 
 export function renderAgentContextItem(input: {
   run: PlaybookRun;
@@ -135,6 +77,7 @@ A playbook event does not replace ordinary domain tools requested in the same op
 After a playbook event advances the run, call playbook_manage action=status and answer from the refreshed current state. If playbook_manage returns currentState.prompt, use that prompt as the final answer for the next step unless the same operator message answers or partially answers that prompt, or includes a concrete request with the necessary content and target details for the new state. If the same operator message answers partially, ask only for the next missing detail required by the state instructions. If the same operator message includes a concrete request, satisfy it in the same turn instead of waiting for another message. Do not infer missing setup details from memory or existing profile data just because the event reached a setup state.
 If the operator gives an ambiguous continuation like 'go ahead' after you offered a next playbook action, continue that offered action or ask which option they mean; do not start unrelated maintenance tasks.
 Do not set arbitrary current states or claim a state is complete yourself. Advance by calling playbook_manage action=send-event with a valid event; the runtime goal check decides whether gated transitions are allowed.
+Blocked events are not valid events; do not call playbook_manage action=send-event with a blocked event. For gated durable states, operator-provided details are not enough to send NEXT; first complete the required system_create/system_update/system_delete action or use existing current-run evidence that the Done When condition has already been met.
 Treat setup facts as current-run evidence: unless the operator provided them in this run or they appear in active-run evidence, do not fill missing playbook requirements from ambient memory or existing durable records.
 When the current playbook state asks the operator for information, ask the operator; do not answer the prompt yourself from memory, knowledge search, or existing durable records. If the current operator message appears to answer the current state's operator-facing prompt, use all relevant details in that message as current-run information, then follow the state instructions: act when its requirements are satisfied, or ask only for the next missing required detail instead of repeating the same prompt. If the message only partially satisfies the current state's listed requirements, do not call unrelated durable mutation tools such as system_create or system_update for that state yet; ask for the next missing required detail. If the operator explicitly selects a valid event or operator action such as Skip, send that event instead of asking for the missing information.
 Do not behave like a form. Ask one question at a time unless the playbook state says otherwise.

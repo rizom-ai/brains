@@ -44,8 +44,8 @@ test("compiled tables preserve cell hierarchy, alignment and source-authored com
       doc.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
       doc.body.innerHTML = html;
       const table = doc.querySelector("table"),
-        compact = doc.querySelector(".declarative-compact-rows"),
-        scroll = doc.querySelector(".declarative-table-scroll");
+        compact = doc.querySelector("[data-compact-rows]"),
+        scroll = doc.querySelector("[data-table-scroll]");
       if (!table || !compact || !scroll) throw Error("Missing table structure");
       const rows = Array.from(table.querySelectorAll("tbody tr"));
       const authored = rows[0],

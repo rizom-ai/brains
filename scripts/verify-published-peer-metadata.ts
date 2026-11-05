@@ -6,6 +6,7 @@ import {
 } from "@brains/build-tools";
 import { getPackages } from "@manypkg/get-packages";
 import { readPackageManifestFromTarball } from "./lib/package-tarball";
+import { findSitePublishTargets } from "./lib/site-publish-targets";
 import { RegistryNotReady, untilPublished } from "./lib/registry-propagation";
 
 interface RegistryVersionMetadata extends PublishedPackageManifest {
@@ -14,39 +15,9 @@ interface RegistryVersionMetadata extends PublishedPackageManifest {
 
 const repositoryRoot = process.cwd();
 const packages = await getPackages(repositoryRoot);
-const targets: PublishedCompatibilityTarget[] = [];
-
-for (const { packageJson } of packages.packages) {
-  const name = packageJson.name;
-  const scripts =
-    isRecord(packageJson) && isRecord(packageJson["scripts"])
-      ? packageJson["scripts"]
-      : undefined;
-  if (
-    packageJson.private === true ||
-    scripts?.["prepack"] !== "publish-manifest prepare" ||
-    (!name.startsWith("@rizom/site-") && !name.startsWith("@rizom/theme-"))
-  ) {
-    continue;
-  }
-
-  const authoringPeers = isRecord(packageJson)
-    ? packageJson["publishPeerDependencies"]
-    : undefined;
-  const brainRange = isRecord(authoringPeers)
-    ? authoringPeers["@rizom/brain"]
-    : undefined;
-  if (typeof brainRange !== "string") {
-    throw new Error(
-      `${name} is a deployable site/theme package but does not declare publishPeerDependencies["@rizom/brain"]`,
-    );
-  }
-  targets.push({ name, version: packageJson.version, brainRange });
-}
-
-if (targets.length === 0) {
-  throw new Error("No deployable site/theme compatibility targets found");
-}
+const targets = findSitePublishTargets(packages.packages).map(
+  ({ target }) => target,
+);
 
 await Promise.all(targets.map((target) => verifyWithRetries(target)));
 console.log(
@@ -129,8 +100,4 @@ async function fetchTarballManifest(
     await response.blob(),
     `${target.name}@${target.version}`,
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -15,6 +15,7 @@ import type {
   GitReconciliationDelta,
 } from "../../src/types";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
+import { createMockEntityService } from "@brains/entity-service/test";
 import type { MatchesHead } from "../../src/lib/file-watcher";
 
 const BASELINE: GitReconciliationCheckpoint = {
@@ -51,6 +52,202 @@ function incremental(
   };
 }
 
+function createTypedContext(entityTypes: string[]): {
+  context: ServicePluginContext;
+  setEntityTypes: (types: string[]) => void;
+} {
+  let current = entityTypes;
+  const entityService = createMockEntityService({ entityTypes });
+  entityService.getEntityTypes = mock(() => current);
+  entityService.hasEntityType = mock((type: string) => current.includes(type));
+  return {
+    context: {
+      ...createMockServicePluginContext({ entityService }),
+      runtimeState: createMockShell().getRuntimeState(),
+    },
+    setEntityTypes: (types): void => {
+      current = types;
+    },
+  };
+}
+
+function fullOrIncremental(): ReturnType<
+  typeof mock<
+    (
+      checkpoint?: GitReconciliationCheckpoint,
+    ) => Promise<GitReconciliationDelta>
+  >
+> {
+  return mock(
+    async (
+      checkpoint?: GitReconciliationCheckpoint,
+    ): Promise<GitReconciliationDelta> =>
+      checkpoint
+        ? incremental()
+        : { mode: "full", checkpoint: TARGET, reason: "missing-checkpoint" },
+  );
+}
+
+const QUEUED = {
+  batchId: "batch-1",
+  operationCount: 2,
+  exportOperationsCount: 0,
+  importOperationsCount: 1,
+  totalFiles: 2,
+};
+
+describe("GitReconciliationService entity-type coverage", () => {
+  it("rescans every file once the registered entity types changed", async () => {
+    // A brain that gains a type (guides) has files of that type that every
+    // earlier sync skipped while the checkpoint moved past them. The delta
+    // since the checkpoint never lists them again, so only a full scan can.
+    const { context, setEntityTypes } = createTypedContext(["doc"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE, ["doc"]);
+    setEntityTypes(["doc", "guide"]);
+    const getReconciliationDelta = fullOrIncremental();
+    const queueSyncBatch = mock(async () => QUEUED);
+    const options = {
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({ queueSyncBatch }),
+      context,
+      source: "periodic-sync",
+    };
+
+    const first = await service.pullAndQueue(options);
+    const second = await service.pullAndQueue(options);
+
+    expect(getReconciliationDelta.mock.calls).toEqual([[undefined], [TARGET]]);
+    expect(first.mode).toBe("full");
+    expect(queueSyncBatch).toHaveBeenNthCalledWith(
+      1,
+      context,
+      "periodic-sync",
+      undefined,
+    );
+    expect(second.mode).toBe("incremental");
+  });
+
+  it("rescans every file once when the checkpoint never recorded its entity types", async () => {
+    const { context } = createTypedContext(["doc", "guide"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE);
+    const getReconciliationDelta = fullOrIncremental();
+
+    await service.pullAndQueue({
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({
+        queueSyncBatch: mock(async () => QUEUED),
+      }),
+      context,
+      source: "periodic-sync",
+    });
+
+    expect(getReconciliationDelta).toHaveBeenCalledWith(undefined);
+  });
+
+  it("keeps the recorded entity types when an export advances the checkpoint", async () => {
+    // Auto-commit saves the checkpoint of the brain's own pushes. That says
+    // nothing about which types the last scan covered.
+    const { context, setEntityTypes } = createTypedContext(["doc"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE, ["doc"]);
+    setEntityTypes(["doc", "guide"]);
+    await service.saveCheckpoint(TARGET);
+    const getReconciliationDelta = fullOrIncremental();
+
+    await service.pullAndQueue({
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({
+        queueSyncBatch: mock(async () => QUEUED),
+      }),
+      context,
+      source: "periodic-sync",
+    });
+
+    expect(getReconciliationDelta).toHaveBeenCalledWith(undefined);
+  });
+
+  it("rescans every file after a full scan was required, then resumes the delta", async () => {
+    const { context } = createTypedContext(["doc"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE, ["doc"]);
+    await service.requireFullScan();
+    const getReconciliationDelta = fullOrIncremental();
+    const options = {
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({
+        queueSyncBatch: mock(async () => QUEUED),
+      }),
+      context,
+      source: "periodic-sync",
+    };
+
+    await service.pullAndQueue(options);
+    await service.pullAndQueue(options);
+
+    expect(getReconciliationDelta.mock.calls).toEqual([[undefined], [TARGET]]);
+  });
+
+  it("keeps a full-scan request that arrives while a scan is being queued", async () => {
+    const { context } = createTypedContext(["doc"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE, ["doc"]);
+    await service.requireFullScan();
+    const getReconciliationDelta = fullOrIncremental();
+    const queueSyncBatch = mock(async () => {
+      if (queueSyncBatch.mock.calls.length === 1) {
+        await service.requireFullScan();
+      }
+      return QUEUED;
+    });
+    const options = {
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({ queueSyncBatch }),
+      context,
+      source: "periodic-sync",
+    };
+
+    await service.pullAndQueue(options);
+    await service.pullAndQueue(options);
+    await service.pullAndQueue(options);
+
+    expect(getReconciliationDelta.mock.calls).toEqual([
+      [undefined],
+      [undefined],
+      [TARGET],
+    ]);
+  });
+
+  it("does not rescan while entity types are still registering, and rescans once they are", async () => {
+    // Replays during plugin registration see only the types registered so
+    // far. A full scan then would skip the rest and consume a pending
+    // request; the types it did cover make the next complete sync rescan.
+    const { context, setEntityTypes } = createTypedContext(["doc"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE, ["doc", "guide"]);
+    await service.requireFullScan();
+    const getReconciliationDelta = fullOrIncremental();
+    const options = {
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({
+        queueSyncBatch: mock(async () => QUEUED),
+      }),
+      context,
+      source: "startup-replay",
+    };
+
+    await service.replayAndQueue({ ...options, entityTypesIncomplete: true });
+    setEntityTypes(["doc", "guide"]);
+    await service.replayAndQueue(options);
+
+    expect(getReconciliationDelta.mock.calls).toEqual([
+      [BASELINE],
+      [undefined],
+    ]);
+  });
+});
+
 describe("GitReconciliationService", () => {
   it("queues nothing once its caller has aborted", async () => {
     // The lease used to carry the abort: `withLock(fn, signal)` refused a
@@ -58,7 +255,7 @@ describe("GitReconciliationService", () => {
     // stated here, or a shutdown mid-replay still enqueues a batch.
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
     const queueSyncBatch = mock(async () => null);
     const getReconciliationDelta = mock(async () => incremental());
 
@@ -84,7 +281,7 @@ describe("GitReconciliationService", () => {
   it("pulls, durably queues the checkpoint delta, then advances the checkpoint", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
     const calls: string[] = [];
     const pull = mock(async () => {
       calls.push("pull");
@@ -163,7 +360,7 @@ describe("GitReconciliationService", () => {
     // checkpoint lists those files again. Importing them can only skip.
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
     const queueSyncBatch = mock(async () => ({
       batchId: "batch-1",
       operationCount: 2,
@@ -210,7 +407,7 @@ describe("GitReconciliationService", () => {
   it("advances without a batch when every change is the brain's own export", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
     const queueSyncBatch = mock(async (): Promise<null> => null);
     const ignorePulledWatchPaths = mock(
       (_paths: string[], _matchesHead: MatchesHead) => {},
@@ -244,7 +441,7 @@ describe("GitReconciliationService", () => {
   it("does not advance when changed work could not be queued", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
 
     const result = await service.pullAndQueue({
       gitSync: createMockGitSync({
@@ -299,7 +496,7 @@ describe("GitReconciliationService", () => {
   it("queues every file past an existing checkpoint when asked for a full reconciliation", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
     const getReconciliationDelta = mock(
       async (
         checkpoint?: GitReconciliationCheckpoint,
@@ -337,7 +534,7 @@ describe("GitReconciliationService", () => {
   it("advances a no-change checkpoint without allocating a batch", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
-    await service.saveCheckpoint(BASELINE);
+    await service.saveCheckpoint(BASELINE, []);
     const queueSyncBatch = mock(async () => {
       throw new Error("no batch expected");
     });
@@ -364,7 +561,10 @@ describe("GitReconciliationService", () => {
       ...createMockServicePluginContext(),
       runtimeState,
     };
-    await new GitReconciliationService(runtimeState).saveCheckpoint(BASELINE);
+    await new GitReconciliationService(runtimeState).saveCheckpoint(
+      BASELINE,
+      [],
+    );
     const queueSyncBatch = mock(async () => ({
       batchId: "replayed-batch",
       operationCount: 1,
@@ -420,6 +620,7 @@ describe("GitReconciliationService", () => {
       const beforeCrash = new GitReconciliationService(runtimeState);
       await beforeCrash.saveCheckpoint(
         (await gitSync.getReconciliationDelta(undefined)).checkpoint,
+        [],
       );
 
       await runGit(["clone", remoteDir, writerDir], root);

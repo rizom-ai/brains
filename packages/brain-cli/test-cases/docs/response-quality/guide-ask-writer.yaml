@@ -1,0 +1,31 @@
+id: docs-guide-ask-writer
+name: A writer is pointed to the writer guide
+description: >-
+  A visitor to the doc-brain describes themselves as a writer whose drafts live
+  in Google Docs. The answer comes from the writer guide (download each draft as
+  Markdown, upload it in chat to keep as a note) and cites the guide at its page.
+type: response_quality
+setup:
+  permissionLevel: public
+tags:
+  - recipe-docs
+  - docs
+  - guides
+  - search
+
+turns:
+  - userMessage: "I'm a writer with everything in Google Docs. Where do I start?"
+
+successCriteria:
+  expectedSources:
+    - id: guide:writer
+      url: https://docs.rizom.ai/guides/writer
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  responseCriteria:
+    - "Tells the writer to start by moving their drafts in: download each Google Doc as Markdown and upload it in chat to keep as a note."
+    - "Does not claim the brain imports directly from Google Docs."
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 40000

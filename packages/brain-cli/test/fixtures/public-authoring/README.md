@@ -91,7 +91,7 @@ shows the stable composition path:
 The `digest` template and `digest` view deliberately reuse the exact
 `digestResult` schema object. The template produces Markdown; the view produces
 web output. Neither is the entity's optional persistence Markdown codec, and a
-site route's `template: "library.hero"` is a section reference rather than a
+site route's `template: "library:hero"` is a section reference rather than a
 service formatter.
 
 ## What to copy

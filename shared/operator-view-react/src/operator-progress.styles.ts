@@ -10,10 +10,7 @@ export const progressStyles: Record<
   | "state"
   | "detail"
   | "time"
-  | "bar"
-  | "good"
-  | "warn"
-  | "error",
+  | "bar",
   stylex.StyleXStyles
 > = stylex.create({
   meters: {
@@ -87,9 +84,6 @@ export const progressStyles: Record<
     fontSize: 10,
     overflowWrap: "anywhere",
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   bar: {
     display: "block",
     width: "100%",

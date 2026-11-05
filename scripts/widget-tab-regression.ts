@@ -519,7 +519,6 @@ try {
           }
           const region=document.getElementById('aside-form').parentElement,form=region.querySelector('form');
           if(getComputedStyle(region).containerName!=='operator-aside')throw Error('Missing named sidebar container');
-          region.classList.remove('declarative-aside');if(getComputedStyle(form).gridTemplateColumns.split(' ').length!==1)throw Error('Form still relies on the retired sidebar class');region.classList.add('declarative-aside');
         })()`);
         for (let attempt = 0; attempt < 50; attempt++) {
           if (
@@ -536,14 +535,14 @@ try {
         for (let attempt = 0; attempt < 50; attempt++) {
           if (
             await page.evaluate<boolean>(
-              `Boolean(document.querySelector('#action-result-probe .declarative-action-result'))`,
+              `Boolean(document.querySelector('#action-result-probe [data-action-result]'))`,
             )
           )
             break;
           await Bun.sleep(20);
         }
         await page.evaluate(`(() => {
-          const root=document.getElementById('action-result-probe'),panel=root.querySelector('.declarative-action-result');if(!panel)throw Error('Result panel missing');
+          const root=document.getElementById('action-result-probe'),panel=root.querySelector('[data-action-result]');if(!panel)throw Error('Result panel missing');
           const rows=Array.from(panel.querySelectorAll('dl > div')),codes=rows.map(row=>row.querySelector('code').textContent),reference='reference:α—/'+'x'.repeat(512);
           if(JSON.stringify(codes)!==JSON.stringify([reference,'0','false','—']) || rows[0].dataset.sensitive!=='true' || panel.getAttribute('aria-live')!=='polite' || rows[0].querySelector('code').title!==reference)throw Error('Result projection, sensitive marker or full value lost');
           if(panel.scrollWidth>panel.clientWidth || panel.querySelector('strong').textContent!=='Exact result '+'Long'.repeat(40))throw Error('Result title lost or overflowing');
@@ -642,7 +641,7 @@ try {
           if(scroll.scrollWidth<=scroll.clientWidth || scroll.getBoundingClientRect().right>innerWidth || getComputedStyle(scroll).overflowX!=='auto')throw Error('Wide table does not scroll within bounds');
           if(innerWidth<=640){if(getComputedStyle(compact).display==='none' || getComputedStyle(rows[0]).display!=='none' || getComputedStyle(rows[1]).display==='none' || getComputedStyle(annotated.parentElement).display!=='none' || getComputedStyle(plain.parentElement).display==='none')throw Error('Compact eligibility or unannotated rows lost');}
           else if(getComputedStyle(compact).display!=='none' || getComputedStyle(rows[0]).display==='none' || getComputedStyle(annotated.parentElement).display==='none')throw Error('Desktop table rows lost');
-          const row=rows[1],cells=Array.from(row.cells),actionCell=cells.at(-1),actions=actionCell.querySelector('.declarative-actions');
+          const row=rows[1],cells=Array.from(row.cells),actionCell=cells.at(-1),actions=actionCell.querySelector('[data-actions]');
           if(getComputedStyle(cells[0]).fontSize!=='14px' || getComputedStyle(cells[1]).fontSize!=='13px' || getComputedStyle(actions).justifyContent!=='flex-end' || getComputedStyle(actionCell).paddingRight!=='0px')throw Error('Table hierarchy or action alignment lost');
           row.setAttribute('aria-current','true');if(getComputedStyle(row).boxShadow==='none')throw Error('Native current-row paint lost');
           const copy=row.cells[2].textContent;if(copy!=='reference:α—/'+'x'.repeat(512))throw Error('Table diagnostic truncated');

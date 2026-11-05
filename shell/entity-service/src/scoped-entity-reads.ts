@@ -12,6 +12,15 @@ export interface EntityReadScope {
   visibilityScope?: ContentVisibility | undefined;
 }
 
+type RawReads = Pick<ICoreEntityService, "getEntityRaw">;
+
+/** Services that offer raw lookups get them scoped too; read-only views have none. */
+function hasRawReads(service: object): service is RawReads {
+  return (
+    "getEntityRaw" in service && typeof service.getEntityRaw === "function"
+  );
+}
+
 type ScopedReads = Pick<
   ICoreEntityService,
   | "listEntities"
@@ -71,6 +80,15 @@ export function scopeEntityReads<T extends ScopedReads>(
           // The configured scope always replaces the caller's; unset, the
           // store fails closed to public.
           target.getEntity({
+            ...request,
+            visibilityScope,
+            ...(publishedOnly && { publishedOnly: true }),
+          });
+      }
+      // The raw form skips image inlining, never the scope.
+      if (prop === "getEntityRaw" && hasRawReads(target)) {
+        return (request: Parameters<RawReads["getEntityRaw"]>[0]) =>
+          target.getEntityRaw({
             ...request,
             visibilityScope,
             ...(publishedOnly && { publishedOnly: true }),

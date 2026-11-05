@@ -25,6 +25,7 @@ import {
   evaluateCriteria,
   evaluateEfficiency,
   evaluateQualityThresholds,
+  type ResponseSource,
 } from "./criteria-evaluator";
 import { isRecord } from "@brains/utils/is-record";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -32,6 +33,15 @@ import { definedFields } from "@brains/utils/strip-undefined";
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
 type ToolApprovalCard = Extract<AgentResponseCard, { kind: "tool-approval" }>;
+
+/** The sources a reply shows beside its answer, from its sources cards. */
+function responseSources(response: AgentResponse): ResponseSource[] {
+  return (response.cards ?? []).flatMap((card) =>
+    card.kind === "sources"
+      ? card.sources.map(({ id, url }) => ({ id, ...definedFields({ url }) }))
+      : [],
+  );
+}
 
 function isToolApprovalCard(card: AgentResponseCard): card is ToolApprovalCard {
   return card.kind === "tool-approval";
@@ -124,6 +134,7 @@ export class TestRunner implements ITestRunner {
     const baseContext = this.buildChatContext(testCase);
     let pendingApprovalIds: string[] = [];
     let previousAttachments: ChatAttachment[] = [];
+    let lastSources: ResponseSource[] = [];
 
     for (let i = 0; i < testCase.turns.length; i++) {
       const turn = testCase.turns[i];
@@ -187,8 +198,13 @@ export class TestRunner implements ITestRunner {
       });
 
       const toolCalls = collector.getToolCallsForTurn(i);
+      lastSources = responseSources(response);
       const turnCriteriaResults = turn.successCriteria
-        ? evaluateCriteria(turn.successCriteria, response, toolCalls)
+        ? evaluateCriteria(
+            turn.successCriteria,
+            { text: response.text, sources: lastSources },
+            toolCalls,
+          )
         : [];
 
       turnResults.push({
@@ -221,7 +237,10 @@ export class TestRunner implements ITestRunner {
 
     const finalCriteriaFailures = evaluateCriteria(
       testCase.successCriteria,
-      { text: turnResults.at(-1)?.assistantResponse ?? "" },
+      {
+        text: turnResults.at(-1)?.assistantResponse ?? "",
+        sources: lastSources,
+      },
       collector.getAllToolCalls(),
     ).filter((result) => !result.passed);
     failures.push(...finalCriteriaFailures);

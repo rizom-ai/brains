@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import type { ComponentProps, ReactElement } from "react";
 import { mapStyles as s } from "./operator-map.styles";
 import { styledProps } from "./styled-props";
@@ -88,14 +89,7 @@ export function OperatorMapSummary(
           </dd>
         </dl>
       ))}
-      <p
-        {...stylex.props(
-          s.status,
-          tone === "good" && s.good,
-          tone === "warn" && s.warn,
-        )}
-        data-tone={tone}
-      >
+      <p {...stylex.props(s.status, toneText(tone))} data-tone={tone}>
         <i {...stylex.props(s.statusDot)} aria-hidden="true" />
         {status}
       </p>

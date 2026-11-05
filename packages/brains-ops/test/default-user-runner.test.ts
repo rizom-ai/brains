@@ -75,6 +75,27 @@ describe("createDefaultUserRunner", () => {
     expect(result.contentRepoFiles?.[0]?.content).not.toContain("kind:");
   });
 
+  it("renders the user's shared conversation spaces", async () => {
+    const runner = createDefaultUserRunner("rizom-team");
+
+    const result = await runner({
+      ...baseUser,
+      spaces: ["discord:1466324999475429386"],
+    });
+
+    expect(fromYaml(result.brainYaml ?? "")).toMatchObject({
+      spaces: ["discord:1466324999475429386"],
+    });
+  });
+
+  it("renders no spaces when the user names none", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner(baseUser);
+
+    expect(fromYaml(result.brainYaml ?? "")).not.toHaveProperty("spaces");
+  });
+
   it("renders the composition profile kind from the user override", async () => {
     const runner = createDefaultUserRunner("rizom-ai");
 

@@ -133,6 +133,11 @@ export class SiteBuilderPlugin extends ServicePlugin<
       getViewTemplate: (name) => context.views.get(name),
       listViewTemplateNames: (): string[] =>
         context.views.list().map((template) => template.name),
+      hasSavedContent: async (id): Promise<boolean> =>
+        (await context.entityService.getEntity({
+          entityType: "site-content",
+          id,
+        })) !== null,
     };
 
     // Initialize site builder
@@ -167,6 +172,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
+          ...(this.config.languages && { languages: this.config.languages }),
           statusService: this.buildStatusService,
         },
       ),
@@ -416,9 +422,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   protected override async getInstructions(): Promise<string | undefined> {
     const context = this.getContext();
-    const buildInstructions = `## Site Builder Actions
-- When the user asks to build, rebuild, publish, or build the website/site again, call \`site-builder_build-site\` immediately.
-- Every repeated build request requires a fresh \`site-builder_build-site\` call. Do not say a build was started, queued, or requested unless this turn invoked the tool.`;
 
     const siteMetadata = await resolveSiteMetadata(
       context.messaging.send,
@@ -430,7 +433,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
       context.domain && `**Domain:** ${context.domain}`,
       context.siteUrl && `**URL:** ${context.siteUrl}`,
     ].filter(Boolean);
-    return `## Your Site\n${parts.join("\n")}\n\n${buildInstructions}`;
+    return `## Your Site\n${parts.join("\n")}`;
   }
 
   protected override async onShutdown(): Promise<void> {

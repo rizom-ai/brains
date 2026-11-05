@@ -9,6 +9,7 @@ import {
   type HomepageListData,
 } from "../src/templates/homepage-list";
 import { professionalProfileSchema } from "../src/schemas";
+import { blogViewSchema, type BlogPostView } from "@brains/blog";
 
 /**
  * Pins what the professional site ships around the atlas, so moving the
@@ -116,6 +117,55 @@ const page: HomepageListData = {
   },
 };
 
+const post = (
+  id: string,
+  overrides: {
+    publishedAt?: string | null;
+    seriesName?: string | null;
+    seriesIndex?: number | null;
+  } = {},
+): BlogPostView => ({
+  ...blogViewSchema.parse({
+    id,
+    entityType: "post",
+    content: "",
+    created: "2026-01-02T00:00:00.000Z",
+    updated: "2026-01-02T00:00:00.000Z",
+    visibility: "public",
+    contentHash: "hash",
+    body: "",
+    metadata: {
+      title: `Title ${id}`,
+      status: "published",
+      slug: id,
+      publishedAt: overrides.publishedAt ?? null,
+    },
+    frontmatter: {
+      title: `Title ${id}`,
+      status: "published",
+      excerpt: `Excerpt ${id}`,
+      author: "Jan Hein Hoogstad",
+      seriesName: overrides.seriesName ?? null,
+      seriesIndex: overrides.seriesIndex ?? null,
+    },
+  }),
+  url: `/essays/${id}`,
+  typeLabel: "Essay",
+  listUrl: "/essays",
+  listLabel: "Essays",
+});
+
+const posts: BlogPostView[] = [
+  post("standalone", { publishedAt: "2026-03-04T00:00:00.000Z" }),
+  post("in-series", {
+    publishedAt: "2026-02-03T00:00:00.000Z",
+    seriesName: "New Institutions",
+    seriesIndex: 2,
+  }),
+  post("unpublished-date"),
+  post("series-without-index", { seriesName: "Orphaned" }),
+];
+
 const siteInfo: SiteLayoutInfo = {
   title: "yeehaa",
   description: "Building something inhabitable.",
@@ -152,6 +202,14 @@ describe("professional homepage pin", () => {
   it("renders the opening without a map", () => {
     expect(
       renderToStaticMarkup(<HomepageListLayout {...page} atlas={null} />),
+    ).toMatchSnapshot();
+  });
+
+  it("renders the editorial homepage with essays", () => {
+    expect(
+      renderToStaticMarkup(
+        <HomepageListLayout {...page} homepageOpening={false} posts={posts} />,
+      ),
     ).toMatchSnapshot();
   });
 

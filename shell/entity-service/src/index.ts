@@ -160,6 +160,9 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateQuestion,
+  CreateCheck,
+  CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,
@@ -248,6 +251,7 @@ export {
 
 export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export {
+  ENTITY_SYSTEM_FIELDS,
   entityTitle,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

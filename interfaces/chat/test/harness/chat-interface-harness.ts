@@ -356,6 +356,27 @@ export class MockChatSdk {
       this.handlers.actions.push({ actionIds: actionIdsOrHandler, handler });
     }
   }
+
+  /** Channels posted to outside a received message, by channel id. */
+  readonly channels: Map<string, MockChannel> = new Map();
+
+  channel(channelId: string): MockChannel {
+    const existing = this.channels.get(channelId);
+    if (existing) return existing;
+    const created: MockChannel = {
+      id: channelId,
+      post: mock((_message: MockPostMessage) =>
+        Promise.resolve(createSentMessage(`posted-${this.channels.size}`)),
+      ),
+    };
+    this.channels.set(channelId, created);
+    return created;
+  }
+}
+
+export interface MockChannel {
+  id: string;
+  post: Mock<(message: MockPostMessage) => Promise<MockSentMessage>>;
 }
 
 void mock.module("chat", () => ({
@@ -611,7 +632,7 @@ export interface MockActionEvent extends Omit<
   ActionEvent,
   "thread" | "adapter" | "openModal"
 > {
-  adapter: { name: string };
+  adapter: { name: string; editMessage?: Mock<() => Promise<unknown>> };
   thread: MockThread | null;
   openModal: ActionEvent["openModal"];
 }

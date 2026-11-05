@@ -16,10 +16,7 @@ export const statsStyles: Record<
   | "ledger"
   | "ledgerItem"
   | "ledgerLabel"
-  | "ledgerValue"
-  | "good"
-  | "warn"
-  | "error",
+  | "ledgerValue",
   stylex.StyleXStyles
 > = stylex.create({
   root: {
@@ -144,7 +141,4 @@ export const statsStyles: Record<
     fontWeight: 470,
     lineHeight: 1,
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
 });

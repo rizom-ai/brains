@@ -37,6 +37,22 @@ export const renderedLinkFields: {
   listLabel: z.string(),
 };
 
+/**
+ * The view-schema side of {@link renderedLinkFields}: the same link fields,
+ * null until site-builder fills them.
+ */
+export const viewLinkFields: {
+  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  listUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  listLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+} = {
+  url: z.string().nullable().default(null),
+  typeLabel: z.string().nullable().default(null),
+  listUrl: z.string().nullable().default(null),
+  listLabel: z.string().nullable().default(null),
+};
+
 /** @deprecated Use TemplateDataSchema<T>. */
 export type TemplateSchemaParser<T> = TemplateDataSchema<T>;
 

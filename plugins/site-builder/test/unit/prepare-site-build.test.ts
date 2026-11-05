@@ -1,6 +1,6 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import type { RouteDefinition } from "@brains/site-composition";
+import type { BuildRoute } from "../../src/lib/collect-build-routes";
 import {
   DEFAULT_FAVICON_SVG,
   ROUTE_CONCURRENCY,
@@ -41,9 +41,7 @@ const templateDataSchema = z.custom<JsonObject>(
       .safeParse(value).success,
 );
 
-function createPipelineContext(
-  routes: RouteDefinition[],
-): BuildPipelineContext {
+function createPipelineContext(routes: BuildRoute[]): BuildPipelineContext {
   const logger = createSilentLogger();
   const context = createMockServicePluginContext({ logger });
   const routeRegistry = new RouteRegistry(logger);
@@ -95,10 +93,12 @@ const imageBuildService: SiteImageLookup & { getMap(): SiteImageMap } = {
   getMap: (): SiteImageMap => images,
 };
 
-function createRoute(content: unknown): RouteDefinition {
+function createRoute(content: unknown): BuildRoute {
   return {
     id: "home",
     path: "/",
+    language: "en",
+    alternates: [{ language: "en", path: "/" }],
     title: "Home Route",
     pageLabel: "Home Label",
     description: "Home description",
@@ -520,7 +520,7 @@ describe("prepareSiteBuild", () => {
   });
 
   function sourceOptions(
-    routes: RouteDefinition[],
+    routes: BuildRoute[],
     pipelineContext: BuildPipelineContext = createPipelineContext(routes),
   ): PrepareSiteBuildOptions {
     return {
@@ -540,7 +540,7 @@ describe("prepareSiteBuild", () => {
     };
   }
 
-  function manyRoutes(count: number): RouteDefinition[] {
+  function manyRoutes(count: number): BuildRoute[] {
     return Array.from({ length: count }, (_, index) => ({
       ...createRoute({ heading: `page ${index}` }),
       id: `page-${index}`,

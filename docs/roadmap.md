@@ -80,8 +80,8 @@ Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
-- [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
 - [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
+- [moving-in-guides.md](./plans/moving-in-guides.md) — a `guide` entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from `docs/guides/` with the docs.
 
 ### 2. The collective posture
 
@@ -91,6 +91,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
+- [channel-action-items.md](./plans/channel-action-items.md) — action items picked up from a configured team channel as people talk, announced in the channel with Undo, processed from a durable per-space bookmark.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 
 ### 3. Trust and identity
@@ -128,6 +129,7 @@ Plans:
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.
+- [bilingual-sites.md](./plans/bilingual-sites.md) — sites in more than one language: languages declared once, every page built per language under its tag, copy stored per language, untranslated pages skipped; The Fourth in Traditional Chinese first.
 
 ### 6. Ecosystem
 
@@ -157,7 +159,7 @@ Active cleanup and infrastructure plans:
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [frontmatter-hygiene.md](./plans/frontmatter-hygiene.md) — keep entity frontmatter to what a person authors or reads: a retired-fields mechanism with a rewrite on start, then verified trims of conversation memory, agents, publishing and small types.
-- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
+- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; a fully local proof-of-concept brain (text + embeddings) by 2026-11-20 for the Mozilla Human-Scale AI application.
 
 Research probes (parked):
 

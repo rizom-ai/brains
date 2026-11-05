@@ -20,6 +20,8 @@ export function consoleSurfaces(): string[] {
     "studio-publishing",
     "studio-board",
     "studio-board-open",
+    "studio-board-focus",
+    "studio-inbox-open",
     "studio-administration",
     "studio-administration-invitations",
     "studio-administration-invitations-form",
@@ -78,6 +80,8 @@ const WORKSPACE_SURFACES: Partial<Record<string, string>> = {
   "studio-publishing": "content-pipeline:publishing",
   "studio-board": "action-board:board",
   "studio-board-open": "action-board:board",
+  "studio-board-focus": "action-board:board",
+  "studio-inbox-open": "unified-inbox:inbox",
 };
 
 function workspaceRoute(id: string): string {
@@ -150,13 +154,15 @@ export function planSurface(
   const workspaceQuery =
     surface === "studio-board-open"
       ? "&card=partner-update"
-      : surface.startsWith("studio-administration-invitations")
-        ? `&tab=invitations`
-        : surface === "studio-administration-audit"
-          ? `&tab=audit`
-          : surface.startsWith("studio-chat") && studyState !== "empty"
-            ? `&session=responsive`
-            : "";
+      : surface === "studio-inbox-open"
+        ? "&selected=email%3Afield-notes"
+        : surface.startsWith("studio-administration-invitations")
+          ? `&tab=invitations`
+          : surface === "studio-administration-audit"
+            ? `&tab=audit`
+            : surface.startsWith("studio-chat") && studyState !== "empty"
+              ? `&session=responsive`
+              : "";
   return {
     reviewingSystem,
     systemCollection,

@@ -1,4 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { extractPdfMarkdown } from "../src/lib/pdf-markdown";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -26,6 +29,36 @@ describe("extractPdfMarkdown", () => {
     const markdown = await extractPdfMarkdown(primerPdf);
 
     expect(markdown).toContain("Distributed Systems Primer");
+  });
+
+  // The brain ships as one bundled file, so pdf.js cannot load its worker
+  // from a file next to it.
+  it("extracts text when bundled into a single file", async () => {
+    const outdir = await mkdtemp(join(tmpdir(), "pdf-markdown-bundle-"));
+    try {
+      const build = await Bun.build({
+        entrypoints: [join(import.meta.dir, "../src/lib/pdf-markdown.ts")],
+        outdir,
+        target: "bun",
+      });
+      expect(build.success).toBe(true);
+      // A fresh process, so no pdf.js worker loaded by another test helps out.
+      const run = Bun.spawnSync(
+        [
+          process.execPath,
+          "--no-install",
+          "-e",
+          `const { extractPdfMarkdown } = await import(${JSON.stringify(join(outdir, "pdf-markdown.js"))});
+process.stdout.write(await extractPdfMarkdown(Buffer.from(${JSON.stringify(primerPdfBase64)}, "base64")));`,
+        ],
+        { stderr: "pipe" },
+      );
+
+      expect(run.stderr.toString()).not.toContain("fake worker failed");
+      expect(run.stdout.toString()).toContain("Distributed Systems Primer");
+    } finally {
+      await rm(outdir, { recursive: true, force: true });
+    }
   });
 
   it("rejects PDFs over the synchronous extraction byte limit", async () => {

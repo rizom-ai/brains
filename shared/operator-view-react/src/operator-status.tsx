@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
 import { statusStyles as s } from "./operator-status.styles";
 import { OperatorPanelList } from "./operator-panel-content";
@@ -12,9 +13,7 @@ export function OperatorStatusDot(props: { tone: StatusTone }): ReactElement {
     <span
       {...stylex.props(
         s.dot,
-        props.tone === "good" && s.good,
-        props.tone === "warn" && s.warn,
-        props.tone === "error" && s.error,
+        toneText(props.tone),
         props.tone !== "good" && s.cautionGlow,
       )}
       aria-hidden="true"
@@ -38,14 +37,7 @@ export function OperatorStatusList(props: {
             <OperatorStatusDot tone={item.tone} />
             <strong {...stylex.props(s.label)}>{item.label}</strong>
           </span>
-          <small
-            {...stylex.props(
-              s.status,
-              item.tone === "good" && s.good,
-              item.tone === "warn" && s.warn,
-              item.tone === "error" && s.error,
-            )}
-          >
+          <small {...stylex.props(s.status, toneText(item.tone))}>
             {item.status}
           </small>
         </li>

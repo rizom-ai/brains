@@ -11,8 +11,8 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { BrokerConnection } from "@brains/directory-sync/broker-runtime";
 import {
-  BrokerConnection,
   createBrokerHealthCheck,
   getGitRemoteFingerprint,
   gitBrokerSocketPath,

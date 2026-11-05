@@ -1,5 +1,356 @@
 # @brains/admin
 
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/auth-service@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/auth-service@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/auth-service@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/auth-service@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/auth-service@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/auth-service@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/auth-service@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/auth-service@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/auth-service@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/auth-service@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/auth-service@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/auth-service@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/auth-service@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/auth-service@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.615
+  - @brains/auth-service@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/auth-service@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.613
+  - @brains/auth-service@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.612
+  - @brains/auth-service@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/auth-service@0.2.0-alpha.611
+  - @brains/plugins@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/auth-service@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/plugins@0.2.0-alpha.610
+
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.609
+  - @brains/auth-service@0.2.0-alpha.609
+  - @brains/plugins@0.2.0-alpha.609
+
+## 0.2.0-alpha.608
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.608
+  - @brains/auth-service@0.2.0-alpha.608
+  - @brains/plugins@0.2.0-alpha.608
+
+## 0.2.0-alpha.607
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.607
+  - @brains/auth-service@0.2.0-alpha.607
+  - @brains/plugins@0.2.0-alpha.607
+
+## 0.2.0-alpha.606
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.606
+  - @brains/auth-service@0.2.0-alpha.606
+  - @brains/plugins@0.2.0-alpha.606
+
+## 0.2.0-alpha.605
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.605
+  - @brains/auth-service@0.2.0-alpha.605
+  - @brains/plugins@0.2.0-alpha.605
+
+## 0.2.0-alpha.604
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.604
+  - @brains/auth-service@0.2.0-alpha.604
+  - @brains/plugins@0.2.0-alpha.604
+
+## 0.2.0-alpha.603
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.603
+  - @brains/auth-service@0.2.0-alpha.603
+  - @brains/plugins@0.2.0-alpha.603
+
+## 0.2.0-alpha.602
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.602
+  - @brains/auth-service@0.2.0-alpha.602
+  - @brains/plugins@0.2.0-alpha.602
+
+## 0.2.0-alpha.601
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.601
+  - @brains/auth-service@0.2.0-alpha.601
+  - @brains/plugins@0.2.0-alpha.601
+
+## 0.2.0-alpha.600
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.600
+  - @brains/auth-service@0.2.0-alpha.600
+  - @brains/plugins@0.2.0-alpha.600
+
+## 0.2.0-alpha.599
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.599
+  - @brains/auth-service@0.2.0-alpha.599
+  - @brains/plugins@0.2.0-alpha.599
+
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.598
+  - @brains/auth-service@0.2.0-alpha.598
+  - @brains/plugins@0.2.0-alpha.598
+
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.597
+  - @brains/auth-service@0.2.0-alpha.597
+  - @brains/plugins@0.2.0-alpha.597
+
+## 0.2.0-alpha.596
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.596
+  - @brains/auth-service@0.2.0-alpha.596
+  - @brains/plugins@0.2.0-alpha.596
+
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.595
+  - @brains/auth-service@0.2.0-alpha.595
+  - @brains/plugins@0.2.0-alpha.595
+
+## 0.2.0-alpha.594
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.594
+  - @brains/auth-service@0.2.0-alpha.594
+  - @brains/plugins@0.2.0-alpha.594
+
+## 0.2.0-alpha.593
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.593
+  - @brains/auth-service@0.2.0-alpha.593
+  - @brains/plugins@0.2.0-alpha.593
+
+## 0.2.0-alpha.592
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.592
+  - @brains/auth-service@0.2.0-alpha.592
+  - @brains/plugins@0.2.0-alpha.592
+
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.591
+  - @brains/auth-service@0.2.0-alpha.591
+  - @brains/plugins@0.2.0-alpha.591
+
 ## 0.2.0-alpha.590
 
 ### Patch Changes

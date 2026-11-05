@@ -77,6 +77,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       directorySync: this.getDirectorySync(),
       context: this.context,
       source: data.source,
+      full: data.full,
       ...(onGitProgress ? { onGitProgress } : {}),
       metadata: {
         rootJobId: jobId,

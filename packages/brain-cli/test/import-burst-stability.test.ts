@@ -324,36 +324,37 @@ function isCompetingWriterPush(message: string): boolean {
 }
 
 /** The running Brain also pushes startup exports and normalized entities. */
-async function pushWriterChanges(checkoutDir: string): Promise<void> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await run(["git", "push", "origin", "main"], checkoutDir);
-      return;
-    } catch (error) {
-      // Retry only a competing writer, never authentication, hook, or other
-      // failures. Rebase preserves both histories and surfaces real conflicts.
-      if (
-        attempt === 2 ||
-        !(error instanceof Error) ||
-        !isCompetingWriterPush(error.message)
-      ) {
-        throw error;
-      }
-      await run(
-        [
-          "git",
-          "-c",
-          "user.name=Import Burst Soak",
-          "-c",
-          "user.email=import-burst@example.com",
-          "pull",
-          "--rebase",
-          "origin",
-          "main",
-        ],
-        checkoutDir,
-      );
+async function pushWriterChanges(
+  checkoutDir: string,
+  attemptsLeft = 3,
+): Promise<void> {
+  try {
+    await run(["git", "push", "origin", "main"], checkoutDir);
+  } catch (error) {
+    // Retry only a competing writer, never authentication, hook, or other
+    // failures. Rebase preserves both histories and surfaces real conflicts.
+    if (
+      attemptsLeft <= 1 ||
+      !(error instanceof Error) ||
+      !isCompetingWriterPush(error.message)
+    ) {
+      throw error;
     }
+    await run(
+      [
+        "git",
+        "-c",
+        "user.name=Import Burst Soak",
+        "-c",
+        "user.email=import-burst@example.com",
+        "pull",
+        "--rebase",
+        "origin",
+        "main",
+      ],
+      checkoutDir,
+    );
+    await pushWriterChanges(checkoutDir, attemptsLeft - 1);
   }
 }
 
@@ -1509,22 +1510,25 @@ it("rebases simultaneous soak writers without discarding either push", async () 
     await commit(broker, "anchor-profile.md");
 
     // Hold both receive-pack processes until they advertised the same old ref.
-    // One push must then report "remote rejected (failed to update ref)".
+    // One push must then report a competing-writer rejection. Each hook
+    // records its own arrival rather than electing a leader with `mkdir`:
+    // uutils mkdir (Ubuntu 26.04 runners) is not atomic, so two concurrent
+    // hooks could both "win" and wait for a release neither would write.
     await writeFile(
       hook,
       [
         "#!/bin/sh",
-        'barrier="$PWD/hooks/push-race-barrier"',
-        'if mkdir "$barrier" 2>/dev/null; then',
-        "  attempts=0",
-        '  while [ ! -e "$barrier/release" ]; do',
-        "    attempts=$((attempts + 1))",
-        '    if [ "$attempts" -ge 200 ]; then exit 1; fi',
-        "    sleep 0.01",
-        "  done",
-        "else",
-        '  : > "$barrier/release"',
-        "fi",
+        'arrivals="$PWD/hooks/push-race-arrival"',
+        ': > "$arrivals.$$"',
+        "attempts=0",
+        'while set -- "$arrivals".*; [ "$#" -lt 2 ]; do',
+        "  attempts=$((attempts + 1))",
+        '  if [ "$attempts" -ge 200 ]; then',
+        "    echo 'push-race barrier: second writer never arrived' >&2",
+        "    exit 1",
+        "  fi",
+        "  sleep 0.01",
+        "done",
         "",
       ].join("\n"),
       { mode: 0o755 },

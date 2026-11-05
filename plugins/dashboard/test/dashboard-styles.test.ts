@@ -123,7 +123,7 @@ describe("DASHBOARD_STYLES", () => {
       ".operator-align--",
       ".operator-group ",
       ".operator-notice",
-      ".declarative-actions",
+      "[data-actions]",
     ])
       expect(DASHBOARD_STYLES).not.toContain(selector);
     expect(DASHBOARD_STYLES).toContain(operatorViewStylexCSS);

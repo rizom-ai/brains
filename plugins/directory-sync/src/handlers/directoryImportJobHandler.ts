@@ -9,6 +9,7 @@ import {
   type IDirectorySync,
 } from "../types";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
+import type { GitReconciliationService } from "../lib/git-reconciliation";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   runDirectoryProjectionBatchChild,
@@ -24,12 +25,15 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   private readonly context: ServicePluginContext;
   private readonly operationStatus:
     DirectorySyncOperationStatusService | undefined;
+  private readonly reconciliation:
+    Pick<GitReconciliationService, "requireFullScan"> | undefined;
 
   constructor(
     logger: Logger,
     context: ServicePluginContext,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
+    reconciliation?: Pick<GitReconciliationService, "requireFullScan">,
   ) {
     super(logger, {
       schema: directoryImportJobSchema,
@@ -38,6 +42,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     this.context = context;
     this.directorySync = directorySync;
     this.operationStatus = operationStatus;
+    this.reconciliation = reconciliation;
   }
 
   public async process(
@@ -52,6 +57,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
       data,
       jobId,
       async (): Promise<ImportResult> => {
+        await this.refuseUnregisteredEntityTypes(data, jobId);
         const startTime = Date.now();
 
         try {
@@ -84,6 +90,29 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
         }
       },
     );
+  }
+
+  /**
+   * A worker that does not register a type the scheduler admitted would skip
+   * those files as unknown and complete the job, so the sync reports success
+   * without importing them. That happens when the previous container's
+   * worker shares the job queue during a rolling deploy. Fail instead: the
+   * job retries, and the next sync rescans every file whatever happens to it.
+   */
+  private async refuseUnregisteredEntityTypes(
+    data: DirectoryImportJobData,
+    jobId: string,
+  ): Promise<void> {
+    const missing = (data.entityTypes ?? []).filter(
+      (entityType) => !this.context.entityService.hasEntityType(entityType),
+    );
+    if (missing.length === 0) return;
+
+    const message = `Directory import needs entity types this process does not register: ${missing.join(", ")}`;
+    this.logger.warn(message, { jobId });
+    await this.reconciliation?.requireFullScan();
+    await this.operationStatus?.recordIssue({ kind: "import", message });
+    throw new Error(message);
   }
 
   public async onTerminalSuccess(

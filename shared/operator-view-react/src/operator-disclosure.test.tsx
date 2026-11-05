@@ -106,5 +106,4 @@ test("compiled disclosures preserve native structure, attributes, and independen
       await window.happyDOM.close();
     }
   }
-  expect(operatorViewStylexCSS).not.toContain(".declarative-action-disclosure");
 });

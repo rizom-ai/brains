@@ -246,7 +246,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       ":disabled": { cursor: "default", opacity: 0.38 },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
-        outlineOffset: "-3px",
+        outlineOffset: "-2px",
       },
     },
     areaActive: {
@@ -322,7 +322,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
-        outlineOffset: "-3px",
+        outlineOffset: "-2px",
       },
     },
     leafActive: {

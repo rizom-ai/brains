@@ -107,6 +107,7 @@ function applyPluginDefaults(
         routes: site.routes,
         layouts: site.layouts,
         ...(site.headScripts && { headScripts: site.headScripts }),
+        ...(site.languages && { languages: site.languages }),
       }),
       ...(site?.staticAssets && { staticAssets: site.staticAssets }),
     };

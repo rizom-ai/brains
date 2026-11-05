@@ -1,0 +1,181 @@
+/* The docs site's frame: header and footer on every page. Draws in the
+   theme's tokens, so light and dark follow the site; the column matches the
+   docs pages (72rem, 24px and 48px gutters). */
+
+.ds-site {
+  --ds-bg: var(--color-bg, #14132b);
+  --ds-text: var(--color-text, #faf8f3);
+  --ds-muted: var(--color-text-muted, rgb(250 248 243 / 0.72));
+  --ds-quiet: var(--color-text-light, rgb(250 248 243 / 0.46));
+  --ds-rule: var(--color-border, rgb(250 248 243 / 0.14));
+  --ds-accent: var(--color-accent, #d4af37);
+  --ds-body: var(--font-body, "IBM Plex Sans", system-ui, sans-serif);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  color: var(--ds-text);
+  font-family: var(--ds-body);
+}
+
+.ds-site a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ds-bar__inner,
+.ds-foot__inner {
+  box-sizing: border-box;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+@media (min-width: 768px) {
+  .ds-bar__inner,
+  .ds-foot__inner {
+    padding-inline: 48px;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.ds-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--ds-bg) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--ds-rule);
+}
+
+.ds-bar__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+  padding-block: 14px;
+}
+
+.ds-brand {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ds-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  font-size: 15px;
+  color: var(--ds-muted);
+  order: 3;
+  width: 100%;
+}
+
+@media (min-width: 760px) {
+  .ds-nav {
+    order: 0;
+    width: auto;
+  }
+}
+
+.ds-nav a {
+  padding-block: 4px;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.ds-nav a:hover {
+  color: var(--ds-text);
+}
+
+.ds-nav a[aria-current="page"] {
+  color: var(--ds-text);
+  border-bottom-color: var(--ds-accent);
+}
+
+.ds-bar__end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.ds-cta {
+  padding: 7px 14px;
+  border: 1px solid var(--ds-text);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.ds-cta:hover {
+  color: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+
+.ds-mode {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--ds-rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ds-muted);
+  cursor: pointer;
+}
+
+.ds-mode svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ds-mode:hover {
+  color: var(--ds-text);
+  border-color: var(--ds-text);
+}
+
+.ds-site a:focus-visible,
+.ds-mode:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 3px;
+}
+
+/* ---------- Page and footer ---------- */
+
+.ds-main {
+  flex: 1;
+}
+
+.ds-foot {
+  border-top: 1px solid var(--ds-rule);
+}
+
+.ds-foot__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-block: 24px 32px;
+  font-size: 14px;
+  color: var(--ds-quiet);
+}
+
+.ds-foot__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+.ds-foot__nav a:hover {
+  color: var(--ds-text);
+}

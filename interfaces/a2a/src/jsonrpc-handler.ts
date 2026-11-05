@@ -6,6 +6,7 @@ import {
   SOURCES_ARTIFACT_NAME,
   TERMINAL_STATES,
   type TaskManager,
+  type TaskRecord,
 } from "./task-manager";
 import type { A2ATurnSupervisor } from "./turn-supervisor";
 import type { PublicAskAllowance } from "./public-asks";
@@ -589,28 +590,59 @@ function callerCanAccessTask(
   );
 }
 
+/**
+ * The caller's own task named by `params`, or the error response to send.
+ * Another caller's task answers exactly as an unknown one.
+ */
+function findCallerTask(
+  id: string | number,
+  params: Record<string, unknown>,
+  context: JsonRpcHandlerContext,
+):
+  | {
+      ok: true;
+      params: z.output<typeof taskIdParamsSchema>;
+      record: TaskRecord;
+    }
+  | { ok: false; response: JsonRpcError } {
+  const parsed = taskIdParamsSchema.safeParse(params);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      response: errorResponse(
+        id,
+        -32602,
+        `Invalid params: ${parsed.error.message}`,
+      ),
+    };
+  }
+
+  const record = context.taskManager.getTask(parsed.data.id);
+  if (!record || !callerCanAccessTask(record, context)) {
+    return {
+      ok: false,
+      response: errorResponse(id, -32001, `Task not found: ${parsed.data.id}`),
+    };
+  }
+
+  return { ok: true, params: parsed.data, record };
+}
+
 function handleGetTask(
   id: string | number,
   params: Record<string, unknown>,
   context: JsonRpcHandlerContext,
 ): JsonRpcResponse {
-  const parsed = taskIdParamsSchema.safeParse(params);
-  if (!parsed.success) {
-    return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
-  }
-
-  const record = context.taskManager.getTask(parsed.data.id);
-  if (!record || !callerCanAccessTask(record, context)) {
-    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
-  }
+  const lookup = findCallerTask(id, params, context);
+  if (!lookup.ok) return lookup.response;
 
   const task = context.taskManager.getTaskWithHistory(
-    parsed.data.id,
-    parsed.data.historyLength,
+    lookup.params.id,
+    lookup.params.historyLength,
   );
 
   if (!task) {
-    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
+    return errorResponse(id, -32001, `Task not found: ${lookup.params.id}`);
   }
 
   return successResponse(id, task);
@@ -621,15 +653,9 @@ function handleCancelTask(
   params: Record<string, unknown>,
   context: JsonRpcHandlerContext,
 ): JsonRpcResponse {
-  const parsed = taskIdParamsSchema.safeParse(params);
-  if (!parsed.success) {
-    return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
-  }
-
-  const record = context.taskManager.getTask(parsed.data.id);
-  if (!record || !callerCanAccessTask(record, context)) {
-    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
-  }
+  const lookup = findCallerTask(id, params, context);
+  if (!lookup.ok) return lookup.response;
+  const { params: taskParams, record } = lookup;
 
   if (TERMINAL_STATES.has(record.task.status.state)) {
     return errorResponse(
@@ -640,12 +666,12 @@ function handleCancelTask(
   }
 
   const canceled = context.turnSupervisor.cancel(
-    parsed.data.id,
+    taskParams.id,
     new Error("A2A task canceled by caller"),
   );
   const updated = canceled
-    ? context.taskManager.getTask(parsed.data.id)
-    : context.taskManager.updateState(parsed.data.id, "canceled");
+    ? context.taskManager.getTask(taskParams.id)
+    : context.taskManager.updateState(taskParams.id, "canceled");
   if (!updated) {
     return errorResponse(id, -32603, "Internal error: task disappeared");
   }

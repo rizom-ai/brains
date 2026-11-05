@@ -10,6 +10,8 @@ import type {
   OperatorScalar,
   OperatorSeriesBlock,
   OperatorSeriesPoint,
+  OperatorTimelineBlock,
+  OperatorTimelineItem,
   OperatorStatItem,
   OperatorStatsBlock,
   OperatorTextBlock,
@@ -123,6 +125,8 @@ export type RuntimeOperatorMeterBlock = OperatorMeterBlock;
 export type RuntimeOperatorProgressBlock = OperatorProgressBlock;
 export type RuntimeOperatorSeriesPoint = OperatorSeriesPoint;
 export type RuntimeOperatorSeriesBlock = OperatorSeriesBlock;
+export type RuntimeOperatorTimelineItem = OperatorTimelineItem;
+export type RuntimeOperatorTimelineBlock = OperatorTimelineBlock;
 
 export interface RuntimeOperatorQueryOption {
   readonly value: string;
@@ -175,6 +179,7 @@ export interface RuntimeOperatorListItem {
   readonly description?: string | undefined;
   readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
+  readonly at?: string | undefined;
   readonly tags?: readonly string[] | undefined;
   readonly count?: number | undefined;
   readonly badges?: readonly RuntimeOperatorBadge[] | undefined;
@@ -203,7 +208,7 @@ export interface RuntimeOperatorListBlock {
   readonly id: string;
   readonly empty: string;
   readonly presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   readonly filter?: RuntimeOperatorListFilter | undefined;
   readonly items: readonly RuntimeOperatorListItem[];
 }
@@ -500,6 +505,7 @@ export type RuntimeStudioOperatorPanelBlock =
   | RuntimeOperatorMeterBlock
   | RuntimeOperatorProgressBlock
   | RuntimeOperatorSeriesBlock
+  | RuntimeOperatorTimelineBlock
   | RuntimeOperatorQueryBlock
   | RuntimeOperatorLinksBlock
   | RuntimeStudioOperatorListBlock
@@ -553,6 +559,7 @@ export interface RuntimeStudioOperatorCardBlock {
   readonly label: string;
   readonly presentation?: "section" | "disclosure" | "feature" | undefined;
   readonly metadata?: readonly string[] | undefined;
+  readonly summary?: readonly RuntimeOperatorStatItem[] | undefined;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
   readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
 }
@@ -580,11 +587,17 @@ export interface RuntimeStudioOperatorViewStatus {
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
 }
 
+export interface RuntimeStudioOperatorViewFact {
+  readonly label: string;
+  readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
+}
+
 export interface RuntimeStudioOperatorView {
   readonly kicker?: string | undefined;
   readonly title?: string | undefined;
   readonly description?: string | undefined;
   readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly facts?: readonly RuntimeStudioOperatorViewFact[] | undefined;
   readonly primaryAction?: RuntimeOperatorActionControl | undefined;
   readonly blocks: readonly RuntimeStudioOperatorBlock[];
 }

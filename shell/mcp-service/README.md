@@ -129,6 +129,35 @@ const publicTools = mcpService.listToolsForPermissionLevel("public");
 const adminTools = mcpService.listToolsForPermissionLevel("admin");
 ```
 
+## Agent, protocol, and CLI exposure
+
+One registry feeds three independently enumerable surfaces. Permission and exposure are separate checks: a tool reaches a surface only when the caller's level meets its `visibility` and the tool's exposure allows that surface.
+
+| Surface                   | Tool field                                              | Listing                                            |
+| ------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| Model tools during a turn | `agentTool` (default `true`)                            | `listAgentToolsForPermissionLevel(level)`          |
+| Direct MCP clients        | `directMcpExposure`: `none`, `basic`, `debug` (default) | `listProtocolToolsForPermissionLevel(level, mode)` |
+| Brain CLI commands        | `cli: { name }`                                         | `getCliTools()`                                    |
+| Everything, unfiltered    | —                                                       | `listTools()`                                      |
+
+- Basic MCP exposes only tools that opt in with `directMcpExposure: "basic"`; in the canonical brain that is `chat` and `confirm`. Debug MCP exposes every tool not marked `none`.
+- `chat` and `confirm` are protocol adapters (`agentTool: false`), never recursive model tools.
+- A tool may be agent-only, protocol-only, or both. `newsletter_signup` registers with neither, for the public signup form.
+- Conditional tools change their exposure at registration time. `auth-service_get_passkey_setup_url` is agent-visible only until a passkey is registered; it then stays on Admin debug MCP. `newsletter_subscribers` registers only with a Buttondown provider, and `stock-photo_search`/`stock-photo_select` only with a stock-photo key.
+- `directory_sync` takes its git variant, with `history`, only when git is configured. Variants are assembled after capability registration completes.
+
+Rules for tool authors:
+
+- Consolidated tools use a strict action discriminator with action-specific schemas, not a loose `{ action, args }` record. Action-level authorization and confirmation stay inside the union.
+- Tools are adapters: business logic stays in the owning service.
+- Confirmation fields (`confirmed`, `confirmationToken`, `contentHash`) are stripped from the model-visible schema; only an approved pending confirmation supplies them. Returned confirmation args are frozen. `publishing_manage` binds its token to the tool name, target entity, content hash, and a 15-minute expiry, so an edited entity or an expired token fails and needs a fresh confirmation.
+- The agent service declines pending approvals when the caller sends any message other than an approval, so a superseded approval cannot be replayed later.
+- A tool rename does not carry pending confirmations across it; they fail and request fresh approval.
+- CLI commands and supported direct-MCP capabilities are never removed silently.
+- Compact default results must not hide full diagnostic output from an explicitly authorized debug path.
+
+Measure a composition's surfaces from `packages/brain-cli` with `bun run eval:professional -- --tool-surface` (add `--mcp-basic` for the protocol adapters, or use `bun run eval -- --suite providers --tool-surface` for the optional providers). The report lists the internal registry, agent tools and MCP basic/debug tools at each permission level, CLI tools, and the agent prompt size, counting instructions as `AgentService.instructionsFor(level, { isAnchor: false })`.
+
 ## MCP servers
 
 Transport layers can reuse the service-owned server or request a fresh server populated from the current registries.

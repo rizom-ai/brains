@@ -1,15 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 
 export const statusStyles: Record<
-  | "dot"
-  | "good"
-  | "warn"
-  | "error"
-  | "cautionGlow"
-  | "row"
-  | "copy"
-  | "label"
-  | "status",
+  "dot" | "cautionGlow" | "row" | "copy" | "label" | "status",
   stylex.StyleXStyles
 > = stylex.create({
   dot: {
@@ -23,9 +15,6 @@ export const statusStyles: Record<
     boxShadow: "0 0 7px color-mix(in srgb, currentColor 70%, transparent)",
     verticalAlign: 1,
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   cautionGlow: {
     boxShadow: "0 0 7px color-mix(in srgb, currentColor 60%, transparent)",
   },

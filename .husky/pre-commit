@@ -48,6 +48,13 @@ if git diff --cached --name-only | grep -qE '^docs/(roadmap\.md|plans/)'; then
   bun run roadmap:check
 fi
 
+# Keep the docs eval seed equal to what the docs sync writes for its files.
+# Only runs when a docs source, the manifest or the seed changed.
+if git diff --cached --name-only | grep -qE '^(docs/|packages/brain-cli/docs/|packages/brain-cli/eval-content/recipes/docs/)'; then
+  echo "📚 Checking the docs eval seed is in sync..."
+  bun run docs:seed:check
+fi
+
 # Keep brains/*/env.schema.template in sync with the composed env declarations.
 # Only runs when env schemas or templates changed, so normal commits stay fast.
 if git diff --cached --name-only | grep -qE '(env-schema\.ts|env\.schema\.template)'; then

@@ -328,7 +328,13 @@ describe("brain config migration preview", () => {
           ),
           "obsidian-vault",
         ],
-        added: ["conversation-memory", "faq", "studio", "unified-inbox"],
+        added: [
+          "ask-content",
+          "conversation-memory",
+          "faq",
+          "studio",
+          "unified-inbox",
+        ],
         removed: ["account", "assessment", "cms", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
@@ -339,7 +345,13 @@ describe("brain config migration preview", () => {
           ...(preset === "core" ? [] : legacySiteMembers),
           ...legacyTeamMembers,
         ],
-        added: ["action-board", "faq", "studio", "unified-inbox"],
+        added: [
+          "action-board",
+          "ask-content",
+          "faq",
+          "studio",
+          "unified-inbox",
+        ],
         removed: [
           "account",
           "assessment",
@@ -369,7 +381,7 @@ describe("brain config migration preview", () => {
       expect(
         members.filter((member) => !legacyMembers.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} additions`,
-      ).toEqual(["ask-content", ...migrationCase.added].sort());
+      ).toEqual([...migrationCase.added].sort());
       expect(
         legacyMembers.filter((member) => !members.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} removals`,

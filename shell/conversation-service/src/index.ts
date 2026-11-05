@@ -4,14 +4,12 @@ export { coerceConversationMetadata } from "./metadata";
 
 export type {
   IConversationService,
-  ConversationServiceConfig,
   ConversationMetadata,
   GetMessagesOptions,
   StartConversationRequest,
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
   ListConversationsOptions,
-  ConversationDigestPayload,
   ConversationMessageActor,
   ConversationMessageSource,
   ConversationMessageMetadata,
@@ -22,7 +20,6 @@ export {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   CONVERSATION_STARTED_CHANNEL,
-  conversationDigestPayloadSchema,
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,

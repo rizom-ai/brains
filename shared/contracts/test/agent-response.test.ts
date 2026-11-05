@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { AgentResponseSchema, parseAgentResponse } from "../src";
+import {
+  AgentResponseSchema,
+  parseAgentResponse,
+  type ActionsCard,
+} from "../src";
 
 describe("shared agent response contract", () => {
   it("preserves explicit failures without inferring them from response text", () => {
@@ -12,6 +16,28 @@ describe("shared agent response contract", () => {
       ...base,
       error: "Provider failure",
     });
+  });
+  it("leaves out a malformed card instead of failing the answer", () => {
+    const actions: ActionsCard = {
+      kind: "actions",
+      id: "actions:next",
+      actions: [{ type: "event", id: "go", label: "Go", event: "NEXT" }],
+    };
+    const response = parseAgentResponse({
+      text: "Here is the style guide.",
+      cards: [
+        {
+          kind: "sources",
+          id: "sources:tool-results",
+          sources: [{ id: "style-guide", source: "style-guide", excerpt: "" }],
+        },
+        actions,
+      ],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+
+    expect(response.text).toBe("Here is the style guide.");
+    expect(response.cards).toEqual([actions]);
   });
   it("validates runtime agent responses with structured action cards", () => {
     const response = AgentResponseSchema.parse({

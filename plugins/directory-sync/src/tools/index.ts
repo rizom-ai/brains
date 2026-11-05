@@ -26,6 +26,12 @@ const gitDirectorySyncInputSchema = z.object({
     .describe(
       "Use sync for git/filesystem sync, status for a status check, and history only for entity history",
     ),
+  full: z
+    .boolean()
+    .optional()
+    .describe(
+      "Sync only; true rescans every file instead of the changes since the last sync, for files an earlier sync skipped",
+    ),
   entityType: z
     .string()
     .optional()
@@ -50,7 +56,7 @@ const directorySyncActionSchema = z.discriminatedUnion("action", [
 ]);
 
 const gitDirectorySyncActionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("sync") }),
+  z.object({ action: z.literal("sync"), full: z.boolean().optional() }),
   z.object({ action: z.literal("status") }),
   z.object({
     action: z.literal("history"),
@@ -88,6 +94,7 @@ export function createDirectorySyncTools(
           gitSync,
           operationStatus,
           context,
+          full: "full" in parsed && parsed.full === true,
         });
       }
 
@@ -120,6 +127,7 @@ async function handleSync(input: {
   gitSync?: IGitSync | undefined;
   operationStatus?: DirectorySyncOperationStatusService | undefined;
   context: ToolContext;
+  full: boolean;
 }): Promise<ToolResult> {
   try {
     const source = input.context.channelId
@@ -135,6 +143,7 @@ async function handleSync(input: {
       toolContext: input.context,
       gitSync: input.gitSync,
       operationStatus: input.operationStatus,
+      full: input.full,
     });
 
     if (result.gitPulled) {

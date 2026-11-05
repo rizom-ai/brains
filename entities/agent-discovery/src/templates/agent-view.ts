@@ -1,9 +1,10 @@
 import {
   anchorProfileKindSchema,
-  contentVisibilitySchema,
+  entityViewFields,
+  type EntityViewFields,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields } from "@brains/templates";
+import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
@@ -61,36 +62,21 @@ const metadataSchema: z.ZodObject<{
   cardCid: nullableString,
 });
 
-export const agentViewSchema: z.ZodObject<{
-  id: z.ZodString;
-  entityType: z.ZodLiteral<"agent">;
-  content: z.ZodString;
-  created: z.ZodString;
-  updated: z.ZodString;
-  visibility: typeof contentVisibilitySchema;
-  metadata: typeof metadataSchema;
-  contentHash: z.ZodString;
-  frontmatter: typeof frontmatterSchema;
-  about: z.ZodString;
-  skills: z.ZodArray<typeof agentSkillSchema>;
-  notes: z.ZodString;
-  url: typeof nullableString;
-  typeLabel: typeof nullableString;
-}> = z.object({
-  id: z.string(),
-  entityType: z.literal("agent"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: metadataSchema,
-  contentHash: z.string(),
-  frontmatter: frontmatterSchema,
+export const agentViewSchema: z.ZodObject<
+  EntityViewFields<"agent", typeof metadataSchema, typeof frontmatterSchema> & {
+    about: z.ZodString;
+    skills: z.ZodArray<typeof agentSkillSchema>;
+    notes: z.ZodString;
+    url: typeof viewLinkFields.url;
+    typeLabel: typeof viewLinkFields.typeLabel;
+  }
+> = z.object({
+  ...entityViewFields("agent", metadataSchema, frontmatterSchema),
   about: z.string(),
   skills: z.array(agentSkillSchema),
   notes: z.string(),
-  url: nullableString,
-  typeLabel: nullableString,
+  url: viewLinkFields.url,
+  typeLabel: viewLinkFields.typeLabel,
 });
 
 export type AgentSchemaData = z.output<typeof agentViewSchema>;

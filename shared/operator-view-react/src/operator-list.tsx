@@ -1,5 +1,7 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { selectionStyles as selection } from "./operator-selection.styles";
+import { toneText } from "@brains/app-ui-react";
 import type { DragEvent, ReactElement, ReactNode } from "react";
 import { listStyles as s } from "./operator-list.styles";
 type Density = "compact" | "comfortable";
@@ -7,7 +9,7 @@ type Tone = "neutral" | "good" | "warn" | "error";
 export function OperatorList(props: {
   density: Density;
   presentation?:
-    "standard" | "editorial" | "attention" | "activity" | undefined;
+    "standard" | "editorial" | "attention" | "activity" | "log" | undefined;
   children: ReactNode;
 }): ReactElement {
   const root = stylex.props(
@@ -15,11 +17,7 @@ export function OperatorList(props: {
     props.density === "compact" && s.compactList,
   );
   return (
-    <ol
-      {...root}
-      className={`operator-record-list ${root.className ?? ""}`}
-      data-presentation={props.presentation}
-    >
+    <ol {...root} data-record-list="" data-presentation={props.presentation}>
       {props.children}
     </ol>
   );
@@ -27,11 +25,15 @@ export function OperatorList(props: {
 /** Historical outcomes remain text/badges, not another active exception stripe. */
 export function OperatorRecordRow(props: {
   density: Density;
+  /** The item id, so other blocks in the view can point at this row. */
+  rowId?: string | undefined;
   tone?: Tone | undefined;
   selected?: boolean | undefined;
   interactive?: boolean | undefined;
   master?: boolean | undefined;
   stacked?: boolean | undefined;
+  /** A rail in the row's tone marks it as waiting on the operator. */
+  railed?: boolean | undefined;
   children: ReactNode;
   trailing?: ReactNode;
   /** A row that can be picked up and dropped elsewhere. */
@@ -47,9 +49,11 @@ export function OperatorRecordRow(props: {
         props.density === "compact" && s.compactRow,
         props.master && s.master,
         props.stacked && s.stacked,
+        props.railed && s.railed,
         props.interactive && s.interactive,
-        props.selected && s.selected,
+        props.selected && selection.current,
       )}
+      data-row-id={props.rowId}
       data-tone={props.tone ?? "neutral"}
       aria-current={props.selected ? "true" : undefined}
     >
@@ -77,9 +81,7 @@ export function OperatorBadge(props: {
       {...stylex.props(
         s.badge,
         compact && s.compactBadge,
-        tone === "good" && s.good,
-        tone === "warn" && s.warn,
-        tone === "error" && s.error,
+        toneText(tone),
         compact && tone === "good" && s.compactGood,
         compact && tone === "warn" && s.compactWarn,
         compact && tone === "error" && s.compactError,

@@ -75,6 +75,16 @@ describe("planSurface", () => {
     );
     expect(planSurface("studio-chat", "empty").workspaceQuery).toBe("");
     expect(planSurface("studio-library", undefined).workspaceQuery).toBe("");
+    // An open Inbox item beside the queue, and a keyboard-focused control on
+    // the board: the states the open-row marker and focus rings show in.
+    expect(planSurface("studio-inbox-open", undefined)).toMatchObject({
+      route: "/studio/workspaces/unified-inbox%3Ainbox",
+      workspaceQuery: "&selected=email%3Afield-notes",
+    });
+    expect(planSurface("studio-board-focus", undefined)).toMatchObject({
+      route: "/studio/workspaces/action-board%3Aboard",
+      workspaceQuery: "",
+    });
     // The board with a card open, so the open row's marker is captured.
     expect(planSurface("studio-board-open", undefined)).toMatchObject({
       route: "/studio/workspaces/action-board%3Aboard",

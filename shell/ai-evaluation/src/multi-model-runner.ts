@@ -7,11 +7,9 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
-import { RemoteAgentService } from "./remote-agent-service";
-import { MCPProtocolAgentService } from "./mcp-protocol-agent-service";
 import { resolveProviderKey } from "./multi-model";
-import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
-import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
+import { prepareEvalEnvironment } from "./eval-environment";
+import { runEvalSession } from "./eval-session";
 import {
   renderModelComparison,
   writeModelComparisonReport,
@@ -224,61 +222,15 @@ async function runSingleModelIteration(
   const modelConfig = options.resolveConfig
     ? options.resolveConfig()
     : options.config;
-  const hasPrebuiltDatabase = hasPrebuiltEvalDatabase(evalDbBase);
-  const app = await bootEvalApp({
-    evalDbBase,
-    config: modelConfig,
-    evalHandlerRegistry: options.evalHandlerRegistry,
-    model,
-  });
-
-  const shell = app.getShell();
-  if (!hasPrebuiltDatabase && !options.remoteUrl) {
-    // Without a prebuilt database the boot's initial sync is still ingesting
-    // seed content; settle the brain instead of racing the ingestion jobs.
-    await waitForJobsToDrain(shell.getJobQueueService());
-  }
-  let mcpAgentService: MCPProtocolAgentService | undefined;
-
-  try {
-    mcpAgentService = options.mcpBasic
-      ? await MCPProtocolAgentService.connect(shell.getMCPService())
-      : undefined;
-    const agentService = options.remoteUrl
-      ? RemoteAgentService.createFresh({
-          baseUrl: options.remoteUrl,
-          authToken: options.authToken,
-        })
-      : (mcpAgentService ?? shell.getAgentService());
-
-    const summary = await options.runEvaluationsCollect({
-      agentService,
+  const summary = await runEvalSession(
+    {
+      ...options,
+      evalDbBase,
+      config: modelConfig,
+      model,
       aiService: judgeAiService,
-      ...(!options.remoteUrl
-        ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
-        : {}),
-      testCasesDir: options.testCasesDirs,
-      skipLLMJudge: options.skipLLMJudge,
-      verbose: options.verbose,
-      parallel: options.parallel,
-      maxParallel: options.maxParallel,
-      ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
-      ...(options.tags && { tags: options.tags }),
-      ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
-      ...(options.testType && { testType: options.testType }),
-    });
-
-    // Cases can enqueue projection and embedding work. Settle it before Shell
-    // enters closing state so a final poll cannot start generation against an
-    // already uninitialized runtime.
-    if (!options.remoteUrl) {
-      await waitForJobsToDrain(shell.getJobQueueService());
-    }
-    return { model, summary };
-  } finally {
-    await mcpAgentService?.close();
-    // Stop background services and close DB connections. The next
-    // bootEvalApp() → Shell.createFresh() resets singleton references.
-    await shell.shutdown();
-  }
+    },
+    options.runEvaluationsCollect,
+  );
+  return { model, summary };
 }

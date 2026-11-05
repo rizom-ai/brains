@@ -129,8 +129,8 @@ async function checkStudioPhoneDocument(
     const records = await elementBounds(
       page,
       STUDY_STATE === "empty"
-        ? ".declarative-detail-master"
-        : ".declarative-detail-master .operator-record-list",
+        ? "[data-detail-master]"
+        : "[data-detail-master] [data-record-list]",
     );
     if (!records || records.width > width)
       throw new Error(
@@ -390,9 +390,7 @@ function hostedCardHeadings(): void {
     // Attention disclosures retain the shared control's separate callout role.
     "18px": "500",
   };
-  for (const title of document.querySelectorAll(
-    ".declarative-card > header > h2",
-  )) {
+  for (const title of document.querySelectorAll("[data-card] > header > h2")) {
     if (!title.parentElement) throw new Error("Missing card heading owner");
     const font = getComputedStyle(title);
     const owner = getComputedStyle(title.parentElement);

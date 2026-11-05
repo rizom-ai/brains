@@ -1,0 +1,85 @@
+id: multi-turn-web-chat-multi-pdf-upload-notes
+name: Web chat keeps several uploaded PDFs and a Markdown file as notes under one confirmation
+description: Verifies that keeping several PDFs and a Markdown file attached to one message as notes is one system_create call listing every file, with each PDF's text extracted into a note rather than kept as a document, and that one confirmation saves every file as a note.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-web-chat-multi-pdf-upload-notes
+  channelName: Web Chat Eval
+tags:
+  - recipe-personal
+  - web-chat
+  - upload
+  - pdf
+  - note
+  - multi-turn
+
+turns:
+  - userMessage: "Keep these as notes."
+    attachments:
+      - kind: file
+        filename: tidal-energy.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA1NiA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoVGlkYWwgRW5lcmd5IEZpZWxkIFJlcG9ydCkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzNDcgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MTcKJSVFT0YK
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001331
+      - kind: file
+        filename: coastal-erosion.pdf
+        mediaType: application/pdf
+        dataBase64: JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA2MSA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoQ29hc3RhbCBFcm9zaW9uIFN1cnZleSBSZXN1bHRzKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDM1MiAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQyMgolJUVPRgo=
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001332
+      - kind: text
+        filename: survey-plan.md
+        mediaType: text/markdown
+        content: |
+          # Survey Plan
+
+          The next survey covers the northern dunes.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001333
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+            source.kind: uploads
+          argsAbsent:
+            - title
+      toolCountRange:
+        max: 1
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "document"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Saved 3 uploaded files"
+        - 'note "tidal-energy"'
+        - 'note "coastal-erosion"'
+        - 'note "Survey Plan"'
+      responseNotContains:
+        - 'document "'
+        - "draft is generating"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+        source.kind: uploads
+    - toolName: system_generate
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 25000

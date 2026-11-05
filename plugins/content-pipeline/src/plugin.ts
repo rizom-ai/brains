@@ -151,14 +151,6 @@ export class ContentPipelinePlugin extends ServicePlugin<
     ];
   }
 
-  protected override async getInstructions(): Promise<string | undefined> {
-    return `## Publishing
-- Use \`publishing_manage\` to manage publishing actions.
-- Use \`publishing_manage\` with \`action=queue-list\`, \`action=queue-add\`, \`action=queue-remove\`, or \`action=queue-reorder\` for publish queue requests.
-- Use \`publishing_manage\` with \`action=publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown). This tool has its own confirmation flow; call it without \`confirmed\` when the user asks to publish instead of asking for plain-text confirmation. Follow-up requests like "publish it now" should target the entity just read, generated, or updated in the conversation, including a post just changed to draft.
-- Missing publish assets such as generated OG images are reconciled automatically during publishing; do not call a separate asset reconciliation tool.`;
-  }
-
   public getQueueManager(): QueueManager {
     return this.requireRuntime().queueManager;
   }

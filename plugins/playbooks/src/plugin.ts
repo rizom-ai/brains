@@ -39,11 +39,7 @@ import {
   getState,
   getValidTransitions,
 } from "./lib/run-machine";
-import {
-  buildInstructions,
-  buildStateGuidance,
-  renderAgentContextItem,
-} from "./lib/render";
+import { buildInstructions, renderAgentContextItem } from "./lib/render";
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
@@ -54,6 +50,7 @@ import {
 import {
   playbookManageOutputSchema,
   playbookStatusResponseSchema,
+  type PlaybookRunSummary,
   type PlaybookStatusResponse,
   type PlaybookSummary,
 } from "./lib/status";
@@ -194,7 +191,7 @@ const manageInputSchema = {
     .min(1)
     .optional()
     .describe(
-      "For action=status, this field is REQUIRED whenever the user's request names a specific playbook. Pass that playbook's stable slug/id; omit only when the user asks for conversation-wide status without naming one.",
+      "The playbook's stable slug/id. REQUIRED for action=start. For action=status, this field is REQUIRED whenever the user's request names a specific playbook; omit only when the user asks for conversation-wide status without naming one.",
     ),
   lifecycle: z.string().min(1).optional(),
   event: z.string().min(1).optional(),
@@ -222,6 +219,28 @@ const playbookManageInputSchema = z.discriminatedUnion("action", [
     context: z.record(z.string(), z.unknown()).optional(),
   }),
 ]);
+
+/**
+ * A readable answer for input the action union rejects, so the model can
+ * correct its call instead of reading a raw Zod issue list.
+ */
+function formatManageInputError(input: unknown, error: z.ZodError): string {
+  const provided = z.looseObject({ action: z.string() }).safeParse(input);
+  const issues = error.issues.map((issue) => {
+    const field = issue.path.join(".");
+    const [key] = issue.path;
+    if (
+      provided.success &&
+      issue.path.length === 1 &&
+      typeof key === "string" &&
+      provided.data[key] === undefined
+    ) {
+      return `${field} is required for action=${provided.data.action}`;
+    }
+    return field ? `${field}: ${issue.message}` : issue.message;
+  });
+  return `Invalid playbook_manage input: ${issues.join("; ")}.`;
+}
 
 export interface ParsedPlaybook {
   entity: PlaybookEntity;
@@ -452,7 +471,14 @@ export class PlaybooksPlugin extends ServicePlugin<
           input: unknown,
           toolContext: ToolContext,
         ): Promise<ToolResponse> => {
-          const parsed = playbookManageInputSchema.parse(input);
+          const result = playbookManageInputSchema.safeParse(input);
+          if (!result.success) {
+            return {
+              success: false,
+              error: formatManageInputError(input, result.error),
+            };
+          }
+          const parsed = result.data;
           if (parsed.action === "status") {
             return this.handleStatus(parsed, toolContext);
           }
@@ -796,10 +822,9 @@ export class PlaybooksPlugin extends ServicePlugin<
       currentState && activeRun && parsedPlaybook
         ? getBlockedTransitions(activeRun, parsedPlaybook.body, currentState)
         : [];
-    const guidance =
-      currentState && activeRun && parsedPlaybook
-        ? buildStateGuidance(activeRun, parsedPlaybook.body, currentState)
-        : undefined;
+    const otherRuns = (input.conversationId ? conversationRuns : runs)
+      .filter((run) => run.id !== activeRun?.id)
+      .map(summarizeRun);
 
     const actionsCard =
       activeRun && parsedPlaybook && operatorActions.length > 0
@@ -811,20 +836,22 @@ export class PlaybooksPlugin extends ServicePlugin<
         : undefined;
 
     return playbookStatusResponseSchema.parse({
-      runs: (input.conversationId ? conversationRuns : runs).map(
-        sanitizeRunForModelOutput,
-      ),
+      ...(otherRuns.length > 0 ? { otherRuns } : {}),
       ...(activeRun ? { activeRun: sanitizeRunForModelOutput(activeRun) } : {}),
       ...(parsedPlaybook
         ? { playbook: summarizePlaybook(parsedPlaybook) }
         : {}),
       ...(currentState ? { currentState } : {}),
-      ...(validEvents.length > 0 ? { validEvents } : {}),
-      ...(operatorActions.length > 0 ? { operatorActions } : {}),
-      ...(blockedEvents.length > 0 ? { blockedEvents } : {}),
-      ...(guidance ? { guidance } : {}),
+      ...(validEvents.length > 0
+        ? { validEvents: eventNames(validEvents) }
+        : {}),
+      ...(operatorActions.length > 0
+        ? { operatorActions: eventNames(operatorActions) }
+        : {}),
+      ...(blockedEvents.length > 0
+        ? { blockedEvents: eventNames(blockedEvents) }
+        : {}),
       ...(actionsCard ? { cards: [actionsCard] } : {}),
-      lifecycle: this.config.lifecycle,
     });
   }
 
@@ -1015,15 +1042,28 @@ function withOperatorActionGuidance(
     "Source-state instructions for the selected action:",
     sourceInstructions || "- none",
   ].join("\n");
+  return { ...status, guidance: actionGuidance };
+}
+
+/** Event names, once each; the transitions themselves live in currentState. */
+function eventNames(transitions: PlaybookTransition[]): string[] {
+  return [...new Set(transitions.map((transition) => transition.event))];
+}
+
+function summarizeRun(run: PlaybookRun): PlaybookRunSummary {
   return {
-    ...status,
-    guidance: status.guidance
-      ? `${actionGuidance}\n\n${status.guidance}`
-      : actionGuidance,
+    id: run.id,
+    playbookId: run.playbookId,
+    currentState: run.currentState,
+    status: run.status,
   };
 }
 
-function sanitizeRunForModelOutput(run: PlaybookRun): PlaybookRun {
+/** The run without its unread XState snapshot, with evidence reduced to references. */
+function sanitizeRunForModelOutput({
+  snapshot: _snapshot,
+  ...run
+}: PlaybookRun): PlaybookRun {
   return {
     ...run,
     evidence: run.evidence.map((evidence) => ({

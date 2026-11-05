@@ -101,11 +101,17 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
+// Models fill unused optional fields with empty strings, so an empty string
+// here means omitted rather than an invalid call.
 export const userMessageSourceInputSchema: StrictObjectSchema<{
   kind: z.ZodLiteral<"user-message">;
   messageId: z.ZodOptional<z.ZodString>;
   boundaryMode: z.ZodOptional<
-    z.ZodEnum<{ literal: "literal"; lines: "lines" }>
+    z.ZodEnum<{
+      literal: "literal";
+      lines: "lines";
+      frontmatter: "frontmatter";
+    }>
   >;
   startAfter: z.ZodOptional<z.ZodString>;
   endBefore: z.ZodOptional<z.ZodString>;
@@ -119,38 +125,89 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
       ),
     messageId: z
       .string()
-      .min(1)
       .optional()
       .describe(
         "Stored user message ID in this conversation; omit for the latest user message.",
       ),
     boundaryMode: z
-      .enum(["literal", "lines"])
+      .enum(["literal", "lines", "frontmatter"])
       .optional()
       .describe(
-        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries.",
+        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries. Use frontmatter when the pasted text opens with a --- frontmatter block: the saved text starts at its opening fence, so no startAfter is needed.",
       ),
     startAfter: z
       .string()
-      .min(1)
       .optional()
       .describe(
-        "Exact unique opening boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
+        "Exact unique opening boundary, excluded from saved text; never a --- fence (use boundaryMode frontmatter). In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
       ),
     endBefore: z
       .string()
-      .min(1)
       .optional()
       .describe(
-        "Exact unique closing boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude. Omit to end at the end of the message.",
+        "Omit when the content runs to the end of the message. Otherwise the exact unique closing boundary, excluded from saved text; never a --- fence (use boundaryMode frontmatter). In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude.",
       ),
     contentHash: z
       .string()
-      .min(1)
       .optional()
       .describe(
         "Internal source hash returned with the confirmation; omit on the initial request.",
       ),
+  })
+  .strict();
+
+const uploadTransformSchema: z.ZodEnum<{
+  "extract-markdown": "extract-markdown";
+  preserve: "preserve";
+}> = z
+  .enum(["extract-markdown", "preserve"])
+  .describe(
+    "extract-markdown imports upload text into a note-like entity; preserve saves raw uploaded bytes via the registered upload-save handler and derives the durable entity type from media type. Use preserve only for explicit file/document preservation, not for saving an assistant summary response.",
+  );
+
+type UploadsSourceInputSchema = StrictObjectSchema<{
+  kind: z.ZodLiteral<"uploads">;
+  items: z.ZodArray<
+    StrictObjectSchema<{
+      upload: typeof createUploadInputSchema;
+      transform: typeof uploadTransformSchema;
+      title: z.ZodOptional<z.ZodString>;
+      fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    }>
+  >;
+}>;
+
+/** Several uploads saved from one request under one confirmation. */
+const uploadsSourceInputSchema: UploadsSourceInputSchema = z
+  .object({
+    kind: z
+      .literal("uploads")
+      .describe(
+        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the note type for extract-markdown files, or another type such as post.",
+      ),
+    items: z
+      .array(
+        z
+          .object({
+            upload: createUploadInputSchema.describe(
+              "Exact upload candidate object from the current conversation",
+            ),
+            transform: uploadTransformSchema,
+            title: z
+              .string()
+              .optional()
+              .describe("Only a title the user named for this file."),
+            fields: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe(
+                "Frontmatter the user stated for this file alone, such as the date and address it was first published at: { publishedAt, canonicalUrl }; facts shared by every file go in the top-level fields.",
+              ),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(20),
   })
   .strict();
 
@@ -173,9 +230,15 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         preserve: "preserve";
       }>;
     }>,
+    UploadsSourceInputSchema,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"prior-response">;
       messageId: z.ZodOptional<z.ZodString>;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"entity">;
+      entityType: z.ZodString;
+      entityId: z.ZodString;
     }>,
   ],
   "kind"
@@ -219,13 +282,10 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
       upload: createUploadInputSchema.describe(
         "Exact upload candidate object from the current conversation",
       ),
-      transform: z
-        .enum(["extract-markdown", "preserve"])
-        .describe(
-          "extract-markdown imports upload text into a note-like entity; preserve saves raw uploaded bytes via the registered upload-save handler and derives the durable entity type from media type. Use preserve only for explicit file/document preservation, not for saving an assistant summary response.",
-        ),
+      transform: uploadTransformSchema,
     })
     .strict(),
+  uploadsSourceInputSchema,
   z
     .object({
       kind: z
@@ -238,6 +298,25 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         .min(1)
         .optional()
         .describe("Stored assistant message ID; omit for latest savable"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z
+        .literal("entity")
+        .describe(
+          "Reuse an existing entity's text verbatim, without its frontmatter, as a new entity of another type ('turn my note X into a post'). For new text written from a source, use system_generate prompt-from-source.",
+        ),
+      entityType: z
+        .string()
+        .min(1)
+        .describe("Source entity type, such as note"),
+      entityId: z
+        .string()
+        .min(1)
+        .describe(
+          "Source entity ID, slug, or exact title copied from the user's request or a prior tool result",
+        ),
     })
     .strict(),
 ]);
@@ -291,7 +370,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("prompt")
           .describe(
-            "Generate a new non-image durable entity from a broad prompt with no durable source entity. Use this for general topical social/newsletter/blog/deck generation. This branch has no source field; use prompt-from-source only after resolving a specific existing content entity.",
+            "A new non-image entity from a broad prompt; this branch has no source field.",
           ),
         entityType: z
           .string()
@@ -304,7 +383,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
           .string()
           .min(1)
           .describe(
-            "Prompt for creating new generated content, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Do not use for saving/importing existing uploads or prior responses.",
+            "Prompt for creating new generated content, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice.",
           ),
       })
       .strict(),
@@ -313,7 +392,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("prompt-from-source")
           .describe(
-            "Generate a new non-image durable entity from a specific resolved existing content entity. Use when the user asks to generate from/based on a source, including requests like 'create a newsletter based on my latest blog post'. After resolving the source with a tool result, call this operation in the same turn; do not merely say you can generate it.",
+            "A new non-image entity grounded in a resolved existing entity, such as a newsletter from a blog post.",
           ),
         entityType: z
           .string()
@@ -334,18 +413,18 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Resolved source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder.",
+                "Resolved source entity ID from a prior tool result or typed entity ref.",
               ),
           })
           .strict()
           .describe(
-            "Existing durable source entity to ground this generation. Use only resolved entity refs, not uploads, filenames, profile/brain-character context, conversation-only context, unknown sources, or guessed sources.",
+            "The resolved existing entity that grounds this generation.",
           ),
         prompt: z
           .string()
           .min(1)
           .describe(
-            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Do not use for saving/importing existing uploads or prior responses.",
+            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice.",
           ),
       })
       .strict(),
@@ -354,7 +433,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("standalone-image")
           .describe(
-            "Generate a standalone image that is not attached to another entity. Do not use this as a cover image substitute; requested covers require cover-image after the target entity exists.",
+            "An unattached image; never a substitute for a requested cover.",
           ),
         title: z.string().optional().describe("Title for the generated image"),
         prompt: z
@@ -370,7 +449,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         kind: z
           .literal("cover-image")
           .describe(
-            "Generate an image and attach it to an existing entity as coverImageId. Use only after the target entity already exists and its real entityId is known; do not use in the same initial turn as generating that target entity.",
+            "An image attached as coverImageId to an existing entity whose real id is known.",
           ),
         target: z
           .object({
@@ -384,7 +463,7 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Existing target entity ID copied from a prior tool result or typed entity ref; never a placeholder or guessed future id",
+                "Existing target entity ID from a prior tool result or typed entity ref",
               ),
           })
           .strict()
@@ -412,12 +491,12 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
               .string()
               .min(1)
               .describe(
-                "Canonical source entity ID copied from a prior tool result or typed entity ref; never an upload id, filename, guessed slug, or future placeholder",
+                "Canonical source entity ID from a prior tool result or typed entity ref",
               ),
           })
           .strict()
           .describe(
-            "Existing durable entity whose attachment provider should render the artifact. Use only resolved entity refs, not uploads or conversation-only context.",
+            "The resolved existing entity whose attachment provider renders the artifact.",
           ),
         attachmentType: z
           .string()
@@ -444,6 +523,7 @@ export const createInputSchema: StrictObjectSchema<{
   title: z.ZodOptional<z.ZodString>;
   visibility: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
   source: typeof createPreferredSourceInputSchema;
+  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   replace: z.ZodOptional<z.ZodBoolean>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
@@ -463,6 +543,12 @@ export const createInputSchema: StrictObjectSchema<{
     source: createPreferredSourceInputSchema.describe(
       "Concrete source selector. Use exactly one source branch. For AI generation or source-derived artifacts, use system_generate instead.",
     ),
+    fields: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        "Frontmatter for facts the user states outside the source text, e.g. a post first published elsewhere: { status: 'published', publishedAt: '2025-03-12', canonicalUrl }; the section a doc goes in, named exactly as the user names it: { section }; the year a project began: { year }. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
+      ),
     replace: z.boolean().optional().describe("Create a new copy intentionally"),
     confirmed: z.literal(true).optional().describe("Confirm the creation"),
     confirmationToken: z
@@ -481,7 +567,7 @@ export const generateInputSchema: StrictObjectSchema<{
 }> = z
   .object({
     operation: generateOperationInputSchema.describe(
-      "Generation operation selector. Use prompt for broad non-image AI-generated entities with no source, prompt-from-source for generation from a resolved existing entity, standalone-image for unattached images, cover-image for generated covers on existing entities, and attachment for deterministic source-derived artifacts; for regenerate/replace/refresh artifact requests use attachment with replace:true.",
+      "Exactly one generation operation.",
     ),
     confirmed: z.literal(true).optional().describe("Confirm generation"),
     confirmationToken: z
@@ -568,7 +654,7 @@ export const updateOperationInputSchema: UpdateOperationInputSchema =
           .min(1)
           .max(50)
           .describe(
-            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
+            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first; an upload ref marked saved already holds its text, so edit that note without fetching it. Unchanged text is preserved without regeneration.",
           ),
       })
       .strict(),

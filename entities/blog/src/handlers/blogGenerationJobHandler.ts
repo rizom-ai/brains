@@ -7,6 +7,7 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
+import { parseMarkdown } from "@brains/utils/markdown";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { EntityPluginContext } from "@brains/plugins";
@@ -20,18 +21,32 @@ export const blogGenerationJobSchema: z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   content: z.ZodOptional<z.ZodString>;
   excerpt: z.ZodOptional<z.ZodString>;
+  author: z.ZodOptional<z.ZodString>;
+  status: z.ZodOptional<
+    z.ZodEnum<{ draft: "draft"; queued: "queued"; published: "published" }>
+  >;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  canonicalUrl: z.ZodOptional<z.ZodString>;
   coverImageId: z.ZodOptional<z.ZodString>;
   seriesName: z.ZodOptional<z.ZodString>;
   seriesIndex: z.ZodOptional<z.ZodNumber>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+  sourceEntityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
   skipAi: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   prompt: z.string().optional(),
   title: z.string().optional(),
   content: z.string().optional(),
   excerpt: z.string().optional(),
+  author: z.string().optional(),
+  status: z.enum(["draft", "queued", "published"]).optional(),
+  publishedAt: z.string().datetime().optional(),
+  canonicalUrl: z.string().url().optional(),
   coverImageId: z.string().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
+  sourceEntityType: z.string().optional(),
+  sourceEntityIds: z.array(z.string()).optional(),
   skipAi: z.boolean().optional(),
 });
 
@@ -128,7 +143,8 @@ Add your conclusion here.`;
       const defaultPrompt =
         "Write an insightful blog post about a topic from my knowledge base that would be valuable to share";
       const finalPrompt = prompt ?? defaultPrompt;
-      const generationPrompt = `${finalPrompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`;
+      const sourceMaterial = await this.readSourceMaterial(data);
+      const generationPrompt = `${finalPrompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}${sourceMaterial ? `\n\nWrite the post from this source material:\n\n${sourceMaterial}` : ""}`;
 
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(this.context.entityService),
@@ -185,7 +201,11 @@ Add your conclusion here.`;
       });
     }
 
-    const author = this.context.identity.getProfile().name;
+    const author = data.author ?? this.context.identity.getProfile().name;
+    const status = data.status ?? "draft";
+    const publishedAt =
+      data.publishedAt ??
+      (status === "published" ? new Date().toISOString() : undefined);
 
     // Handle series indexing
     let finalSeriesIndex = seriesIndex;
@@ -220,9 +240,11 @@ Add your conclusion here.`;
     const frontmatter: BlogPostFrontmatter = {
       title: finalTitle,
       slug,
-      status: "draft" as const,
+      status,
+      ...(publishedAt && { publishedAt }),
       excerpt,
       author,
+      ...(data.canonicalUrl && { canonicalUrl: data.canonicalUrl }),
       ...(coverImageId && { coverImageId }),
       ...(seriesName && { seriesName }),
       ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
@@ -243,6 +265,44 @@ Add your conclusion here.`;
       resultExtras: { title: finalTitle, slug },
       createOptions: { deduplicateId: true },
     };
+  }
+
+  /**
+   * The text of the entities a generation is based on, so the post is written
+   * from them rather than from whatever a knowledge search on the prompt finds.
+   */
+  private async readSourceMaterial(
+    data: BlogGenerationJobData,
+  ): Promise<string | undefined> {
+    const ids = data.sourceEntityIds ?? [];
+    if (ids.length === 0) return undefined;
+    const entityType = data.sourceEntityType;
+    if (!entityType) {
+      this.failEarly("sourceEntityType is required with sourceEntityIds");
+    }
+    const sources = await Promise.all(
+      ids.map(async (id) => ({
+        id,
+        entity: await this.context.entityService.getEntity({
+          entityType,
+          id,
+          visibilityScope: "restricted",
+        }),
+      })),
+    );
+    const missing = sources.filter(({ entity }) => !entity).map(({ id }) => id);
+    if (missing.length > 0) {
+      this.failEarly(
+        `Source not found: ${missing.map((id) => `${entityType}/${id}`).join(", ")}`,
+      );
+    }
+    return sources
+      .map(({ id, entity }) => {
+        const parsed = parseMarkdown(entity?.content ?? "");
+        const title = entity?.metadata["title"];
+        return `## ${typeof title === "string" ? title : id}\n\n${parsed.content}`;
+      })
+      .join("\n\n---\n\n");
   }
 
   protected override summarizeDataForLog(

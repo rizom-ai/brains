@@ -1,5 +1,9 @@
 /** @jsxImportSource react */
-import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
+import {
+  installDomGlobals,
+  waitUntil,
+  type RestoreGlobals,
+} from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
@@ -112,9 +116,18 @@ async function renderData(
       createElement(QueryClientProvider, { client }, createElement(Probe)),
     );
   });
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  });
+  // A settled query can enable a dependent one only after React flushes, so
+  // idle must hold across two flushes before the data is final.
+  const idleAfterFlush = async (): Promise<boolean> => {
+    await act(async () => {
+      await Bun.sleep(5);
+    });
+    return client.isFetching() === 0;
+  };
+  await waitUntil(
+    async () => (await idleAfterFlush()) && (await idleAfterFlush()),
+    "the Studio queries to settle",
+  );
   return {
     current: (): StudioData => {
       if (!latest) throw new Error("hook did not render");

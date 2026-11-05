@@ -4,6 +4,7 @@ import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { operatorViewStylexCSS } from "@brains/operator-view-react";
 import { OperatorCard } from "./operator-card";
+import { OperatorViewRenderer } from "./operator-view-renderer";
 import { OperatorColumns } from "./operator-columns";
 import { OperatorRecordCopy, OperatorTextLink } from "./operator-record";
 
@@ -106,7 +107,7 @@ for (const density of ["compact", "comfortable"] as const) {
           }
         />,
       );
-      const columns = doc.querySelector(".declarative-columns");
+      const columns = doc.querySelector("[data-columns]");
       const details = doc.querySelector("details");
       if (!columns || !details) throw new Error("Missing semantic layout");
       expect(window.getComputedStyle(columns).display).toBe("grid");
@@ -129,7 +130,7 @@ for (const density of ["compact", "comfortable"] as const) {
           "break-word",
         );
       for (const element of doc.querySelectorAll(
-        "strong a,.declarative-column:first-child p,small",
+        "strong a,[data-column]:first-child p,small",
       ))
         expect(window.getComputedStyle(element).overflowWrap).toBe("anywhere");
       expect(doc.querySelector("time")?.getAttribute("datetime")).toBe(
@@ -145,3 +146,38 @@ for (const density of ["compact", "comfortable"] as const) {
     }
   });
 }
+
+test("a collapsed source card shows its figures in the summary row", () => {
+  const html = renderToStaticMarkup(
+    <OperatorViewRenderer
+      data={{
+        view: {
+          blocks: [
+            {
+              type: "card",
+              id: "inbox",
+              label: "Inbox",
+              presentation: "disclosure",
+              summary: [
+                { label: "open", value: 7 },
+                { label: "high priority", value: 1, tone: "warn" },
+              ],
+              blocks: [{ type: "text", text: "Email: 4 open" }],
+            },
+          ],
+        },
+      }}
+      onAction={async () => ({})}
+      onOpenEntity={() => {}}
+      renderHead={false}
+    />,
+  );
+  const summary = /<summary[^>]*>(.*?)<\/summary>/s.exec(html)?.[1] ?? "";
+  expect(summary).toContain("Inbox");
+  expect(summary).toMatch(/<dl[^>]*data-card-summary=""/);
+  expect(summary).toMatch(/<dt[^>]*>open<\/dt><dd[^>]*>7<\/dd>/);
+  expect(summary).toMatch(
+    /data-tone="warn"[^>]*><dt[^>]*>high priority<\/dt><dd[^>]*>1<\/dd>/,
+  );
+  expect(summary).not.toContain("Email: 4 open");
+});

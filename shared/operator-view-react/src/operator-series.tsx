@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneFill } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
 import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
 import { seriesStyles as s } from "./operator-series.styles";
@@ -84,10 +85,7 @@ export function SeriesBlock(props: { block: SeriesBlock }): ReactElement {
                 />
               ) : (
                 <rect
-                  {...stylex.props(
-                    s.bar,
-                    point.tone && point.tone !== "neutral" && s[point.tone],
-                  )}
+                  {...stylex.props(s.bar, toneFill(point.tone))}
                   x={x + (COLUMN - BAR) / 2}
                   y={chartHeight - height}
                   width={BAR}

@@ -70,6 +70,12 @@ describe("zodFieldToStudioWidget", () => {
     expect(result.label).toBe("Title");
   });
 
+  it("maps an ISO date to the date widget", () => {
+    expect(
+      zodFieldToStudioWidget("dueDate", z.iso.date().optional()).widget,
+    ).toBe("date");
+  });
+
   it("should map z.string().datetime() to datetime widget", () => {
     const result = zodFieldToStudioWidget("publishedAt", z.string().datetime());
     expect(result.widget).toBe("datetime");

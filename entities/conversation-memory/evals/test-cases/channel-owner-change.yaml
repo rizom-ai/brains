@@ -1,0 +1,43 @@
+id: channel-action-items-owner-change
+name: Revises an own card when a later message hands it to someone else
+description: >-
+  An earlier message gave Jo the proposal. Now Jo cannot do it and Niels takes
+  it over. The pickup updates the existing card to Niels instead of adding a
+  new one.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  processedThrough: 2
+  cards:
+    - title: Send INC the proposal
+      text: Jo sends INC the proposal on Friday.
+      owner: Jo
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Someone needs to send INC the proposal. Jo, can you do that?
+    - speaker: Jo
+      userId: usr_jo
+      content: Sure, I'll send it on Friday.
+    - speaker: Jo
+      userId: usr_jo
+      content: Sorry, I'm sick this week. Niels, could you send the INC proposal instead?
+    - speaker: Niels
+      userId: usr_niels
+      content: No problem, I'll send it on Monday.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0
+    - path: updates[0].card
+      equals: card-1
+    - path: updates[0].owner
+      equals: Niels
+    - path: withdrawals[0]
+      exists: false

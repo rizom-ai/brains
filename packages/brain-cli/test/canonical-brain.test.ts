@@ -47,6 +47,7 @@ const expectedCatalogIds = [
   "action-board",
   "faq",
   "docs",
+  "guides",
   "book",
   "obsidian-vault",
   "email-workflows",
@@ -65,7 +66,6 @@ const expectedCoreMembers = [
   "profile",
   "prompt",
   "style-guide",
-  "ask-content",
   "directory-sync",
   "note",
   "link",
@@ -116,6 +116,24 @@ describe("canonical brain core", () => {
     expect(canonicalBrain.site).toBeUndefined();
     expect(canonicalBrain.theme).toBeUndefined();
     expect(canonicalBrain.agentInstructions).toBeUndefined();
+  });
+
+  test("offers guides only through explicit addition, as it offers docs", () => {
+    expect(
+      canonicalBrain.bundles?.some((bundle) =>
+        bundle.members.some((member) => member === "guides"),
+      ),
+    ).toBe(false);
+    const ids = (add: string[]): string[] =>
+      (
+        resolve(canonicalBrain, {}, { bundleContract, bundles: ["core"], add })
+          .plugins ?? []
+      ).map((plugin) => plugin.id);
+
+    expect(ids([])).not.toContain("guides");
+    expect(ids(["docs", "guides"])).toEqual(
+      expect.arrayContaining(["docs", "guides"]),
+    );
   });
 
   test("offers contact only through explicit addition, with intake still default-off", () => {
@@ -177,7 +195,6 @@ describe("canonical brain core", () => {
       "prompt",
       "profile",
       "style-guide",
-      "ask-content",
       "note",
       "link",
       "topics",

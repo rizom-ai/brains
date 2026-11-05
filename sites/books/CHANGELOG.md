@@ -1,5 +1,19 @@
 # @rizom/site-books
 
+## 0.2.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [[`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70)]:
+  - @rizom/site@0.2.0-alpha.241
+
+## 0.2.0-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [[`66de6ee`](https://github.com/rizom-ai/brains/commit/66de6ee6c8c1a29d5b4d9220dcc7375dd5e679b0)]:
+  - @rizom/site@0.2.0-alpha.240
+
 ## 0.2.0-alpha.4
 
 ### Patch Changes

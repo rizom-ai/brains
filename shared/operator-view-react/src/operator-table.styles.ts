@@ -82,11 +82,6 @@ export const tableStyles: Record<
     backgroundColor: {
       default: "transparent",
       ":hover": "var(--console-card)",
-      ':is([aria-current="true"])': "var(--console-card)",
-    },
-    boxShadow: {
-      default: "none",
-      ':is([aria-current="true"])': "inset 2px 0 0 var(--console-accent)",
     },
   },
   head: {

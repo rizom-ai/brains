@@ -1,5 +1,396 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/db@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/messaging-service@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/db@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/messaging-service@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/db@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/messaging-service@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conversation's messages come back in the order they were added, also when several share a timestamp. Messages added within one millisecond tied on their timestamp, so recent messages and message ranges could return them in either order.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/db@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/messaging-service@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/db@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/messaging-service@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/db@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/messaging-service@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/db@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/messaging-service@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/db@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/messaging-service@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/db@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/messaging-service@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/db@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/messaging-service@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/db@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/messaging-service@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/db@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/messaging-service@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/db@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/messaging-service@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/db@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/messaging-service@0.2.0-alpha.616
+
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.615
+  - @brains/db@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+  - @brains/messaging-service@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/db@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/messaging-service@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/db@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/messaging-service@0.2.0-alpha.613
+
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.612
+  - @brains/db@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/messaging-service@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.611
+  - @brains/db@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/messaging-service@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.610
+  - @brains/db@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/messaging-service@0.2.0-alpha.610
+
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.609
+  - @brains/db@0.2.0-alpha.609
+  - @brains/utils@0.2.0-alpha.609
+  - @brains/messaging-service@0.2.0-alpha.609
+
+## 0.2.0-alpha.608
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.608
+  - @brains/db@0.2.0-alpha.608
+  - @brains/utils@0.2.0-alpha.608
+  - @brains/messaging-service@0.2.0-alpha.608
+
+## 0.2.0-alpha.607
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.607
+  - @brains/db@0.2.0-alpha.607
+  - @brains/utils@0.2.0-alpha.607
+  - @brains/messaging-service@0.2.0-alpha.607
+
+## 0.2.0-alpha.606
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.606
+  - @brains/db@0.2.0-alpha.606
+  - @brains/utils@0.2.0-alpha.606
+  - @brains/messaging-service@0.2.0-alpha.606
+
+## 0.2.0-alpha.605
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.605
+  - @brains/db@0.2.0-alpha.605
+  - @brains/utils@0.2.0-alpha.605
+  - @brains/messaging-service@0.2.0-alpha.605
+
+## 0.2.0-alpha.604
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.604
+  - @brains/db@0.2.0-alpha.604
+  - @brains/utils@0.2.0-alpha.604
+  - @brains/messaging-service@0.2.0-alpha.604
+
+## 0.2.0-alpha.603
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.603
+  - @brains/db@0.2.0-alpha.603
+  - @brains/utils@0.2.0-alpha.603
+  - @brains/messaging-service@0.2.0-alpha.603
+
+## 0.2.0-alpha.602
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.602
+  - @brains/db@0.2.0-alpha.602
+  - @brains/utils@0.2.0-alpha.602
+  - @brains/messaging-service@0.2.0-alpha.602
+
+## 0.2.0-alpha.601
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.601
+  - @brains/db@0.2.0-alpha.601
+  - @brains/utils@0.2.0-alpha.601
+  - @brains/messaging-service@0.2.0-alpha.601
+
+## 0.2.0-alpha.600
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.600
+  - @brains/db@0.2.0-alpha.600
+  - @brains/utils@0.2.0-alpha.600
+  - @brains/messaging-service@0.2.0-alpha.600
+
+## 0.2.0-alpha.599
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.599
+  - @brains/db@0.2.0-alpha.599
+  - @brains/utils@0.2.0-alpha.599
+  - @brains/messaging-service@0.2.0-alpha.599
+
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.598
+  - @brains/db@0.2.0-alpha.598
+  - @brains/utils@0.2.0-alpha.598
+  - @brains/messaging-service@0.2.0-alpha.598
+
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.597
+  - @brains/db@0.2.0-alpha.597
+  - @brains/utils@0.2.0-alpha.597
+  - @brains/messaging-service@0.2.0-alpha.597
+
+## 0.2.0-alpha.596
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.596
+  - @brains/db@0.2.0-alpha.596
+  - @brains/utils@0.2.0-alpha.596
+  - @brains/messaging-service@0.2.0-alpha.596
+
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.595
+  - @brains/db@0.2.0-alpha.595
+  - @brains/utils@0.2.0-alpha.595
+  - @brains/messaging-service@0.2.0-alpha.595
+
+## 0.2.0-alpha.594
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.594
+  - @brains/db@0.2.0-alpha.594
+  - @brains/utils@0.2.0-alpha.594
+  - @brains/messaging-service@0.2.0-alpha.594
+
+## 0.2.0-alpha.593
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.593
+  - @brains/db@0.2.0-alpha.593
+  - @brains/utils@0.2.0-alpha.593
+  - @brains/messaging-service@0.2.0-alpha.593
+
+## 0.2.0-alpha.592
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.592
+  - @brains/db@0.2.0-alpha.592
+  - @brains/utils@0.2.0-alpha.592
+  - @brains/messaging-service@0.2.0-alpha.592
+
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.591
+  - @brains/db@0.2.0-alpha.591
+  - @brains/utils@0.2.0-alpha.591
+  - @brains/messaging-service@0.2.0-alpha.591
+
 ## 0.2.0-alpha.590
 
 ### Patch Changes

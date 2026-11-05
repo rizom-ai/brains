@@ -1,6 +1,6 @@
-import { contentVisibilitySchema } from "@brains/plugins";
+import { entityViewFields, type EntityViewFields } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields } from "@brains/templates";
+import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { projectStatusSchema } from "../schemas/project";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
@@ -59,38 +59,27 @@ const contentSchema: z.ZodObject<{
   outcome: z.string(),
 });
 
-export const projectViewSchema: z.ZodObject<{
-  id: z.ZodString;
-  entityType: z.ZodLiteral<"project">;
-  content: z.ZodString;
-  created: z.ZodString;
-  updated: z.ZodString;
-  visibility: typeof contentVisibilitySchema;
-  metadata: typeof metadataSchema;
-  contentHash: z.ZodString;
-  frontmatter: typeof frontmatterSchema;
-  body: z.ZodString;
-  structuredContent: z.ZodDefault<z.ZodNullable<typeof contentSchema>>;
-  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
-  coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
-}> = z.object({
-  id: z.string(),
-  entityType: z.literal("project"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: metadataSchema,
-  contentHash: z.string(),
-  frontmatter: frontmatterSchema,
+export const projectViewSchema: z.ZodObject<
+  EntityViewFields<
+    "project",
+    typeof metadataSchema,
+    typeof frontmatterSchema
+  > & {
+    body: z.ZodString;
+    structuredContent: z.ZodDefault<z.ZodNullable<typeof contentSchema>>;
+    url: typeof viewLinkFields.url;
+    typeLabel: typeof viewLinkFields.typeLabel;
+    coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+    coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  }
+> = z.object({
+  ...entityViewFields("project", metadataSchema, frontmatterSchema),
   body: z.string(),
   structuredContent: contentSchema.nullable().default(null),
-  url: nullableString,
-  typeLabel: nullableString,
+  url: viewLinkFields.url,
+  typeLabel: viewLinkFields.typeLabel,
   coverImageUrl: nullableString,
   ogImageUrl: nullableString,
   coverImageWidth: nullableNumber,

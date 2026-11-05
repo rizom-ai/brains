@@ -53,7 +53,7 @@ export function ProvenanceFact(props: {
         <span>{props.label}</span>
       </div>
       {text !== undefined ? (
-        <span>{text}</span>
+        <span {...stylex.props(f.fact)}>{text}</span>
       ) : (
         <SystemReadOnlyValue value={structured} />
       )}

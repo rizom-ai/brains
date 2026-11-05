@@ -16,7 +16,11 @@ import {
   createConfirmationGate,
   createSystemTool,
   normalizeOptionalString,
+  removeFailedTarget,
+  replacesFailedLine,
+  resolveCreateTarget,
   runCreateInterceptor,
+  type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -291,6 +295,8 @@ interface PreparedGenerate {
     SystemServices["entityRegistry"]["getCreateInterceptor"]
   >;
   eventContext: GenerateEventContext;
+  /** The failed placeholder this generation replaces once confirmed. */
+  replacesFailed?: FailedCreateTarget;
 }
 
 /**
@@ -491,28 +497,31 @@ async function prepareGenerate(
     };
   }
 
-  if (!interceptor && !replace) {
-    const candidateId = createInput.prompt
-      ? truncateSlug(slugify(createInput.title ?? createInput.prompt), 100)
-      : createInput.title
-        ? slugify(createInput.title)
-        : undefined;
-    if (candidateId) {
-      const existing = await services.entityService.getEntity({
-        entityType: createInput.entityType,
-        id: candidateId,
-      });
-      if (existing) {
-        return {
-          kind: "error",
-          result: {
-            success: false,
-            error: `A ${createInput.entityType} already exists for "${candidateId}". To change its fields or status, use system_update; pass replace:true to generate a new copy intentionally.`,
+  // An entity generation takes its id from its title or prompt whether or not
+  // a plugin intercepts it; attachments and images derive theirs elsewhere.
+  const namesEntity =
+    operation.kind === "prompt" || operation.kind === "prompt-from-source";
+  const target =
+    interceptor && !namesEntity
+      ? undefined
+      : await resolveCreateTarget(
+          services,
+          {
+            entityType: createInput.entityType,
+            candidateId: createInput.prompt
+              ? truncateSlug(
+                  slugify(createInput.title ?? createInput.prompt),
+                  100,
+                )
+              : createInput.title
+                ? slugify(createInput.title)
+                : undefined,
+            replace: replace === true,
+            copyHint: "generate a new copy intentionally",
           },
-        };
-      }
-    }
-  }
+          toolContext,
+        );
+  if (target?.kind === "error") return target;
 
   return {
     kind: "ok",
@@ -526,6 +535,7 @@ async function prepareGenerate(
       sourceAttachment,
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
+      ...(target?.value && { replacesFailed: target.value }),
     },
   };
 }
@@ -598,13 +608,14 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "generate",
-    "Generate durable content or artifacts. Critical: for a request to generate a post/social-post/newsletter/etc. with a cover image, call only the prompt generation first; do not call standalone-image or cover-image until the target entity exists after confirmation. Critical: broad or underspecified topical generation uses operation.kind prompt and has no source field; preserve the user's wording as the prompt and do not stop to ask what details to highlight. Never invent source IDs, use brain-character/profile, uploads, filenames, guessed ids, or placeholders as source refs. Critical: when the user asks to generate from a source such as 'my latest blog post', resolve the source, then call operation.kind prompt-from-source in the same turn; for latest blog/published source requests, use system_list metadata to compare publishedAt and do not rely on semantic search order. If dated candidates such as publishedAt are visible, choose the newest candidate by publishedAt (not updated/created order) and do not stop with prose like 'I found it and can generate it' or 'if that is the one you mean.' Requires confirmation. Calling this tool without confirmed is how you request that confirmation; do not respond with separate prose such as 'I can generate it if you want' or 'I need to queue it first.' Use operation.kind prompt for broad non-image AI-generated entities with no source, including in the same turn after an optional search finds no source. Use operation.kind prompt-from-source only when generating from a resolved existing durable source entity, for example a newsletter from a resolved post: { kind: 'prompt-from-source', entityType: 'newsletter', source: { entityType: 'post', entityId: '...' }, prompt: '...' }. Use standalone-image only for unattached generated images, cover-image with operation.target only for generated covers on existing entities, and attachment with operation.source for source-derived artifacts such as carousel/printable PDFs or OG/social preview images. When a cover-image request for an existing entity resolves a clear target via search/get, call this tool in the same turn; do not stop after saying you found the entity. For regenerate/replace/refresh source-derived artifact requests, call attachment with replace:true immediately; do not say you can queue it later. When the user asks to create/write/draft/generate new durable content, call this tool without confirmed to request confirmation instead of asking for separate prose approval. If you first resolve a clear source entity for the requested generation, still call this tool in the same turn using prompt-from-source. Use system_create instead for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded file preservation with upload transform preserve. On the initial generation request, do not pass confirmed; the tool returns confirmation args.",
+    "Generate durable content or artifacts. Requires confirmation: calling this tool without confirmed is how you request it, so when the user asks to create, write, draft, or generate new durable content without supplying final exact content, call it instead of drafting the content in chat, asking for separate prose approval, or saying 'I can generate it if you want' or 'I need to queue it first'. Critical: broad or underspecified topical generation uses operation.kind prompt with no source field, also in the same turn after an optional search finds no source; preserve the user's wording as the prompt and do not stop to ask what details to highlight. Critical: to generate from an existing source such as 'my latest blog post', resolve it with read/search/list tools unless the user gives an exact entity id in quotes, then call operation.kind prompt-from-source right away, for example { kind: 'prompt-from-source', entityType: 'newsletter', source: { entityType: 'post', entityId: '...' }, prompt: '...' }. For the latest published/blog source, use system_list on that type (blog posts: entityType post) and choose the newest candidate by publishedAt, not updated/created or semantic search order; do not stop with prose like 'I found it and can generate it' or 'if that is the one you mean.' Never invent source IDs, use brain-character/profile, uploads, filenames, guessed ids, or placeholders as source refs. Turning an existing entity into another type ('turn my note X into a post') keeps its text and is not generation: call system_create with source.kind entity, also after a search resolves it. Use system_create as well for saving/importing existing text, URLs, uploads, prior assistant responses, or raw uploaded files. Critical: for a request to generate a post/social-post/newsletter/etc. with a cover image, call only the prompt generation first; call cover-image only once the target entity exists after confirmation, never guess its future id, and never use standalone-image as a substitute for a requested cover. When a cover-image request names the target's exact id in quotes or a search/get resolves a clear target, call cover-image in the same turn; do not stop after saying you found the entity. Use attachment for source-derived artifacts: attachmentType og-image for OG/social preview renders (the provider updates ogImageId), carousel for deck carousel PDFs, printable for post/project PDFs. Call it immediately for save/render requests, with replace:true for regenerate/replace/refresh, instead of saying you can queue it later. To attach a generated artifact to another entity, generate the artifact first in the same turn — do not ask whether they mean an existing artifact when the source entity is explicit or given as a quoted id such as deck `distributed-systems-primer` — and update the target only after the real artifact ID exists.",
     generateInputSchema,
     async (input, toolContext) => {
       const prep = await prepareGenerate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
       let { createInput } = prep.prepared;
-      const { operation, interceptor, eventContext } = prep.prepared;
+      const { operation, interceptor, eventContext, replacesFailed } =
+        prep.prepared;
 
       if (input.confirmed) {
         const gateError = confirmationGate.validateConfirmed(
@@ -613,7 +624,13 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         );
         if (gateError) return gateError;
       } else {
-        const confirmation = buildGenerateConfirmation(createInput);
+        const built = buildGenerateConfirmation(createInput);
+        const confirmation = replacesFailed
+          ? {
+              ...built,
+              preview: `${built.preview}\n${replacesFailedLine(replacesFailed)}`,
+            }
+          : built;
         const confirmationArgs = confirmationGate.buildArgs(
           (confirmationToken) => ({
             operation,
@@ -630,6 +647,8 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         };
       }
 
+      const replaceError = await removeFailedTarget(services, replacesFailed);
+      if (replaceError) return replaceError;
       if (interceptor) {
         const outcome = await runCreateInterceptor(
           services,

@@ -1,8 +1,7 @@
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock, spyOn } from "bun:test";
 import type { EvalHandler, SearchResult } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
-import { registerSummaryEvalHandlers } from "../../src/lib/eval-handlers";
+import { registerMemoryEvalHandlers } from "../../src/lib/eval-handlers";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
@@ -20,24 +19,19 @@ function registerHandlers(): {
     },
   );
 
-  registerSummaryEvalHandlers({
-    context,
-    logger: createSilentLogger(),
-    config: summaryConfigSchema.parse({ projectionVersion: 3 }),
-  });
+  registerMemoryEvalHandlers({ context });
 
   return { context, handlers };
 }
 
-describe("registerSummaryEvalHandlers", () => {
-  it("registers the projection decision eval handler", () => {
+describe("registerMemoryEvalHandlers", () => {
+  it("registers only the memory recall handlers", () => {
     const { handlers } = registerHandlers();
 
-    expect(handlers.has("summarizeMessages")).toBe(true);
-    expect(handlers.has("decideProjection")).toBe(true);
-    expect(handlers.has("retrieveMemory")).toBe(true);
-    expect(handlers.has("buildAgentContext")).toBe(true);
-    expect(handlers.has("projectConversation")).toBe(true);
+    expect([...handlers.keys()]).toEqual([
+      "retrieveMemory",
+      "buildAgentContext",
+    ]);
   });
 
   it("retrieveMemory returns same-space summary memory", async () => {
@@ -191,109 +185,5 @@ describe("registerSummaryEvalHandlers", () => {
         }),
       ],
     });
-  });
-
-  it("projectMessages returns separate decision and action-item entities", async () => {
-    const { context, handlers } = registerHandlers();
-    spyOn(context.ai, "generate").mockResolvedValue({
-      entries: [
-        {
-          title: "Memory entities",
-          summary: "Conversation memory uses separate entities.",
-          startMessageIndex: 1,
-          endMessageIndex: 2,
-          keyPoints: ["Summaries stay narrative-only"],
-          decisions: ["Use separate decision entities"],
-          actionItems: ["Add projection evals"],
-        },
-      ],
-    });
-
-    const handler = handlers.get("projectMessages");
-    if (!handler) throw new Error("projectMessages handler missing");
-
-    const result = await handler({
-      conversationId: "conv-1",
-      interfaceType: "mcp",
-      channelId: "team",
-      messages: [
-        {
-          role: "user",
-          content: "Decision: use separate decision entities.",
-          timestamp: "2026-01-01T00:00:00.000Z",
-        },
-        {
-          role: "user",
-          content: "Action item: add projection evals.",
-          timestamp: "2026-01-01T00:01:00.000Z",
-        },
-      ],
-    });
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        result: expect.objectContaining({ skipped: false }),
-        summaries: [
-          expect.objectContaining({
-            entityType: "summary",
-            content: expect.not.stringContaining("### Decisions"),
-          }),
-        ],
-        decisions: [
-          expect.objectContaining({
-            entityType: "decision",
-            metadata: expect.objectContaining({ status: "active" }),
-          }),
-        ],
-        actionItems: [
-          expect.objectContaining({
-            entityType: "action-item",
-            metadata: expect.objectContaining({ status: "open" }),
-          }),
-        ],
-      }),
-    );
-  });
-
-  it("decideProjection returns the AI skip/update/append decision", async () => {
-    const { context, handlers } = registerHandlers();
-    const generateSpy = spyOn(context.ai, "generateObject").mockResolvedValue({
-      object: {
-        decision: "append",
-        rationale: "New durable decision",
-      },
-    });
-
-    const handler = handlers.get("decideProjection");
-    if (!handler) throw new Error("decideProjection handler missing");
-
-    const result = await handler({
-      conversationId: "conv-1",
-      existingSummary:
-        "# Conversation Summary\n\n## Existing\n\nEarlier durable context.",
-      existingMessageCount: 1,
-      messages: [
-        {
-          role: "user",
-          content: "Earlier durable context.",
-          timestamp: "2026-05-04T10:00:00Z",
-        },
-        {
-          role: "user",
-          content: "Decision: use a 90 second delayed projection window.",
-          timestamp: "2026-05-04T10:01:00Z",
-        },
-      ],
-    });
-
-    expect(result).toEqual({
-      decision: "append",
-      rationale: "New durable decision",
-    });
-    expect(generateSpy).toHaveBeenCalledTimes(1);
-    const prompt = String(generateSpy.mock.calls[0]?.[0]);
-    expect(prompt).toContain("Existing summary");
-    expect(prompt).toContain("90 second delayed projection");
-    expect(prompt).not.toContain("1. [2026-05-04T10:00:00Z]");
   });
 });

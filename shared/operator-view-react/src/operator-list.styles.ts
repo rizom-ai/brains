@@ -3,9 +3,9 @@ export const listStyles: Record<
   | "list"
   | "compactList"
   | "row"
+  | "railed"
   | "compactRow"
   | "master"
-  | "selected"
   | "interactive"
   | "trailing"
   | "stacked"
@@ -16,9 +16,6 @@ export const listStyles: Record<
   | "tags"
   | "badge"
   | "compactBadge"
-  | "good"
-  | "warn"
-  | "error"
   | "compactGood"
   | "compactWarn"
   | "compactError"
@@ -65,10 +62,41 @@ export const listStyles: Record<
       default: 1,
       ":is([data-matrix-cell] li:last-child)": 0,
     },
+    // A keyboard-focused row title rings the row it opens, 6px out: a row
+    // has no side padding, so a 2px ring would crowd its text. The board
+    // column's 16px padding holds the ring.
+    outlineStyle: {
+      default: "none",
+      ":has([data-row-link]:focus-visible)": "solid",
+    },
+    outlineWidth: 2,
+    outlineColor: "var(--console-accent)",
+    outlineOffset: 6,
     borderBottomStyle: "solid",
     borderBottomColor: "var(--console-rule)",
     minWidth: 0,
     position: "relative",
+    // The row a timeline light points at, after the light is chosen.
+    backgroundColor: {
+      default: null,
+      ":is([data-timeline-active])": "var(--console-accent-soft)",
+    },
+    boxShadow: {
+      default: null,
+      ":is([data-timeline-active])":
+        "-8px 0 0 var(--console-accent-soft), 8px 0 0 var(--console-accent-soft)",
+    },
+    transitionProperty: "background-color, box-shadow",
+    transitionDuration: "200ms",
+  },
+  railed: {
+    paddingLeft: 16,
+    borderLeftWidth: 3,
+    borderLeftStyle: "solid",
+    borderLeftColor: {
+      default: "var(--console-warn)",
+      ":is([data-tone=error])": "var(--console-err)",
+    },
   },
   compactRow: {
     padding: "13px 6px 13px 0",
@@ -89,13 +117,6 @@ export const listStyles: Record<
   master: { alignItems: "start", paddingLeft: 14, paddingRight: 14 },
   stacked: { flexDirection: "column", alignItems: "stretch", gap: 12 },
   stackedTrailing: { maxWidth: "100%", justifyContent: "flex-start" },
-  // The current choice: an accent edge on a neutral tint. The card surface
-  // vanished on a board column of the same colour, and an accent wash read
-  // as a warning on the dark climate.
-  selected: {
-    backgroundColor: "color-mix(in srgb, var(--console-text) 5%, transparent)",
-    boxShadow: "inset 2px 0 0 var(--console-accent)",
-  },
   interactive: {
     backgroundColor: {
       default: "transparent",
@@ -165,9 +186,6 @@ export const listStyles: Record<
     letterSpacing: "0.08em",
     textTransform: "uppercase",
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   compactGood: { backgroundColor: "var(--console-ok-soft)" },
   compactWarn: {
     backgroundColor: "color-mix(in srgb,var(--console-warn) 15%,transparent)",

@@ -31,9 +31,7 @@ import {
   Field,
   FieldAssistControls,
   fieldAssistVariant,
-  studioMobileSelection,
   typeHasPublicationField,
-  TypeSwitcher,
 } from "./entity-fields";
 import {
   PublicationActions,
@@ -63,6 +61,8 @@ import type {
   TypeSchema,
 } from "./api";
 import { studioTypeHierarchy } from "../../src/config";
+import { studioMobileSelection } from "./studio-navigation-parts";
+import { TypeSwitcher } from "./studio-type-navigation";
 
 async function successfulPublishingAction(): Promise<PublishingActionResult> {
   return { success: true };
@@ -243,6 +243,15 @@ describe("Field", () => {
     );
     expect(html).toContain('type="datetime-local"');
     expect(html).toContain('value="2026-07-11T14:30"');
+  });
+
+  it("renders ISO dates with a native date control", () => {
+    const html = renderField(
+      { name: "dueDate", label: "Due date", widget: "date" },
+      "2026-10-30",
+    );
+    expect(html).toContain('type="date"');
+    expect(html).toContain('value="2026-10-30"');
   });
 
   it("renders primitive string lists as removable tags", () => {

@@ -55,7 +55,7 @@ function storedItem(frontmatter: Record<string, unknown>): ActionItemEntity {
   };
   const content = generateMarkdown(stored, body);
   return actionItemSchema.parse({
-    id: "conv-1:action-item:1:abc123abc123",
+    id: "conv-1-action-item-1-abc123abc123",
     entityType: "action-item",
     content,
     contentHash: computeContentHash(content),
@@ -85,7 +85,7 @@ function projected(
     full,
   );
   return actionItemSchema.parse({
-    id: "conv-1:action-item:1:abc123abc123",
+    id: "conv-1-action-item-1-abc123abc123",
     entityType: "action-item",
     content,
     contentHash: computeContentHash(content),

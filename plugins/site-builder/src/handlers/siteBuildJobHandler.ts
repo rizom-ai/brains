@@ -54,6 +54,8 @@ export interface SiteBuildJobHandlerConfig {
   getHeadScripts?: (() => Promise<string[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
+  /** The site's languages, the first its default. */
+  languages?: string[] | undefined;
   statusService?: BuildStatusRecorder | undefined;
 }
 
@@ -150,6 +152,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           ...(this.cfg.staticAssets && {
             staticAssets: this.cfg.staticAssets,
           }),
+          ...(this.cfg.languages && { languages: this.cfg.languages }),
           publishUnchanged,
         },
         buildProgressReporter.toCallback(),

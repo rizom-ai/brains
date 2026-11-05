@@ -44,6 +44,28 @@ describe("scopeEntityReads", () => {
     expect(counts).toHaveBeenCalledWith("public");
   });
 
+  it("scopes raw lookups like resolved ones, so the raw form cannot widen the view", async () => {
+    const base = createMockEntityService();
+    const raw = spyOn(base, "getEntityRaw").mockResolvedValue(null);
+    const scoped = scopeEntityReads(base, {
+      publishedOnly: true,
+      visibilityScope: "public",
+    });
+
+    await scoped.getEntityRaw({
+      entityType: "site-content",
+      id: "home:act-one",
+      visibilityScope: "restricted",
+    });
+
+    expect(raw).toHaveBeenCalledWith({
+      entityType: "site-content",
+      id: "home:act-one",
+      visibilityScope: "public",
+      publishedOnly: true,
+    });
+  });
+
   it("applies publishedOnly and the scope to search, get and listings", async () => {
     const base = createMockEntityService();
     const search = spyOn(base, "search").mockResolvedValue([]);

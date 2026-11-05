@@ -393,3 +393,25 @@ export async function waitForVisualStability(page: Bun.WebView): Promise<void> {
       }),
   );
 }
+
+/**
+ * Focus `selector` as a keyboard user would and require its focus ring: a
+ * capture of a focus state that never matched `:focus-visible` shows nothing.
+ */
+export async function focusSelector(
+  page: Bun.WebView,
+  selector: string,
+): Promise<void> {
+  await waitForSelector(page, selector);
+  const visible = await evaluatePageWith(
+    page,
+    (candidateSelector) => {
+      const candidate = document.querySelector(candidateSelector);
+      if (!(candidate instanceof HTMLElement)) return false;
+      candidate.focus({ focusVisible: true });
+      return candidate.matches(":focus-visible");
+    },
+    selector,
+  );
+  if (!visible) throw new Error(`${selector} did not show a focus ring`);
+}

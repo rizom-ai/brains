@@ -3,11 +3,7 @@ import type { Layer, ScopedService } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import type { MessageBus } from "@brains/messaging-service";
 import { ConversationService } from "./conversation-service";
-import type {
-  ConversationDbConfig,
-  ConversationServiceConfig,
-  IConversationService,
-} from "./types";
+import type { ConversationDbConfig, IConversationService } from "./types";
 
 export type ConversationServiceTag =
   "@brains/conversation-service/ConversationService";
@@ -22,7 +18,6 @@ export interface ConversationServiceLayerOptions {
   dbConfig: ConversationDbConfig;
   logger: Logger;
   messageBus: MessageBus;
-  config?: ConversationServiceConfig;
   service?: IConversationService;
 }
 
@@ -45,7 +40,6 @@ function acquireConversationService(
     options.logger,
     options.messageBus,
     options.dbConfig,
-    options.config,
   );
   try {
     return {

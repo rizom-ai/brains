@@ -11,6 +11,7 @@ import type {
 } from "@brains/plugins";
 import {
   createPendingEntity,
+  createUploadSaveHandler,
   EntityPlugin,
   resolveEntityOrError,
 } from "@brains/plugins";
@@ -604,7 +605,7 @@ export class ImagePlugin extends EntityPlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Image entities store durable images. Standalone generated images are valid system_generate image calls with a prompt source and no target fields. A prompt source creates a new image; never use it to describe, analyze, or discuss an existing uploaded image. For uploaded-image discussion, answer directly from the attachment/context; if the user later asks to save that discussion as a note, create entityType note from prior-response or exact text. targetEntityType and targetEntityId are only for attaching the result to an existing entity as coverImageId. Cover images and OG/social preview images are distinct domain concepts: cover-image fields use coverImageId, while OG/Open Graph/social preview fields use ogImageId. Rendered OG/social preview images are deterministic attachment-source images with attachmentType og-image.";
+    return "Image entities store durable images. system_generate standalone-image or cover-image makes a new image; never use it to describe, analyze, or discuss an existing uploaded image. Answer that from the attachment/context, and if the user later asks to save the discussion, create entityType note from prior-response or exact text.";
   }
 
   protected override createGenerationHandler(
@@ -623,23 +624,12 @@ export class ImagePlugin extends EntityPlugin<
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
       mediaTypes: ["image/*"],
-      handler: async (input, executionContext) => {
-        const interception = await this.promoteUpload(
-          {
-            entityType: this.entityType,
-            ...(input.title !== undefined ? { title: input.title } : {}),
-            ...(input.visibility !== undefined
-              ? { visibility: input.visibility }
-              : {}),
-            from: input.upload,
-          },
-          context,
-          executionContext,
-        );
-        return interception.kind === "handled"
-          ? interception.result
-          : { success: false, error: "Image upload save was not handled" };
-      },
+      handler: createUploadSaveHandler(
+        this.entityType,
+        (input, executionContext) =>
+          this.promoteUpload(input, context, executionContext),
+        "Image upload save was not handled",
+      ),
     });
 
     const handler = new ImageGenerationJobHandler(context, this.logger);

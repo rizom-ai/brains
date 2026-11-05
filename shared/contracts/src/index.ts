@@ -181,9 +181,21 @@ export {
   type ProvenanceEntityReference,
 } from "./operation-provenance";
 export {
+  SPACE_NOTICE_ITEM_LIMIT,
+  SPACE_NOTICE_VALUE_LIMIT,
+  spaceNoticeActionSchema,
+  spaceNoticeContentSchema,
+  spaceNoticeRequestSchema,
+  spaceNoticeResultSchema,
+  type SpaceNoticeAction,
+  type SpaceNoticeContent,
+  type SpaceNoticeRequest,
+  type SpaceNoticeResult,
+} from "./space-notice";
+export {
   A2A_CHANNELS,
   BUTTONDOWN_CHANNELS,
-  CONVERSATION_CHANNELS,
+  CHAT_CHANNELS,
   DASHBOARD_CHANNELS,
   DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,

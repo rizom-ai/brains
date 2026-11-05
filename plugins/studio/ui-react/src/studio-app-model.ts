@@ -5,12 +5,7 @@ import type {
   TypeSchema,
   ValidationIssue,
 } from "./api";
-import {
-  studioArea,
-  studioEditorPresentation,
-  typeHasPublicationField,
-  type StudioEditorPresentation,
-} from "./entity-fields";
+import { typeHasPublicationField } from "./entity-fields";
 import {
   systemEditorCopy,
   type SystemEditorCopy,
@@ -29,6 +24,11 @@ import {
 } from "./ui-utils";
 import type { StudioAppViewProps } from "./app-view-props";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
+import { studioArea } from "./studio-areas";
+import {
+  studioEditorPresentation,
+  type StudioEditorPresentation,
+} from "./studio-type-navigation";
 
 const EMPTY_TYPE_SCHEMA: TypeSchema = {
   entityType: "",

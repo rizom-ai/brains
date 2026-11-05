@@ -79,6 +79,34 @@ describe("convertToSDKTools", () => {
     ).toBe(false);
   });
 
+  // Every agent step resends every tool schema; the draft URI tells the model
+  // nothing and the provider assumes the draft anyway.
+  it("sends tool schemas without the $schema draft URI", async () => {
+    const converted = convertToSDKTools(
+      [
+        {
+          name: "plain_read",
+          description: "Plain read",
+          visibility: "public",
+          inputSchema: { id: z.string() },
+          handler: mock(async () => ({ success: true as const })),
+        },
+      ],
+      { conversationId: "schema-test", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    );
+    const inputSchema = converted["plain_read"]?.inputSchema;
+    if (!inputSchema) throw new Error("Missing input schema");
+    const jsonSchema = await asSchema(inputSchema).jsonSchema;
+
+    expect(jsonSchema).not.toHaveProperty("$schema");
+    expect(jsonSchema).toMatchObject({
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+    });
+  });
+
   it("exposes source only for model-visible system_create source selection", () => {
     const tool: Tool = {
       name: "system_create",
@@ -595,6 +623,8 @@ describe("toModelVisibleInputSchema", () => {
       confirmed: z.literal(true).optional(),
       confirmationToken: z.string().optional(),
       contentHash: z.string().optional(),
+      // A confirmation's expiry is returned with its args, never chosen.
+      expiresAt: z.string().optional(),
     });
 
     expect(Object.keys(inputSchema)).toEqual(["entityType", "id"]);

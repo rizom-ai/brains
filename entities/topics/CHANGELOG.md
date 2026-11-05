@@ -1,5 +1,512 @@
 # @brains/topics
 
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.629
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/ui-library@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.628
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/ui-library@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/atproto-contracts@0.2.0-alpha.627
+  - @brains/ui-library@0.2.0-alpha.627
+  - @brains/content-formatters@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/atproto-contracts@0.2.0-alpha.626
+  - @brains/content-formatters@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.625
+  - @brains/content-formatters@0.2.0-alpha.625
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/ui-library@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.624
+  - @brains/content-formatters@0.2.0-alpha.624
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/ui-library@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.623
+  - @brains/content-formatters@0.2.0-alpha.623
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/ui-library@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/atproto-contracts@0.2.0-alpha.622
+  - @brains/ui-library@0.2.0-alpha.622
+  - @brains/content-formatters@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/atproto-contracts@0.2.0-alpha.621
+  - @brains/ui-library@0.2.0-alpha.621
+  - @brains/content-formatters@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.620
+  - @brains/content-formatters@0.2.0-alpha.620
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/ui-library@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.619
+  - @brains/content-formatters@0.2.0-alpha.619
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/ui-library@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.618
+  - @brains/content-formatters@0.2.0-alpha.618
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/ui-library@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.617
+  - @brains/content-formatters@0.2.0-alpha.617
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/ui-library@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/ui-library@0.2.0-alpha.616
+  - @brains/atproto-contracts@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.615
+  - @brains/ui-library@0.2.0-alpha.615
+  - @brains/atproto-contracts@0.2.0-alpha.615
+  - @brains/content-formatters@0.2.0-alpha.615
+  - @brains/contracts@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+  - @brains/templates@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/ui-library@0.2.0-alpha.614
+  - @brains/atproto-contracts@0.2.0-alpha.614
+  - @brains/content-formatters@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.613
+  - @brains/ui-library@0.2.0-alpha.613
+  - @brains/atproto-contracts@0.2.0-alpha.613
+  - @brains/content-formatters@0.2.0-alpha.613
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/templates@0.2.0-alpha.613
+
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.612
+  - @brains/ui-library@0.2.0-alpha.612
+  - @brains/atproto-contracts@0.2.0-alpha.612
+  - @brains/content-formatters@0.2.0-alpha.612
+  - @brains/contracts@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/templates@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.611
+  - @brains/content-formatters@0.2.0-alpha.611
+  - @brains/contracts@0.2.0-alpha.611
+  - @brains/ui-library@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/plugins@0.2.0-alpha.611
+  - @brains/templates@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.610
+  - @brains/content-formatters@0.2.0-alpha.610
+  - @brains/contracts@0.2.0-alpha.610
+  - @brains/ui-library@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/plugins@0.2.0-alpha.610
+  - @brains/templates@0.2.0-alpha.610
+
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.609
+  - @brains/content-formatters@0.2.0-alpha.609
+  - @brains/contracts@0.2.0-alpha.609
+  - @brains/ui-library@0.2.0-alpha.609
+  - @brains/utils@0.2.0-alpha.609
+  - @brains/plugins@0.2.0-alpha.609
+  - @brains/templates@0.2.0-alpha.609
+
+## 0.2.0-alpha.608
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.608
+  - @brains/content-formatters@0.2.0-alpha.608
+  - @brains/contracts@0.2.0-alpha.608
+  - @brains/ui-library@0.2.0-alpha.608
+  - @brains/utils@0.2.0-alpha.608
+  - @brains/plugins@0.2.0-alpha.608
+  - @brains/templates@0.2.0-alpha.608
+
+## 0.2.0-alpha.607
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.607
+  - @brains/content-formatters@0.2.0-alpha.607
+  - @brains/contracts@0.2.0-alpha.607
+  - @brains/ui-library@0.2.0-alpha.607
+  - @brains/utils@0.2.0-alpha.607
+  - @brains/plugins@0.2.0-alpha.607
+  - @brains/templates@0.2.0-alpha.607
+
+## 0.2.0-alpha.606
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.606
+  - @brains/content-formatters@0.2.0-alpha.606
+  - @brains/contracts@0.2.0-alpha.606
+  - @brains/ui-library@0.2.0-alpha.606
+  - @brains/utils@0.2.0-alpha.606
+  - @brains/plugins@0.2.0-alpha.606
+  - @brains/templates@0.2.0-alpha.606
+
+## 0.2.0-alpha.605
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.605
+  - @brains/content-formatters@0.2.0-alpha.605
+  - @brains/contracts@0.2.0-alpha.605
+  - @brains/ui-library@0.2.0-alpha.605
+  - @brains/utils@0.2.0-alpha.605
+  - @brains/plugins@0.2.0-alpha.605
+  - @brains/templates@0.2.0-alpha.605
+
+## 0.2.0-alpha.604
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.604
+  - @brains/content-formatters@0.2.0-alpha.604
+  - @brains/contracts@0.2.0-alpha.604
+  - @brains/ui-library@0.2.0-alpha.604
+  - @brains/utils@0.2.0-alpha.604
+  - @brains/plugins@0.2.0-alpha.604
+  - @brains/templates@0.2.0-alpha.604
+
+## 0.2.0-alpha.603
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.603
+  - @brains/content-formatters@0.2.0-alpha.603
+  - @brains/contracts@0.2.0-alpha.603
+  - @brains/ui-library@0.2.0-alpha.603
+  - @brains/utils@0.2.0-alpha.603
+  - @brains/plugins@0.2.0-alpha.603
+  - @brains/templates@0.2.0-alpha.603
+
+## 0.2.0-alpha.602
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.602
+  - @brains/content-formatters@0.2.0-alpha.602
+  - @brains/contracts@0.2.0-alpha.602
+  - @brains/ui-library@0.2.0-alpha.602
+  - @brains/utils@0.2.0-alpha.602
+  - @brains/plugins@0.2.0-alpha.602
+  - @brains/templates@0.2.0-alpha.602
+
+## 0.2.0-alpha.601
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.601
+  - @brains/content-formatters@0.2.0-alpha.601
+  - @brains/contracts@0.2.0-alpha.601
+  - @brains/ui-library@0.2.0-alpha.601
+  - @brains/utils@0.2.0-alpha.601
+  - @brains/plugins@0.2.0-alpha.601
+  - @brains/templates@0.2.0-alpha.601
+
+## 0.2.0-alpha.600
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.600
+  - @brains/content-formatters@0.2.0-alpha.600
+  - @brains/contracts@0.2.0-alpha.600
+  - @brains/ui-library@0.2.0-alpha.600
+  - @brains/utils@0.2.0-alpha.600
+  - @brains/plugins@0.2.0-alpha.600
+  - @brains/templates@0.2.0-alpha.600
+
+## 0.2.0-alpha.599
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.599
+  - @brains/content-formatters@0.2.0-alpha.599
+  - @brains/contracts@0.2.0-alpha.599
+  - @brains/ui-library@0.2.0-alpha.599
+  - @brains/utils@0.2.0-alpha.599
+  - @brains/plugins@0.2.0-alpha.599
+  - @brains/templates@0.2.0-alpha.599
+
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.598
+  - @brains/content-formatters@0.2.0-alpha.598
+  - @brains/contracts@0.2.0-alpha.598
+  - @brains/ui-library@0.2.0-alpha.598
+  - @brains/utils@0.2.0-alpha.598
+  - @brains/plugins@0.2.0-alpha.598
+  - @brains/templates@0.2.0-alpha.598
+
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.597
+  - @brains/content-formatters@0.2.0-alpha.597
+  - @brains/contracts@0.2.0-alpha.597
+  - @brains/ui-library@0.2.0-alpha.597
+  - @brains/utils@0.2.0-alpha.597
+  - @brains/plugins@0.2.0-alpha.597
+  - @brains/templates@0.2.0-alpha.597
+
+## 0.2.0-alpha.596
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.596
+  - @brains/content-formatters@0.2.0-alpha.596
+  - @brains/contracts@0.2.0-alpha.596
+  - @brains/ui-library@0.2.0-alpha.596
+  - @brains/utils@0.2.0-alpha.596
+  - @brains/plugins@0.2.0-alpha.596
+  - @brains/templates@0.2.0-alpha.596
+
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.595
+  - @brains/content-formatters@0.2.0-alpha.595
+  - @brains/contracts@0.2.0-alpha.595
+  - @brains/ui-library@0.2.0-alpha.595
+  - @brains/utils@0.2.0-alpha.595
+  - @brains/plugins@0.2.0-alpha.595
+  - @brains/templates@0.2.0-alpha.595
+
+## 0.2.0-alpha.594
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.594
+  - @brains/content-formatters@0.2.0-alpha.594
+  - @brains/contracts@0.2.0-alpha.594
+  - @brains/ui-library@0.2.0-alpha.594
+  - @brains/utils@0.2.0-alpha.594
+  - @brains/plugins@0.2.0-alpha.594
+  - @brains/templates@0.2.0-alpha.594
+
+## 0.2.0-alpha.593
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.593
+  - @brains/content-formatters@0.2.0-alpha.593
+  - @brains/contracts@0.2.0-alpha.593
+  - @brains/ui-library@0.2.0-alpha.593
+  - @brains/utils@0.2.0-alpha.593
+  - @brains/plugins@0.2.0-alpha.593
+  - @brains/templates@0.2.0-alpha.593
+
+## 0.2.0-alpha.592
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.592
+  - @brains/content-formatters@0.2.0-alpha.592
+  - @brains/contracts@0.2.0-alpha.592
+  - @brains/ui-library@0.2.0-alpha.592
+  - @brains/utils@0.2.0-alpha.592
+  - @brains/plugins@0.2.0-alpha.592
+  - @brains/templates@0.2.0-alpha.592
+
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.591
+  - @brains/content-formatters@0.2.0-alpha.591
+  - @brains/contracts@0.2.0-alpha.591
+  - @brains/ui-library@0.2.0-alpha.591
+  - @brains/utils@0.2.0-alpha.591
+  - @brains/plugins@0.2.0-alpha.591
+  - @brains/templates@0.2.0-alpha.591
+
 ## 0.2.0-alpha.590
 
 ### Patch Changes

@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { randomUUID } from "crypto";
 import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync } from "fs";
 import { resolve as resolvePath } from "path";
 import { readString } from "@brains/utils/record-fields";
@@ -29,7 +30,10 @@ export function prepareEvalEnvironment(
   options: PrepareEvalEnvironmentOptions = {},
 ): string {
   const { brainModelPath, config, cloneData = false, suffix } = options;
-  const evalDbBase = `/tmp/brain-eval-${Date.now()}${suffix ? `-${suffix}` : ""}`;
+  // The random part keeps eval processes started in the same millisecond
+  // apart: they would otherwise share databases and reset each other's git
+  // remote.
+  const evalDbBase = `/tmp/brain-eval-${Date.now()}-${randomUUID().slice(0, 8)}${suffix ? `-${suffix}` : ""}`;
 
   if (cloneData) {
     cloneEvaluationData(evalDbBase);

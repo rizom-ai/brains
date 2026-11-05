@@ -99,6 +99,11 @@ describe("read tool model contracts", () => {
     expect(tool?.description).toContain(
       "For broad search, make one system_search call with scope.kind all",
     );
+    // Types the user names are searched at once, not after a broad search:
+    // each further step resends the whole prompt.
+    expect(tool?.description).toContain(
+      "When the user names entity types, search each with scope.kind type in the same step, without a broad search first.",
+    );
     expect(tool?.description).toContain("default minScore of 0.5");
     expect(searchInputSchema.shape.minScore.description).toContain(
       "lower it only for exploratory",

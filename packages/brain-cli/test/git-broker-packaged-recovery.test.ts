@@ -14,8 +14,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeUploadRegistry } from "@brains/plugins";
+import { BrokerConnection } from "@brains/directory-sync/broker-runtime";
 import {
-  BrokerConnection,
   GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
   getGitRemoteFingerprint,
   gitBrokerSocketPath,

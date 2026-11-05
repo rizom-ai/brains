@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { NOTIFICATION_FAILURES } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type {
   ChannelDeliveryInput,
@@ -212,15 +213,38 @@ describe("NotificationsPlugin", () => {
   });
 });
 
-describe("empty recipient env interpolation", () => {
-  // Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; the
-  // plugin must boot without a default recipient rather than being skipped.
-  it("boots with an empty default recipient address", () => {
-    expect(
-      () =>
-        new NotificationsPlugin({
-          defaultRecipient: { type: "email", address: "" },
-        }),
-    ).not.toThrow();
-  });
+describe("unset recipient env interpolation", () => {
+  // An unset SETUP_EMAIL_TO drops `address` from brain.yaml during env
+  // interpolation, while deploy tooling may pass it as an empty string. Either
+  // way the plugin boots with no default recipient.
+  for (const [label, defaultRecipient] of [
+    ["an empty address", { type: "email", address: "" }],
+    ["no address", { type: "email" }],
+  ] as const) {
+    it(`boots without a default recipient given ${label}`, async () => {
+      const harness = createPluginHarness<NotificationsPlugin>();
+      const sent = installEmailProvider(harness, async () => ({
+        status: "sent",
+      }));
+      await harness.installPlugin(
+        new NotificationsPlugin({ defaultRecipient }),
+      );
+      await harness.finalizeRegistration();
+
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: NOTIFICATIONS_SEND,
+          payload: { title: "Contact request", body: "Open the Inbox." },
+          sender: "contact",
+        });
+
+      expect(response).toEqual({
+        success: false,
+        error: NOTIFICATION_FAILURES.recipientMissing,
+      });
+      expect(sent).toEqual([]);
+    });
+  }
 });

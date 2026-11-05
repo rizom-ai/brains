@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
 import { statsStyles as s } from "./operator-stats.styles";
 import { statsBandStyles as b } from "./operator-stats-band.styles";
@@ -62,9 +63,7 @@ export function OperatorStats(props: {
               !band && compact && s.compactValue,
               !band && head && s.headValue,
               ledger && s.ledgerValue,
-              item.tone === "good" && s.good,
-              item.tone === "warn" && s.warn,
-              item.tone === "error" && s.error,
+              toneText(item.tone),
             )}
           >
             {item.value}
@@ -73,9 +72,7 @@ export function OperatorStats(props: {
             <Caption
               {...stylex.props(
                 band ? b.caption : s.caption,
-                item.captionTone === "good" && s.good,
-                item.captionTone === "warn" && s.warn,
-                item.captionTone === "error" && s.error,
+                toneText(item.captionTone),
               )}
             >
               {item.caption}

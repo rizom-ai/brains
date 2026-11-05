@@ -21,14 +21,13 @@ export interface DirectoryBatchQueueOptions {
 }
 
 export class DirectoryBatchQueue {
-  private syncInProgress = false;
-  private readonly logger: Logger;
+  /** The discovery-and-enqueue in progress; the next one waits for it. */
+  private queueTail: Promise<unknown> = Promise.resolve();
   private readonly syncPath: string;
   private readonly fileOperations: FileOperations;
   private readonly batchOperationsManager: BatchOperationsManager;
 
   constructor(options: DirectoryBatchQueueOptions) {
-    this.logger = options.logger;
     this.syncPath = options.syncPath;
     this.fileOperations = options.fileOperations;
     this.batchOperationsManager = new BatchOperationsManager({
@@ -38,36 +37,46 @@ export class DirectoryBatchQueue {
     });
   }
 
-  async queueSyncBatch(
+  /**
+   * Discover and enqueue one batch. Calls run one at a time: a call made
+   * while another is enqueueing waits and then queues its own batch. Dropping
+   * it instead made startup report "No files to import" as a success.
+   */
+  queueSyncBatch(
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],
     deletedPaths?: string[],
   ): Promise<BatchResult | null> {
-    if (this.syncInProgress) {
-      this.logger.debug("Sync already in progress, skipping", { source });
-      return null;
-    }
+    const queued = this.queueTail.then(() =>
+      this.queueNow(pluginContext, source, metadata, paths, deletedPaths),
+    );
+    // A failed call must not fail the ones queued behind it.
+    this.queueTail = queued.catch(() => undefined);
+    return queued;
+  }
 
-    this.syncInProgress = true;
-    try {
-      const allFiles = await this.fileOperations.getAllSyncFiles();
-      const selection = paths
-        ? await this.selectChangedFiles(allFiles, paths, deletedPaths ?? [])
-        : { files: allFiles, includeCleanup: true, deletions: [] };
+  private async queueNow(
+    pluginContext: ServicePluginContext,
+    source: string,
+    metadata?: BatchMetadata,
+    paths?: string[],
+    deletedPaths?: string[],
+  ): Promise<BatchResult | null> {
+    const allFiles = await this.fileOperations.getAllSyncFiles();
+    const selection = paths
+      ? await this.selectChangedFiles(allFiles, paths, deletedPaths ?? [])
+      : { files: allFiles, includeCleanup: true, deletions: [] };
 
-      return await this.batchOperationsManager.queueSyncBatch(
-        pluginContext,
-        source,
-        selection.files,
-        metadata,
-        selection.includeCleanup,
-        selection.deletions,
-      );
-    } finally {
-      this.syncInProgress = false;
-    }
+    return this.batchOperationsManager.queueSyncBatch(
+      pluginContext,
+      source,
+      selection.files,
+      metadata,
+      selection.includeCleanup,
+      selection.deletions,
+    );
   }
 
   private async selectChangedFiles(

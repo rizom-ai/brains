@@ -13,7 +13,6 @@ import type { ReactElement } from "react";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import { studioWorkspacePath } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { studioArea, TypeSwitcher } from "./entity-fields";
 import { getStudioRouterBasePath } from "./studio-router";
 import { chromeStyles as chrome } from "./studio-chrome.styles";
 import { typographyStyles } from "./studio-typography.styles";
@@ -21,6 +20,8 @@ import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
+import { studioArea } from "./studio-areas";
+import { TypeSwitcher } from "./studio-type-navigation";
 
 function rootAttribute(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;

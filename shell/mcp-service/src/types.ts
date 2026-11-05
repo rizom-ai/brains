@@ -140,6 +140,7 @@ export const toolConfirmationSchema: z.ZodObject<
     summary: z.ZodString;
     completionSummary: z.ZodOptional<z.ZodString>;
     preview: z.ZodOptional<z.ZodString>;
+    text: z.ZodOptional<z.ZodString>;
     args: z.ZodUnknown;
   },
   z.core.$strict
@@ -149,6 +150,8 @@ export const toolConfirmationSchema: z.ZodObject<
   summary: z.string(),
   completionSummary: z.string().optional(),
   preview: z.string().optional(),
+  /** The reply a chat turn wrote alongside the request it awaits. */
+  text: z.string().optional(),
   args: z.unknown(),
 });
 
@@ -189,6 +192,12 @@ export interface Tool<TOutput = ToolResponse> {
   sideEffects?: ToolSideEffects;
   /** Whether the LLM agent may receive this tool in its callable tool set. Defaults to true. */
   agentTool?: boolean;
+  /**
+   * Whether the tool can serve a call now, such as asking peers when the
+   * brain has some to ask; checked as each agent turn starts, and the agent
+   * is not offered the tool while it resolves false. Absent: always.
+   */
+  isAvailable?: () => Promise<boolean>;
   /** Direct external MCP protocol exposure. Defaults to debug; basic exposure requires an explicit opt-in. */
   directMcpExposure?: DirectMcpExposure;
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */

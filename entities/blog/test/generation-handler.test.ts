@@ -511,4 +511,138 @@ describe("BlogGenerationJobHandler", () => {
       expect(result.error).toContain("Database error");
     });
   });
+  describe("process - an essay published elsewhere", () => {
+    it("keeps its status, original date and canonical address", async () => {
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
+        excerpt: "Generated excerpt",
+      });
+
+      const result = await handler.process(
+        {
+          title: "On slowness",
+          content: "My text.",
+          status: "published",
+          publishedAt: "2025-03-12T00:00:00.000Z",
+          canonicalUrl: "https://example.substack.com/p/on-slowness",
+        },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          content: expect.stringMatching(
+            /status: published[\s\S]*publishedAt: '2025-03-12T00:00:00.000Z'[\s\S]*canonicalUrl: '?https:\/\/example\.substack\.com\/p\/on-slowness'?\n---\nMy text\.\n$/,
+          ),
+          metadata: expect.objectContaining({
+            status: "published",
+            publishedAt: "2025-03-12T00:00:00.000Z",
+          }),
+        }),
+        options: { deduplicateId: true },
+      });
+    });
+
+    it("dates a post created as published without a date", async () => {
+      await handler.process(
+        {
+          title: "Now",
+          content: "Text",
+          excerpt: "Excerpt",
+          status: "published",
+        },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          metadata: expect.objectContaining({
+            status: "published",
+            publishedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+          }),
+        }),
+        options: { deduplicateId: true },
+      });
+    });
+
+    it("uses a stated author over the profile name", async () => {
+      await handler.process(
+        { title: "T", content: "C", excerpt: "E", author: "Guest Writer" },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("author: Guest Writer"),
+        }),
+        options: { deduplicateId: true },
+      });
+    });
+  });
+
+  describe("process - generating from a source entity", () => {
+    it("keeps the source reference through validation", () => {
+      expect(
+        handler.validateAndParse({
+          prompt: "A post from my note",
+          sourceEntityType: "note",
+          sourceEntityIds: ["on-slowness"],
+        }),
+      ).toMatchObject({
+        sourceEntityType: "note",
+        sourceEntityIds: ["on-slowness"],
+      });
+    });
+
+    it("writes the post from the source text", async () => {
+      spyOn(mockContext.entityService, "getEntity").mockImplementation(
+        async ({ entityType, id }: { entityType: string; id: string }) =>
+          entityType === "note" && id === "on-slowness"
+            ? createTestEntity("note", {
+                id: "on-slowness",
+                content:
+                  "---\ntitle: On slowness\n---\n\nSlowness is a craft, not a delay.",
+                metadata: { title: "On slowness" },
+              })
+            : null,
+      );
+
+      await handler.process(
+        {
+          prompt: "Turn this note into a post",
+          sourceEntityType: "note",
+          sourceEntityIds: ["on-slowness"],
+        },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "blog:generation",
+          prompt: expect.stringContaining("Slowness is a craft, not a delay."),
+        }),
+        generatedBlogPostSchema,
+      );
+    });
+
+    it("fails when the source is gone", async () => {
+      const result = await handler.process(
+        {
+          prompt: "Turn this note into a post",
+          sourceEntityType: "note",
+          sourceEntityIds: ["missing"],
+        },
+        "job-123",
+        mockProgressReporter,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("missing");
+      expect(mockContext.ai.generate).not.toHaveBeenCalled();
+    });
+  });
 });

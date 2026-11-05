@@ -43,6 +43,7 @@ function createRoute(): PreparedRoute {
   return {
     id: "home",
     path: "/",
+    language: "en",
     title: "Home",
     description: "Home route",
     layout: "default",

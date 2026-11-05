@@ -1,4 +1,4 @@
-import { homepageOpeningSchema } from "@brains/site-atlas";
+import { homepageFaqsSchema, homepageOpeningSchema } from "@brains/site-atlas";
 import { z } from "@brains/utils/zod";
 import { organizationProfileSchema } from "./organization-profile";
 import { agentRadarSchema } from "./radar";
@@ -15,12 +15,15 @@ export const organizationHomepageSchema: z.ZodObject<{
   opening: typeof openingSchema;
   map: z.ZodDefault<z.ZodNullable<typeof agentRadarSchema>>;
   askBox: z.ZodDefault<z.ZodBoolean>;
+  faqs: typeof homepageFaqsSchema;
 }> = z.object({
   profile: organizationProfileSchema,
   opening: openingSchema,
   map: agentRadarSchema.nullable().default(null),
   /** Web Chat serves the guest box here: dock it in the frame. */
   askBox: z.boolean().default(false),
+  /** The organization's published FAQs, shown under the atlas. */
+  faqs: homepageFaqsSchema,
 });
 
 export type OrganizationHomepageData = z.output<

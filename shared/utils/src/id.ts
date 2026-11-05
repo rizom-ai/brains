@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid";
+import { customAlphabet, nanoid } from "nanoid";
 
 /**
  * Create a unique ID for general use
@@ -8,6 +8,13 @@ import { nanoid } from "nanoid";
  */
 export function createId(size = 12): string {
   return nanoid(size);
+}
+
+const LOWERCASE_ALPHANUMERIC = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+/** A short id of lowercase letters and digits, for readable file names. */
+export function createShortId(size = 6): string {
+  return customAlphabet(LOWERCASE_ALPHANUMERIC, size)();
 }
 
 /**

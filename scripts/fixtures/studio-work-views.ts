@@ -18,9 +18,14 @@ import {
 
 import type { StudioStudyState } from "./studio-study-state";
 
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+
 /** Seed source inputs; the production providers own all view composition. */
+/** Activity is recorded at fixed offsets from `now`, the harness clock. */
 export async function createWorkViewFixtures(
   state?: StudioStudyState,
+  now: number = Date.now(),
 ): Promise<{
   overview: () => Promise<unknown>;
   overviewBadge: () => Promise<number>;
@@ -35,7 +40,8 @@ export async function createWorkViewFixtures(
     visibilityScope: "restricted",
     isAnchor: false,
   };
-  const registry = new StudioOverviewRegistry();
+  let clock = now;
+  const registry = new StudioOverviewRegistry({ now: (): number => clock });
   registry.register({
     id: "publishing",
     pluginId: "content-pipeline",
@@ -79,10 +85,25 @@ export async function createWorkViewFixtures(
     }),
   });
   if (state !== "empty" && state !== "restart") {
+    clock = now - 7 * HOUR;
+    await registry.recordEntity("created", {
+      entityType: "post",
+      entityId: "notes-on-stewardship",
+    });
+    clock = now - 5 * HOUR;
+    registry.recordJob({
+      id: "directory-sync",
+      type: "job",
+      status: "completed",
+      message: "Pulled 14 changes from git.",
+      jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
+    });
+    clock = now - 12 * MINUTE;
     await registry.recordEntity("updated", {
       entityType: "note",
       entityId: "quiet-infrastructure",
     });
+    clock = now;
     registry.recordJob({
       id: "preview-build",
       type: "job",
@@ -95,6 +116,7 @@ export async function createWorkViewFixtures(
   const overview = createStudioOverviewWorkspace({
     context: createServicePluginContext(shell, "studio"),
     registry,
+    now: (): number => now,
   });
   const inboxSources = shell.getInboxRegistry();
   const closed = new Set<string>();

@@ -16,6 +16,7 @@ export {
   createTemplate,
   renderedLinkFields,
   templateRenderers,
+  viewLinkFields,
 } from "./types";
 export { InMemoryTemplateRegistry } from "./registry";
 export type { TemplateRegistry } from "./registry";

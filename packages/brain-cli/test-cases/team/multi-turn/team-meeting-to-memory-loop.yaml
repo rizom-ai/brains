@@ -19,9 +19,10 @@ turns:
   - userMessage: >-
       Capture these rough Team Brain team notes as one note only, exactly enough for
       later follow-up; do not create separate decisions or action records:
-      Customer Alpha cannot find the latest MCP handoff; decision: keep the
-      default homepage as a system diagram with live counts; action: Daniel
-      updates seed/eval content and Mira validates dashboard identity by Friday.
+      Customer Alpha cannot find the latest MCP handoff; action: resend
+      Customer Alpha the latest MCP handoff; decision: keep the default
+      homepage as a system diagram with live counts; action: Daniel updates
+      seed/eval content and Mira validates dashboard identity by Friday.
     successCriteria:
       expectedTools:
         - toolName: system_create

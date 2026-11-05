@@ -49,7 +49,7 @@ const data: RuntimeStudioWorkspaceData = {
           {
             type: "card",
             id: "overview-activity",
-            label: "Recent activity",
+            label: "What happened",
             blocks: [
               {
                 type: "list",
@@ -85,9 +85,9 @@ function render(value = data): string {
 describe("Studio Overview composition", () => {
   it("separates attention from activity and keeps diagnostics closed on arrival", () => {
     const html = render();
-    expect(html).toContain("declarative-columns");
+    expect(html).toContain('data-columns=""');
     expect(html).toContain("Needs you");
-    expect(html).toContain("Recent activity");
+    expect(html).toContain("What happened");
     expect(html).toContain("Delivery failed");
     expect(html).toContain("Permission denied");
     expect(html).toMatch(/<summary[^>]*>Runtime<\/summary>/);

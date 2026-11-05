@@ -87,7 +87,7 @@ test("the built server entry renders without a DOM or StyleX loader", () => {
     typeof output.css !== "string"
   )
     throw new Error("Invalid SSR test output");
-  for (const text of ["operator-key-values", ">Yes</dd>", ">—</dd>"]) {
+  for (const text of ["data-facts", ">Yes</dd>", ">—</dd>"]) {
     expect(output.html).toContain(text);
   }
   expect(output.html).not.toContain("<style");

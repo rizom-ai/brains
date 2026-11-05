@@ -22,6 +22,15 @@ describe("Markdown Utilities", () => {
     expect(firstMarkdownHeading("# First\n\n# Second")).toBe("First");
   });
 
+  it("limits the derived title to headings of one depth when asked", () => {
+    expect(
+      firstMarkdownHeading("## Section\n\n# The Title", { depth: 1 }),
+    ).toBe("The Title");
+    expect(
+      firstMarkdownHeading("## Only a section", { depth: 1 }),
+    ).toBeUndefined();
+  });
+
   describe("parseMarkdown", () => {
     it("should parse markdown with frontmatter", () => {
       const markdown = `---

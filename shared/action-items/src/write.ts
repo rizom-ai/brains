@@ -1,9 +1,19 @@
 import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
-import { applyMove, applyNote } from "./board";
-import { createId } from "@brains/utils/id";
-import { truncateText } from "@brains/utils/string-utils";
+import {
+  actionItemAssigneeHash,
+  actionItemBodyHash,
+  applyMove,
+  applyNote,
+  isBoardOwned,
+} from "./board";
+import { createShortId } from "@brains/utils/id";
+import {
+  slugify,
+  truncateSlug,
+  truncateText,
+} from "@brains/utils/string-utils";
 import { ActionItemAdapter } from "./adapter";
 import {
   actionItemSchema,
@@ -108,6 +118,49 @@ export async function moveActionItem(
     : outcome;
 }
 
+export interface WithdrawActionItemDeps {
+  entityService: Pick<
+    EntityPluginContext["entityService"],
+    "getEntity" | "deleteEntity"
+  >;
+  visibilityScope: ContentVisibility;
+}
+
+export interface WithdrawActionItemResult {
+  status: "removed" | "kept" | "not-found";
+}
+
+/**
+ * Take back a card its finder wrote. A card the board has touched is kept:
+ * the delete holds only while the card is the version read, and a refused
+ * delete is decided again from the fresh card.
+ */
+export async function withdrawActionItem(
+  deps: WithdrawActionItemDeps,
+  id: string,
+  attempts = 2,
+): Promise<WithdrawActionItemResult> {
+  const entity = await deps.entityService.getEntity(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      id,
+      visibilityScope: deps.visibilityScope,
+    },
+    actionItemSchema,
+  );
+  if (!entity) return { status: "not-found" };
+  if (isBoardOwned(entity)) return { status: "kept" };
+  const deleted = await deps.entityService.deleteEntity({
+    entityType: ACTION_ITEM_ENTITY_TYPE,
+    id,
+    options: { expectedContentHash: entity.contentHash },
+  });
+  if (deleted) return { status: "removed" };
+  return attempts > 1
+    ? withdrawActionItem(deps, id, attempts - 1)
+    : { status: "kept" };
+}
+
 /** Add one dated, named note to a card. */
 export async function addActionItemNote(
   deps: ActionItemMoveDeps,
@@ -155,9 +208,25 @@ export type TrackInboxItemResult =
 
 const inboxItemAdapter = new ActionItemAdapter();
 
+/**
+ * Parts joined into one id without colons: directory sync stores a colon in
+ * an id as a folder, and each card is one flat file.
+ */
+export function flatId(...parts: string[]): string {
+  return parts.join("-").replaceAll(":", "-");
+}
+
 /** The card an Inbox item becomes; one per item. */
 export function inboxCardId(sourceRef: ActionItemSourceRef): string {
-  return `inbox:${sourceRef.sourceId}:${sourceRef.entityId}`;
+  return flatId("inbox", sourceRef.sourceId, sourceRef.entityId);
+}
+
+/** A hand-added card's id: its title as a slug and a short unique suffix. */
+export function boardCardId(
+  title: string,
+  suffix: string = createShortId(),
+): string {
+  return `${truncateSlug(slugify(title), 60) || "card"}-${suffix}`;
 }
 
 /** Turn an Inbox item into an open card that points back at its source; once per item. */
@@ -165,78 +234,112 @@ export async function trackInboxItem(
   deps: TrackInboxItemDeps,
   request: TrackInboxItemRequest,
 ): Promise<TrackInboxItemResult> {
-  const id = inboxCardId(request.sourceRef);
-  const existing = await deps.entityService.getEntity({
-    entityType: ACTION_ITEM_ENTITY_TYPE,
-    id,
-    visibilityScope: "restricted",
+  const { sourceRef, ...card } = request;
+  const result = await createActionItem(deps, {
+    ...card,
+    id: inboxCardId(sourceRef),
+    origin: { kind: "inbox", sourceRef },
   });
-  if (existing) return { status: "already-tracked", id };
-
-  const assignee = request.assignee;
-  const metadata: ActionItemMetadata = {
-    origin: "inbox",
-    sourceRef: request.sourceRef,
-    capturedAt: (deps.now?.() ?? new Date()).toISOString(),
-    status: "open",
-    ...(assignee
-      ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
-      : {}),
-    requestedBy: [
-      {
-        ...(request.actorName ? { name: request.actorName } : {}),
-        id: actorRefKey(request.actor),
-      },
-    ],
-  };
-  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
-  await deps.entityService.createEntity({
-    entity: {
-      id,
-      entityType: ACTION_ITEM_ENTITY_TYPE,
-      visibility: deps.visibility,
-      content: inboxItemAdapter.composeContent(
-        `Action item: ${title}`,
-        request.text.trim() || title,
-        metadata,
-      ),
-      metadata,
-    },
-    options: { eventContext: { actor: request.actor } },
-  });
-  return { status: "tracked", id };
+  return result.status === "created"
+    ? { status: "tracked", id: result.id }
+    : { status: "already-tracked", id: result.id };
 }
 
-export interface CreateBoardCardRequest {
+/**
+ * Where a card comes from: added on the board by hand, tracked from an Inbox
+ * item, or asked for or found in a conversation, which it then names.
+ */
+export type CreateActionItemOrigin =
+  | { kind: "board" }
+  | { kind: "inbox"; sourceRef: ActionItemSourceRef }
+  | {
+      kind: "conversation";
+      conversationId: string;
+      interfaceType: string;
+      channelId: string;
+      channelName?: string | undefined;
+    };
+
+export interface CreateActionItemRequest {
   title: string;
   text: string;
   /** The member who should do it. */
   assignee?: ActionItemAssigneeMember | undefined;
+  /** When it is due (YYYY-MM-DD), when someone named a date. */
+  dueDate?: string | undefined;
   actor: ActorRef;
   actorName?: string | undefined;
+  origin: CreateActionItemOrigin;
+  /** A card found in a conversation keeps the id it was found by. */
+  id?: string | undefined;
+  /**
+   * Written by the channel pickup, which may still revise it: its body hash
+   * is stored, so any later edit makes it the board's.
+   */
+  projected?: boolean | undefined;
 }
 
-export interface CreateBoardCardResult {
-  status: "created";
+export interface CreateActionItemResult {
+  /** "exists" when a card with the requested id is already there. */
+  status: "created" | "exists";
   id: string;
 }
 
-/** Add an open card on the board by hand, naming who added it. */
-export async function createBoardCard(
+function originMetadata(
+  origin: CreateActionItemOrigin,
+): Pick<
+  ActionItemMetadata,
+  | "origin"
+  | "conversationId"
+  | "interfaceType"
+  | "channelId"
+  | "channelName"
+  | "sourceRef"
+> {
+  if (origin.kind === "board") return { origin: "board" };
+  if (origin.kind === "inbox") {
+    return { origin: "inbox", sourceRef: origin.sourceRef };
+  }
+  return {
+    origin: "conversation",
+    conversationId: origin.conversationId,
+    interfaceType: origin.interfaceType,
+    channelId: origin.channelId,
+    ...(origin.channelName ? { channelName: origin.channelName } : {}),
+  };
+}
+
+/** Add an open card someone asked for, naming who asked and where. */
+export async function createActionItem(
   deps: Omit<TrackInboxItemDeps, "entityService"> & {
-    entityService: Pick<EntityPluginContext["entityService"], "createEntity">;
+    entityService: Pick<
+      EntityPluginContext["entityService"],
+      "createEntity" | "getEntity"
+    >;
   },
-  request: CreateBoardCardRequest,
-): Promise<CreateBoardCardResult> {
-  const id = `board:${createId()}`;
+  request: CreateActionItemRequest,
+): Promise<CreateActionItemResult> {
+  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  const id = request.id ?? boardCardId(title);
+  if (
+    request.id !== undefined &&
+    (await deps.entityService.getEntity({
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      id,
+      visibilityScope: "restricted",
+    }))
+  ) {
+    return { status: "exists", id };
+  }
   const assignee = request.assignee;
   const metadata: ActionItemMetadata = {
-    origin: "board",
+    ...originMetadata(request.origin),
     capturedAt: (deps.now?.() ?? new Date()).toISOString(),
     status: "open",
     ...(assignee
       ? { assignedTo: [{ name: assignee.name, id: assignee.id }] }
       : {}),
+    ...(request.dueDate ? { dueDate: request.dueDate } : {}),
     requestedBy: [
       {
         ...(request.actorName ? { name: request.actorName } : {}),
@@ -244,20 +347,132 @@ export async function createBoardCard(
       },
     ],
   };
-  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  const text = request.text.trim() || title;
+  const card = request.projected
+    ? foundCard(title, text, metadata)
+    : {
+        content: inboxItemAdapter.composeContent(
+          `Action item: ${title}`,
+          text,
+          metadata,
+        ),
+        metadata,
+      };
   await deps.entityService.createEntity({
     entity: {
       id,
       entityType: ACTION_ITEM_ENTITY_TYPE,
       visibility: deps.visibility,
-      content: inboxItemAdapter.composeContent(
-        `Action item: ${title}`,
-        request.text.trim() || title,
-        metadata,
-      ),
-      metadata,
+      ...card,
     },
     options: { eventContext: { actor: request.actor } },
   });
   return { status: "created", id };
+}
+
+/**
+ * A card as its finder writes it, with the hashes of its body and owner, so
+ * a later change by anyone else gives it to the board.
+ */
+function foundCard(
+  title: string,
+  text: string,
+  metadata: ActionItemMetadata,
+): { content: string; metadata: ActionItemMetadata } {
+  const heading = `Action item: ${title}`;
+  const {
+    projectedBodyHash: _body,
+    projectedAssigneeHash: _owner,
+    projectedDueDate: _due,
+    ...rest
+  } = metadata;
+  const stored: ActionItemMetadata = {
+    ...rest,
+    projectedBodyHash: actionItemBodyHash(
+      inboxItemAdapter.composeContent(heading, text, rest),
+    ),
+    projectedAssigneeHash: actionItemAssigneeHash(rest.assignedTo),
+    ...(rest.dueDate ? { projectedDueDate: rest.dueDate } : {}),
+  };
+  return {
+    content: inboxItemAdapter.composeContent(heading, text, stored),
+    metadata: stored,
+  };
+}
+
+export interface ReviseActionItemDeps {
+  entityService: Pick<
+    EntityPluginContext["entityService"],
+    "getEntity" | "updateEntity"
+  >;
+  visibilityScope: ContentVisibility;
+}
+
+export interface ReviseActionItemRequest {
+  id: string;
+  title: string;
+  text: string;
+  /** The owner now; none takes the card's owner away. */
+  assignee: ActionItemAssigneeMember | undefined;
+  /** The due date now; none takes the card's due date away. */
+  dueDate: string | undefined;
+}
+
+export interface ReviseActionItemResult {
+  status: "revised" | "unchanged" | "kept" | "not-found";
+}
+
+/**
+ * Rewrite a card its finder wrote, when later messages change it. A card the
+ * board has touched is kept: the write holds only while the card is the
+ * version read, and a refused write is decided again from the fresh card.
+ */
+export async function reviseActionItem(
+  deps: ReviseActionItemDeps,
+  request: ReviseActionItemRequest,
+  attempts = 2,
+): Promise<ReviseActionItemResult> {
+  const entity = await deps.entityService.getEntity(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      id: request.id,
+      visibilityScope: deps.visibilityScope,
+    },
+    actionItemSchema,
+  );
+  if (!entity) return { status: "not-found" };
+  if (isBoardOwned(entity)) return { status: "kept" };
+  const {
+    assignedTo: _assignedTo,
+    dueDate: _dueDate,
+    ...unassigned
+  } = entity.metadata;
+  const title = truncateText(request.title.replace(/\s+/g, " ").trim(), 80);
+  const revised = foundCard(title, request.text.trim() || title, {
+    ...unassigned,
+    ...(request.dueDate ? { dueDate: request.dueDate } : {}),
+    ...(request.assignee
+      ? {
+          assignedTo: [
+            { name: request.assignee.name, id: request.assignee.id },
+          ],
+        }
+      : {}),
+  });
+  if (
+    revised.metadata.projectedBodyHash === actionItemBodyHash(entity.content) &&
+    revised.metadata.projectedAssigneeHash ===
+      actionItemAssigneeHash(entity.metadata.assignedTo) &&
+    revised.metadata.dueDate === entity.metadata.dueDate
+  ) {
+    return { status: "unchanged" };
+  }
+  const result = await deps.entityService.updateEntity({
+    entity: { ...entity, ...revised },
+    options: { expectedContentHash: entity.contentHash },
+  });
+  if (result.skipReason !== "content-conflict") return { status: "revised" };
+  return attempts > 1
+    ? reviseActionItem(deps, request, attempts - 1)
+    : { status: "kept" };
 }

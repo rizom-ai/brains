@@ -13,6 +13,6 @@ import { createStylexBunTransform } from "./stylex-bun-plugin";
 await Bun.plugin(
   createStylexBunTransform({
     filter:
-      /[/\\](?:shared[/\\]app-ui-react[/\\]src[/\\](?:controls|interactive)\.tsx|shared[/\\]operator-view-react[/\\]src[/\\][^/\\]+\.styles\.ts|plugins[/\\]studio[/\\]ui-react[/\\]src[/\\][^/\\]+\.styles\.ts)$/,
+      /[/\\](?:shared[/\\]app-ui-react[/\\](?:src[/\\](?:controls|interactive)\.tsx|(?:src|test)[/\\][^/\\]+\.styles\.ts)|shared[/\\]operator-view-react[/\\]src[/\\][^/\\]+\.styles\.ts|plugins[/\\]studio[/\\]ui-react[/\\]src[/\\][^/\\]+\.styles\.ts)$/,
   }).plugin,
 );

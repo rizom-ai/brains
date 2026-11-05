@@ -4,6 +4,7 @@
     "rootDir": ".",
     "composite": true,
     "esModuleInterop": true,
+    "jsx": "react-jsx",
     "types": ["bun-types"]
   },
   "include": ["src/**/*", "test/**/*"],

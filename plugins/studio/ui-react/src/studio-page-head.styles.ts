@@ -14,15 +14,15 @@ export const headStyles: Record<
   | "metadata"
   | "phoneHidden"
   | "statusDetail"
+  | "facts"
+  | "fact"
+  | "factMark"
   | "totals"
   | "total"
   | "totalLabel"
   | "totalValue"
   | "action"
-  | "navigation"
-  | "good"
-  | "warn"
-  | "error",
+  | "navigation",
   stylex.StyleXStyles
 > = stylex.create({
   inset: {
@@ -109,6 +109,27 @@ export const headStyles: Record<
     fontSize: 11,
     lineHeight: 1.5,
   },
+  facts: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px 22px",
+    margin: 0,
+    padding: 0,
+    listStyle: "none",
+    color: "var(--console-text-muted)",
+    fontFamily: "var(--console-ui)",
+    fontSize: 14,
+    "@media (max-width: 640px)": { fontSize: 13 },
+  },
+  fact: { display: "inline-flex", alignItems: "center", gap: 8 },
+  // The mark carries the tone; a neutral fact keeps the muted text colour.
+  factMark: {
+    width: 8,
+    height: 8,
+    flexShrink: 0,
+    borderRadius: "50%",
+    backgroundColor: "currentColor",
+  },
   totals: { display: "flex", flexWrap: "wrap", gap: 12, margin: 0 },
   total: { display: "inline-flex", alignItems: "baseline", gap: 5 },
   totalLabel: {
@@ -123,9 +144,6 @@ export const headStyles: Record<
     fontSize: 12,
     fontWeight: 600,
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   action: {
     position: "relative",
     zIndex: 4,

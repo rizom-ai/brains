@@ -14,6 +14,7 @@ import {
   trackHref,
 } from "./board-workspace";
 import { ActionItemInboxSource } from "./inbox-source";
+import { createActionItemCreateTool } from "./tools/action-item-create";
 import { createActionItemUpdateTool } from "./tools/action-item-update";
 
 const actionBoardConfigSchema: z.ZodObject<{
@@ -71,7 +72,15 @@ export class ActionBoardPlugin extends ServicePlugin<
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    return [createActionItemUpdateTool(this.getContext())];
+    const context = this.getContext();
+    return [
+      createActionItemCreateTool(context, {
+        visibility: this.config.cardVisibility,
+        members: async () =>
+          assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+      }),
+      createActionItemUpdateTool(context),
+    ];
   }
 
   // Studio runs in the web process, which alone has a ready phase.

@@ -95,6 +95,31 @@ describe("defineSection", () => {
   });
 });
 
+describe("defineSection components per language", () => {
+  test("keeps a section's drawing for another language", () => {
+    function HeroZh({ headline }: z.infer<typeof heroSchema>): JSX.Element {
+      return <h1 lang="zh-TW">{headline}</h1>;
+    }
+    const section = defineSection(heroSchema, Hero, {
+      title: "Hero",
+      description: "The hero section",
+      components: { "zh-TW": HeroZh },
+    });
+
+    expect(section.components?.["zh-TW"]).toBe(HeroZh);
+  });
+
+  test("rejects a drawing keyed by something that is not a language tag", () => {
+    expect(() =>
+      defineSection(heroSchema, Hero, {
+        title: "Hero",
+        description: "The hero section",
+        components: { chinese: Hero },
+      }),
+    ).toThrow("language tag");
+  });
+});
+
 describe("sectionGroup", () => {
   test("bundles heterogeneous sections under a namespace", () => {
     const group = sectionGroup("home", {

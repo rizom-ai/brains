@@ -615,38 +615,38 @@ function FieldControl(props: {
       {label}
       <Input
         {...validation}
-        xstyle={[f.control, descriptor.widget === "datetime" && f.date]}
+        xstyle={[
+          f.control,
+          (descriptor.widget === "datetime" || descriptor.widget === "date") &&
+            f.date,
+        ]}
         type={
           descriptor.widget === "number"
             ? "number"
             : descriptor.widget === "datetime"
               ? "datetime-local"
-              : "text"
+              : descriptor.widget === "date"
+                ? "date"
+                : "text"
         }
         value={
           descriptor.widget === "datetime" ? datetimeLocalValue(text) : text
         }
         required={required}
-        onChange={(event) =>
+        onChange={(event) => {
+          const next = event.currentTarget.value;
+          // A cleared optional date is no date, not an empty string.
+          if (descriptor.widget === "date" && next === "") {
+            onChange(undefined);
+            return;
+          }
           onChange(
-            descriptor.widget === "datetime" && event.currentTarget.value
-              ? new Date(event.currentTarget.value).toISOString()
-              : event.currentTarget.value,
-          )
-        }
+            descriptor.widget === "datetime" && next
+              ? new Date(next).toISOString()
+              : next,
+          );
+        }}
       />
     </label>
   );
 }
-
-// Navigation and type classification moved to studio-type-navigation.tsx.
-// Re-exported here so the many call sites that reach for them through this
-// module keep working; import from the navigation module in new code.
-export type { StudioEditorPresentation } from "./studio-type-navigation";
-export {
-  StudioBrowseDestinations,
-  TypeSwitcher,
-  studioArea,
-  studioEditorPresentation,
-  studioMobileSelection,
-} from "./studio-type-navigation";
