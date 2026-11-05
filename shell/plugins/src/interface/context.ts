@@ -1,3 +1,5 @@
+import type { WebRouteRole } from "@brains/contracts";
+import { findRouteByRole } from "../types/web-routes";
 import { createExternalActorId, PLUGIN_CHANNELS } from "@brains/contracts";
 import type {
   BasePluginContext,
@@ -88,6 +90,8 @@ export interface IApiRoutesNamespace {
 export interface IWebRoutesNamespace {
   /** Get all registered web routes from plugins */
   getRoutes: () => RegisteredWebRoute[];
+  /** The route claiming a well-known role, whichever plugin registered it. */
+  findByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
 }
 
 export interface IHttpRoutesNamespace {
@@ -335,6 +339,8 @@ export function createInterfacePluginContext(
       getRoutes: (): RegisteredWebRoute[] => {
         return shell.getPluginWebRoutes();
       },
+      findByRole: (role): RegisteredWebRoute | undefined =>
+        findRouteByRole(shell.getPluginWebRoutes(), role),
     },
 
     httpRoutes: {

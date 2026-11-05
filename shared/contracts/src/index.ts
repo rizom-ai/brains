@@ -408,3 +408,4 @@ export {
   DEFAULT_FAVICON_PATH,
   DEFAULT_FAVICON_SVG,
 } from "./favicon";
+export { WEB_ROUTE_ROLES, type WebRouteRole } from "./web-route-role";

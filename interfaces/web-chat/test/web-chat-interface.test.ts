@@ -1464,6 +1464,7 @@ describe("WebChatInterface", () => {
             definition: {
               path: "/chat",
               method: "GET",
+              ...(studio ? { role: "studio-chat" as const } : {}),
               handler: async (): Promise<Response> => new Response("Studio"),
             },
           },

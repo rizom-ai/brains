@@ -1,3 +1,4 @@
+import { enableChatCapability } from "./fixtures/chat-capability";
 import {
   createMockShell,
   createTempDataDir,
@@ -59,14 +60,6 @@ function findRoute(
     );
   if (!route) throw new Error(`Missing ${method} route: ${path}`);
   return route;
-}
-
-function enableChatCapability(shell: MockShell): void {
-  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-  shell.getPluginPackageName = (pluginId): string | undefined =>
-    pluginId === "web-chat"
-      ? "@brains/web-chat"
-      : getPluginPackageName(pluginId);
 }
 
 async function createSessionCookie(shell: MockShell): Promise<string> {

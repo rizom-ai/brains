@@ -653,11 +653,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleAuthenticatedChatPage(): Promise<Response> {
-    const studioHref = this.getContext()
-      .webRoutes.getRoutes()
-      .find(
-        (route) => route.pluginId === "studio" && route.fullPath === "/chat",
-      )?.fullPath;
+    const studioHref =
+      this.getContext().webRoutes.findByRole("studio-chat")?.fullPath;
     // Studio owns authentication; this retired page never renders operator UI.
     return studioHref
       ? new Response(null, {

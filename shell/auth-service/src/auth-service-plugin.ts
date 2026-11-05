@@ -185,7 +185,7 @@ async function resolveProfileDisplayName(
 
 /** Where a newly registered operator lands: Studio when the brain serves it. */
 export function homePathFor(
-  routes: Pick<RegisteredWebRoute, "pluginId" | "fullPath">[],
+  routes: readonly Pick<RegisteredWebRoute, "fullPath" | "definition">[],
 ): string {
   return (
     deriveConsoleSurfaces(routes, {

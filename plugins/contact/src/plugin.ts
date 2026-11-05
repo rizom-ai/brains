@@ -295,15 +295,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
    * mounts no such route. */
   private inboxUrl(context: ServicePluginContext): string | undefined {
     const origin = this.policy?.http.origin;
-    const workspaces = context.webRoutes
-      .getRoutes()
-      .find(
-        (route) =>
-          route.pluginId === "studio" &&
-          (route.definition.method ?? "GET") === "GET" &&
-          route.definition.match === "prefix" &&
-          route.fullPath.endsWith("/workspaces"),
-      );
+    const workspaces = context.webRoutes.findByRole("studio-workspaces");
     return origin && workspaces
       ? `${origin}${workspaces.fullPath}/unified-inbox%3Ainbox`
       : undefined;
