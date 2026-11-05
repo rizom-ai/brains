@@ -9,10 +9,18 @@ import { Shell } from "../src/shell";
 import { createTestShellConfig } from "./helpers/test-config";
 
 const embeddingsRequest = z.object({ input: z.array(z.string()) });
-const chatRequest = z.object({ stream: z.boolean().optional() });
+const chatRequest = z.object({
+  stream: z.boolean().optional(),
+  reasoning_effort: z.string().optional(),
+});
 
 /** An OpenAI-compatible model runtime: embeddings and one-line chat replies. */
-function startFakeRuntime(): { url: string; stop: () => void } {
+function startFakeRuntime(): {
+  url: string;
+  efforts: Array<string | undefined>;
+  stop: () => void;
+} {
+  const efforts: Array<string | undefined> = [];
   const server = Bun.serve({
     port: 0,
     async fetch(request) {
@@ -31,7 +39,10 @@ function startFakeRuntime(): { url: string; stop: () => void } {
         });
       }
       if (path === "/v1/chat/completions") {
-        const { stream } = chatRequest.parse(await request.json());
+        const { stream, reasoning_effort } = chatRequest.parse(
+          await request.json(),
+        );
+        efforts.push(reasoning_effort);
         const reply = "Hello from the local runtime.";
         if (stream) {
           const chunks = [
@@ -65,7 +76,11 @@ function startFakeRuntime(): { url: string; stop: () => void } {
       return new Response("not found", { status: 404 });
     },
   });
-  return { url: server.url.origin, stop: () => server.stop(true) };
+  return {
+    url: server.url.origin,
+    efforts,
+    stop: () => server.stop(true),
+  };
 }
 
 const cleanups: Array<() => Promise<void> | void> = [];
@@ -107,6 +122,8 @@ it("boots, indexes and answers a chat turn with no cloud provider configured", a
         model: "local:qwen3:8b",
         embeddingModel: "local:embeddinggemma-2:270m",
         modelRuntimeUrl: runtime.url,
+        // Thinking off, as the proof of concept runs.
+        reasoningEffort: "none",
       },
     }),
     { logger: createSilentLogger("no-cloud-key-boot") },
@@ -134,4 +151,6 @@ it("boots, indexes and answers a chat turn with no cloud provider configured", a
   });
   expect(reply.text).toContain("Hello from the local runtime.");
   expect(outside).toEqual([]);
+  expect(runtime.efforts.length).toBeGreaterThan(0);
+  expect(runtime.efforts.every((effort) => effort === "none")).toBe(true);
 }, 30_000);

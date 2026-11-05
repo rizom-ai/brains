@@ -10,3 +10,5 @@
 Object generation on a local text model sends its JSON schema to the runtime, which constrains the output to it.
 
 `brain start` no longer requires `AI_API_KEY` when `brain.yaml` names `local:` models for both `model` and `embeddingModel`.
+
+`reasoningEffort` in `brain.yaml` reaches local text models as the runtime's `reasoning_effort`; `reasoningEffort: none` turns a model's thinking off.

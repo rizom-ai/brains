@@ -23,7 +23,7 @@ import {
 } from "./guest-execution";
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
-import { openAIReasoningOptions } from "./generation-options";
+import { reasoningProviderOptions } from "./generation-options";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -133,6 +133,11 @@ export function createBrainAgentFactory(
     messageBus,
   } = options;
   const capabilities = resolveTextModelCapabilities(modelId);
+  const reasoning = reasoningProviderOptions(
+    capabilities.provider,
+    reasoningEffort,
+    capabilities.supportsTemperature,
+  );
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -211,18 +216,9 @@ export function createBrainAgentFactory(
             capabilities.supportsTemperature && { temperature }),
           ...(maxTokens !== undefined && { maxTokens }),
           // Guests answer from the brain, never from provider web search.
-          ...((capabilities.provider === "openai" &&
-          reasoningEffort !== undefined
-            ? true
-            : webSearch && !guest) && {
+          ...((reasoning !== undefined || (webSearch && !guest)) && {
             providerOptions: {
-              ...(capabilities.provider === "openai" &&
-                reasoningEffort && {
-                  openai: openAIReasoningOptions(
-                    reasoningEffort,
-                    capabilities.supportsTemperature,
-                  ),
-                }),
+              ...reasoning,
               ...(webSearch &&
                 !guest && {
                   anthropic: { webSearch: true },
