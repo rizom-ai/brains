@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed; implementation has not started.** Inventory taken on main `83a3e0ca61` (2026-11-05).
+**In progress; Phase 1 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`, the messaging namespace has `request` and `answer`, and `note:capture` is the first contract.
 
 35 live message-bus channels carry requests or commands across package boundaries. Fourteen run from shell code to a plugin, and 21 run between plugins. Two typed context namespaces wrap a few of them: `context.dashboard` (four channels) and `context.studio` (two). Everything else is a raw `messaging.send({ type, payload })` whose reply the caller casts to the type it expects.
 
@@ -24,13 +24,14 @@ These facts constrain the design; each was checked against `shell/messaging-serv
 - With no subscriber, `send` resolves `{ success: false, error: "No handler found for message type: …" }`. It never surfaces `{ noop: true }`, so the `"noop" in response` checks in `principal-resolution.ts`, `shellBootloader.ts`, `identity-agent-services.ts` and `studio-namespace.ts` never match.
 - Because absence and failure look the same, `resolvePrincipalViaBus` throws "Principal resolution unavailable" on a brain without auth-service, though its comment promises null. Callers that match on error strings ("Agent asking is unavailable") or treat every failure as absence are guessing.
 - `toMessageResponse` casts `data` to the caller's `R`; its own comment names the missing piece: "removing this needs a response schema on Channel".
+- `defineChannel` (internal and public SDK) pairs a name with a payload schema only; its response type is a marker never checked at runtime, and no production plugin uses it. A channel subscription answers an invalid payload with `{ noop: true }`, which the bus reports to the sender as success.
 - `collect` gathers one answer from every subscriber and is already the right primitive for fan-in (`agent:context:request`, `guest:asked-before`, head scripts, slots, jump destinations).
 
 ## Decisions
 
 ### One contract object, three delivery modes
 
-`@brains/contracts` gains `defineBusContract({ channel, request, response, delivery })`. `delivery` is one of:
+`@brains/contracts` gains `defineBusContract({ channel, request, response, delivery })`. A contract is a channel too (`name` and `schema`), so it fits wherever `defineChannel`'s channels do. `delivery` is one of:
 
 - `"request"`: exactly one owner answers. An answer from a non-owner is a defect, so a second subscriber is refused when a contract is registered.
 - `"collect"`: every subscriber answers, and the sender receives the validated answers.
@@ -70,13 +71,7 @@ The public `@rizom/brain` authoring SDK does not gain contracts in this plan. Ex
 
 ## Phases
 
-Each phase is one PR and leaves every channel either fully migrated or untouched.
-
-### Phase 1 — One contract end to end (walking skeleton)
-
-`defineBusContract` and `request`/`answer` on the messaging namespace and the bus, with `note:capture` migrated: web-chat's guest monitor sends, the note plugin answers.
-
-Gate: tests prove that an invalid request is refused at the handler, an invalid reply arrives as `failed`, and an uninstalled owner yields `unavailable` without throwing.
+Phases land as commits on one branch and PR, opened after the walking skeleton. Each phase leaves every channel either fully migrated or untouched.
 
 ### Phase 2 — Shell-to-plugin channels
 
@@ -102,7 +97,7 @@ The four dashboard and two Studio channels move behind contracts without changin
 
 ### Phase 7 — Dead surface and the guard
 
-Delete the unused handlers, sends and constants. Then add the guard: ESLint rejects `messaging.send` in entity, plugin and interface source unless it is a broadcast event, so any new cross-package call goes through a contract. `toMessageResponse` loses its cast.
+Delete the unused handlers, sends and constants. Channel subscriptions refuse an invalid payload instead of answering `{ noop: true }`. Then add the guard: ESLint rejects `messaging.send` in entity, plugin and interface source unless it is a broadcast event, so any new cross-package call goes through a contract. `toMessageResponse` loses its cast.
 
 Gate: no production `send` outside events remains, and `bun run arch:check` and full lint pass.
 

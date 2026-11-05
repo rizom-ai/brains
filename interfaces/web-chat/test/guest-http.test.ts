@@ -15,7 +15,7 @@ import {
 } from "@brains/contracts/chat";
 import {
   TOPIC_TITLES_MESSAGE,
-  NOTE_CAPTURE_MESSAGE,
+  noteCaptureContract,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "@brains/contracts";
@@ -290,7 +290,7 @@ async function setup(
       .getMockShell()
       .getMessageBus()
       .subscribe<NoteCaptureRequest, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
+        noteCaptureContract.name,
         (message) => {
           captured.push(message.payload);
           return {

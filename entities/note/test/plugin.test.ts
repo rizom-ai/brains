@@ -6,7 +6,7 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import {
-  NOTE_CAPTURE_MESSAGE,
+  noteCaptureContract,
   type NoteCaptureResponse,
 } from "@brains/contracts";
 
@@ -605,7 +605,7 @@ describe("NotePlugin note capture", () => {
 
   it("keeps another plugin's text as a private note, never a public one", async () => {
     const response = await harness.sendMessage<unknown, NoteCaptureResponse>(
-      NOTE_CAPTURE_MESSAGE,
+      noteCaptureContract.name,
       {
         id: "visitor-question-abc123",
         title: "Visitor question",
@@ -632,10 +632,10 @@ describe("NotePlugin note capture", () => {
       title: "Visitor question",
       body: "How do institutions forget?",
     };
-    await harness.sendMessage(NOTE_CAPTURE_MESSAGE, request);
+    await harness.sendMessage(noteCaptureContract.name, request);
     expect(
       await harness.sendMessage<unknown, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
+        noteCaptureContract.name,
         { ...request, body: "Changed" },
       ),
     ).toEqual({ noteId: "visitor-question-abc123", created: false });
@@ -650,7 +650,7 @@ describe("NotePlugin note capture", () => {
   it("refuses a request it cannot parse, creating nothing", async () => {
     expect(
       await harness.sendMessage<unknown, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
+        noteCaptureContract.name,
         {
           id: "Not A Slug",
           title: "Visitor question",

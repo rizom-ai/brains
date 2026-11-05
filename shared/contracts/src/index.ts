@@ -375,7 +375,7 @@ export {
   type TopicSourceTypesResponse,
 } from "./topic-source-types";
 export {
-  NOTE_CAPTURE_MESSAGE,
+  noteCaptureContract,
   noteCaptureRequestSchema,
   noteCaptureResponseSchema,
   type NoteCaptureRequest,
@@ -409,3 +409,9 @@ export {
   DEFAULT_FAVICON_SVG,
 } from "./favicon";
 export { WEB_ROUTE_ROLES, type WebRouteRole } from "./web-route-role";
+export {
+  defineBusContract,
+  type BusContract,
+  type BusDelivery,
+  type BusResult,
+} from "./bus-contract";

@@ -6,7 +6,11 @@ import type {
 } from "@brains/messaging-service";
 import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
-import type { ENTITY_CHANNELS } from "@brains/contracts";
+import type {
+  BusContract,
+  BusResult,
+  ENTITY_CHANNELS,
+} from "@brains/contracts";
 import type {
   GetMessagesOptions,
   ListConversationsOptions,
@@ -53,6 +57,26 @@ type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
 export interface IMessagingNamespace {
   /** Send a message to other plugins */
   send: MessageSender;
+
+  /**
+   * Ask a contract's owner and get its validated answer, or `unavailable`
+   * when no plugin answers the contract. The request is validated before it
+   * is sent; an invalid one is the caller's bug and throws.
+   */
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    payload: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
+
+  /**
+   * Own a request contract: the handler sees only valid requests, and its
+   * reply leaves only when the contract accepts it. A request contract has
+   * one owner; a second one throws.
+   */
+  answer<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    handler: (request: z.output<TRequest>) => Promise<z.input<TResponse>>,
+  ): () => void;
 
   /**
    * Send a message and gather one answer from every subscriber. For

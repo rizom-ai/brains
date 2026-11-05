@@ -7,11 +7,7 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { formatByteSize } from "@brains/utils/string-utils";
-import {
-  NOTE_CAPTURE_MESSAGE,
-  type NoteCaptureRequest,
-  type NoteCaptureResponse,
-} from "@brains/contracts";
+import { noteCaptureContract } from "@brains/contracts";
 import {
   guestRefusalCategorySchema,
   type GuestRefusalCategory,
@@ -629,20 +625,18 @@ export async function registerGuestMonitor(
               if (!event?.question)
                 throw new Error("This record kept no question text");
               // Notes are the note plugin's to write; it keeps them private.
-              const response = await context.messaging.send<
-                NoteCaptureRequest,
-                NoteCaptureResponse
-              >({
-                type: NOTE_CAPTURE_MESSAGE,
-                payload: {
+              const saved = await context.messaging.request(
+                noteCaptureContract,
+                {
                   id: `visitor-question-${input.recordId.slice(0, 16)}`,
                   title: "Visitor question",
                   body: event.question,
                 },
-              });
-              if ("noop" in response || !response.success || !response.data)
+              );
+              if (saved.status === "unavailable")
                 throw new Error("Notes are unavailable");
-              return { noteId: response.data.noteId };
+              if (saved.status === "failed") throw new Error(saved.error);
+              return { noteId: saved.data.noteId };
             },
             async ({ input }) => {
               const event = await deps.record.get(input.recordId);
