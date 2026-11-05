@@ -1,5 +1,14 @@
 # @brains/profile
 
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- [#827](https://github.com/rizom-ai/brains/pull/827) [`143a48c`](https://github.com/rizom-ai/brains/commit/143a48cf57685162c794956bbc186c109a76f7d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A professional profile takes three new optional fields: `headline`, `industry` and `location`. The professional site's about page sets the headline under the owner's name, above the description, and lists industry and location among the facts. The editorial homepage leads with the tagline, then the headline, then the description. Profiles without the new fields render as before.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/plugins@0.2.0-alpha.632
+
 ## 0.2.0-alpha.631
 
 ### Patch Changes

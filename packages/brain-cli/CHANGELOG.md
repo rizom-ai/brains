@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- [#827](https://github.com/rizom-ai/brains/pull/827) [`61b8521`](https://github.com/rizom-ai/brains/commit/61b85210dfa16fe0b0c5c59d3efcceeff0f00578) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new opt-in `linkedin-import` plugin fills the owner's profile from LinkedIn. Add it with `add: [linkedin-import]` and the instance's LinkedIn app under `plugins.linkedin-import.oauth` (`clientId`, `clientSecret`, `redirectUri` ending at `/linkedin/oauth/callback`). The Anchor gets a LinkedIn workspace in Studio: Connect LinkedIn runs LinkedIn's consent flow and keeps the token in the Anchor's account settings, then the workspace shows each profile field next to LinkedIn's value. Empty fields and placeholders are filled, values the owner wrote are kept. Importing asks for confirmation and refuses when the profile changed since the preview. An Inspect LinkedIn data shapes action returns a redacted summary of the skills, positions, education and certifications domains, for writing their import fixtures.
+
+- [#827](https://github.com/rizom-ai/brains/pull/827) [`143a48c`](https://github.com/rizom-ai/brains/commit/143a48cf57685162c794956bbc186c109a76f7d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A professional profile takes three new optional fields: `headline`, `industry` and `location`. The professional site's about page sets the headline under the owner's name, above the description, and lists industry and location among the facts. The editorial homepage leads with the tagline, then the headline, then the description. Profiles without the new fields render as before.
+
 ## 0.2.0-alpha.631
 
 ### Patch Changes

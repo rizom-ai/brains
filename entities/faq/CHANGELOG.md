@@ -1,5 +1,16 @@
 # @brains/faq
 
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.632
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/ui-library@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/plugins@0.2.0-alpha.632
+
 ## 0.2.0-alpha.631
 
 ### Patch Changes
