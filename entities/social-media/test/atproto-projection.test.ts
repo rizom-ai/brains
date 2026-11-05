@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createSocialPostAtprotoProjection } from "../src/atproto-projection";
 import { SocialMediaPlugin } from "../src/plugin";
 import type { SocialPost } from "../src/schemas/social-post";
@@ -25,10 +24,6 @@ const socialPost: SocialPost = {
 };
 
 describe("social-post ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps social posts to ai.rizom.brain.socialPost records", async () => {
     const projection = createSocialPostAtprotoProjection();
 
@@ -85,8 +80,10 @@ describe("social-post ATProto projection", () => {
     });
     await harness.installPlugin(new SocialMediaPlugin({}));
 
-    const projection =
-      AtprotoProjectionRegistry.getInstance().get("social-post");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("social-post");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.socialPost");

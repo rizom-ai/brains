@@ -1,3 +1,4 @@
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 // Plugin framework types
 import type {
   RuntimeAppInfo,
@@ -702,6 +703,10 @@ export class Shell implements IShell {
 
   public getAuthRegistry(): AuthRegistry {
     return this.services.authRegistry;
+  }
+
+  public getAtprotoProjectionRegistry(): AtprotoProjectionRegistry {
+    return this.services.atprotoProjectionRegistry;
   }
 
   public getDomain(): string | undefined {

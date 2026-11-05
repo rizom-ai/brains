@@ -45,7 +45,7 @@ import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_JETSTREAM_GAP,
-  AtprotoProjectionRegistry,
+  type AtprotoProjectionRegistry,
   atprotoBrainCardDiscoveredPayloadSchema,
   canonicalAtprotoLexicons,
   listCanonicalAtprotoLexicons,
@@ -109,7 +109,6 @@ export class AtprotoPlugin extends ServicePlugin<
   AtprotoConfigInput
 > {
   private readonly deps: AtprotoPluginDeps;
-  private readonly projectionRegistry: AtprotoProjectionRegistry;
   private readonly publishingTasks: PublishingTaskQueue;
   private readonly discoveryFetch: FetchLike;
   private readonly identity: AtprotoIdentityResolver;
@@ -126,8 +125,6 @@ export class AtprotoPlugin extends ServicePlugin<
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
     this.deps = deps;
-    this.projectionRegistry =
-      deps.projectionRegistry ?? AtprotoProjectionRegistry.getInstance();
     this.discoveryFetch = createSafePublicFetch({
       ...(deps.fetch && { fetchFn: deps.fetch }),
       ...(deps.resolveHostname && { resolveHostname: deps.resolveHostname }),
@@ -403,11 +400,18 @@ export class AtprotoPlugin extends ServicePlugin<
     };
   }
 
+  /** The entity plugins' projections on the shell the caller's context belongs to. */
+  private projections(
+    context: ServicePluginContext,
+  ): AtprotoProjectionRegistry {
+    return this.deps.projectionRegistry ?? context.atprotoProjections;
+  }
+
   async publishEntity(
     context: ServicePluginContext,
     options: PublishEntityOptions,
   ): Promise<PublishEntityResult> {
-    const projection = this.projectionRegistry.get(options.entityType);
+    const projection = this.projections(context).get(options.entityType);
     if (!projection) {
       throw new Error(
         `No AT Protocol projection registered for ${options.entityType}`,
@@ -421,7 +425,7 @@ export class AtprotoPlugin extends ServicePlugin<
     context: ServicePluginContext,
     options: PublishPostOptions,
   ): Promise<PublishPostResult> {
-    const projection = this.projectionRegistry.get("post");
+    const projection = this.projections(context).get("post");
     if (!projection) {
       throw new Error("No AT Protocol projection registered for post");
     }
@@ -753,7 +757,7 @@ export class AtprotoPlugin extends ServicePlugin<
     context: ServicePluginContext,
     payload: EntityTriggerPayload,
   ): Promise<void> {
-    const projection = this.projectionRegistry.get(payload.entityType);
+    const projection = this.projections(context).get(payload.entityType);
     if (!projection || !this.hasPublishingCredentials()) return;
 
     let entity: BaseEntity | null;
@@ -813,7 +817,7 @@ export class AtprotoPlugin extends ServicePlugin<
     context: ServicePluginContext,
     payload: EntityTriggerPayload,
   ): Promise<void> {
-    const projection = this.projectionRegistry.get(payload.entityType);
+    const projection = this.projections(context).get(payload.entityType);
     if (
       !projection ||
       !this.hasPublishingCredentials() ||

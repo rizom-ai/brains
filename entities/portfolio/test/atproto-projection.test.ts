@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createProjectAtprotoProjection } from "../src/atproto-projection";
 import { PortfolioPlugin } from "../src/plugin";
 import type { Project } from "../src/schemas/project";
@@ -24,10 +23,6 @@ const project: Project = {
 };
 
 describe("project ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps projects to ai.rizom.brain.project records", async () => {
     const projection = createProjectAtprotoProjection();
 
@@ -83,7 +78,10 @@ describe("project ATProto projection", () => {
     });
     await harness.installPlugin(new PortfolioPlugin({}));
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("project");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("project");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.project");

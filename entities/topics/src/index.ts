@@ -7,7 +7,6 @@ import {
   type BaseEntity,
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   ENTITY_CHANNELS,
   TOPIC_SOURCE_TYPES_MESSAGE,
@@ -75,7 +74,6 @@ export class TopicsPlugin extends EntityPlugin<
   readonly entityType: typeof TOPIC_ENTITY_TYPE = TOPIC_ENTITY_TYPE;
   readonly schema: typeof topicEntitySchema = topicEntitySchema;
   readonly adapter: TopicAdapter = topicAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
 
@@ -251,15 +249,7 @@ export class TopicsPlugin extends EntityPlugin<
       config: this.config,
     });
 
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createTopicAtprotoProjection(),
-      );
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
+    context.atprotoProjections.register(createTopicAtprotoProjection());
   }
 
   // ── Public helpers (used by tests) ──

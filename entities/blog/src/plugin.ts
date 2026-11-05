@@ -11,7 +11,6 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { PUBLISH_ASSET_CHANNELS } from "./publish-asset-channels";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import type { BlogConfig, BlogConfigInput } from "./config";
@@ -42,7 +41,6 @@ export class BlogPlugin extends EntityPlugin<
     blogPostAdapter.entityType;
   readonly schema: typeof blogPostSchema = blogPostSchema;
   readonly adapter: typeof blogPostAdapter = blogPostAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
@@ -121,10 +119,7 @@ export class BlogPlugin extends EntityPlugin<
       createBlogOgImageProvider(context),
     );
     this.deferPublishAssetRegistration(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createBlogAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createBlogAtprotoProjection());
 
     this.logger.info(
       "Blog plugin registered (routes auto-generated at /posts/)",
@@ -154,8 +149,6 @@ export class BlogPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 }
 

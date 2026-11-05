@@ -89,7 +89,7 @@ function createLexicon(id: string): AtprotoLexicon {
 function createRegistry(
   input: { isPublishable?: (entity: BaseEntity) => boolean } = {},
 ): AtprotoProjectionRegistry {
-  const registry = AtprotoProjectionRegistry.createFresh();
+  const registry = new AtprotoProjectionRegistry();
   registry.register({
     ...(input.isPublishable && { isPublishable: input.isPublishable }),
     entityType: "note",

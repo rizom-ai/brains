@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createNoteAtprotoProjection } from "../src/atproto-projection";
 import { NotePlugin } from "../src/plugin";
 import type { Note } from "../src/schemas/note";
@@ -18,10 +17,6 @@ const note: Note = {
 };
 
 describe("note ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps notes to ai.rizom.brain.note records", async () => {
     const projection = createNoteAtprotoProjection();
 
@@ -84,7 +79,10 @@ describe("note ATProto projection", () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-note-atproto" });
     await harness.installPlugin(new NotePlugin({}));
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("note");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("note");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.note");
