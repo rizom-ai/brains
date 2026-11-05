@@ -2,10 +2,11 @@
 
 ## Status
 
-In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 has its first numbers.
+In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 has its numbers except the laptop check, and the proof-of-concept configuration is chosen.
 
 - Embeddings: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Failed embeddings retry on the next start.
 - Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`); `reasoningEffort` reaches the runtime as `reasoning_effort`, and `none` turns a model's thinking off.
+- Answer model: `answerModel` names a `local:` model that writes while `model` chooses tools: it answers tool results and runs text and object generation (background derivations, drafts). Without it, a local `model` answers tool results with reasoning off. A local text model's searches return five hits of at most 800 characters.
 - No key: a brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
 - Sidecar: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; `local:` embeddings are priced at zero. No fleet brain has opted in.
 - Images: open. `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
@@ -23,22 +24,43 @@ Embedding benchmark, 2026-10-31, through the real provider: the yeehaa rover cor
 - Runtime RSS: 560 MB with the model loaded (Ollama 0.40.11 runner 506 MB, server 53 MB).
 - Throughput gate fails for the largest production brain on CPU: Karl's corpus is 28.5 MB (5,733 entities), about 47 minutes at the measured 10 KB/s on 16 CPU threads, before the fleet's smaller servers; about 10 minutes on the Z13's iGPU. The fleet server type (`HCLOUD_SERVER_TYPE`) is not yet measured.
 
-Agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:8b` on Ollama 0.40.11 with Vulkan on the Z13's Radeon 8060S:
+Agent evals, 2026-10-31 to 2026-11-05, headless suite (27 runs), judge `gpt-5.4-mini`, local models on Ollama (0.40.11, then 0.40.13) with Vulkan on the Z13's Radeon 8060S:
 
-| Model                                 | Pass  | Rate | Avg duration |
-| ------------------------------------- | ----- | ---- | ------------ |
-| `gpt-6-luna` (default)                | 26/27 | 96%  | 3.7 s        |
-| `local:qwen3:8b`                      | 23/27 | 85%  | 34.2 s       |
-| `local:qwen3:8b`, schema-constrained  | 21/27 | 78%  | 25.3 s       |
-| `local:qwen3:14b`, schema-constrained | 25/27 | 93%  | 53.2 s       |
-| `local:qwen3:14b`, thinking off       | 22/27 | 81%  | 9.4 s        |
+| Model                                                                              | Pass  | Rate | Avg duration   |
+| ---------------------------------------------------------------------------------- | ----- | ---- | -------------- |
+| `gpt-6-luna` (default)                                                             | 26/27 | 96%  | 3.7 s          |
+| `local:qwen3:8b`                                                                   | 23/27 | 85%  | 34.2 s         |
+| `local:qwen3:8b`, schema-constrained                                               | 21/27 | 78%  | 25.3 s         |
+| `local:qwen3:14b`, schema-constrained                                              | 25/27 | 93%  | 53.2 s         |
+| `local:qwen3:14b`, thinking off                                                    | 22/27 | 81%  | 9.4 s          |
+| `local:qwen3:14b`, step thinking, compact search                                   | 25/27 | 93%  | 32.3 s         |
+| `local:qwen3:30b-a3b` (Thinking-2507)                                              | 25/27 | 93%  | 18.4 s         |
+| `local:qwen3:30b-a3b-instruct-2507`, two runs                                      | 24/27 | 89%  | 4.6 s, 3.3 s   |
+| `qwen3:30b-a3b` deciding, `qwen3:30b-a3b-instruct-2507` as `answerModel`, two runs | 27/27 | 100% | 15.1 s, 12.2 s |
 
 - The schema-constrained run is what is built. Before the fix, every object generation on the local model (topic votes) failed validation on invented keys; with constrained output those failures are gone.
 - `qwen3:8b` fails in both runs: the write–confirm–read-back case, the exact-note direct create, and the private note at admin and trusted (wrong `system_create` `source.kind`). Agent recommendation without a match and skill derivation fail in one run each.
 - `qwen3:8b` copies pasted text into `system_create` arguments instead of using `source.kind: user-message`, although the tool's descriptions ask for it; the tool contract stays strict.
 - `qwen3:14b` (14.8B, Q4_K_M) uses `user-message` and passes those cases. It fails the write–confirm–read-back case (no pending confirmation was created) and the private note at trusted (the reply claims a save the server refused).
 - With `reasoningEffort: none` (thinking off) `qwen3:14b` is 5.7× faster and loses three cases: it does not clearly decline a delete at public and trusted, and the admin private-note `system_create` is refused.
-- The proof of concept runs on `qwen3:14b`. The `qwen3:32b` row waits for a network that can download its 20 GB; it can only replace 14B if it closes the remaining gap. No production brain switches its text model on these numbers.
+- The instruct model fails the same three cases in both runs: it declines to delete a note it assumes is missing without calling the tool, and at public it misstates why it cannot update a link or save a note. The thinking model gets those decisions right; with it choosing tools and the instruct model writing, every case passes.
+- Step thinking, compact search and the answer model change behavior only for `local:` models.
+
+Proof-of-concept chat turns, 2026-11-05, on the separate brain holding the yeehaa rover's 221 public entities, Z13 iGPU, Ollama 0.40.13 Vulkan with flash attention: three known searches and one listing, each answered correctly. Warm turns; the first turn after a model switch or a background burst processes the whole prompt again (30–36 s).
+
+| Configuration                                                 | Turn     |
+| ------------------------------------------------------------- | -------- |
+| `qwen3:14b`, background derivations off                       | 58–111 s |
+| + step thinking                                               | 25–76 s  |
+| + compact search                                              | 33–58 s  |
+| `qwen3:30b-a3b` (Thinking-2507)                               | 22–65 s  |
+| `qwen3:30b-a3b-instruct-2507`                                 | 3–6 s    |
+| `qwen3:30b-a3b` + `answerModel` instruct-2507, derivations on | 12–16 s  |
+
+- A turn's cost is generation, not the prompt: Ollama reuses the cached system prompt (17–29 new tokens per first call). On 14B, thinking was 1,100–1,400 tokens per turn at ~20 tokens/s and the search results 6–10k tokens at ~240 tokens/s; the MoE generates at ~55–60 tokens/s with 3B parameters active.
+- Flash attention and a q8 KV cache made no measurable difference on Vulkan. ROCm (`gfx1151`) processes prompts 19–44% faster and generates ~10% slower, so Vulkan stays.
+- With derivations on, the brain is ready 50 s after a clean start; the first boot's derivation backlog then runs about 8.5 minutes, during which chat turns take 43–181 s.
+- The proof of concept runs `model: local:qwen3:30b-a3b` and `answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M` (each 30.5B total, 3B active, Q4_K_M, 18.6 GB; both fit the Z13 together) with `embeddingModel: local:embeddinggemma-2:270m`. The largest core model is 30.5B, within the 32B cap. No production brain switches its text model on these numbers.
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
 
@@ -81,8 +103,7 @@ By the deadline: a proof of concept. A separate brain, not the team brain or any
 
 By 2026-11-06, on the Z13 unless stated; numbers go in Status.
 
-1. Run the headless suite on `qwen3:32b`, schema-constrained; record pass rate and average duration.
-2. Run the smallest accepted text model on the i7 laptop and record its average turn duration.
+1. Run the proof-of-concept configuration's smallest viable variant on the i7 laptop (16 GB): the two MoE models need ~37 GB, so the laptop runs `qwen3:8b` or `qwen3:14b` alone; record its average turn duration.
 
 ## Phase 3 — Fleet rollout
 
