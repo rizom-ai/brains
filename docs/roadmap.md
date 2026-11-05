@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-10-08
+Last updated: 2026-11-05
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
@@ -82,6 +82,7 @@ Plans:
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
 - [moving-in-guides.md](./plans/moving-in-guides.md) — a `guide` entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from `docs/guides/` with the docs.
+- [linkedin-import.md](./plans/linkedin-import.md) — an opt-in plugin that imports the owner's LinkedIn profile, skills and history into `anchor-profile` from Studio, through LinkedIn's DMA portability API (EEA) or an uploaded data export, merging without overwriting what the owner wrote.
 
 ### 2. The collective posture
 
