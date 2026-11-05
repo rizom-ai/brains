@@ -156,6 +156,61 @@ export const userMessageSourceInputSchema: StrictObjectSchema<{
   })
   .strict();
 
+const uploadTransformSchema: z.ZodEnum<{
+  "extract-markdown": "extract-markdown";
+  preserve: "preserve";
+}> = z
+  .enum(["extract-markdown", "preserve"])
+  .describe(
+    "extract-markdown imports upload text into a note-like entity; preserve saves raw uploaded bytes via the registered upload-save handler and derives the durable entity type from media type. Use preserve only for explicit file/document preservation, not for saving an assistant summary response.",
+  );
+
+type UploadsSourceInputSchema = StrictObjectSchema<{
+  kind: z.ZodLiteral<"uploads">;
+  items: z.ZodArray<
+    StrictObjectSchema<{
+      upload: typeof createUploadInputSchema;
+      transform: typeof uploadTransformSchema;
+      title: z.ZodOptional<z.ZodString>;
+      fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    }>
+  >;
+}>;
+
+/** Several uploads saved from one request under one confirmation. */
+const uploadsSourceInputSchema: UploadsSourceInputSchema = z
+  .object({
+    kind: z
+      .literal("uploads")
+      .describe(
+        "Keep several uploaded files from one request: one call listing every attached file, never one call per file; entityType names the note type for extract-markdown files, or another type such as post.",
+      ),
+    items: z
+      .array(
+        z
+          .object({
+            upload: createUploadInputSchema.describe(
+              "Exact upload candidate object from the current conversation",
+            ),
+            transform: uploadTransformSchema,
+            title: z
+              .string()
+              .optional()
+              .describe("Only a title the user named for this file."),
+            fields: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe(
+                "Frontmatter the user stated for this file alone, such as the date and address it was first published at: { publishedAt, canonicalUrl }; facts shared by every file go in the top-level fields.",
+              ),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(20),
+  })
+  .strict();
+
 export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
   [
     StrictObjectSchema<{
@@ -175,6 +230,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         preserve: "preserve";
       }>;
     }>,
+    UploadsSourceInputSchema,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"prior-response">;
       messageId: z.ZodOptional<z.ZodString>;
@@ -226,13 +282,10 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
       upload: createUploadInputSchema.describe(
         "Exact upload candidate object from the current conversation",
       ),
-      transform: z
-        .enum(["extract-markdown", "preserve"])
-        .describe(
-          "extract-markdown imports upload text into a note-like entity; preserve saves raw uploaded bytes via the registered upload-save handler and derives the durable entity type from media type. Use preserve only for explicit file/document preservation, not for saving an assistant summary response.",
-        ),
+      transform: uploadTransformSchema,
     })
     .strict(),
+  uploadsSourceInputSchema,
   z
     .object({
       kind: z
@@ -601,7 +654,7 @@ export const updateOperationInputSchema: UpdateOperationInputSchema =
           .min(1)
           .max(50)
           .describe(
-            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
+            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first; an upload ref marked saved already holds its text, so edit that note without fetching it. Unchanged text is preserved without regeneration.",
           ),
       })
       .strict(),

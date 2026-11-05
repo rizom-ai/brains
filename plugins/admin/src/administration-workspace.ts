@@ -23,7 +23,7 @@ import {
   createPeopleTabSource,
 } from "./people-workspace";
 import {
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -316,7 +316,9 @@ export async function registerAdministrationWorkspace(
       return runChildAction(source, request, actor, signal);
     },
     badgeProvider: async () =>
-      administrationAttention(await requireAuthService().listAdminUsers()),
+      administrationAttention(
+        await requireAuthBackend(context).listAdminUsers(),
+      ),
   });
   return result ? result.workspaceUrl : undefined;
 }

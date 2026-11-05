@@ -1,7 +1,11 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { DocWithData } from "../schemas/doc";
-import { DocsPageShell, docsClasses } from "@brains/docs-chrome";
+import {
+  DocsPageShell,
+  docsClasses,
+  type DocsChrome,
+} from "@brains/docs-chrome";
 import { groupDocs, romanNumeral, sortDocs } from "./docs-design";
 import {
   DocsBreadcrumb,
@@ -14,6 +18,7 @@ export interface DocDetailProps {
   docs: DocWithData[];
   prevDoc: DocWithData | null;
   nextDoc: DocWithData | null;
+  chrome?: DocsChrome | null | undefined;
 }
 
 export const DocDetailTemplate = ({
@@ -21,6 +26,7 @@ export const DocDetailTemplate = ({
   docs,
   prevDoc,
   nextDoc,
+  chrome,
 }: DocDetailProps): JSX.Element => {
   const groups = groupDocs(docs.length > 0 ? docs : [doc]);
   const orderedDocs = sortDocs(docs.length > 0 ? docs : [doc]);
@@ -40,6 +46,7 @@ export const DocDetailTemplate = ({
       description={doc.metadata.description ?? doc.metadata.section}
       detail
       footer
+      chrome={chrome}
       contentClassName="pt-16"
     >
       <DocsBreadcrumb title={doc.metadata.title} />

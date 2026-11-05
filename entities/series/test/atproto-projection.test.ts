@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createSeriesAtprotoProjection } from "../src/atproto-projection";
 import { SeriesPlugin } from "../src/plugin";
 import { seriesAdapter } from "../src/adapters/series-adapter";
@@ -28,10 +27,6 @@ const series: Series = {
 };
 
 describe("series ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps series to ai.rizom.brain.series records", async () => {
     const projection = createSeriesAtprotoProjection();
 
@@ -82,7 +77,10 @@ describe("series ATProto projection", () => {
     });
     await harness.installPlugin(new SeriesPlugin());
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("series");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("series");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.series");

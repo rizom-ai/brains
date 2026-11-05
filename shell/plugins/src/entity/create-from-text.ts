@@ -1,7 +1,7 @@
 import type {
+  CreateCheckResult,
   CreateInput,
   CreateInterceptionResult,
-  CreateQuestion,
 } from "@brains/entity-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
@@ -16,11 +16,18 @@ export interface EntityText<TFields> {
   fields: TFields;
 }
 
+/** A question the user answers before the save is confirmed; see `CreateCheckResult`. */
+export type EntityTextQuestion = Extract<
+  CreateCheckResult,
+  { kind: "question" }
+>;
+
 export type EntityTextResult<TFields> =
   /** Not a save of the writer's own text, or a document the type stores as given. */
   | { kind: "not-text" }
-  /** Cannot go ahead; a `question` is put to the user, and the text is kept for the retry. */
-  | { kind: "error"; error: string; question?: CreateQuestion }
+  /** Cannot go ahead as given. */
+  | { kind: "error"; error: string }
+  | EntityTextQuestion
   | { kind: "text"; text: EntityText<TFields> };
 
 export interface ReadEntityTextOptions<TSchema extends z.ZodObject> {
@@ -149,9 +156,10 @@ export function readEntityText<TSchema extends z.ZodObject>(
   );
   if (!title) {
     return {
-      kind: "error",
-      error: `What should this ${noun} be called? The text has no "# Title" heading; pass the answer as \`title\`.`,
-      question: "fields",
+      kind: "question",
+      asks: "fields",
+      question: `What should this ${noun} be called?`,
+      answerWith: "Pass the answer as `title`.",
     };
   }
   const withoutTitle = options.keepTitleHeading
@@ -205,16 +213,39 @@ export function continueWithEntityText(
 }
 
 /**
+ * The check before a save of the writer's text is confirmed: ready with
+ * what the type fills in, or the question or refusal the text raised.
+ */
+export function checkEntityText<TFields>(
+  result: EntityTextResult<TFields>,
+  complete: (text: EntityText<TFields>) => {
+    title?: string;
+    fields?: Record<string, unknown>;
+  },
+): CreateCheckResult {
+  switch (result.kind) {
+    case "not-text":
+      return { kind: "ready" };
+    case "text":
+      return { kind: "ready", ...complete(result.text) };
+    default:
+      return result;
+  }
+}
+
+/**
  * A create of the writer's text that cannot go ahead, with what to do
- * instead. With a `question`, the refusal asks the user something and
- * system_create keeps the text for the retry that carries the answer.
+ * instead. A question is asked before the save is confirmed; one the
+ * confirmed save still meets is refused with how to answer it.
  */
 export function entityTextError(
-  error: string,
-  question?: CreateQuestion,
+  refusal: string | EntityTextQuestion | { kind: "error"; error: string },
 ): CreateInterceptionResult {
-  return {
-    kind: "handled",
-    result: { success: false, error, ...(question && { question }) },
-  };
+  const error =
+    typeof refusal === "string"
+      ? refusal
+      : refusal.kind === "error"
+        ? refusal.error
+        : `${refusal.question} ${refusal.answerWith}`;
+  return { kind: "handled", result: { success: false, error } };
 }

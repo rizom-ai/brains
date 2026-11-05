@@ -1,11 +1,11 @@
 import {
+  matchSpaceSelector,
   JobProgressEventSchema,
   conversationMessageMetadataSchema,
   type IConversationsNamespace,
   type IRuntimeStateStore,
   type JobOptions,
 } from "@brains/plugins";
-import { matchSpaceSelector } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { SUMMARY_PLUGIN_ID } from "../constants";
 import type { ChannelBookmark } from "./pickup";

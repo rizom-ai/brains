@@ -11,6 +11,7 @@ import type {
 import {
   createPendingEntity,
   createUploadSaveHandler,
+  uploadTitle,
   ServicePlugin,
 } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
@@ -67,13 +68,6 @@ const webChatUploadsScope: RuntimeUploadScopeOptions & {
   refKind: "upload",
   routePath: "/api/chat/uploads",
 };
-
-function getUploadTitle(input: CreateInput, filename: string): string {
-  const title = input.title?.trim();
-  if (title) return title;
-  const withoutExt = filename.replace(/\.[^.]+$/, "").trim();
-  return withoutExt || filename;
-}
 
 function toDataUrl(mediaType: string, content: Buffer): string {
   return `data:${mediaType};base64,${content.toString("base64")}`;
@@ -279,7 +273,10 @@ export class DocumentPlugin extends ServicePlugin<
       };
     }
 
-    const title = getUploadTitle(input, upload.record.filename);
+    const title = uploadTitle({
+      title: input.title,
+      filename: upload.record.filename,
+    });
     const id = slugify(title);
     if (!id) {
       return {

@@ -174,7 +174,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["unified-inbox", unifiedInboxPlugin, undefined],
   ],
   interfaces: [
-    ["mcp", MCPInterface, (): PluginConfig => ({})],
+    [
+      "mcp",
+      MCPInterface,
+      (env): PluginConfig => ({
+        ...(env["MCP_AUTH_TOKEN"] ? { authToken: env["MCP_AUTH_TOKEN"] } : {}),
+      }),
+    ],
     ["email", EmailInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],

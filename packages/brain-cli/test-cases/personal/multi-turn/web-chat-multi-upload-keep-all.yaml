@@ -1,0 +1,83 @@
+id: multi-turn-web-chat-multi-upload-keep-all
+name: Web chat keeps several uploaded files under one confirmation
+description: Verifies that keeping several files attached to one message is one system_create call with source.kind uploads, and that one confirmation saves every file, each titled by its first heading or file name.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-web-chat-multi-upload-keep-all
+  channelName: Web Chat Eval
+tags:
+  - recipe-personal
+  - web-chat
+  - upload
+  - note
+  - image
+  - multi-turn
+
+turns:
+  - userMessage: "Keep these files."
+    attachments:
+      - kind: text
+        filename: draft-one.md
+        mediaType: text/markdown
+        content: |
+          # Harbor Survey
+
+          The harbor survey starts at dawn.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001301
+      - kind: text
+        filename: launch.md
+        mediaType: text/markdown
+        content: |
+          # Launch Plan
+
+          Launch day is Monday.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001302
+      - kind: file
+        filename: harbor.png
+        mediaType: image/png
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURVt8+v///xZpnOQAAAABYktHRAH/Ai3eAAAAB3RJTUUH6gYFCTIgGlrY4AAAAAxJREFUCNdjYBjcAAAAoAABYSV9RwAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyNi0wNi0wNVQwOTo1MDozMiswMDowMHY6WhcAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjYtMDYtMDVUMDk6NTA6MzIrMDA6MDAHZ+KrAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDI2LTA2LTA1VDA5OjUwOjMyKzAwOjAwUHLDdAAAAABJRU5ErkJggg==
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001303
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            source.kind: uploads
+          argsAbsent:
+            - title
+      toolCountRange:
+        max: 1
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Saved 3 uploaded files"
+        - 'note "Harbor Survey"'
+        - 'note "Launch Plan"'
+        - 'image "harbor"'
+      responseNotContains:
+        - "draft is generating"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        source.kind: uploads
+    - toolName: system_generate
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 25000

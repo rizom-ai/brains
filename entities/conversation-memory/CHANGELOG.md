@@ -1,5 +1,244 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.630
+  - @brains/action-items@0.2.0-alpha.630
+  - @brains/content-formatters@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/ui-library@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/conversation-service@0.2.0-alpha.630
+  - @brains/plugins@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.629
+  - @brains/action-items@0.2.0-alpha.629
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/ui-library@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/auth-service@0.2.0-alpha.629
+  - @brains/conversation-service@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.628
+  - @brains/action-items@0.2.0-alpha.628
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/ui-library@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/auth-service@0.2.0-alpha.628
+  - @brains/conversation-service@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/dashboard@0.2.0-alpha.627
+  - @brains/action-items@0.2.0-alpha.627
+  - @brains/ui-library@0.2.0-alpha.627
+  - @brains/auth-service@0.2.0-alpha.627
+  - @brains/content-formatters@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/conversation-service@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies [[`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4)]:
+  - @brains/conversation-service@0.2.0-alpha.626
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/dashboard@0.2.0-alpha.626
+  - @brains/action-items@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/auth-service@0.2.0-alpha.626
+  - @brains/content-formatters@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.625
+  - @brains/action-items@0.2.0-alpha.625
+  - @brains/content-formatters@0.2.0-alpha.625
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/ui-library@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/auth-service@0.2.0-alpha.625
+  - @brains/conversation-service@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.624
+  - @brains/action-items@0.2.0-alpha.624
+  - @brains/content-formatters@0.2.0-alpha.624
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/ui-library@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/auth-service@0.2.0-alpha.624
+  - @brains/conversation-service@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.623
+  - @brains/action-items@0.2.0-alpha.623
+  - @brains/content-formatters@0.2.0-alpha.623
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/ui-library@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/auth-service@0.2.0-alpha.623
+  - @brains/conversation-service@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/dashboard@0.2.0-alpha.622
+  - @brains/action-items@0.2.0-alpha.622
+  - @brains/ui-library@0.2.0-alpha.622
+  - @brains/auth-service@0.2.0-alpha.622
+  - @brains/content-formatters@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/conversation-service@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/dashboard@0.2.0-alpha.621
+  - @brains/action-items@0.2.0-alpha.621
+  - @brains/ui-library@0.2.0-alpha.621
+  - @brains/auth-service@0.2.0-alpha.621
+  - @brains/content-formatters@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/conversation-service@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.620
+  - @brains/action-items@0.2.0-alpha.620
+  - @brains/content-formatters@0.2.0-alpha.620
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/ui-library@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/auth-service@0.2.0-alpha.620
+  - @brains/conversation-service@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.619
+  - @brains/action-items@0.2.0-alpha.619
+  - @brains/content-formatters@0.2.0-alpha.619
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/ui-library@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/auth-service@0.2.0-alpha.619
+  - @brains/conversation-service@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.618
+  - @brains/action-items@0.2.0-alpha.618
+  - @brains/content-formatters@0.2.0-alpha.618
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/ui-library@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/auth-service@0.2.0-alpha.618
+  - @brains/conversation-service@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.617
+  - @brains/action-items@0.2.0-alpha.617
+  - @brains/content-formatters@0.2.0-alpha.617
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/ui-library@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/auth-service@0.2.0-alpha.617
+  - @brains/conversation-service@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/dashboard@0.2.0-alpha.616
+  - @brains/action-items@0.2.0-alpha.616
+  - @brains/ui-library@0.2.0-alpha.616
+  - @brains/auth-service@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/conversation-service@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

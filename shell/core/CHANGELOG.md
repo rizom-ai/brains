@@ -1,5 +1,248 @@
 # @brains/core
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/image@0.2.0-alpha.630
+  - @brains/operation-context@0.2.0-alpha.630
+  - @brains/site-composition@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/plugins@0.2.0-alpha.630
+  - @brains/recurring-checks@0.2.0-alpha.630
+  - @brains/runtime-state@0.2.0-alpha.630
+  - @brains/scheduler@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/image@0.2.0-alpha.629
+  - @brains/operation-context@0.2.0-alpha.629
+  - @brains/site-composition@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+  - @brains/recurring-checks@0.2.0-alpha.629
+  - @brains/runtime-state@0.2.0-alpha.629
+  - @brains/scheduler@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/image@0.2.0-alpha.628
+  - @brains/operation-context@0.2.0-alpha.628
+  - @brains/site-composition@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+  - @brains/recurring-checks@0.2.0-alpha.628
+  - @brains/runtime-state@0.2.0-alpha.628
+  - @brains/scheduler@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/recurring-checks@0.2.0-alpha.627
+  - @brains/image@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/operation-context@0.2.0-alpha.627
+  - @brains/site-composition@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/runtime-state@0.2.0-alpha.627
+  - @brains/scheduler@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/image@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/operation-context@0.2.0-alpha.626
+  - @brains/site-composition@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/recurring-checks@0.2.0-alpha.626
+  - @brains/runtime-state@0.2.0-alpha.626
+  - @brains/scheduler@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/image@0.2.0-alpha.625
+  - @brains/operation-context@0.2.0-alpha.625
+  - @brains/site-composition@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+  - @brains/recurring-checks@0.2.0-alpha.625
+  - @brains/runtime-state@0.2.0-alpha.625
+  - @brains/scheduler@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/image@0.2.0-alpha.624
+  - @brains/operation-context@0.2.0-alpha.624
+  - @brains/site-composition@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+  - @brains/recurring-checks@0.2.0-alpha.624
+  - @brains/runtime-state@0.2.0-alpha.624
+  - @brains/scheduler@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/image@0.2.0-alpha.623
+  - @brains/operation-context@0.2.0-alpha.623
+  - @brains/site-composition@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+  - @brains/recurring-checks@0.2.0-alpha.623
+  - @brains/runtime-state@0.2.0-alpha.623
+  - @brains/scheduler@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/image@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/operation-context@0.2.0-alpha.622
+  - @brains/site-composition@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/recurring-checks@0.2.0-alpha.622
+  - @brains/runtime-state@0.2.0-alpha.622
+  - @brains/scheduler@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- [#798](https://github.com/rizom-ai/brains/pull/798) [`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An older brain's worker no longer runs jobs a newer brain queued. A rolling deploy runs the old and new containers side by side on one job queue, and the old worker could claim the new brain's startup work. Every job now records the version of the brain that queued it; a worker never claims or recovers a job a newer brain queued, and once a newer brain's worker is live, an older worker takes no new work while its in-flight jobs finish. A newer brain asking again for an older brain's pending job hands that job to itself. Each version runs its own worker slot, so the new worker no longer supersedes the old one mid-job. Jobs queued before this release carry no version and stay claimable by any worker; the gate takes effect from the deploy after the one that ships it.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/recurring-checks@0.2.0-alpha.621
+  - @brains/image@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/operation-context@0.2.0-alpha.621
+  - @brains/site-composition@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/runtime-state@0.2.0-alpha.621
+  - @brains/scheduler@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/image@0.2.0-alpha.620
+  - @brains/operation-context@0.2.0-alpha.620
+  - @brains/site-composition@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+  - @brains/recurring-checks@0.2.0-alpha.620
+  - @brains/runtime-state@0.2.0-alpha.620
+  - @brains/scheduler@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/image@0.2.0-alpha.619
+  - @brains/operation-context@0.2.0-alpha.619
+  - @brains/site-composition@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/recurring-checks@0.2.0-alpha.619
+  - @brains/runtime-state@0.2.0-alpha.619
+  - @brains/scheduler@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/image@0.2.0-alpha.618
+  - @brains/operation-context@0.2.0-alpha.618
+  - @brains/site-composition@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+  - @brains/recurring-checks@0.2.0-alpha.618
+  - @brains/runtime-state@0.2.0-alpha.618
+  - @brains/scheduler@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/image@0.2.0-alpha.617
+  - @brains/operation-context@0.2.0-alpha.617
+  - @brains/site-composition@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+  - @brains/recurring-checks@0.2.0-alpha.617
+  - @brains/runtime-state@0.2.0-alpha.617
+  - @brains/scheduler@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/image@0.2.0-alpha.616
+  - @brains/recurring-checks@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/operation-context@0.2.0-alpha.616
+  - @brains/site-composition@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/runtime-state@0.2.0-alpha.616
+  - @brains/scheduler@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

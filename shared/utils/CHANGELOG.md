@@ -1,5 +1,65 @@
 # @brains/utils
 
+## 0.2.0-alpha.630
+
+No changes in this release.
+
+## 0.2.0-alpha.629
+
+No changes in this release.
+
+## 0.2.0-alpha.628
+
+No changes in this release.
+
+## 0.2.0-alpha.627
+
+No changes in this release.
+
+## 0.2.0-alpha.626
+
+No changes in this release.
+
+## 0.2.0-alpha.625
+
+No changes in this release.
+
+## 0.2.0-alpha.624
+
+No changes in this release.
+
+## 0.2.0-alpha.623
+
+No changes in this release.
+
+## 0.2.0-alpha.622
+
+No changes in this release.
+
+## 0.2.0-alpha.621
+
+No changes in this release.
+
+## 0.2.0-alpha.620
+
+No changes in this release.
+
+## 0.2.0-alpha.619
+
+No changes in this release.
+
+## 0.2.0-alpha.618
+
+No changes in this release.
+
+## 0.2.0-alpha.617
+
+No changes in this release.
+
+## 0.2.0-alpha.616
+
+No changes in this release.
+
 ## 0.2.0-alpha.615
 
 No changes in this release.

@@ -530,7 +530,7 @@ describe("anchor kind validation", () => {
 
   it("stays in lockstep with the auth service's anchor config kinds", async () => {
     const { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } =
-      await import("@brains/auth-service/admin-contracts");
+      await import("@brains/contracts");
     const { ANCHOR_KINDS } = await import("../src/schema");
     expect([...ANCHOR_KINDS].sort()).toEqual(
       [...AUTH_BRAIN_ANCHOR_CONFIG_KINDS].sort(),

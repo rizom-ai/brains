@@ -1,3 +1,4 @@
+import { createExternalActorId, PLUGIN_CHANNELS } from "@brains/contracts";
 import type {
   BasePluginContext,
   IConversationsNamespace,
@@ -32,7 +33,6 @@ import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type { RegisteredHttpRoute } from "../types/http-routes";
 import { getHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
-import type { IMessageBus } from "@brains/messaging-service";
 import type { ToolInfo } from "@brains/mcp-service";
 
 /**
@@ -75,8 +75,14 @@ export interface IToolsNamespace {
 export interface IApiRoutesNamespace {
   /** Get all registered API routes from plugins */
   getRoutes: () => RegisteredApiRoute[];
-  /** Get the message bus for handling route requests */
-  getMessageBus: () => IMessageBus;
+  /**
+   * Run a route's tool on the plugin that declared it, as an anonymous
+   * external caller of this interface. Resolves to the plugin's bus reply.
+   */
+  executeTool: (
+    route: RegisteredApiRoute,
+    args: Record<string, unknown>,
+  ) => Promise<unknown>;
 }
 
 export interface IWebRoutesNamespace {
@@ -193,7 +199,7 @@ export interface InterfacePluginContext
   /**
    * API Routes namespace for webserver interfaces
    * - `apiRoutes.getRoutes()` - Get all registered API routes from plugins
-   * - `apiRoutes.getMessageBus()` - Get message bus for route handling
+   * - `apiRoutes.executeTool()` - Run a route's tool on its owning plugin
    */
   readonly apiRoutes: IApiRoutesNamespace;
 
@@ -305,9 +311,24 @@ export function createInterfacePluginContext(
       getRoutes: (): RegisteredApiRoute[] => {
         return shell.getPluginApiRoutes();
       },
-      getMessageBus: (): IMessageBus => {
-        return shell.getMessageBus();
-      },
+      executeTool: (route, args): Promise<unknown> =>
+        shell.getMessageBus().send({
+          type: PLUGIN_CHANNELS.toolExecute(route.pluginId),
+          payload: {
+            // Most routes name a local tool; consolidated tools may name an
+            // exact canonical one.
+            toolName: route.definition.tool.includes("_")
+              ? route.definition.tool
+              : `${route.pluginId}_${route.definition.tool}`,
+            args,
+            interfaceType: pluginId,
+            actor: {
+              kind: "external",
+              externalActorId: createExternalActorId(pluginId, "anonymous"),
+            },
+          },
+          sender: pluginId,
+        }),
     },
 
     webRoutes: {

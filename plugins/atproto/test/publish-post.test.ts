@@ -1,5 +1,5 @@
 import { createMockShell } from "@brains/plugins/test";
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import type {
   BaseEntity,
@@ -71,8 +71,8 @@ function createLexicon(id: string): AtprotoLexicon {
   };
 }
 
-function registerTestPostProjection(): void {
-  AtprotoProjectionRegistry.getInstance().register({
+function registerTestPostProjection(registry: AtprotoProjectionRegistry): void {
+  registry.register({
     entityType: "post",
     collection: "ai.rizom.brain.post",
     lexicon: createLexicon("ai.rizom.brain.post"),
@@ -100,6 +100,7 @@ function createContext(
 ): ServicePluginContext {
   const shell = createMockShell({ domain: "brain.example.com" });
   shell.addEntities([post, ...extraEntities]);
+  registerTestPostProjection(shell.getAtprotoProjectionRegistry());
   return createServicePluginContext(
     shell,
     "atproto",
@@ -108,11 +109,6 @@ function createContext(
 }
 
 describe("AT Protocol post publishing", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-    registerTestPostProjection();
-  });
-
   it("hands the projection the entity's page on this brain's site", async () => {
     const plugin = new AtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
@@ -227,7 +223,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("publishes any public entity with a registered ATProto projection", async () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const buildRecord = mock(async ({ entity }: { entity: BaseEntity }) => ({
       $type: "ai.rizom.brain.link",
       title: "Example Link",
@@ -302,7 +298,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("publishes using the registered ATProto projection for the entity type", async () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const buildRecord = mock(async () => ({
       $type: "ai.example.customPost",
       title: "Custom projection",
@@ -374,7 +370,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("rejects locally invalid projected records during dry-runs", async () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -422,7 +418,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("rejects locally invalid projected records before writing to the PDS", async () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -553,7 +549,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("refuses to publish entities their projection does not deem publishable", async () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const buildRecord = mock(async ({ entity }: { entity: BaseEntity }) => ({
       $type: "ai.rizom.brain.post",
       title: "Distributed Brains",

@@ -1,4 +1,4 @@
-import type { ScheduledJob } from "./scheduler-backend";
+import type { ScheduledJob } from "@brains/scheduler";
 import { triggerGeneration, type GenerationDeps } from "./scheduler-generation";
 import type { ResolvedSchedulerConfig } from "./types/scheduler";
 

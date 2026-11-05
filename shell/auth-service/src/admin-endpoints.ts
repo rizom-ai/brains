@@ -1,10 +1,7 @@
+import { requireSameOriginJson } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import {
-  privateJsonResponse,
-  readJsonRequest,
-  requireSameOriginJson,
-} from "./http-responses";
+import { privateJsonResponse, readJsonRequest } from "./http-responses";
 import {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,
@@ -21,7 +18,7 @@ import {
   type AuthInvitationSummary,
   type AuthPasskeySummary,
   type AuthSetupDeliveryInput,
-} from "./admin-contracts";
+} from "@brains/contracts";
 import type { AuthIdentityType } from "./identity-store";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
 import type { AuthUserRole, AuthUserStatus } from "./user-store";

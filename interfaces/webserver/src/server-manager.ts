@@ -5,7 +5,11 @@ import {
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
+import type {
+  AppInfo,
+  IApiRoutesNamespace,
+  RuntimeReadiness,
+} from "@brains/plugins";
 import type {
   RegisteredHandlerHttpRoute,
   RegisteredHttpRoute,
@@ -41,8 +45,8 @@ export interface ServerManagerOptions {
   getReadinessData?: () => Promise<RuntimeReadiness>;
   /** Resolve finalized routes when the server starts. Invoked exactly once. */
   getRoutes?: () => readonly RegisteredHttpRoute[];
-  /** Message bus used to execute plugin API routes. */
-  messageBus?: IMessageBus;
+  /** Runs a plugin API route's tool on its owning plugin. */
+  executeTool?: IApiRoutesNamespace["executeTool"];
   /**
    * Bun.serve idle timeout in seconds. Defaults to {@link WEBSERVER_IDLE_TIMEOUT_SECONDS}.
    */
@@ -518,7 +522,7 @@ export class ServerManager {
       if (toolRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
-      if (!this.options.messageBus) {
+      if (!this.options.executeTool) {
         return c.text("HTTP tool route unavailable", 500);
       }
       return createApiRouteHandler(
@@ -527,7 +531,7 @@ export class ServerManager {
           fullPath: toolRoute.fullPath,
           definition: toolRoute.definition,
         },
-        this.options.messageBus,
+        this.options.executeTool,
       )(c);
     }
 

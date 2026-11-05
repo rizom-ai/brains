@@ -7,6 +7,8 @@ for: >-
   What your team knows is spread across people, channels and shared drives. It
   leaves when someone does.
 recipe: team
+section: Use a brain
+summary: What a team knows, in one place
 material:
   - from: Shared documents
     where: Google Drive, wiki pages, handbooks
@@ -15,7 +17,7 @@ material:
   - from: The team handbook
     where: How you work, onboarding, policies
     becomes: doc
-    how: Add each page as a doc in Studio
+    how: Paste each page in chat and keep it as a doc
   - from: Open work
     where: To-do lists, issue trackers, sticky notes
     becomes: action-item
@@ -40,9 +42,9 @@ Exact steps: [Interface setup](/docs/interface-setup).
 
 ## Bring your shared documents
 
-Export documents from your shared drive as Markdown or PDF. Upload one at a time in chat and ask the brain to keep it as a note; the text of a PDF is extracted into the note.
+Export documents from your shared drive as Markdown or PDF. Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get, a Markdown file's first heading or else the file name, and asks you once to confirm before it saves them. Each PDF's text is extracted into its note.
 
-Pages that describe how you work, such as onboarding or policies, can be kept as **docs** instead. In Studio, add each page as a doc under **Library** and give it a section, so the docs group like a handbook.
+Pages that describe how you work, such as onboarding or policies, can be kept as **docs** instead, so they group like a handbook. Paste a page in chat and ask the brain to keep it as a doc in a section, such as Onboarding. It keeps your text and places the page after the others. If you name no section and the docs have several, or none yet, it asks which one. You can also add docs in Studio under **Library**.
 
 Exact steps: [Content management](/docs/content-management).
 

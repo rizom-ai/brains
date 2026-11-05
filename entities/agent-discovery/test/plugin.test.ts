@@ -19,11 +19,7 @@ import {
   ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
-import {
-  AuthService,
-  AuthServicePlugin,
-  getActiveAuthService,
-} from "@brains/auth-service";
+import { AuthService, AuthServicePlugin } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   DashboardWidgetRegistration,
@@ -834,8 +830,9 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(confirmation.preview).toContain(keyFingerprint(remoteA2AKey));
 
-    const activeAuth = getActiveAuthService();
-    if (!activeAuth) throw new Error("Expected active auth service");
+    const activeAuth = harness.getMockShell().getAuthRegistry().get();
+    if (!(activeAuth instanceof AuthService))
+      throw new Error("Expected active auth service");
     const owner = await activeAuth.createUser({
       displayName: "Owner",
       role: "admin",
@@ -892,8 +889,9 @@ describe("AgentDiscoveryPlugin", () => {
         status: "approved",
       }),
     });
-    const activeAuth = getActiveAuthService();
-    if (!activeAuth) throw new Error("Expected active auth service");
+    const activeAuth = harness.getMockShell().getAuthRegistry().get();
+    if (!(activeAuth instanceof AuthService))
+      throw new Error("Expected active auth service");
     await activeAuth.grantA2APeerTrust({
       domain: "trust.example",
       keyFingerprint: "fingerprint-1",

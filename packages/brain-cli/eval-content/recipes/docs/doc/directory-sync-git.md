@@ -1,9 +1,9 @@
 ---
 title: "Directory Sync Git Overview"
-section: "Content and entities"
-order: 55
+section: "Run a brain"
+order: 150
 slug: "directory-sync-git"
-description: "This document explains how @brains/directory-sync behaves in traditional git command terms."
+description: "How synced content directories behave, in git terms"
 ---
 
 # Directory Sync Git Overview

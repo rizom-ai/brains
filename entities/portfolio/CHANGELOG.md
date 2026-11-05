@@ -1,5 +1,216 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.630
+  - @brains/content-formatters@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/media-page-composer@0.2.0-alpha.630
+  - @brains/ui-library@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/plugins@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.629
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/media-page-composer@0.2.0-alpha.629
+  - @brains/ui-library@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.628
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/media-page-composer@0.2.0-alpha.628
+  - @brains/ui-library@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/atproto-contracts@0.2.0-alpha.627
+  - @brains/media-page-composer@0.2.0-alpha.627
+  - @brains/ui-library@0.2.0-alpha.627
+  - @brains/content-formatters@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/media-page-composer@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/atproto-contracts@0.2.0-alpha.626
+  - @brains/content-formatters@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.625
+  - @brains/content-formatters@0.2.0-alpha.625
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/media-page-composer@0.2.0-alpha.625
+  - @brains/ui-library@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.624
+  - @brains/content-formatters@0.2.0-alpha.624
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/media-page-composer@0.2.0-alpha.624
+  - @brains/ui-library@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.623
+  - @brains/content-formatters@0.2.0-alpha.623
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/media-page-composer@0.2.0-alpha.623
+  - @brains/ui-library@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/atproto-contracts@0.2.0-alpha.622
+  - @brains/media-page-composer@0.2.0-alpha.622
+  - @brains/ui-library@0.2.0-alpha.622
+  - @brains/content-formatters@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/atproto-contracts@0.2.0-alpha.621
+  - @brains/media-page-composer@0.2.0-alpha.621
+  - @brains/ui-library@0.2.0-alpha.621
+  - @brains/content-formatters@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.620
+  - @brains/content-formatters@0.2.0-alpha.620
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/media-page-composer@0.2.0-alpha.620
+  - @brains/ui-library@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.619
+  - @brains/content-formatters@0.2.0-alpha.619
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/media-page-composer@0.2.0-alpha.619
+  - @brains/ui-library@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.618
+  - @brains/content-formatters@0.2.0-alpha.618
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/media-page-composer@0.2.0-alpha.618
+  - @brains/ui-library@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.617
+  - @brains/content-formatters@0.2.0-alpha.617
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/media-page-composer@0.2.0-alpha.617
+  - @brains/ui-library@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/media-page-composer@0.2.0-alpha.616
+  - @brains/ui-library@0.2.0-alpha.616
+  - @brains/atproto-contracts@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

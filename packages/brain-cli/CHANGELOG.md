@@ -1,5 +1,111 @@
 # @rizom/brain
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- [#818](https://github.com/rizom-ai/brains/pull/818) [`a100799`](https://github.com/rizom-ai/brains/commit/a1007993f73508ec51af543d5c2e9ddf2d53221f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Creating a doc no longer offers a trusted writer the sections of restricted docs when it asks where the page goes. Create checks and interceptors now see the caller's permission level; the page still takes the next place after every doc.
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- [#775](https://github.com/rizom-ai/brains/pull/775) [`5265fbc`](https://github.com/rizom-ai/brains/commit/5265fbca1e1755ef2d5e3b8c587f34cb106229a3) Thanks [@joannalisiak](https://github.com/joannalisiak)! - A Git checkout behind a symlinked folder keeps one identity before and after it is created. Before, the Git broker named a checkout that did not exist yet by its unresolved path, then refused the same checkout once it existed, because it then resolved to a different path. This happened, for example, on macOS, where the temp folder sits behind a symlink.
+
+- [#811](https://github.com/rizom-ai/brains/pull/811) [`b5ff631`](https://github.com/rizom-ai/brains/commit/b5ff6316e9d6de8fc9b8177100f9cc373ae779a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A docs page lists each section's guides as short rows: the persona, and under it the guide's new optional `summary` frontmatter field, a few words on what the reader brings. The longer `for` sentence stays in the guide's own opening. A section with several guides asks "Which one are you?"; a section with one guide offers it as "Walk it through". The rows rule off like the reference docs below them.
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- [#809](https://github.com/rizom-ai/brains/pull/809) [`192e9b2`](https://github.com/rizom-ai/brains/commit/192e9b28df271bffbb6b26f9a1460b54a6c00438) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Decks show on sites that use the Rizom theme. The theme's scroll-in utility hid every element with the class `.reveal` until a script added `.visible`, and no site loads that script any more; reveal.js names its presentation container `.reveal`, so every deck rendered as an empty page. The unused scroll-in rules are removed.
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- [#807](https://github.com/rizom-ai/brains/pull/807) [`77e79ed`](https://github.com/rizom-ai/brains/commit/77e79ed3715cf86e7a861368faa5a7c0bd30a2d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A docs page lists each guide with the section its content names, also when the guide was imported before guides had a `section` field. Such a guide's stored metadata lacks the field, and an unchanged file is not imported again, so the guide was left out of its section.
+
+- [#805](https://github.com/rizom-ai/brains/pull/805) [`bfbef10`](https://github.com/rizom-ai/brains/commit/bfbef100edddb555772581f62f748cca16c309a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redeploying the same brain version no longer cuts off the old container's in-flight jobs. Both containers' workers shared one worker slot, so the new worker superseded the old one's session: its running jobs became reclaimable and it exited unhealthy. Every worker session now holds its own slot; of the live workers of one version, only the newest takes new work, while the older one keeps its session and finishes what it holds. A crashed worker's session is removed once it has been expired for longer than its timeout and none of its jobs holds a live lease, so it no longer stays behind as a stale session.
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conversation's messages come back in the order they were added, also when several share a timestamp. Messages added within one millisecond tied on their timestamp, so recent messages and message ranges could return them in either order.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`c62a570`](https://github.com/rizom-ai/brains/commit/c62a5703abee44f3878ff80cbc2b01799d426214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The docs plugin adds a `docs:doc-home-header` template: the docs home's first part with the page's head and the configured header but no hero, for a site that draws its own opening below the header and continues the page with later parts.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`37ecfde`](https://github.com/rizom-ai/brains/commit/37ecfde35b89a5f13e522774d93a9ae27ec399cf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guide can name the docs section it is listed with: `section: Use a brain` in its frontmatter, matching a doc section by name, so a docs page can show each section's guides beside its docs. Absent, it reads as null and the guide is listed on its own. The Brains documentation guides set it: the writer, researcher, consultant and team guides with "Use a brain", the self-hosting guide with "Run a brain".
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`ea1cac9`](https://github.com/rizom-ai/brains/commit/ea1cac9c54c55d5448a4b329528d78d131de6261) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guides plugin adds a `guides:guide-sections` template and its `guides:sections` data source: each docs section as a column of the guides listed with it and its reference docs, the first four shown and the rest behind a disclosure. A docs site composes it under its own section introductions, such as a homepage that opens on using, running and extending a brain. The docs landing page is left out, since the sections introduce it.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`3f7a731`](https://github.com/rizom-ai/brains/commit/3f7a731f651914eea190ef048e08ec09a0c95ca9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain init` scaffolds a site that places its hero section as `home:hero`, the `namespace:name` form `@rizom/site` now requires for schema-first sections.
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- [#803](https://github.com/rizom-ai/brains/pull/803) [`1a1e0f9`](https://github.com/rizom-ai/brains/commit/1a1e0f9c5ee1a05c01339e3aa75abc62f7bdaaf7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When an approved action succeeds but the reply that follows it fails, including a provider decline, the chat shows the action's success result (for example `Completed: Saved note "Roadmap".`) instead of "Error executing …". Only a failure of the action itself is reported as an error, in web chat, Studio chat, chat platforms and MCP.
+
+- [#804](https://github.com/rizom-ai/brains/pull/804) [`96731d4`](https://github.com/rizom-ai/brains/commit/96731d49e6d04c106150b279012d2592c680943b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guests on the public Ask page now see "The AI provider declined this request. Try rephrasing your message." when the AI provider declines their question twice, instead of a generic unavailable notice. Every other guest failure still shows the generic notice, and a declined guest turn is still recorded and settled as failed.
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- [#801](https://github.com/rizom-ai/brains/pull/801) [`c677770`](https://github.com/rizom-ai/brains/commit/c677770733d5d7b12ab8c480388ad9b30292876c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When the AI provider declines a chat turn on content policy, the brain retries that turn once with the same message before any tool has run. If the provider declines again, the reply is "The AI provider declined this request. Try rephrasing your message." instead of a generic error.
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- [#800](https://github.com/rizom-ai/brains/pull/800) [`9db9da5`](https://github.com/rizom-ai/brains/commit/9db9da59b95571bb282e3f4dfb4a45d7ce80cb21) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Several files uploaded in one chat message are each saved as the type asked for. Several essays become several posts under one confirmation, each with the publication date and canonical address stated for it; a text upload saved as a post (or another type that keeps your text) takes the file's text as its own, as pasted text does. Several PDFs kept as notes have their text extracted into each note, with or without Markdown files beside them, instead of being kept as documents. The confirmation lists each file's title, type and stated fields. A PDF asked to become a post is refused with what it can be saved as.
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- [#798](https://github.com/rizom-ai/brains/pull/798) [`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An older brain's worker no longer runs jobs a newer brain queued. A rolling deploy runs the old and new containers side by side on one job queue, and the old worker could claim the new brain's startup work. Every job now records the version of the brain that queued it; a worker never claims or recovers a job a newer brain queued, and once a newer brain's worker is live, an older worker takes no new work while its in-flight jobs finish. A newer brain asking again for an older brain's pending job hands that job to itself. Each version runs its own worker slot, so the new worker no longer supersedes the old one mid-job. Jobs queued before this release carry no version and stay claimable by any worker; the gate takes effect from the deploy after the one that ships it.
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- [#796](https://github.com/rizom-ai/brains/pull/796) [`90483cf`](https://github.com/rizom-ai/brains/commit/90483cf788c5b1951879b77ef53db61bf1928c75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Docs and guide pages no longer carry the Brains documentation site's branding on every brain. The docs index opened on "Handbook · Brains docs" and "Build, run, and publish brains.", its head described every brain's docs as "Brains documentation", and every docs and guide page drew a fixed "brains docs" header with Guides, Roadmap, GitHub and "Get Brains" links and a rizom.ai footer — over a site's own header, on sites whose layout brings one. Now the docs index opens on plain "Documentation" and the pages draw no header or footer brand of their own.
+
+  A brain whose docs pages are the whole site sets them in its plugin config: `plugins.docs.hero` (`label`, `title`, `accent`, `lead`), and `plugins.docs.chrome` and `plugins.guides.chrome` (`brand` with an optional `wordmark`, header `links` with an optional `area` marked current on that area's pages, a `cta`, and a `footer` with its own `brand` and `links`). The Brains documentation site keeps its look by setting these to its current copy.
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- [#794](https://github.com/rizom-ai/brains/pull/794) [`29d4a29`](https://github.com/rizom-ai/brains/commit/29d4a290aac28afedd9fbd2c003fa5b0d6828bdd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The organization homepage shows the brain's published public FAQs under the atlas, as the professional homepage does: ranked FAQs first, then the most asked, six at most, each question closed until tapped. The heading is the authored opening's `faqHeading`, or there is none. Organization brains seeded with FAQs had no page that showed them; the band appears once one is published and stays away until then.
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- [#795](https://github.com/rizom-ai/brains/pull/795) [`37acc8a`](https://github.com/rizom-ai/brains/commit/37acc8a63b8a9fa106fa870c84e871ea71cdf6a3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync no longer loses files whose entity type a worker cannot import. During a rolling deploy the previous container's worker shares the job queue and claimed the new brain's startup import; without the new type it skipped those files and the batch completed, so docs.rizom.ai reported a successful sync with no guides. An import job now names the entity types it carries and a worker that does not register one fails the job, which retries on the current worker. The sync checkpoint records which entity types the last scan covered: when the set changes, a startup or import fails, or a worker refused a job, the next sync rescans every file instead of only what changed since the checkpoint. Concurrent sync requests wait for each other instead of the later one reporting "no files to import", the startup run records its own outcome, and a worker process no longer marks the running startup sync as failed. `directory_sync` takes `full: true` to rescan every file on demand.
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- [#789](https://github.com/rizom-ai/brains/pull/789) [`32e8e61`](https://github.com/rizom-ai/brains/commit/32e8e610dc1f770ca749563f0c9a9937c1afcdf9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Several files attached to one chat message are kept together: the brain proposes all of them in one confirmation, listing each file's title and type, and one confirmation saves them all. A file that cannot be saved does not stop the others, and the reply names what was saved. An uploaded note is titled by its first `#` heading, else its file name; a title the user states still wins (a title that only repeats the file name does not count), and the confirmation names the title the note is saved under. An uploaded file's own frontmatter is folded into the note's frontmatter instead of being left in its body. A retry after a failed upload or generation replaces the failed entry it left behind instead of being refused as already existing, when the caller may delete it. A request to change a saved note no longer generates a duplicate "-2" note beside it; the brain is pointed to update the note itself. An attached file is saved through its upload, not re-read from the chat text. A Studio approval card shows what an action did only once it is done. The reply to a confirmed save says what was saved ("Completed: Saved note …"), and while its content is still being processed, that it is saved; only a generation says its draft is generating.
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- [#793](https://github.com/rizom-ai/brains/pull/793) [`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A reply that proposes an action needing confirmation now keeps what the agent wrote and asks for confirmation below it. Before, the whole reply became "Confirmation required.", so an answer written in the same turn, such as a requested triage note, was lost. When the agent wrote nothing, or wrote only the request, the reply is still just "Confirmation required." The MCP chat tool's confirmation response carries the reply as `text`, and basic-MCP evals read it from there.
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

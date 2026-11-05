@@ -1,5 +1,5 @@
 import type { QueueEntry } from "./queue-manager";
-import type { ScheduledJob } from "./scheduler-backend";
+import type { ScheduledJob } from "@brains/scheduler";
 import { executeWithProvider, type PublishDeps } from "./scheduler-publish";
 import type { ResolvedSchedulerConfig } from "./types/scheduler";
 

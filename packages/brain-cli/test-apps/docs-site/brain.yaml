@@ -1,0 +1,50 @@
+brain: brain
+bundleContract: capability-bundles-v1
+anchor: organization
+kind: organization
+# The doc-brain at docs.rizom.ai, as the docs recipe in brain.eval.yaml
+# composes it: reference docs and moving-in guides on @rizom/site-docs.
+bundles:
+  - core
+  - web
+  - chat
+  - site
+  - publishing
+add:
+  - docs
+  - guides
+remove:
+  - series
+  - portfolio
+  - content-pipeline
+  - social-media
+  - newsletter
+  - stock-photo
+
+# Local test app: Admin tools (build-site etc.) available over MCP
+# http transport.
+permissions:
+  rules:
+    - pattern: "mcp:http"
+      level: admin
+
+site:
+  package: "@rizom/site-docs"
+  theme: "@rizom/theme-rizom-ai"
+
+plugins:
+  mcp:
+    mode: debug
+  # No docs chrome: the site's layout draws the header and footer from the
+  # brain's site info, as on docs.rizom.ai.
+  directory-sync:
+    # What `bun run docs:seed` writes from the docs manifest.
+    seedContentPath: ../../eval-content/recipes/docs
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/docs-site-test-content
+      gitUrl: file:///tmp/docs-site-test-content.git
+      bootstrapFromSeed: true
+  site-builder:
+    autoRebuild: false

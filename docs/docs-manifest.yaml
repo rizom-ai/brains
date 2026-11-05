@@ -1,141 +1,166 @@
 docs:
+  # Use a brain: what a brain does and how its content works.
   - id: index
     title: Documentation
-    section: Start here
+    section: Use a brain
     order: 0
     source: docs/README.md
 
-  - id: getting-started
-    title: Getting Started
-    section: Start here
-    order: 10
-    source: packages/brain-cli/docs/getting-started.md
-
   - id: feature-overview
     title: Feature Overview
-    section: Start here
-    order: 15
+    section: Use a brain
+    order: 10
+    description: What a brain does today, from knowledge and publishing to interfaces and integrations
     source: docs/feature-overview.md
+
+  - id: content-management
+    title: Content Management
+    section: Use a brain
+    order: 20
+    description: Create, edit, sync and publish markdown content
+    source: docs/content-management.md
+
+  - id: entity-types-reference
+    title: Entity Types Reference
+    section: Use a brain
+    order: 30
+    description: The built-in content types and their fields
+    source: docs/entity-types-reference.md
+
+  # Run a brain: install, configure, deploy and connect it.
+  - id: getting-started
+    title: Getting Started
+    section: Run a brain
+    order: 100
+    description: Install the CLI, create a brain and start it locally
+    source: packages/brain-cli/docs/getting-started.md
 
   - id: brain-yaml-reference
     title: brain.yaml Reference
-    section: Start here
-    order: 20
+    section: Run a brain
+    order: 110
+    description: The main configuration file
     source: packages/brain-cli/docs/brain-yaml-reference.md
 
   - id: cli-reference
     title: CLI Reference
-    section: Start here
-    order: 30
+    section: Run a brain
+    order: 120
+    description: Commands such as brain init, brain start, brain chat and brain tool
     source: packages/brain-cli/docs/cli-reference.md
 
   - id: deployment-guide
     title: Deployment Guide
-    section: Start here
-    order: 40
+    section: Run a brain
+    order: 130
+    description: Deploy to a server with the generated Docker and Kamal workflow
     source: packages/brain-cli/docs/deployment-guide.md
-
-  - id: content-management
-    title: Content Management
-    section: Content and entities
-    order: 50
-    source: docs/content-management.md
-
-  - id: directory-sync-git
-    title: Directory Sync Git Overview
-    section: Content and entities
-    order: 55
-    source: docs/directory-sync-git.md
-
-  - id: entity-types-reference
-    title: Entity Types Reference
-    section: Content and entities
-    order: 60
-    source: docs/entity-types-reference.md
-
-  - id: entity-model
-    title: Entity Model
-    section: Content and entities
-    order: 70
-    source: docs/entity-model.md
 
   - id: interface-setup
     title: Interface Setup
-    section: Interfaces
-    order: 80
+    section: Run a brain
+    order: 140
+    description: Connect MCP, web chat, Discord, Slack, A2A and local chat
     source: docs/interface-setup.md
 
-  - id: atproto-lexicons
-    title: ATProto Lexicons
-    section: Interfaces
-    order: 85
-    source: docs/atproto-lexicons.md
-
-  - id: agent-discovery
-    title: Agent Discovery
-    section: Interfaces
-    order: 88
-    source: docs/agent-discovery.md
+  - id: directory-sync-git
+    title: Directory Sync Git Overview
+    section: Run a brain
+    order: 150
+    description: How synced content directories behave, in git terms
+    source: docs/directory-sync-git.md
 
   - id: mcp-inspector-guide
     title: MCP Inspector Guide
-    section: Interfaces
-    order: 90
+    section: Run a brain
+    order: 160
+    description: Debug MCP connections and tool calls
     source: docs/mcp-inspector-guide.md
 
+  # Extend a brain: sites, themes, plugins and the framework itself.
   - id: customization-guide
     title: Customization Guide
-    section: Customization
-    order: 100
+    section: Extend a brain
+    order: 200
+    description: Change bundles, content, themes, sites and plugins, smallest layer first
     source: docs/customization-guide.md
 
   - id: site-mockup-migration
     title: Site Mockup Migration
-    section: Customization
-    order: 105
+    section: Extend a brain
+    order: 210
+    description: Prototype a site in an AI coding tool, then move it into a brain
     source: docs/site-mockup-migration.md
 
   - id: theming-guide
     title: Theming Guide
-    section: Customization
-    order: 110
+    section: Extend a brain
+    order: 220
+    description: Theme tokens, CSS layers and custom themes
     source: docs/theming-guide.md
 
   - id: plugin-system
     title: Plugin System
-    section: Customization
-    order: 120
+    section: Extend a brain
+    order: 230
+    description: How built-in and custom plugins are organized
     source: docs/plugin-system.md
 
   - id: plugin-quick-reference
     title: Plugin Quick Reference
-    section: Customization
-    order: 130
+    section: Extend a brain
+    order: 240
+    description: A checklist for choosing a declarative extension family
     source: docs/plugin-quick-reference.md
 
   - id: external-plugin-authoring
     title: External Plugin Authoring
-    section: Customization
-    order: 135
+    section: Extend a brain
+    order: 250
+    description: Package and load your own plugins
     source: docs/external-plugin-authoring.md
 
   - id: external-site-authoring
     title: External Site and Theme Authoring
-    section: Customization
-    order: 140
+    section: Extend a brain
+    order: 260
+    description: Publish site and theme packages through the public npm contract
     source: docs/external-site-authoring.md
+
+  - id: entity-model
+    title: Entity Model
+    section: Extend a brain
+    order: 270
+    description: How markdown files, frontmatter and schemas fit together
+    source: docs/entity-model.md
 
   - id: architecture-overview
     title: Architecture Overview
-    section: Architecture
-    order: 150
+    section: Extend a brain
+    order: 280
+    description: How the shell, plugins, entities and interfaces fit together
     source: docs/architecture-overview.md
 
   - id: brain-model
     title: Brain Models
-    section: Architecture
-    order: 160
+    section: Extend a brain
+    order: 290
+    description: The canonical brain definition, its capability catalog and bundles
     source: docs/brain-model.md
+
+  - id: agent-discovery
+    title: Agent Discovery
+    section: Extend a brain
+    order: 300
+    description: How a brain finds capabilities in itself and calls other brains
+    source: docs/agent-discovery.md
+
+  - id: atproto-lexicons
+    title: ATProto Lexicons
+    section: Extend a brain
+    order: 310
+    description: The AT Protocol lexicons published under ai.rizom.brain
+    source: docs/atproto-lexicons.md
 
 guides:
   - id: writer

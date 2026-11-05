@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import { trafficSnapshotAdapter } from "../entity/adapter";
@@ -57,7 +58,14 @@ export function entitySnapshotStore(
       entityService.listEntities(
         {
           entityType: "traffic-snapshot",
-          options: { limit: 10_000, filter: { visibilityScope: "restricted" } },
+          options: {
+            limit: 10_000,
+            filter: {
+              visibilityScope: internalFullScope(
+                "traffic snapshot capture bookkeeping",
+              ),
+            },
+          },
         },
         trafficSnapshotSchema,
       ),

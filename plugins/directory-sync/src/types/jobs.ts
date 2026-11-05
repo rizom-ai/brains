@@ -28,6 +28,8 @@ export interface DirectorySyncRequestJobData {
   runId?: string | undefined;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
+  /** Rescan every file instead of the changes since the durable checkpoint. */
+  full?: boolean | undefined;
 }
 
 export const directorySyncRequestJobSchema: z.ZodType<
@@ -38,6 +40,7 @@ export const directorySyncRequestJobSchema: z.ZodType<
   runId: z.string().min(1).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
+  full: z.boolean().optional(),
 });
 
 export interface DirectoryProjectionBatchRef {
@@ -81,6 +84,11 @@ export const directoryImportPlanSchema: z.ZodType<
 export interface DirectoryImportJobData {
   /** Queued batches retain their original preconditions across retries. */
   plan?: DirectoryImportPlan | undefined;
+  /**
+   * The registered entity types the scheduling process admitted into this
+   * job. A worker that does not register one of them cannot import it.
+   */
+  entityTypes?: string[] | undefined;
   paths?: string[] | undefined;
   batchSize?: number | undefined;
   batchIndex?: number | undefined;
@@ -96,6 +104,7 @@ export const directoryImportJobSchema: z.ZodType<
   batchIndex: z.number().optional(),
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
   plan: directoryImportPlanSchema.optional(),
+  entityTypes: z.array(z.string().min(1)).optional(),
 });
 
 /**

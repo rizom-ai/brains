@@ -1,5 +1,5 @@
+import { assignableMembers } from "@brains/contracts";
 import { describe, expect, it } from "bun:test";
-import { assignableMembers } from "../src/assignable-members";
 
 describe("the members people fields assign from", () => {
   it("are the brain's active and invited people, by name, without suspended ones", () => {

@@ -127,7 +127,9 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
         const abort = new AbortController();
         controller.current = abort;
         const answerId = crypto.randomUUID();
-        let finished = false;
+        // An answer finishes with `stop`; a failure the brain worded for the
+        // visitor (a provider decline) finishes with `error`.
+        let ending: "answer" | "failure" | undefined;
         let locatorReceived = false;
         let responseText = "";
         let responseCards: ChatCard[] = [];
@@ -174,16 +176,26 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
               ]);
             }
             if (event.type === "finish")
-              finished = event.finishReason === "stop";
+              ending =
+                event.finishReason === "stop"
+                  ? "answer"
+                  : event.finishReason === "error"
+                    ? "failure"
+                    : undefined;
           }
-          if (!finished || !responseText.trim())
+          if (!ending || !responseText.trim())
             throw new Error("Incomplete response");
           setPending(undefined);
           setBoxState("complete");
-          onAnswered?.(responseCards);
-          setStatus(
-            "Answer received. Check important claims against the original sources.",
-          );
+          if (ending === "failure") {
+            // The message says what happened and what to do; it is no answer.
+            setStatus("");
+          } else {
+            onAnswered?.(responseCards);
+            setStatus(
+              "Answer received. Check important claims against the original sources.",
+            );
+          }
         } catch (error) {
           if (error instanceof ChatApiError && error.guestSubmission) {
             const receipt = error.guestSubmission;

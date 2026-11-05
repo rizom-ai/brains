@@ -245,7 +245,15 @@ export class DirectorySyncOperationStatusService {
     this.syncPath = syncPath;
   }
 
-  async initialize(): Promise<ActiveDirectorySyncRun | undefined> {
+  /**
+   * Settle what a previous process left. An execution-only process does not
+   * own the active run: the serving process started it and holds its batch
+   * metadata, so reconciling it here would record a running sync as lost.
+   */
+  async initialize(options?: {
+    executionOnly?: boolean;
+  }): Promise<ActiveDirectorySyncRun | undefined> {
+    if (options?.executionOnly) return undefined;
     const status = await this.store.snapshot();
     if (
       status.activeRun &&

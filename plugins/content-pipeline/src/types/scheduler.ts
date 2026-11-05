@@ -4,7 +4,7 @@ import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import type { GenerationCondition } from "./config";
-import type { SchedulerBackend } from "../scheduler-backend";
+import type { SchedulerBackend } from "@brains/scheduler";
 import type { PublishEntityExecutor } from "../publish-executor";
 
 /**

@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.241
+
+### Minor Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: a route places a schema-first section by its runtime name, `namespace:name` (`home:hero`), the same form every template has. The dotted `home.hero` was rewritten by `defineSite()` only, so a site exported without it rendered nothing for those sections; it is now rejected with the colon spelling to use. `defineSite()` still makes `content.home.hero` the fallback of the section placed as `home:hero`, and validation messages name sections the same way. The bundled sites use the colon form.
+
 ## 0.2.0-alpha.240
 
 ### Patch Changes

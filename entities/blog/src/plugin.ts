@@ -1,4 +1,5 @@
 import type {
+  CreateCheckResult,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -10,7 +11,6 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { PUBLISH_ASSET_CHANNELS } from "./publish-asset-channels";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import type { BlogConfig, BlogConfigInput } from "./config";
@@ -24,7 +24,7 @@ import {
 } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
-import { createPostFromText } from "./lib/create-from-text";
+import { checkPostText, createPostFromText } from "./lib/create-from-text";
 import { createBlogAtprotoProjection } from "./atproto-projection";
 import { createBlogPrintableProvider } from "./attachments/printable-provider";
 import { BLOG_PRINTABLE_ATTACHMENT_TYPE } from "./attachments/printable-template";
@@ -41,7 +41,6 @@ export class BlogPlugin extends EntityPlugin<
     blogPostAdapter.entityType;
   readonly schema: typeof blogPostSchema = blogPostSchema;
   readonly adapter: typeof blogPostAdapter = blogPostAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
@@ -58,6 +57,12 @@ export class BlogPlugin extends EntityPlugin<
       // Read by nothing: not the head, the site, nor ATProto.
       retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
     };
+  }
+
+  protected override async checkCreate(
+    input: CreateInput,
+  ): Promise<CreateCheckResult> {
+    return checkPostText(input);
   }
 
   protected override async interceptCreate(
@@ -114,10 +119,7 @@ export class BlogPlugin extends EntityPlugin<
       createBlogOgImageProvider(context),
     );
     this.deferPublishAssetRegistration(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createBlogAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createBlogAtprotoProjection());
 
     this.logger.info(
       "Blog plugin registered (routes auto-generated at /posts/)",
@@ -147,8 +149,6 @@ export class BlogPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 }
 

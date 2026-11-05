@@ -1,3 +1,4 @@
+import { normalizeIssuer } from "@brains/plugins";
 import {
   CHAT_INTERACTION_ID,
   MCP_INTERACTION_ID,
@@ -22,7 +23,6 @@ import {
   AuthService,
   AuthServicePlugin,
   authServicePlugin,
-  normalizeIssuer,
   reinitializeAuthAccessStorage,
   type AuthServiceConfig,
 } from "../src";
@@ -159,6 +159,25 @@ describe("AuthService", () => {
     expect(() => normalizeIssuer("https://brain.example.com/auth")).toThrow(
       "OAuth issuer must be an origin",
     );
+  });
+
+  it("serves its service to other plugins through context.auth until shutdown", async () => {
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+      }),
+    );
+    const registry = harness.getMockShell().getAuthRegistry();
+    expect(registry.get()).toBeInstanceOf(AuthService);
+    expect(registry.get()?.getIssuer()).toBe("https://brain.example.com");
+
+    await harness.reset();
+
+    expect(registry.get()).toBeUndefined();
   });
 
   it("keeps default auth storage outside the synchronized content tree", () => {

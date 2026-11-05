@@ -1,20 +1,18 @@
-import { join } from "node:path";
-import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
   issuerFromRequest,
   requireSameOriginJson,
   requireSameOriginRequest,
-} from "@brains/auth-service";
-import type {
-  ServicePluginContext,
-  UserPermissionLevel,
-  WebRouteDefinition,
-} from "@brains/plugins";
-import {
   PermissionService,
   canWriteVisibility,
   entityTypeClassificationSchema,
   permissionToVisibilityScope,
+} from "@brains/plugins";
+import { join } from "node:path";
+import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
+import type {
+  ServicePluginContext,
+  UserPermissionLevel,
+  WebRouteDefinition,
 } from "@brains/plugins";
 import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
 import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";

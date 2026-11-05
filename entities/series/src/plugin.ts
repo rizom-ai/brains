@@ -8,7 +8,6 @@ import type {
   ProjectionRule,
 } from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter, type SeriesAdapter } from "./adapters/series-adapter";
 import { SeriesDataSource } from "./datasources/series-datasource";
@@ -30,7 +29,6 @@ export class SeriesPlugin extends EntityPlugin<
   readonly entityType = "series" as const;
   readonly schema: typeof seriesSchema = seriesSchema;
   readonly adapter: SeriesAdapter = seriesAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor() {
     super("series", packageJson, {}, emptyEntityPluginConfigSchema);
@@ -67,17 +65,9 @@ export class SeriesPlugin extends EntityPlugin<
   }
 
   protected override async onRegister(
-    _context: EntityPluginContext,
+    context: EntityPluginContext,
   ): Promise<void> {
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createSeriesAtprotoProjection(),
-      );
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
+    context.atprotoProjections.register(createSeriesAtprotoProjection());
   }
 }
 

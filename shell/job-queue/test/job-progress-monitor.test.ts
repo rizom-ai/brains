@@ -52,6 +52,8 @@ function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
     leaseExpiresAt: Date.now() + 10_000,
     attemptHeartbeatAt: Date.now(),
     runtimeUpdatedAt: Date.now(),
+    brainVersion: null,
+    brainVersionSortKey: null,
     ...overrides,
   };
 }

@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { CreateInput, CreateInterceptionResult } from "@brains/plugins";
+import type {
+  CreateCheckResult,
+  CreateInput,
+  CreateInterceptionResult,
+} from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { DecksPlugin } from "../src/plugin";
 import { deckAdapter } from "../src/adapters/deck-adapter";
@@ -14,6 +18,13 @@ const talk =
   "# Slow software\n\nWhy we ship less.\n\n## The cost of speed\n\nEvery release has a tail.\n\n## What we do instead\n\nWe wait a week.";
 const talkAsSlides =
   "# Slow software\n\nWhy we ship less.\n\n---\n\n## The cost of speed\n\nEvery release has a tail.\n\n---\n\n## What we do instead\n\nWe wait a week.";
+
+/** A question for the user: no tool names, fields or code. */
+function expectUserFacing(question: string): void {
+  for (const toolWord of ["fields", "`", "system_create", "Pass "]) {
+    expect(question).not.toContain(toolWord);
+  }
+}
 
 describe("DecksPlugin create interceptor", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -51,6 +62,12 @@ describe("DecksPlugin create interceptor", () => {
       .getCreateInterceptor("deck");
     if (!interceptor) throw new Error("Expected a deck create interceptor");
     return interceptor(input, executionContext);
+  }
+
+  async function check(input: CreateInput): Promise<CreateCheckResult> {
+    const createCheck = harness.getEntityRegistry().getCreateCheck("deck");
+    if (!createCheck) throw new Error("Expected a deck create check");
+    return createCheck(input, executionContext);
   }
 
   function continued(result: CreateInterceptionResult): CreateInput {
@@ -120,9 +137,47 @@ describe("DecksPlugin create interceptor", () => {
     });
     expect(result).toMatchObject({
       kind: "handled",
-      result: { success: false, question: "slide-breaks" },
+      result: { success: false },
     });
     expect(JSON.stringify(result)).toContain("---");
+  });
+
+  it("asks the user where the slides break before the save is confirmed", async () => {
+    const result = await check({
+      entityType: "deck",
+      title: "Notes",
+      content: "One paragraph.\n\nAnother paragraph.",
+    });
+    expect(result).toMatchObject({ kind: "question", asks: "slide-breaks" });
+    if (result.kind !== "question") throw new Error("Expected a question");
+    expectUserFacing(result.question);
+    expect(result.question).toContain("slide");
+    expect(result.answerWith).toContain('fields { slides: "paragraphs" }');
+    expect(result.answerWith).toContain("---");
+    expect(prompts).toEqual([]);
+  });
+
+  it("fills in the title and description before the save is confirmed", async () => {
+    expect(await check({ entityType: "deck", content: talk })).toEqual({
+      kind: "ready",
+      title: "Slow software",
+      fields: { description: "Why shipping less makes better software." },
+    });
+  });
+
+  it("saves what the check filled in without asking the model again", async () => {
+    const checked = await check({ entityType: "deck", content: talk });
+    if (checked.kind !== "ready") throw new Error("Expected a ready check");
+    const { body } = saved(
+      await intercept({
+        entityType: "deck",
+        content: talk,
+        ...(checked.title && { title: checked.title }),
+        ...(checked.fields && { fields: checked.fields }),
+      }),
+    );
+    expect(body).toBe(talkAsSlides);
+    expect(prompts).toHaveLength(1);
   });
 
   it("makes each paragraph a slide when the user says so", async () => {

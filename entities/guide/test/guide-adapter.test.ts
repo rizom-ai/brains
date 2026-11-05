@@ -15,6 +15,8 @@ describe("GuideAdapter", () => {
       for: "You have years of essays and a folder of drafts.",
       recipe: "professional",
       brings: null,
+      section: null,
+      summary: null,
       material: [
         {
           from: "Drafts and fragments",

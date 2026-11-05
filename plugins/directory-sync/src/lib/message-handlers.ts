@@ -1,3 +1,4 @@
+import { decodeEntityIdPath } from "@brains/plugins";
 import {
   DIRECTORY_SYNC_CHANNELS,
   directorySyncPathRequestSchema,
@@ -7,7 +8,6 @@ import {
   resolveEntityPlacement,
   getEntityFileExtension,
 } from "./entity-paths";
-import { decodeEntityIdPath } from "@brains/entity-service";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type {

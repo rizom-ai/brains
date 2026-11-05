@@ -1,7 +1,12 @@
 import type { JSX } from "react";
-import { DocsPageSection, DocsPageShell } from "@brains/docs-chrome";
+import {
+  DocsPageSection,
+  DocsPageShell,
+  type DocsChrome,
+} from "@brains/docs-chrome";
 import type { PaginationInfo } from "@brains/plugins";
 import type { DocWithData } from "../schemas/doc";
+import type { DocsHero } from "../config";
 import { groupDocs, sortDocs } from "./docs-design";
 import { DocsChapter, DocsListHero, DocsSectionIndex } from "./docs-components";
 
@@ -9,6 +14,8 @@ export interface DocListProps {
   docs: DocWithData[];
   pagination?: PaginationInfo | null;
   baseUrl: string | null;
+  hero?: DocsHero | null | undefined;
+  chrome?: DocsChrome | null | undefined;
 }
 
 const MONTH_NAMES = [
@@ -40,7 +47,13 @@ function formatLatestUpdate(docs: DocWithData[]): string | undefined {
   return `${MONTH_NAMES[latest.getUTCMonth()]} ${latest.getUTCFullYear()}`;
 }
 
-const Hero = ({ docs }: { docs: DocWithData[] }): JSX.Element => {
+const Hero = ({
+  docs,
+  hero,
+}: {
+  docs: DocWithData[];
+  hero?: DocsHero | null | undefined;
+}): JSX.Element => {
   const sortedDocs = sortDocs(docs);
   const readableDocs = sortedDocs.filter(
     (doc) => doc.metadata.slug !== "index",
@@ -52,6 +65,7 @@ const Hero = ({ docs }: { docs: DocWithData[] }): JSX.Element => {
       sectionsCount={groupDocs(sortedDocs).length}
       startDoc={readableDocs[0] ?? sortedDocs[0]}
       updatedLabel={formatLatestUpdate(docs)}
+      hero={hero}
     />
   );
 };
@@ -74,14 +88,21 @@ const Sections = ({ docs }: { docs: DocWithData[] }): JSX.Element => {
   );
 };
 
-const shellProps = {
-  title: "Documentation",
-  description: "Brains documentation",
-};
+/** The page head: the hero's lead describes the docs when there is one. */
+function shellProps(hero: DocsHero | null | undefined): {
+  title: string;
+  description: string;
+} {
+  return { title: "Documentation", description: hero?.lead ?? "Documentation" };
+}
 
-export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => (
-  <DocsPageShell {...shellProps}>
-    <Hero docs={docs} />
+export const DocListTemplate = ({
+  docs,
+  hero,
+  chrome,
+}: DocListProps): JSX.Element => (
+  <DocsPageShell {...shellProps(hero)} chrome={chrome}>
+    <Hero docs={docs} hero={hero} />
     <Sections docs={docs} />
   </DocsPageShell>
 );
@@ -91,9 +112,26 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => (
  * between the hero and the sections: the hero opens the page with the header,
  * the sections continue it.
  */
-export const DocHomeHeroTemplate = ({ docs }: DocListProps): JSX.Element => (
-  <DocsPageShell {...shellProps} continues>
-    <Hero docs={docs} />
+export const DocHomeHeroTemplate = ({
+  docs,
+  hero,
+  chrome,
+}: DocListProps): JSX.Element => (
+  <DocsPageShell {...shellProps(hero)} chrome={chrome} continues>
+    <Hero docs={docs} hero={hero} />
+  </DocsPageShell>
+);
+
+/**
+ * Only the header, for a docs home whose site draws its own opening below it:
+ * the page's head and the configured header, and later parts continue it.
+ */
+export const DocHomeHeaderTemplate = ({
+  hero,
+  chrome,
+}: DocListProps): JSX.Element => (
+  <DocsPageShell {...shellProps(hero)} chrome={chrome} continues bleed>
+    {null}
   </DocsPageShell>
 );
 

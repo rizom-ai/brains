@@ -1,7 +1,10 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+  contentVisibilitySchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema } from "@brains/plugins";
+import { docsChromeSchema } from "@brains/docs-chrome";
 import { guideMetadataSchema } from "../schemas/guide";
 import { guideFrontmatterSchema } from "../schemas/guide-frontmatter";
 import {
@@ -17,6 +20,11 @@ import {
   type GuideListProps,
 } from "../templates/guide-list";
 import { GuideBandTemplate } from "../templates/guide-band";
+import {
+  GuideSectionsTemplate,
+  type GuideSectionsProps,
+} from "../templates/guide-sections";
+import { sectionDocSchema } from "../datasources/guide-sections-datasource";
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
@@ -35,11 +43,23 @@ const guideDisplaySchema = z.object({
 
 const guideListSchema = z.object({
   guides: z.array(guideDisplaySchema),
+  chrome: docsChromeSchema.nullable().default(null),
+});
+
+const guideSectionsDisplaySchema = z.object({
+  sections: z.array(
+    z.object({
+      name: z.string(),
+      guides: z.array(guideDisplaySchema),
+      docs: z.array(sectionDocSchema),
+    }),
+  ),
 });
 
 const guideDetailSchema = z.object({
   guide: guideDisplaySchema,
   otherGuides: z.array(guideDisplaySchema),
+  chrome: docsChromeSchema.nullable().default(null),
 });
 
 export function getTemplates(): Record<string, Template> {
@@ -66,6 +86,18 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "guides:entities",
       requiredPermission: "public",
       layout: { component: GuideBandTemplate },
+    }),
+    "guide-sections": createTemplate<
+      z.output<typeof guideSectionsDisplaySchema>,
+      GuideSectionsProps
+    >({
+      name: "guide-sections",
+      description:
+        "Each docs section's guides and reference docs as columns, under a site's own section introductions",
+      schema: guideSectionsDisplaySchema,
+      dataSourceId: "guides:sections",
+      requiredPermission: "public",
+      layout: { component: GuideSectionsTemplate },
     }),
     "guide-detail": createTemplate<
       z.output<typeof guideDetailSchema>,

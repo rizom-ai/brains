@@ -1,9 +1,9 @@
 ---
 title: "Getting Started"
-section: "Start here"
-order: 10
+section: "Run a brain"
+order: 100
 slug: "getting-started"
-description: "A brain is a private AI runtime whose durable knowledge is markdown. One canonical definition supplies the capability catalog; each instance selects explicit bu"
+description: "Install the CLI, create a brain and start it locally"
 ---
 
 # Getting Started

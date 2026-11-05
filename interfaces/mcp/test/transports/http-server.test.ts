@@ -1,5 +1,5 @@
+import { type IMCPTransport, type ToolVisibility } from "@brains/plugins";
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import {
   Client,

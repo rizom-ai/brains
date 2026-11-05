@@ -13,6 +13,10 @@ import type {
 } from "@brains/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
+import {
+  AIProviderDeclinedError,
+  aiProviderDeclinedMessage,
+} from "../src/errors";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
 import { GenerationUsageMeter } from "../src/generation-usage-meter";
 import { noModelCallPricing } from "../src/openai-guest-pricing";
@@ -226,6 +230,41 @@ describe("guest runtime boundary", () => {
     });
     expect(
       h.service.chat("Question", conversation.id, guestContext),
+    ).rejects.toThrow("Guest execution unavailable");
+  });
+
+  it("tells a guest the provider declined, as a failed turn with no settlement and no provider detail", async () => {
+    const h = harness();
+    // A second decline after the one retry reaches the service as this error.
+    h.generate.mockImplementationOnce(async () => {
+      throw new AIProviderDeclinedError(
+        new Error("PRIVATE flagged prompt detail"),
+      );
+    });
+    const response = await h.service.chat(
+      "Question",
+      conversation.id,
+      guestContext,
+    );
+    expect(response).toEqual({
+      text: aiProviderDeclinedMessage,
+      error: aiProviderDeclinedMessage,
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    expect(JSON.stringify(response)).not.toContain("PRIVATE");
+  });
+
+  it("keeps a guest's next failure generic after a declined turn", async () => {
+    const h = harness();
+    h.generate.mockImplementationOnce(async () => {
+      throw new AIProviderDeclinedError(new Error("flagged"));
+    });
+    await h.service.chat("Question", conversation.id, guestContext);
+    h.generate.mockImplementationOnce(async () => {
+      throw new Error("PRIVATE execution details");
+    });
+    expect(
+      h.service.chat("Another", conversation.id, guestContext),
     ).rejects.toThrow("Guest execution unavailable");
   });
 

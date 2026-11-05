@@ -1,5 +1,6 @@
 import type {
   BaseEntity,
+  CreateCheck,
   CreateInterceptor,
   DataSource,
   PersistValidator,
@@ -112,6 +113,9 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
       interceptor: CreateInterceptor,
     ): void => {
       entityRegistry.registerCreateInterceptor(entityType, interceptor);
+    },
+    registerCreateCheck: (entityType: string, check: CreateCheck): void => {
+      entityRegistry.registerCreateCheck(entityType, check);
     },
     registerUploadSaveHandler: (
       registration: UploadSaveHandlerRegistration,

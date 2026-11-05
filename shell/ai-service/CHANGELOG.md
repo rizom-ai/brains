@@ -1,5 +1,216 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/conversation-service@0.2.0-alpha.630
+  - @brains/entity-service@0.2.0-alpha.630
+  - @brains/identity-service@0.2.0-alpha.630
+  - @brains/mcp-service@0.2.0-alpha.630
+  - @brains/messaging-service@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/conversation-service@0.2.0-alpha.629
+  - @brains/entity-service@0.2.0-alpha.629
+  - @brains/identity-service@0.2.0-alpha.629
+  - @brains/mcp-service@0.2.0-alpha.629
+  - @brains/messaging-service@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/conversation-service@0.2.0-alpha.628
+  - @brains/entity-service@0.2.0-alpha.628
+  - @brains/identity-service@0.2.0-alpha.628
+  - @brains/mcp-service@0.2.0-alpha.628
+  - @brains/messaging-service@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.627
+  - @brains/identity-service@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/conversation-service@0.2.0-alpha.627
+  - @brains/mcp-service@0.2.0-alpha.627
+  - @brains/messaging-service@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies [[`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4)]:
+  - @brains/conversation-service@0.2.0-alpha.626
+  - @brains/identity-service@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/entity-service@0.2.0-alpha.626
+  - @brains/mcp-service@0.2.0-alpha.626
+  - @brains/messaging-service@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/conversation-service@0.2.0-alpha.625
+  - @brains/entity-service@0.2.0-alpha.625
+  - @brains/identity-service@0.2.0-alpha.625
+  - @brains/mcp-service@0.2.0-alpha.625
+  - @brains/messaging-service@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/conversation-service@0.2.0-alpha.624
+  - @brains/entity-service@0.2.0-alpha.624
+  - @brains/identity-service@0.2.0-alpha.624
+  - @brains/mcp-service@0.2.0-alpha.624
+  - @brains/messaging-service@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/conversation-service@0.2.0-alpha.623
+  - @brains/entity-service@0.2.0-alpha.623
+  - @brains/identity-service@0.2.0-alpha.623
+  - @brains/mcp-service@0.2.0-alpha.623
+  - @brains/messaging-service@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/entity-service@0.2.0-alpha.622
+  - @brains/identity-service@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/conversation-service@0.2.0-alpha.622
+  - @brains/mcp-service@0.2.0-alpha.622
+  - @brains/messaging-service@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.621
+  - @brains/identity-service@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/conversation-service@0.2.0-alpha.621
+  - @brains/mcp-service@0.2.0-alpha.621
+  - @brains/messaging-service@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/conversation-service@0.2.0-alpha.620
+  - @brains/entity-service@0.2.0-alpha.620
+  - @brains/identity-service@0.2.0-alpha.620
+  - @brains/mcp-service@0.2.0-alpha.620
+  - @brains/messaging-service@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/conversation-service@0.2.0-alpha.619
+  - @brains/entity-service@0.2.0-alpha.619
+  - @brains/identity-service@0.2.0-alpha.619
+  - @brains/mcp-service@0.2.0-alpha.619
+  - @brains/messaging-service@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/conversation-service@0.2.0-alpha.618
+  - @brains/entity-service@0.2.0-alpha.618
+  - @brains/identity-service@0.2.0-alpha.618
+  - @brains/mcp-service@0.2.0-alpha.618
+  - @brains/messaging-service@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/conversation-service@0.2.0-alpha.617
+  - @brains/entity-service@0.2.0-alpha.617
+  - @brains/identity-service@0.2.0-alpha.617
+  - @brains/mcp-service@0.2.0-alpha.617
+  - @brains/messaging-service@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- [#793](https://github.com/rizom-ai/brains/pull/793) [`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A reply that proposes an action needing confirmation now keeps what the agent wrote and asks for confirmation below it. Before, the whole reply became "Confirmation required.", so an answer written in the same turn, such as a requested triage note, was lost. When the agent wrote nothing, or wrote only the request, the reply is still just "Confirmation required." The MCP chat tool's confirmation response carries the reply as `text`, and basic-MCP evals read it from there.
+- Updated dependencies [[`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4)]:
+  - @brains/mcp-service@0.2.0-alpha.616
+  - @brains/entity-service@0.2.0-alpha.616
+  - @brains/identity-service@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/conversation-service@0.2.0-alpha.616
+  - @brains/messaging-service@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

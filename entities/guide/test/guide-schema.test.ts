@@ -23,7 +23,26 @@ describe("guideFrontmatterSchema", () => {
     expect(guideFrontmatterSchema.parse(frontmatter)).toEqual({
       ...frontmatter,
       brings: null,
+      section: null,
+      summary: null,
     });
+  });
+
+  it("accepts the docs section a guide is listed with", () => {
+    expect(
+      guideFrontmatterSchema.parse({ ...frontmatter, section: "Use a brain" })
+        .section,
+    ).toBe("Use a brain");
+  });
+
+  it("reads an absent section as null, for guides listed on their own", () => {
+    expect(guideFrontmatterSchema.parse(frontmatter).section).toBeNull();
+  });
+
+  it("rejects an empty section", () => {
+    expect(
+      guideFrontmatterSchema.safeParse({ ...frontmatter, section: "" }).success,
+    ).toBe(false);
   });
 
   it("accepts a guide that names no recipe, as the self-hosting guide does", () => {

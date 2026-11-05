@@ -24,16 +24,6 @@ import type {
 import { PublishScheduleRunner } from "./scheduler-publish-runner";
 import { GenerationScheduleRunner } from "./scheduler-generation-runner";
 
-// Re-export all types from types/scheduler for backward compatibility
-export type {
-  SchedulerConfig,
-  ResolvedSchedulerConfig,
-  GenerateExecuteEvent,
-  GenerationConditionResult,
-  PublishSuccessEvent,
-  PublishFailedEvent,
-} from "./types/scheduler";
-
 export class ContentScheduler {
   private config: ResolvedSchedulerConfig;
   private publishRunner: PublishScheduleRunner;

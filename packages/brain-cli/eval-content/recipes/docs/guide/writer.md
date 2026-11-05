@@ -7,6 +7,8 @@ for: >-
   You have years of essays and a folder of drafts. Some of it is published on
   platforms you don't own. Most of it never left Google Docs.
 recipe: professional
+section: Use a brain
+summary: Years of essays and drafts
 material:
   - from: Drafts and fragments
     where: Google Docs, Word, a notes app
@@ -30,17 +32,17 @@ material:
 
 In Google Docs, choose **File → Download → Markdown** for each draft you want to keep.
 
-Upload a file in chat and ask the brain to keep it as a note. It asks you to confirm before it saves anything, and it saves one file per request: when you attach several, ask for the next one after each save. With your brain connected under **AI tools**, you can do the same from Claude or ChatGPT.
+Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get and asks you once to confirm before it saves them. With your brain connected under **AI tools**, you can do the same from Claude or ChatGPT.
 
-They arrive as **notes**. Unfinished, half-titled, contradictory: bring it anyway. Notes are what the brain reads from when it writes and answers.
+They arrive as **notes**, titled from their first heading, or from the file name when there is none. Unfinished, half-titled, contradictory: bring it anyway. Notes are what the brain reads from when it writes and answers.
 
 Exact steps: [Interface setup](/docs/interface-setup), [Content management](/docs/content-management).
 
 ## Bring what you published
 
-Save each published essay as a markdown file and upload it in chat. Tell the brain when and where it first appeared.
+Save each published essay as a Markdown file and upload them in chat, several in one message if you like. Tell the brain when and where each first appeared. It lists every essay with its title and asks you once to confirm.
 
-It becomes a **published post** with its original date. The original address stays the canonical one, so search engines keep crediting the first publication.
+Each becomes a **published post** with its original date. The original address stays the canonical one, so search engines keep crediting the first publication.
 
 Exact steps: [Entity types](/docs/entity-types-reference).
 

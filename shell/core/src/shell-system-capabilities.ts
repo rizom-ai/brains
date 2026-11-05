@@ -4,11 +4,8 @@ import {
   createRegisterHandlerFn,
   type IJobsNamespace,
 } from "@brains/job-queue";
-import type {
-  DefaultQueryResponse,
-  IAnalyticsRegistry,
-  QueryContext,
-} from "@brains/plugins";
+import type { DefaultQueryResponse } from "@brains/contracts";
+import type { IAnalyticsRegistry, QueryContext } from "@brains/plugins";
 import {
   createAttachmentsNamespace,
   type RuntimeAppInfo,

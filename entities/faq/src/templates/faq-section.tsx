@@ -1,6 +1,5 @@
+import { createTemplate, type Template } from "@brains/plugins";
 import type { JSX } from "react";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
 import { MarkdownContent } from "@brains/ui-library";
 import {
   FAQ_DATASOURCE_ID,

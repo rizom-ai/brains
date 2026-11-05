@@ -30,7 +30,9 @@ export interface InitialSyncOptions {
   config: DirectorySyncConfig;
   logger: Logger;
   gitSync?: IGitSync | undefined;
-  reconciliation?: Pick<GitReconciliationService, "pullAndQueue"> | undefined;
+  reconciliation?:
+    | Pick<GitReconciliationService, "pullAndQueue" | "requireFullScan">
+    | undefined;
   recovery?: InitialSyncRecovery | undefined;
   operationStatus?:
     | Pick<
@@ -71,11 +73,12 @@ export function setupInitialSync(options: InitialSyncOptions): void {
       }
     }
 
-    let batchIds: string[];
+    let startup: StartupBatches;
     try {
-      batchIds = await queueStartupBatches(options);
+      startup = await queueStartupBatches(options);
     } catch (error) {
       logger.error("Initial sync failed", error);
+      await requireRescan(options);
       await options.recovery?.onGitRecoveryFailed(error);
       await sendCompleted(context, {
         success: false,
@@ -86,6 +89,7 @@ export function setupInitialSync(options: InitialSyncOptions): void {
       return { initialSyncPending: true };
     }
 
+    const { batchIds, runId } = startup;
     if (batchIds.length === 0) {
       await sendCompleted(context, { success: true });
       return { initialSyncPending: false };
@@ -93,7 +97,10 @@ export function setupInitialSync(options: InitialSyncOptions): void {
 
     logger.info("Initial sync queued for the worker", { batchIds });
     void followBatches(context, batchIds)
-      .then((outcome) => sendCompleted(context, outcome))
+      .then(async (outcome) => {
+        await settleStartupRun(options, runId, outcome);
+        await sendCompleted(context, outcome);
+      })
       .catch((error: unknown) => {
         logger.error("Unable to report initial sync completion", error);
       });
@@ -113,9 +120,15 @@ export function setupInitialSync(options: InitialSyncOptions): void {
  * queued — unchanged ones are skipped on import — so startup still repairs an
  * entity database that lost content, as the inline sync did. Git pulls first.
  */
+interface StartupBatches {
+  batchIds: string[];
+  /** The startup run this boot recorded, if operation status tracks one. */
+  runId: string | undefined;
+}
+
 async function queueStartupBatches(
   options: InitialSyncOptions,
-): Promise<string[]> {
+): Promise<StartupBatches> {
   const {
     context,
     getDirectorySync,
@@ -163,9 +176,38 @@ async function queueStartupBatches(
     if (batch) await operationStatus?.attachBatch(runId, batch.batchId);
     else await operationStatus?.completeRun(runId, "No files to import");
   }
-  return [unfinished, batch?.batchId].filter(
-    (batchId): batchId is string => batchId !== undefined,
-  );
+  return {
+    batchIds: [unfinished, batch?.batchId].filter(
+      (batchId): batchId is string => batchId !== undefined,
+    ),
+    runId: batch ? runId : undefined,
+  };
+}
+
+/**
+ * Record the startup import's outcome where it is known. Left to lazy
+ * reconciliation the run stayed active, and the next boot, which cannot see
+ * this process's batch, recorded it as failed. A failed import also makes
+ * the next sync rescan everything, since the checkpoint already moved on.
+ */
+async function settleStartupRun(
+  options: InitialSyncOptions,
+  runId: string | undefined,
+  outcome: InitialSyncOutcome,
+): Promise<void> {
+  if (outcome.success) {
+    if (runId) {
+      await options.operationStatus?.completeRun(
+        runId,
+        "Startup import completed",
+      );
+    }
+    return;
+  }
+  options.logger.error("Initial sync import failed", { error: outcome.error });
+  await requireRescan(options);
+  if (runId)
+    await options.operationStatus?.failRun(runId, outcome.error, "import");
 }
 
 /**
@@ -227,6 +269,19 @@ function followBatches(
       );
     }
   });
+}
+
+/**
+ * Startup's full scan did not import everything it covers, while the
+ * checkpoint may already have moved past those files. Without this, the next
+ * incremental sync never lists them again.
+ */
+async function requireRescan(options: InitialSyncOptions): Promise<void> {
+  try {
+    await options.reconciliation?.requireFullScan();
+  } catch (error) {
+    options.logger.error("Unable to require a full rescan", error);
+  }
 }
 
 async function sendCompleted(

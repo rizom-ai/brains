@@ -1,9 +1,9 @@
-import { createMockShell } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
 import type {
   AppendAuthAuditEventInput,
   AuthPrincipal,
-} from "@brains/auth-service";
+} from "@brains/contracts";
+import { createMockShell } from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
 import {
   BaseEntityAdapter,

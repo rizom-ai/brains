@@ -610,7 +610,7 @@ export default defineSite({
       id: "home",
       path: "/",
       title: "Welcome",
-      sections: [{ id: "hero", template: "home.hero" }],
+      sections: [{ id: "hero", template: "home:hero" }],
       navigation: { show: true, label: "Home", priority: 10 },
     },
   ],

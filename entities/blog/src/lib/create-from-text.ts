@@ -1,10 +1,12 @@
 import type {
+  CreateCheckResult,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
   EntityPluginContext,
 } from "@brains/plugins";
 import {
+  checkEntityText,
   entityTextError,
   readEntityText,
   statedDateSchema,
@@ -31,6 +33,25 @@ const postTextFieldsSchema = z.object({
   seriesIndex: z.number().optional(),
 });
 
+function readPostText(
+  input: CreateInput,
+): ReturnType<typeof readEntityText<typeof postTextFieldsSchema>> {
+  return readEntityText(input, {
+    noun: "post",
+    fieldsSchema: postTextFieldsSchema,
+    isComplete: (frontmatter) =>
+      blogPostFrontmatterSchema.safeParse(frontmatter).success,
+  });
+}
+
+/**
+ * Before a post from the writer's text is confirmed: ask for a title the
+ * text does not give, and fill in the one it does.
+ */
+export function checkPostText(input: CreateInput): CreateCheckResult {
+  return checkEntityText(readPostText(input), ({ title }) => ({ title }));
+}
+
 /**
  * system_create for a post from the writer's own text: the text stays as
  * written, and the generation job adds what a post needs around it (an
@@ -43,16 +64,9 @@ export async function createPostFromText(
   context: EntityPluginContext,
   pluginId: string,
 ): Promise<CreateInterceptionResult> {
-  const read = readEntityText(input, {
-    noun: "post",
-    fieldsSchema: postTextFieldsSchema,
-    isComplete: (frontmatter) =>
-      blogPostFrontmatterSchema.safeParse(frontmatter).success,
-  });
+  const read = readPostText(input);
   if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind === "error") {
-    return entityTextError(read.error, read.question);
-  }
+  if (read.kind !== "text") return entityTextError(read);
   const { title, body, fields } = read.text;
 
   let entityId: string;

@@ -1,3 +1,4 @@
+import { internalFullScope } from "./internal-scope";
 import { deleteEntityFts, insertEntityFts } from "./entity-fts";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
@@ -462,7 +463,7 @@ export class EntityMutations {
     const priorData = await this.entityQueries.getEntityData(
       source.entityType,
       source.id,
-      "restricted",
+      internalFullScope("fold revision check, internal mutation"),
     );
     if (!priorData || entityRevision(priorData) !== source.expectedRevision) {
       throw new EntityWriteConflictError(source.entityType, source.id);
@@ -936,7 +937,7 @@ export class EntityMutations {
     const priorData = await this.entityQueries.getEntityData(
       entityType,
       id,
-      "restricted",
+      internalFullScope("delete prior-state lookup, internal mutation"),
     );
     // A purged type is no longer registered: its rows have no adapter to parse.
     const prior =

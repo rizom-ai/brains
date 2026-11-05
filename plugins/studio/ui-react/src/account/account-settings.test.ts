@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { AuthAccountPluginSettingsField } from "@brains/auth-service/account-contracts";
+import type { AuthAccountPluginSettingsField } from "@brains/contracts";
 import { settingInputType, settingsFormValues } from "./account-settings";
 
 function field(

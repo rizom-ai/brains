@@ -17,6 +17,7 @@ import {
 } from "@brains/entity-service";
 import type {
   BaseEntity,
+  CreateCheckResult,
   CreateInterceptionResult,
   EntityTypeConfig,
 } from "@brains/entity-service";
@@ -87,6 +88,10 @@ class InterceptingEntityPlugin extends EntityPlugin<
         title: "rewritten-title",
       },
     };
+  }
+
+  protected override async checkCreate(): Promise<CreateCheckResult> {
+    return { kind: "ready", title: "checked-title" };
   }
 }
 
@@ -199,6 +204,24 @@ describe("EntityPlugin", () => {
           title: "rewritten-title",
         },
       });
+    });
+
+    it("registers a create check when checkCreate() is overridden", async () => {
+      await harness.installPlugin(new InterceptingEntityPlugin());
+      await harness.installPlugin(new TestEntityPlugin());
+
+      const registry = harness.getEntityRegistry();
+      const check = registry.getCreateCheck("intercepting-item");
+      expect(
+        await check?.(
+          { entityType: "intercepting-item", content: "text" },
+          {
+            interfaceType: "test",
+            actor: { kind: "user", userId: "test-user" },
+          },
+        ),
+      ).toEqual({ kind: "ready", title: "checked-title" });
+      expect(registry.getCreateCheck("test-item")).toBeUndefined();
     });
 
     it("publishes only scheduler-owned executable rules", async () => {

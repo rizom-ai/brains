@@ -1,18 +1,18 @@
 import {
-  CHAT_CHANNELS,
-  JOB_CHANNELS,
-  spaceNoticeActionSchema,
-  spaceNoticeResultSchema,
-} from "@brains/contracts";
-import {
+  internalFullScope,
   BaseJobHandler,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   SYSTEM_CHANNELS,
   type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
+import {
+  CHAT_CHANNELS,
+  JOB_CHANNELS,
+  spaceNoticeActionSchema,
+  spaceNoticeResultSchema,
+} from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
-import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -146,8 +146,8 @@ export function registerChannelActionItems(
     new ChannelPickupHandler(options.logger.child("ChannelActionItems"), {
       conversations: context.conversations,
       bookmarks,
-      members: async (): Promise<BrainMember[]> =>
-        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+      members: (): Promise<BrainMember[]> =>
+        context.auth.listAssignableMembers(),
       extractor: new ChannelActionItemExtractor(
         context,
         options.logger.child("ChannelActionItemExtractor"),
@@ -179,7 +179,9 @@ export function registerChannelActionItems(
       (await context.entityService.getEntity({
         entityType: ACTION_ITEM_ENTITY_TYPE,
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "card existence check for channel notices",
+        ),
       })) !== null,
     post: async (request) => {
       const response = await context.messaging.send({

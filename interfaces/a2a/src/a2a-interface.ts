@@ -1,21 +1,18 @@
 import {
-  getActiveAuthService,
+  type UserPermissionLevel,
   isLoopbackIssuer,
   issuerFromRequest,
-} from "@brains/auth-service";
-import {
-  JwksResolver,
-  signRequest,
-  verifyRequest,
-} from "@brains/http-signatures";
-import {
   InterfacePlugin,
   type InterfacePluginContext,
   type Tool,
   type WebRouteDefinition,
 } from "@brains/plugins";
+import {
+  JwksResolver,
+  signRequest,
+  verifyRequest,
+} from "@brains/http-signatures";
 import type { Daemon, AgentNamespace } from "@brains/plugins";
-import type { UserPermissionLevel } from "@brains/templates";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig, type A2AConfigInput } from "./config";
@@ -189,9 +186,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     );
 
     if (verified) {
-      const grant = await getActiveAuthService()?.getA2APeerTrust(
-        verified.domain,
-      );
+      const grant = await this.context?.auth
+        .get()
+        ?.getA2APeerTrust(verified.domain);
       const permissionLevel =
         grant?.keyFingerprint === verified.keyFingerprint
           ? grant.grantedLevel
@@ -422,7 +419,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   }
 
   private createRequestSigner(): A2ARequestSigner | undefined {
-    const authService = getActiveAuthService();
+    const authService = this.context?.auth.get();
     if (!authService) return undefined;
 
     const issuer = authService.getIssuer();

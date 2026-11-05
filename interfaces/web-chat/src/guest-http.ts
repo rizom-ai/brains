@@ -572,7 +572,10 @@ export class GuestHttpHandlers {
                 await admission.settle(lease, outcome);
                 throw error;
               });
-            const hasAnswer = response.text.trim().length > 0;
+            // A failed turn the runtime still words for the visitor (a
+            // provider decline) settles as failed; its text is still shown.
+            const hasText = response.text.trim().length > 0;
+            const hasAnswer = hasText && response.error === undefined;
             // The owner's record first: if it cannot be written, the request
             // stays unresolved and its reservation held.
             if (
@@ -594,7 +597,7 @@ export class GuestHttpHandlers {
               ))
             )
               throw new Error("Guest settlement unavailable");
-            if (!hasAnswer) throw new Error("Guest response unavailable");
+            if (!hasText) throw new Error("Guest response unavailable");
             signal.throwIfAborted();
             await this.owned(request, id, policy);
             signal.throwIfAborted();
@@ -616,7 +619,12 @@ export class GuestHttpHandlers {
             });
           }
           writeTextPart(writer, randomUUID(), response.text);
-          writer.write({ type: "finish", finishReason: "stop" });
+          // A failed turn's words (a provider decline) finish as an error, so
+          // the box never presents them as an answer.
+          writer.write({
+            type: "finish",
+            finishReason: response.error === undefined ? "stop" : "error",
+          });
         } finally {
           signal.removeEventListener("abort", stopWaiting);
         }

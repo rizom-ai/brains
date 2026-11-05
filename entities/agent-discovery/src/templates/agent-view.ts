@@ -1,10 +1,11 @@
 import {
+  renderedLinkFields,
+  viewLinkFields,
   anchorProfileKindSchema,
   entityViewFields,
   type EntityViewFields,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z

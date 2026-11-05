@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import {
-  ProjectionJsonObjectSchema,
-  resetPromptMaterialization,
-} from "@brains/plugins";
+import { ProjectionJsonObjectSchema } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockProgressReporter } from "@brains/test-utils";
 import { SwotAdapter, SwotAssessmentPlugin } from "../src";
@@ -38,7 +35,6 @@ describe("SwotDerivationHandler", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
-    resetPromptMaterialization();
     harness = createPluginHarness({ dataDir: "/tmp/test-swot-handler" });
     harness.getMockShell().getProfileKindRegistry().finalize();
   });

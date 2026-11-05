@@ -86,6 +86,38 @@ function createSeededSystemServices(
   return services;
 }
 
+/** Every upload ref reads as the PDF `brief.pdf`. */
+const briefPdfUploads: MockServices["runtimeUploads"] = {
+  scoped: () => ({
+    readRecord: async (id: string) => ({
+      id,
+      ref: { kind: "upload", id },
+      filename: "brief.pdf",
+      mediaType: "application/pdf",
+      sizeBytes: 8,
+      createdAt: new Date(0).toISOString(),
+    }),
+    read: async (): Promise<never> => {
+      throw new Error("A PDF's bytes are not read for its title");
+    },
+    save: async (): Promise<never> => {
+      throw new Error("save is not reachable here");
+    },
+    remove: async (): Promise<never> => {
+      throw new Error("remove is not reachable here");
+    },
+    toResponseBody: (): never => {
+      throw new Error("toResponseBody is not reachable here");
+    },
+    prune: async (): Promise<never> => {
+      throw new Error("prune is not reachable here");
+    },
+    getUploadDir: (): never => {
+      throw new Error("getUploadDir is not reachable here");
+    },
+  }),
+};
+
 function extractFirstUrl(
   ...values: Array<string | undefined>
 ): string | undefined {
@@ -184,7 +216,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
         input.url ?? extractFirstUrl(input.content, input.prompt, input.title);
       if (url) {
         const jobId = await services.jobs.enqueue({
-          type: "link-capture",
+          type: "link:capture",
           data: {
             url,
             metadata: {
@@ -1057,6 +1089,7 @@ status: draft
     expect(capturedContext).toEqual({
       interfaceType: "matrix",
       actor: { kind: "user", userId: "alice" },
+      userPermissionLevel: "public",
       channelId: "!room:test",
       channelName: "#general",
     });
@@ -1065,6 +1098,7 @@ status: draft
   it("should pass accessible upload transform refs to registered create interceptors", async () => {
     let capturedInput: CreateInput | undefined;
     services = createSeededSystemServices({
+      runtimeUploads: briefPdfUploads,
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -1121,6 +1155,7 @@ status: draft
     });
     expect(capturedInput).toEqual({
       entityType: "note",
+      title: "brief",
       from: {
         kind: "upload",
         id: "upload-00000000-0000-4000-8000-000000000301",
@@ -1134,6 +1169,7 @@ status: draft
     async (entityType) => {
       let capturedInput: CreateInput | undefined;
       services = createSeededSystemServices({
+        runtimeUploads: briefPdfUploads,
         conversationService: {
           ...services.conversationService,
           getMessages: async () => [
@@ -1197,6 +1233,7 @@ status: draft
       });
       expect(capturedInput).toEqual({
         entityType,
+        title: "brief",
         from: {
           kind: "upload",
           id: "upload-00000000-0000-4000-8000-000000000304",
@@ -1219,6 +1256,7 @@ status: draft
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
     services = createSeededSystemServices({
+      runtimeUploads: briefPdfUploads,
       conversationService: {
         ...services.conversationService,
         getMessages: async () => [
@@ -1273,7 +1311,7 @@ status: draft
     expect(result).toEqual({
       success: false,
       error:
-        'Transform "extract-markdown" requires an upload ref and a type declaring markdownImport. Available: note. Omit transform for raw file promotion.',
+        'A document takes the text of a text upload; brief.pdf (application/pdf) is not text. Import it as a note, or keep the file itself with transform "preserve".',
     });
     expect(interceptorCalled).toBe(false);
   });
@@ -1312,6 +1350,7 @@ status: draft
   it("should use conversationId for upload-transform access when channelId is not the conversation id", async () => {
     let capturedInput: CreateInput | undefined;
     services = createSeededSystemServices({
+      runtimeUploads: briefPdfUploads,
       conversationService: {
         ...services.conversationService,
         getMessages: async (conversationId: string) =>
@@ -1637,6 +1676,70 @@ status: draft
     expect(stub?.metadata["status"]).toBe("generating");
   });
 
+  it("refuses to generate over an existing entity of an interceptor-backed type", async () => {
+    services.entityRegistry.registerCreateInterceptor(
+      "note",
+      async (input) => ({ kind: "continue", input }),
+    );
+    services.addEntities([
+      {
+        id: "community-launch-plan",
+        entityType: "note",
+        content: "# Community Launch Plan\n\nLaunch day: Monday.",
+        metadata: { title: "Community Launch Plan" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-plan",
+      },
+    ]);
+
+    const result = await execGenerateRaw({
+      entityType: "note",
+      title: "Community Launch Plan",
+      prompt: "Make the launch day Friday.",
+    });
+
+    expect(expectToolError(result).error).toContain("use system_update");
+    expect(services.getEntities().has("community-launch-plan-2")).toBe(false);
+  });
+
+  it("generates again over a placeholder whose generation failed", async () => {
+    services.addEntities([
+      {
+        id: "write-about-typescript",
+        entityType: "note",
+        content: "---\ntitle: write-about-typescript\nstatus: failed\n---\n",
+        metadata: { title: "write-about-typescript", status: "failed" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-failed",
+      },
+    ]);
+
+    const pending = await execGenerateRaw(
+      { entityType: "note", prompt: "Write about TypeScript." },
+      { userPermissionLevel: "admin" },
+    );
+    expect(pending).toMatchObject({
+      needsConfirmation: true,
+      preview: expect.stringContaining(
+        'Replaces: failed note "write-about-typescript"',
+      ),
+    });
+    const result = await execGenerate(
+      { entityType: "note", prompt: "Write about TypeScript." },
+      { userPermissionLevel: "admin" },
+    );
+
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
+    expect(data.entityId).toBe("write-about-typescript");
+    const stub = await services.entityService.getEntity({
+      entityType: "note",
+      id: "write-about-typescript",
+    });
+    expect(stub?.metadata["status"]).toBe("generating");
+  });
+
   it("should require a create source", async () => {
     const result = await exec({
       entityType: "note",
@@ -1693,7 +1796,7 @@ status: draft
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
   });
@@ -1711,7 +1814,7 @@ status: draft
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
     expect(jobData.metadata.interfaceId).toBe("test");
@@ -1769,7 +1872,7 @@ A saved research link.`;
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://en.wikipedia.org/wiki/The_Drama_(film)");
   });

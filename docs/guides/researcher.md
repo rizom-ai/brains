@@ -2,8 +2,10 @@
 title: Moving in as a researcher
 slug: researcher
 order: 20
+section: Use a brain
 persona: The researcher
 for: Years of notes, papers and saved links you want to connect and question. Most of it sits in apps that never talk to each other.
+summary: Notes, papers and saved links
 recipe: personal
 material:
   - from: Notes and fragments
@@ -28,7 +30,7 @@ material:
 
 Export your notes as Markdown. Obsidian notes already are; most notes apps have a Markdown export.
 
-Upload a file in chat and ask the brain to keep it as a note. It asks you to confirm before it saves anything, and it saves one file per request: when you attach several, ask for the next one after each save.
+Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get, from its first heading or else its file name, and asks you once to confirm before it saves them.
 
 Exact steps: [Interface setup](../interface-setup.md), [Content management](../content-management.md).
 

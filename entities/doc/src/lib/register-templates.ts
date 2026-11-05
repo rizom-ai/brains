@@ -1,9 +1,15 @@
-import type { JSX } from "react";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
 import {
+  createTemplate,
+  type Template,
+  contentVisibilitySchema,
+  paginationInfoSchema,
+} from "@brains/plugins";
+import type { JSX } from "react";
+import { z } from "@brains/utils/zod";
+import { docsChromeSchema } from "@brains/docs-chrome";
+import { docsHeroSchema } from "../config";
+import {
+  DocHomeHeaderTemplate,
   DocHomeHeroTemplate,
   DocHomeSectionsTemplate,
   DocListTemplate,
@@ -47,6 +53,8 @@ const docListSchema = z.object({
   docs: z.array(docWithDataSchema),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().nullable().default(null),
+  hero: docsHeroSchema.nullable().default(null),
+  chrome: docsChromeSchema.nullable().default(null),
 });
 
 const docDetailSchema = z.object({
@@ -54,6 +62,7 @@ const docDetailSchema = z.object({
   docs: z.array(docWithDataSchema),
   prevDoc: docWithDataSchema.nullable(),
   nextDoc: docWithDataSchema.nullable(),
+  chrome: docsChromeSchema.nullable().default(null),
 });
 
 function docListTemplate(
@@ -82,6 +91,11 @@ export function getTemplates(): Record<string, Template> {
       "doc-home-hero",
       "Docs home, first part: the header and the hero",
       DocHomeHeroTemplate,
+    ),
+    "doc-home-header": docListTemplate(
+      "doc-home-header",
+      "Docs home, first part when the site draws its own opening: the header alone",
+      DocHomeHeaderTemplate,
     ),
     "doc-home-sections": docListTemplate(
       "doc-home-sections",

@@ -7,7 +7,7 @@ import {
   isAllowedChannel,
   isBotCreatedDiscordThread,
   shouldHandleChatAction,
-  shouldRouteDiscordMessage,
+  shouldRouteChatMessage,
   type RoutedMessage,
   type RoutedThread,
 } from "../src/discord-routing";
@@ -134,43 +134,43 @@ describe("isAllowedChannel", () => {
   });
 });
 
-describe("shouldRouteDiscordMessage", () => {
+describe("shouldRouteChatMessage", () => {
   const config = { allowedChannels: [], allowDMs: true };
 
   it("routes ordinary allowed messages", () => {
-    expect(shouldRouteDiscordMessage(thread(), message(), config)).toBe(true);
+    expect(shouldRouteChatMessage(thread(), message(), config)).toBe(true);
   });
 
   it("blocks DMs when disallowed, own messages, and unmentioned bots", () => {
     expect(
-      shouldRouteDiscordMessage(thread({ isDM: true }), message(), {
+      shouldRouteChatMessage(thread({ isDM: true }), message(), {
         ...config,
         allowDMs: false,
       }),
     ).toBe(false);
     expect(
-      shouldRouteDiscordMessage(
+      shouldRouteChatMessage(
         thread(),
         message({ author: { isMe: true, isBot: true } }),
         config,
       ),
     ).toBe(false);
     expect(
-      shouldRouteDiscordMessage(
+      shouldRouteChatMessage(
         thread(),
         message({ author: { isMe: false, isBot: true } }),
         config,
       ),
     ).toBe(false);
     expect(
-      shouldRouteDiscordMessage(
+      shouldRouteChatMessage(
         thread(),
         message({ author: { isMe: false, isBot: true }, isMention: true }),
         config,
       ),
     ).toBe(true);
     expect(
-      shouldRouteDiscordMessage(thread(), message(), {
+      shouldRouteChatMessage(thread(), message(), {
         ...config,
         allowedChannels: ["elsewhere"],
       }),

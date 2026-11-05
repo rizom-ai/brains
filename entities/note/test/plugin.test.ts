@@ -150,7 +150,7 @@ describe("NotePlugin", () => {
         visibilityScope: "shared",
       });
       expect(entity?.metadata).toMatchObject({
-        title: "research-notes",
+        title: "Research Notes",
         status: "generating",
       });
       expect(entity?.visibility).toBe("shared");
@@ -163,10 +163,89 @@ describe("NotePlugin", () => {
         visibilityScope: "shared",
       });
       expect(entity?.content).toBe(
-        `---\ntitle: research-notes\n---\n${rawMarkdown}\n`,
+        `---\ntitle: Research Notes\n---\n${rawMarkdown}\n`,
       );
-      expect(entity?.metadata).toEqual({ title: "research-notes" });
+      expect(entity?.metadata).toEqual({ title: "Research Notes" });
       expect(entity?.visibility).toBe("shared");
+    });
+
+    it("titles an import by a title the caller gives over the upload's heading", async () => {
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000708",
+      });
+      const upload = await uploadStore.save({
+        filename: "2026-10-meeting.md",
+        mediaType: "text/markdown",
+        content: Buffer.from("# Quarterly Planning Sync\n\nBody", "utf8"),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
+
+      const result = await interceptor(
+        {
+          entityType: "note",
+          title: "Planning",
+          from: { kind: "upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        webChatOperatorContext,
+      );
+
+      expect(result).toMatchObject({
+        kind: "handled",
+        result: { success: true, data: { entityId: "planning" } },
+      });
+      await runQueuedUploadImport();
+      const entity = await harness.getEntityService().getEntity({
+        entityType: "note",
+        id: "planning",
+      });
+      expect(entity?.metadata).toEqual({ title: "Planning" });
+    });
+
+    it("reads an uploaded file's own frontmatter into the note's one frontmatter block", async () => {
+      const uploadStore = harness.getEntityContext("test").uploads.scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000709",
+      });
+      const upload = await uploadStore.save({
+        filename: "draft.md",
+        mediaType: "text/markdown",
+        content: Buffer.from(
+          "---\nauthor: Jan\n---\n\n# The Draft\n\nBody text.",
+          "utf8",
+        ),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("note create interceptor not found");
+
+      await interceptor(
+        {
+          entityType: "note",
+          from: { kind: "upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        webChatOperatorContext,
+      );
+      await runQueuedUploadImport();
+
+      const entity = await harness.getEntityService().getEntity({
+        entityType: "note",
+        id: "the-draft",
+      });
+      expect(entity?.content).toBe(
+        "---\ntitle: The Draft\n---\n# The Draft\n\nBody text.\n",
+      );
+      expect(entity?.metadata).toEqual({ title: "The Draft" });
     });
 
     it("does not overwrite a note edited while its upload import is queued", async () => {

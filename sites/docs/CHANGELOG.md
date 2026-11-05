@@ -1,5 +1,21 @@
 # @rizom/site-docs
 
+## 0.2.0-alpha.247
+
+### Patch Changes
+
+- [#808](https://github.com/rizom-ai/brains/pull/808) [`d5e738a`](https://github.com/rizom-ai/brains/commit/d5e738a18d142cc9e58be4f903732ecb6bc6d909) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every docs page has a header and footer again, drawn by the docs site's own layout rather than per-brain docs chrome config: the site's name linked home, its Docs and Guides sections with the current one marked, its GitHub link and call to action, and a light and dark switch, then the secondary navigation and copyright. The name, call to action and links come from the brain's site info and anchor profile, so they are edited as content. Guides join the navigation.
+
+## 0.2.0-alpha.246
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`859814d`](https://github.com/rizom-ai/brains/commit/859814d76f26af3d841a2347b500e4b32638aaec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The docs home opens on what a brain is: what you bring, the files the brain keeps and where they show up, drawn as one brain whose routes light up as you point at them. Below it, three doors — using, running and extending a brain — each with a first step, over that docs section's guides and reference. The copy is the site's own content (`docs-home:hero` and `docs-home:doors`), seeded once and edited in Studio; `/docs` keeps the full index.
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: a route places a schema-first section by its runtime name, `namespace:name` (`home:hero`), the same form every template has. The dotted `home.hero` was rewritten by `defineSite()` only, so a site exported without it rendered nothing for those sections; it is now rejected with the colon spelling to use. `defineSite()` still makes `content.home.hero` the fallback of the section placed as `home:hero`, and validation messages name sections the same way. The bundled sites use the colon form.
+- Updated dependencies [[`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70)]:
+  - @rizom/site@0.2.0-alpha.241
+
 ## 0.2.0-alpha.245
 
 ### Patch Changes

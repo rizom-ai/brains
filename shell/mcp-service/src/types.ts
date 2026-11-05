@@ -140,6 +140,7 @@ export const toolConfirmationSchema: z.ZodObject<
     summary: z.ZodString;
     completionSummary: z.ZodOptional<z.ZodString>;
     preview: z.ZodOptional<z.ZodString>;
+    text: z.ZodOptional<z.ZodString>;
     args: z.ZodUnknown;
   },
   z.core.$strict
@@ -149,6 +150,8 @@ export const toolConfirmationSchema: z.ZodObject<
   summary: z.string(),
   completionSummary: z.string().optional(),
   preview: z.string().optional(),
+  /** The reply a chat turn wrote alongside the request it awaits. */
+  text: z.string().optional(),
   args: z.unknown(),
 });
 

@@ -1,10 +1,10 @@
+import { decodeEntityIdPath } from "@brains/plugins";
 import type {
   BaseEntity,
   ContentVisibility,
   EntityIdPath,
   ServicePluginContext,
 } from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
 
 interface Folder {
   path: EntityIdPath;

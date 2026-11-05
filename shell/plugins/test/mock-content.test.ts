@@ -151,8 +151,5 @@ describe("the data source registry double", () => {
 
     dataSourceRegistry.unregister("a");
     expect(dataSourceRegistry.getIds()).toEqual(["b"]);
-
-    dataSourceRegistry.clear();
-    expect(dataSourceRegistry.list()).toEqual([]);
   });
 });

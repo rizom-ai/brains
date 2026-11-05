@@ -1,5 +1,177 @@
 # @brains/doc
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- [#818](https://github.com/rizom-ai/brains/pull/818) [`a100799`](https://github.com/rizom-ai/brains/commit/a1007993f73508ec51af543d5c2e9ddf2d53221f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Creating a doc no longer offers a trusted writer the sections of restricted docs when it asks where the page goes. Create checks and interceptors now see the caller's permission level; the page still takes the next place after every doc.
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.630
+  - @brains/ui-library@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/plugins@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.629
+  - @brains/ui-library@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.628
+  - @brains/ui-library@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/ui-library@0.2.0-alpha.627
+  - @brains/docs-chrome@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`c62a570`](https://github.com/rizom-ai/brains/commit/c62a5703abee44f3878ff80cbc2b01799d426214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The docs plugin adds a `docs:doc-home-header` template: the docs home's first part with the page's head and the configured header but no hero, for a site that draws its own opening below the header and continues the page with later parts.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/docs-chrome@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.625
+  - @brains/ui-library@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.624
+  - @brains/ui-library@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.623
+  - @brains/ui-library@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/ui-library@0.2.0-alpha.622
+  - @brains/docs-chrome@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/ui-library@0.2.0-alpha.621
+  - @brains/docs-chrome@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- [#796](https://github.com/rizom-ai/brains/pull/796) [`90483cf`](https://github.com/rizom-ai/brains/commit/90483cf788c5b1951879b77ef53db61bf1928c75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Docs and guide pages no longer carry the Brains documentation site's branding on every brain. The docs index opened on "Handbook · Brains docs" and "Build, run, and publish brains.", its head described every brain's docs as "Brains documentation", and every docs and guide page drew a fixed "brains docs" header with Guides, Roadmap, GitHub and "Get Brains" links and a rizom.ai footer — over a site's own header, on sites whose layout brings one. Now the docs index opens on plain "Documentation" and the pages draw no header or footer brand of their own.
+
+  A brain whose docs pages are the whole site sets them in its plugin config: `plugins.docs.hero` (`label`, `title`, `accent`, `lead`), and `plugins.docs.chrome` and `plugins.guides.chrome` (`brand` with an optional `wordmark`, header `links` with an optional `area` marked current on that area's pages, a `cta`, and a `footer` with its own `brand` and `links`). The Brains documentation site keeps its look by setting these to its current copy.
+
+- Updated dependencies [[`90483cf`](https://github.com/rizom-ai/brains/commit/90483cf788c5b1951879b77ef53db61bf1928c75)]:
+  - @brains/docs-chrome@0.2.0-alpha.620
+  - @brains/ui-library@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.619
+  - @brains/ui-library@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.618
+  - @brains/ui-library@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.617
+  - @brains/ui-library@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/ui-library@0.2.0-alpha.616
+  - @brains/docs-chrome@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

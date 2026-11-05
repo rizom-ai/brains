@@ -1,5 +1,186 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.630
+  - @brains/content-formatters@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/db@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/job-queue@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.629
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/db@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/job-queue@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.628
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/db@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/job-queue@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies [[`bfbef10`](https://github.com/rizom-ai/brains/commit/bfbef100edddb555772581f62f748cca16c309a2)]:
+  - @brains/job-queue@0.2.0-alpha.627
+  - @brains/assets@0.2.0-alpha.627
+  - @brains/content-formatters@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/db@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.626
+  - @brains/content-formatters@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/db@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/job-queue@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.625
+  - @brains/content-formatters@0.2.0-alpha.625
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/db@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/job-queue@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.624
+  - @brains/content-formatters@0.2.0-alpha.624
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/db@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/job-queue@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.623
+  - @brains/content-formatters@0.2.0-alpha.623
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/db@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/job-queue@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.622
+  - @brains/content-formatters@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/db@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/job-queue@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies [[`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534)]:
+  - @brains/job-queue@0.2.0-alpha.621
+  - @brains/assets@0.2.0-alpha.621
+  - @brains/content-formatters@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/db@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.620
+  - @brains/content-formatters@0.2.0-alpha.620
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/db@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/job-queue@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.619
+  - @brains/content-formatters@0.2.0-alpha.619
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/db@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/job-queue@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.618
+  - @brains/content-formatters@0.2.0-alpha.618
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/db@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/job-queue@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.617
+  - @brains/content-formatters@0.2.0-alpha.617
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/db@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/job-queue@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.616
+  - @brains/assets@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/db@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes

@@ -4,6 +4,7 @@ import { expectDefined } from "@brains/utils/expect-defined";
 import { deferred } from "@brains/utils/deferred";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { AgentService } from "../src/agent-service";
+import { AIProviderDeclinedError } from "../src/errors";
 import type { AgentResponse } from "../src";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -2301,6 +2302,27 @@ describe("AgentService", () => {
       });
     });
 
+    it("tells the user plainly when the AI provider declined the turn", async () => {
+      mockGenerate.mockImplementation(async () => {
+        throw new AIProviderDeclinedError(new Error("flagged"));
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat("hello", "test-conversation");
+
+      const declined =
+        "The AI provider declined this request. Try rephrasing your message.";
+      expect(response.text).toBe(declined);
+      expect(response.error).toBe(declined);
+    });
+
     it("drains queued messages after a turn errors", async () => {
       let releaseFirst!: () => void;
       const firstTurnGate = new Promise<void>((resolve) => {
@@ -2426,7 +2448,9 @@ describe("AgentService", () => {
         "test-conversation",
         adminConfirmationContext,
       );
-      expect(pending.text).toBe("Confirmation required.");
+      expect(pending.text).toBe(
+        "Please confirm deleting the note.\n\nConfirmation required.",
+      );
 
       mockAgentGenerateResult = {
         text: "fresh answer",
@@ -2931,8 +2955,10 @@ describe("AgentService", () => {
       expect(deleteHandler).toHaveBeenCalledTimes(1);
     });
 
-    it("does not return or persist misleading model completion text before confirmation", async () => {
-      setupConfirmationResponse("Deleted.");
+    // The agent's text stays in the reply, with the request below it, so an
+    // answer written alongside a proposed save is not lost.
+    it("keeps the agent's text and asks for confirmation below it", async () => {
+      setupConfirmationResponse("Here is the cleanup plan.");
 
       const service = AgentService.createFresh(
         mockMCPService,
@@ -2968,20 +2994,15 @@ describe("AgentService", () => {
           state: "approval-requested",
         },
       ]);
-      expect(response.text).toBe("Confirmation required.");
+      expect(response.text).toBe(
+        "Here is the cleanup plan.\n\nConfirmation required.",
+      );
       expect(response.toolResults).toEqual([]);
-      expect(response.text).not.toBe("Deleted.");
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
           role: "assistant",
-          content: "Confirmation required.",
-        }),
-      );
-      expect(mockConversationService.addMessage).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          role: "assistant",
-          content: "Deleted.",
+          content: "Here is the cleanup plan.\n\nConfirmation required.",
         }),
       );
     });
@@ -3278,24 +3299,30 @@ describe("AgentService", () => {
             toolCalls: [
               {
                 toolCallId: "call-generate-post",
-                toolName: "system_create",
+                toolName: "system_generate",
                 input: {
-                  entityType: "post",
-                  prompt: "Generate a post outline",
+                  operation: {
+                    kind: "prompt",
+                    entityType: "post",
+                    prompt: "Generate a post outline",
+                  },
                 },
               },
             ],
             toolResults: [
               {
                 toolCallId: "call-generate-post",
-                toolName: "system_create",
+                toolName: "system_generate",
                 output: {
                   needsConfirmation: true,
-                  toolName: "system_create",
+                  toolName: "system_generate",
                   summary: "Generate post outline?",
                   args: {
-                    entityType: "post",
-                    prompt: "Generate a post outline",
+                    operation: {
+                      kind: "prompt",
+                      entityType: "post",
+                      prompt: "Generate a post outline",
+                    },
                     confirmed: true,
                     confirmationToken: "token-1",
                   },
@@ -3316,8 +3343,8 @@ describe("AgentService", () => {
         },
       }));
       const createTool: Tool = {
-        name: "system_create",
-        description: "Create entity",
+        name: "system_generate",
+        description: "Generate entity",
         inputSchema: { entityType: z.string() },
         visibility: "trusted",
         handler: createHandler,
@@ -3343,8 +3370,86 @@ describe("AgentService", () => {
       );
 
       expect(response.text).toContain("Completed: Generate post outline");
-      expect(response.text).toContain("generating");
+      expect(response.text).toContain("The draft is generating now.");
       expect(response.text).toContain("ready");
+    });
+
+    it("says a confirmed save is saved, not that a draft is generating", async () => {
+      mockAgentGenerateResult = {
+        text: "Please confirm the note.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "system_create",
+                input: {
+                  entityType: "link",
+                  source: { kind: "url", url: "https://example.com" },
+                },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "system_create",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_create",
+                  summary: "Create link?",
+                  completionSummary: "Saved link.",
+                  args: {
+                    entityType: "link",
+                    source: { kind: "url", url: "https://example.com" },
+                    confirmed: true,
+                    confirmationToken: "token-1",
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+
+      const createHandler = mock(async () => ({
+        success: true as const,
+        data: {
+          entityId: "example-com",
+          status: "generating",
+          jobId: "job-1",
+        },
+      }));
+      const createTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: { entityType: z.string() },
+        visibility: "trusted",
+        handler: createHandler,
+      };
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
+        { pluginId: "system", tool: createTool },
+      ]);
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("save https://example.com", "test-conversation");
+      const response = await service.confirmPendingAction(
+        "test-conversation",
+        true,
+        "approval:call-save-note",
+        { userPermissionLevel: "admin", interfaceType: "evaluation" },
+      );
+
+      expect(response.text).toBe(
+        "Completed: Saved link.\n\nIt is saved; its content is still being processed and will be ready shortly.",
+      );
     });
 
     it("removes confirmation punctuation from completed action text", async () => {
@@ -3556,6 +3661,138 @@ describe("AgentService", () => {
           content: response.text,
         }),
       );
+    });
+
+    const confirmSaveNote = async (
+      followUp: (params: {
+        abortSignal?: AbortSignal;
+      }) => Promise<BrainAgentResult>,
+      signal?: AbortSignal,
+    ): Promise<{
+      response: Promise<AgentResponse>;
+      saveHandler: ReturnType<typeof mock>;
+    }> => {
+      mockGenerate.mockImplementationOnce(async () => ({
+        text: "Confirmation required.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "save_note",
+                input: { title: "Roadmap" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-save-note",
+                toolName: "save_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "save_note",
+                  summary: "Save note 'Roadmap'?",
+                  completionSummary: 'Saved note "Roadmap".',
+                  args: { title: "Roadmap" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      }));
+      mockGenerate.mockImplementationOnce(followUp);
+
+      const saveHandler = mock(async () => ({ success: true as const }));
+      const saveTool: Tool = {
+        name: "save_note",
+        description: "Save note",
+        inputSchema: { title: z.string() },
+        visibility: "trusted",
+        handler: saveHandler,
+      };
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: saveTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          agentContextProvider: mock(async () => [
+            {
+              id: "active-playbook",
+              source: "playbooks",
+              title: "Active playbook",
+              content: "An active playbook is underway.",
+            },
+          ]),
+        },
+      );
+
+      await service.chat("save my note", "test-conversation");
+      return {
+        response: service.confirmPendingAction(
+          "test-conversation",
+          true,
+          "approval:call-save-note",
+          { userPermissionLevel: "admin", interfaceType: "evaluation" },
+          signal,
+        ),
+        saveHandler,
+      };
+    };
+
+    for (const [label, followUpError] of [
+      ["fails", new Error("Provider unavailable")],
+      ["is declined by the provider", new AIProviderDeclinedError("refusal")],
+    ] as const) {
+      it(`reports the confirmed action's success when its follow-up reply ${label}`, async () => {
+        const { response: pending, saveHandler } = await confirmSaveNote(
+          async () => {
+            throw followUpError;
+          },
+        );
+        const response = await pending;
+
+        expect(mockGenerate).toHaveBeenCalledTimes(2);
+        expect(saveHandler).toHaveBeenCalledTimes(1);
+        expect(response.text).toBe('Completed: Saved note "Roadmap".');
+        expect(response.error).toBeUndefined();
+        expect(response.cards).toEqual([
+          expect.objectContaining({
+            kind: "tool-approval",
+            id: "approval:call-save-note",
+            state: "output-available",
+          }),
+        ]);
+        expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            role: "assistant",
+            content: 'Completed: Saved note "Roadmap".',
+          }),
+        );
+      });
+    }
+
+    it("still stops a confirmed action's turn stopped during its follow-up reply", async () => {
+      const controller = new AbortController();
+      const stopReason = new Error("caller disconnected");
+      const { response } = await confirmSaveNote(async (params) => {
+        controller.abort(stopReason);
+        throw params.abortSignal?.reason;
+      }, controller.signal);
+
+      let receivedError: unknown;
+      try {
+        await response;
+      } catch (error) {
+        receivedError = error;
+      }
+      expect(receivedError).toBe(stopReason);
     });
 
     it("surfaces and saves the confirmed action failure result", async () => {

@@ -1,19 +1,17 @@
-import { describe, expect, spyOn, test } from "bun:test";
 import {
+  decodeEntityIdPath,
   BaseEntityAdapter,
   baseEntitySchema,
   createServicePluginContext,
   type BaseEntity,
   type GetEntityRequest,
   type WebRouteDefinition,
-} from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
-import { createMockShell } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
-import {
   EntityValidationError,
   EntityWriteConflictError,
 } from "@brains/plugins";
+import { describe, expect, spyOn, test } from "bun:test";
+import { createMockShell } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 

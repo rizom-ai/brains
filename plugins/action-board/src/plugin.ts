@@ -5,7 +5,6 @@ import {
   type ServicePluginContext,
   type Tool,
 } from "@brains/plugins";
-import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import {
@@ -76,8 +75,7 @@ export class ActionBoardPlugin extends ServicePlugin<
     return [
       createActionItemCreateTool(context, {
         visibility: this.config.cardVisibility,
-        members: async () =>
-          assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+        members: () => context.auth.listAssignableMembers(),
       }),
       createActionItemUpdateTool(context),
     ];
@@ -90,8 +88,7 @@ export class ActionBoardPlugin extends ServicePlugin<
     this.boardUrl = await registerBoardWorkspace(context, {
       visibility: this.config.cardVisibility,
       projectGrouping: this.config.projectGrouping,
-      members: async () =>
-        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+      members: () => context.auth.listAssignableMembers(),
     });
   }
 

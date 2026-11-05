@@ -1,13 +1,8 @@
+import {
+  simpleTextResponseSchema,
+  type SimpleTextResponse,
+} from "@brains/contracts";
 import { ResponseFormatter } from "./base";
-import { z } from "@brains/utils/zod";
-
-interface SimpleTextResponse {
-  message: string;
-}
-
-const simpleTextResponseSchema = z.object({
-  message: z.string(),
-});
 
 export class SimpleTextResponseFormatter extends ResponseFormatter<SimpleTextResponse> {
   format(data: SimpleTextResponse): string {

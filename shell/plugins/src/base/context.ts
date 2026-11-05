@@ -15,6 +15,8 @@ import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import type { AccountSettingsRegistry } from "../operator/account-settings-registry";
+import type { IAuthNamespace } from "../contracts/auth";
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
   createAppInfoGetter,
@@ -191,6 +193,11 @@ export interface BasePluginContext extends PublicBasePluginContext {
   /** Internal app-scoped per-account settings catalog and runtime access. */
   readonly accountSettings: AccountSettingsRegistry;
 
+  /** The brain's auth backend: people, sessions, audit log and A2A trust. */
+  readonly auth: IAuthNamespace;
+  /** AT Protocol projections of entity types, published by the atproto plugin. */
+  readonly atprotoProjections: AtprotoProjectionRegistry;
+
   /** Disposable, secret-free operational state namespace. */
   readonly runtimeState: IRuntimeStateNamespace;
 
@@ -321,6 +328,8 @@ export function createBasePluginContext(
     uploads,
 
     accountSettings,
+    auth: shell.getAuthRegistry(),
+    atprotoProjections: shell.getAtprotoProjectionRegistry(),
     runtimeState,
     recurringChecks: shell.getRecurringChecks(pluginId),
 

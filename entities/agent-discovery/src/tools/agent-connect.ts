@@ -1,12 +1,12 @@
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-} from "@brains/plugins";
 import {
   ConfirmationArgsStore,
   type Tool,
   type ToolResponse,
-} from "@brains/mcp-service";
+} from "@brains/plugins";
+import type {
+  EntityPluginContext,
+  ServicePluginContext,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";

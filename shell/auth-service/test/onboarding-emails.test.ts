@@ -6,6 +6,10 @@ import {
 
 const setupUrl = "https://team.brain.test/setup?token=setup_abc";
 const anchorSetupUrl = "https://yeehaa.brain.test/setup?token=setup_xyz";
+// Both are correct en-GB: Bun's bundled ICU writes "Friday, 15 January",
+// the system ICU it uses on macOS writes "Friday 15 January".
+const expiry = String.raw`Friday,? 15 January 2027 at 08:00 UTC`;
+
 const links = {
   chat: "/chat",
   studio: "/studio",
@@ -93,10 +97,12 @@ describe("renderOnboardingEmail", () => {
     it("prints the expiry as a readable UTC date", () => {
       const { text, html } = renderOnboardingEmail(invitation());
 
-      expect(text).toContain(
-        "This link works once and expires on Friday, 15 January 2027 at 08:00 UTC. Don’t forward it — it’s tied to you.",
+      expect(text).toMatch(
+        new RegExp(
+          `This link works once and expires on ${expiry}\\. Don’t forward it — it’s tied to you\\.`,
+        ),
       );
-      expect(html).toContain("Friday, 15 January 2027 at 08:00 UTC");
+      expect(html).toMatch(new RegExp(expiry));
       expect(text).not.toContain("2027-01-15T");
     });
 
@@ -154,8 +160,10 @@ describe("renderOnboardingEmail", () => {
       expect(text).toContain(
         "Your brain at yeehaa.brain.test is set up and waiting for you. Set up your passkey to sign in.",
       );
-      expect(text).toContain(
-        "This link works once and expires on Friday, 15 January 2027 at 08:00 UTC. Don’t forward it.",
+      expect(text).toMatch(
+        new RegExp(
+          `This link works once and expires on ${expiry}\\. Don’t forward it\\.`,
+        ),
       );
       expect(text).not.toContain("What it’s for");
     });

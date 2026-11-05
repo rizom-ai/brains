@@ -170,6 +170,30 @@ describe("sync-docs-content guides", () => {
     expect(existsSync(join(root, "content/guide/team.md"))).toBe(false);
   });
 
+  it("writes a doc's manifest description instead of its first paragraph", () => {
+    write(
+      "docs/docs-manifest.yaml",
+      manifest.replace(
+        "    order: 50\n",
+        "    order: 50\n    description: Create, edit, sync and publish markdown content\n",
+      ),
+    );
+
+    expect(run().exitCode).toBe(0);
+
+    expect(read("content/doc/content-management.md")).toContain(
+      '\ndescription: "Create, edit, sync and publish markdown content"\n',
+    );
+  });
+
+  it("describes a doc by its first paragraph when the manifest has no description", () => {
+    expect(run().exitCode).toBe(0);
+
+    expect(read("content/doc/content-management.md")).toContain(
+      '\ndescription: "Writers start from the writer guide."\n',
+    );
+  });
+
   describe("--subset", () => {
     beforeEach(() => {
       expect(run().exitCode).toBe(0);

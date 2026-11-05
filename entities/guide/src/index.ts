@@ -4,8 +4,21 @@ export {
   GuideDataSource,
   parseGuideData,
 } from "./datasources/guide-datasource";
+export {
+  GuideSectionsDataSource,
+  guideSectionSchema,
+  guideSectionsSchema,
+  sectionDocSchema,
+  type GuideSection,
+  type GuideSectionsData,
+  type SectionDoc,
+} from "./datasources/guide-sections-datasource";
 export { GuideListTemplate, type GuideListProps } from "./templates/guide-list";
 export { GuideBandTemplate } from "./templates/guide-band";
+export {
+  GuideSectionsTemplate,
+  type GuideSectionsProps,
+} from "./templates/guide-sections";
 export { GuideCard, GuideCards } from "./templates/guide-card";
 export {
   GuideDetailTemplate,
@@ -41,3 +54,8 @@ export {
   materialFragments,
   type MaterialFragment,
 } from "./lib/guide-page-content";
+export {
+  guidesConfigSchema,
+  type GuidesConfig,
+  type GuidesConfigInput,
+} from "./config";

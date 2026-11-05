@@ -1,3 +1,4 @@
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type { IAgentService, IAIService } from "@brains/ai-service";
 import type { ContentService } from "@brains/content-service";
 import type { IConversationService } from "@brains/conversation-service";
@@ -29,6 +30,7 @@ import type {
 import type {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -100,6 +102,8 @@ export interface ShellServices {
   inboxFollowUpRegistry: InboxFollowUpRegistry;
   operationalHealthRegistry: OperationalHealthRegistry;
   accountSettingsRegistry: AccountSettingsRegistry;
+  authRegistry: AuthRegistry;
+  atprotoProjectionRegistry: AtprotoProjectionRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;

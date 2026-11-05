@@ -36,7 +36,6 @@ import {
   type ConsoleJumpEntityHit,
 } from "./console-jump";
 import type { DashboardAssetUrls } from "./render/types";
-import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
 const dashboardConfigSchema: z.ZodObject<{
@@ -236,8 +235,7 @@ export class DashboardPlugin extends ServicePlugin<
           }
 
           const ctx = this.ctx;
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
+          const principal = await ctx.auth.get()?.resolveSession(request);
           const requestUrl = new URL(request.url);
           const registeredRoutes = ctx.webRoutes.getRoutes();
           const studioPath = registeredRoutes
@@ -368,8 +366,7 @@ export class DashboardPlugin extends ServicePlugin<
         method: "GET",
         public: true,
         handler: async (request: Request): Promise<Response> => {
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
+          const principal = await this.ctx?.auth.get()?.resolveSession(request);
           if (!principal) {
             return Response.json(
               { error: "Authentication required" },

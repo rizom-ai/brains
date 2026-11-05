@@ -23,7 +23,7 @@ import {
   adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
@@ -288,7 +288,7 @@ function mutationContext(caller: OperatorCaller | null): {
 export function createPeerTabSource(
   context: ServicePluginContext,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
+  const authService = requireAuthBackend(context);
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peerTabProvider,

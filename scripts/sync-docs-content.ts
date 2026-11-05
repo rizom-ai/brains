@@ -208,7 +208,7 @@ function buildDoc(
     entry.source,
     sourceToHref,
   );
-  const description = extractDescription(sourceMarkdown);
+  const description = entry.description ?? extractDescription(sourceMarkdown);
 
   const frontmatter = [
     "---",

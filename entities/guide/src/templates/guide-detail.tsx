@@ -1,5 +1,5 @@
 import type { CSSProperties, JSX } from "react";
-import { DocsPageShell } from "@brains/docs-chrome";
+import { DocsPageShell, type DocsChrome } from "@brains/docs-chrome";
 import { markdownToHtml } from "@brains/ui-library";
 import type { GuideWithData } from "../schemas/guide";
 import type { GuideMaterial, GuideRecipe } from "../schemas/guide-frontmatter";
@@ -20,6 +20,7 @@ import guidePageCss from "./guide-page.css" with { type: "text" };
 export interface GuideDetailProps {
   guide: GuideWithData;
   otherGuides: GuideWithData[];
+  chrome?: DocsChrome | null | undefined;
 }
 
 const SELF_HOSTING_SLUG = "self-hosting";
@@ -358,6 +359,7 @@ const Closing = ({
 export const GuideDetailTemplate = ({
   guide,
   otherGuides,
+  chrome,
 }: GuideDetailProps): JSX.Element => {
   const all = [guide, ...otherGuides];
   const stages = parseGuideStages(guide.body);
@@ -368,6 +370,7 @@ export const GuideDetailTemplate = ({
     <DocsPageShell
       title={guide.metadata.title}
       description={guide.metadata.for}
+      chrome={chrome}
       current="guides"
       detail
       footer

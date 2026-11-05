@@ -181,12 +181,10 @@ describe("Shell service ownership", () => {
     // outlives shutdown and leaks between tests, so the ban is repo-wide
     // rather than a grep over three known files.
     //
-    // Logger, AtprotoProjectionRegistry, and EvalHandlerRegistry are
-    // deliberate ambient registries with real production callers; they are
-    // not shell-owned services.
+    // Logger and EvalHandlerRegistry are deliberate ambient registries with
+    // real production callers; they are not shell-owned services.
     const allowed = new Set([
       "shared/utils/src/logger.ts",
-      "shared/atproto-contracts/src/projection-registry.ts",
       "shell/ai-evaluation/src/eval-handler-registry.ts",
     ]);
     const declaring = (

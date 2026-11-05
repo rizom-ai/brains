@@ -1,4 +1,4 @@
-import type { AuthAuditEvent } from "@brains/auth-service";
+import type { AuthAuditEvent } from "@brains/contracts";
 import {
   createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
@@ -11,7 +11,7 @@ import {
   adminUserOptions,
   adminWorkspaceSource,
   formatWorkspaceDate,
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
@@ -260,7 +260,7 @@ export function createAuditTabSource(
     bind: (bindingContext) =>
       studioAuditWorkspace.bind(bindingContext, {
         load: async ({ query }) => {
-          const authService = requireAuthService();
+          const authService = requireAuthBackend(context);
           const normalized = query.get(auditWorkspaceQuerySchema);
           const [audit, users] = await Promise.all([
             authService.queryAuditEvents({

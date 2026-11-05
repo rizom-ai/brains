@@ -1,3 +1,4 @@
+import { internalFullScope, EntityPlugin } from "@brains/plugins";
 import type {
   Plugin,
   EntityPluginContext,
@@ -8,8 +9,6 @@ import type {
   CreateExecutionContext,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
@@ -21,6 +20,7 @@ import { UploadMarkdownImportJobHandler } from "./handlers/uploadMarkdownImportJ
 import {
   getMarkdownImportIdentity,
   isSupportedMarkdownUploadMediaType,
+  readTextUploadMarkdown,
 } from "./lib/upload-markdown-import";
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
@@ -53,7 +53,6 @@ export class NotePlugin extends EntityPlugin<
   readonly entityType: typeof noteAdapter.entityType = noteAdapter.entityType;
   readonly schema: typeof noteSchema = noteSchema;
   readonly adapter: NoteAdapter = noteAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(config: NoteConfigInput = {}) {
     super("note", packageJson, config, noteConfigSchema);
@@ -108,9 +107,17 @@ export class NotePlugin extends EntityPlugin<
         };
       }
 
+      // Without a given title, a text upload is named by its first heading.
+      const markdown =
+        input.title === undefined
+          ? readTextUploadMarkdown(
+              await context.uploads.scoped(webChatUploadsScope).read(uploadId),
+            )
+          : undefined;
       const identity = getMarkdownImportIdentity({
         filename: uploadRecord.filename,
-        ...(input.title !== undefined ? { title: input.title } : {}),
+        title: input.title,
+        markdown,
       });
       // Create the stub before enqueueing so the returned entityId is the
       // real (possibly deduplicated) id and exists while "generating".
@@ -136,7 +143,9 @@ export class NotePlugin extends EntityPlugin<
       const stubEntity = await context.entityService.getEntity({
         entityType: "note",
         id: created.entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "read back just-created import stub",
+        ),
       });
       if (!stubEntity) {
         throw new Error("Created note import stub could not be read");
@@ -217,7 +226,7 @@ export class NotePlugin extends EntityPlugin<
         const existing = await context.entityService.getEntity({
           entityType: "note",
           id,
-          visibilityScope: "restricted",
+          visibilityScope: internalFullScope("note capture idempotency check"),
         });
         if (existing)
           return { success: true, data: { noteId: id, created: false } };
@@ -234,19 +243,11 @@ export class NotePlugin extends EntityPlugin<
       },
     );
 
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createNoteAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createNoteAtprotoProjection());
   }
 
   protected override async getInstructions(): Promise<string> {
     return "Note entities are editable markdown notes. Use them for durable text captures, summaries, and imported markdown; raw files remain document or image entities instead of notes.";
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 }
 

@@ -1,5 +1,172 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/db@0.2.0-alpha.630
+  - @brains/operation-context@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/mcp-service@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/db@0.2.0-alpha.629
+  - @brains/operation-context@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/mcp-service@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/db@0.2.0-alpha.628
+  - @brains/operation-context@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/mcp-service@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- [#805](https://github.com/rizom-ai/brains/pull/805) [`bfbef10`](https://github.com/rizom-ai/brains/commit/bfbef100edddb555772581f62f748cca16c309a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redeploying the same brain version no longer cuts off the old container's in-flight jobs. Both containers' workers shared one worker slot, so the new worker superseded the old one's session: its running jobs became reclaimable and it exited unhealthy. Every worker session now holds its own slot; of the live workers of one version, only the newest takes new work, while the older one keeps its session and finishes what it holds. A crashed worker's session is removed once it has been expired for longer than its timeout and none of its jobs holds a live lease, so it no longer stays behind as a stale session.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/db@0.2.0-alpha.627
+  - @brains/operation-context@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/mcp-service@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/db@0.2.0-alpha.626
+  - @brains/operation-context@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/mcp-service@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/db@0.2.0-alpha.625
+  - @brains/operation-context@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/mcp-service@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/db@0.2.0-alpha.624
+  - @brains/operation-context@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/mcp-service@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/db@0.2.0-alpha.623
+  - @brains/operation-context@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/mcp-service@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/db@0.2.0-alpha.622
+  - @brains/operation-context@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/mcp-service@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- [#798](https://github.com/rizom-ai/brains/pull/798) [`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An older brain's worker no longer runs jobs a newer brain queued. A rolling deploy runs the old and new containers side by side on one job queue, and the old worker could claim the new brain's startup work. Every job now records the version of the brain that queued it; a worker never claims or recovers a job a newer brain queued, and once a newer brain's worker is live, an older worker takes no new work while its in-flight jobs finish. A newer brain asking again for an older brain's pending job hands that job to itself. Each version runs its own worker slot, so the new worker no longer supersedes the old one mid-job. Jobs queued before this release carry no version and stay claimable by any worker; the gate takes effect from the deploy after the one that ships it.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/db@0.2.0-alpha.621
+  - @brains/operation-context@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/mcp-service@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/db@0.2.0-alpha.620
+  - @brains/operation-context@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/mcp-service@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/db@0.2.0-alpha.619
+  - @brains/operation-context@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/mcp-service@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/db@0.2.0-alpha.618
+  - @brains/operation-context@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/mcp-service@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/db@0.2.0-alpha.617
+  - @brains/operation-context@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/mcp-service@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies [[`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4)]:
+  - @brains/mcp-service@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/db@0.2.0-alpha.616
+  - @brains/operation-context@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+
 ## 0.2.0-alpha.615
 
 ### Patch Changes
