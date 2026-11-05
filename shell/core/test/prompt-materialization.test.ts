@@ -1,8 +1,5 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import {
-  materializePrompts,
-  resetPromptMaterialization,
-} from "@brains/plugins";
+import { describe, it, expect, spyOn } from "bun:test";
+import { materializePrompts } from "@brains/plugins";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
@@ -116,10 +113,6 @@ function editBody(
 }
 
 describe("materializePrompts", () => {
-  beforeEach(() => {
-    resetPromptMaterialization();
-  });
-
   it("creates a missing prompt with the hash of the default it was written from", async () => {
     const { service, prompts } = createPromptStore();
 

@@ -63,7 +63,6 @@ export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   readPromptOverride,
-  resetPromptMaterialization,
   materializePrompts,
 } from "./entity/prompt-resolver";
 export {

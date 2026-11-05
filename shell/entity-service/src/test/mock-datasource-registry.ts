@@ -48,7 +48,6 @@ export function createMockDataSourceRegistry(
     getIds: mock(() => returns.getIds ?? []),
     getByCapability: mock(() => returns.getByCapability ?? []),
     find: mock(() => returns.find ?? []),
-    clear: mock(() => {}),
   };
 
   return registry;

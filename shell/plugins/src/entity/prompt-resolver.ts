@@ -80,8 +80,20 @@ export async function readPromptOverride(
   return entity?.content ? promptBody(entity.content) : fallback;
 }
 
-/** Targets whose default has been materialized once; bodies are never cached. */
-const materialized = new Set<string>();
+/**
+ * Per brain, the targets whose default has been materialized once; bodies are
+ * never cached. Keyed by the entity store, so each shell keeps its own and
+ * drops it with the store.
+ */
+const materializedByStore = new WeakMap<object, Set<string>>();
+
+function materializedIn(entityService: object): Set<string> {
+  const existing = materializedByStore.get(entityService);
+  if (existing) return existing;
+  const created = new Set<string>();
+  materializedByStore.set(entityService, created);
+  return created;
+}
 
 /**
  * Resolve a prompt by target name.
@@ -118,7 +130,7 @@ export async function resolvePrompt(
   }
 
   if (entity?.content) return promptBody(entity.content);
-  if (materialized.has(target)) return fallback;
+  if (materializedIn(entityService).has(target)) return fallback;
 
   // Entity doesn't exist — materialize the default prompt
   const prompt = defaultPromptEntity(target, fallback);
@@ -133,15 +145,8 @@ export async function resolvePrompt(
     // Entity type not registered yet — the fallback below still answers.
   }
 
-  materialized.add(target);
+  materializedIn(entityService).add(target);
   return fallback;
-}
-
-/**
- * Forget which defaults were materialized (for testing).
- */
-export function resetPromptMaterialization(): void {
-  materialized.clear();
 }
 
 /** The template listing prompt materialization reads, keyed as generation looks templates up. */
@@ -217,7 +222,7 @@ async function syncPromptDefault(
     await entityService.createEntity({
       entity: defaultPromptEntity(target, fallback),
     });
-    materialized.add(target);
+    materializedIn(entityService).add(target);
     return "created";
   }
 

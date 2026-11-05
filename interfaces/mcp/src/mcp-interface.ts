@@ -34,12 +34,7 @@ export class MCPInterface
   private domain: string | undefined;
 
   constructor(config: MCPConfigInput = {}) {
-    // Default authToken from environment if not provided
-    const configWithDefaults = {
-      ...config,
-      authToken: config.authToken ?? process.env["MCP_AUTH_TOKEN"],
-    };
-    super("mcp", packageJson, configWithDefaults, mcpConfigSchema);
+    super("mcp", packageJson, config, mcpConfigSchema);
   }
 
   /** A fresh registration of this protocol, without its transport host. */

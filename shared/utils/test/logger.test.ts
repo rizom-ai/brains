@@ -137,6 +137,17 @@ describe("Logger", () => {
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
     });
+
+    test("applies a level asked of the shared logger after it exists", () => {
+      const spy = spyOn(console, "info").mockImplementation(() => {});
+      const shared = ConsoleLogger.getInstance({ level: LogLevel.INFO });
+
+      ConsoleLogger.getInstance({ level: LogLevel.WARN });
+      shared.info("registration noise");
+
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
   });
 
   describe("useStderr", () => {

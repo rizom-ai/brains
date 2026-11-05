@@ -89,9 +89,12 @@ export class ConsoleLogger implements Logger {
   public static getInstance(options?: LoggerOptions): ConsoleLogger {
     if (!ConsoleLogger.instance) {
       ConsoleLogger.instance = new ConsoleLogger(options);
-    } else if (options?.useStderr !== undefined) {
-      // Update useStderr if explicitly provided
-      ConsoleLogger.instance.useStderr = options.useStderr;
+    } else {
+      // Options asked of the existing logger apply to everyone holding it.
+      if (options?.useStderr !== undefined)
+        ConsoleLogger.instance.useStderr = options.useStderr;
+      if (options?.level !== undefined)
+        ConsoleLogger.instance.level = options.level;
     }
     return ConsoleLogger.instance;
   }
