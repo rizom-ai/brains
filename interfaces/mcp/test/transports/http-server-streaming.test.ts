@@ -1,5 +1,5 @@
+import { type IMCPTransport } from "@brains/plugins";
 import { describe, expect, test } from "bun:test";
-import type { IMCPTransport } from "@brains/mcp-service";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {

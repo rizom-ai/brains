@@ -1,5 +1,5 @@
+import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/plugins";
 import { describe, expect, test } from "bun:test";
-import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
 import { buildEntityFilePath, parseEntityPath } from "../src/lib/entity-paths";
 
 /** No contained types: every type in a folder of its own. */

@@ -200,6 +200,20 @@ export {
   type AuthSetupDeliveryInput,
 } from "./auth-admin";
 export {
+  AUTH_ACCOUNT_MUTATION_ACTIONS,
+  type AuthAccountConnectedChannel,
+  type AuthAccountMutation,
+  type AuthAccountMutationAction,
+  type AuthAccountPasskey,
+  type AuthAccountPluginSettingsField,
+  type AuthAccountPluginSettingsForm,
+  type AuthAccountPluginSettingsMutation,
+  type AuthAccountResponse,
+  type AuthAccountRole,
+  type AuthAccountSessionSummary,
+  type AuthAccountSnapshot,
+} from "./auth-account";
+export {
   EMAIL_INBOUND,
   inboundEmailSchema,
   type InboundEmail,

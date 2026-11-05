@@ -1,6 +1,6 @@
+import { type Tool, type ToolResponse } from "@brains/plugins";
 import { A2A_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";

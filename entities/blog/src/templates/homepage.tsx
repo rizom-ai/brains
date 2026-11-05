@@ -1,6 +1,6 @@
+import { createTemplate } from "@brains/plugins";
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
 import {

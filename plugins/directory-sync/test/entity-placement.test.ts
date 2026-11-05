@@ -1,7 +1,6 @@
+import { encodeEntityIdPath, entityIdPathSchema } from "@brains/plugins";
 import { describe, expect, test } from "bun:test";
 import { createTestEntity } from "@brains/entity-service/test";
-import { encodeEntityIdPath } from "@brains/entity-service";
-import { entityIdPathSchema } from "@brains/plugins";
 import {
   mkdtemp,
   mkdir,

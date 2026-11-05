@@ -1,6 +1,10 @@
-import { entityViewFields, type EntityViewFields } from "@brains/plugins";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { projectStatusSchema } from "../schemas/project";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z

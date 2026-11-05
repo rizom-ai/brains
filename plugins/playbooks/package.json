@@ -7,7 +7,6 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/runtime-state": "workspace:*",
     "@brains/utils": "workspace:*",
     "xstate": "^5.32.1"
   },

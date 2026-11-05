@@ -5,7 +5,6 @@
   "description": "Site info entity — site metadata, title, description, CTA",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"

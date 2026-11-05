@@ -1,14 +1,14 @@
+import {
+  ConfirmationArgsStore,
+  type Tool,
+  type ToolResponse,
+} from "@brains/plugins";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   EntityPluginContext,
   ServicePluginContext,
 } from "@brains/plugins";
-import {
-  ConfirmationArgsStore,
-  type Tool,
-  type ToolResponse,
-} from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { extractDomain, type FetchFn } from "../lib/fetch-agent-card";

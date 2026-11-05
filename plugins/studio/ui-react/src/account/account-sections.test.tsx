@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { AuthAccountSnapshot } from "@brains/auth-service/account-contracts";
+import type { AuthAccountSnapshot } from "@brains/contracts";
 import { AccountApp } from "./account-view";
 import { AccountClient } from "./account-api";
 

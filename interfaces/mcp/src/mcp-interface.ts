@@ -1,3 +1,4 @@
+import { type IMCPTransport } from "@brains/plugins";
 import { MCP_INTERACTION_ID } from "@brains/contracts";
 import type {
   InterfacePluginContext,
@@ -7,7 +8,6 @@ import type {
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
-import type { IMCPTransport } from "@brains/mcp-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { MCPProtocol, MCPProtocolPlugin } from "./mcp-protocol";
 import packageJson from "../package.json";

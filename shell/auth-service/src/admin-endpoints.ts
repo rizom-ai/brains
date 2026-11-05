@@ -1,10 +1,7 @@
+import { requireSameOriginJson } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import {
-  privateJsonResponse,
-  readJsonRequest,
-  requireSameOriginJson,
-} from "./http-responses";
+import { privateJsonResponse, readJsonRequest } from "./http-responses";
 import {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,

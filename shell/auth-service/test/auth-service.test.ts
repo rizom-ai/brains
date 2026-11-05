@@ -1,3 +1,4 @@
+import { normalizeIssuer } from "@brains/plugins";
 import {
   CHAT_INTERACTION_ID,
   MCP_INTERACTION_ID,
@@ -22,7 +23,6 @@ import {
   AuthService,
   AuthServicePlugin,
   authServicePlugin,
-  normalizeIssuer,
   reinitializeAuthAccessStorage,
   type AuthServiceConfig,
 } from "../src";

@@ -1,7 +1,7 @@
-import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/runtime-state";
+import {
+  type IRuntimeStateNamespace,
+  type IRuntimeStateStore,
+} from "@brains/plugins";
 import { createPrefixedId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
