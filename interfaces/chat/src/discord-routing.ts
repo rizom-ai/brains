@@ -120,10 +120,6 @@ export function shouldRouteChatMessage(
   return isAllowedChannel(thread, config);
 }
 
-/** @deprecated Use shouldRouteChatMessage for transport-neutral routing. */
-export const shouldRouteDiscordMessage: typeof shouldRouteChatMessage =
-  shouldRouteChatMessage;
-
 export function shouldHandleChatAction(
   thread: RoutedThread,
   config: RoutingPolicyConfig | undefined,

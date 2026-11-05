@@ -12,10 +12,8 @@ import {
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import {
-  CoverImageConversionJobHandler,
-  type CoverImageConversionJobData,
-} from "../../src/handlers/image-conversion-handler";
+import { CoverImageConversionJobHandler } from "../../src/handlers/image-conversion-handler";
+import type { CoverImageConversionJobData } from "../../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";

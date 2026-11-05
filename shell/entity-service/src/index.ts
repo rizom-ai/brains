@@ -173,7 +173,6 @@ export type {
   SearchResult,
   EntityAdapter,
   EntitySchema,
-  EntitySchemaParser,
   FrontmatterSchema,
   ListOptions,
   SearchOptions,

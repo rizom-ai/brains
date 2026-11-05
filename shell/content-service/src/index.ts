@@ -45,7 +45,6 @@ export type {
   GenerationContext,
   ContentTemplate,
   ContentTemplateDataSchema,
-  ContentTemplateSchemaParser,
   ResolutionOptions,
 } from "./types";
 export { ContentTemplateSchema, generationContextSchema } from "./types";

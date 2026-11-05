@@ -261,8 +261,6 @@ export const emptyFrontmatterSchema: z.ZodObject<Record<string, never>> =
   z.object({});
 
 export type EntitySchema<T> = z.ZodType<T, unknown>;
-/** @deprecated Use EntitySchema<T>. */
-export type EntitySchemaParser<T> = EntitySchema<T>;
 
 export type UnknownEntitySchema = EntitySchema<unknown>;
 export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;

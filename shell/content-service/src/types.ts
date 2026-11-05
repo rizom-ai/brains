@@ -16,8 +16,6 @@ import type { GenerationQueueBinding } from "./generation-submission";
 import type { GenerationAccess } from "./generation-authorization";
 
 export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
-/** @deprecated Use ContentTemplateDataSchema<T>. */
-export type ContentTemplateSchemaParser<T> = ContentTemplateDataSchema<T>;
 
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)
