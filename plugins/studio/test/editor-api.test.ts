@@ -418,6 +418,7 @@ describe("studio editor shell", () => {
         definition: {
           path: "/api/chat",
           method: "POST",
+          role: "chat-api",
           public: true,
           handler: (_request: Request): Response => new Response(),
         },

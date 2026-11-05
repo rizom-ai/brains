@@ -871,6 +871,7 @@ export {
   jsonError,
   SitePageResponse,
   SITE_SLOT_ATTRIBUTE,
+  findRouteByRole,
   type SitePageSlot,
 } from "./types/web-routes";
 export {

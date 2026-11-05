@@ -1,3 +1,5 @@
+import type { WebRouteRole } from "@brains/contracts";
+
 export const WebRouteMethods = [
   "GET",
   "POST",
@@ -30,6 +32,8 @@ export interface WebRouteDefinition {
   public?: boolean;
   /** Also serve on the preview host. Reachability only; admission checks still apply. */
   preview?: boolean;
+  /** The well-known route this is, for other plugins to find it by. */
+  role?: WebRouteRole;
   /** Request handler */
   handler: WebRouteHandler;
 }
@@ -105,4 +109,13 @@ export interface RegisteredWebRoute {
   fullPath: string;
   /** The original route definition */
   definition: WebRouteDefinition;
+}
+
+/** The route claiming `role`, the shortest path when several do. */
+export function findRouteByRole<
+  T extends Pick<RegisteredWebRoute, "fullPath" | "definition">,
+>(routes: readonly T[], role: WebRouteRole): T | undefined {
+  return routes
+    .filter((route) => route.definition.role === role)
+    .sort((left, right) => left.fullPath.length - right.fullPath.length)[0];
 }

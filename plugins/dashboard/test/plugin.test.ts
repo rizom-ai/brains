@@ -236,6 +236,7 @@ describe("DashboardPlugin", () => {
         getWebRoutes: () => [
           {
             path: "/studio",
+            role: "studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -323,6 +324,7 @@ describe("DashboardPlugin", () => {
         getWebRoutes: () => [
           {
             path: "/studio",
+            role: "studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -573,6 +575,7 @@ describe("DashboardPlugin", () => {
         getWebRoutes: (): WebRouteDefinition[] => [
           {
             path: "/studio",
+            role: "studio",
             method: "GET",
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),

@@ -79,6 +79,7 @@ async function setup(
         path: "/studio/workspaces",
         method: "GET",
         match: "prefix",
+        role: "studio-workspaces",
         public: true,
         handler: (): Response => new Response(),
       },

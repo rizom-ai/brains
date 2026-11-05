@@ -226,6 +226,7 @@ export class DashboardPlugin extends ServicePlugin<
         path: this.config.routePath,
         method: "GET",
         public: true,
+        role: "dashboard",
         handler: async (request: Request): Promise<Response> => {
           if (!this.datasource || !this.ctx) {
             return new Response("Dashboard unavailable", {
@@ -237,14 +238,7 @@ export class DashboardPlugin extends ServicePlugin<
           const ctx = this.ctx;
           const principal = await ctx.auth.get()?.resolveSession(request);
           const requestUrl = new URL(request.url);
-          const registeredRoutes = ctx.webRoutes.getRoutes();
-          const studioPath = registeredRoutes
-            .filter(
-              (route) =>
-                route.pluginId === "studio" && route.fullPath !== "/chat",
-            )
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
+          const studioPath = ctx.webRoutes.findByRole("studio")?.fullPath;
           if (
             principal &&
             studioPath &&
@@ -258,10 +252,7 @@ export class DashboardPlugin extends ServicePlugin<
               },
             });
           }
-          const askHref = registeredRoutes
-            .filter((route) => route.pluginId === "web-chat")
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
+          const askHref = ctx.webRoutes.findByRole("ask")?.fullPath;
           // The card is invariant across sessions. Public providers always see
           // an anonymous Public caller, and non-public providers never run.
           const visibleWidgets =
@@ -334,12 +325,7 @@ export class DashboardPlugin extends ServicePlugin<
             widgetScripts: resolved.widgetScripts,
             assetUrls: this.assetUrls,
             dashboardPath: this.config.routePath,
-            askEnabled:
-              this.config.ask &&
-              registeredRoutes.some(
-                (route) =>
-                  route.pluginId === "web-chat" && route.fullPath === "/ask",
-              ),
+            askEnabled: this.config.ask && askHref !== undefined,
             ...(askHref ? { askHref } : {}),
             character,
             profile,

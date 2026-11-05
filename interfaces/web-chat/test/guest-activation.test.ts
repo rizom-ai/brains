@@ -113,6 +113,7 @@ async function fixture(
         definition: {
           path: "/chat",
           method: "GET",
+          role: "studio-chat",
           handler: async (): Promise<Response> => new Response("Studio"),
         },
       },

@@ -1,7 +1,11 @@
 import { describe, expect, it, mock } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import {
+  findRouteByRole,
+  type BaseEntity,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import {
   loadAskContent,
   loadHomepageOpening,
@@ -47,7 +51,10 @@ function context(record: BaseEntity | null = entity()): ServicePluginContext {
     siteUrl: origin,
     preferLocalUrls: false,
     previewUrl: "https://preview.brain.test",
-    webRoutes: { getRoutes: () => routes },
+    webRoutes: {
+      getRoutes: () => routes,
+      findByRole: (role) => findRouteByRole(routes, role),
+    },
     identity: {
       ...context.identity,
       getAppInfo: async () => ({

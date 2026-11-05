@@ -1,3 +1,4 @@
+import { enableChatCapability } from "./fixtures/chat-capability";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 import {
   createMockShell,
@@ -232,14 +233,6 @@ async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
     invited: invited.cookie,
     suspended: suspended.cookie,
   };
-}
-
-function enableChatCapability(shell: MockShell): void {
-  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-  shell.getPluginPackageName = (pluginId): string | undefined =>
-    pluginId === "web-chat"
-      ? "@brains/web-chat"
-      : getPluginPackageName(pluginId);
 }
 
 async function setup(): Promise<{
