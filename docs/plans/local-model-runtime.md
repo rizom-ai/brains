@@ -5,7 +5,7 @@
 In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 has its first numbers.
 
 - Embeddings: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Failed embeddings retry on the next start.
-- Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`).
+- Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`); `reasoningEffort` reaches the runtime as `reasoning_effort`, and `none` turns a model's thinking off.
 - No key: a brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
 - Sidecar: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; `local:` embeddings are priced at zero. No fleet brain has opted in.
 - Images: open. `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
@@ -31,11 +31,13 @@ Agent evals, 2026-10-31, headless suite (27 runs), judge `gpt-5.4-mini`, `qwen3:
 | `local:qwen3:8b`                      | 23/27 | 85%  | 34.2 s       |
 | `local:qwen3:8b`, schema-constrained  | 21/27 | 78%  | 25.3 s       |
 | `local:qwen3:14b`, schema-constrained | 25/27 | 93%  | 53.2 s       |
+| `local:qwen3:14b`, thinking off       | 22/27 | 81%  | 9.4 s        |
 
 - The schema-constrained run is what is built. Before the fix, every object generation on the local model (topic votes) failed validation on invented keys; with constrained output those failures are gone.
 - `qwen3:8b` fails in both runs: the write–confirm–read-back case, the exact-note direct create, and the private note at admin and trusted (wrong `system_create` `source.kind`). Agent recommendation without a match and skill derivation fail in one run each.
 - `qwen3:8b` copies pasted text into `system_create` arguments instead of using `source.kind: user-message`, although the tool's descriptions ask for it; the tool contract stays strict.
 - `qwen3:14b` (14.8B, Q4_K_M) uses `user-message` and passes those cases. It fails the write–confirm–read-back case (no pending confirmation was created) and the private note at trusted (the reply claims a save the server refused).
+- With `reasoningEffort: none` (thinking off) `qwen3:14b` is 5.7× faster and loses three cases: it does not clearly decline a delete at public and trusted, and the admin private-note `system_create` is refused.
 - The proof of concept runs on `qwen3:14b`. The `qwen3:32b` row waits for a network that can download its 20 GB; it can only replace 14B if it closes the remaining gap. No production brain switches its text model on these numbers.
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
