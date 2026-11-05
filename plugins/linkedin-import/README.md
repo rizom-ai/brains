@@ -18,6 +18,8 @@ With a connection, the plugin reads the owner's PROFILE snapshot from LinkedIn's
 
 **Import from LinkedIn** asks for confirmation with the fields it would fill. Confirming re-reads LinkedIn and the profile and refuses when either changed since the preview; the write applies only while the profile is still the one the import read. **Disconnect LinkedIn** forgets the token. An expired or revoked token asks the owner to connect again.
 
+**Inspect LinkedIn data shapes** reads the skills, positions, education and certifications domains and returns, for each, the field names, value types, how often each field occurs and every distinct record form with values replaced by placeholders such as `<string>` or `<month-year>`. It never returns a member value; it exists to write import fixtures for those domains.
+
 The token is an Account setting named **LinkedIn**, so it can also be pasted there by hand. The workspace requires Admin permission and the Anchor flag; another Admin does not see it.
 
 ## Configuration

@@ -2,12 +2,13 @@
 
 ## Status
 
-Proposed. Nothing is on `main`:
+In progress. On `main`:
 
-- `anchor-profile` has no professional history fields. `professionalProfileFields` in `plugins/profile/src/schemas.ts` holds `role`, `expertise`, `currentFocus` and `availability`; no schema anywhere has `headline`, `industry`, `location`, `skills`, `positions`, `education` or `certifications`.
-- No plugin calls a LinkedIn read API. `entities/social-media` posts to LinkedIn with a static `LINKEDIN_ACCESS_TOKEN` and the `w_member_social` scopes only.
-- No plugin runs an outbound OAuth client flow. `shell/auth-service` is an OAuth server; atproto uses an app password.
-- `docs/feature-overview.md` lists LinkedIn import and an OAuth broker as opt-in additions, but neither is in the capability catalog (`packages/brain-cli/src/model/canonical-brain.ts`).
+- Professional profiles take `headline`, `industry` and `location`. The professional site's about page sets the headline under the name and lists industry and location; the editorial homepage falls back to the headline before the description.
+- The opt-in `linkedin-import` plugin ([README](../../plugins/linkedin-import/README.md)). The Anchor connects LinkedIn from a Studio workspace through direct-mode OAuth against the instance's own LinkedIn app; the token stays in the Anchor's account settings. A confirmed import fills `name`, `headline`, `industry`, `location`, `website` and the story from the PROFILE snapshot without overwriting what the owner wrote.
+- An Anchor-only **Inspect LinkedIn data shapes** action returns a redacted shape summary of the four rich domains.
+
+Next: once LinkedIn approves the app (see Precondition), capture the rich-domain fixtures (Phase 4), then Phases 5–8.
 
 `work/professional-profile-v2` (last commit 2026-07-19) holds an earlier implementation built on the retired `brains/rover` package and the deleted `plugins/rover-onboarding`. It is reference material: the snapshot client, PROFILE mapper, merge, fingerprints, OAuth client, state store and broker are ported phase by phase below; wiring is rebuilt against the current plugin, Studio and auth contracts. Delete the branch when Phase 10 has landed.
 
@@ -59,56 +60,20 @@ The Anchor connects their LinkedIn account once from Studio, reviews a field-by-
 - **The surface is a Studio workspace.** `linkedin-import:linkedin` with permission floor `admin`, and an `accessHandler` that also requires `isAnchor` (Admin does not imply Anchor). The view shows connection status and the preview; Import is a `defineWorkspaceAction` with a prepared confirmation bound to the caller, the preview digest and the profile's content hash, with expiry and single use. The old branch's review store is not ported; prepared confirmation replaces it.
 - **OAuth routes are plugin web routes.** Studio cannot carry author URLs into a form post, so the view links to the plugin's own start route. Routes use `getWebRoutes()` with `public: true` and authenticate inside the handler (`context.auth.get()?.resolveSession`, requiring `admin` and `isAnchor`), as Studio and auth admin do today. They move to the operator security kind when `http-route-registry-hardening.md` Phase 2 lands.
 - **The token lives in the Anchor's account settings.** It is encrypted with `ACCOUNT_SETTINGS_ENCRYPTION_KEY`, scoped to the account, and removed when the account is deleted. The plugin registers its own `defineAccountSettings` definition through `context.accountSettings` and saves, reads and deletes one account's values with the registry's `save`, `getForActor` and `delete`. The setting appears in the Account form as **LinkedIn**, where the token can also be pasted by hand.
-- **Two OAuth modes.** Direct mode (Phase 3) uses the instance's own approved LinkedIn app; it suits self-hosting and a small pilot. Managed mode (Phase 9) routes consent through a central broker so instances never hold the shared app secret.
+- **Two OAuth modes.** Direct mode (shipped) uses the instance's own approved LinkedIn app; it suits self-hosting and a small pilot. Managed mode (Phase 9) routes consent through a central broker so instances never hold the shared app secret.
 
 ## Precondition
 
-Apply for the Member Data Portability (3rd Party) product on a Rizom LinkedIn developer app: associate the Rizom Company Page, complete business verification, and register the direct-mode redirect URI of the pilot brain. Approval is not instant and blocks live testing from Phase 2 and fixture capture in Phase 4. Phases 1–3 are built and tested against the documented PROFILE fixture.
+Apply for the Member Data Portability (3rd Party) product on a Rizom LinkedIn developer app: associate the Rizom Company Page, complete business verification, and register the direct-mode redirect URI of the pilot brain. Approval is not instant and blocks live use of the import and the Phase 4 capture.
 
 ## Phases
 
-Each phase is a commit, tests first. Phases share a PR until the next one needs the earlier work running on a brain:
+Each phase is a commit, tests first. Phases 5–8 share one PR once the Phase 4 fixtures are committed. Phase 9 and Phase 10 are one PR each: the broker needs only the shipped direct mode; the export upload needs the Phase 5–8 mappers.
 
-- **Phases 1–4, one PR.** Shape capture runs on a deployed brain with the approved LinkedIn app.
-- **Phases 5–8, one PR**, once the Phase 4 fixtures are committed.
-- **Phase 9 and Phase 10, one PR each.** The broker needs only Phase 3; the export upload needs the Phase 5–8 mappers.
+### Phase 4 — Commit rich-domain fixtures
 
-### Phase 1 — Headline, industry and location on the professional profile
-
-Owners can set these by hand before any import exists.
-
-- `plugins/profile/src/schemas.ts`: add optional `headline`, `industry` and `location` to `professionalProfileFields`, with null defaults in `professionalProfileViewSchema`.
-- `sites/professional/src/templates/about.tsx`: headline under the name; location and industry in the facts list.
-- `sites/professional/src/templates/homepage-list.tsx`: headline as the fallback for `tagline` before `description`.
-- Tests: profile schema accepts and rejects the new fields; both templates render them and render unchanged without them.
-
-### Phase 2 — Import PROFILE with a static token (walking skeleton)
-
-End to end: a token in `brain.yaml`, a Studio preview, a confirmed import into `anchor-profile`.
-
-- `plugins/linkedin-import`: config `{ accessToken? }`; no workspace or job without it.
-- Port `linkedin-client.ts` (bearer auth, fixed `Linkedin-Version: 202312`, Zod-validated pages, bounded error bodies), `snapshot-schema.ts`, the PROFILE fixture and `transform/profile-mapper.ts` (`name`, `headline`, `industry`, `location`, `website`, `story`).
-- Port the PROFILE part of `merge-profile.ts`. The prepared confirmation's revision is a digest of the profile's content hash and the merged fields; Studio re-runs the preview on confirm and refuses a changed revision. The action then writes with `expectedContentHash`.
-- The workspace (see Decisions) with the field preview showing current value, imported value and outcome (`fill`, `preserve` or `unchanged`), and the Import action.
-- Catalog: `linkedin-import` capability in `canonical-brain.ts`, in no bundle; `LINKEDIN_PORTABILITY_TOKEN` in `canonicalEnvSchema`; configuration in `plugins/linkedin-import/README.md`.
-- Tests: client headers, pagination and errors; mapper; merge preserves owner values and is idempotent; job rejects a changed profile and a stale digest; workspace denied to an Admin who is not the Anchor; plugin inert without a token.
-
-### Phase 3 — Connect LinkedIn from Studio (direct mode)
-
-Replaces the static token; `accessToken` config and `LINKEDIN_PORTABILITY_TOKEN` are removed, and `LINKEDIN_IMPORT_CLIENT_ID` and `LINKEDIN_IMPORT_CLIENT_SECRET` take their place.
-
-- The **LinkedIn** account setting (`accessToken` secret, optional `expiresAt`), registered in `onRegister`.
-- Port `linkedin-oauth-client.ts` (authorization URL, server-side code exchange, `r_dma_portability_3rd_party`, validated token response) and `linkedin-oauth-state-store.ts` (process-local, ten-minute, single-use state).
-- Routes: `GET /linkedin/oauth/start` (Anchor session as the guard, since GET navigations carry no Origin; creates state, redirects to LinkedIn) and `GET /linkedin/oauth/callback` (consumes state only from the session that started it, exchanges the code, stores the token in the Anchor's account settings, returns to the workspace). The token never reaches the browser.
-- Config: `oauth: { clientId, clientSecret, redirectUri }`, secrets through `${…}` interpolation.
-- Workspace: connection status and expiry, a Connect link, and a Disconnect action with static confirmation. Import reads the stored token.
-- Tests: state expiry, replay and cross-session use rejected; denied consent returns to the workspace with an error; expired token shows as disconnected; no token in redirects, view data or logs.
-
-### Phase 4 — Capture rich-domain shapes
-
-- Port the schema summarizer as an Anchor-only workspace action, "Inspect LinkedIn data shapes". It reports source field names, value types, occurrence and record counts, and redacted record shapes, never member values.
-- Run it against consenting EEA accounts and commit redacted fixtures for `SKILLS`, `POSITIONS`, `EDUCATION` and `CERTIFICATIONS`.
-- Tests: no member value appears in the summary for a fixture seeded with sentinel values.
+- On a brain with the approved app, the Anchor runs **Inspect LinkedIn data shapes** for consenting EEA accounts.
+- Commit the redacted summaries as fixtures for `SKILLS`, `POSITIONS`, `EDUCATION` and `CERTIFICATIONS` under `plugins/linkedin-import/test/fixtures/`. They settle the nested keys and date formats Phases 5–8 depend on.
 
 ### Phases 5–8 — One domain each: skills, positions, education, certifications
 
@@ -123,7 +88,7 @@ Each phase adds one field and its source, in this order: `skills: string[]`; `po
 
 - `plugins/oauth-broker`: port the provider-neutral broker as a `ServicePlugin` for one central brain (for example `connect.rizom.ai`): per-instance HTTP Basic credentials, exact configured return URIs, hashed lookup keys, ten-minute authorization state, two-minute single-use grants, all process-local. Routes: `POST /oauth-broker/authorizations`, `GET /oauth-broker/callback/linkedin` and `POST /oauth-broker/grants/redeem`, authenticated inside the handler.
 - The LinkedIn provider adapter (scope, token URL, token validation) is composed into the broker from `linkedin-import`; the broker core treats credentials as opaque.
-- `linkedin-import`: `oauth.mode: broker` with the broker URL and instance credential; port `linkedin-broker-client.ts` and add `GET /linkedin/oauth/broker/return`, which consumes local state, redeems the grant server to server, validates the credential and stores it as in Phase 3.
+- `linkedin-import`: a `broker` connection mode beside the direct `oauth` settings, with the broker URL and instance credential; port `linkedin-broker-client.ts` and add `GET /linkedin/oauth/broker/return`, which consumes local state, redeems the grant server to server, validates the credential and stores it in the Anchor's account settings like a direct connection.
 - The broker is catalog-only, never in a bundle; it runs on the central brain alone.
 - Tests: cross-instance substitution, arbitrary return URIs, expired or replayed state and grants, failed instance authentication, concurrent redemption, and no credential in any redirect or log line.
 
@@ -131,13 +96,13 @@ Each phase adds one field and its source, in this order: `skills: string[]`; `po
 
 - Declarative workspaces have no file input. Add one to the operator view contract and the Studio renderer, with the 10 MB cap Studio uploads already use, delivering the file to the action handler.
 - `linkedin-import`: an Upload export action; unzip with `fflate` (already a dependency), parse the export's CSVs, and feed the same mappers through an export source adapter. The file is held in `context.uploads.scoped` only until the import completes or the preview expires.
-- The preview, confirmation and job are the Phase 2 ones.
+- The preview, confirmation and write are the shipped PROFILE import's.
 - Tests: a redacted export fixture maps to the same profile as the matching snapshot fixture; oversize and non-ZIP files are rejected; the upload is removed after import.
 
 ## Risks
 
 - **EEA-only API.** Non-EEA owners wait for Phase 10.
-- **Developer approval** can take weeks and is outside our control; Phases 1–3 do not wait for it.
+- **Developer approval** can take weeks and is outside our control; until LinkedIn approves the app, connecting and importing fail at LinkedIn.
 - **Broker trust.** The central brain holds the shared app secret and transient credentials. Exact return URIs, per-instance revocation, short grants, atomic redemption, log redaction and rate limits are launch requirements for Phase 9.
 - **Broker availability.** Managed owners cannot connect while the broker is down; a stored token keeps working.
 - **Token expiry.** Without refresh, the owner reconnects when the token expires; the workspace shows the expiry date.

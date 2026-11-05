@@ -4,7 +4,7 @@ import {
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { LinkedInFetch } from "./lib/linkedin-client";
+import { LinkedInClient, type LinkedInFetch } from "./lib/linkedin-client";
 import { LinkedInConnections } from "./lib/linkedin-connection";
 import { LinkedInOAuthClient, OAuthStateStore } from "./lib/linkedin-oauth";
 import { ProfileImport } from "./lib/profile-import";
@@ -88,6 +88,8 @@ export class LinkedInImportPlugin extends ServicePlugin<
     if (!oauth || !this.connections) return;
     const url = await registerLinkedInWorkspace(context, {
       profileImport: new ProfileImport(context.entityService, this.deps.fetch),
+      clientFor: (accessToken) =>
+        new LinkedInClient(accessToken, this.deps.fetch),
       connections: this.connections,
       startUrl: new URL(START_PATH, oauth.redirectUri).toString(),
     });

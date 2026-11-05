@@ -121,9 +121,21 @@ function linkedIn(calls: LinkedInCalls, status = 200): LinkedInFetch {
       new Headers(init?.headers).get("Authorization") ?? "",
     );
     if (status !== 200) return new Response("Unauthorized", { status });
-    return url.searchParams.get("start") === "0"
-      ? Response.json(profileSnapshot)
-      : new Response("No data found for this memberId", { status: 404 });
+    if (url.searchParams.get("start") !== "0") {
+      return new Response("No data found for this memberId", { status: 404 });
+    }
+    return url.searchParams.get("domain") === "POSITIONS"
+      ? Response.json({
+          elements: [
+            {
+              snapshotDomain: "POSITIONS",
+              snapshotData: [
+                { "Company Name": "SENTINEL Corp", "Started On": "Mar 2019" },
+              ],
+            },
+          ],
+        })
+      : Response.json(profileSnapshot);
   };
 }
 
@@ -405,6 +417,32 @@ describe("LinkedIn workspace", () => {
     expect(await state.view()).toContain(
       "https://brain.test/linkedin/oauth/start",
     );
+  });
+
+  it("lets the Anchor inspect the rich domains' shapes without member values", async () => {
+    const state = await fixture({
+      token: { accessToken: "member-token", expiresAt: future },
+    });
+    expect(await state.view()).toContain("inspect-shapes");
+
+    const { shapes } = z
+      .object({ shapes: z.string() })
+      .parse(await state.act({ actionId: "inspect-shapes", input: {} }));
+
+    const parsed = z
+      .record(z.string(), z.object({ recordsRead: z.number() }))
+      .parse(JSON.parse(shapes));
+    expect(Object.keys(parsed)).toEqual([
+      "SKILLS",
+      "POSITIONS",
+      "EDUCATION",
+      "CERTIFICATIONS",
+    ]);
+    expect(parsed["POSITIONS"]?.recordsRead).toBe(1);
+    expect(parsed["SKILLS"]?.recordsRead).toBe(0);
+    expect(shapes).toContain("Company Name");
+    expect(shapes).toContain("<month-year>");
+    expect(shapes).not.toContain("SENTINEL");
   });
 
   it("previews each field: filled, kept, or already the same", async () => {

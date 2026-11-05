@@ -7,6 +7,16 @@ export type LinkedInFetch = (
 
 export type LinkedInSnapshotRecord = Record<string, unknown>;
 
+/** The rich professional domains, read for shape capture until each is mapped. */
+export const RICH_DOMAINS = [
+  "SKILLS",
+  "POSITIONS",
+  "EDUCATION",
+  "CERTIFICATIONS",
+] as const;
+
+export type SnapshotDomain = "PROFILE" | (typeof RICH_DOMAINS)[number];
+
 const snapshotPageSchema = z.looseObject({
   elements: z.array(
     z.looseObject({
@@ -62,11 +72,16 @@ export class LinkedInClient {
 
   /** Every PROFILE record, across all pages. */
   fetchProfile(): Promise<LinkedInSnapshotRecord[]> {
-    return this.fetchPages("PROFILE", 0, 0);
+    return this.fetchDomain("PROFILE");
+  }
+
+  /** Every record of one snapshot domain, across all pages. */
+  fetchDomain(domain: SnapshotDomain): Promise<LinkedInSnapshotRecord[]> {
+    return this.fetchPages(domain, 0, 0);
   }
 
   private async fetchPages(
-    domain: string,
+    domain: SnapshotDomain,
     start: number,
     pages: number,
   ): Promise<LinkedInSnapshotRecord[]> {
@@ -86,7 +101,7 @@ export class LinkedInClient {
 
   /** One page, or null when LinkedIn has no (more) data for the member. */
   private async fetchPage(
-    domain: string,
+    domain: SnapshotDomain,
     start: number,
   ): Promise<SnapshotPage | null> {
     const url = new URL(`${API_BASE_URL}/memberSnapshotData`);

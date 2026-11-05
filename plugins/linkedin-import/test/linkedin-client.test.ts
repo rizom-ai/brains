@@ -53,6 +53,27 @@ describe("LinkedInClient", () => {
     expect(second?.url.searchParams.get("start")).toBe("1");
   });
 
+  it("reads a rich domain through the same pages", async () => {
+    const { fetch, requests } = recordingFetch([
+      Response.json({
+        elements: [
+          {
+            snapshotDomain: "POSITIONS",
+            snapshotData: [{ "Company Name": "Example" }],
+          },
+        ],
+      }),
+      noData(),
+    ]);
+
+    const records = await new LinkedInClient("token", fetch).fetchDomain(
+      "POSITIONS",
+    );
+
+    expect(records).toEqual([{ "Company Name": "Example" }]);
+    expect(requests[0]?.url.searchParams.get("domain")).toBe("POSITIONS");
+  });
+
   it("stops at a page without records", async () => {
     const { fetch, requests } = recordingFetch([
       Response.json({ elements: [] }),

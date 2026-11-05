@@ -7,7 +7,7 @@ import {
 } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { LinkedInApiError } from "./lib/linkedin-client";
+import { LinkedInApiError, type LinkedInClient } from "./lib/linkedin-client";
 import {
   isExpired,
   type LinkedInConnections,
@@ -16,6 +16,7 @@ import {
 import type { ImportOutcome } from "./lib/merge-profile";
 import type { ProfileImport } from "./lib/profile-import";
 import type { ProfileImport as ImportedValues } from "./lib/profile-mapper";
+import { inspectRichDomains } from "./lib/snapshot-shape";
 
 const FIELD_LABELS: Record<keyof ImportedValues, string> = {
   name: "Name",
@@ -66,6 +67,14 @@ const disconnect = defineWorkspaceAction({
   },
   input: z.object({}),
   output: z.object({ disconnected: z.boolean() }),
+});
+
+const inspectShapes = defineWorkspaceAction({
+  name: "inspect-shapes",
+  label: "Inspect LinkedIn data shapes",
+  permission: "admin",
+  input: z.object({}),
+  output: z.object({ shapes: z.string() }),
 });
 
 const querySchema = z.object({
@@ -150,7 +159,7 @@ const linkedInWorkspace = defineStudioWorkspace({
   permission: "admin",
   query: querySchema,
   data: workspaceDataSchema,
-  actions: [importProfile, disconnect],
+  actions: [importProfile, disconnect, inspectShapes],
   view: ({ data }) => {
     if (data.status === "disconnected") {
       return {
@@ -220,6 +229,26 @@ const linkedInWorkspace = defineStudioWorkspace({
             },
           })),
         },
+        {
+          type: "card",
+          id: "linkedin-shapes",
+          label: "Data shapes",
+          blocks: [
+            {
+              type: "text",
+              text: "Field names, value types and record forms of your skills, positions, education and certifications on LinkedIn, with every value replaced, for writing import fixtures.",
+            },
+            {
+              type: "action",
+              action: inspectShapes,
+              input: {},
+              result: {
+                title: "LinkedIn data shapes",
+                fields: { shapes: { label: "Shapes (JSON)", copyable: true } },
+              },
+            },
+          ],
+        },
         { type: "action", action: disconnect, input: {} },
       ],
     };
@@ -242,6 +271,8 @@ function unavailableMessage(error: unknown): string {
 
 export interface LinkedInWorkspaceDeps {
   profileImport: ProfileImport;
+  /** A snapshot client reading with the given token. */
+  clientFor(accessToken: string): LinkedInClient;
   connections: LinkedInConnections;
   /** Absolute URL of the OAuth start route, for Studio's external link. */
   startUrl: string;
@@ -326,6 +357,12 @@ export async function registerLinkedInWorkspace(
               };
             },
           ),
+          inspectShapes.bind(binding, async ({ caller }) => {
+            const shapes = await inspectRichDomains(
+              deps.clientFor((await connected(caller)).accessToken),
+            );
+            return { shapes: JSON.stringify(shapes, null, 2) };
+          }),
           disconnect.bind(binding, async ({ caller }) => {
             await deps.connections.forget(anchorId(caller));
             return { disconnected: true };
