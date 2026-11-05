@@ -143,9 +143,6 @@ export function createMockContentServices(
       }),
     find: (predicate: (dataSource: DataSource) => boolean): DataSource[] =>
       Array.from(dataSources.values()).filter(predicate),
-    clear: (): void => {
-      dataSources.clear();
-    },
     unregister: (id: string): void => {
       dataSources.delete(id);
     },

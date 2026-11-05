@@ -17,7 +17,6 @@ export interface DataSourceRegistry {
   getIds(): string[];
   getByCapability(capability: keyof DataSourceCapabilities): DataSource[];
   find(predicate: (dataSource: DataSource) => boolean): DataSource[];
-  clear(): void;
 }
 
 /** Central registry for all data sources in the system. */
@@ -127,14 +126,5 @@ export class InMemoryDataSourceRegistry implements DataSourceRegistry {
    */
   find(predicate: (dataSource: DataSource) => boolean): DataSource[] {
     return this.list().filter(predicate);
-  }
-
-  /**
-   * Clear all data sources (primarily for testing)
-   */
-  clear(): void {
-    const count = this.dataSources.size;
-    this.dataSources.clear();
-    this.logger.debug("DataSource registry cleared", { count });
   }
 }
