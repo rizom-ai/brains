@@ -1,5 +1,17 @@
 # @brains/doc
 
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- [#818](https://github.com/rizom-ai/brains/pull/818) [`a100799`](https://github.com/rizom-ai/brains/commit/a1007993f73508ec51af543d5c2e9ddf2d53221f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Creating a doc no longer offers a trusted writer the sections of restricted docs when it asks where the page goes. Create checks and interceptors now see the caller's permission level; the page still takes the next place after every doc.
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.630
+  - @brains/ui-library@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/plugins@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
 ## 0.2.0-alpha.629
 
 ### Patch Changes
