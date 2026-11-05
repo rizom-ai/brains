@@ -1,14 +1,15 @@
+import {
+  internalFullScope,
+  brainCharacterBodySchema,
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { createHash } from "node:crypto";
 import type {
   BaseEntity,
   ProfileCategory,
   BrainCharacter,
   ServiceEntityService,
-} from "@brains/plugins";
-import {
-  brainCharacterBodySchema,
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -341,12 +342,12 @@ export async function seedOrMigrateStarterIdentity(options: {
     entityService.getEntity({
       entityType: "brain-character",
       id: "brain-character",
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope("bootstrap singleton identity load"),
     }),
     entityService.getEntity({
       entityType: "anchor-profile",
       id: "anchor-profile",
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope("bootstrap singleton identity load"),
     }),
   ]);
 

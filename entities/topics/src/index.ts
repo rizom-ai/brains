@@ -1,4 +1,5 @@
 import {
+  internalFullScope,
   EntityPlugin,
   type EntityPluginContext,
   type EntityTypeConfig,
@@ -122,7 +123,13 @@ export class TopicsPlugin extends EntityPlugin<
     if (!(await migrations.get(PROJECTION_OWNERSHIP_RELEASED))) {
       for (const topic of await context.entityService.listEntities({
         entityType: TOPIC_ENTITY_TYPE,
-        options: { filter: { visibilityScope: "restricted" } },
+        options: {
+          filter: {
+            visibilityScope: internalFullScope(
+              "one-shot projection ownership migration",
+            ),
+          },
+        },
       })) {
         await context.entityService.releaseProjectionOwnership({
           entityType: TOPIC_ENTITY_TYPE,

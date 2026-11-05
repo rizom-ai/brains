@@ -29,7 +29,7 @@ import type {
 import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   ServicePlugin,
-  permissionToVisibilityScope,
+  internalFullScope,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
@@ -926,7 +926,9 @@ export class PlaybooksPlugin extends ServicePlugin<
     const entity = await this.ctx.entityService.getEntity({
       entityType: "playbook",
       id: playbookId,
-      visibilityScope: permissionToVisibilityScope("admin"),
+      visibilityScope: internalFullScope(
+        "playbook runner loads its definition",
+      ),
     });
     const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
@@ -1148,7 +1150,9 @@ function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
         options: {
           limit: 8,
           excludeTypes: ["playbook"],
-          visibilityScope: permissionToVisibilityScope("admin"),
+          visibilityScope: internalFullScope(
+            "goal check judges the whole brain",
+          ),
         },
       });
       const material = buildGoalCheckMaterial(input, searchResults);

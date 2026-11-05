@@ -1,16 +1,17 @@
 import {
-  CHAT_CHANNELS,
-  JOB_CHANNELS,
-  spaceNoticeActionSchema,
-  spaceNoticeResultSchema,
-} from "@brains/contracts";
-import {
+  internalFullScope,
   BaseJobHandler,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   SYSTEM_CHANNELS,
   type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
+import {
+  CHAT_CHANNELS,
+  JOB_CHANNELS,
+  spaceNoticeActionSchema,
+  spaceNoticeResultSchema,
+} from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -178,7 +179,9 @@ export function registerChannelActionItems(
       (await context.entityService.getEntity({
         entityType: ACTION_ITEM_ENTITY_TYPE,
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "card existence check for channel notices",
+        ),
       })) !== null,
     post: async (request) => {
       const response = await context.messaging.send({

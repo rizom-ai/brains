@@ -1089,6 +1089,7 @@ status: draft
     expect(capturedContext).toEqual({
       interfaceType: "matrix",
       actor: { kind: "user", userId: "alice" },
+      userPermissionLevel: "public",
       channelId: "!room:test",
       channelName: "#general",
     });

@@ -1,4 +1,5 @@
 import {
+  internalFullScope,
   ProjectionJsonObjectSchema,
   applyVisibilityToMarkdown,
   baseEntitySchema,
@@ -195,7 +196,9 @@ function projectionRule(
           const source = await context.entities.getEntity({
             entityType: input.sourceType,
             id: input.sourceId,
-            visibilityScope: "restricted",
+            visibilityScope: internalFullScope(
+              "projection rule loads source entity",
+            ),
           });
           if (!source) {
             throw new Error(

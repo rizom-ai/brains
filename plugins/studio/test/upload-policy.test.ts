@@ -145,6 +145,7 @@ describe("Studio upload policy", () => {
         userId: trustedPrincipal.userId,
         canonicalId: trustedPrincipal.canonicalId,
       },
+      userPermissionLevel: "trusted",
     });
     expect(fixture.auditEvents).toEqual([
       {

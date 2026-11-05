@@ -46,18 +46,18 @@ export class DocsPlugin extends EntityPlugin<Doc, DocsConfig, DocsConfigInput> {
 
   protected override async checkCreate(
     input: CreateInput,
-    _executionContext: CreateExecutionContext,
+    executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateCheckResult> {
-    return checkDocText(input, context);
+    return checkDocText(input, context, executionContext);
   }
 
   protected override async interceptCreate(
     input: CreateInput,
-    _executionContext: CreateExecutionContext,
+    executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
-    return createDocFromText(input, context);
+    return createDocFromText(input, context, executionContext);
   }
 
   protected override getTemplates(): Record<string, Template> {

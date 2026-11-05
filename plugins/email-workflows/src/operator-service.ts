@@ -1,4 +1,6 @@
 import {
+  permissionToVisibilityScope,
+  internalFullScope,
   assertStudioWorkspaceAdmin,
   type ServicePluginContext,
 } from "@brains/plugins";
@@ -49,7 +51,9 @@ export class MailTriageOperatorService {
             sortFields: [{ field: "receivedAt", direction: "desc" }],
             filter: {
               metadata,
-              visibilityScope: "restricted",
+              visibilityScope: internalFullScope(
+                "mail triage list is admin-only",
+              ),
             },
           },
         },
@@ -60,7 +64,9 @@ export class MailTriageOperatorService {
         options: {
           filter: {
             metadata,
-            visibilityScope: "restricted",
+            visibilityScope: internalFullScope(
+              "mail triage count is admin-only",
+            ),
           },
         },
       }),
@@ -85,7 +91,9 @@ export class MailTriageOperatorService {
       {
         entityType: "mail-item",
         id,
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(
+          actor.userPermissionLevel ?? "public",
+        ),
       },
       mailItemSchema,
     );
@@ -110,7 +118,9 @@ export class MailTriageOperatorService {
       {
         entityType: "mail-item",
         id: action.id,
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(
+          actor.userPermissionLevel ?? "public",
+        ),
       },
       mailItemSchema,
     );
