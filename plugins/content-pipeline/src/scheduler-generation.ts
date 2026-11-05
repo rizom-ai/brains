@@ -59,10 +59,13 @@ export async function triggerGeneration(
   const event: GenerateExecuteEvent = { entityType };
 
   if (deps.messageBus) {
+    // Each entity type's generator listens and answers for the others, so
+    // only a broadcast reaches the one this event names.
     await deps.messageBus.send({
       type: GENERATE_MESSAGES.EXECUTE,
       payload: event,
       sender: "content-pipeline",
+      broadcast: true,
     });
   }
 
