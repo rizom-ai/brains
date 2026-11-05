@@ -29,6 +29,7 @@ import type {
 import type {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -100,6 +101,7 @@ export interface ShellServices {
   inboxFollowUpRegistry: InboxFollowUpRegistry;
   operationalHealthRegistry: OperationalHealthRegistry;
   accountSettingsRegistry: AccountSettingsRegistry;
+  authRegistry: AuthRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;

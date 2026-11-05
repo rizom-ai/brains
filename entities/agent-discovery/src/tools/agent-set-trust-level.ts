@@ -1,4 +1,3 @@
-import { getActiveAuthService } from "@brains/auth-service";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
@@ -34,7 +33,7 @@ type AgentSetTrustLevelInput = z.infer<typeof agentSetTrustLevelInputSchema>;
 
 type AgentSetTrustLevelContext = Pick<
   EntityPluginContext | ServicePluginContext,
-  "entityService"
+  "entityService" | "auth"
 >;
 
 const jwksSchema = z.object({
@@ -121,7 +120,7 @@ export function createAgentSetTrustLevelTool(
         };
       }
 
-      const authService = getActiveAuthService();
+      const authService = context.auth.get();
       const actorUserId = authenticatedUserId(toolContext);
       if (!authService) {
         return {

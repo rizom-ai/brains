@@ -1,5 +1,6 @@
+import type { AuthMutationContext } from "@brains/contracts";
 import type { AuthAuditStore } from "./audit-store";
-import { auditActor, type AuthMutationContext } from "./mutation-context";
+import { auditActor } from "./mutation-context";
 import type { RefreshTokenPersistence } from "./refresh-token-store";
 import type { AuthUser } from "./runtime-schema";
 import type { AuthSessionPersistence } from "./session-store";

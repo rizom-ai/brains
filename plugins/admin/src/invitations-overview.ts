@@ -1,11 +1,11 @@
-import type { AuthAdminUserSummary } from "@brains/auth-service";
+import type { AuthAdminUserSummary } from "@brains/contracts";
 import {
   defineDashboardWidget,
   registerBuiltInDashboardWidget,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { formatWorkspaceDate, requireAuthService } from "./workspace-format";
+import { formatWorkspaceDate, requireAuthBackend } from "./workspace-format";
 
 export const EXPIRING_INVITATION_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1_000;
 
@@ -186,7 +186,7 @@ export async function registerInvitationsOverview(
     definition: invitationsOverviewWidget,
     load: async ({ signal }) => {
       signal.throwIfAborted();
-      const users = await requireAuthService().listAdminUsers();
+      const users = await requireAuthBackend(context).listAdminUsers();
       signal.throwIfAborted();
       return deriveInvitationsOverview(users, Date.now());
     },
