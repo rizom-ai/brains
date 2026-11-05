@@ -148,6 +148,22 @@ describe("renderBook", () => {
     expect(name).toEndWith(".md");
   });
 
+  it("names a section with a Greek title by as many of its letters as a name's bytes hold", () => {
+    // Greek letters take two or three bytes each, so a title short in letters
+    // can be too long in bytes.
+    const title =
+      "ὅμηρος μὴ κερδαίνειν ἀπὸ τῶν αἰσχρῶν ἐθέλοιεν ἀγαθοὶ ἄνδρες ἀλλὰ καὶ τῶν καλῶν ἀπέχεσθαι τοὺς ἀγαθοὺς λέγει πολλάκις ἐν τοῖς ἔπεσιν";
+    const files = renderBook({
+      ...source,
+      units: source.units.slice(0, 1).map((unit) => ({ ...unit, title })),
+    });
+    const name = files[1]?.path.split("/").at(-1) ?? "";
+
+    expect(Buffer.byteLength(name, "utf8")).toBeLessThanOrEqual(255);
+    expect(name).toStartWith("00001-ὅμηρος-μὴ-κερδαίνειν");
+    expect(name).toEndWith(".md");
+  });
+
   it("names a section by its whole title where the name holds it", () => {
     const title = ["abcdef", ...Array.from({ length: 40 }, () => "abcde")].join(
       " ",
