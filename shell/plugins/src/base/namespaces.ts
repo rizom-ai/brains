@@ -1,4 +1,8 @@
-import { getErrorMessage } from "@brains/utils/error";
+import {
+  answerContract,
+  collectContract,
+  requestContract,
+} from "@brains/messaging-service";
 import type { GetMessagesOptions } from "@brains/conversation-service";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
@@ -14,12 +18,7 @@ import type { IShell } from "../interfaces";
 import type { EvalHandler } from "../contracts/handlers";
 import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
-import {
-  ENTITY_CHANNELS,
-  type BusContract,
-  type BusResult,
-} from "@brains/contracts";
-import type { z } from "@brains/utils/zod";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 
 const ENTITY_CHANNEL_NAMES: ReadonlySet<string> = new Set(
   Object.values(ENTITY_CHANNELS),
@@ -180,70 +179,16 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
-    request: async <TRequest extends z.ZodType, TResponse extends z.ZodType>(
-      contract: BusContract<TRequest, TResponse, "request">,
-      payload: z.input<TRequest>,
-    ): Promise<BusResult<z.output<TResponse>>> => {
-      const request = contract.schema.parse(payload);
-      if (messageBus.getHandlerCount(contract.name) === 0) {
-        return { status: "unavailable" };
-      }
-      const response = await messageBus.send({
-        type: contract.name,
-        payload: request,
-        sender: pluginId,
-      });
-      if (!("success" in response) || !response.success) {
-        const error = "error" in response ? response.error : undefined;
-        return { status: "failed", error: error ?? "No answer" };
-      }
-      const answer = contract.response.safeParse(response.data);
-      return answer.success
-        ? { status: "answered", data: answer.data }
-        : {
-            status: "failed",
-            error: `${contract.name} answered outside its contract`,
-          };
-    },
-    answer: <TRequest extends z.ZodType, TResponse extends z.ZodType>(
-      contract: BusContract<TRequest, TResponse, "request">,
-      handler: (request: z.output<TRequest>) => Promise<z.input<TResponse>>,
-    ): (() => void) => {
-      if (executionOnly) return (): void => {};
-      if (messageBus.getHandlerCount(contract.name) > 0) {
-        throw new Error(
-          `${pluginId} cannot answer ${contract.name}: ${contract.name} already has an owner`,
-        );
-      }
-      return messageBus.subscribe(contract.name, async (message) => {
-        const request = contract.schema.safeParse(message.payload);
-        if (!request.success) {
-          logger.warn(`Refused an invalid ${contract.name} request`, {
-            error: request.error.message,
-          });
-          return {
-            success: false,
-            error: `Invalid ${contract.name} request`,
-          };
-        }
-        try {
-          const reply = contract.response.safeParse(
-            await handler(request.data),
-          );
-          if (reply.success) return { success: true, data: reply.data };
-          logger.error(
-            `${pluginId} answered ${contract.name} outside its contract`,
-            {
-              error: reply.error.message,
-            },
-          );
-          return {
-            success: false,
-            error: `${contract.name} answered outside its contract`,
-          };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
+    request: (contract, payload) =>
+      requestContract(messageBus, contract, payload, pluginId),
+    gather: (contract, payload) =>
+      collectContract(messageBus, contract, payload, pluginId),
+    answer: (contract, handler, options): (() => void) => {
+      if (executionOnly && options?.everyProcess !== true)
+        return (): void => {};
+      return answerContract(messageBus, contract, handler, {
+        owner: pluginId,
+        logger,
       });
     },
     collect: (request) => messageBus.collect({ ...request, sender: pluginId }),

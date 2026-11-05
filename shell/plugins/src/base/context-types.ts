@@ -7,6 +7,7 @@ import type {
 import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
 import type {
+  BusCollection,
   BusContract,
   BusResult,
   ENTITY_CHANNELS,
@@ -69,13 +70,25 @@ export interface IMessagingNamespace {
   ): Promise<BusResult<z.output<TResponse>>>;
 
   /**
-   * Own a request contract: the handler sees only valid requests, and its
-   * reply leaves only when the contract accepts it. A request contract has
-   * one owner; a second one throws.
+   * Ask every owner of a collect contract: their validated answers in
+   * registration order, what went wrong with the rest, or `unavailable`.
+   */
+  gather<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "collect">,
+    payload: z.input<TRequest>,
+  ): Promise<BusCollection<z.output<TResponse>>>;
+
+  /**
+   * Own a request contract, or answer a collect contract among others: the
+   * handler sees only valid requests, and its reply leaves only when the
+   * contract accepts it. A request contract has one owner; a second throws.
+   * An execution-only process answers only with `everyProcess`, as
+   * `subscribeExecution` does.
    */
   answer<TRequest extends z.ZodType, TResponse extends z.ZodType>(
-    contract: BusContract<TRequest, TResponse, "request">,
+    contract: BusContract<TRequest, TResponse, "request" | "collect">,
     handler: (request: z.output<TRequest>) => Promise<z.input<TResponse>>,
+    options?: { everyProcess?: boolean },
   ): () => void;
 
   /**

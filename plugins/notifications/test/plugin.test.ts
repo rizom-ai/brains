@@ -1,15 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { NOTIFICATION_FAILURES } from "@brains/contracts";
+import {
+  NOTIFICATION_FAILURES,
+  notificationsSendContract,
+  type SendNotificationResult,
+} from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type {
   ChannelDeliveryInput,
   ChannelDeliveryResult,
 } from "@brains/plugins";
-import {
-  NOTIFICATIONS_SEND,
-  NotificationsPlugin,
-  type SendNotificationResult,
-} from "../src";
+import { NotificationsPlugin } from "../src";
 
 /**
  * Registers an email transport the way a message interface would, so the
@@ -65,7 +65,7 @@ describe("NotificationsPlugin", () => {
     await harness.finalizeRegistration();
 
     const result = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
+      notificationsSendContract.name,
       {
         recipient: { type: "email", address: "user@example.com" },
         title: "Set up your Rover",
@@ -97,7 +97,7 @@ describe("NotificationsPlugin", () => {
     }).register(harness.getMockShell(), { executionOnly: true });
     harness.getMockShell().getChannelRegistry().finalize();
     const result = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
+      notificationsSendContract.name,
       {
         title: "Contact request",
         body: "Open the authenticated Inbox.",
@@ -124,7 +124,7 @@ describe("NotificationsPlugin", () => {
     await harness.finalizeRegistration();
 
     const result = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
+      notificationsSendContract.name,
       { title: "New sightings", body: "Two agents sighted." },
     );
 
@@ -153,11 +153,11 @@ describe("NotificationsPlugin", () => {
     const first = await harness.sendMessage<
       typeof payload,
       SendNotificationResult
-    >(NOTIFICATIONS_SEND, payload);
+    >(notificationsSendContract.name, payload);
     const second = await harness.sendMessage<
       typeof payload,
       SendNotificationResult
-    >(NOTIFICATIONS_SEND, payload);
+    >(notificationsSendContract.name, payload);
 
     expect(first).toEqual({ status: "sent", deliveryId: "email_1" });
     expect(second).toEqual({ status: "sent", deliveryId: "email_2" });
@@ -179,7 +179,7 @@ describe("NotificationsPlugin", () => {
       .getMockShell()
       .getMessageBus()
       .send({
-        type: NOTIFICATIONS_SEND,
+        type: notificationsSendContract.name,
         payload: {
           recipient: { type: "email", address: "user@example.com" },
           title: "New contact request",
@@ -201,7 +201,7 @@ describe("NotificationsPlugin", () => {
     await harness.finalizeRegistration();
 
     const response = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
+      notificationsSendContract.name,
       {
         recipient: { type: "email", address: "user@example.com" },
         title: "Set up your Rover",
@@ -235,7 +235,7 @@ describe("unset recipient env interpolation", () => {
         .getMockShell()
         .getMessageBus()
         .send({
-          type: NOTIFICATIONS_SEND,
+          type: notificationsSendContract.name,
           payload: { title: "Contact request", body: "Open the Inbox." },
           sender: "contact",
         });

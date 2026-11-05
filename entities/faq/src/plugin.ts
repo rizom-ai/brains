@@ -11,11 +11,7 @@ import {
   EntityPlugin,
   UserPermissionLevelSchema,
 } from "@brains/plugins";
-import {
-  ENTITY_CHANNELS,
-  GUEST_ASKED_BEFORE_CHANNEL,
-  askedBeforeRequestSchema,
-} from "@brains/contracts";
+import { ENTITY_CHANNELS, askedBeforeContract } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, type FaqAdapter } from "./adapters/faq-adapter";
 import {
@@ -158,16 +154,8 @@ export class FaqPlugin extends EntityPlugin<
         sameQuestionDistance: this.config.sameQuestionDistance,
         ai: context.ai,
       };
-      context.messaging.subscribe(
-        GUEST_ASKED_BEFORE_CHANNEL,
-        async (message) => {
-          const request = askedBeforeRequestSchema.safeParse(message.payload);
-          if (!request.success) return { success: true, data: {} };
-          return {
-            success: true,
-            data: await answerAskedBefore(askedBeforeDeps, request.data),
-          };
-        },
+      context.messaging.answer(askedBeforeContract, (request) =>
+        answerAskedBefore(askedBeforeDeps, request),
       );
     }
 

@@ -91,22 +91,21 @@ export {
   type ToolResultData,
 } from "./agent-response";
 export {
-  GUEST_ASKED_BEFORE_CHANNEL,
+  askedBeforeContract,
   askedBeforeRequestSchema,
   askedBeforeHitSchema,
   askedBeforeResponseSchema,
-  firstAskedBeforeHit,
   type AskedBeforeRequest,
   type AskedBeforeHit,
   type AskedBeforeResponse,
 } from "./asked-before";
 export {
-  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextAnswerSchema,
+  agentContextContract,
   agentContextPermissionLevelSchema,
   agentContextRequestSchema,
   agentContextItemSchema,
   agentContextResponseSchema,
-  parseAgentContextItems,
   type AgentContextRequest,
   type AgentContextItem,
   type AgentContextResponse,
@@ -126,7 +125,7 @@ export {
   type LegacyActorIdentity,
 } from "./actor-ref";
 export {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   authPrincipalAttributionSchema,
   authPrincipalResolveRequestSchema,
   authPrincipalResolveResponseSchema,
@@ -301,6 +300,8 @@ export {
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,
+  projectionWaveAckSchema,
+  projectionWaveReadyContract,
   type ProjectionWaveReady,
 } from "./projection-wave";
 export {
@@ -351,7 +352,7 @@ export {
   type UpdateEntityResponse,
 } from "./response-types";
 export {
-  NOTIFICATIONS_SEND,
+  notificationsSendContract,
   NOTIFICATION_FAILURES,
   notificationFailureCode,
   notificationRecipientSchema,
@@ -411,6 +412,7 @@ export {
 export { WEB_ROUTE_ROLES, type WebRouteRole } from "./web-route-role";
 export {
   defineBusContract,
+  type BusCollection,
   type BusContract,
   type BusDelivery,
   type BusResult,

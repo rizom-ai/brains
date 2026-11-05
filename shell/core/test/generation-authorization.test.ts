@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   authPrincipalResolveRequestSchema,
   type AuthPrincipalAttribution,
 } from "@brains/contracts";
@@ -24,7 +24,7 @@ describe("generation's live principal resolver", () => {
       displayName: "Writer",
       permissionLevel: "trusted",
     };
-    bus.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async (message) => {
+    bus.subscribe(authPrincipalResolveContract.name, async (message) => {
       expect(message.source).toBe("shell:content-service");
       expect(
         authPrincipalResolveRequestSchema.parse(message.payload).actor,
@@ -55,15 +55,14 @@ describe("generation's live principal resolver", () => {
     const denied = await authorizer
       .admit(caller)
       .catch((error: unknown) => error);
-    expect(denied).toMatchObject({
-      name: "Error",
-      message: "Principal resolution unavailable",
-    });
+    // No auth runtime resolves no principal: a permanent denial, not an
+    // outage to retry.
+    expect(denied).toBeInstanceOf(GenerationAuthorizationError);
   });
 
   test("auth infrastructure failures are not misclassified as permission denials", async () => {
     const bus = MessageBus.createFresh(createSilentLogger());
-    bus.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async () => ({
+    bus.subscribe(authPrincipalResolveContract.name, async () => ({
       success: false,
       error: "database unavailable",
     }));
@@ -74,9 +73,10 @@ describe("generation's live principal resolver", () => {
     const denied = await authorizer
       .admit(caller)
       .catch((error: unknown) => error);
+    expect(denied).not.toBeInstanceOf(GenerationAuthorizationError);
     expect(denied).toMatchObject({
       name: "Error",
-      message: "Principal resolution unavailable",
+      message: "database unavailable",
     });
   });
 });

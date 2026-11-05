@@ -1,14 +1,11 @@
 import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-  authPrincipalResolveResponseSchema,
+  authPrincipalResolveContract,
   type ActorRef,
+  type AuthPrincipalResolveResponse,
 } from "@brains/contracts";
-import type { MessageBus } from "@brains/messaging-service";
-import type { z } from "@brains/utils/zod";
+import { requestContract, type IMessageBus } from "@brains/messaging-service";
 
-export type ResolvedPrincipal = z.output<
-  typeof authPrincipalResolveResponseSchema
->["principal"];
+export type ResolvedPrincipal = AuthPrincipalResolveResponse["principal"];
 
 /**
  * The one transport for resolving an actor to its auth principal. Returns null
@@ -17,16 +14,17 @@ export type ResolvedPrincipal = z.output<
  * (durable work) or a soft miss (identity display).
  */
 export async function resolvePrincipalViaBus(
-  messageBus: Pick<MessageBus, "send">,
+  messageBus: Pick<IMessageBus, "send" | "getHandlerCount">,
   sender: string,
   actor: ActorRef,
 ): Promise<ResolvedPrincipal | null> {
-  const response = await messageBus.send({
-    type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  const result = await requestContract(
+    messageBus,
+    authPrincipalResolveContract,
+    { actor },
     sender,
-    payload: { actor },
-  });
-  if ("noop" in response) return null;
-  if (!response.success) throw new Error("Principal resolution unavailable");
-  return authPrincipalResolveResponseSchema.parse(response.data).principal;
+  );
+  if (result.status === "unavailable") return null;
+  if (result.status === "failed") throw new Error(result.error);
+  return result.data.principal;
 }

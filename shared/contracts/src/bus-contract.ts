@@ -24,6 +24,11 @@ export interface BusContract<
   readonly delivery: TDelivery;
 }
 
+/** What a collect contract's sender gets: every valid answer, and what went wrong with the rest. */
+export type BusCollection<T> =
+  | { status: "answered"; answers: T[]; failures: string[] }
+  | { status: "unavailable" };
+
 /** A sender's view of a contract call. */
 export type BusResult<T> =
   | { status: "answered"; data: T }

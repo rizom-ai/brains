@@ -27,3 +27,8 @@ export type {
   MessageValidationResult,
   MessageValidationSchema,
 } from "./message-validator";
+export {
+  answerContract,
+  collectContract,
+  requestContract,
+} from "./bus-contracts";

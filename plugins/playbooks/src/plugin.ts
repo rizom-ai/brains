@@ -1,17 +1,15 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
-  AGENT_CONTEXT_REQUEST_CHANNEL,
   ENTITY_CHANNELS,
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   agentActionRequestSchema,
-  agentContextRequestSchema,
   lifecycleStarterRegistrationSchema,
   type AgentActionRequest,
   type AgentContextItem,
-  type AgentContextResponse,
   type AgentResponse,
   type ActionsCard,
   type LifecycleStarterRegistration,
+  agentContextContract,
 } from "@brains/contracts";
 import {
   assertValidPlaybookBody,
@@ -404,14 +402,10 @@ export class PlaybooksPlugin extends ServicePlugin<
       return { success: true, data: result };
     });
 
-    context.messaging.subscribe<unknown, AgentContextResponse>(
-      AGENT_CONTEXT_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentContextRequestSchema.parse(message.payload);
-        const item = await this.buildAgentContextItem(request.conversationId);
-        return { success: true, data: { items: item ? [item] : [] } };
-      },
-    );
+    context.messaging.answer(agentContextContract, async (request) => {
+      const item = await this.buildAgentContextItem(request.conversationId);
+      return { items: item ? [item] : [] };
+    });
 
     context.messaging.subscribe<unknown, AgentResponse>(
       AGENT_ACTION_REQUEST_CHANNEL,

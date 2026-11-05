@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  parseAgentContextItems,
+  agentContextAnswerSchema,
   type AgentContextItem,
 } from "../src/agent-context";
 
@@ -12,25 +12,27 @@ const validItem: AgentContextItem = {
   provenance: { entityType: "summary", spaceId: "discord:1" },
 };
 
-describe("parseAgentContextItems", () => {
-  it("returns valid items unchanged", () => {
-    const items = parseAgentContextItems({ items: [validItem] });
-    expect(items).toEqual([validItem]);
-  });
-
-  it("drops a single malformed item instead of discarding the whole batch", () => {
-    const items = parseAgentContextItems({
-      items: [validItem, { ...validItem, id: "summary-2", content: "" }],
+describe("agentContextAnswerSchema", () => {
+  it("keeps valid items unchanged", () => {
+    expect(agentContextAnswerSchema.parse({ items: [validItem] })).toEqual({
+      items: [validItem],
     });
-    expect(items).toEqual([validItem]);
   });
 
-  it("returns [] for a non-object payload", () => {
-    expect(parseAgentContextItems(null)).toEqual([]);
-    expect(parseAgentContextItems("nope")).toEqual([]);
+  it("drops a single malformed item instead of discarding the whole answer", () => {
+    expect(
+      agentContextAnswerSchema.parse({
+        items: [validItem, { ...validItem, id: "summary-2", content: "" }],
+      }),
+    ).toEqual({ items: [validItem] });
+  });
+
+  it("refuses an answer that is not an object", () => {
+    expect(agentContextAnswerSchema.safeParse(null).success).toBe(false);
+    expect(agentContextAnswerSchema.safeParse("nope").success).toBe(false);
   });
 
   it("defaults missing items to an empty array", () => {
-    expect(parseAgentContextItems({})).toEqual([]);
+    expect(agentContextAnswerSchema.parse({})).toEqual({ items: [] });
   });
 });

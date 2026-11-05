@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
-  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextContract,
 } from "@brains/contracts";
 import {
   playbookAdapter,
@@ -2393,7 +2393,7 @@ describe("PlaybooksPlugin", () => {
         userPermissionLevel: "admin";
       },
       { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
+    >(agentContextContract.name, {
       conversationId: "web-agent-context",
       message: "what next?",
       interfaceType: "web-chat",
@@ -2440,7 +2440,7 @@ describe("PlaybooksPlugin", () => {
         userPermissionLevel: "admin";
       },
       { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
+    >(agentContextContract.name, {
       conversationId: "web-agent-context-completed",
       message: "transform it now",
       interfaceType: "web-chat",
@@ -2506,7 +2506,7 @@ describe("PlaybooksPlugin", () => {
         userPermissionLevel: "admin";
       },
       { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
+    >(agentContextContract.name, {
       conversationId: "web-actionable-context",
       message: "what next?",
       interfaceType: "web-chat",

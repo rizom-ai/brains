@@ -1,7 +1,6 @@
 import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   EMAIL_SOURCE_READ,
-  authPrincipalResolveResponseSchema,
   createExternalActorId,
   emailSourceReadRequestSchema,
   type EmailSourceReadRequest,
@@ -308,9 +307,9 @@ export class EmailInterface extends MessageInterfacePlugin<
   private async resolveInboundSender(
     address: string,
   ): Promise<InboundEmailSender | undefined> {
-    const response = await this.getContext().messaging.send({
-      type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-      payload: {
+    const resolution = await this.getContext().messaging.request(
+      authPrincipalResolveContract,
+      {
         actor: {
           kind: "external",
           externalActorId: createExternalActorId(
@@ -319,15 +318,9 @@ export class EmailInterface extends MessageInterfacePlugin<
           ),
         },
       },
-    });
-    if ("noop" in response || !response.success) return undefined;
-
-    const resolution = authPrincipalResolveResponseSchema.safeParse(
-      response.data,
     );
-    const principal = resolution.success
-      ? resolution.data.principal
-      : undefined;
+    const principal =
+      resolution.status === "answered" ? resolution.data.principal : undefined;
     return principal
       ? {
           personId: principal.personId,

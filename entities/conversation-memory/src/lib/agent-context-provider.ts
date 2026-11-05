@@ -1,6 +1,5 @@
 import {
-  AGENT_CONTEXT_REQUEST_CHANNEL,
-  agentContextRequestSchema,
+  agentContextContract,
   type AgentContextItem,
   type AgentContextRequest,
   type AgentContextResponse,
@@ -18,13 +17,8 @@ const RECENT_AGENT_CONTEXT_LIMIT = 3;
 export function registerConversationMemoryAgentContext(
   context: EntityPluginContext,
 ): void {
-  context.messaging.subscribe(
-    AGENT_CONTEXT_REQUEST_CHANNEL,
-    async (message) => {
-      const request = agentContextRequestSchema.parse(message.payload);
-      const data = await buildConversationMemoryAgentContext(context, request);
-      return { success: true, data };
-    },
+  context.messaging.answer(agentContextContract, (request) =>
+    buildConversationMemoryAgentContext(context, request),
   );
 }
 

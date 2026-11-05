@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { EventEmitter } from "node:events";
 import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   authPrincipalResolveRequestSchema,
   createExternalActorId,
 } from "@brains/contracts";
@@ -508,7 +508,7 @@ describe("inbound email intake", () => {
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     const harness = createPluginHarness<EmailInterface>({ logger });
-    harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async (message) => {
+    harness.subscribe(authPrincipalResolveContract.name, async (message) => {
       const request = authPrincipalResolveRequestSchema.parse(message.payload);
       expect(request.actor).toEqual({
         kind: "external",
@@ -566,7 +566,7 @@ describe("inbound email intake", () => {
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     const harness = createPluginHarness<EmailInterface>({ logger });
-    harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async () => {
+    harness.subscribe(authPrincipalResolveContract.name, async () => {
       throw new Error("alice@example.com must not leak");
     });
     await harness.installPlugin(

@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress; Phase 1 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`, the messaging namespace has `request` and `answer`, and `note:capture` is the first contract.
+**In progress; Phases 1 and 2 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather` and `answer`. Contracts so far: `note:capture`, `auth:principal:resolve`, `notifications:send`, `agent:context:request`, `guest:asked-before` and `projection:wave-ready`.
 
 35 live message-bus channels carry requests or commands across package boundaries. Fourteen run from shell code to a plugin, and 21 run between plugins. Two typed context namespaces wrap a few of them: `context.dashboard` (four channels) and `context.studio` (two). Everything else is a raw `messaging.send({ type, payload })` whose reply the caller casts to the type it expects.
 
@@ -41,7 +41,7 @@ Existing schemas move into contracts as they are migrated, and no schema is rest
 
 ### The messaging namespace speaks contracts
 
-`IMessagingNamespace` gains `request(contract, payload)`, `collect(contract, payload)`, `command(contract, payload)` and `answer(contract, handler)`.
+`IMessagingNamespace` gains `request(contract, payload)`, `gather(contract, payload)` for collect contracts, `command(contract, payload)` and `answer(contract, handler, { everyProcess? })`. The raw `collect` and `send` stay until Phase 7 retires them.
 
 - `request` and `collect` validate the request before sending and each answer on receipt. They return `{ status: "answered", data } | { status: "unavailable" } | { status: "failed", error }`. `unavailable` is decided by the bus from the subscriber set, so it is never inferred from an error string.
 - `answer` parses the request and refuses an invalid one, then validates the handler's reply against the response schema before it leaves the handler's plugin. A reply that fails validation is a `failed` result at the sender and an error in the handler's log.
@@ -72,12 +72,6 @@ The public `@rizom/brain` authoring SDK does not gain contracts in this plan. Ex
 ## Phases
 
 Phases land as commits on one branch and PR, opened after the walking skeleton. Each phase leaves every channel either fully migrated or untouched.
-
-### Phase 2 — Shell-to-plugin channels
-
-`auth:principal:resolve` (an absent auth runtime now resolves to null as documented), `notifications:send`, `agent:context:request` and `guest:asked-before` (both `collect`), and `projection:wave-ready` (`collect` acknowledgement). The dead `"noop" in response` checks go with them.
-
-Gate: a brain booted without auth-service, notifications or site-builder runs each sender's absent path.
 
 ### Phase 3 — Plugin channels that already share schemas
 

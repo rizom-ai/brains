@@ -1,10 +1,5 @@
-import type { MessageBus } from "@brains/messaging-service";
-import {
-  NOTIFICATIONS_SEND,
-  sendNotificationResultSchema,
-  type SendNotificationInput,
-  type SendNotificationResult,
-} from "@brains/contracts";
+import { requestContract, type MessageBus } from "@brains/messaging-service";
+import { notificationsSendContract } from "@brains/contracts";
 import type {
   RecurringCheckDelivery,
   RecurringAlert,
@@ -15,24 +10,18 @@ export function createRecurringCheckDelivery(
 ): RecurringCheckDelivery {
   return {
     deliver: async (alert: RecurringAlert): Promise<boolean> => {
-      if (!messageBus.hasHandlers(NOTIFICATIONS_SEND)) return false;
-      const response = await messageBus.send<
-        SendNotificationInput,
-        SendNotificationResult
-      >({
-        type: NOTIFICATIONS_SEND,
-        payload: {
+      const result = await requestContract(
+        messageBus,
+        notificationsSendContract,
+        {
           title: alert.title,
           body: alert.body,
           ...(alert.html ? { html: alert.html } : {}),
         },
-        sender: "shell.recurring-checks",
-      });
-      if (!("success" in response) || !response.success || !response.data) {
-        throw new Error("Recurring alert delivery failed");
-      }
-      const result = sendNotificationResultSchema.safeParse(response.data);
-      if (!result.success || result.data.status !== "sent") {
+        "shell.recurring-checks",
+      );
+      if (result.status === "unavailable") return false;
+      if (result.status === "failed" || result.data.status !== "sent") {
         throw new Error("Recurring alert delivery failed");
       }
       return true;

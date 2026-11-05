@@ -10,11 +10,9 @@ import {
 } from "@brains/plugins";
 import { createElement, type ReactElement } from "react";
 import {
-  NOTIFICATIONS_SEND,
+  notificationsSendContract,
   SITE_BUILDER_CHANNELS,
   notificationFailureCode,
-  type SendNotificationInput,
-  type SendNotificationResult,
 } from "@brains/contracts";
 import {
   SITE_METADATA_GET_CHANNEL,
@@ -152,25 +150,23 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
         const inbox = this.inboxUrl(context);
         if (!inbox) return { sent: false, failure: "no-inbox" };
-        const result = await context.messaging.send<
-          SendNotificationInput,
-          SendNotificationResult
-        >({
-          type: NOTIFICATIONS_SEND,
-          payload: {
+        const result = await context.messaging.request(
+          notificationsSendContract,
+          {
             title: "New contact request",
             body: `A contact request is saved in your authenticated Inbox.\n\n${inbox}`,
             sensitivity: "secret",
             idempotencyKey,
           },
-        });
-        if ("noop" in result) return { sent: false, failure: "no-notifier" };
-        if (!result.success)
+        );
+        if (result.status === "unavailable")
+          return { sent: false, failure: "no-notifier" };
+        if (result.status === "failed")
           return {
             sent: false,
             failure: notificationFailureCode(result.error),
           };
-        return result.data?.status === "sent"
+        return result.data.status === "sent"
           ? { sent: true }
           : { sent: false, failure: "unconfirmed" };
       },

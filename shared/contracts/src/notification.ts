@@ -1,6 +1,5 @@
 import { z } from "@brains/utils/zod";
-
-export const NOTIFICATIONS_SEND = "notifications:send" as const;
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 /** Why notifications:send refused: its response error, stable for senders to read. */
 export const NOTIFICATION_FAILURES: {
@@ -101,3 +100,15 @@ export type NotificationSensitivity = ParsedSendNotification["sensitivity"];
 export type SendNotificationResult = z.output<
   typeof sendNotificationResultSchema
 >;
+
+/** Deliver a notification to its recipient; the notifications plugin owns it. */
+export const notificationsSendContract: BusContract<
+  SendNotificationSchema,
+  SendNotificationResultSchema,
+  "request"
+> = defineBusContract({
+  channel: "notifications:send",
+  request: sendNotificationSchema,
+  response: sendNotificationResultSchema,
+  delivery: "request",
+});
