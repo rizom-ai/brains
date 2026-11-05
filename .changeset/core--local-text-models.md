@@ -14,3 +14,5 @@ Object generation on a local text model sends its JSON schema to the runtime, wh
 `reasoningEffort` in `brain.yaml` reaches local text models as the runtime's `reasoning_effort`; `reasoningEffort: none` turns a model's thinking off.
 
 A local text model thinks while it chooses its tools and answers a tool result without thinking; on a runtime that generates about 20 tokens a second this removes most of a turn's answer time. Its searches return five hits of at most 800 characters each instead of ten of 3,000, so the model reads results in seconds.
+
+`answerModel` in `brain.yaml` names a `local:` model that answers tool results while `model` chooses the tools, so a reasoning model makes the calls and a fast one writes the answer. The deploy pulls it with the other local models.

@@ -40,6 +40,7 @@ export class AIService implements IAIService {
   private providers: ProviderClients;
   private capabilities: TextModelCapabilities;
   private cachedModel: LanguageModel | null = null;
+  private cachedAnswerModel: LanguageModel | null = null;
 
   public static createFresh(
     config: AIModelConfig,
@@ -70,6 +71,14 @@ export class AIService implements IAIService {
       this.requireTextModel(),
     );
     return this.cachedModel;
+  }
+
+  /** The model that answers tool results, when one is configured. */
+  public getAnswerModel(): LanguageModel | undefined {
+    const answerModel = this.config.answerModel;
+    if (!answerModel) return undefined;
+    this.cachedAnswerModel ??= getLanguageModel(this.providers, answerModel);
+    return this.cachedAnswerModel;
   }
 
   /**
@@ -216,6 +225,9 @@ export class AIService implements IAIService {
     if (keyFieldsChanged) {
       this.providers = createProviderClients(this.config);
       this.cachedModel = null;
+    }
+    if (keyFieldsChanged || config.answerModel !== undefined) {
+      this.cachedAnswerModel = null;
     }
     if (modelChanged) {
       this.capabilities = resolveTextModelCapabilities(this.config.model);

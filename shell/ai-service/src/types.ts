@@ -23,6 +23,8 @@ export interface AIModelConfig {
   reasoningEffort?: ReasoningEffort;
   /** The model runtime serving `local:` models. */
   modelRuntimeUrl?: string;
+  /** A `local:` model that answers tool results in place of `model`. */
+  answerModel?: string;
 }
 
 export type AIModelConfigUpdate = Partial<AIModelConfig>;
@@ -82,6 +84,9 @@ export interface IAIService {
   getConfig(): AIModelConfig;
 
   getModel(): LanguageModel;
+
+  /** The model that answers tool results, when one is configured. */
+  getAnswerModel?(): LanguageModel | undefined;
 
   /**
    * Generate an image from a text prompt

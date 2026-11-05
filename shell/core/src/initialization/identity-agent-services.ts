@@ -258,6 +258,7 @@ export function initializeIdentityAndAgentServices(
     // otherwise their cost is unknown and charged the answer cap.
     guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
+    answerModel: aiService.getAnswerModel?.(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,

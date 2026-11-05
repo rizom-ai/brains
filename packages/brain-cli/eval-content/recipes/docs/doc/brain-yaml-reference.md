@@ -186,6 +186,20 @@ OLLAMA_CONTEXT_LENGTH=32768 ollama serve
 
 Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.
 
+### `answerModel`
+
+A `local:` model that answers tool results while `model` chooses the tools. A reasoning model makes the calls and a fast model writes the answer; on a local runtime this cuts most of a turn's answer time. It must be a `local:` model, and the deploy pulls it with the others.
+
+```yaml
+model: local:qwen3:30b-a3b
+answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+Without `answerModel`, a local `model` answers tool results with its reasoning switched off.
+
 ### `embedding`
 
 Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.

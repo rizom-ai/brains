@@ -39,7 +39,7 @@ raise "Missing domain in brain.yaml" if brain_domain.nil? || brain_domain.to_s.s
 
 brain_domain = brain_domain.to_s.strip
 # The models a local runtime serves: brain.yaml's local: models, unprefixed.
-local_models = [config["embeddingModel"], config["model"]]
+local_models = [config["embeddingModel"], config["model"], config["answerModel"]]
   .map(&:to_s)
   .select { |model| model.start_with?("local:") }
   .map { |model| model.delete_prefix("local:") }

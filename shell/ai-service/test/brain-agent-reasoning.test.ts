@@ -95,3 +95,46 @@ describe("reasoning across agent steps", () => {
     expect(second).toMatchObject({ openai: { reasoningEffort: "low" } });
   });
 });
+
+describe("the answer model", () => {
+  it("answers a tool result in place of the model that chose the tool", async () => {
+    const decider = searchingModel();
+    const answerer = new MockLanguageModelV3({
+      doGenerate: async (): Promise<ModelResponse> => ({
+        content: [{ type: "text", text: "Found it." }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage,
+        warnings: [],
+      }),
+    });
+    const agent = createBrainAgentFactory({
+      model: decider,
+      answerModel: answerer,
+      modelId: "local:qwen3:30b-a3b",
+      messageBus: createMockMessageBus(),
+    })({
+      identity: {
+        name: "Brain",
+        role: "Researcher",
+        purpose: "Help",
+        values: [],
+      },
+      tools: [search],
+      getToolsForPermission: () => [search],
+    });
+
+    const result = await agent.generate({
+      messages: [{ role: "user", content: "Find the white paper" }],
+      options: {
+        conversationId: "conv-1",
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+      },
+    });
+
+    expect(decider.doGenerateCalls).toHaveLength(1);
+    expect(answerer.doGenerateCalls).toHaveLength(1);
+    expect(result.text).toBe("Found it.");
+  });
+});

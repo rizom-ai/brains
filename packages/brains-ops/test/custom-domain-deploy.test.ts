@@ -245,6 +245,20 @@ describe("rover-pilot custom-domain deploy scripts", () => {
         ].join("\n"),
       ),
     ).toBe("embeddinggemma-2:270m");
+    expect(
+      await localModelsFor(
+        [
+          "brain: brain",
+          "domain: alice.rizom.ai",
+          "model: local:qwen3:30b-a3b",
+          "answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+          "embeddingModel: local:embeddinggemma-2:270m",
+          "",
+        ].join("\n"),
+      ),
+    ).toBe(
+      "qwen3:30b-a3b,qwen3:30b-a3b-instruct-2507-q4_K_M,embeddinggemma-2:270m",
+    );
   });
 
   it("loads the generated predeploy backup without private workspace dependencies", async () => {

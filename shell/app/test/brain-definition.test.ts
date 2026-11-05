@@ -304,6 +304,20 @@ describe("resolve", () => {
     ).toBe("openai:text-embedding-3-large");
   });
 
+  test("should resolve the answer model from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(
+      resolve(def, {}, { answerModel: "local:qwen3:30b-a3b-instruct" })
+        .aiAnswerModel,
+    ).toBe("local:qwen3:30b-a3b-instruct");
+  });
+
   test("should resolve the model runtime URL from overrides", () => {
     const def = defineBrain({
       name: "test",

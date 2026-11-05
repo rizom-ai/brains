@@ -116,6 +116,7 @@ type AppConfigSchema = z.ZodObject<{
   aiModel: z.ZodOptional<z.ZodString>;
   aiEmbeddingModel: z.ZodOptional<z.ZodString>;
   aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
+  aiAnswerModel: z.ZodOptional<z.ZodString>;
   aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
@@ -138,6 +139,7 @@ export const appConfigSchema: AppConfigSchema = z.object({
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
   aiEmbeddingModel: z.string().optional(), // Embedding model, "provider:model"
   aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models
+  aiAnswerModel: z.string().optional(), // Local model answering tool results
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file

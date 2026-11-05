@@ -97,6 +97,7 @@ export const shellConfigSchema: z.ZodObject<{
     model: z.ZodString;
     embeddingModel: z.ZodDefault<z.ZodString>;
     modelRuntimeUrl: z.ZodOptional<z.ZodString>;
+    answerModel: z.ZodOptional<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
@@ -158,15 +159,27 @@ export const shellConfigSchema: z.ZodObject<{
         .default(DEFAULT_EMBEDDING_MODEL),
       /** The model runtime serving `local:` models (brain.yaml `modelRuntime.url`). */
       modelRuntimeUrl: z.string().url().optional(),
+      /** A `local:` model that answers tool results in place of `model`. */
+      answerModel: z.string().optional(),
       temperature: z.number().min(0).max(2).default(0.7),
       maxTokens: z.number().positive().default(1000),
       webSearch: z.boolean().default(true),
       reasoningEffort: reasoningEffortSchema.optional(),
     })
     .superRefine((ai, context) => {
+      if (ai.answerModel && selectTextProvider(ai.answerModel) !== "local") {
+        context.addIssue({
+          code: "custom",
+          path: ["answerModel"],
+          message: `answerModel must be a local: model, not ${ai.answerModel}`,
+        });
+      }
       if (ai.modelRuntimeUrl) return;
       const localModels = [
         ...(selectTextProvider(ai.model) === "local" ? [ai.model] : []),
+        ...(ai.answerModel && selectTextProvider(ai.answerModel) === "local"
+          ? [ai.answerModel]
+          : []),
         ...(findEmbeddingProfile(ai.embeddingModel)?.provider === "local"
           ? [ai.embeddingModel]
           : []),

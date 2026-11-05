@@ -118,6 +118,7 @@ describe("the standalone deploy", () => {
   it("derives the local models from brain.yaml", () => {
     const script = renderExtractBrainConfigScript();
     expect(script).toContain('config["embeddingModel"]');
+    expect(script).toContain('config["answerModel"]');
     expect(script).toContain('file.puts("LOCAL_MODELS=#{local_models}")');
   });
 

@@ -103,6 +103,11 @@ export function shouldStopToolLoop(input: {
  */
 export interface BrainAgentFactoryOptions {
   model: LanguageModel;
+  /**
+   * Answers a tool result in place of `model`, which keeps choosing tools:
+   * a fast model writes the answer while a reasoning one makes the calls.
+   */
+  answerModel?: LanguageModel | undefined;
   modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
@@ -125,6 +130,7 @@ export function createBrainAgentFactory(
 ): BrainAgentFactory {
   const {
     model,
+    answerModel,
     modelId,
     webSearch,
     temperature,
@@ -159,16 +165,18 @@ export function createBrainAgentFactory(
     const agent = new ToolLoopAgent({
       model,
       callOptionsSchema: brainCallOptionsSchema,
-      // A local model thinks to choose its tools, then answers a tool result
-      // without thinking: on a runtime that generates ~20 tokens/s, answer
-      // reasoning cost most of a turn while tool choice is where it pays.
+      // A tool result is answered by the answer model when one is set;
+      // otherwise a local model answers it without thinking. On a runtime that
+      // generates ~20 tokens/s, answer reasoning cost most of a turn, while
+      // tool choice is where reasoning pays.
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-      prepareStep: ({ steps }) =>
-        capabilities.provider === "local" &&
-        reasoning &&
-        steps.at(-1)?.toolResults.length
+      prepareStep: ({ steps }) => {
+        if (!steps.at(-1)?.toolResults.length) return {};
+        if (answerModel) return { model: answerModel };
+        return capabilities.provider === "local" && reasoning
           ? { providerOptions: { local: { reasoningEffort: "none" } } }
-          : {},
+          : {};
+      },
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: async ({ options: callOptions, ...settings }) => {

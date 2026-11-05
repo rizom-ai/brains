@@ -40,6 +40,7 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
     ...(config.ai.modelRuntimeUrl
       ? { modelRuntimeUrl: config.ai.modelRuntimeUrl }
       : {}),
+    ...(config.ai.answerModel ? { answerModel: config.ai.answerModel } : {}),
   };
 }
 

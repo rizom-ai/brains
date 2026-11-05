@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
+import { AIService } from "../src/aiService";
 import {
   createProviderClients,
   getLanguageModel,
@@ -40,5 +42,33 @@ describe("language models", () => {
     expect(() => getLanguageModel(clients, "local:qwen3:4b")).toThrow(
       "local:qwen3:4b needs modelRuntime.url",
     );
+  });
+});
+
+describe("the answer model", () => {
+  it("is served from the model runtime when configured", () => {
+    const ai = AIService.createFresh(
+      {
+        model: "local:qwen3:30b-a3b",
+        answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+        modelRuntimeUrl: "http://models:11434",
+      },
+      createSilentLogger(),
+    );
+
+    const answer = ai.getAnswerModel();
+
+    expect(typeof answer === "object" ? answer.modelId : answer).toBe(
+      "qwen3:30b-a3b-instruct-2507-q4_K_M",
+    );
+  });
+
+  it("is absent unless configured", () => {
+    const ai = AIService.createFresh(
+      { model: "local:qwen3:30b-a3b", modelRuntimeUrl: "http://models:11434" },
+      createSilentLogger(),
+    );
+
+    expect(ai.getAnswerModel()).toBeUndefined();
   });
 });

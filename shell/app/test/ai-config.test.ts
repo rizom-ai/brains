@@ -53,6 +53,13 @@ describe("resolveAIConfig", () => {
     ).toBe("http://localhost:11434");
   });
 
+  it("passes the answer model through", () => {
+    expect(
+      resolveAIConfig({}, { answerModel: "local:qwen3:30b-a3b-instruct" })
+        .aiAnswerModel,
+    ).toBe("local:qwen3:30b-a3b-instruct");
+  });
+
   it("does not set an embedding model when none is configured", () => {
     expect(
       resolveAIConfig({ AI_API_KEY: "sk-test" }).aiEmbeddingModel,

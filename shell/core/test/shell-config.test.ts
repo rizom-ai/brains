@@ -150,6 +150,43 @@ describe("shell config", () => {
     ).toBe("local:qwen3:4b");
   });
 
+  it("takes a local answer model from the model runtime", () => {
+    expect(
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "local:qwen3:30b-a3b",
+          answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.answerModel,
+    ).toBe("local:qwen3:30b-a3b-instruct-2507-q4_K_M");
+  });
+
+  it("rejects an answer model that is not local", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          answerModel: "openai:gpt-5.4-mini",
+        },
+      }),
+    ).toThrow(/answerModel must be a local: model/);
+  });
+
+  it("rejects a local answer model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+        },
+      }),
+    ).toThrow(/qwen3:30b-a3b-instruct-2507-q4_K_M needs modelRuntime\.url/);
+  });
+
   it("rejects a text model of an unknown provider", () => {
     expect(() =>
       createShellConfig({

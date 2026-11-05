@@ -81,6 +81,7 @@ type InstanceOverridesSchema = z.ZodObject<
     >;
     model: z.ZodOptional<z.ZodString>;
     embeddingModel: z.ZodOptional<z.ZodString>;
+    answerModel: z.ZodOptional<z.ZodString>;
     modelRuntime: z.ZodOptional<
       z.ZodObject<{ url: z.ZodString }, z.core.$strict>
     >;
@@ -186,6 +187,9 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
 
   /** Embedding model, e.g. "openai:text-embedding-3-large". Changing it rebuilds the semantic index. */
   embeddingModel: z.string().optional(),
+
+  /** A `local:` model that answers tool results while `model` chooses tools. */
+  answerModel: z.string().optional(),
 
   /** The model runtime serving `local:` models: an OpenAI-compatible API. */
   modelRuntime: z.strictObject({ url: z.string() }).optional(),

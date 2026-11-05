@@ -449,6 +449,7 @@ function resolveRuntimeDefinition(
       ...(overrides?.modelRuntime && {
         modelRuntimeUrl: overrides.modelRuntime.url,
       }),
+      ...(overrides?.answerModel && { answerModel: overrides.answerModel }),
       ...(effectiveReasoningEffort && {
         reasoningEffort: effectiveReasoningEffort,
       }),
