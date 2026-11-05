@@ -93,18 +93,6 @@ module.exports = {
   },
   overrides: [
     {
-      files: ["**/src/**/*.ts", "**/src/**/*.tsx"],
-      excludedFiles: [
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/src/test/**",
-        "**/entity-service/src/internal-scope.ts",
-      ],
-      rules: {
-        "no-restricted-syntax": ["error", ...restrictedSyntax, rawFullScope],
-      },
-    },
-    {
       // Enforce import pattern for entities, plugins, and interfaces - shell packages must go through @brains/plugins
       // Note: This applies to top-level entities/*, plugins/*, and interfaces/*, NOT shell/plugins (the plugins package itself)
       files: [
@@ -180,6 +168,18 @@ module.exports = {
             ],
           },
         ],
+      },
+    },
+    {
+      files: ["**/src/**/*.ts", "**/src/**/*.tsx"],
+      excludedFiles: [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+        "**/entity-service/src/internal-scope.ts",
+      ],
+      rules: {
+        "no-restricted-syntax": ["error", ...restrictedSyntax, rawFullScope],
       },
     },
   ],

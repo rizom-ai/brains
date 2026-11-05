@@ -22,12 +22,16 @@ const config = z
   .object({
     overrides: z.array(
       z.object({
-        rules: z.object({ "no-restricted-imports": restrictedImports }),
+        rules: z.object({
+          "no-restricted-imports": restrictedImports.optional(),
+        }),
       }),
     ),
   })
   .parse(createRequire(import.meta.url)("../shared/eslint-config/index.js"));
-const rule = config.overrides[0]?.rules["no-restricted-imports"];
+const rule = config.overrides.find(
+  (override) => override.rules["no-restricted-imports"],
+)?.rules["no-restricted-imports"];
 if (!rule) throw new Error("Missing shell import boundary rule");
 const linter = new Linter();
 
