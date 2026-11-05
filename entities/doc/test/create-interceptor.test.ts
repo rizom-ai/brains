@@ -3,6 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type {
   BaseEntity,
   CreateCheckResult,
+  CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
@@ -10,9 +11,15 @@ import { parseMarkdown } from "@brains/utils/markdown";
 import { DocsPlugin } from "../src/plugin";
 import { docAdapter } from "../src/adapters/doc-adapter";
 
-const executionContext = {
+const executionContext: CreateExecutionContext = {
   interfaceType: "test",
-  actor: { kind: "user" as const, userId: "test-user" },
+  actor: { kind: "user", userId: "test-user" },
+  userPermissionLevel: "admin",
+};
+
+const trustedContext: CreateExecutionContext = {
+  ...executionContext,
+  userPermissionLevel: "trusted",
 };
 
 const guide =
@@ -27,13 +34,18 @@ function expectUserFacing(question: string): void {
   }
 }
 
-function existingDoc(id: string, section: string, order: number): BaseEntity {
+function existingDoc(
+  id: string,
+  section: string,
+  order: number,
+  visibility: BaseEntity["visibility"] = "public",
+): BaseEntity {
   return {
     id,
     entityType: "doc",
     content: `---\ntitle: ${id}\nsection: ${section}\norder: ${order}\n---\n\nText`,
     contentHash: `hash-${id}`,
-    visibility: "public",
+    visibility,
     metadata: { title: id, section, order, slug: id, description: null },
     created: "2026-01-01T00:00:00.000Z",
     updated: "2026-01-01T00:00:00.000Z",
@@ -57,16 +69,20 @@ describe("DocsPlugin create interceptor", () => {
 
   async function intercept(
     input: CreateInput,
+    caller = executionContext,
   ): Promise<CreateInterceptionResult> {
     const interceptor = harness.getEntityRegistry().getCreateInterceptor("doc");
     if (!interceptor) throw new Error("Expected a doc create interceptor");
-    return interceptor(input, executionContext);
+    return interceptor(input, caller);
   }
 
-  async function check(input: CreateInput): Promise<CreateCheckResult> {
+  async function check(
+    input: CreateInput,
+    caller = executionContext,
+  ): Promise<CreateCheckResult> {
     const createCheck = harness.getEntityRegistry().getCreateCheck("doc");
     if (!createCheck) throw new Error("Expected a doc create check");
-    return createCheck(input, executionContext);
+    return createCheck(input, caller);
   }
 
   function saved(result: CreateInterceptionResult): {
@@ -123,6 +139,44 @@ describe("DocsPlugin create interceptor", () => {
     expect(error).toContain("section");
     expect(error).toContain("Start here");
     expect(error).toContain("Reference");
+  });
+
+  it("offers a trusted writer only the sections of docs they can see", async () => {
+    harness
+      .getMockShell()
+      .addEntities([
+        existingDoc("intro", "Start here", 1),
+        existingDoc("api", "Reference", 2),
+        existingDoc("minutes", "Board minutes", 3, "restricted"),
+      ]);
+
+    const result = await check(
+      { entityType: "doc", content: guide },
+      trustedContext,
+    );
+    if (result.kind !== "question") throw new Error("Expected a question");
+    expect(result.question).toContain('"Start here"');
+    expect(result.question).toContain('"Reference"');
+    expect(result.question).not.toContain("Board minutes");
+  });
+
+  it("still places a trusted writer's page after every doc, restricted ones too", async () => {
+    harness
+      .getMockShell()
+      .addEntities([
+        existingDoc("intro", "Handbook", 10),
+        existingDoc("minutes", "Board minutes", 30, "restricted"),
+      ]);
+
+    const result = await intercept(
+      { entityType: "doc", content: guide },
+      trustedContext,
+    );
+    expect(saved(result).frontmatter).toEqual({
+      title: "Rotating keys",
+      section: "Handbook",
+      order: 31,
+    });
   });
 
   it("asks the user which section before the save is confirmed", async () => {

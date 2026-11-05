@@ -222,6 +222,7 @@ describe("Studio mutation actor attribution", () => {
     expect(executionContext).toEqual({
       interfaceType: "studio",
       actor: expectedEventContext.actor,
+      userPermissionLevel: "admin",
     });
   });
 });

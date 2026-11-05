@@ -1,5 +1,6 @@
 import type {
   CreateCheckResult,
+  CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
   EntityPluginContext,
@@ -9,6 +10,9 @@ import {
   checkEntityText,
   continueWithEntityText,
   entityTextError,
+  internalFullScope,
+  isVisibleWithinScope,
+  permissionToVisibilityScope,
   readEntityText,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -25,20 +29,37 @@ const placedDocSchema = z.object({
   metadata: docMetadataSchema.pick({ section: true, order: true }),
 });
 
-/** Where the existing docs sit: their sections and the last place taken. */
+/**
+ * Where the existing docs sit: the sections the writer can see, and the last
+ * place taken by any doc, so a new page never collides with a hidden one.
+ */
 async function existingPlaces(
   context: Pick<EntityPluginContext, "entityService">,
+  caller: CreateExecutionContext,
 ): Promise<{ sections: string[]; lastOrder: number }> {
   const docs = await context.entityService.listEntities({
     entityType: "doc",
-    options: { filter: { visibilityScope: "restricted" } },
+    options: {
+      filter: {
+        visibilityScope: internalFullScope("doc placement counts every doc"),
+      },
+    },
   });
   const places = docs.flatMap((doc) => {
     const parsed = placedDocSchema.safeParse(doc);
-    return parsed.success ? [parsed.data.metadata] : [];
+    return parsed.success
+      ? [{ ...parsed.data.metadata, visibility: doc.visibility }]
+      : [];
   });
+  const scope = permissionToVisibilityScope(caller.userPermissionLevel);
   return {
-    sections: [...new Set(places.map((place) => place.section))],
+    sections: [
+      ...new Set(
+        places
+          .filter((place) => isVisibleWithinScope(place.visibility, scope))
+          .map((place) => place.section),
+      ),
+    ],
     lastOrder: Math.max(0, ...places.map((place) => place.order)),
   };
 }
@@ -52,6 +73,7 @@ type DocTextFields = z.output<typeof docTextFieldsSchema>;
 async function readDocText(
   input: CreateInput,
   context: Pick<EntityPluginContext, "entityService">,
+  caller: CreateExecutionContext,
 ): Promise<
   EntityTextResult<DocTextFields & { section: string; order: number }>
 > {
@@ -64,7 +86,7 @@ async function readDocText(
   if (read.kind !== "text") return read;
   const { title, body, fields } = read.text;
 
-  const { sections, lastOrder } = await existingPlaces(context);
+  const { sections, lastOrder } = await existingPlaces(context, caller);
   const section =
     fields.section ?? (sections.length === 1 ? sections[0] : undefined);
   if (!section) {
@@ -96,9 +118,10 @@ async function readDocText(
 export async function checkDocText(
   input: CreateInput,
   context: Pick<EntityPluginContext, "entityService">,
+  caller: CreateExecutionContext,
 ): Promise<CreateCheckResult> {
   return checkEntityText(
-    await readDocText(input, context),
+    await readDocText(input, context, caller),
     ({ title, fields }) => ({ title, fields: { section: fields.section } }),
   );
 }
@@ -110,8 +133,9 @@ export async function checkDocText(
 export async function createDocFromText(
   input: CreateInput,
   context: Pick<EntityPluginContext, "entityService">,
+  caller: CreateExecutionContext,
 ): Promise<CreateInterceptionResult> {
-  const read = await readDocText(input, context);
+  const read = await readDocText(input, context, caller);
   if (read.kind === "not-text") return { kind: "continue", input };
   if (read.kind !== "text") return entityTextError(read);
   const { title, body, fields } = read.text;

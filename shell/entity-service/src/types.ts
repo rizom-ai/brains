@@ -367,6 +367,8 @@ export interface CreateInput {
 export interface CreateExecutionContext {
   interfaceType: string;
   actor: ActorRef;
+  /** The caller's permission level; absent reads as public, failing closed. */
+  userPermissionLevel?: "admin" | "trusted" | "public";
   channelId?: string;
   channelName?: string;
 }

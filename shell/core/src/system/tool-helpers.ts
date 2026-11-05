@@ -111,6 +111,7 @@ export function createExecutionContextFrom(
   return {
     interfaceType: toolContext.interfaceType,
     actor: toolContext.actor,
+    userPermissionLevel: toolContext.userPermissionLevel ?? "public",
     ...(toolContext.channelId && { channelId: toolContext.channelId }),
     ...(toolContext.channelName && { channelName: toolContext.channelName }),
   };
