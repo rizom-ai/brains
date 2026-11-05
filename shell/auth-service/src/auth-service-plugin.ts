@@ -1,3 +1,9 @@
+import {
+  internalFullScope,
+  ServicePlugin,
+  deriveConsoleSurfaces,
+  type RegisteredWebRoute,
+} from "@brains/plugins";
 import { join } from "node:path";
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
@@ -13,11 +19,6 @@ import type {
   ServicePluginContext,
   Tool,
   WebRouteDefinition,
-} from "@brains/plugins";
-import {
-  ServicePlugin,
-  deriveConsoleSurfaces,
-  type RegisteredWebRoute,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "@brains/contracts";
@@ -176,7 +177,7 @@ async function resolveProfileDisplayName(
   const entity = await context.entityService.getEntity({
     entityType: profileEntityId.slice(0, separator),
     id: profileEntityId.slice(separator + 1),
-    visibilityScope: "restricted",
+    visibilityScope: internalFullScope("profile display name for auth admin"),
   });
   const name = entity?.metadata["name"];
   return typeof name === "string" ? name : undefined;

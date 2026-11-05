@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   actionItemSchema,
@@ -22,7 +23,9 @@ type MemoryEntityService = Pick<
   "listEntities" | "getEntity" | "createEntity" | "deleteEntity"
 >;
 
-const EVERY_VISIBILITY = { filter: { visibilityScope: "restricted" } } as const;
+const EVERY_VISIBILITY = {
+  filter: { visibilityScope: internalFullScope("legacy colon-id migration") },
+} as const;
 
 /**
  * The flat id a colon id moves to: a hand-added card is named after its
@@ -45,7 +48,7 @@ async function moveToFlatId(
   const moved = await entityService.getEntity({
     entityType: entity.entityType,
     id,
-    visibilityScope: "restricted",
+    visibilityScope: internalFullScope("legacy colon-id migration"),
   });
   if (!moved) {
     await entityService.createEntity({

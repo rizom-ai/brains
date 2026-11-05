@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
@@ -326,7 +327,7 @@ export async function createActionItem(
     (await deps.entityService.getEntity({
       entityType: ACTION_ITEM_ENTITY_TYPE,
       id,
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope("action item id collision check"),
     }))
   ) {
     return { status: "exists", id };

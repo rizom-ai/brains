@@ -1,4 +1,66 @@
 /* global module */
+/** Syntax banned everywhere; see each entry for why. */
+const restrictedSyntax = [
+  {
+    // A synchronous spawn has to collect its child's exit itself, and when
+    // it does not the process spins at 100% CPU with the child left
+    // `<defunct>` — uninterruptible, because the loop never yields. Under
+    // `bun test --parallel` that took whole runs down: a child holding
+    // inherited stdio keeps the pipe the runner waits on for EOF.
+    //
+    // Restricted everywhere rather than in tests alone. The same spin in a
+    // running Brain is worse than in a test, and the one production caller
+    // was a bootstrap path that awaits just as well.
+    selector:
+      "CallExpression[callee.object.name='Bun'][callee.property.name='spawnSync']",
+    message:
+      "Use runProcess/runProcessOrThrow from @brains/utils/run-process: a synchronous spawn can leave a <defunct> child and spin the process.",
+  },
+  {
+    selector:
+      'ConditionalExpression[test.operator="instanceof"][test.right.name="Error"][consequent.property.name="message"]',
+    message:
+      "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
+  },
+  {
+    selector: 'JSXAttribute[name.name="class"]',
+    message: "Use React-compatible className in TSX.",
+  },
+  {
+    selector: 'JSXAttribute[name.name="for"]',
+    message: "Use React-compatible htmlFor in TSX.",
+  },
+  {
+    selector: 'JSXAttribute[name.name="srcset"]',
+    message: "Use React-compatible srcSet in TSX.",
+  },
+  {
+    selector: "JSXAttribute[name.name=/^on[a-z]/]",
+    message:
+      "React does not render lowercase string event handlers. Bind static interactions from the site shell instead.",
+  },
+  {
+    selector:
+      'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
+    message: "Use a React-compatible style object in TSX.",
+  },
+  {
+    selector: "JSXAttribute[name.name=/^(fill|font|letter|stop|stroke|text)-/]",
+    message: "Use React-compatible camelCase SVG attributes in TSX.",
+  },
+];
+
+/**
+ * Full read scope reaches every entity, restricted ones included. Production
+ * code opts into it through internalFullScope(reason), whose call is the
+ * audit record that the escalation was deliberate.
+ */
+const rawFullScope = {
+  selector: 'Property[key.name="visibilityScope"][value.value="restricted"]',
+  message:
+    "Use internalFullScope(reason) from @brains/plugins for a deliberate full-scope read, or pass the caller's scope.",
+};
+
 module.exports = {
   extends: [
     "eslint:recommended",
@@ -30,6 +92,18 @@ module.exports = {
     },
   },
   overrides: [
+    {
+      files: ["**/src/**/*.ts", "**/src/**/*.tsx"],
+      excludedFiles: [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+        "**/entity-service/src/internal-scope.ts",
+      ],
+      rules: {
+        "no-restricted-syntax": ["error", ...restrictedSyntax, rawFullScope],
+      },
+    },
     {
       // Enforce import pattern for entities, plugins, and interfaces - shell packages must go through @brains/plugins
       // Note: This applies to top-level entities/*, plugins/*, and interfaces/*, NOT shell/plugins (the plugins package itself)
@@ -168,56 +242,6 @@ module.exports = {
     "no-inner-declarations": "error",
     "no-useless-assignment": "error",
     "preserve-caught-error": "error",
-    "no-restricted-syntax": [
-      "error",
-      {
-        // A synchronous spawn has to collect its child's exit itself, and when
-        // it does not the process spins at 100% CPU with the child left
-        // `<defunct>` — uninterruptible, because the loop never yields. Under
-        // `bun test --parallel` that took whole runs down: a child holding
-        // inherited stdio keeps the pipe the runner waits on for EOF.
-        //
-        // Restricted everywhere rather than in tests alone. The same spin in a
-        // running Brain is worse than in a test, and the one production caller
-        // was a bootstrap path that awaits just as well.
-        selector:
-          "CallExpression[callee.object.name='Bun'][callee.property.name='spawnSync']",
-        message:
-          "Use runProcess/runProcessOrThrow from @brains/utils/run-process: a synchronous spawn can leave a <defunct> child and spin the process.",
-      },
-      {
-        selector:
-          'ConditionalExpression[test.operator="instanceof"][test.right.name="Error"][consequent.property.name="message"]',
-        message:
-          "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
-      },
-      {
-        selector: 'JSXAttribute[name.name="class"]',
-        message: "Use React-compatible className in TSX.",
-      },
-      {
-        selector: 'JSXAttribute[name.name="for"]',
-        message: "Use React-compatible htmlFor in TSX.",
-      },
-      {
-        selector: 'JSXAttribute[name.name="srcset"]',
-        message: "Use React-compatible srcSet in TSX.",
-      },
-      {
-        selector: "JSXAttribute[name.name=/^on[a-z]/]",
-        message:
-          "React does not render lowercase string event handlers. Bind static interactions from the site shell instead.",
-      },
-      {
-        selector:
-          'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
-        message: "Use a React-compatible style object in TSX.",
-      },
-      {
-        selector:
-          "JSXAttribute[name.name=/^(fill|font|letter|stop|stroke|text)-/]",
-        message: "Use React-compatible camelCase SVG attributes in TSX.",
-      },
-    ],
+    "no-restricted-syntax": ["error", ...restrictedSyntax],
   },
 };

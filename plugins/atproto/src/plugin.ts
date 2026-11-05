@@ -1,9 +1,13 @@
+import {
+  internalFullScope,
+  ServicePlugin,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import type {
   BaseEntity,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { ENTITY_CHANNELS, PUBLISH_CHANNELS } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
@@ -882,7 +886,9 @@ export class AtprotoPlugin extends ServicePlugin<
       return context.entityService.getEntity({
         entityType: options.entityType,
         id: options.entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "atproto publish gate rejects non-public",
+        ),
       });
     }
 
@@ -894,7 +900,9 @@ export class AtprotoPlugin extends ServicePlugin<
             options: {
               filter: {
                 metadata: { slug: options.slug },
-                visibilityScope: "restricted",
+                visibilityScope: internalFullScope(
+                  "atproto publish gate rejects non-public",
+                ),
               },
             },
           })
@@ -947,7 +955,13 @@ export class AtprotoPlugin extends ServicePlugin<
 
     const agents = await context.entityService.listEntities({
       entityType: "agent",
-      options: { filter: { visibilityScope: "restricted" } },
+      options: {
+        filter: {
+          visibilityScope: internalFullScope(
+            "jetstream discovery agent dedupe",
+          ),
+        },
+      },
     });
     const existingByDomain = agents.find((agent) => agent.id === domain);
     const existingByRepo = agents.find(

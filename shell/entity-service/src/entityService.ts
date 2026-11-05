@@ -1,3 +1,4 @@
+import { internalFullScope } from "./internal-scope";
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import type {
   QueryGroupingCatalogRequest,
@@ -710,7 +711,9 @@ export class EntityService implements IEntityService {
       const entity = await this.getEntity({
         entityType: type,
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "retired frontmatter field rewrite migration",
+        ),
       });
       // Reads already parse past retired fields; writing re-serializes without them.
       if (entity) await this.updateEntity({ entity });

@@ -1,3 +1,4 @@
+import { internalFullScope, EntityPlugin } from "@brains/plugins";
 import type {
   Plugin,
   EntityPluginContext,
@@ -8,7 +9,6 @@ import type {
   CreateExecutionContext,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
@@ -143,7 +143,9 @@ export class NotePlugin extends EntityPlugin<
       const stubEntity = await context.entityService.getEntity({
         entityType: "note",
         id: created.entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "read back just-created import stub",
+        ),
       });
       if (!stubEntity) {
         throw new Error("Created note import stub could not be read");
@@ -224,7 +226,7 @@ export class NotePlugin extends EntityPlugin<
         const existing = await context.entityService.getEntity({
           entityType: "note",
           id,
-          visibilityScope: "restricted",
+          visibilityScope: internalFullScope("note capture idempotency check"),
         });
         if (existing)
           return { success: true, data: { noteId: id, created: false } };
