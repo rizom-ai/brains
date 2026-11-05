@@ -67,7 +67,11 @@ Apply for the Member Data Portability (3rd Party) product on a Rizom LinkedIn de
 
 ## Phases
 
-Each phase is one PR against current `main`, tests first.
+Each phase is a commit, tests first. Phases share a PR until the next one needs the earlier work running on a brain:
+
+- **Phases 1–4, one PR.** Shape capture runs on a deployed brain with the approved LinkedIn app.
+- **Phases 5–8, one PR**, once the Phase 4 fixtures are committed.
+- **Phase 9 and Phase 10, one PR each.** The broker needs only Phase 3; the export upload needs the Phase 5–8 mappers.
 
 ### Phase 1 — Headline, industry and location on the professional profile
 
