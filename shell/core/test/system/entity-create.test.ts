@@ -216,7 +216,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
         input.url ?? extractFirstUrl(input.content, input.prompt, input.title);
       if (url) {
         const jobId = await services.jobs.enqueue({
-          type: "link-capture",
+          type: "link:capture",
           data: {
             url,
             metadata: {
@@ -1795,7 +1795,7 @@ status: draft
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
   });
@@ -1813,7 +1813,7 @@ status: draft
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
     expect(jobData.metadata.interfaceId).toBe("test");
@@ -1871,7 +1871,7 @@ A saved research link.`;
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://en.wikipedia.org/wiki/The_Drama_(film)");
   });

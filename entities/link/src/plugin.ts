@@ -4,9 +4,6 @@ import type {
   JobHandler,
   Template,
   DataSource,
-  IShell,
-  PluginCapabilities,
-  PluginRegistrationContext,
   CreateInput,
   CreateExecutionContext,
   CreateInterceptionResult,
@@ -54,7 +51,6 @@ export class LinkPlugin extends EntityPlugin<
   readonly entityType: typeof linkAdapter.entityType = linkAdapter.entityType;
   readonly schema: typeof linkSchema = linkSchema;
   readonly adapter: typeof linkAdapter = linkAdapter;
-  private shell?: IShell;
 
   constructor(config: LinkConfigInput = {}) {
     super("link", packageJson, config, linkConfigSchema);
@@ -63,42 +59,6 @@ export class LinkPlugin extends EntityPlugin<
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     // domain is the URL's hostname; readers take it from url.
     return { projectionSourceRole: "supporting", retiredFields: ["domain"] };
-  }
-
-  /**
-   * `EntityPlugin` auto-registers generation handlers as `${entityType}:generation`.
-   * Link capture also has a dedicated public job name used by `system_create`.
-   * Register that alias here so core stays generic and does not need to know
-   * about plugin-scoped handler naming.
-   */
-  override async register(
-    shell: IShell,
-    registrationContext?: PluginRegistrationContext,
-  ): Promise<PluginCapabilities> {
-    this.shell = shell;
-    const capabilities = await super.register(shell, registrationContext);
-
-    if (!this.context) {
-      throw new Error(
-        "LinkPlugin context was not initialized during register()",
-      );
-    }
-
-    shell
-      .getJobQueueService()
-      .registerHandler(
-        "link-capture",
-        new LinkCaptureJobHandler(
-          this.logger.child("LinkCaptureJobHandler"),
-          this.context,
-          this.config.jinaApiKey
-            ? { jinaApiKey: this.config.jinaApiKey }
-            : undefined,
-        ),
-        this.id,
-      );
-
-    return capabilities;
   }
 
   protected override async interceptCreate(
@@ -162,12 +122,6 @@ export class LinkPlugin extends EntityPlugin<
       input.url ??
       this.extractFirstUrl(input.content, input.prompt, input.title);
     if (url) {
-      if (!this.shell) {
-        throw new Error(
-          "LinkPlugin shell was not initialized during register()",
-        );
-      }
-
       try {
         const userId = authenticatedUserId(executionContext);
         const entityId = await this.createPendingLink(
@@ -178,8 +132,8 @@ export class LinkPlugin extends EntityPlugin<
           context,
         );
 
-        const jobId = await this.shell.getJobQueueService().enqueue({
-          type: "link-capture",
+        const jobId = await context.jobs.enqueue({
+          type: "capture",
           data: {
             url,
             metadata: {
@@ -279,6 +233,16 @@ export class LinkPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     context.atprotoProjections.register(createLinkAtprotoProjection());
+    context.jobs.registerHandler(
+      "capture",
+      new LinkCaptureJobHandler(
+        this.logger.child("LinkCaptureJobHandler"),
+        context,
+        this.config.jinaApiKey
+          ? { jinaApiKey: this.config.jinaApiKey }
+          : undefined,
+      ),
+    );
 
     context.eval.registerHandler("extractContent", async (input: unknown) => {
       const { url }: ExtractContentEvalInput =

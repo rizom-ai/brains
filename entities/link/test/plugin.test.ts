@@ -206,7 +206,7 @@ describe("LinkPlugin with Harness", () => {
       expect(capabilities.tools).toHaveLength(0);
     });
 
-    it("should register both link:generation and link-capture job handlers", async () => {
+    it("should register link:generation and link:capture job handlers", async () => {
       const registeredHandlers: string[] = [];
       const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
       const origJobQueue = mockShell.getJobQueueService();
@@ -225,7 +225,7 @@ describe("LinkPlugin with Harness", () => {
       await plugin.register(mockShell);
 
       expect(registeredHandlers).toContain("link:generation");
-      expect(registeredHandlers).toContain("link-capture");
+      expect(registeredHandlers).toContain("link:capture");
     });
 
     it("should register a create interceptor for link", () => {
@@ -235,7 +235,7 @@ describe("LinkPlugin with Harness", () => {
       expect(interceptor).toBeDefined();
     });
 
-    it("should enqueue link-capture from the registered interceptor", async () => {
+    it("should enqueue link:capture from the registered interceptor", async () => {
       const enqueued: Array<{
         type: string;
         data: unknown;
@@ -304,7 +304,7 @@ describe("LinkPlugin with Harness", () => {
       );
       expect(pendingEntity?.visibility).toBe("shared");
       expect(enqueued).toHaveLength(1);
-      expect(enqueued[0]?.type).toBe("link-capture");
+      expect(enqueued[0]?.type).toBe("link:capture");
       expect(enqueued[0]?.data).toEqual({
         url: "https://anthropic.com/research",
         metadata: expect.objectContaining({
@@ -370,7 +370,7 @@ describe("LinkPlugin with Harness", () => {
         },
       });
       expect(enqueued).toHaveLength(1);
-      expect(enqueued[0]?.type).toBe("link-capture");
+      expect(enqueued[0]?.type).toBe("link:capture");
       expect(enqueued[0]?.data).toEqual({
         url: "https://anthropic.com/research",
         metadata: expect.objectContaining({
