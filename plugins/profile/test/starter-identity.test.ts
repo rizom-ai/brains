@@ -245,6 +245,49 @@ describe("starter character generation", () => {
     expect(serialized).not.toContain("PRIVATE STYLE BODY");
   });
 
+  test("builds the public character from public content only", async () => {
+    const harness = createHarness();
+    harness.addEntities([
+      {
+        id: "public-topic",
+        entityType: "topic",
+        content: "---\ntitle: Knowledge graph design\n---\n",
+        metadata: {},
+      },
+      {
+        id: "shared-topic",
+        entityType: "topic",
+        content: "---\ntitle: Team retrospective\n---\n",
+        metadata: {},
+        visibility: "shared",
+      },
+      {
+        id: "restricted-topic",
+        entityType: "topic",
+        content: "---\ntitle: Acme acquisition due diligence\n---\n",
+        metadata: {},
+        visibility: "restricted",
+      },
+    ]);
+
+    const brief = await buildStarterCharacterBrief({
+      entityService: harness.getEntityService(),
+      profileKind: "professional",
+      profileCategory: "person",
+      anchorEntity: null,
+      includeAnchor: false,
+    });
+    const serialized = JSON.stringify(brief);
+
+    expect(serialized).toContain("Knowledge graph design");
+    expect(serialized).not.toContain("Team retrospective");
+    expect(serialized).not.toContain("Acme acquisition due diligence");
+    expect(brief.capabilities).toContainEqual({
+      entityType: "topic",
+      count: 1,
+    });
+  });
+
   test("excludes content signals containing non-identity model labels", async () => {
     const harness = createHarness();
     harness.addEntities([

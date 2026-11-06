@@ -233,9 +233,9 @@ async function collectContentSignals(
         limit: MAX_CONTENT_SIGNALS,
         sortFields: [{ field: "updated", direction: "desc" }],
         filter: {
-          visibilityScope: internalFullScope(
-            "starter character brief reads the owner's notes",
-          ),
+          // The character is published (agent card, Dashboard, guest chat),
+          // so only public content may shape it.
+          visibilityScope: "public",
         },
       },
     });
@@ -265,9 +265,7 @@ export async function buildStarterCharacterBrief(options: {
     anchorEntity,
     includeAnchor,
   } = options;
-  const entityCounts = await entityService.getEntityCounts(
-    internalFullScope("starter character brief reads the owner's notes"),
-  );
+  const entityCounts = await entityService.getEntityCounts("public");
   const counts = new Map(
     entityCounts.map(({ entityType, count }) => [entityType, count]),
   );
@@ -290,7 +288,7 @@ export async function buildStarterCharacterBrief(options: {
     entityType: "style-guide",
     id: "style-guide",
     visibilityScope: internalFullScope(
-      "starter character brief reads the owner's notes",
+      "starter character brief reads the owner's style guide",
     ),
   });
   const styleMetadata = styleEntity
