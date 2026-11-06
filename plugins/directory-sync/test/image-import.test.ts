@@ -6,7 +6,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
-import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
+import { TINY_PDF_BYTES, TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "./fixtures";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
 
 describe("Image Import - Regression Tests", () => {
   let dirSync: DirectorySync;
@@ -276,6 +277,257 @@ describe("Image Import - Regression Tests", () => {
         id: "carousel",
       });
       expect(capturedContent).toMatch(/^data:application\/pdf;base64,/);
+    });
+  });
+
+  describe("asset-backed image types", () => {
+    beforeEach(() => {
+      spyOn(mockEntityService, "getEntityTypeConfig").mockImplementation(
+        (type: string) => (type === "image" ? { binaryStorage: "asset" } : {}),
+      );
+    });
+
+    function captureUpserts(): Array<{
+      entity: Partial<BaseEntity>;
+      stagedAsset?: unknown;
+    }> {
+      const requests: Array<{
+        entity: Partial<BaseEntity>;
+        stagedAsset?: unknown;
+      }> = [];
+      spyOn(mockEntityService, "upsertEntity").mockImplementation(
+        async (request: {
+          entity: Partial<BaseEntity>;
+          stagedAsset?: unknown;
+        }) => {
+          requests.push(request);
+          return {
+            entityId: request.entity.id ?? "test-id",
+            jobId: "test-job",
+            created: true,
+            skipped: false,
+          };
+        },
+      );
+      return requests;
+    }
+
+    it("stages imported image files and upserts their reference", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+
+      const result = await dirSync.importEntities();
+
+      const ref = createAssetRef(computeAssetDigest(TINY_PNG_BYTES));
+      expect(result.imported).toBe(1);
+      expect(upserts[0]?.entity.content).toBe(ref);
+      expect(upserts[0]?.entity.metadata).toMatchObject({
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+      });
+      expect(upserts[0]?.stagedAsset).toMatchObject({ ref });
+    });
+
+    it("stages text-form image files whose data URL ends in a newline", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(
+        join(testDir, "image", "hero-banner.md"),
+        `${TINY_PNG_DATA_URL}\n`,
+      );
+      const upserts = captureUpserts();
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(1);
+      expect(upserts[0]?.entity.content).toBe(
+        createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+      );
+    });
+
+    it("describes binary image files from their header bytes", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+
+      await dirSync.importEntities();
+
+      expect(upserts[0]?.entity.metadata).toEqual({
+        format: "png",
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+        width: 1,
+        height: 1,
+      });
+    });
+
+    it("stages binary image files from a file stream", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      await dirSync.importEntities();
+
+      const source = stage.mock.calls[0]?.[0];
+      expect(source).toBeDefined();
+      expect(source instanceof Uint8Array).toBe(false);
+      expect(Symbol.asyncIterator in Object(source)).toBe(true);
+    });
+
+    it("skips an image file whose bytes match the stored asset without staging", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+      const stored: BaseEntity = {
+        id: "robot",
+        entityType: "image",
+        content: createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+        contentHash: "stored",
+        metadata: {},
+        visibility: "public",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
+      };
+      mockEntityService.getEntityWriteSnapshot = async (): Promise<{
+        entity: BaseEntity;
+        revision: string;
+      }> => ({ entity: stored, revision: "stored" });
+
+      const result = await dirSync.importEntities();
+
+      expect(result.skipped).toBe(1);
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+    });
+
+    function storeImage(content: string): void {
+      const stored: BaseEntity = {
+        id: "robot",
+        entityType: "image",
+        content,
+        contentHash: "stored",
+        metadata: {},
+        visibility: "public",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
+      };
+      mockEntityService.getEntityWriteSnapshot = async (): Promise<{
+        entity: BaseEntity;
+        revision: string;
+      }> => ({ entity: stored, revision: "stored" });
+    }
+
+    it("leaves an inline image whose bytes match the file for the offline migration", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+      storeImage(TINY_PNG_DATA_URL);
+
+      const result = await dirSync.importEntities();
+
+      expect(result.skipped).toBe(1);
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+    });
+
+    it("imports a file whose bytes differ from the stored inline image", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      storeImage(
+        `data:image/png;base64,${Buffer.from("other").toString("base64")}`,
+      );
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(1);
+      expect(upserts[0]?.entity.content).toBe(
+        createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+      );
+    });
+
+    it("skips a stale sibling file when another file of the image holds the stored bytes", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      // A different, valid image: a one-pixel GIF.
+      writeFileSync(
+        join(testDir, "image", "robot.gif"),
+        Buffer.from(
+          "R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=",
+          "base64",
+        ),
+      );
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+      storeImage(TINY_PNG_DATA_URL);
+
+      const result = await dirSync.importEntities();
+
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+      expect(result.skipped).toBe(2);
+      expect(JSON.stringify(result)).toContain(
+        "robot.png holds the stored image",
+      );
+    });
+
+    it("reports a file that is not a supported image and leaves it in place", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const path = join(testDir, "image", "broken.png");
+      writeFileSync(path, "not an image");
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(0);
+      expect(result.skipped).toBe(1);
+      expect(result.issues?.[0]?.path).toBe("image/broken.png");
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+      expect(existsSync(path)).toBe(true);
+    });
+
+    it("tells the user to rasterize an SVG, which images no longer store", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const path = join(testDir, "image", "logo.svg");
+      writeFileSync(path, '<svg xmlns="http://www.w3.org/2000/svg"/>');
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      const result = await dirSync.importEntities();
+
+      expect(result.skipped).toBe(1);
+      expect(result.issues?.[0]).toMatchObject({
+        path: "image/logo.svg",
+        message: expect.stringContaining("rasterize"),
+      });
+      expect(stage).not.toHaveBeenCalled();
+      expect(existsSync(path)).toBe(true);
+    });
+
+    it("applies the asset import limit instead of the ordinary limit", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      const limited = (maxAssetImportBytes: number): DirectorySync =>
+        new DirectorySync({
+          syncPath: testDir,
+          entityService: mockEntityService,
+          logger: createSilentLogger("test"),
+          maxImportFileBytes: 10,
+          maxAssetImportBytes,
+        });
+
+      const admitted = await limited(1024).importEntities();
+      const refused = await limited(10).importEntities();
+
+      expect(admitted.imported).toBe(1);
+      expect(refused.imported).toBe(0);
+      expect(refused.skipped).toBe(1);
+      expect(upserts).toHaveLength(1);
     });
   });
 });

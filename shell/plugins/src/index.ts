@@ -528,6 +528,23 @@ export {
 } from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
 
+// Durable binary assets
+export {
+  assetRefSchema,
+  base64AssetSource,
+  computeAssetDigest,
+  createAssetRef,
+  getAssetDigest,
+  parseAssetRef,
+  readAssetBytes,
+  type AssetOpener,
+  type AssetRef,
+  type AssetSource,
+  type BinaryContentMode,
+  type StageAssetOptions,
+  type StagedAsset,
+} from "@brains/entity-service";
+
 // ============================================================================
 // Job System & Generation
 // ============================================================================
@@ -729,6 +746,9 @@ export {
   getArtifactEntityFilename,
   getConfirmationResultTitle,
   parseArtifactDataUrl,
+  readArtifactContent,
+  createArtifactResponse,
+  type StoredArtifact,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
   formatConfirmationResult,
@@ -776,6 +796,7 @@ export {
   validateTextUpload,
   type ArtifactCardState,
   type ArtifactDisplay,
+  type ArtifactContent,
   type ArtifactEntityRef,
   type ArtifactEntityType,
   type ArtifactJobStatus,

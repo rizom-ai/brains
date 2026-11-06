@@ -4,7 +4,7 @@ import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import { tryParseDataUrl } from "@brains/image";
+import { readImageBytes } from "@brains/image";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
@@ -23,14 +23,14 @@ export type BuildImageMap = SiteImageMap;
  *   const img = imageService.get("my-cover-image");
  */
 export class ImageBuildService {
-  private entityService: Pick<IEntityService, "getEntity">;
+  private entityService: Pick<IEntityService, "getEntity" | "openAsset">;
   private logger: Logger;
   private imageMap: BuildImageMap = {};
   private imagesDir: string;
   private optimizer: ImageOptimizer;
 
   constructor(
-    entityService: Pick<IEntityService, "getEntity">,
+    entityService: Pick<IEntityService, "getEntity" | "openAsset">,
     logger: Logger,
     imagesDir: string,
   ) {
@@ -83,6 +83,7 @@ export class ImageBuildService {
     const image = await this.entityService.getEntity({
       entityType: "image",
       id: imageId,
+      binaryContent: "reference",
     });
     signal.throwIfAborted();
 
@@ -91,16 +92,18 @@ export class ImageBuildService {
       return;
     }
 
-    const parsed = tryParseDataUrl(image.content);
-    if (!parsed) {
-      this.logger.warn("Could not extract base64 from image", { imageId });
+    const read = await readImageBytes(this.entityService, image);
+    signal.throwIfAborted();
+    if (!read) {
+      this.logger.warn("Could not read image bytes", { imageId });
       return;
     }
 
-    const buffer = Buffer.from(parsed.base64, "base64");
-
+    const buffer = read.bytes;
     const format =
-      getImageFormatMetadata(image.metadata).format ?? parsed.format;
+      getImageFormatMetadata(image.metadata).format ??
+      read.mediaType.split("/")[1]?.split("+")[0] ??
+      "png";
     const originalFileName = `${imageId}.${format}`;
     const originalFilePath = join(this.imagesDir, originalFileName);
     await fs.writeFile(originalFilePath, buffer, { signal });

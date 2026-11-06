@@ -1,5 +1,10 @@
 import { describe, expect, mock, test } from "bun:test";
-import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
+import {
+  createAssetRef,
+  type BaseEntity,
+  type EntityMutationResult,
+  type StagedAsset,
+} from "@brains/entity-service";
 import {
   createPendingEntity,
   failPendingEntity,
@@ -85,6 +90,31 @@ describe("pending ingestion helpers", () => {
     expect(entityService.createEntity).not.toHaveBeenCalled();
   });
 
+  test("createPendingEntity checks existence without loading stored bytes", async () => {
+    const entityService = {
+      getEntity: mock(
+        async (_request: { binaryContent?: string }): Promise<BaseEntity> =>
+          makeEntity(),
+      ),
+      createEntity: mock(async (_request: unknown) => mutation("unexpected")),
+      updateEntity: mock(async (_request: unknown) => mutation("unexpected")),
+    };
+
+    await createPendingEntity({
+      entityService,
+      entity: {
+        id: "item-1",
+        entityType: "test",
+        content: "",
+        metadata: { status: "pending" },
+      },
+    });
+
+    expect(entityService.getEntity.mock.calls[0]?.[0]).toMatchObject({
+      binaryContent: "reference",
+    });
+  });
+
   test("saveProcessedEntity updates an existing non-public pending entity", async () => {
     const existing = makeEntity({ visibility: "shared" });
     const updateEntity = mock(async (_request: unknown) => mutation("item-1"));
@@ -117,6 +147,7 @@ describe("pending ingestion helpers", () => {
       entityType: "test",
       id: "item-1",
       visibilityScope: "restricted",
+      binaryContent: "reference",
     });
     expect(updateEntity).toHaveBeenCalledTimes(1);
     expect(updateEntity.mock.calls[0]?.[0]).toEqual({
@@ -157,6 +188,63 @@ describe("pending ingestion helpers", () => {
     expect(entityService.updateEntity).not.toHaveBeenCalled();
   });
 
+  test("saveProcessedEntity publishes a staged asset with the pending update", async () => {
+    const stagedAsset: StagedAsset = {
+      ref: createAssetRef("a".repeat(64)),
+      digest: "a".repeat(64),
+      sizeBytes: 3,
+    };
+    const updateEntity = mock(async (_request: unknown) => mutation("item-1"));
+    const entityService = {
+      getEntity: mock(async () => makeEntity()),
+      createEntity: mock(async (_request: unknown) => mutation("unexpected")),
+      updateEntity,
+    };
+
+    await saveProcessedEntity({
+      entityService,
+      entity: {
+        id: "item-1",
+        entityType: "test",
+        content: stagedAsset.ref,
+        metadata: { status: "draft", title: "Processed" },
+      },
+      stagedAsset,
+    });
+
+    expect(updateEntity.mock.calls[0]?.[0]).toMatchObject({
+      entity: { content: stagedAsset.ref },
+      stagedAsset,
+    });
+  });
+
+  test("saveProcessedEntity publishes a staged asset when it creates the entity", async () => {
+    const stagedAsset: StagedAsset = {
+      ref: createAssetRef("b".repeat(64)),
+      digest: "b".repeat(64),
+      sizeBytes: 3,
+    };
+    const createEntity = mock(async (_request: unknown) => mutation("item-1"));
+    const entityService = {
+      getEntity: mock(async () => null),
+      createEntity,
+      updateEntity: mock(async (_request: unknown) => mutation("unexpected")),
+    };
+
+    await saveProcessedEntity({
+      entityService,
+      entity: {
+        id: "item-1",
+        entityType: "test",
+        content: stagedAsset.ref,
+        metadata: { status: "draft", title: "Processed" },
+      },
+      stagedAsset,
+    });
+
+    expect(createEntity.mock.calls[0]?.[0]).toMatchObject({ stagedAsset });
+  });
+
   test("failPendingEntity marks an existing placeholder as failed", async () => {
     const existing = makeEntity();
     const updateEntity = mock(async (_request: unknown) => mutation("item-1"));
@@ -173,6 +261,10 @@ describe("pending ingestion helpers", () => {
       content: "Processing failed.",
     });
 
+    // The stored reference is written back as-is, never a materialized copy.
+    expect(entityService.getEntity).toHaveBeenCalledWith(
+      expect.objectContaining({ binaryContent: "reference" }),
+    );
     expect(result).toEqual({
       found: true,
       entityId: "item-1",

@@ -407,7 +407,7 @@ async function runDiagnostics(
     entityTypes.map((type) =>
       entityService.listEntities({
         entityType: type,
-        options: { limit: 100 },
+        options: { limit: 100, binaryContent: "reference" },
       }),
     ),
   );

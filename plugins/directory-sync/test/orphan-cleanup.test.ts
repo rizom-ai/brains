@@ -213,6 +213,7 @@ describe("removeOrphanedEntities", () => {
       expect.objectContaining({
         entityType: "social-post",
         options: expect.objectContaining({
+          binaryContent: "reference",
           filter: expect.objectContaining({
             visibilityScope: "restricted",
           }),

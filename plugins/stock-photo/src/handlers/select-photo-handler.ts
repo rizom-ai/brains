@@ -3,7 +3,7 @@ import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { imageAdapter } from "@brains/image";
+import { stageImageEntity } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -80,11 +80,15 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
 
     const dataUrl = await this.deps.fetchImage(data.imageUrl);
     const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
-    const imageData = imageAdapter.createImageEntity({
-      dataUrl,
-      title: imageTitle,
-      alt: data.alt ?? imageTitle,
-    });
+    const { entity: imageData, stagedAsset } = await stageImageEntity(
+      this.deps.entityService,
+      { dataUrl },
+      {
+        title: imageTitle,
+        alt: data.alt ?? imageTitle,
+        sourceUrl: data.imageUrl,
+      },
+    );
 
     await this.reportProgress(progressReporter, {
       progress: 75,
@@ -92,14 +96,8 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     });
 
     const { entityId } = await this.deps.entityService.createEntity({
-      entity: {
-        id: data.photoId,
-        ...imageData,
-        metadata: {
-          ...imageData.metadata,
-          sourceUrl: data.imageUrl,
-        },
-      },
+      entity: { id: data.photoId, ...imageData },
+      stagedAsset,
     });
 
     const result: SelectPhotoJobResult = {

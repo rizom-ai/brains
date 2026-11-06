@@ -6,6 +6,8 @@ import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
+import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -47,9 +49,12 @@ describe("ImagePlugin", () => {
 
   it("should register image entity type", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("image");
-    expect(
-      harness.getEntityRegistry().getEntityTypeConfig("image").binaryStorage,
-    ).toBe("data-url");
+    expect(harness.getEntityRegistry().getEntityTypeConfig("image")).toEqual(
+      expect.objectContaining({
+        binaryStorage: "asset",
+        fullTextSearchable: false,
+      }),
+    );
   });
 
   it("should return zero tools", async () => {
@@ -69,6 +74,23 @@ describe("ImagePlugin", () => {
       .getEntityRegistry()
       .getUploadSaveHandler("image/png");
     expect(registration?.entityType).toBe("image");
+  });
+
+  it("accepts uploads only of the raster types assets store", () => {
+    const registry = harness.getEntityRegistry();
+    for (const mediaType of [
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+    ]) {
+      expect(registry.getUploadSaveHandler(mediaType)?.entityType).toBe(
+        "image",
+      );
+    }
+    for (const mediaType of ["image/svg+xml", "image/avif", "image/bmp"]) {
+      expect(registry.getUploadSaveHandler(mediaType)).toBeUndefined();
+    }
   });
 
   async function runQueuedUploadPromotion(): Promise<void> {
@@ -181,6 +203,10 @@ describe("ImagePlugin", () => {
       sourceMediaType: "image/png",
       attachmentType: "uploaded",
     });
+    // Until promotion, the image has no bytes and no invented description.
+    expect(entity?.content).toBe("");
+    expect(entity?.metadata).not.toHaveProperty("format");
+    expect(entity?.metadata).not.toHaveProperty("width");
     expect(entity?.visibility).toBe("shared");
 
     await runQueuedUploadPromotion();
@@ -190,13 +216,21 @@ describe("ImagePlugin", () => {
       id: "robot",
       visibilityScope: "shared",
     });
-    expect(entity?.content).toBe(
-      `data:image/png;base64,${pngBytes.toString("base64")}`,
-    );
+    const ref = createAssetRef(computeAssetDigest(pngBytes));
+    expect(entity?.content).toBe(ref);
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of await harness.getEntityService().openAsset(ref)) {
+      chunks.push(chunk);
+    }
+    expect(Buffer.concat(chunks)).toEqual(pngBytes);
     expect(entity?.metadata).toMatchObject({
       title: "Robot",
       alt: "Robot",
       format: "png",
+      mediaType: "image/png",
+      sizeBytes: pngBytes.byteLength,
+      width: 1,
+      height: 1,
       status: "draft",
       sourceUploadId: record.ref.id,
       sourceFilename: "robot.png",
@@ -264,6 +298,56 @@ describe("ImagePlugin", () => {
     expect(entity?.metadata).toMatchObject({
       status: "failed",
       processingError: expect.stringContaining("Upload not found"),
+    });
+    expect(entity?.content).toBe("");
+  });
+
+  it("fails promotion of an upload above the image asset limit", async () => {
+    const store = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+        createId: () => "upload-00000000-0000-4000-8000-000000000204",
+      });
+    const oversized = Buffer.alloc(IMAGE_ASSET_MAX_BYTES + 1);
+    Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ", "base64").copy(
+      oversized,
+    );
+    const record = await store.save({
+      filename: "huge.png",
+      mediaType: "image/png",
+      content: oversized,
+    });
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("image");
+    if (!interceptor) throw new Error("Expected image create interceptor");
+    await interceptor(
+      {
+        entityType: "image",
+        title: "Huge",
+        from: { kind: "upload", id: record.ref.id },
+      },
+      {
+        interfaceType: "web-chat",
+        actor: { kind: "user", userId: "operator" },
+      },
+    );
+
+    await runQueuedUploadPromotion();
+
+    const entity = await harness.getEntityService().getEntity({
+      entityType: "image",
+      id: "huge",
+    });
+    expect(entity?.metadata).toMatchObject({
+      status: "failed",
+      processingError: expect.stringContaining(
+        `Asset exceeds ${IMAGE_ASSET_MAX_BYTES}-byte limit`,
+      ),
     });
   });
 

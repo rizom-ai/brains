@@ -27,14 +27,21 @@ function entity(input: {
   };
 }
 
-function inputContext(entities: BaseEntity[]): ProjectionInputContext {
+function inputContext(
+  entities: BaseEntity[],
+  listRequests: unknown[] = [],
+): ProjectionInputContext {
   const entityTypes = [
     ...new Set(entities.map(({ entityType }) => entityType)),
   ];
   const service = createMockEntityService({
     entityTypes,
-    listEntitiesImpl: async ({ entityType }) =>
-      entities.filter((candidate) => candidate.entityType === entityType),
+    listEntitiesImpl: async (request) => {
+      listRequests.push(request);
+      return entities.filter(
+        (candidate) => candidate.entityType === request.entityType,
+      );
+    },
     getEntityImpl: async ({ entityType, id }) =>
       entities.find(
         (candidate) =>
@@ -68,6 +75,25 @@ function executionContext(description = "A connected body of work."): {
 }
 
 describe("series projection rule", () => {
+  it("scans every entity type by reference, never loading binary content", async () => {
+    const listRequests: unknown[] = [];
+    await createSeriesProjectionRule().selectInput(
+      { waveId: "wave-1", inputs: [] },
+      inputContext(
+        [entity({ id: "cover", entityType: "image", metadata: {} })],
+        listRequests,
+      ),
+      new AbortController().signal,
+    );
+
+    expect(listRequests).toContainEqual(
+      expect.objectContaining({
+        entityType: "image",
+        options: expect.objectContaining({ binaryContent: "reference" }),
+      }),
+    );
+  });
+
   it("passes voice guidance to series descriptions without injecting identity", async () => {
     const rule = createSeriesProjectionRule();
     const signal = new AbortController().signal;

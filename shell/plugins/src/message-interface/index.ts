@@ -113,8 +113,12 @@ export {
 export {
   getArtifactEntityFilename,
   parseArtifactDataUrl,
+  readArtifactContent,
+  createArtifactResponse,
+  type StoredArtifact,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
+  type ArtifactContent,
   type ArtifactEntityRef,
   type ArtifactEntityType,
   type ParsedArtifactDataUrl,

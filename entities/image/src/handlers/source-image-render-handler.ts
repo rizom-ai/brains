@@ -11,11 +11,10 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
-  createDataUrl,
-  imageAdapter,
   imageSchema,
   setCoverImageId,
   setOgImageId,
+  stageImageEntity,
   type Image,
 } from "@brains/image";
 
@@ -121,23 +120,24 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         message: "Creating image entity",
       });
 
-      // Derive the data-URL format from the attachment's declared mime type
-      // rather than hardcoding "png", so it stays correct if providers ever
-      // emit another image format.
-      const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
-      const entityData = imageAdapter.createImageEntity({
-        dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
-        title: data.imageId,
-        status: "draft",
-        sourceEntityType: data.sourceEntityType,
-        sourceEntityId: data.sourceEntityId,
-        attachmentType: data.attachmentType,
-        ...(data.dedupKey && { dedupKey: data.dedupKey }),
-      });
+      // Format and dimensions come from the rendered bytes themselves.
+      const { entity: entityData, stagedAsset } = await stageImageEntity(
+        this.context.entityService,
+        { bytes: attachment.data },
+        {
+          title: data.imageId,
+          status: "draft",
+          sourceEntityType: data.sourceEntityType,
+          sourceEntityId: data.sourceEntityId,
+          attachmentType: data.attachmentType,
+          ...(data.dedupKey && { dedupKey: data.dedupKey }),
+        },
+      );
 
       await saveProcessedEntity({
         entityService: this.context.entityService,
         entity: { ...entityData, id: data.imageId },
+        stagedAsset,
       });
 
       await this.updateTarget(data, data.imageId);
@@ -170,7 +170,10 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
     const images = await this.context.entityService.listEntities(
       {
         entityType: "image",
-        options: { filter: { metadata: { dedupKey } } },
+        options: {
+          filter: { metadata: { dedupKey } },
+          binaryContent: "reference",
+        },
       },
       imageSchema,
     );

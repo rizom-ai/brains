@@ -129,6 +129,29 @@ Post with image.`;
     expect(result.imageData?.data.toString("utf8")).toBe("hello");
   });
 
+  it("reads a staged cover image from its stored chunks", async () => {
+    const asset = await context.entityService.stageAsset(Buffer.from("hello"));
+    await context.entityService.createEntity({
+      entity: {
+        id: "cover-image",
+        entityType: "image",
+        content: asset.ref,
+        metadata: { mediaType: "image/png", sizeBytes: 5 },
+      },
+    });
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(`---
+coverImageId: cover-image
+---
+Post with image.`),
+    );
+
+    expect(result.imageData?.mimeType).toBe("image/png");
+    expect(result.imageData?.data.toString("utf8")).toBe("hello");
+  });
+
   it("should fetch structured document attachment data", async () => {
     await context.entityService.createEntity({
       entity: {

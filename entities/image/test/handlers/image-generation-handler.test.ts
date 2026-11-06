@@ -5,7 +5,12 @@ import {
   type ImageGenerationJobData,
 } from "../../src/handlers/image-generation-handler";
 import { createSilentLogger } from "@brains/test-utils";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import {
+  computeAssetDigest,
+  createAssetRef,
+  type BaseEntity,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
   CallbackProgressReporter,
@@ -16,6 +21,10 @@ import {
 const VALID_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const VALID_PNG_DATA_URL = `data:image/png;base64,${VALID_PNG_BASE64}`;
+const PNG_ASSET_REF = createAssetRef(
+  computeAssetDigest(Buffer.from(VALID_PNG_BASE64, "base64")),
+);
+const stagedPng = expect.objectContaining({ ref: PNG_ASSET_REF });
 
 describe("ImageGenerationJobHandler", () => {
   let handler: ImageGenerationJobHandler;
@@ -133,6 +142,7 @@ describe("ImageGenerationJobHandler", () => {
       expect(result.success).toBe(true);
       expect(result.imageId).toBeDefined();
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: stagedPng,
         entity: expect.objectContaining({
           entityType: "image",
           metadata: expect.objectContaining({
@@ -180,11 +190,13 @@ describe("ImageGenerationJobHandler", () => {
         entity: expect.objectContaining({
           id: "sunset-image",
           entityType: "image",
-          content: VALID_PNG_DATA_URL,
+          content: PNG_ASSET_REF,
           metadata: expect.objectContaining({
             title: "Sunset Image",
+            mediaType: "image/png",
           }),
         }),
+        stagedAsset: stagedPng,
       });
     });
 
@@ -239,9 +251,10 @@ describe("ImageGenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       expect(pendingContext.entityService.updateEntity).toHaveBeenCalledWith({
+        stagedAsset: stagedPng,
         entity: expect.objectContaining({
           id: "sunset-image",
-          content: VALID_PNG_DATA_URL,
+          content: PNG_ASSET_REF,
           metadata: expect.objectContaining({
             title: "Sunset Image",
             status: "draft",
@@ -296,9 +309,10 @@ describe("ImageGenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       expect(regenContext.entityService.updateEntity).toHaveBeenCalledWith({
+        stagedAsset: stagedPng,
         entity: expect.objectContaining({
           id: "sunset-image",
-          content: VALID_PNG_DATA_URL,
+          content: PNG_ASSET_REF,
           metadata: expect.objectContaining({ status: "draft" }),
         }),
       });

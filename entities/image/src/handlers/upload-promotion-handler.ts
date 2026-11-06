@@ -9,11 +9,10 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
-import { imageAdapter } from "@brains/image";
+import { stageImageEntity } from "@brains/image";
 import {
   getUploadImageIdentity,
   isSupportedImageMediaType,
-  toDataUrl,
   webChatUploadsScope,
 } from "../lib/upload-promotion";
 
@@ -84,16 +83,19 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
         message: "Saving uploaded image",
       });
 
+      const { entity: imageEntity, stagedAsset } = await stageImageEntity(
+        this.context.entityService,
+        { bytes: upload.content },
+        {
+          title: identity.title,
+          status: "draft",
+          sourceUploadId: data.uploadId,
+          sourceFilename: upload.record.filename,
+          sourceMediaType: upload.record.mediaType,
+          attachmentType: "uploaded",
+        },
+      );
       const now = new Date().toISOString();
-      const imageEntity = imageAdapter.createImageEntity({
-        dataUrl: toDataUrl(upload.record.mediaType, upload.content),
-        title: identity.title,
-        status: "draft",
-        sourceUploadId: data.uploadId,
-        sourceFilename: upload.record.filename,
-        sourceMediaType: upload.record.mediaType,
-        attachmentType: "uploaded",
-      });
       const result = await saveProcessedEntity({
         entityService: this.context.entityService,
         entity: {
@@ -102,6 +104,7 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
           created: now,
           updated: now,
         },
+        stagedAsset,
       });
 
       await this.reportProgress(progressReporter, {

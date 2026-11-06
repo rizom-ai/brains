@@ -22,17 +22,15 @@ export function StudioEntityImage({
   }>();
   useEffect(() => {
     const controller = new AbortController();
+    // The preview owns its object URL and releases it when no longer shown.
+    let objectUrl: string | undefined;
     void api.fetchImagePreview(imageId, controller.signal).then(
-      (source): void => {
-        if (!controller.signal.aborted)
-          setLoaded({
-            api,
-            imageId,
-            source:
-              typeof source === "string" && source.startsWith("data:image/")
-                ? source
-                : null,
-          });
+      (blob): void => {
+        if (controller.signal.aborted) return;
+        if (blob.type.startsWith("image/")) {
+          objectUrl = URL.createObjectURL(blob);
+        }
+        setLoaded({ api, imageId, source: objectUrl ?? null });
       },
       (): void => {
         // Missing, forbidden and failed reads are unavailable, never a fallback
@@ -41,7 +39,10 @@ export function StudioEntityImage({
           setLoaded({ api, imageId, source: null });
       },
     );
-    return (): void => controller.abort();
+    return (): void => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [api, imageId]);
   const current =
     loaded?.api === api && loaded.imageId === imageId ? loaded : undefined;

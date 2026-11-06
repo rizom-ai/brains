@@ -15,6 +15,7 @@ import {
 } from "../schemas/series";
 import { seriesAdapter } from "../adapters/series-adapter";
 import { getSeriesName, compareBySeriesIndex } from "../lib/series-metadata";
+import { listSeriesCandidates } from "../lib/series-members";
 
 // DynamicRouteGenerator format (entityType + query)
 const dynamicQuerySchema = z.object({
@@ -230,21 +231,12 @@ export class SeriesDataSource implements DataSource {
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<Map<string, number>> {
     const counts = new Map<string, number>();
-    const types = entityService.getEntityTypes();
-
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await entityService.listEntities({
-        entityType: type,
-      });
-      for (const entity of entities) {
-        const name = getSeriesName(entity);
-        if (name) {
-          counts.set(name, (counts.get(name) ?? 0) + 1);
-        }
+    for (const entity of await listSeriesCandidates(entityService)) {
+      const name = getSeriesName(entity);
+      if (name) {
+        counts.set(name, (counts.get(name) ?? 0) + 1);
       }
     }
-
     return counts;
   }
 
@@ -255,20 +247,7 @@ export class SeriesDataSource implements DataSource {
     seriesName: string,
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<BaseEntity[]> {
-    const members: BaseEntity[] = [];
-    const types = entityService.getEntityTypes();
-
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await entityService.listEntities({
-        entityType: type,
-        options: {
-          filter: { metadata: { seriesName } },
-        },
-      });
-      members.push(...entities);
-    }
-
+    const members = await listSeriesCandidates(entityService, { seriesName });
     // Sort by seriesIndex; members without an index sort last.
     members.sort(compareBySeriesIndex);
 

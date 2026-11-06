@@ -1,6 +1,7 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { ContentVisibility, ICoreEntityService } from "../types";
+import { inlineAssetContent } from "./asset-data-url";
 
 /**
  * Detected entity:// image reference in markdown
@@ -125,9 +126,18 @@ export class ContentResolver {
           entityType: "image",
           id: imageId,
           visibilityScope,
+          binaryContent: "reference",
         });
         if (image?.content) {
-          imageMap.set(imageId, image.content);
+          // Resolved markdown inlines the image; assets are encoded here.
+          imageMap.set(
+            imageId,
+            await inlineAssetContent(
+              entityService,
+              image.content,
+              image.metadata,
+            ),
+          );
         } else {
           this.logger.warn("Image entity not found", { imageId });
         }

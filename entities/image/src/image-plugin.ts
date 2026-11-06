@@ -19,6 +19,7 @@ import {
   type Image,
   imageAdapter,
   type ImageAdapter,
+  IMAGE_ASSET_MEDIA_TYPES,
   imageSchema,
 } from "@brains/image";
 import { slugify } from "@brains/utils/string-utils";
@@ -37,9 +38,6 @@ import {
 } from "./lib/upload-promotion";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
-
-const PENDING_IMAGE_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
@@ -211,7 +209,9 @@ export class ImagePlugin extends EntityPlugin<
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
       embeddable: false,
-      binaryStorage: "data-url",
+      // Bytes live in asset rows; the stored reference is not searchable text.
+      binaryStorage: "asset",
+      fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
     };
@@ -555,8 +555,7 @@ export class ImagePlugin extends EntityPlugin<
     executionContext?: CreateExecutionContext,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const entityData = imageAdapter.createImageEntity({
-      dataUrl: PENDING_IMAGE_DATA_URL,
+    const entityData = imageAdapter.createPendingImageEntity({
       title: input.title,
       alt: input.alt,
       status: "pending",
@@ -623,7 +622,8 @@ export class ImagePlugin extends EntityPlugin<
   ): Promise<void> {
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
-      mediaTypes: ["image/*"],
+      // Only raster types become assets; anything else is refused before it is stored.
+      mediaTypes: [...IMAGE_ASSET_MEDIA_TYPES],
       handler: createUploadSaveHandler(
         this.entityType,
         (input, executionContext) =>
