@@ -30,7 +30,7 @@ export type {
   AnyDataSourceDeclaration,
   AnyEntityDataSourceDefinition,
   DataSourceDefinition,
-  DataSourceEntityReader,
+  EntityReader,
   DataSourceListOptions,
   DataSourceQuery,
   DataSourceReadContext,

@@ -158,7 +158,6 @@ Types:
 - `DashboardOperatorViewBlock`
 - `DashboardWidgetDefinition`
 - `DataSourceDefinition`
-- `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
 - `EntityAgentContextProvider`
 - `EntityAnalyticsReportContext`
@@ -207,6 +206,7 @@ Types:
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntityReader`
 - `EntityRecordReader`
 - `EntityPublishAssetDeclaration`
 - `EntityPublishDeclaration`
@@ -265,7 +265,7 @@ Presentation on `defineEntity` and `defineEntityPackage`:
 
 - `defineEntityPackage({ id, entities, dataSources })` declares the data its templates read. Data sources belong to the package: their ids are scoped to it, so two in one package cannot share an id, and every definition they read already exists when the package is assembled. A source cannot be declared inside the entity it reads, which would read the definition before it exists.
 - `defineDataSource` has two forms, told apart by `fetch` or `entity`; declaring both or neither is refused.
-  - **Fetching** (`DataSourceDefinition`): `fetch(query, entities, context)` reads through a `DataSourceEntityReader` — `get(definition, id)`, `list(definition, { limit?, offset?, sort? })` and `count(definition)`, each typed by the definition it names — and returns plain data.
+  - **Fetching** (`DataSourceDefinition`): `fetch(query, entities, context)` reads through an `EntityReader` — `get(definition, id)`, `list(definition, { limit?, offset?, sort? })` and `count(definition)`, each typed by the definition it names — and returns plain data.
   - **Entity** (`EntityDataSourceDefinition`): `entity` names a definition in the same package, and the runtime derives its full schema from it, as `EntityOf` does; authors never declare the runtime-owned base fields. `defaultSort` (`{ field, direction, nullsFirst?, nullsLast? }`), `defaultLimit` (default 100), `lookupField` (`"slug"` by default, or `"id"`), `enableNavigation` and `navigationLimit` (default 1000) configure the reads. `transform(entity)` receives the definition-typed entity; `list(items, pagination, query)` returns a JSON object, with `pagination` set when the query names a `page`; `filter(query)` may narrow the list to an exact match on the type's own metadata, applied before paging; `detail({ item, navigation, siblings, entities })` answers a query naming an `id`, and a source without one refuses such a query.
   - Reads see public records, and only published ones in a production build; a fetching source reads `context.publishedOnly` to know which. The runtime validates what either form returns against the caller's schema.
 - `templates` registers templates keyed by local name under the type's scope. A template whose `dataSourceId` names one of its package's data sources follows it to the scoped id; any other id is kept as written.

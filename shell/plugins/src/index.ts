@@ -356,7 +356,7 @@ export {
   type AnyDataSourceDeclaration,
   type AnyEntityDataSourceDefinition,
   type DataSourceDefinition,
-  type DataSourceEntityReader,
+  type EntityReader,
   type DataSourceListOptions,
   type DataSourceQuery,
   type DataSourceReadContext,

@@ -239,7 +239,7 @@ export interface EntityInboxListContext<
   /** The declaring type's records, at every visibility. */
   readonly records: EntityRecordReader<EntityOf<TDefinition>>;
   /** Reads of any type, at every visibility. */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
 }
 
 /** What an operator opening or acting on an item reads with: their own view. */
@@ -250,7 +250,7 @@ export interface EntityInboxDetailContext<
   /** The declaring type's records, at the actor's visibility. */
   readonly records: EntityRecordReader<EntityOf<TDefinition>>;
   /** Reads of any type, at the actor's visibility. */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly signal: AbortSignal;
 }
 
@@ -301,7 +301,7 @@ export type EntityCheckResult = RecurringCheckResult;
 /** What a check runs with. */
 export interface EntityCheckContext {
   /** Definition-typed reads as the package, at every visibility. */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   /**
    * The brain's own address, for a link an alert sends. Undefined on a
    * brain nobody outside can reach.
@@ -332,7 +332,7 @@ export interface EntityAnalyticsReportContext {
    * Definition-typed reads at the caller's visibility. A public caller is a
    * site's visitor and sees only what is published.
    */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly visibility: EntityVisibility;
 }
 
@@ -378,7 +378,7 @@ export interface EntityAtprotoRecordInput<TEntity> {
    * Definition-typed reads as the package, at every visibility, so a
    * projection can refuse to publish something that is not public.
    */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   /**
    * Store bytes on the PDS and return the blob naming them. A preview stores
    * nothing and returns a placeholder of the same type and size.
@@ -615,11 +615,12 @@ export interface DataSourceListOptions {
 }
 
 /**
- * The reads a declared data source is given, typed by the definitions it
- * names. Reads see what the build may show: public records, and only
- * published ones when the build asks for that.
+ * Definition-typed reads, each typed by the definition it names. Every
+ * context that reads entities is given one, at that context's authority: a
+ * data source sees what the build may show, a check reads as the package, an
+ * Inbox detail reads as its actor.
  */
-export interface DataSourceEntityReader {
+export interface EntityReader {
   get<TDefinition extends AnyEntityDefinition>(
     definition: TDefinition,
     id: string,
@@ -652,7 +653,7 @@ export interface DataSourceDefinition {
   readonly description: string;
   fetch(
     query: unknown,
-    entities: DataSourceEntityReader,
+    entities: EntityReader,
     context: DataSourceReadContext,
   ): Promise<unknown>;
 }
@@ -669,7 +670,7 @@ export interface EntityDetailContext<TTransformed> {
   readonly item: TTransformed;
   readonly navigation: NavigationResult<TTransformed> | null;
   readonly siblings: readonly TTransformed[];
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
 }
 
 /**
@@ -836,7 +837,7 @@ export interface EntityCreateUploadReader {
  */
 export interface EntityCreateContext {
   readonly input: Readonly<CreateInput>;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly uploads: EntityCreateUploadReader;
 }
 
@@ -950,7 +951,7 @@ export interface EntityJobMessaging {
  */
 export interface EntityJobContext<TInput> {
   readonly input: TInput;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly messaging: EntityJobMessaging;
   readonly progress: EntityJobProgress;
   readonly signal: AbortSignal;
@@ -1081,7 +1082,7 @@ export interface EntityCreateRouting<
  */
 export type EntityAgentContextProvider = (context: {
   readonly request: AgentContextRequest;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
 }) => Promise<readonly AgentContextItem[]>;
 
 /**
@@ -1108,7 +1109,7 @@ export interface EntityEvalFixtures {
 /** What an eval handler is given: generation, reads as the package, fixtures. */
 export interface EntityEvalContext {
   readonly ai: EntityGenerationAI;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly fixtures: EntityEvalFixtures;
 }
 

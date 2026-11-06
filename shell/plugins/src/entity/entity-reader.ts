@@ -6,7 +6,7 @@ import type {
 import { definedFields } from "@brains/utils/strip-undefined";
 import type {
   AnyEntityDefinition,
-  DataSourceEntityReader,
+  EntityReader,
   DataSourceListOptions,
   DataSourceSortField,
   EntityOf,
@@ -32,7 +32,7 @@ export function createEntityReader(
     "getEntity" | "listEntities" | "countEntities"
   >,
   visibilityScope?: ContentVisibility,
-): DataSourceEntityReader {
+): EntityReader {
   const scope = definedFields({ visibilityScope });
   return Object.freeze({
     async get<TDefinition extends AnyEntityDefinition>(
