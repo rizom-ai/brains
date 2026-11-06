@@ -6,9 +6,9 @@ import {
   type PluginCapabilities,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { defineBrain, defineBundle } from "../src/contracts/brain-definition";
+import { defineBrain, defineBundle } from "@brains/sdk";
 import { resolve } from "../src/brain-resolver";
-import { use } from "../src/configured-plugin";
+import { use } from "@brains/sdk";
 import { normalizeDeclarativeBrainDefinition } from "../src/declarative-brain";
 import { registerPackage } from "../src/package-registry";
 

@@ -1,3 +1,4 @@
+import { reasoningEffortSchema } from "@brains/contracts";
 import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -64,14 +65,7 @@ export const logLevelSchema: z.ZodEnum<{
   error: "error";
 }> = z.enum(["debug", "info", "warn", "error"]);
 
-export const reasoningEffortSchema: z.ZodEnum<{
-  none: "none";
-  low: "low";
-  medium: "medium";
-  high: "high";
-  xhigh: "xhigh";
-  max: "max";
-}> = z.enum(["none", "low", "medium", "high", "xhigh", "max"]);
+export { reasoningEffortSchema };
 
 export const shellConfigSchema: z.ZodObject<{
   name: z.ZodDefault<z.ZodString>;

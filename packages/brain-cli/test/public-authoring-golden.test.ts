@@ -498,7 +498,7 @@ describe("public authoring 0.2 golden packages", () => {
 describe("public authoring 0.2 export ledger", () => {
   it("exposes only Studio-named workspace authoring contracts", () => {
     const exports = exportedNames(
-      join(repositoryRoot, "packages/brain-cli/src/entries/services.ts"),
+      join(repositoryRoot, "packages/brain-sdk/src/services.ts"),
     );
 
     expect(exports).toEqual(
