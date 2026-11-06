@@ -9,11 +9,14 @@ export {
 export type {
   EncodedEntityMarkdown,
   EntityDefinition,
+  EntityDefinitionConfig,
   EntityTypeClassification,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityOf,
   EntityPackageDefinition,
+  EntitySeedDefinition,
+  EntitySeedTrigger,
   ProjectionDefinition,
 } from "@brains/plugins";
 

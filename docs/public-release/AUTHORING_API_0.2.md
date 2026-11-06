@@ -147,16 +147,43 @@ Types:
 
 - `EncodedEntityMarkdown`
 - `EntityDefinition`
+- `EntityDefinitionConfig`
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntitySeedDefinition`
+- `EntitySeedTrigger`
 - `EntityTypeClassification`
 - `ProjectionDefinition`
 
 `defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
+
+`EntityDefinitionConfig` is the optional `config` slot on `defineEntity`: the entity-type settings a type may declare, validated when the package is installed and copied so later edits to the declaring object have no effect. Omitted keys keep the runtime defaults.
+
+- `weight`, `embeddable`, `fullTextSearchable`, `includeInBroadSearch`, `projectionSource` and `projectionSourceRole` shape search and projection sourcing. System configuration typically opts out of embeddings and projection sourcing; `includeInBroadSearch: false` keeps derived answers out of searches that name no type, while a search naming the type still finds them.
+- `binaryStorage: "data-url" | "asset"` declares a binary representation; absent means text content.
+- `defaultSort` sets the default `system_list` order: at most ten `{ field, direction: "asc" | "desc", nullsFirst?, nullsLast? }` entries with field names of 1–100 characters.
+- `markdownImport: true` opts into upload text extraction through `system_create`; it grants no write permission.
+- `retiredFields` and `translatedFields` name frontmatter keys the type no longer owns: retired keys are read past and removed on start, translated keys are still read and moved to their new field.
+- `containedIn` names the type whose records contain this one, as a book contains its sections.
+- `actionPolicy` is the type's minimum action policy. It tightens a brain's wildcard defaults; a brain's explicit rule for the type still overrides it.
+- `publish.publishStatuses` lists the statuses that require the `publish` action when entered or changed. It does not change which records count as published for published-only reads.
+
+`classification` stays top-level and is refused inside `config`.
+
+The other basic slots on `defineEntity`:
+
+- `metadataFrom(stored)` migrates stored metadata into the current schema before every parse, so records written in an older shape still read and validate. It must return current metadata unchanged.
+- `singleton: true` limits the type to one record whose id is the entity type, and marks it as a single file for Studio. `hasBody: false` declares that the type has no free-form body below its frontmatter.
+- `displayTitle({ content, metadata })` labels a record wherever the runtime shows it. It receives migrated, validated metadata, never writes the record, and a record whose metadata does not validate gets no label, so callers fall back to its title or id.
+- `validatePersist({ content, visibility })` is a persistence invariant checked before every create and update of the type, including entity-only installs. It receives a frozen view; throwing rejects the write.
+- `actions` is the type's own rule in the brain's action policy, for example `{ create: "never" }` for a record only the brain writes. It overrides the brain's wildcard defaults action by action, and the brain's own rules for the type override it in turn.
+- `coverImage: true` declares that the type carries a cover image in `coverImageId`; `system_update` refuses a cover on a type that does not declare one.
+
+`EntitySeedDefinition` is the optional `seed` slot: a default record the brain holds before anyone authors one. `EntitySeedTrigger` names when it is planted; `startup-content-settled` fires once startup content is in place, after a successful initial sync or at boot when none was pending, and never after a failed sync. Seeding is create-if-absent: `content()` is built only when no record with the seed's id exists at any visibility, so a seed never overwrites authored content.
 
 ## `@rizom/brain/services`
 

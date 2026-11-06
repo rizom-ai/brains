@@ -4,11 +4,14 @@ import {
 } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
+import type { EntityActionPolicyRuleInput } from "@brains/templates";
 import type {
   AnyEntityDefinition,
   EntityDefinition,
+  EntityDefinitionConfig,
   EntityMarkdownCodec,
   EntityMetadataSchema,
+  EntitySeedDefinition,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
 import {
@@ -21,10 +24,13 @@ export type {
   AnyEntityDefinition,
   EncodedEntityMarkdown,
   EntityDefinition,
+  EntityDefinitionConfig,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityMetadataSchema,
   EntityOf,
+  EntitySeedDefinition,
+  EntitySeedTrigger,
   EntityVisibility,
   EntityWriteInput,
   ProjectionDefinition,
@@ -39,7 +45,21 @@ export function defineEntity<
   readonly purpose: string;
   readonly classification?: EntityTypeClassification;
   readonly metadata: TMetadataSchema;
+  readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
+  readonly singleton?: boolean | undefined;
+  readonly hasBody?: boolean | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
+  readonly displayTitle?: NonNullable<
+    EntityDefinition<TType, TMetadataSchema>["displayTitle"]
+  >;
+  readonly config?: EntityDefinitionConfig | undefined;
+  readonly validatePersist?: EntityDefinition<
+    TType,
+    TMetadataSchema
+  >["validatePersist"];
+  readonly actions?: EntityActionPolicyRuleInput | undefined;
+  readonly coverImage?: boolean | undefined;
+  readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

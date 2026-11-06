@@ -1,4 +1,5 @@
 import {
+  EntityWriteConflictError,
   internalFullScope,
   ProjectionJsonObjectSchema,
   applyVisibilityToMarkdown,
@@ -8,20 +9,33 @@ import {
   parseMarkdownWithFrontmatter,
   type EntityAdapter,
   type EntityTypeConfig,
-  type EntityTypeClassification,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
+import { entityActionPolicyRuleSchema } from "@brains/templates";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
+import type { EntityPluginContext } from "./context";
+import { entityTypeConfigFor } from "./entity-definition-config";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
+import { SYSTEM_CHANNELS } from "../system-channels";
 import type {
   AnyEntityDefinition,
   EntityOf,
+  EntitySeedDefinition,
+  EntitySeedTrigger,
   ProjectionDefinition,
 } from "./entity-definition-contract";
+
+/**
+ * Named seed triggers map to internal channels here, so the public surface
+ * never names a channel.
+ */
+const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
+  "startup-content-settled": SYSTEM_CHANNELS.startupContentSettled,
+};
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -40,33 +54,61 @@ const entitySchemaCache = new WeakMap<
   z.ZodType<EntityOf<AnyEntityDefinition>, unknown>
 >();
 
+/** Stored metadata in its current shape, migrated when the type says how. */
+function currentMetadata(
+  definition: AnyEntityDefinition,
+  stored: unknown,
+): unknown {
+  return definition.metadataFrom ? definition.metadataFrom(stored) : stored;
+}
+
+/** A singleton's only record id is its entity type. */
+function recordIdSchema(definition: AnyEntityDefinition): z.ZodString {
+  return definition.singleton === true
+    ? z.string().refine((id) => id === definition.type, {
+        message: `A ${definition.type} singleton's id is "${definition.type}"`,
+      })
+    : baseEntitySchema.shape.id;
+}
+
 function entitySchema(
   definition: AnyEntityDefinition,
 ): z.ZodType<EntityOf<AnyEntityDefinition>, unknown> {
   let schema = entitySchemaCache.get(definition);
   if (!schema) {
     schema = baseEntitySchema.extend({
+      id: recordIdSchema(definition),
       entityType: z.literal(definition.type),
-      metadata: definition.metadata,
+      metadata: definition.metadataFrom
+        ? z.preprocess(definition.metadataFrom, definition.metadata)
+        : definition.metadata,
     });
     entitySchemaCache.set(definition, schema);
   }
   return schema;
 }
 
+const entityEnvelopeSchema = baseEntitySchema.extend({ metadata: z.unknown() });
+
 export function parseDefinitionEntity<TDefinition extends AnyEntityDefinition>(
   definition: TDefinition,
   input: unknown,
 ): EntityOf<TDefinition> {
-  // The erased schema proves the base shape; the definition's own pieces
-  // prove the two definition-typed fields, so no assertion is needed.
-  const parsed = entitySchema(definition).parse(input);
+  // The envelope and identity are checked apart from the metadata, so the
+  // metadata is migrated and validated exactly once, by the definition's own
+  // schema — which is also what proves its definition-typed output.
+  const parsed = entityEnvelopeSchema
+    .extend({
+      id: recordIdSchema(definition),
+      entityType: z.literal(definition.type),
+    })
+    .parse(input);
   return {
     ...parsed,
     entityType: definition.type,
     metadata: parseWithSchema<TDefinition["metadata"]>(
       definition.metadata,
-      parsed.metadata,
+      currentMetadata(definition, parsed.metadata),
     ),
   };
 }
@@ -81,7 +123,9 @@ function encodeParts(
   return definition.markdown
     ? definition.markdown.encode({
         content: input.content,
-        metadata: definition.metadata.parse(input.metadata),
+        metadata: definition.metadata.parse(
+          currentMetadata(definition, input.metadata),
+        ),
       })
     : { content: input.content, frontmatter: input.metadata };
 }
@@ -122,7 +166,9 @@ function entityAdapter(
         : { content: parsed.content, metadata: parsed.metadata };
       return {
         content: decoded.content,
-        metadata: definition.metadata.parse(decoded.metadata),
+        metadata: definition.metadata.parse(
+          currentMetadata(definition, decoded.metadata),
+        ),
       };
     },
     extractMetadata: (entity) => entity.metadata,
@@ -132,7 +178,36 @@ function entityAdapter(
       return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },
     getBodyTemplate: () => "",
+    // Each flag is left off when undeclared: a type that never declared one
+    // reads the same as a type written before the flag existed.
+    ...(definition.singleton === true && { isSingleton: true }),
+    ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
+    ...(definition.coverImage === true && { supportsCoverImage: true }),
+    ...(definition.displayTitle && {
+      displayTitle: (entity): string | undefined =>
+        displayTitle(definition, entity),
+    }),
   };
+}
+
+/**
+ * The declared label for a stored record. Metadata the schema refuses gets
+ * no label rather than an error, so one bad record cannot break a listing;
+ * the caller falls back to the record's own title or id.
+ */
+function displayTitle(
+  definition: AnyEntityDefinition,
+  entity: { readonly content: string; readonly metadata: unknown },
+): string | undefined {
+  const metadata = definition.metadata.safeParse(
+    currentMetadata(definition, entity.metadata),
+  );
+  return metadata.success
+    ? definition.displayTitle?.({
+        content: entity.content,
+        metadata: metadata.data,
+      })
+    : undefined;
 }
 
 export async function deriveProjectionUpserts(
@@ -244,9 +319,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   Record<string, never>,
   Record<string, never>
 > {
-  private readonly classification: EntityTypeClassification;
+  private readonly entityTypeConfig: EntityTypeConfig;
   private readonly projections: readonly ProjectionDefinition[];
   private readonly scope: (localId: string) => string;
+  private readonly validatePersist: AnyEntityDefinition["validatePersist"];
+  private readonly seed:
+    EntitySeedDefinition<AnyEntityDefinition["metadata"]> | undefined;
+  private releaseSeed: (() => void) | undefined;
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -260,17 +339,98 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     metadata: InstalledPluginPackageMetadata,
     scope: (localId: string) => string,
   ) {
-    super(scope(definition.type), metadata, {}, emptyEntityPluginConfigSchema);
-    this.classification = definition.classification;
+    super(
+      scope(definition.type),
+      metadata,
+      {},
+      emptyEntityPluginConfigSchema,
+      // Keyed by the bare entity type: the policy is about what may be done
+      // to entities of this type, not about which package declared them.
+      definition.actions && {
+        [definition.type]: entityActionPolicyRuleSchema.parse(
+          definition.actions,
+        ),
+      },
+    );
+    this.entityTypeConfig = entityTypeConfigFor(
+      definition.classification,
+      definition.config,
+    );
     this.projections = projections;
     this.scope = scope;
+    this.validatePersist = definition.validatePersist;
+    this.seed = definition.seed;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
-    return { classification: this.classification };
+    return this.entityTypeConfig;
+  }
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    const validatePersist = this.validatePersist;
+    if (validatePersist) {
+      context.entities.registerPersistValidator(
+        this.entityType,
+        async (entity): Promise<void> => {
+          await validatePersist(
+            Object.freeze({
+              content: entity.content,
+              visibility: entity.visibility,
+            }),
+          );
+        },
+      );
+    }
+
+    const seed = this.seed;
+    if (seed) {
+      this.releaseSeed = context.messaging.subscribe(
+        SEED_TRIGGER_CHANNELS[seed.on],
+        async (): Promise<{ success: true }> => {
+          await this.plantSeed(context, seed);
+          return { success: true };
+        },
+      );
+    }
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.releaseSeed?.();
+    this.releaseSeed = undefined;
+  }
+
+  /** Create-if-absent: a seed never overwrites authored content. */
+  private async plantSeed(
+    context: EntityPluginContext,
+    seed: EntitySeedDefinition<AnyEntityDefinition["metadata"]>,
+  ): Promise<void> {
+    const existing = await context.entityService.getEntity({
+      entityType: this.entityType,
+      id: seed.id,
+      visibilityScope: internalFullScope(
+        "seed checks whether its default exists; no content returned",
+      ),
+    });
+    if (existing) return;
+    try {
+      await context.entityService.createEntity({
+        entity: {
+          id: seed.id,
+          entityType: this.entityType,
+          content: seed.content(),
+          metadata: seed.metadata ?? {},
+        },
+        options: { conditionalWrite: { expectedRevision: null } },
+      });
+    } catch (error) {
+      // Someone created it between the read and the write; theirs stays.
+      if (!(error instanceof EntityWriteConflictError)) throw error;
+    }
   }
 
   protected override getProjectionRules(): ProjectionRule[] {

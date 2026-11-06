@@ -236,10 +236,13 @@
       "stable": [
         "EncodedEntityMarkdown",
         "EntityDefinition",
+        "EntityDefinitionConfig",
         "EntityMarkdownCodec",
         "EntityMarkdownDocument",
         "EntityOf",
         "EntityPackageDefinition",
+        "EntitySeedDefinition",
+        "EntitySeedTrigger",
         "EntityTypeClassification",
         "ProjectionDefinition",
         "defineEntity",
