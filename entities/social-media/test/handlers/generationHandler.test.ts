@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   generateReportFailureContract,
   generateReportSuccessContract,
+  imageGenerateJobContract,
+  type ImageGenerateJobInput,
 } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
 import {
   GenerationJobHandler,
   generatedPostSchema,
@@ -57,6 +58,17 @@ describe("GenerationJobHandler", () => {
     }
     progressReporter = reporter;
   });
+
+  /** The image jobs the handler queued, read back through their contract. */
+  async function queuedImageJobs(): Promise<ImageGenerateJobInput[]> {
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getActiveJobs([imageGenerateJobContract.type]);
+    return jobs.map((job) =>
+      imageGenerateJobContract.input.parse(JSON.parse(job.data)),
+    );
+  }
 
   describe("generationJobSchema", () => {
     it("should validate job data with prompt", () => {
@@ -379,29 +391,6 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should queue image generation when generateImage is true", async () => {
-      // Parsed rather than asserted: the enqueued payload crosses an
-      // unknown-typed job boundary, so this is what proves it carries what
-      // the image handler will need.
-      const imageGenerateJobDataSchema = z.looseObject({
-        prompt: z.string(),
-        title: z.string(),
-        aspectRatio: z.string(),
-        targetEntityType: z.string(),
-        targetEntityId: z.string(),
-      });
-      type ImageGenerateJobData = z.output<typeof imageGenerateJobDataSchema>;
-      const enqueuedJobs: Array<{
-        jobType: string;
-        data: ImageGenerateJobData;
-      }> = [];
-      context.jobs.enqueue = async (request): Promise<string> => {
-        enqueuedJobs.push({
-          jobType: request.type,
-          data: imageGenerateJobDataSchema.parse(request.data),
-        });
-        return "image-job-456";
-      };
-
       const jobData: GenerationJobData = {
         title: "Visual Post Title",
         content: "Post content with image",
@@ -417,20 +406,12 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find(
-        (j) => j.jobType === "image:image-generate",
-      );
-      expect(imageJob).toBeDefined();
-      expect(imageJob?.data.targetEntityType).toBe("social-post");
+      const imageJobs = await queuedImageJobs();
+      expect(imageJobs).toHaveLength(1);
+      expect(imageJobs[0]?.targetEntityType).toBe("social-post");
     });
 
     it("should not queue image generation when generateImage is false", async () => {
-      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
-      context.jobs.enqueue = async (request): Promise<string> => {
-        enqueuedJobs.push({ jobType: request.type, data: request.data });
-        return "job-id";
-      };
-
       const jobData: GenerationJobData = {
         title: "Text Only Post",
         content: "Post content without image",
@@ -446,35 +427,10 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find(
-        (j) => j.jobType === "image:image-generate",
-      );
-      expect(imageJob).toBeUndefined();
+      expect(await queuedImageJobs()).toEqual([]);
     });
 
     it("should queue generic coverImage generation with generated content context", async () => {
-      const imageGenerateJobDataSchema = z.looseObject({
-        prompt: z.string(),
-        title: z.string(),
-        aspectRatio: z.string(),
-        targetEntityType: z.string(),
-        targetEntityId: z.string(),
-        entityTitle: z.string().optional(),
-        entityContent: z.string().optional(),
-      });
-      type ImageGenerateJobData = z.output<typeof imageGenerateJobDataSchema>;
-      const enqueuedJobs: Array<{
-        jobType: string;
-        data: ImageGenerateJobData;
-      }> = [];
-      context.jobs.enqueue = async (request): Promise<string> => {
-        enqueuedJobs.push({
-          jobType: request.type,
-          data: imageGenerateJobDataSchema.parse(request.data),
-        });
-        return "image-job-789";
-      };
-
       const jobData: GenerationJobData = {
         title: "Contextual Visual Post",
         content: "Post body that should inform the generated image.",
@@ -493,11 +449,9 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find(
-        (j) => j.jobType === "image:image-generate",
-      );
-      expect(imageJob).toBeDefined();
-      expect(imageJob?.data).toMatchObject({
+      const imageJobs = await queuedImageJobs();
+      expect(imageJobs).toHaveLength(1);
+      expect(imageJobs[0]).toMatchObject({
         prompt: "Editorial social post cover:",
         title: "Contextual Visual Post Cover",
         aspectRatio: "16:9",
@@ -505,7 +459,7 @@ describe("GenerationJobHandler", () => {
         targetEntityId: "linkedin-contextual-visual-post",
         entityTitle: "Contextual Visual Post",
       });
-      expect(imageJob?.data.entityContent).toContain(
+      expect(imageJobs[0]?.entityContent).toContain(
         "Post body that should inform the generated image.",
       );
     });
@@ -546,17 +500,23 @@ describe("GenerationJobHandler image enqueues the queue refuses", () => {
     reporter: ProgressReporter;
   } {
     const logger = createSilentLogger();
-    const context = createPluginHarness().getEntityContext("social-media");
+    const harness = createPluginHarness();
+    const context = harness.getEntityContext("social-media");
     const retries = new RetryScope({ firstDelayMs: 10, logger });
     const admitted: string[] = [];
     const refusals = { count: 0 };
-    context.jobs.enqueue = async (request): Promise<string> => {
-      if (request.type === "image:image-generate" && refusals.count === 0) {
+    const queue = harness.getMockShell().getJobQueueService();
+    const enqueue = queue.enqueue.bind(queue);
+    queue.enqueue = async (request): Promise<string> => {
+      if (
+        request.type === imageGenerateJobContract.type &&
+        refusals.count === 0
+      ) {
         refusals.count += 1;
         throw new Error("Failed to acquire atomic enqueue transaction");
       }
       admitted.push(request.type);
-      return "image-job";
+      return enqueue(request);
     };
     const reporter = CallbackProgressReporter.from(async () => {});
     if (!reporter) throw new Error("Failed to create progress reporter");
@@ -600,7 +560,7 @@ describe("GenerationJobHandler image enqueues the queue refuses", () => {
         }),
       ).not.toBeNull();
       await waitUntil(
-        () => admitted.includes("image:image-generate"),
+        () => admitted.includes(imageGenerateJobContract.type),
         "the refused image to be queued",
       );
       await retries.dispose();

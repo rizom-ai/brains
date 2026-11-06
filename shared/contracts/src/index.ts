@@ -294,7 +294,6 @@ export {
   DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,
   GENERATE_CHANNELS,
-  IMAGE_CHANNELS,
   JOB_CHANNELS,
   NEWSLETTER_CHANNELS,
   PLUGIN_CHANNELS,
@@ -500,3 +499,14 @@ export {
   type BusDelivery,
   type BusResult,
 } from "./bus-contract";
+export { defineJobContract, type JobContract } from "./job-contract";
+export {
+  imageAspectRatioSchema,
+  imageGenerateJobContract,
+  imageGenerateJobInputSchema,
+  imageRenderSourceJobContract,
+  imageRenderSourceJobInputSchema,
+  type ImageAspectRatio,
+  type ImageGenerateJobInput,
+  type ImageRenderSourceJobInput,
+} from "./image-jobs";

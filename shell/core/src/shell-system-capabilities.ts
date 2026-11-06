@@ -1,6 +1,7 @@
 import {
   createEnqueueBatchFn,
   createEnqueueJobFn,
+  createHasJobFn,
   createRegisterHandlerFn,
   type IJobsNamespace,
 } from "@brains/job-queue";
@@ -40,6 +41,7 @@ export function registerShellSystemCapabilities(
         enqueue: createEnqueueJobFn(jobQueueService, "system", false),
         enqueueBatch: createEnqueueBatchFn(jobs, "system"),
         registerHandler: createRegisterHandlerFn(jobQueueService, "system"),
+        has: createHasJobFn(jobQueueService),
       },
       conversationService: services.conversationService,
       runtimeUploads: services.runtimeUploadRegistry,

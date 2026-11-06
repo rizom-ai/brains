@@ -7,8 +7,9 @@ import type {
   ProjectionJobContext,
 } from "./types";
 import type { Batch, BatchJobStatus } from "./batch-schemas";
-import { authenticatedUserId } from "@brains/contracts";
+import { authenticatedUserId, type JobContract } from "@brains/contracts";
 import { createId } from "@brains/utils/id";
+import type { z } from "@brains/utils/zod";
 import type { ToolContext } from "@brains/mcp-service";
 
 /**
@@ -22,14 +23,11 @@ export type JobEnqueuer = Pick<IJobQueueService, "enqueue">;
 /** The one method the handler-registration helper calls. */
 export type JobHandlerRegistrar = Pick<IJobQueueService, "registerHandler">;
 
-/**
- * Type for the enqueueJob function created by the helper
- */
-export interface EnqueueJobRequest {
-  /** Job type to enqueue. Service plugin jobs are auto-scoped when unscoped. */
-  type: string;
-  /** Job payload passed to the registered handler. */
-  data: unknown;
+/** The one lookup the job-availability helper calls. */
+export type JobDeclarations = Pick<IJobQueueService, "getValidator">;
+
+/** How a job is routed and queued, apart from its type and payload. */
+export interface EnqueueJobRouting {
   /** Tool routing context, or null/omitted for background jobs. */
   toolContext?: ToolContext | null;
   /** Optional queue behavior, routing metadata, and retry settings. */
@@ -38,7 +36,37 @@ export interface EnqueueJobRequest {
   projection?: ProjectionJobContext;
 }
 
-export type EnqueueJobFn = (request: EnqueueJobRequest) => Promise<string>;
+/**
+ * Type for the enqueueJob function created by the helper
+ */
+export interface EnqueueJobRequest extends EnqueueJobRouting {
+  /** Job type to enqueue. Service plugin jobs are auto-scoped when unscoped. */
+  type: string;
+  /** Job payload passed to the registered handler. */
+  data: unknown;
+}
+
+export interface EnqueueJobFn {
+  /**
+   * Enqueue another package's job through its contract. The data is parsed
+   * with the contract's input schema first, and invalid data throws before
+   * anything is queued.
+   */
+  <TInput extends z.ZodType>(
+    contract: JobContract<TInput>,
+    data: z.input<TInput>,
+    routing?: EnqueueJobRouting,
+  ): Promise<string>;
+  /** Enqueue a job by type, as a plugin does for its own job types. */
+  (request: EnqueueJobRequest): Promise<string>;
+}
+
+/**
+ * Whether a contract's job is declared in this process: its owner is
+ * installed. It reads the declarations every process keeps, so a web process,
+ * which holds no executable handlers, answers as the worker does.
+ */
+export type HasJobFn = (contract: JobContract<z.ZodType>) => boolean;
 
 /**
  * Unified jobs namespace with monitoring and write operations.
@@ -61,6 +89,8 @@ export interface JobsNamespace {
   // === Write ===
   /** Enqueue a job for background processing */
   enqueue: EnqueueJobFn;
+  /** Whether a contract's job has a declared handler: its owner is installed */
+  has: HasJobFn;
   /** Enqueue multiple operations as a batch (batchId generated internally) */
   enqueueBatch: (
     operations: BatchOperation[],
@@ -91,7 +121,9 @@ export function createEnqueueJobFn(
   pluginId: string,
   scopeJobType: boolean,
 ): EnqueueJobFn {
-  return async (request): Promise<string> => {
+  const enqueueRequest = async (
+    request: EnqueueJobRequest,
+  ): Promise<string> => {
     const { type, data, toolContext = null, options, projection } = request;
     const requestedByUserId = toolContext
       ? authenticatedUserId(toolContext)
@@ -141,6 +173,34 @@ export function createEnqueueJobFn(
       options: jobOptions,
     });
   };
+
+  function enqueue<TInput extends z.ZodType>(
+    contract: JobContract<TInput>,
+    data: z.input<TInput>,
+    routing?: EnqueueJobRouting,
+  ): Promise<string>;
+  function enqueue(request: EnqueueJobRequest): Promise<string>;
+  async function enqueue(
+    target: JobContract<z.ZodType> | EnqueueJobRequest,
+    data?: unknown,
+    routing?: EnqueueJobRouting,
+  ): Promise<string> {
+    if (!("input" in target)) return enqueueRequest(target);
+    const parsed = target.input.safeParse(data);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid job data for ${target.type}: ${parsed.error.message}`,
+      );
+    }
+    return enqueueRequest({ ...routing, type: target.type, data: parsed.data });
+  }
+
+  return enqueue;
+}
+
+/** Creates the jobs namespace's `has`, reading this process's job declarations. */
+export function createHasJobFn(declarations: JobDeclarations): HasJobFn {
+  return (contract) => declarations.getValidator(contract.type) !== undefined;
 }
 
 export type EnqueueBatchFn = (

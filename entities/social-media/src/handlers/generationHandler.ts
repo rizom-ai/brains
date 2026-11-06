@@ -1,8 +1,8 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import {
-  IMAGE_CHANNELS,
   generateReportFailureContract,
   generateReportSuccessContract,
+  imageGenerateJobContract,
 } from "@brains/contracts";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -319,20 +319,25 @@ ${sourceEntity.content}`,
       const title = generated.title ?? "Social Post";
       await this.enqueueFollowUp(
         () =>
-          this.context.jobs.enqueue({
-            type: IMAGE_CHANNELS.generate,
-            data: {
+          this.context.jobs.enqueue(
+            imageGenerateJobContract,
+            {
               prompt: `Social media graphic for: ${title}`,
               title: `${title} Image`,
               aspectRatio: "16:9",
               targetEntityType: "social-post",
               targetEntityId: entityId,
             },
-            toolContext: {
-              interfaceType: "job",
-              actor: { kind: "service", serviceId: "social-media-generation" },
+            {
+              toolContext: {
+                interfaceType: "job",
+                actor: {
+                  kind: "service",
+                  serviceId: "social-media-generation",
+                },
+              },
             },
-          }),
+          ),
         `queue the image for social-post:${entityId}`,
         `social-image:social-post:${entityId}`,
       );

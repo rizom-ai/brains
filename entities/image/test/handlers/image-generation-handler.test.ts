@@ -1,9 +1,7 @@
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  ImageGenerationJobHandler,
-  type ImageGenerationJobData,
-} from "../../src/handlers/image-generation-handler";
+import type { ImageGenerateJobInput } from "@brains/contracts";
+import { ImageGenerationJobHandler } from "../../src/handlers/image-generation-handler";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -120,7 +118,7 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should generate image with derived title when title is omitted", async () => {
-      const jobData: ImageGenerationJobData = {
+      const jobData: ImageGenerateJobInput = {
         prompt: "A beautiful sunset over mountains",
       };
 
@@ -157,8 +155,8 @@ describe("ImageGenerationJobHandler", () => {
 
   describe("process", () => {
     const createValidJobData = (
-      overrides: Partial<ImageGenerationJobData> = {},
-    ): ImageGenerationJobData => ({
+      overrides: Partial<ImageGenerateJobInput> = {},
+    ): ImageGenerateJobInput => ({
       prompt: "A beautiful sunset over mountains",
       title: "Sunset Image",
       ...overrides,

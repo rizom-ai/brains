@@ -9,6 +9,7 @@ import type { JobsNamespace } from "@brains/job-queue";
 import {
   createEnqueueBatchFn,
   createEnqueueJobFn,
+  createHasJobFn,
   createRegisterHandlerFn,
 } from "@brains/job-queue";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
@@ -261,6 +262,7 @@ export function createJobsNamespace(
     enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
     enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
     registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
+    has: createHasJobFn(jobQueueService),
   };
 }
 

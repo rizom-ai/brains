@@ -2,11 +2,15 @@
 
 ## Status
 
-**In progress; Phases 1–5 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract`, `commandContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather`, `command` and `answer`. All three delivery modes are live: a command is broadcast, every owner hears it, nobody answers, and an owner that fails does not keep the others from hearing it.
+**In progress; Phases 1–6 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract`, `commandContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather`, `command` and `answer`. All three delivery modes are live: a command is broadcast, every owner hears it, nobody answers, and an owner that fails does not keep the others from hearing it.
 
 Contracts so far: `note:capture`, `auth:principal:resolve`, `notifications:send`, `agent:context:request`, `guest:asked-before`, `projection:wave-ready`, `agent:action:request`, `sync:path:request`, `email:source-read`, `email:inbound`, `console:jump-destinations`, `chat:space-notice`, `chat:space-notice-action`, `topics:public-titles`, `topics:source-types`, `a2a:ask:request`, `a2a:call:request`, `a2a:call:agents`, `sync:status:request`, `plugin:site-builder:head-scripts` (collect), `publish:register`, `publish-assets:register`, `generate:execute`, `generate:report:success`, `generate:report:failure` and `site:build:staging` (commands), and `playbooks:register-lifecycle-starter`. `site:metadata:get`, `plugin:site-builder:route:register` (command), `site-builder:routes:list` and `plugin:site-builder:slots` (collect) are declared in `@brains/site-composition`, beside the schemas they carry, because `@brains/contracts` sits below it.
 
 The six Dashboard and Studio registration channels are request contracts declared in `@brains/plugins` (`shell/plugins/src/contracts/`), because their schemas carry shell types: the widget provider context, the Studio workspace actor and the renderer names. `dashboard:register-widget` and `dashboard:unregister-widget` are owned by the Dashboard; `studio:register-overview-contribution`, `studio:unregister-overview-contribution`, `studio:register-workspace` and `studio:unregister-workspace` are owned by Studio. `context.dashboard` and `context.studio` keep their methods and ask a host through `request` only while it is mounted, so a registration meets a host's limits only where that host runs. An unmounted host contributes `false`, and a host's refusal throws with its reason.
+
+Jobs that one package enqueues for another are job contracts. `defineJobContract({ type, input })` in `@brains/contracts` declares one by its full job type and its input schema. `context.jobs.enqueue(contract, data, { toolContext, options })` parses the data with that schema, throws before anything is queued when it is invalid, and otherwise queues the job as `enqueue({ type, data, toolContext, options })` does; a plugin's own job types keep that raw form. `context.jobs.has(contract)` reports whether the job type is declared in the process's handler registry. Every process registers every plugin's job handlers, and a web process keeps them as declarations for validation only, so `has` gives the same answer in the web process and the worker.
+
+The image plugin's two jobs are contracts in `shared/contracts/src/image-jobs.ts`: `image:image-generate` and `image:image-render-source`. The image plugin registers its handlers under them and parses with their schemas. `base-generation-job-handler` and the social-media generator enqueue `image:image-generate` through its contract. The blog plugin's OG-image publish asset and content-pipeline's default publish-asset job name `image:image-render-source` by the contract's type, because `jobType` is a string field. `IMAGE_CHANNELS` is deleted. The image plugin no longer registers `image:generation`; nothing enqueued it, because the image create interceptor handles every prompt.
 
 An `answer` handler receives the plugin that sent the call beside the request. The namespace stamps its own plugin id on everything it sends, so a plugin cannot speak for another; the lifecycle starter owner keys each registration by it.
 
@@ -65,7 +69,9 @@ Existing schemas move into contracts as they are migrated, and no schema is rest
 
 `defineJobContract({ type, input })` declares a job that another package may enqueue. `context.jobs.enqueue(contract, data)` validates the input against it, and `context.jobs.has(contract)` reports whether its owner is installed.
 
-The image generation and render-source jobs become contracts. With that, shell's `base-generation-job-handler` and the social-media generator enqueue a declared contract instead of the string `image:image-generate`. `system_generate` asks `context.jobs.has` instead of hardcoding the `image` entity type.
+The image generation and render-source jobs become contracts. With that, shell's `base-generation-job-handler` and the social-media generator enqueue a declared contract instead of the string `image:image-generate`.
+
+`system_generate` needs no job check. Its `standalone-image` and `cover-image` operations build a create input for the `image` entity type, which is not an availability assumption. The input passes the same entity-type check as every generation, which refuses it when the image plugin is not installed, and the image plugin's create interceptor enqueues the job itself.
 
 ### Dead surface is deleted, not typed
 
@@ -78,14 +84,6 @@ The public `@rizom/brain` authoring SDK does not gain contracts in this plan. Ex
 ## Phases
 
 Phases land as commits on one branch and PR, opened after the walking skeleton. Each phase leaves every channel either fully migrated or untouched.
-
-### Phase 5 — Dashboard and Studio namespaces on contracts
-
-The four dashboard and two Studio channels move behind contracts without changing the namespace methods.
-
-### Phase 6 — Cross-package job contracts
-
-`defineJobContract`, `context.jobs.enqueue(contract, …)` and `context.jobs.has`, with the image jobs and `system_generate` migrated.
 
 ### Phase 7 — Dead surface and the guard
 

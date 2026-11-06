@@ -545,6 +545,7 @@ export type {
   Batch,
   BatchOperation,
   BatchJobStatus,
+  EnqueueJobRequest,
   JobContext,
   JobInfo,
   JobOptions,

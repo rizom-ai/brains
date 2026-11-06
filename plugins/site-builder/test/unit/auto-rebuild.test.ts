@@ -3,11 +3,7 @@ import {
   type MockServicePluginContext,
 } from "@brains/plugins/test";
 import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
-import {
-  createEnqueueJobFn,
-  JobQueueService,
-  type EnqueueJobRequest,
-} from "@brains/job-queue";
+import { createEnqueueJobFn, JobQueueService } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { createClient } from "@libsql/client";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
@@ -274,12 +270,11 @@ describe("RebuildManager", () => {
         true,
       );
       const failures: unknown[] = [];
-      context.jobs.enqueue = mock(
-        (request: EnqueueJobRequest): Promise<string> =>
-          enqueueThroughQueue(request).catch((error: unknown) => {
-            failures.push(error);
-            throw error;
-          }),
+      context.jobs.enqueue.mockImplementation((request): Promise<string> =>
+        enqueueThroughQueue(request).catch((error: unknown) => {
+          failures.push(error);
+          throw error;
+        }),
       );
       manager = new RebuildManager(
         createTestConfig({ rebuildDebounce: 100 }),
