@@ -68,6 +68,12 @@ import {
   type ProjectionRule,
 } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
+import type {
+  InboxActor,
+  InboxItem,
+  InboxItemDetail,
+  InboxSource,
+} from "../inbox-registry";
 import { SYSTEM_CHANNELS } from "../system-channels";
 import { createDeclaredDataSource } from "../public/entity-data-source";
 import type {
@@ -80,6 +86,12 @@ import type {
   EntityCreateRoute,
   EntityCreateRouting,
   EntityAtprotoProjection,
+  EntityInboxActionContext,
+  EntityInboxChange,
+  EntityInboxDeclaration,
+  EntityInboxEdits,
+  EntityRecordReader,
+  DataSourceListOptions,
   EntityCreateUploadReader,
   EntityFeedDeclaration,
   MediaAttachmentContext,
@@ -815,6 +827,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ),
       });
     }
+    // The shell removes a plugin's Inbox sources with the plugin.
+    const inbox = this.definition.inbox;
+    if (inbox) context.inbox.registerSource(this.inboxSource(context, inbox));
     const media = this.attachments?.length
       ? mediaAttachmentContext(context)
       : undefined;
@@ -964,6 +979,143 @@ class DeclarativeEntityPlugin extends EntityPlugin<
    * reads as this package rather than through the context the service
    * passes, and it is given the validated record.
    */
+  /** Reads of the declaring type alone, up to one visibility. */
+  private records(
+    context: EntityPluginContext,
+    visibilityScope: ContentVisibility,
+  ): EntityRecordReader<EntityOf<AnyEntityDefinition>> {
+    const definition = this.definition;
+    const reader = createEntityReader(context.entityService, visibilityScope);
+    return Object.freeze({
+      get: (id: string): Promise<EntityOf<AnyEntityDefinition> | null> =>
+        reader.get(definition, id),
+      list: (
+        options?: DataSourceListOptions,
+      ): Promise<readonly EntityOf<AnyEntityDefinition>[]> =>
+        reader.list(definition, options),
+    });
+  }
+
+  /**
+   * The declared Inbox in the shape the Inbox reads. Listing reads as the
+   * package; opening and acting read as the actor, and acting writes only
+   * through edits the actor is allowed.
+   */
+  private inboxSource(
+    context: EntityPluginContext,
+    declared: EntityInboxDeclaration,
+  ): InboxSource {
+    const full = internalFullScope("the declared Inbox lists as its package");
+    const asActor = (
+      actor: InboxActor,
+    ): Omit<EntityInboxActionContext<AnyEntityDefinition>, "edits"> => {
+      const scope = permissionToVisibilityScope(actor.permissionLevel);
+      return {
+        actor,
+        records: this.records(context, scope),
+        entities: createEntityReader(context.entityService, scope),
+      };
+    };
+    const resolveDetail = declared.resolveDetail?.bind(declared);
+    return {
+      sourceId: declared.sourceId,
+      displayName: declared.displayName,
+      ...(declared.facets ? { facets: [...declared.facets] } : {}),
+      list: async (): Promise<InboxItem[]> => [
+        ...(await declared.list(
+          Object.freeze({
+            records: this.records(context, full),
+            entities: createEntityReader(context.entityService, full),
+          }),
+        )),
+      ],
+      ...(resolveDetail && {
+        resolveDetail: (
+          itemId: string,
+          actor: InboxActor,
+          signal: AbortSignal,
+        ): Promise<InboxItemDetail> =>
+          resolveDetail(itemId, Object.freeze({ ...asActor(actor), signal })),
+      }),
+      act: (itemId: string, actionId: string, actor: InboxActor) =>
+        declared.act(
+          itemId,
+          actionId,
+          Object.freeze({
+            ...asActor(actor),
+            edits: this.inboxEdits(context, actor),
+          }),
+        ),
+    };
+  }
+
+  private inboxEdits(
+    context: EntityPluginContext,
+    actor: InboxActor,
+  ): EntityInboxEdits<AnyEntityDefinition> {
+    const entityType = this.entityType;
+    const allow = (action: "update" | "publish" | "delete"): void =>
+      context.permissions.assertEntityActionAllowed(entityType, action, {
+        userPermissionLevel: actor.permissionLevel,
+      });
+    const own = (record: EntityOf<AnyEntityDefinition>): void => {
+      if (record.entityType !== entityType) {
+        throw new Error(
+          `An Inbox action on ${entityType} cannot write ${record.entityType}`,
+        );
+      }
+    };
+    const changed = (): Error =>
+      new Error(`The ${entityType} changed meanwhile; try again`);
+    const write = async (
+      record: EntityOf<AnyEntityDefinition>,
+      change: EntityInboxChange<AnyEntityDefinition>,
+      action: "update" | "publish",
+    ): Promise<void> => {
+      allow(action);
+      own(record);
+      const result = await context.entityService.updateEntity({
+        entity: {
+          ...record,
+          content: change.content ?? record.content,
+          metadata: this.definition.metadata.parse(
+            change.metadata ?? record.metadata,
+          ),
+        },
+        options: { expectedContentHash: record.contentHash },
+      });
+      if (!result.skipped) return;
+      // Skipped is either an identical write or a stale one; only the
+      // second means the operator acted on something they did not see.
+      const current = await context.entityService.getEntity({
+        entityType,
+        id: record.id,
+        visibilityScope: internalFullScope("an Inbox write checks its read"),
+      });
+      if (current?.contentHash !== record.contentHash) throw changed();
+    };
+    return Object.freeze({
+      update: (
+        record: EntityOf<AnyEntityDefinition>,
+        change: EntityInboxChange<AnyEntityDefinition>,
+      ): Promise<void> => write(record, change, "update"),
+      publish: (
+        record: EntityOf<AnyEntityDefinition>,
+        change: EntityInboxChange<AnyEntityDefinition>,
+      ): Promise<void> => write(record, change, "publish"),
+      delete: async (record: EntityOf<AnyEntityDefinition>): Promise<void> => {
+        allow("delete");
+        own(record);
+        const deleted = await context.entityService.deleteEntity({
+          entityType,
+          id: record.id,
+          options: { expectedContentHash: record.contentHash },
+        });
+        if (!deleted) throw changed();
+      },
+    });
+  }
+
   private atprotoProjection(
     context: EntityPluginContext,
     declared: EntityAtprotoProjection<EntityOf<AnyEntityDefinition>>,

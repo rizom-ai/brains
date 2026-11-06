@@ -25,6 +25,12 @@ import type {
 } from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
 import type { ProjectionRule } from "./projection-rule";
+import type {
+  InboxActor,
+  InboxFacetDefinition,
+  InboxItem,
+  InboxItemDetail,
+} from "../inbox-registry";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type {
   ResolvedRuntimeUpload,
@@ -172,6 +178,91 @@ export interface EntityPublishAssetDeclaration {
         readonly visibility?: EntityVisibility | undefined;
       }
     | undefined;
+}
+
+/** Definition-typed reads of the declaring type alone. */
+export interface EntityRecordReader<TEntity> {
+  get(id: string): Promise<TEntity | null>;
+  list(options?: DataSourceListOptions): Promise<readonly TEntity[]>;
+}
+
+/** What an Inbox action may change on the record it acts on. */
+export interface EntityInboxChange<TDefinition extends AnyEntityDefinition> {
+  readonly content?: string | undefined;
+  readonly metadata?: EntityMetadataInput<TDefinition["metadata"]> | undefined;
+}
+
+/**
+ * The writes an Inbox action makes, as the actor and to the record it read.
+ * Each is refused when the actor may not take that action on the type, and
+ * when the record changed after it was read, so an operator never acts on
+ * something other than what they saw.
+ */
+export interface EntityInboxEdits<TDefinition extends AnyEntityDefinition> {
+  update(
+    record: EntityOf<TDefinition>,
+    change: EntityInboxChange<TDefinition>,
+  ): Promise<void>;
+  /** An update that publishes, which the action policy may hold to more. */
+  publish(
+    record: EntityOf<TDefinition>,
+    change: EntityInboxChange<TDefinition>,
+  ): Promise<void>;
+  delete(record: EntityOf<TDefinition>): Promise<void>;
+}
+
+/** What listing the Inbox reads with: everything the package holds. */
+export interface EntityInboxListContext<
+  TDefinition extends AnyEntityDefinition,
+> {
+  /** The declaring type's records, at every visibility. */
+  readonly records: EntityRecordReader<EntityOf<TDefinition>>;
+  /** Reads of any type, at every visibility. */
+  readonly entities: DataSourceEntityReader;
+}
+
+/** What an operator opening or acting on an item reads with: their own view. */
+export interface EntityInboxDetailContext<
+  TDefinition extends AnyEntityDefinition,
+> {
+  readonly actor: InboxActor;
+  /** The declaring type's records, at the actor's visibility. */
+  readonly records: EntityRecordReader<EntityOf<TDefinition>>;
+  /** Reads of any type, at the actor's visibility. */
+  readonly entities: DataSourceEntityReader;
+  readonly signal: AbortSignal;
+}
+
+export interface EntityInboxActionContext<
+  TDefinition extends AnyEntityDefinition,
+> extends Omit<EntityInboxDetailContext<TDefinition>, "signal"> {
+  readonly edits: EntityInboxEdits<TDefinition>;
+}
+
+/**
+ * What this type puts in front of the operator to act on. Items are listed
+ * for the Inbox, opened for detail and acted on by action id; the brain
+ * validates every item and shows only actions the item declares.
+ */
+export interface EntityInboxDeclaration<
+  TDefinition extends AnyEntityDefinition = AnyEntityDefinition,
+> {
+  /** Brain-wide, kebab-case: one source per id. */
+  readonly sourceId: string;
+  readonly displayName: string;
+  readonly facets?: readonly InboxFacetDefinition[] | undefined;
+  list(
+    context: EntityInboxListContext<TDefinition>,
+  ): Promise<readonly InboxItem[]>;
+  resolveDetail?(
+    itemId: string,
+    context: EntityInboxDetailContext<TDefinition>,
+  ): Promise<InboxItemDetail>;
+  act(
+    itemId: string,
+    actionId: string,
+    context: EntityInboxActionContext<TDefinition>,
+  ): Promise<void>;
 }
 
 /** How often a check runs. */
@@ -413,6 +504,10 @@ export interface EntityDefinition<
     | ((context: {
         readonly template: (localName: string) => string;
       }) => readonly ProjectionRule[])
+    | undefined;
+  /** What this type puts in front of the operator in the Inbox. */
+  readonly inbox?:
+    | EntityInboxDeclaration<EntityDefinition<TType, TMetadataSchema>>
     | undefined;
   /** Checks the brain runs for this type on a schedule. */
   readonly checks?: readonly EntityCheckDeclaration[] | undefined;

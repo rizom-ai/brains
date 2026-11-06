@@ -190,12 +190,19 @@ Types:
 - `EntityGenerationLink`
 - `EntityGenerationRequest`
 - `EntityGenerationResult`
+- `EntityInboxActionContext`
+- `EntityInboxChange`
+- `EntityInboxDeclaration`
+- `EntityInboxDetailContext`
+- `EntityInboxEdits`
+- `EntityInboxListContext`
 - `EntityJobContext`
 - `EntityJobDeclaration`
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntityRecordReader`
 - `EntityPublishAssetDeclaration`
 - `EntityPublishDeclaration`
 - `EntityScheduledGenerationDeclaration`
@@ -203,6 +210,11 @@ Types:
 - `EntitySeedTrigger`
 - `EntityTypeClassification`
 - `FeedItem`
+- `InboxAction`
+- `InboxActor`
+- `InboxFacetDefinition`
+- `InboxItem`
+- `InboxItemDetail`
 - `MediaAttachmentContext`
 - `ProjectionDefinition`
 - `ProjectionJsonObject`
@@ -286,6 +298,7 @@ Deriving with projection rules on `defineEntity`:
 
 Operator slots on `defineEntity`:
 
+- `inbox` (`EntityInboxDeclaration`) puts what the type needs from the operator in the Inbox: a brain-wide kebab-case `sourceId`, a `displayName`, optional `facets` (`InboxFacetDefinition`), and `list`, optional `resolveDetail` and `act`. `list` returns `InboxItem`s — an id, a title, when it arrived, an urgency, optional summary, entity reference and facets, and up to ten `InboxAction`s — reading as the package (`EntityInboxListContext`): `records`, an `EntityRecordReader` of the declaring type, and `entities` for any other. `resolveDetail` returns plain `InboxItemDetail` and `act` handles an action id; both read at the `InboxActor`'s visibility. `act` writes through `EntityInboxEdits` — `update`, `publish` and `delete` of a record of the declaring type, each with an `EntityInboxChange` of content or metadata — which the brain refuses when the actor may not take that action on the type, or when the record changed after it was read. The brain validates every item, and removes the source with the package.
 - `checks` (`EntityCheckDeclaration`) are runs the brain schedules for the type: a local `id` (scoped to the declaring plugin; one id per type), a `cadence` of `daily` or `weekly` (`EntityCheckCadence`), and `run(context)`, which returns an `EntityCheckResult` of `EntityCheckAlert`s — each a stable `dedupeKey` for one condition, a `title` and a `body`, no secrets. The brain delivers each alert once per condition and shows it in the Inbox; `deliverAlerts: false` or `includeInInbox: false` turns either off. `EntityCheckContext` gives definition-typed `entities` reads as the package at every visibility, the brain's `siteUrl` for links, and the run's `signal`.
 - `analyticsReports` adds reports to `system_analytics`, each declared with `defineEntityAnalyticsReport` (`EntityAnalyticsReportDeclaration`): a kebab-case `type` the agent names (durable and brain-wide), a `description`, a `params` object schema that types `report`, and an optional `minVisibility` floor. The tool validates params before `report(params, context)` runs; `EntityAnalyticsReportContext` gives definition-typed `entities` reads at the caller's `visibility`, published records only for a public caller. The runtime removes the reports when the package goes.
 
