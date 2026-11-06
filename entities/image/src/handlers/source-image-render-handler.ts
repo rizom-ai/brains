@@ -5,6 +5,7 @@ import {
   findEntityByIdentifier,
   saveProcessedEntity,
 } from "@brains/plugins";
+import { bufferView } from "@brains/utils/bytes";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -105,7 +106,10 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       // emit another image format.
       const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
+        dataUrl: createDataUrl(
+          bufferView(attachment.data).toString("base64"),
+          imageFormat,
+        ),
         title: data.imageId,
         status: "draft",
         sourceEntityType: data.sourceEntityType,

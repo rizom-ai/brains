@@ -8,6 +8,7 @@ import {
   type CreateCheckResult,
   type CreateInput,
 } from "@brains/entity-service";
+import { bufferView } from "@brains/utils/bytes";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
@@ -457,7 +458,7 @@ async function readUploadMarkdown(
   const { content } = await services.runtimeUploads
     .scoped(uploadScope)
     .read(upload.id);
-  return content.toString("utf8");
+  return bufferView(content).toString("utf8");
 }
 
 /**

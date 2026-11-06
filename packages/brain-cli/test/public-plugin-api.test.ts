@@ -244,6 +244,31 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("keeps Node-only globals and modules out of public declarations", async () => {
+    // A consumer compiling without Node types must still read every public
+    // declaration, so none may name Node's globals or built-in modules.
+    const nodeBuiltin =
+      /^(?:node:.*|buffer|child_process|crypto|events|fs|fs\/promises|http|https|net|os|path|stream|url|util|worker_threads)$/;
+    for (const publicExport of listTypedPublicExports()) {
+      const types = stripDeclarationComments(
+        readFileSync(join(pkgDir, publicExport.types), "utf-8"),
+      );
+      const globals = [
+        ...types.matchAll(/\b(?:Buffer|NodeJS\.\w+|typeof process)\b/g),
+      ].map((match) => match[0]);
+      const modules = [
+        ...types.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+      ]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => nodeBuiltin.test(specifier));
+      expect({ entry: publicExport.specifier, globals, modules }).toEqual({
+        entry: publicExport.specifier,
+        globals: [],
+        modules: [],
+      });
+    }
+  });
+
   it("keeps Effect and private /effect imports out of public declarations", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");

@@ -14,6 +14,7 @@ import {
   uploadTitle,
   ServicePlugin,
 } from "@brains/plugins";
+import { toDataUrl } from "@brains/utils/bytes";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
@@ -68,10 +69,6 @@ const webChatUploadsScope: RuntimeUploadScopeOptions & {
   refKind: "upload",
   routePath: "/api/chat/uploads",
 };
-
-function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
-}
 
 function buildUploadedDocumentAttachment(input: {
   entityId: string;

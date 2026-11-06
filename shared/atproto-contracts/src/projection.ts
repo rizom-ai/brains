@@ -45,7 +45,7 @@ export interface AtprotoPdsClientLike {
     rkey: string;
   }): Promise<void>;
   uploadBlob?(input: {
-    data: Buffer;
+    data: Uint8Array;
     mimeType: string;
   }): Promise<{ blob: AtprotoBlobRef }>;
 }

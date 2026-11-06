@@ -441,7 +441,7 @@ describe("what a create route is given", () => {
             return {
               create: {
                 id: "imported",
-                content: upload.content.toString("utf8"),
+                content: new TextDecoder().decode(upload.content),
                 metadata: { title: record.filename, count: 1 },
               },
             };

@@ -7,6 +7,7 @@ import {
   validateMessageUpload,
   type ChatAttachment,
 } from "@brains/plugins";
+import { bufferView } from "@brains/utils/bytes";
 import type { Message } from "chat";
 import type { ChatThread, ChatUploadStore } from "./types";
 
@@ -172,7 +173,7 @@ export class ChatInputBuilder {
 export function chatAttachmentFromStoredUpload(
   filename: string,
   mediaType: string,
-  content: Buffer,
+  content: Uint8Array,
   source: { kind: string; id: string },
 ): ChatAttachment {
   return toChatAttachment(
@@ -200,7 +201,7 @@ function normalizeIncomingMessageText(
 function toChatAttachment(
   filename: string,
   mediaType: string,
-  content: Buffer,
+  content: Uint8Array,
   source: { kind: string; id: string },
   isText: boolean,
 ): ChatAttachment {
@@ -209,7 +210,9 @@ function toChatAttachment(
       kind: "text",
       filename,
       mediaType,
-      content: content.toString("utf8").replace(/^\uFEFF/, ""),
+      content: bufferView(content)
+        .toString("utf8")
+        .replace(/^\uFEFF/, ""),
       sizeBytes: content.byteLength,
       source,
     };
