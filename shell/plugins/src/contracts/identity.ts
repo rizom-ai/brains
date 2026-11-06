@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { socialLinkSchema } from "@brains/contracts";
 
 export const BrainCharacterSchema: z.ZodObject<{
   name: z.ZodString;
@@ -21,21 +22,7 @@ export const AnchorProfileSchema: z.ZodObject<{
   avatar: z.ZodOptional<z.ZodString>;
   website: z.ZodOptional<z.ZodString>;
   email: z.ZodOptional<z.ZodString>;
-  socialLinks: z.ZodOptional<
-    z.ZodArray<
-      z.ZodObject<{
-        platform: z.ZodEnum<{
-          github: "github";
-          instagram: "instagram";
-          linkedin: "linkedin";
-          email: "email";
-          website: "website";
-        }>;
-        url: z.ZodString;
-        label: z.ZodOptional<z.ZodString>;
-      }>
-    >
-  >;
+  socialLinks: z.ZodOptional<z.ZodArray<typeof socialLinkSchema>>;
 }> = z.object({
   name: z.string(),
   organization: z.string().optional(),
@@ -43,21 +30,7 @@ export const AnchorProfileSchema: z.ZodObject<{
   avatar: z.string().optional(),
   website: z.string().optional(),
   email: z.string().optional(),
-  socialLinks: z
-    .array(
-      z.object({
-        platform: z.enum([
-          "github",
-          "instagram",
-          "linkedin",
-          "email",
-          "website",
-        ]),
-        url: z.string(),
-        label: z.string().optional(),
-      }),
-    )
-    .optional(),
+  socialLinks: z.array(socialLinkSchema).optional(),
 });
 
 export type AnchorProfile = z.output<typeof AnchorProfileSchema>;

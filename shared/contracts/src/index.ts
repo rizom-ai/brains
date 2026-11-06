@@ -485,6 +485,13 @@ export {
 } from "./favicon";
 export { WEB_ROUTE_ROLES, type WebRouteRole } from "./web-route-role";
 export {
+  SOCIAL_LINK_PLATFORM_LABELS,
+  socialLinkPlatformSchema,
+  socialLinkSchema,
+  type SocialLink,
+  type SocialLinkPlatform,
+} from "./social-link";
+export {
   defineBusContract,
   type BusAnswerMeta,
   type BusCollection,

@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
 import { baseEntitySchema } from "@brains/entity-service";
+import { socialLinkSchema, type SocialLink } from "@brains/contracts";
 
 /**
  * Anchor profile entity schema
@@ -20,11 +21,7 @@ export const anchorProfileSchema: ReturnType<
  */
 export type AnchorProfileEntity = z.infer<typeof anchorProfileSchema>;
 
-export interface AnchorProfileSocialLink {
-  platform: "github" | "instagram" | "linkedin" | "email" | "website";
-  url: string;
-  label?: string | undefined;
-}
+export type AnchorProfileSocialLink = SocialLink;
 
 export type AnchorProfileKindSchema = z.ZodEnum<{
   person: "person";
@@ -50,17 +47,7 @@ export interface AnchorProfile {
   socialLinks?: AnchorProfileSocialLink[] | undefined;
 }
 
-type SocialLinkSchema = z.ZodObject<{
-  platform: z.ZodEnum<{
-    github: "github";
-    instagram: "instagram";
-    linkedin: "linkedin";
-    email: "email";
-    website: "website";
-  }>;
-  url: z.ZodString;
-  label: z.ZodOptional<z.ZodString>;
-}>;
+type SocialLinkSchema = typeof socialLinkSchema;
 
 export type AnchorProfileBodySchema = z.ZodObject<{
   name: z.ZodString;
@@ -87,15 +74,7 @@ export const anchorProfileBodySchema: AnchorProfileBodySchema = z.object({
   website: z.string().optional().describe("Primary website URL"),
   email: z.string().optional().describe("Contact email"),
   socialLinks: z
-    .array(
-      z.object({
-        platform: z
-          .enum(["github", "instagram", "linkedin", "email", "website"])
-          .describe("Social media platform"),
-        url: z.string().describe("Profile or contact URL"),
-        label: z.string().optional().describe("Optional display label"),
-      }),
-    )
+    .array(socialLinkSchema)
     .optional()
     .describe("Social media and contact links"),
 });

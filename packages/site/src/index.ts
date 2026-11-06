@@ -326,6 +326,20 @@ export interface NavigationItem {
   priority: number;
 }
 
+/** Where an anchor can be found: the platforms its social links name. */
+export type SocialLinkPlatform =
+  "github" | "instagram" | "linkedin" | "podcast" | "email" | "website";
+
+/** How a link names its platform when it carries no label of its own. */
+export const SOCIAL_LINK_PLATFORM_LABELS: Record<SocialLinkPlatform, string> = {
+  github: "GitHub",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  podcast: "Podcast",
+  email: "Email",
+  website: "Website",
+};
+
 export interface SiteLayoutInfo extends SiteMetadata {
   copyright: string;
   navigation: {
@@ -334,7 +348,7 @@ export interface SiteLayoutInfo extends SiteMetadata {
   };
   socialLinks?:
     | Array<{
-        platform: "github" | "instagram" | "linkedin" | "email" | "website";
+        platform: SocialLinkPlatform;
         url: string;
         label?: string | undefined;
       }>
