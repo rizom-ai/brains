@@ -26,7 +26,6 @@ export const SHELL_CHANNELS = {
 
 export const PLUGIN_CHANNELS = {
   toolExecute: (pluginId: string): string => `plugin:${pluginId}:tool:execute`,
-  progress: (pluginId: string): string => `plugin:${pluginId}:progress`,
 } as const;
 
 export const SITE_CHANNELS = {

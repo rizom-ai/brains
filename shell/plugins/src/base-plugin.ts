@@ -23,7 +23,11 @@ const toolExecuteRequestSchema = z.object({
   toolName: z.string(),
   args: z.unknown(),
   progressToken: z.union([z.string(), z.number()]).optional(),
-  hasProgress: z.boolean().optional(),
+  sendProgress: z
+    .custom<(notification: ProgressNotification) => Promise<void>>(
+      (value) => typeof value === "function",
+    )
+    .optional(),
   interfaceType: z.string(),
   actor: actorRefSchema,
   displayName: z.string().optional(),
@@ -141,7 +145,7 @@ export abstract class BasePlugin<
             toolName,
             args,
             progressToken,
-            hasProgress,
+            sendProgress,
             interfaceType,
             actor,
             displayName,
@@ -165,7 +169,7 @@ export abstract class BasePlugin<
             };
           }
 
-          // Create context with routing metadata and optional progress callback
+          // Routing metadata, and the caller's progress callback if it asked for one
           const toolContext: ToolContext = {
             interfaceType,
             actor,
@@ -178,22 +182,8 @@ export abstract class BasePlugin<
             ...(userPermissionLevel && { userPermissionLevel }),
             ...(isAnchor !== undefined && { isAnchor }),
             ...(signal && { signal }),
-            ...(hasProgress &&
-              progressToken !== undefined && {
-                progressToken,
-                sendProgress: async (
-                  notification: ProgressNotification,
-                ): Promise<void> => {
-                  // Send progress notification back through message bus
-                  await context.messaging.send({
-                    type: PLUGIN_CHANNELS.progress(this.id),
-                    payload: {
-                      progressToken,
-                      notification,
-                    },
-                  });
-                },
-              }),
+            ...(progressToken !== undefined &&
+              sendProgress && { progressToken, sendProgress }),
           };
 
           // Response shape is validated at the consumer boundary
