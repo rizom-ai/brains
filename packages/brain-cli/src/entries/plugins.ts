@@ -80,7 +80,6 @@ export {
 } from "@brains/plugins/contracts/messaging";
 export type {
   BaseMessage,
-  MessageCollector,
   MessageContext,
   MessageResponse,
   MessageSendOptions,

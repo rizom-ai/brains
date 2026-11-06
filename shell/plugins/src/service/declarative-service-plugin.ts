@@ -165,9 +165,11 @@ function runtimeJobHandler(
         },
         messaging: {
           async publish(message): Promise<void> {
+            // A published message is an event: every subscriber hears it.
             await context.messaging.send({
               type: message.topic,
               payload: message.data,
+              broadcast: true,
             });
           },
         },

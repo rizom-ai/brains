@@ -195,7 +195,6 @@ export function createMessagingNamespace(
         logger,
       });
     },
-    collect: (request) => messageBus.collect({ ...request, sender: pluginId }),
     /**
      * The channel and its handler are correlated — a Channel takes a
      * TypedMessageHandler, a name takes a MessageHandler — and the public
@@ -224,10 +223,13 @@ export function createMessagingNamespace(
         const wrappedHandler: MessageHandler<unknown, R> = async (message) => {
           const parseResult = channel.schema.safeParse(message.payload);
           if (!parseResult.success) {
-            logger.warn(`Invalid payload for channel ${channel.name}`, {
+            logger.warn(`Refused an invalid ${channel.name} payload`, {
               error: parseResult.error.message,
             });
-            return { noop: true };
+            return {
+              success: false,
+              error: `Invalid ${channel.name} payload`,
+            };
           }
 
           const { payload: _payload, ...baseMessage } = message;

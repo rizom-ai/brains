@@ -92,6 +92,6 @@ export interface MessageBusSendRequest<
  * Message sender type for plugin-facing send functions where sender identity is
  * supplied by the runtime.
  */
-export type MessageSender = <T = unknown, R = unknown>(
+export type MessageSender = <T = unknown>(
   request: MessageSendRequest<T>,
-) => Promise<MessageResponse<R>>;
+) => Promise<MessageResponse>;

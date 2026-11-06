@@ -161,33 +161,6 @@ export const siteBuilderRouteRegisterContract: BusContract<
   delivery: "command",
 });
 
-export const UnregisterRoutesPayloadSchema: z.ZodObject<{
-  paths: z.ZodOptional<z.ZodArray<z.ZodString>>;
-  pluginId: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  paths: z.array(z.string()).optional(),
-  pluginId: z.string().optional(),
-});
-
-export type UnregisterRoutesPayload = z.output<
-  typeof UnregisterRoutesPayloadSchema
->;
-
-export const ListRoutesPayloadSchema: z.ZodObject<{
-  pluginId: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  pluginId: z.string().optional(),
-});
-
-export type ListRoutesPayload = z.output<typeof ListRoutesPayloadSchema>;
-
-export const GetRoutePayloadSchema: z.ZodObject<{ path: z.ZodString }> =
-  z.object({
-    path: z.string(),
-  });
-
-export type GetRoutePayload = z.output<typeof GetRoutePayloadSchema>;
-
 type SiteBuilderRoutesRequestSchema = z.ZodObject<
   Record<string, never>,
   z.core.$strict
@@ -212,20 +185,6 @@ export const siteBuilderRoutesContract: BusContract<
   response: siteBuilderRoutesResponseSchema,
   delivery: "request",
 });
-
-export interface RouteOperationResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-}
-
-export interface ListRoutesResponse {
-  routes: RouteDefinition[];
-}
-
-export interface GetRouteResponse {
-  route?: RouteDefinition | undefined;
-}
 
 /** Navigation item shape for extracted navigation data. */
 export const NavigationItemSchema: z.ZodObject<{

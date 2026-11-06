@@ -41,13 +41,12 @@ describe("topic source types", () => {
       { projectionSource: false },
     );
 
-    const response = await harness.sendMessage<
-      Record<string, never>,
-      { types: string[] }
-    >(topicSourceTypesContract.name, {});
+    const response = topicSourceTypesContract.response.parse(
+      await harness.sendMessage(topicSourceTypesContract.name, {}),
+    );
 
-    expect(response?.types).toContain("note");
-    expect(response?.types).not.toContain("skill");
-    expect(response?.types).not.toContain("topic");
+    expect(response.types).toContain("note");
+    expect(response.types).not.toContain("skill");
+    expect(response.types).not.toContain("topic");
   });
 });

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { publishRegisterContract } from "@brains/contracts";
-import { siteBuilderSlotsContract } from "@brains/site-composition";
+import {
+  siteBuilderSlotsContract,
+  type SiteSlotContribution,
+} from "@brains/site-composition";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { ReactElement } from "react";
 import { ButtondownPlugin } from "../src/provider/plugin";
 import { ResendPlugin } from "../src/provider/resend/plugin";
 
@@ -11,12 +13,6 @@ interface PublishRegistration {
   entityType: string;
   provider: { name: string };
   config: Record<string, string>;
-}
-
-interface SlotRegistration {
-  pluginId: string;
-  slotName: string;
-  render: () => ReactElement<{ action?: string; successMessage?: string }>;
 }
 
 describe("newsletter provider registration", () => {
@@ -48,7 +44,7 @@ describe("newsletter provider registration", () => {
       pluginId: "buttondown",
       slotName: "footer-top",
     });
-    expect(slots[0]?.render().props).toMatchObject({
+    expect(slots[0]?.render()?.props).toMatchObject({
       action: "/api/buttondown/subscribe",
       successMessage: "Check your email to confirm your subscription.",
     });
@@ -94,7 +90,7 @@ describe("newsletter provider registration", () => {
       pluginId: "resend",
       slotName: "footer-top",
     });
-    expect(slots[0]?.render().props).toMatchObject({
+    expect(slots[0]?.render()?.props).toMatchObject({
       action: "/api/resend/subscribe",
       successMessage: "You are subscribed.",
     });
@@ -143,17 +139,17 @@ async function notifyPluginsRegistered(
 // emits pluginsRegistered; the signup slot has to answer there.
 async function slotsInWorker(
   plugin: ButtondownPlugin | ResendPlugin,
-): Promise<SlotRegistration[]> {
+): Promise<SiteSlotContribution[]> {
   const shell = createPluginHarness().getMockShell();
   await plugin.register(shell, { executionOnly: true });
-  const answers = await shell
-    .getMessageBus()
-    .collect<unknown, SlotRegistration[]>({
-      type: siteBuilderSlotsContract.name,
-      payload: {},
-      sender: "site-builder",
-    });
+  const answers = await shell.getMessageBus().collect({
+    type: siteBuilderSlotsContract.name,
+    payload: {},
+    sender: "site-builder",
+  });
   return answers.flatMap((answer) =>
-    "data" in answer && answer.data ? answer.data : [],
+    "data" in answer
+      ? siteBuilderSlotsContract.response.parse(answer.data)
+      : [],
   );
 }

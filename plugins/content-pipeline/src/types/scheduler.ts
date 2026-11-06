@@ -11,16 +11,17 @@ import type { PublishEntityExecutor } from "../publish-executor";
 /**
  * The publish side of the message bus, which is all the scheduler uses.
  *
- * Non-generic on purpose: the real bus's send<T, R> is assignable to this, and
- * a test can supply a plain function without the type parameters bun's mock()
- * erases. No caller here reads the response — every send is fire-and-forget.
+ * Non-generic on purpose: the messaging namespace is assignable to this, and a
+ * test can supply a plain function without the type parameters bun's mock()
+ * erases. `send` carries the scheduler's publish events only, so every send is
+ * a broadcast and none reads its response.
  */
 export interface SchedulerMessagePublisher {
   send(request: {
     type: string;
     payload: unknown;
     sender?: string;
-    broadcast?: boolean;
+    broadcast: true;
   }): Promise<unknown>;
   /** A command every owner hears, as `IMessagingNamespace.command`. */
   command<TRequest extends z.ZodType>(

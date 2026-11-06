@@ -83,18 +83,13 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
 function createMessageBusAdapter(
   context: ServicePluginContext,
 ): SchedulerMessagePublisher {
-  const send: SchedulerMessagePublisher["send"] = async (request) => {
-    return context.messaging.send({
-      type: request.type,
-      payload: request.payload,
-      ...(request.broadcast !== undefined
-        ? { broadcast: request.broadcast }
-        : {}),
-    });
-  };
-
   return {
-    send,
+    send: (request) =>
+      context.messaging.send({
+        type: request.type,
+        payload: request.payload,
+        broadcast: true,
+      }),
     command: (contract, payload) =>
       context.messaging.command(contract, payload),
   };

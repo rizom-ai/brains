@@ -3,8 +3,11 @@ import type {
   EntityTypeConfig,
   Plugin,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import {
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  emptyEntityPluginConfigSchema,
+} from "@brains/plugins";
 import packageJson from "../package.json";
 import { styleGuideAdapter, type StyleGuideAdapter } from "./adapter";
 import { styleGuideEntitySchema, type StyleGuideEntity } from "./schema";
@@ -30,7 +33,7 @@ export class StyleGuidePlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     context.messaging.subscribe(
-      DIRECTORY_SYNC_CHANNELS.initialCompleted,
+      SYSTEM_CHANNELS.initialSyncCompleted,
       async () => {
         const existing = await context.entityService.getEntity(
           { entityType: "style-guide", id: "style-guide" },

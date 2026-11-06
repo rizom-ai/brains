@@ -15,68 +15,9 @@ export const SYSTEM_PUBLISH_AUTH_CONTEXT: PublishAuthContext = {
 };
 
 /**
- * Message payloads for plugin → service communication
+ * Payloads of the publish events content-pipeline broadcasts on
+ * `PUBLISH_CHANNELS.completed` and `PUBLISH_CHANNELS.failed`.
  */
-
-/** Add entity to publish queue */
-export interface PublishQueuePayload {
-  entityType: string;
-  entityId: string;
-  authContext?: PublishAuthContext;
-}
-
-/** Publish entity immediately (bypass queue) */
-export interface PublishDirectPayload {
-  entityType: string;
-  entityId: string;
-  authContext?: PublishAuthContext;
-}
-
-/** Remove entity from queue */
-export interface PublishRemovePayload {
-  entityType: string;
-  entityId: string;
-}
-
-/** Change entity's queue position */
-export interface PublishReorderPayload {
-  entityType: string;
-  entityId: string;
-  position: number;
-}
-
-/** Request queue contents */
-export interface PublishListPayload {
-  entityType: string;
-}
-
-/** Report successful publish (plugin → service) */
-export interface PublishReportSuccessPayload {
-  entityType: string;
-  entityId: string;
-  result: {
-    id: string;
-    url?: string;
-  };
-}
-
-/** Report failed publish (plugin → service) */
-export interface PublishReportFailurePayload {
-  entityType: string;
-  entityId: string;
-  error: string;
-}
-
-/**
- * Message payloads for service → plugin communication
- */
-
-/** Entity was added to queue */
-export interface PublishQueuedPayload {
-  entityType: string;
-  entityId: string;
-  position: number;
-}
 
 /** Publish completed successfully */
 export interface PublishCompletedPayload {
@@ -96,62 +37,3 @@ export interface PublishFailedPayload {
   retryCount: number;
   willRetry: boolean;
 }
-
-/** Queue contents response */
-export interface PublishListResponsePayload {
-  entityType: string;
-  queue: Array<{
-    entityId: string;
-    position: number;
-    queuedAt: string;
-  }>;
-}
-
-/**
- * Message type constants for publishing
- */
-export const PUBLISH_MESSAGES = {
-  // Plugin → Service
-  EXECUTE: "publish:execute",
-  QUEUE: "publish:queue",
-  DIRECT: "publish:direct",
-  REMOVE: "publish:remove",
-  REORDER: "publish:reorder",
-  LIST: "publish:list",
-  REPORT_SUCCESS: "publish:report:success",
-  REPORT_FAILURE: "publish:report:failure",
-
-  // Service → Plugin
-  QUEUED: "publish:queued",
-  COMPLETED: "publish:completed",
-  FAILED: "publish:failed",
-  LIST_RESPONSE: "publish:list:response",
-} as const;
-
-/**
- * Generation message payloads
- */
-
-/** Register a generation handler for an entity type */
-export interface GenerateRegisterPayload {
-  entityType: string;
-}
-
-/** Generation skipped due to conditions */
-export interface GenerateSkippedPayload {
-  entityType: string;
-  reason: string;
-}
-
-/**
- * Message type constants for generation
- */
-export const GENERATE_MESSAGES = {
-  // Plugin → Service
-  REGISTER: "generate:register",
-
-  // Service → Plugin
-  COMPLETED: "generate:completed",
-  FAILED: "generate:failed",
-  SKIPPED: "generate:skipped",
-} as const;

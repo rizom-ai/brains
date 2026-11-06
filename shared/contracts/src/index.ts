@@ -290,20 +290,13 @@ export {
   type SpaceNoticeResult,
 } from "./space-notice";
 export {
-  BUTTONDOWN_CHANNELS,
-  DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,
-  GENERATE_CHANNELS,
   JOB_CHANNELS,
   NEWSLETTER_CHANNELS,
   PLUGIN_CHANNELS,
-  PROJECT_CHANNELS,
-  PROJECTION_CHANNELS,
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
-  SITE_BUILDER_CHANNELS,
   SITE_CHANNELS,
-  SOCIAL_CHANNELS,
 } from "./message-channels";
 export {
   directorySyncPathContract,

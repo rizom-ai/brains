@@ -1,6 +1,5 @@
 import { decodeEntityIdPath } from "@brains/plugins";
 import {
-  DIRECTORY_SYNC_CHANNELS,
   directorySyncPathContract,
   directorySyncStatusContract,
   type DirectorySyncStatusResponse,
@@ -12,37 +11,11 @@ import {
 } from "./entity-paths";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type {
-  CleanupResult,
-  DirectorySyncStatus,
-  ExportResult,
-  GitSyncStatus,
-  ImportResult,
-} from "../types";
-import { getErrorMessage } from "@brains/utils/error";
+import type { DirectorySyncStatus, GitSyncStatus } from "../types";
 
-interface ConfigureOptions {
-  syncPath: string;
-}
-
-/**
- * Register message-bus handlers for cross-plugin communication:
- *   - entity:export:request
- *   - entity:import:request
- *   - sync:status:request
- *   - sync:configure:request
- */
-interface GitConfig {
-  repo?: string | undefined;
-  branch?: string | undefined;
-}
-
-/** The slice of DirectorySync the message handlers consume. */
+/** The slice of DirectorySync the status answer consumes. */
 export interface SyncHandlerSource {
   getStatus(): Promise<DirectorySyncStatus>;
-  exportEntities(entityTypes?: string[]): Promise<ExportResult>;
-  importEntities(paths?: string[]): Promise<ImportResult>;
-  removeOrphanedEntities(): Promise<CleanupResult>;
 }
 
 /** The slice of GitSync the status handler consumes. */
@@ -50,58 +23,18 @@ export interface GitStatusSource {
   getStatus(): Promise<GitSyncStatus>;
 }
 
+/**
+ * Answer the directory-sync contracts other plugins ask:
+ *   - sync:path:request
+ *   - sync:status:request
+ */
 export function registerMessageHandlers(
   context: ServicePluginContext,
   getDirectorySync: () => SyncHandlerSource,
-  configure: (options: ConfigureOptions) => Promise<void>,
   logger: Logger,
-  gitConfig?: GitConfig,
   getGitSync?: () => GitStatusSource | undefined,
   getManagementUrl?: () => string | undefined,
 ): void {
-  const { subscribe } = context.messaging;
-
-  subscribe<{ entityTypes?: string[] }>(
-    DIRECTORY_SYNC_CHANNELS.entityExportRequest,
-    async (message) => {
-      try {
-        const ds = getDirectorySync();
-        const result = await ds.exportEntities(message.payload.entityTypes);
-        return { success: true, data: result };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error, "Export failed"),
-        };
-      }
-    },
-  );
-
-  subscribe<{ paths?: string[] }>(
-    DIRECTORY_SYNC_CHANNELS.entityImportRequest,
-    async (message) => {
-      try {
-        const ds = getDirectorySync();
-        const paths = message.payload.paths;
-        const result = await ds.importEntities(paths);
-
-        // When specific paths are provided (e.g., from git-sync after a pull),
-        // some of those paths may be deletions. Run orphan cleanup to remove
-        // DB entities whose files no longer exist on disk.
-        if (paths && paths.length > 0) {
-          await ds.removeOrphanedEntities();
-        }
-
-        return { success: true, data: result };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error, "Import failed"),
-        };
-      }
-    },
-  );
-
   context.messaging.answer(directorySyncPathContract, async (input) => {
     const extension = getEntityFileExtension(input);
     const { relativePath, owner, writable } = resolveEntityPlacement(
@@ -134,37 +67,6 @@ export function registerMessageHandlers(
       byEntityType: status.stats.byEntityType,
       git: await queryGitStatus(getGitSync?.(), logger),
       ...(managementUrl ? { managementUrl } : {}),
-    };
-  });
-
-  subscribe<{ syncPath: string }>(
-    DIRECTORY_SYNC_CHANNELS.configureRequest,
-    async (message) => {
-      try {
-        await configure({ syncPath: message.payload.syncPath });
-        return {
-          success: true,
-          data: {
-            syncPath: message.payload.syncPath,
-            configured: true,
-          },
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error, "Configuration failed"),
-        };
-      }
-    },
-  );
-
-  subscribe(DIRECTORY_SYNC_CHANNELS.getRepoInfo, async () => {
-    if (!gitConfig?.repo) {
-      return { success: false, error: "Git not configured" };
-    }
-    return {
-      success: true,
-      data: { repo: gitConfig.repo, branch: gitConfig.branch ?? "main" },
     };
   });
 

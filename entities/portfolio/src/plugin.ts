@@ -2,8 +2,6 @@ import {
   createTemplate,
   EntityPlugin,
   SYSTEM_CHANNELS,
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
   paginationInfoSchema,
 } from "@brains/plugins";
 import type {
@@ -18,21 +16,15 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
-  PUBLISH_CHANNELS,
   publishRegisterContract,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
 import { PROJECT_CHANNELS } from "./project-channels";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import {
-  projectSchema,
-  projectFrontmatterSchema,
-  type Project,
-} from "./schemas/project";
+import { projectSchema, type Project } from "./schemas/project";
 import {
   projectAdapter,
   type ProjectAdapter,
@@ -251,7 +243,6 @@ export class PortfolioPlugin extends EntityPlugin<
       createProjectOgImageProvider(context),
     );
     this.deferPublishRegistration(context);
-    this.subscribeToPublishExecute(context);
     context.atprotoProjections.register(createProjectAtprotoProjection());
   }
 
@@ -293,76 +284,6 @@ export class PortfolioPlugin extends EntityPlugin<
         provider,
         config: { executionMode: "provider" },
       });
-      return { success: true };
-    });
-  }
-
-  private subscribeToPublishExecute(context: EntityPluginContext): void {
-    context.messaging.subscribe<
-      { entityType: string; entityId: string },
-      { success: boolean }
-    >(PUBLISH_CHANNELS.execute, async (msg) => {
-      const { entityType, entityId } = msg.payload;
-      if (entityType !== "project") return { success: true };
-
-      try {
-        const project = await context.entityService.getEntity(
-          {
-            entityType: "project",
-            id: entityId,
-          },
-          projectSchema,
-        );
-        if (!project) {
-          await context.messaging.send({
-            type: PUBLISH_CHANNELS.reportFailure,
-            payload: {
-              entityType,
-              entityId,
-              error: `Project not found: ${entityId}`,
-            },
-          });
-          return { success: true };
-        }
-        if (project.metadata.status === "published") return { success: true };
-
-        const parsed = parseMarkdownWithFrontmatter(
-          project.content,
-          projectFrontmatterSchema,
-        );
-        const publishedAt = new Date().toISOString();
-        const updatedContent = generateMarkdownWithFrontmatter(parsed.content, {
-          ...parsed.metadata,
-          status: "published" as const,
-          publishedAt,
-        });
-
-        await context.entityService.updateEntity({
-          entity: {
-            ...project,
-            content: updatedContent,
-            metadata: { ...project.metadata, status: "published", publishedAt },
-          },
-        });
-
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportSuccess,
-          payload: {
-            entityType,
-            entityId,
-            publishedAt,
-          },
-        });
-      } catch (error) {
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportFailure,
-          payload: {
-            entityType,
-            entityId,
-            error: getErrorMessage(error),
-          },
-        });
-      }
       return { success: true };
     });
   }

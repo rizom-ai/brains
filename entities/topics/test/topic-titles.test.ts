@@ -34,7 +34,9 @@ describe("public topic titles", () => {
       ["Trust Networks", "public"],
       ["Private Plans", "restricted"],
     ]);
-    const response = await harness.sendMessage(topicTitlesContract.name, {});
+    const response = topicTitlesContract.response.parse(
+      await harness.sendMessage(topicTitlesContract.name, {}),
+    );
     expect(response).toEqual({
       titles: ["Ecosystem Architecture", "Trust Networks"],
     });
@@ -47,10 +49,9 @@ describe("public topic titles", () => {
         "public",
       ]),
     );
-    const response = await harness.sendMessage<
-      Record<string, never>,
-      { titles: string[] }
-    >(topicTitlesContract.name, {});
-    expect(response?.titles).toHaveLength(20);
+    const response = topicTitlesContract.response.parse(
+      await harness.sendMessage(topicTitlesContract.name, {}),
+    );
+    expect(response.titles).toHaveLength(20);
   });
 });

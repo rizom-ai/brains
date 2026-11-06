@@ -4,7 +4,6 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
-import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
 import type {
   BusAnswerMeta,
@@ -57,7 +56,11 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
 
 export interface IMessagingNamespace {
-  /** Send a message to other plugins */
+  /**
+   * Send an event with `broadcast: true`: every subscriber hears it and its
+   * reply data comes back unchecked. A request or command to another plugin
+   * goes through `request`, `gather` or `command` and a bus contract.
+   */
   send: MessageSender;
 
   /**
@@ -104,13 +107,6 @@ export interface IMessagingNamespace {
     ) => Promise<z.input<TResponse>>,
     options?: { everyProcess?: boolean },
   ): () => void;
-
-  /**
-   * Send a message and gather one answer from every subscriber. For
-   * contributions read when they are used, such as the head scripts a site
-   * build asks for: it works in every process and in any registration order.
-   */
-  collect: MessageCollector;
 
   /**
    * Subscribe to messages on a channel in this process.

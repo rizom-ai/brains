@@ -162,8 +162,8 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    // publish:report:success is a request-style message consumed by the
-    // publish pipeline. publish:completed is its broadcast fan-out event.
+    // publish:completed is the publish pipeline's broadcast after a publish
+    // succeeds.
     context.messaging.subscribe(PUBLISH_COMPLETED, async (message) => {
       const payload = entityTriggerPayloadSchema.safeParse(message.payload);
       if (payload.success) {

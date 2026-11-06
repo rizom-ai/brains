@@ -655,7 +655,6 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
-  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
@@ -946,9 +945,6 @@ export {
   RouteDefinitionSchema,
   NavigationSlots,
   RegisterRoutesPayloadSchema,
-  UnregisterRoutesPayloadSchema,
-  ListRoutesPayloadSchema,
-  GetRoutePayloadSchema,
 } from "@brains/site-composition";
 
 export type {

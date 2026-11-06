@@ -5,7 +5,6 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
-import { GENERATE_MESSAGES } from "../src/types/messages";
 import { generateExecuteContract } from "@brains/contracts";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
@@ -130,6 +129,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       // Should have checked conditions but not generated
       expect(checkConditionsMock).toHaveBeenCalled();
       expect(onGenerateMock).not.toHaveBeenCalled();
+      // A skip is logged, not announced: nothing listens for it.
+      expect(messageBus.sentMessages).toEqual([]);
     });
 
     it("should generate when conditions are met", async () => {
@@ -294,44 +295,6 @@ describe("ContentScheduler - Generation Scheduling", () => {
           entityType: "social-post",
         }),
       );
-    });
-  });
-
-  describe("completeGeneration", () => {
-    it("should emit generate:completed message", async () => {
-      scheduler = ContentScheduler.createFresh(baseConfig());
-
-      messageBus.sentMessages.length = 0;
-
-      scheduler.completeGeneration("newsletter", "newsletter-2024-01");
-
-      expect(messageBus.send).toHaveBeenCalledWith({
-        type: GENERATE_MESSAGES.COMPLETED,
-        payload: expect.objectContaining({
-          entityType: "newsletter",
-          entityId: "newsletter-2024-01",
-        }),
-        sender: "content-pipeline",
-      });
-    });
-  });
-
-  describe("failGeneration", () => {
-    it("should emit generate:failed message", async () => {
-      scheduler = ContentScheduler.createFresh(baseConfig());
-
-      messageBus.sentMessages.length = 0;
-
-      scheduler.failGeneration("newsletter", "No source content available");
-
-      expect(messageBus.send).toHaveBeenCalledWith({
-        type: GENERATE_MESSAGES.FAILED,
-        payload: expect.objectContaining({
-          entityType: "newsletter",
-          error: "No source content available",
-        }),
-        sender: "content-pipeline",
-      });
     });
   });
 

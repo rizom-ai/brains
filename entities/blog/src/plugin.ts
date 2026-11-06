@@ -21,10 +21,7 @@ import { blogConfigSchema } from "./config";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import { BlogDataSource } from "./datasources/blog-datasource";
 import { getTemplates } from "./lib/register-templates";
-import {
-  registerWithPublishPipeline,
-  subscribeToPublishExecute,
-} from "./lib/publish-handler";
+import { registerWithPublishPipeline } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { checkPostText, createPostFromText } from "./lib/create-from-text";
@@ -106,9 +103,8 @@ export class BlogPlugin extends EntityPlugin<
       new RSSDataSource(this.logger.child("RSSDataSource")),
     );
 
-    // Publish pipeline and RSS subscriptions
+    // Publish pipeline registration and RSS subscriptions
     registerWithPublishPipeline(context, this.logger);
-    subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildStaging(context, this.logger);
     registerEvalHandlers(context);
     this.unregisterPrintableAttachmentProvider = context.attachments.register(

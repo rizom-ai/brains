@@ -1,11 +1,9 @@
 export type { SiteCompositionPlugin } from "./plugin";
 export {
   entityDisplaySchema,
-  GetRoutePayloadSchema,
   languagePath,
   languageTagSchema,
   routeTranslationSchema,
-  ListRoutesPayloadSchema,
   NavigationItemSchema,
   NavigationMetadataSchema,
   NavigationSlots,
@@ -16,7 +14,6 @@ export {
   siteBuilderRoutesContract,
   siteBuilderRoutesRequestSchema,
   siteBuilderRoutesResponseSchema,
-  UnregisterRoutesPayloadSchema,
 } from "./routes";
 export {
   siteBuilderSlotsContract,
@@ -28,21 +25,15 @@ export {
 } from "./slots";
 export type {
   EntityDisplayEntry,
-  GetRoutePayload,
-  GetRouteResponse,
-  ListRoutesPayload,
-  ListRoutesResponse,
   NavigationItem,
   NavigationMetadata,
   NavigationSlot,
   RegisterRoutesPayload,
   RouteDefinition,
   RouteDefinitionInput,
-  RouteOperationResponse,
   SectionDefinition,
   RouteTranslation,
   SiteAlternate,
-  UnregisterRoutesPayload,
 } from "./routes";
 export {
   siteMetadataContract,

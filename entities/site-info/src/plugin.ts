@@ -4,8 +4,12 @@ import type {
   EntityTypeConfig,
   DataSource,
 } from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
-import { ENTITY_CHANNELS, DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import {
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  emptyEntityPluginConfigSchema,
+} from "@brains/plugins";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { readString } from "@brains/utils/record-fields";
 import {
@@ -98,7 +102,7 @@ export class SiteInfoPlugin extends EntityPlugin<
 
     // Create default entity after seed content is imported
     context.messaging.subscribe(
-      DIRECTORY_SYNC_CHANNELS.initialCompleted,
+      SYSTEM_CHANNELS.initialSyncCompleted,
       async () => {
         await service.initialize();
         return { success: true };

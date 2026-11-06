@@ -145,11 +145,6 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
 
 function createEditorTestShell(): MockShell {
   const shell = createMockShell({ domain: "yeehaa.io" });
-  shell.getMessageBus().subscribe("git-sync:get-repo-info", async () => ({
-    success: true,
-    data: { repo: "owner/repo", branch: "main" },
-  }));
-
   const registry = shell.getEntityRegistry();
   registry.registerEntityType(
     "post",
