@@ -883,6 +883,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             ),
           ]
         : []),
+      // The service scopes each check id to this plugin and hands back the
+      // release.
+      ...(this.definition.checks ?? []).map((check) =>
+        context.recurringChecks.register({
+          id: check.id,
+          cadence: check.cadence,
+          ...definedFields({
+            deliverAlerts: check.deliverAlerts,
+            includeInInbox: check.includeInInbox,
+          }),
+          run: ({ signal }) =>
+            check.run(
+              Object.freeze({
+                entities: createEntityReader(
+                  context.entityService,
+                  internalFullScope("declared checks read as their package"),
+                ),
+                siteUrl: context.siteUrl,
+                signal,
+              }),
+            ),
+        }),
+      ),
       ...(atproto
         ? [
             context.atprotoProjections.register(

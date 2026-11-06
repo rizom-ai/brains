@@ -11,6 +11,7 @@ import type {
   AnyEntityDefinition,
   EntityAgentContextProvider,
   EntityAnalyticsReportDeclaration,
+  EntityCheckDeclaration,
   EntityEvalDeclaration,
   EntityScheduledGenerationDeclaration,
   AnyEntityJobDeclaration,
@@ -39,6 +40,11 @@ import {
 
 export type {
   AnyEntityDefinition,
+  EntityCheckAlert,
+  EntityCheckCadence,
+  EntityCheckContext,
+  EntityCheckDeclaration,
+  EntityCheckResult,
   EntityAnalyticsReportContext,
   EntityAnalyticsReportDeclaration,
   EntityAtprotoProjection,
@@ -141,6 +147,7 @@ export function defineEntity<
   readonly publish?: EntityDefinition<TType, TMetadataSchema>["publish"];
   readonly analyticsReports?:
     readonly EntityAnalyticsReportDeclaration[] | undefined;
+  readonly checks?: readonly EntityCheckDeclaration[] | undefined;
   readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
@@ -160,6 +167,17 @@ export function defineEntity<
     throw new Error(`Entity "${definition.type}" purpose must not be empty`);
   }
   assertPublishAssets(definition);
+  // Local ids: the runtime scopes each check to the declaring plugin, and
+  // two checks of one type would claim one schedule.
+  const checkIds = (definition.checks ?? []).map(({ id }) => id);
+  checkIds.forEach((id, index) => {
+    assertLocalId(id, "Check id");
+    if (checkIds.indexOf(id) !== index) {
+      throw new Error(
+        `Entity "${definition.type}" declares check "${id}" twice`,
+      );
+    }
+  });
   return Object.freeze({
     kind: "rizom-entity",
     ...definition,

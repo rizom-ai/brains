@@ -2,6 +2,11 @@ import type { AtprotoBlobRef, AtprotoLexicon } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
 import type { PublishProvider } from "@brains/contracts";
 import type {
+  RecurringAlert,
+  RecurringCheckCadence,
+  RecurringCheckResult,
+} from "@brains/recurring-checks";
+import type {
   EntityActionPolicyRuleInput,
   Template,
   UserPermissionLevel,
@@ -167,6 +172,46 @@ export interface EntityPublishAssetDeclaration {
         readonly visibility?: EntityVisibility | undefined;
       }
     | undefined;
+}
+
+/** How often a check runs. */
+export type EntityCheckCadence = RecurringCheckCadence;
+
+/**
+ * One condition a check raises. Keep `dedupeKey` stable while the
+ * condition lasts and change it when the condition changes; alerts are
+ * operational state and must not carry secrets.
+ */
+export type EntityCheckAlert = RecurringAlert;
+
+export type EntityCheckResult = RecurringCheckResult;
+
+/** What a check runs with. */
+export interface EntityCheckContext {
+  /** Definition-typed reads as the package, at every visibility. */
+  readonly entities: DataSourceEntityReader;
+  /**
+   * The brain's own address, for a link an alert sends. Undefined on a
+   * brain nobody outside can reach.
+   */
+  readonly siteUrl: string | undefined;
+  /** Aborted when the run is cancelled or the brain stops. */
+  readonly signal: AbortSignal;
+}
+
+/**
+ * A check the brain runs on a schedule. The alerts it returns are delivered
+ * to the operator and shown in the Inbox, each once per condition.
+ */
+export interface EntityCheckDeclaration {
+  /** Local to the type; the runtime scopes it to the declaring plugin. */
+  readonly id: string;
+  readonly cadence: EntityCheckCadence;
+  /** Deliver the alerts it returns. Defaults to true. */
+  readonly deliverAlerts?: boolean | undefined;
+  /** Show the alerts it returns in the Inbox. Defaults to true. */
+  readonly includeInInbox?: boolean | undefined;
+  run(context: EntityCheckContext): Promise<EntityCheckResult>;
 }
 
 /** What a report reads with: the caller's view of the brain. */
@@ -369,6 +414,8 @@ export interface EntityDefinition<
         readonly template: (localName: string) => string;
       }) => readonly ProjectionRule[])
     | undefined;
+  /** Checks the brain runs for this type on a schedule. */
+  readonly checks?: readonly EntityCheckDeclaration[] | undefined;
   /** Reports this type adds to `system_analytics`. */
   readonly analyticsReports?:
     readonly EntityAnalyticsReportDeclaration[] | undefined;

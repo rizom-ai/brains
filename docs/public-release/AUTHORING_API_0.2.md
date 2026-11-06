@@ -164,6 +164,11 @@ Types:
 - `EntityAtprotoPublishConfig`
 - `EntityAtprotoRecordInput`
 - `EntityAttachmentDeclaration`
+- `EntityCheckAlert`
+- `EntityCheckCadence`
+- `EntityCheckContext`
+- `EntityCheckDeclaration`
+- `EntityCheckResult`
 - `EntityCreateAllocation`
 - `EntityCreateAttachment`
 - `EntityCreateCheck`
@@ -281,6 +286,7 @@ Deriving with projection rules on `defineEntity`:
 
 Operator slots on `defineEntity`:
 
+- `checks` (`EntityCheckDeclaration`) are runs the brain schedules for the type: a local `id` (scoped to the declaring plugin; one id per type), a `cadence` of `daily` or `weekly` (`EntityCheckCadence`), and `run(context)`, which returns an `EntityCheckResult` of `EntityCheckAlert`s — each a stable `dedupeKey` for one condition, a `title` and a `body`, no secrets. The brain delivers each alert once per condition and shows it in the Inbox; `deliverAlerts: false` or `includeInInbox: false` turns either off. `EntityCheckContext` gives definition-typed `entities` reads as the package at every visibility, the brain's `siteUrl` for links, and the run's `signal`.
 - `analyticsReports` adds reports to `system_analytics`, each declared with `defineEntityAnalyticsReport` (`EntityAnalyticsReportDeclaration`): a kebab-case `type` the agent names (durable and brain-wide), a `description`, a `params` object schema that types `report`, and an optional `minVisibility` floor. The tool validates params before `report(params, context)` runs; `EntityAnalyticsReportContext` gives definition-typed `entities` reads at the caller's `visibility`, published records only for a public caller. The runtime removes the reports when the package goes.
 
 Publishing on `defineEntity`:

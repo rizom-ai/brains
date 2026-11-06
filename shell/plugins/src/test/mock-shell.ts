@@ -46,6 +46,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import { defaultQueryResponseSchema } from "@brains/contracts";
 import { type IEntityService, type BaseEntity } from "@brains/entity-service";
+import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import { createMockEntityStore } from "./mock-entity-store";
 import { createMockMessageBus } from "./mock-message-bus";
 import { createMockEntityRegistry } from "./mock-entity-registry";
@@ -92,6 +93,8 @@ export interface MockShell extends IShell {
   setAgentService(agentService: IAgentService): void;
   setConversationService(conversationService: IConversationService): void;
   getDaemonRegistry(): IDaemonRegistry;
+  /** A registered recurring check, by its `pluginId:checkId`. */
+  getRecurringCheck(checkId: string): RecurringCheckDefinition | undefined;
 }
 
 export interface MockShellOptions {
@@ -306,6 +309,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // --- Daemon and Analytics registries ---
   const analyticsRegistry = createMockAnalyticsRegistry();
   const daemonRegistry = createMockDaemonRegistry();
+  // Recorded, not scheduled, so a test can run a check by hand.
+  const recurringChecks = new Map<string, RecurringCheckDefinition>();
 
   // Advertised by the shell itself, not by either registry.
   const endpoints: EndpointInfo[] = [];
@@ -370,7 +375,19 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getRuntimeState: () => runtimeState,
-    getRecurringChecks: () => ({ register: () => () => {} }),
+    getRecurringChecks: (pluginId: string) => ({
+      register: (check: RecurringCheckDefinition): (() => void) => {
+        const checkId = `${pluginId}:${check.id}`;
+        if (recurringChecks.has(checkId)) {
+          throw new Error(`Recurring check already registered: ${checkId}`);
+        }
+        recurringChecks.set(checkId, check);
+        return (): void => {
+          recurringChecks.delete(checkId);
+        };
+      },
+    }),
+    getRecurringCheck: (checkId: string) => recurringChecks.get(checkId),
     getConversationService: () => conversationService,
     getMCPService: () => mcpTransport,
     listToolsForPermissionLevel: (_level: unknown): ToolInfo[] => [],
