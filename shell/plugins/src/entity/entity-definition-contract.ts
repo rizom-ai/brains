@@ -1,5 +1,6 @@
 import type { AtprotoBlobRef, AtprotoLexicon } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
+import type { PublishProvider } from "@brains/contracts";
 import type {
   EntityActionPolicyRuleInput,
   Template,
@@ -124,6 +125,47 @@ export interface EntityFeedDeclaration<TEntity> {
   readonly routePrefix: string;
   /** Null for a record that does not belong in the feed. */
   toItem(entity: TEntity): FeedItem | null;
+}
+
+/**
+ * How this type is published. The brain's publish pipeline calls the
+ * provider when a record goes out, then records the outcome on the record
+ * itself: its status becomes `published`, the time goes in
+ * `timestampField` (`publishedAt` by default), and the provider's result
+ * id in `resultIdField` when one is named. Both fields belong in the
+ * metadata schema.
+ */
+export interface EntityPublishDeclaration<
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> {
+  readonly provider: PublishProvider;
+  readonly resultIdField?: MetadataField<TMetadataSchema> | undefined;
+  readonly timestampField?: MetadataField<TMetadataSchema> | undefined;
+}
+
+type MetadataField<TMetadataSchema extends EntityMetadataSchema> = Extract<
+  keyof z.output<TMetadataSchema>,
+  string
+>;
+
+/**
+ * An image the publish pipeline renders before a record goes out, such as
+ * a social card. It is rendered from one of this type's attachments through
+ * the brain's image job, saved as an image entity, and its id recorded in
+ * `field`. A record whose field is already set keeps it.
+ */
+export interface EntityPublishAssetDeclaration {
+  /** The attachment it is rendered from; the type declares it in `attachments`. */
+  readonly attachmentType: string;
+  /** `coverImageId` requires `coverImage: true`. */
+  readonly field: "coverImageId" | "ogImageId";
+  /** Only records in this state need it. */
+  readonly requiredWhen?:
+    | {
+        readonly status?: string | undefined;
+        readonly visibility?: EntityVisibility | undefined;
+      }
+    | undefined;
 }
 
 /** The identities a record may name: this brain's DID and its anchor's. */
@@ -293,6 +335,10 @@ export interface EntityDefinition<
         readonly template: (localName: string) => string;
       }) => readonly ProjectionRule[])
     | undefined;
+  /** How this type is published through the brain's publish pipeline. */
+  readonly publish?: EntityPublishDeclaration<TMetadataSchema> | undefined;
+  /** Images the publish pipeline renders before a record goes out. */
+  readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
   /** How this type's public records are published as AT Protocol records. */
   readonly atproto?:
     | EntityAtprotoProjection<

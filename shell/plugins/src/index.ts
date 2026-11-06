@@ -325,6 +325,8 @@ export {
   type EntityMarkdownDocument,
   type EntityOf,
   type EntityPackageDefinition,
+  type EntityPublishAssetDeclaration,
+  type EntityPublishDeclaration,
   type EntitySeedDefinition,
   type EntitySeedTrigger,
   type EntityVisibility,

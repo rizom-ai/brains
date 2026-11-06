@@ -188,6 +188,8 @@ Types:
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntityPublishAssetDeclaration`
+- `EntityPublishDeclaration`
 - `EntityScheduledGenerationDeclaration`
 - `EntitySeedDefinition`
 - `EntitySeedTrigger`
@@ -199,6 +201,10 @@ Types:
 - `ProjectionRule`
 - `ProjectionRuleDefinition`
 - `ProjectionWriteIntent`
+- `PublishImageData`
+- `PublishMediaData`
+- `PublishProvider`
+- `PublishResult`
 
 `defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
 
@@ -269,6 +275,11 @@ Deriving with projection rules on `defineEntity`:
 - The runtime fingerprints the selected input and derives again only when it changes, so everything a derivation depends on, a voice included, belongs in its input.
 - A rule declared on a type writes that type only; one that names another is refused when the package is instantiated. `selectInput` is given bound entity reads, `resolvePrompt`, `appInfo` and `identityInput`; `derive` is given `ai.generate` and `ai.generateObject` and a logger — never the services behind them.
 - The function form, `projectionRules: ({ template }) => [...]`, hands a rule the registered name of each template the type declares; naming one it does not declare is refused.
+
+Publishing on `defineEntity`:
+
+- `publish` (`EntityPublishDeclaration`) hands the brain's publish pipeline the `PublishProvider` that publishes the type, once every plugin is registered. When a record goes out, the pipeline calls `provider.publish(content, metadata, imageData, documentData)` with the record's body, its metadata, its cover image (`PublishImageData`) and attached documents (`PublishMediaData`, bytes as `Uint8Array`), and records the outcome on the record: its `status` becomes `published`, the time goes in `timestampField` (`publishedAt` by default) and the `PublishResult` id in `resultIdField` when one is named. Both fields are metadata fields of the type.
+- `publishAssets` (`EntityPublishAssetDeclaration`) names images the pipeline renders before a record goes out, such as a social card: each renders from one of the type's `attachments` through the brain's image job and records the image's id in `field` — `ogImageId`, or `coverImageId` on a type that declares `coverImage`. `requiredWhen` limits it to records with a given `status` or `visibility`; a record whose field is already set keeps it. An asset that names an attachment the type does not declare, or a cover on a type without one, is refused when the entity is defined.
 
 Publishing to AT Protocol on `defineEntity`:
 

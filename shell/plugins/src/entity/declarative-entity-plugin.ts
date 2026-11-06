@@ -4,6 +4,8 @@ import {
   agentContextContract,
   generateExecuteContract,
   generateReportFailureContract,
+  publishAssetRegisterContract,
+  publishRegisterContract,
   siteBuildStagingContract,
   type SiteBuildStagingPayload,
 } from "@brains/contracts";
@@ -790,6 +792,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const seed = this.seed;
     const feed = this.feed;
     const atproto = this.definition.atproto;
+    const publish = this.definition.publish;
+    const publishAssets = this.definition.publishAssets ?? [];
     const media = this.attachments?.length
       ? mediaAttachmentContext(context)
       : undefined;
@@ -862,6 +866,49 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         ? [
             context.atprotoProjections.register(
               this.atprotoProjection(context, atproto),
+            ),
+          ]
+        : []),
+      ...(publish || publishAssets.length > 0
+        ? [
+            // Announced once every plugin is registered, so the publish
+            // pipeline is listening whichever order the plugins load in.
+            context.messaging.subscribe(
+              SYSTEM_CHANNELS.pluginsRegistered,
+              async (): Promise<{ success: true }> => {
+                if (publish) {
+                  await context.messaging.command(publishRegisterContract, {
+                    entityType: this.entityType,
+                    provider: publish.provider,
+                    config: {
+                      executionMode: "provider",
+                      ...definedFields({
+                        publishResultIdField: publish.resultIdField,
+                        publishTimestampField: publish.timestampField,
+                      }),
+                    },
+                  });
+                }
+                for (const asset of publishAssets) {
+                  await context.messaging.command(
+                    publishAssetRegisterContract,
+                    {
+                      entityType: this.entityType,
+                      attachmentType: asset.attachmentType,
+                      mediaEntityType: "image",
+                      // The image job records the id in the frontmatter the
+                      // stored record carries.
+                      targetEntityField: {
+                        location: "frontmatter",
+                        field: asset.field,
+                      },
+                      ...definedFields({ requiredWhen: asset.requiredWhen }),
+                      autoGenerate: true,
+                    },
+                  );
+                }
+                return { success: true };
+              },
             ),
           ]
         : []),

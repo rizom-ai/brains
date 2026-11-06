@@ -26,6 +26,7 @@ import type {
   EntityMarkdownCodec,
   EntityMetadataSchema,
   EntityOf,
+  EntityPublishAssetDeclaration,
   EntitySeedDefinition,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
@@ -78,6 +79,8 @@ export type {
   EntityMarkdownDocument,
   EntityMetadataSchema,
   EntityOf,
+  EntityPublishAssetDeclaration,
+  EntityPublishDeclaration,
   EntitySeedDefinition,
   EntitySeedTrigger,
   EntityVisibility,
@@ -132,6 +135,8 @@ export function defineEntity<
     TMetadataSchema
   >["projectionRules"];
   readonly atproto?: EntityDefinition<TType, TMetadataSchema>["atproto"];
+  readonly publish?: EntityDefinition<TType, TMetadataSchema>["publish"];
+  readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (definition.scheduledGeneration) {
@@ -149,6 +154,7 @@ export function defineEntity<
   if (!definition.purpose.trim()) {
     throw new Error(`Entity "${definition.type}" purpose must not be empty`);
   }
+  assertPublishAssets(definition);
   return Object.freeze({
     kind: "rizom-entity",
     ...definition,
@@ -156,6 +162,30 @@ export function defineEntity<
       definition.classification,
     ),
   });
+}
+
+// An asset renders from an attachment the type provides, and a cover is
+// only recorded on a type that carries one: either mistake would queue
+// renders that can never land.
+function assertPublishAssets(definition: {
+  readonly type: string;
+  readonly coverImage?: boolean | undefined;
+  readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
+  readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
+}): void {
+  const attached = new Set(definition.attachments?.map(({ type }) => type));
+  for (const asset of definition.publishAssets ?? []) {
+    if (!attached.has(asset.attachmentType)) {
+      throw new Error(
+        `Entity "${definition.type}" publish asset renders from "${asset.attachmentType}", which ${definition.type} does not attach`,
+      );
+    }
+    if (asset.field === "coverImageId" && definition.coverImage !== true) {
+      throw new Error(
+        `Entity "${definition.type}": ${definition.type} records a cover image but does not declare coverImage`,
+      );
+    }
+  }
 }
 
 /**

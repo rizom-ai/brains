@@ -51,6 +51,8 @@ export type {
   EntityMarkdownDocument,
   EntityOf,
   EntityPackageDefinition,
+  EntityPublishAssetDeclaration,
+  EntityPublishDeclaration,
   EntityScheduledGenerationDeclaration,
   EntitySeedDefinition,
   EntitySeedTrigger,
@@ -62,6 +64,13 @@ export type {
   ProjectionRuleDefinition,
   ProjectionWriteIntent,
 } from "@brains/plugins";
+
+export type {
+  PublishImageData,
+  PublishMediaData,
+  PublishProvider,
+  PublishResult,
+} from "@brains/contracts";
 
 export type {
   BaseEntity,
