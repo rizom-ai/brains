@@ -8,6 +8,7 @@ export type {
   ToolSuccessResponse,
   ToolErrorResponse,
   Tool,
+  ToolAnnotations,
   DirectMcpExposure,
   MCPProtocolMode,
   Resource,

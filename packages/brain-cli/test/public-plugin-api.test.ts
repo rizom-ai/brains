@@ -269,6 +269,24 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("keeps runtime-only packages out of public declarations", async () => {
+    // The database and MCP server are runtime machinery. Their declarations
+    // need Node types, and the brain does not install the database for its
+    // consumers, so a public declaration that imports them cannot compile.
+    const runtimeOnly = /^(?:drizzle-orm(?:\/.*)?|@modelcontextprotocol\/.*)$/;
+    const leaks = listTypedPublicExports().flatMap((publicExport) =>
+      [
+        ...stripDeclarationComments(
+          readFileSync(join(pkgDir, publicExport.types), "utf-8"),
+        ).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+      ]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => runtimeOnly.test(specifier))
+        .map((specifier) => `${publicExport.specifier} imports ${specifier}`),
+    );
+    expect(leaks).toEqual([]);
+  });
+
   it("keeps Effect and private /effect imports out of public declarations", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");

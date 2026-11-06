@@ -9,6 +9,30 @@ import type {
   OperatorViewBlock,
   OperatorViewStatus,
 } from "@rizom/brain/services";
+// Every typed public entry, read by a compiler with no Node types and
+// skipLibCheck off: a declaration that needs Node, or a package the brain
+// does not depend on, fails here.
+import type * as BrainEntry from "@rizom/brain";
+import type * as ChatEntry from "@rizom/brain/chat";
+import type * as DeployEntry from "@rizom/brain/deploy";
+import type * as EntitiesEntry from "@rizom/brain/entities";
+import type * as InterfacesEntry from "@rizom/brain/interfaces";
+import type * as ModelEntry from "@rizom/brain/model";
+import type * as PluginsEntry from "@rizom/brain/plugins";
+import type * as ServicesEntry from "@rizom/brain/services";
+import type * as TemplatesEntry from "@rizom/brain/templates";
+
+export type PublicEntries = [
+  typeof BrainEntry,
+  typeof ChatEntry,
+  typeof DeployEntry,
+  typeof EntitiesEntry,
+  typeof InterfacesEntry,
+  typeof ModelEntry,
+  typeof PluginsEntry,
+  typeof ServicesEntry,
+  typeof TemplatesEntry,
+];
 
 const compositionStatus: OperatorViewStatus = {
   label: "Connected",

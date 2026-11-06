@@ -1,4 +1,4 @@
-import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 import { actorRefSchema, type ActorRef } from "@brains/contracts";
@@ -176,6 +176,20 @@ export type DirectMcpExposure = "none" | "basic" | "debug";
 export type ToolInputSchema = ZodRawShape;
 export type ToolOutputSchema = z.ZodType;
 export type MCPProtocolMode = "basic" | "debug";
+
+/**
+ * MCP protocol hints a tool advertises to external clients. Restated from
+ * the MCP SDK so a tool's public type does not import the server SDK, whose
+ * declarations need Node; test/tool-annotations-soundness.ts keeps the two
+ * assignable both ways.
+ */
+export interface ToolAnnotations {
+  title?: string | undefined;
+  readOnlyHint?: boolean | undefined;
+  destructiveHint?: boolean | undefined;
+  idempotentHint?: boolean | undefined;
+  openWorldHint?: boolean | undefined;
+}
 
 /**
  * Tool definition
