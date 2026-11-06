@@ -3,6 +3,7 @@
 export { z } from "@brains/utils/zod";
 export {
   ProjectionJsonObjectSchema,
+  defineDashboardWidget,
   defineDataSource,
   defineEntity,
   defineEntityAnalyticsReport,
@@ -16,6 +17,8 @@ export type {
   AtprotoBlobRef,
   AtprotoLexicon,
   AttachmentProvider,
+  DashboardOperatorViewBlock,
+  DashboardWidgetDefinition,
   DataSourceDefinition,
   DataSourceEntityReader,
   EncodedEntityMarkdown,
@@ -31,6 +34,8 @@ export type {
   EntityCheckContext,
   EntityCheckDeclaration,
   EntityCheckResult,
+  EntityDashboardBindingContext,
+  EntityDashboardWidget,
   EntityCreateAllocation,
   EntityCreateAttachment,
   EntityCreateCheck,

@@ -317,6 +317,8 @@ export {
   type MediaEntityReads,
   type MediaEntityRequest,
   type EntityAnalyticsReportContext,
+  type EntityDashboardBindingContext,
+  type EntityDashboardWidget,
   type EntityInboxActionContext,
   type EntityInboxChange,
   type EntityInboxDeclaration,

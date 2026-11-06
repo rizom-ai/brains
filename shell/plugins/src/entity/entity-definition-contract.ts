@@ -180,6 +180,27 @@ export interface EntityPublishAssetDeclaration {
     | undefined;
 }
 
+/**
+ * What an entity type binds its dashboard widgets to: it has no config,
+ * state or account settings. A widget definition's `bind` takes it.
+ */
+export interface EntityDashboardBindingContext {
+  readonly config: Readonly<Record<string, never>>;
+  readonly state: Readonly<Record<string, never>>;
+  readonly accountSettings: undefined;
+}
+
+/**
+ * A dashboard widget an entity type has bound to its loader: what
+ * `defineDashboardWidget(...).bind(context, load)` returns. Stated by its
+ * shape so the entity contract does not depend on the operator one, whose
+ * loaders read entity definitions; the runtime checks it is a binding.
+ */
+export interface EntityDashboardWidget {
+  readonly kind: "rizom-dashboard-widget-binding";
+  readonly definition: { readonly id: string };
+}
+
 /** Definition-typed reads of the declaring type alone. */
 export interface EntityRecordReader<TEntity> {
   get(id: string): Promise<TEntity | null>;
@@ -504,6 +525,16 @@ export interface EntityDefinition<
     | ((context: {
         readonly template: (localName: string) => string;
       }) => readonly ProjectionRule[])
+    | undefined;
+  /**
+   * Widgets this type shows on the Dashboard, each a `defineDashboardWidget`
+   * bound to the loader that fills it, which reads at the caller's
+   * visibility.
+   */
+  readonly dashboardWidgets?:
+    | ((
+        context: EntityDashboardBindingContext,
+      ) => readonly EntityDashboardWidget[])
     | undefined;
   /** What this type puts in front of the operator in the Inbox. */
   readonly inbox?:

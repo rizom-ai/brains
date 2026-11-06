@@ -68,6 +68,11 @@ import {
   type ProjectionRule,
 } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
+import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
+import type {
+  AnyDashboardWidgetDefinition,
+  BoundDashboardWidget,
+} from "../operator/operator-definition-contract";
 import type {
   InboxActor,
   InboxItem,
@@ -86,6 +91,8 @@ import type {
   EntityCreateRoute,
   EntityCreateRouting,
   EntityAtprotoProjection,
+  EntityDashboardBindingContext,
+  EntityDashboardWidget,
   EntityInboxActionContext,
   EntityInboxChange,
   EntityInboxDeclaration,
@@ -386,6 +393,32 @@ export async function deriveProjectionUpserts(
   return intents;
 }
 
+type BoundEntityWidget = EntityDashboardWidget &
+  BoundDashboardWidget<
+    AnyDashboardWidgetDefinition,
+    Readonly<Record<string, never>>,
+    Readonly<Record<string, never>>,
+    undefined
+  >;
+
+function isBoundEntityWidget(
+  widget: EntityDashboardWidget,
+): widget is BoundEntityWidget {
+  return (
+    "load" in widget &&
+    typeof widget.load === "function" &&
+    "view" in widget.definition &&
+    typeof widget.definition.view === "function"
+  );
+}
+
+/** Entity types have no config, state or settings to bind widgets to. */
+const entityDashboardBinding: EntityDashboardBindingContext = Object.freeze({
+  config: Object.freeze({}),
+  state: Object.freeze({}),
+  accountSettings: undefined,
+});
+
 function boundProjectionInput(
   context: ProjectionInputContext,
 ): ProjectionInputContext {
@@ -507,6 +540,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly generation: AnyEntityDefinition["generation"];
   private readonly projectionRules: readonly ProjectionRule[];
   private releases: readonly (() => void)[] = [];
+  private readonly dashboardWidgetIds: string[] = [];
+  private readonly widgetAbort: AbortController = new AbortController();
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -827,6 +862,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ),
       });
     }
+    const widgets = (
+      this.definition.dashboardWidgets?.(entityDashboardBinding) ?? []
+    ).map((widget) => this.boundWidget(widget));
+    const widgetIds = widgets.map(({ definition }) => definition.id);
+    const repeated = widgetIds.find(
+      (id, index) => widgetIds.indexOf(id) !== index,
+    );
+    if (repeated) {
+      throw new Error(
+        `${this.entityType} binds dashboard widget "${repeated}" twice`,
+      );
+    }
     // The shell removes a plugin's Inbox sources with the plugin.
     const inbox = this.definition.inbox;
     if (inbox) context.inbox.registerSource(this.inboxSource(context, inbox));
@@ -928,6 +975,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             ),
           ]
         : []),
+      ...(widgets.length > 0
+        ? [
+            // The Dashboard answers registrations once every plugin is in.
+            context.messaging.subscribe(
+              SYSTEM_CHANNELS.pluginsRegistered,
+              async (): Promise<{ success: true }> => {
+                await this.registerDashboardWidgets(context, widgets);
+                return { success: true };
+              },
+            ),
+          ]
+        : []),
       ...(publish || publishAssets.length > 0
         ? [
             // Announced once every plugin is registered, so the publish
@@ -974,11 +1033,38 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     ];
   }
 
+  private async registerDashboardWidgets(
+    context: EntityPluginContext,
+    widgets: readonly BoundEntityWidget[],
+  ): Promise<void> {
+    if (context.executionOnly || !context.dashboard.isAvailable()) return;
+    for (const binding of widgets) {
+      const registered = await context.dashboard.registerWidget(
+        createDeclarativeDashboardWidgetRegistration({
+          publicServiceId: this.id,
+          packageName: this.packageName,
+          config: entityDashboardBinding.config,
+          state: entityDashboardBinding.state,
+          binding,
+          context,
+          runtimeSignal: this.widgetAbort.signal,
+        }),
+      );
+      if (registered) this.dashboardWidgetIds.push(binding.definition.id);
+    }
+  }
+
   /**
-   * The declared projection in the shape the AT Protocol service reads. It
-   * reads as this package rather than through the context the service
-   * passes, and it is given the validated record.
+   * The binding a declared widget is: a definition's `bind` made it, and it
+   * carries the loader the Dashboard calls.
    */
+  private boundWidget(widget: EntityDashboardWidget): BoundEntityWidget {
+    if (isBoundEntityWidget(widget)) return widget;
+    throw new Error(
+      `${this.entityType} dashboard widget "${widget.definition.id}" is not bound; bind it with defineDashboardWidget(...).bind(context, load)`,
+    );
+  }
+
   /** Reads of the declaring type alone, up to one visibility. */
   private records(
     context: EntityPluginContext,
@@ -1116,6 +1202,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     });
   }
 
+  /**
+   * The declared projection in the shape the AT Protocol service reads. It
+   * reads as this package rather than through the context the service
+   * passes, and it is given the validated record.
+   */
   private atprotoProjection(
     context: EntityPluginContext,
     declared: EntityAtprotoProjection<EntityOf<AnyEntityDefinition>>,
@@ -1546,6 +1637,26 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onShutdown(): Promise<void> {
     this.releases.forEach((release) => release());
     this.releases = [];
+    this.widgetAbort.abort();
+    const context = this.getContext();
+    const widgetIds = this.dashboardWidgetIds.splice(0);
+    await Promise.all(
+      widgetIds.map(async (widgetId) => {
+        try {
+          await context.dashboard.unregisterWidget(widgetId);
+        } catch (error) {
+          // Shutdown goes on: a Dashboard that is already gone holds nothing
+          // to unregister, and one widget must not keep the others up.
+          this.logger.error(
+            "Failed to unregister a declared dashboard widget",
+            {
+              widgetId,
+              error: getErrorMessage(error),
+            },
+          );
+        }
+      }),
+    );
   }
 
   /**

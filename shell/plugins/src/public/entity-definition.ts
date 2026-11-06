@@ -40,6 +40,8 @@ import {
 
 export type {
   AnyEntityDefinition,
+  EntityDashboardBindingContext,
+  EntityDashboardWidget,
   EntityInboxActionContext,
   EntityInboxChange,
   EntityInboxDeclaration,
@@ -156,6 +158,10 @@ export function defineEntity<
     readonly EntityAnalyticsReportDeclaration[] | undefined;
   readonly checks?: readonly EntityCheckDeclaration[] | undefined;
   readonly inbox?: EntityDefinition<TType, TMetadataSchema>["inbox"];
+  readonly dashboardWidgets?: EntityDefinition<
+    TType,
+    TMetadataSchema
+  >["dashboardWidgets"];
   readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");

@@ -4,7 +4,7 @@ import {
 } from "@brains/entity-service";
 import type { JobInfo } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
-import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
+import { parseDefinitionEntity } from "../entity/entity-schema";
 import type {
   AnyEntityDefinition,
   EntityOf,
