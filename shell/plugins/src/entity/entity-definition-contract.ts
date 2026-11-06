@@ -163,6 +163,28 @@ export interface EntityDefinition<
   readonly create?: EntityCreateRouting<TMetadataSchema> | undefined;
   /** Source-derived artifacts of this type, such as a printable PDF. */
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
+  /**
+   * Durable jobs this type declares, keyed by local name. The runtime
+   * registers each under the type's scope; a create route delegates to one
+   * by that name.
+   */
+  readonly jobs?: Readonly<Record<string, AnyEntityJobDeclaration>> | undefined;
+  /**
+   * Prompt generation for this type, registered as its `{type}:generation`
+   * job — the job `system_generate` queues after writing the `stub`.
+   */
+  readonly generation?:
+    EntityGenerationDeclaration<z.ZodType, TMetadataSchema> | undefined;
+  /**
+   * The placeholder a queued generation starts from. Without one,
+   * `system_generate` refuses the type.
+   */
+  readonly stub?:
+    | ((input: { readonly id: string; readonly title: string }) => {
+        readonly content: string;
+        readonly metadata: z.input<TMetadataSchema>;
+      })
+    | undefined;
   /** This type's syndication feed, written into every site build. */
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
@@ -501,8 +523,168 @@ export type EntityCreateRoute<
       check?(context: EntityCreateContext): Promise<EntityCreateCheck>;
       resolve(
         context: EntityCreateContext,
-      ): Promise<EntityCreateResolution<TMetadataSchema>>;
+      ): Promise<
+        | EntityCreateResolution<TMetadataSchema>
+        | EntityCreateAllocation<TMetadataSchema>
+      >;
     };
+
+/** A job this type declares, named locally, and the input it is given. */
+export interface EntityCreateDelegation {
+  readonly job: string;
+  readonly input?: Readonly<Record<string, unknown>> | undefined;
+}
+
+/**
+ * A create that finishes later: the runtime writes the placeholder (or finds
+ * the existing entity), queues the declared job with that entity's id, and
+ * reports `generating`. An allocation delegates to a job that generates, so
+ * the runtime owns the entity's lifecycle — the write on success and the
+ * failure marking on error. A bare `delegate` queues any declared job.
+ */
+export type EntityCreateAllocation<
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> =
+  | {
+      readonly create: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: z.input<TMetadataSchema>;
+      };
+      readonly delegate: EntityCreateDelegation;
+      readonly attachment?: EntityCreateAttachment | undefined;
+    }
+  | {
+      readonly existing: { readonly id: string };
+      readonly delegate: EntityCreateDelegation;
+      readonly attachment?: EntityCreateAttachment | undefined;
+    }
+  | { readonly delegate: EntityCreateDelegation };
+
+/** How a job reports progress. */
+export interface EntityJobProgress {
+  report(update: {
+    readonly progress: number;
+    readonly total?: number | undefined;
+    readonly message?: string | undefined;
+  }): Promise<void>;
+}
+
+/** How a job announces what happened, to every subscriber. */
+export interface EntityJobMessaging {
+  publish(message: {
+    readonly topic: string;
+    readonly data: object;
+  }): Promise<void>;
+}
+
+/**
+ * What a declared job is given: its parsed input, definition-typed reads as
+ * the package, messaging, progress and cancellation. Frozen.
+ */
+export interface EntityJobContext<TInput> {
+  readonly input: TInput;
+  readonly entities: DataSourceEntityReader;
+  readonly messaging: EntityJobMessaging;
+  readonly progress: EntityJobProgress;
+  readonly signal: AbortSignal;
+}
+
+/** One generation through a template this type declares. */
+export interface EntityGenerationRequest {
+  /** Local template name; the runtime resolves its scope. */
+  readonly template: string;
+  readonly prompt: string;
+  readonly data?: Readonly<Record<string, unknown>> | undefined;
+  readonly representedIdentity?: "brain" | "anchor" | "none" | undefined;
+  /** Write in the brain's voice: the style guide governs voice and form. */
+  readonly voice?: boolean | undefined;
+}
+
+export interface EntityGenerationAI {
+  generate<TSchema extends z.ZodType>(
+    request: EntityGenerationRequest,
+    schema: TSchema,
+  ): Promise<z.output<TSchema>>;
+}
+
+/**
+ * What a generation is given: a job's context, the allocated entity it
+ * fills (when there is one), and template-based generation.
+ */
+export interface EntityGenerationContext<
+  TInput,
+> extends EntityJobContext<TInput> {
+  readonly entityId: string | undefined;
+  readonly ai: EntityGenerationAI;
+}
+
+/**
+ * Point the entity a generation came from at what it produced. The runtime
+ * makes the write, entitled to both sides, after checking the target before
+ * anything is saved.
+ */
+export type EntityGenerationLink = {
+  readonly entityType: string;
+  readonly entityId: string;
+} & (
+  | {
+      /** A frontmatter field holding one id, such as a cover image. */
+      readonly field: string;
+    }
+  | {
+      /** A frontmatter list of `{ id }`, added to rather than replaced. */
+      readonly list: string;
+      /** Entries a re-render supersedes, removed while linking. */
+      readonly replaces?: readonly string[] | undefined;
+    }
+);
+
+/**
+ * What a generation produced, or why it could not. Content, not a written
+ * entity: the runtime persists it, fills an allocated entity, or marks it
+ * failed.
+ */
+export type EntityGenerationResult<
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> =
+  | {
+      readonly success: true;
+      readonly content: string;
+      readonly metadata: z.input<TMetadataSchema>;
+      /** The id when nothing was allocated; defaults to the slugified title. */
+      readonly id?: string | undefined;
+      /** Extra fields merged into the job's success result. */
+      readonly resultExtras?: Readonly<Record<string, unknown>> | undefined;
+      readonly linkInto?: EntityGenerationLink | undefined;
+    }
+  | { readonly success: false; readonly error: string };
+
+/** A durable job that does its own work and returns its result. */
+export interface EntityJobDeclaration<
+  TInputSchema extends z.ZodType = z.ZodType,
+> {
+  readonly input: TInputSchema;
+  handle(context: EntityJobContext<z.output<TInputSchema>>): Promise<unknown>;
+}
+
+/**
+ * A durable job that generates an entity of this type. The runtime parses
+ * the input, then persists what comes back — filling the allocated entity
+ * when the job was given one — or marks that entity failed.
+ */
+export interface EntityGenerationDeclaration<
+  TInputSchema extends z.ZodType = z.ZodType,
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> {
+  readonly input: TInputSchema;
+  generate(
+    context: EntityGenerationContext<z.output<TInputSchema>>,
+  ): Promise<EntityGenerationResult<TMetadataSchema>>;
+}
+
+export type AnyEntityJobDeclaration =
+  EntityJobDeclaration | EntityGenerationDeclaration;
 
 /**
  * Create routing, keyed by how the caller expressed what they want:

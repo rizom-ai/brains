@@ -8,6 +8,12 @@ import type { EntityActionPolicyRuleInput, Template } from "@brains/templates";
 import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
+  AnyEntityJobDeclaration,
+  EntityGenerationContext,
+  EntityGenerationDeclaration,
+  EntityGenerationResult,
+  EntityJobContext,
+  EntityJobDeclaration,
   EntityAttachmentDeclaration,
   EntityCreateRouting,
   EntityDefinition,
@@ -27,6 +33,19 @@ import {
 
 export type {
   AnyEntityDefinition,
+  AnyEntityJobDeclaration,
+  EntityCreateAllocation,
+  EntityCreateDelegation,
+  EntityGenerationAI,
+  EntityGenerationContext,
+  EntityGenerationDeclaration,
+  EntityGenerationLink,
+  EntityGenerationRequest,
+  EntityGenerationResult,
+  EntityJobContext,
+  EntityJobDeclaration,
+  EntityJobMessaging,
+  EntityJobProgress,
   EntityAttachmentDeclaration,
   EntityCreateAttachment,
   EntityCreateCheck,
@@ -58,6 +77,7 @@ export type {
 export function defineEntity<
   const TType extends string,
   TMetadataSchema extends EntityMetadataSchema,
+  TGenerationInput extends z.ZodType = z.ZodType,
 >(definition: {
   readonly type: TType;
   readonly purpose: string;
@@ -81,11 +101,26 @@ export function defineEntity<
   readonly templates?: Readonly<Record<string, Template>> | undefined;
   readonly create?: EntityCreateRouting<TMetadataSchema> | undefined;
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
+  readonly jobs?: Readonly<Record<string, AnyEntityJobDeclaration>> | undefined;
+  readonly generation?:
+    EntityGenerationDeclaration<TGenerationInput, TMetadataSchema> | undefined;
+  readonly stub?:
+    | ((input: { readonly id: string; readonly title: string }) => {
+        readonly content: string;
+        // Not an inference site: the schema decides the type, and a literal
+        // in the stub must not be widened into a competing candidate.
+        readonly metadata: NoInfer<z.input<TMetadataSchema>>;
+      })
+    | undefined;
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
     | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
+  // Local names: the runtime scopes each job to the declaring type.
+  Object.keys(definition.jobs ?? {}).forEach((name) =>
+    assertLocalId(name, "Job name"),
+  );
   if (!definition.purpose.trim()) {
     throw new Error(`Entity "${definition.type}" purpose must not be empty`);
   }
@@ -96,6 +131,37 @@ export function defineEntity<
       definition.classification,
     ),
   });
+}
+
+/**
+ * Declare a durable job for an entity's `jobs`. A job either `handle`s its
+ * own work and returns a result, or `generate`s an entity of the declaring
+ * type and hands the runtime its lifecycle.
+ */
+export function defineEntityJob<TInputSchema extends z.ZodType>(declaration: {
+  readonly input: TInputSchema;
+  handle(context: EntityJobContext<z.output<TInputSchema>>): Promise<unknown>;
+}): EntityJobDeclaration<TInputSchema>;
+export function defineEntityJob<TInputSchema extends z.ZodType>(declaration: {
+  readonly input: TInputSchema;
+  generate(
+    context: EntityGenerationContext<z.output<TInputSchema>>,
+  ): Promise<EntityGenerationResult>;
+}): EntityGenerationDeclaration<TInputSchema>;
+export function defineEntityJob(
+  declaration: EntityJobDeclaration | EntityGenerationDeclaration,
+): AnyEntityJobDeclaration {
+  // The forms are exclusive in the types; an untyped caller can still send
+  // both, and a job that silently took one would drop the other.
+  if (
+    Object.hasOwn(declaration, "handle") ===
+    Object.hasOwn(declaration, "generate")
+  ) {
+    throw new Error(
+      "An entity job either handles or generates — not both or neither",
+    );
+  }
+  return Object.freeze({ ...declaration });
 }
 
 export function defineProjection<

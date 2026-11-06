@@ -140,20 +140,24 @@ Definitions and schema vocabulary:
 
 - `defineDataSource`
 - `defineEntity`
+- `defineEntityJob`
 - `defineEntityPackage`
 - `defineProjection`
 - `z`
 
 Types:
 
+- `AnyEntityJobDeclaration`
 - `AttachmentProvider`
 - `DataSourceDefinition`
 - `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
 - `EntityAttachmentDeclaration`
+- `EntityCreateAllocation`
 - `EntityCreateAttachment`
 - `EntityCreateCheck`
 - `EntityCreateContext`
+- `EntityCreateDelegation`
 - `EntityCreateResolution`
 - `EntityCreateRoute`
 - `EntityCreateRouting`
@@ -162,6 +166,13 @@ Types:
 - `EntityDefinition`
 - `EntityDefinitionConfig`
 - `EntityFeedDeclaration`
+- `EntityGenerationContext`
+- `EntityGenerationDeclaration`
+- `EntityGenerationLink`
+- `EntityGenerationRequest`
+- `EntityGenerationResult`
+- `EntityJobContext`
+- `EntityJobDeclaration`
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
@@ -218,6 +229,14 @@ Creating and deriving on `defineEntity`:
 - The runtime validates created and updated metadata against the type's schema, writes with the caller's visibility and attribution, refuses to create an id that already exists at any visibility, and requires an `existing` or `update` id to exist at the caller's visibility. An `EntityCreateAttachment` builds the result's link from the id actually written.
 - `EntityCreateContext` is frozen: a copy of the request, definition-typed reads at the caller's visibility, and an `EntityCreateUploadReader` over the runtime's shared upload store, the one a request's upload reference points into. `fromUpload.mediaTypes` also claims those uploads from the upload endpoint, through the same route.
 - `attachments` declares source-derived artifacts as `EntityAttachmentDeclaration`s: an attachment `type` and a `provider(context)` factory returning an `AttachmentProvider`. The runtime builds each provider once the type is registered, with a frozen `MediaAttachmentContext` — `domain`, `themeCSS`, `identity.getProfile()`, `entityService.getEntity`/`listEntities` and `views.get`, all read-only — registers it, and releases it on shutdown.
+
+Jobs and generation on `defineEntity`:
+
+- `jobs` declares durable jobs keyed by local name; the runtime registers each under the type's scope. `defineEntityJob({ input, handle })` declares a job that does its own work (`EntityJobDeclaration`); `defineEntityJob({ input, generate })` declares one that generates an entity of the type (`EntityGenerationDeclaration`). The runtime parses job data with `input` before the callback runs.
+- `EntityJobContext` is frozen: the parsed `input`, definition-typed `entities` reads as the package, `messaging.publish`, `progress.report` and the cancellation `signal`. `EntityGenerationContext` adds the allocated `entityId` (when the job was given one) and `ai.generate(request, schema)`. An `EntityGenerationRequest` names a template the type declares by its local name; `voice: true` writes in the brain's voice, the style guide governing voice and form.
+- A generation returns an `EntityGenerationResult`: content, metadata (the type's schema input), an optional `id` when nothing was allocated (default: the slugified title), `resultExtras` for the job result, and an optional `linkInto` — an `EntityGenerationLink` setting a target's `field` or extending a target's `list` (dropping `replaces`). The runtime checks the link target before saving, refusing a missing target or a cover on a type that declares none. It then fills the allocated entity (keeping edits made while it generated), or creates one, and writes the link; a refusal or an error marks the allocated entity failed.
+- `generation` registers a generation as the type's `{type}:generation` job, which `system_generate` queues after writing the `stub` placeholder. Without a `stub`, `system_generate` refuses the type.
+- A create route may also return an `EntityCreateAllocation`: `create` (a placeholder, deduplicated) or `existing` plus a `delegate` (`EntityCreateDelegation`: a job this type declares and its input), so the runtime writes or finds the entity, queues the job with its id and reports `generating`; or a bare `delegate` that queues any declared job. An allocation must delegate to a job that generates; the job and its input are checked before anything is written, and a placeholder is removed again if the job cannot be queued.
 
 ## `@rizom/brain/services`
 

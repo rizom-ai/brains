@@ -40,6 +40,11 @@ import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import { createUploadSaveHandler } from "./upload-save";
 import {
+  DeclarativeGenerationHandler,
+  entityJobHandler,
+} from "./declarative-jobs";
+import type { JobHandler } from "@brains/job-queue";
+import {
   currentMetadata,
   entitySchema,
   parseDefinitionEntity,
@@ -51,6 +56,8 @@ import { createDeclaredDataSource } from "../public/entity-data-source";
 import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
+  AnyEntityJobDeclaration,
+  EntityCreateAllocation,
   EntityCreateContext,
   EntityCreateResolution,
   EntityCreateRoute,
@@ -231,6 +238,7 @@ function entityAdapter(
   definition: AnyEntityDefinition,
 ): EntityAdapter<EntityOf<AnyEntityDefinition>, Record<string, unknown>> {
   const schema = entitySchema(definition);
+  const stub = definition.stub;
   return {
     entityType: definition.type,
     purpose: definition.purpose,
@@ -264,6 +272,17 @@ function entityAdapter(
       return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },
     getBodyTemplate: () => "",
+    // Left off when undeclared: system_generate reads its absence as "this
+    // type does not support queued generation" and says so.
+    ...(stub && {
+      buildStub: (input: {
+        id: string;
+        title: string;
+      }): { content: string; metadata: Record<string, unknown> } => {
+        const built = stub(input);
+        return { content: built.content, metadata: { ...built.metadata } };
+      },
+    }),
     // Each flag is left off when undeclared: a type that never declared one
     // reads the same as a type written before the flag existed.
     ...(definition.singleton === true && { isSingleton: true }),
@@ -419,6 +438,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly definition: AnyEntityDefinition;
   private readonly create: EntityCreateRouting | undefined;
   private readonly attachments: AnyEntityDefinition["attachments"];
+  private readonly jobs: Readonly<Record<string, AnyEntityJobDeclaration>>;
+  private readonly generation: AnyEntityDefinition["generation"];
   private releases: readonly (() => void)[] = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
@@ -464,6 +485,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.definition = definition;
     this.create = definition.create;
     this.attachments = definition.attachments;
+    this.jobs = definition.jobs ?? {};
+    this.generation = definition.generation;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
@@ -471,6 +494,41 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return this.entityTypeConfig;
+  }
+
+  /** The registered name of a template this type declares. */
+  private templateName(localName: string): string {
+    if (!Object.hasOwn(this.templates ?? {}, localName)) {
+      throw new Error(
+        `${this.entityType} declares no template named "${localName}"`,
+      );
+    }
+    return `${this.id}:${localName}`;
+  }
+
+  private generationHandler(
+    context: EntityPluginContext,
+    declaration: NonNullable<AnyEntityDefinition["generation"]>,
+    jobTypeName: string,
+  ): DeclarativeGenerationHandler {
+    return new DeclarativeGenerationHandler(this.logger, context, declaration, {
+      entityType: this.entityType,
+      jobTypeName,
+      template: (localName) => this.templateName(localName),
+      retries: this.retries,
+    });
+  }
+
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
+    return this.generation
+      ? this.generationHandler(
+          context,
+          this.generation,
+          `${this.entityType}:generation`,
+        )
+      : null;
   }
 
   protected override getTemplates(): Record<string, Template> | null {
@@ -517,6 +575,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         },
       );
     }
+
+    // Local names: the jobs namespace scopes each to this type's plugin.
+    Object.entries(this.jobs).forEach(([name, declaration]) => {
+      context.jobs.registerHandler(
+        name,
+        "generate" in declaration
+          ? this.generationHandler(context, declaration, name)
+          : entityJobHandler(declaration, context),
+      );
+    });
 
     const create = this.create;
     if (create) this.registerCreateRouting(context, create);
@@ -660,10 +728,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
    */
   private async applyCreateResolution(
     context: EntityPluginContext,
-    resolution: EntityCreateResolution,
+    resolution: EntityCreateResolution | EntityCreateAllocation,
     input: CreateInput,
     executionContext: CreateExecutionContext,
   ): Promise<CreateResult> {
+    if ("delegate" in resolution) {
+      return this.applyDelegation(context, resolution, input, executionContext);
+    }
     if ("refuse" in resolution) return createFailure(resolution.refuse);
     const visibilityScope = this.callerScope(executionContext);
     const eventContext = {
@@ -688,16 +759,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const target =
       "update" in resolution ? resolution.update : resolution.create;
     const metadata = this.definition.metadata.safeParse(target.metadata);
-    if (!metadata.success) {
-      return createFailure(
-        `Invalid ${this.entityType} metadata: ${metadata.error.issues
-          .map(
-            ({ path, message }) =>
-              `${path.join(".") || "metadata"}: ${message}`,
-          )
-          .join("; ")}`,
-      );
-    }
+    if (!metadata.success) return createFailure(this.invalid(metadata.error));
 
     if ("update" in resolution) {
       const existing = await context.entityService.getEntity({
@@ -759,6 +821,145 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       }
       throw error;
     }
+  }
+
+  private invalid(error: z.ZodError): string {
+    return `Invalid ${this.entityType} metadata: ${error.issues
+      .map(({ path, message }) => `${path.join(".") || "metadata"}: ${message}`)
+      .join("; ")}`;
+  }
+
+  /**
+   * Allocate now and finish later: write the placeholder (or find the
+   * entity), then queue the declared job with its id. Everything the
+   * delegation needs is checked before anything is written.
+   */
+  private async applyDelegation(
+    context: EntityPluginContext,
+    allocation: EntityCreateAllocation,
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateResult> {
+    const { job: name, input: jobInput = {} } = allocation.delegate;
+    const job = Object.hasOwn(this.jobs, name) ? this.jobs[name] : undefined;
+    if (!job) {
+      return createFailure(
+        `${this.entityType} declares no job named "${name}"`,
+      );
+    }
+    const allocates = "create" in allocation || "existing" in allocation;
+    if (allocates && !("generate" in job)) {
+      return createFailure(
+        `${this.entityType} job "${name}" does not generate, so it cannot fill an allocated entity`,
+      );
+    }
+    const parsed = job.input.safeParse(jobInput);
+    if (!parsed.success) {
+      return createFailure(
+        `Invalid input for ${this.entityType} job "${name}": ${parsed.error.issues
+          .map(({ message }) => message)
+          .join("; ")}`,
+      );
+    }
+
+    const allocated = await this.allocate(
+      context,
+      allocation,
+      input,
+      executionContext,
+    );
+    if ("error" in allocated) return createFailure(allocated.error);
+    const entityId = allocated.entityId;
+    try {
+      const jobId = await context.jobs.enqueue({
+        type: name,
+        // The raw input: a generation reads the allocated id off it.
+        data: { ...jobInput, ...(entityId !== undefined && { entityId }) },
+        toolContext: {
+          interfaceType: executionContext.interfaceType,
+          actor: executionContext.actor,
+          ...definedFields({ channelId: executionContext.channelId }),
+        },
+      });
+      const attachment =
+        "attachment" in allocation ? allocation.attachment : undefined;
+      return {
+        success: true,
+        data: {
+          status: "generating",
+          jobId,
+          ...(entityId !== undefined && {
+            entityId,
+            ...(attachment && {
+              attachment: createResultAttachmentSchema.parse(
+                attachment({ entityId }),
+              ),
+            }),
+          }),
+        },
+      };
+    } catch (error) {
+      // No job will fill a placeholder this create wrote; left behind it
+      // would stay generating forever.
+      if (allocated.written) {
+        await context.entityService
+          .deleteEntity({ entityType: this.entityType, id: allocated.written })
+          .catch((cleanupError: unknown) => {
+            this.logger.warn("Failed to remove an unqueued placeholder", {
+              entityId: allocated.written,
+              error: cleanupError,
+            });
+          });
+      }
+      return createFailure(getErrorMessage(error));
+    }
+  }
+
+  private async allocate(
+    context: EntityPluginContext,
+    allocation: EntityCreateAllocation,
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): Promise<
+    | { readonly entityId: string | undefined; readonly written?: string }
+    | { readonly error: string }
+  > {
+    if ("existing" in allocation) {
+      const found = await context.entityService.getEntity({
+        entityType: this.entityType,
+        id: allocation.existing.id,
+        visibilityScope: this.callerScope(executionContext),
+      });
+      return found
+        ? { entityId: found.id }
+        : {
+            error: `Cannot reuse ${this.entityType} "${allocation.existing.id}", which does not exist`,
+          };
+    }
+    if (!("create" in allocation)) return { entityId: undefined };
+    const metadata = this.definition.metadata.safeParse(
+      allocation.create.metadata,
+    );
+    if (!metadata.success) return { error: this.invalid(metadata.error) };
+    // Deduplicated, as system_generate's stub is: a second import lands
+    // beside the first rather than on top of it.
+    const written = await context.entityService.createEntity({
+      entity: {
+        id: allocation.create.id,
+        entityType: this.entityType,
+        content: allocation.create.content,
+        metadata: metadata.data,
+        ...(input.visibility !== undefined && { visibility: input.visibility }),
+      },
+      options: {
+        deduplicateId: true,
+        eventContext: {
+          actor: executionContext.actor,
+          interfaceType: executionContext.interfaceType,
+        },
+      },
+    });
+    return { entityId: written.entityId, written: written.entityId };
   }
 
   private createSuccess(
