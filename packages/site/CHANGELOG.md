@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.243
+
+### Patch Changes
+
+- [#835](https://github.com/rizom-ai/brains/pull/835) [`804a82c`](https://github.com/rizom-ai/brains/commit/804a82c4759f9301bf3fc38948d4529b7c877251) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `SiteLayoutInfo` carries the anchor's `photo`. The Fourth's footer follows Sam's mockup: the wordmark beside the profiles, stacked, and the email; then the anchor's photo, the places of the privacy, terms and cookie pages, and the language switch as a pill over the copyright and the credit to Rizom.
+
 ## 0.2.0-alpha.242
 
 ### Patch Changes
