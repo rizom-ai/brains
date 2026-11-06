@@ -36,6 +36,7 @@ export interface ProjectionWaveStore {
     jobId: string,
   ): Promise<unknown>;
   completeWave(waveId: string, completedAt: number): Promise<ProjectionWave>;
+  supersedeWave(waveId: string, supersededAt: number): Promise<ProjectionWave>;
   failWave(waveId: string, failedAt: number): Promise<ProjectionWave>;
   failWaveWithIncident(input: ProjectionIncidentInput): Promise<ProjectionWave>;
 }
@@ -132,7 +133,7 @@ export class ProjectionWaveScheduler {
         throw new Error(`Projection wave "${waveId}" is not active`);
       }
       const advanced = await this.advanceWave(activeWave);
-      if (advanced.status === "completed") {
+      if (releasesNextWave(advanced)) {
         await this.startNextWaveInternal();
       }
       return advanced;
@@ -191,7 +192,7 @@ export class ProjectionWaveScheduler {
     const activeWave = await this.store.getActiveWave();
     if (activeWave) {
       const advanced = await this.advanceWave(activeWave);
-      if (advanced.status === "completed") {
+      if (releasesNextWave(advanced)) {
         await this.startNextWaveInternal();
       }
       return advanced;
@@ -221,7 +222,7 @@ export class ProjectionWaveScheduler {
     if (!wave) return null;
 
     const advanced = await this.advanceWave(wave);
-    if (advanced.status === "completed") {
+    if (releasesNextWave(advanced)) {
       await this.startNextWaveInternal();
     }
     return advanced;
@@ -258,10 +259,11 @@ export class ProjectionWaveScheduler {
   }
 
   private async advanceWave(wave: ProjectionWave): Promise<ProjectionWave> {
+    // Claimed by a run that composed a different graph, such as one before a
+    // plugin was added or removed. Its plan names rules this graph may not
+    // have, so it is superseded and its inputs replanned in a fresh wave.
     if (wave.graphFingerprint !== this.graphFingerprint) {
-      throw new Error(
-        `Projection wave "${wave.id}" graph fingerprint does not match the finalized graph`,
-      );
+      return this.store.supersedeWave(wave.id, this.now());
     }
     let rules = await this.store.listWaveRules(wave.id);
     if (rules.length === 0) {
@@ -375,6 +377,11 @@ export class ProjectionWaveScheduler {
     });
     await this.store.queueWaveRule(waveId, rule.ruleId, jobId);
   }
+}
+
+/** A wave that reached completion or supersession leaves room for the next. */
+function releasesNextWave(wave: ProjectionWave): boolean {
+  return wave.status === "completed" || wave.status === "superseded";
 }
 
 function scheduleTimerWakeup(

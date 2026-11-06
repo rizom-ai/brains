@@ -347,6 +347,59 @@ describe("ProjectionRuleJobHandler", () => {
     expect(coordinator.incidents).toEqual([]);
   });
 
+  it("settles a superseded wave's job for a rule its plugin no longer provides", async () => {
+    const store = new MemoryExecutionStore(1);
+    store.waveStatus = "superseded";
+    const coordinator = new MemoryCoordinator();
+    const handler = new ProjectionRuleJobHandler({
+      rules: [],
+      store,
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      now: (): number => 20,
+    });
+
+    const result = await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-removed-plugin",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual({
+      waveId: "wave-1",
+      ruleId: "topics",
+      outcome: "superseded",
+      inputFingerprint: null,
+      changedTargets: [],
+    });
+    expect(coordinator.continuedWaveIds).toEqual([]);
+    expect(coordinator.incidents).toEqual([]);
+  });
+
+  it("refuses a running wave's job for a rule that is not executable", async () => {
+    const handler = new ProjectionRuleJobHandler({
+      rules: [],
+      store: new MemoryExecutionStore(1),
+      coordinator: new MemoryCoordinator(),
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      now: (): number => 20,
+    });
+
+    void expect(
+      handler.process(
+        { waveId: "wave-1", ruleId: "topics" },
+        "job-unknown-rule",
+        progressReporter,
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('Projection rule "topics" is not executable');
+  });
+
   it("does not reconcile intents when the epoch changes during derive", async () => {
     const derive = mock(async (): Promise<ProjectionWriteIntent[]> => [
       { operation: "delete", entityType: "topic", id: "partial-topic" },

@@ -179,6 +179,18 @@ export class ProjectionRuleJobHandler implements JobHandler<
     const parsedData = projectionRuleJobDataSchema.parse(data);
     const rule = this.ruleById.get(parsedData.ruleId);
     if (!rule) {
+      // A wave superseded because its plugin left the composition can still
+      // have that plugin's jobs queued. They have nothing left to report into.
+      const wave = await this.store.getWave(parsedData.waveId);
+      if (wave?.status === "superseded") {
+        return {
+          waveId: parsedData.waveId,
+          ruleId: parsedData.ruleId,
+          outcome: "superseded",
+          inputFingerprint: null,
+          changedTargets: [],
+        };
+      }
       throw new Error(
         `Projection rule "${parsedData.ruleId}" is not executable`,
       );
