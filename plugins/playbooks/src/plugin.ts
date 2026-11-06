@@ -1,13 +1,11 @@
 import {
   ENTITY_CHANNELS,
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   agentActionContract,
-  lifecycleStarterRegistrationSchema,
+  lifecycleStarterRegistrationContract,
   type AgentActionRequest,
   type AgentContextItem,
   type AgentResponse,
   type ActionsCard,
-  type LifecycleStarterRegistration,
   agentContextContract,
 } from "@brains/contracts";
 import {
@@ -40,7 +38,6 @@ import { buildInstructions, renderAgentContextItem } from "./lib/render";
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
-  type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
 
@@ -64,7 +61,6 @@ import {
 export type {
   LifecyclePlaybookConfig,
   LifecyclePlaybookConfigInput,
-  LifecycleStarterRegistrationResponse,
   LifecycleStartersResponse,
   PlaybookStarter,
 } from "./lib/lifecycle-starters";
@@ -387,19 +383,11 @@ export class PlaybooksPlugin extends ServicePlugin<
       return { success: true, data: { starters } };
     });
 
-    context.messaging.subscribe<
-      LifecycleStarterRegistration,
-      LifecycleStarterRegistrationResponse
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, async (message) => {
-      const registration = lifecycleStarterRegistrationSchema.parse(
-        message.payload,
-      );
-      const result = this.lifecycleStarters.register(
-        registration,
-        message.source,
-      );
-      return { success: true, data: result };
-    });
+    context.messaging.answer(
+      lifecycleStarterRegistrationContract,
+      async (registration, { sender }) =>
+        this.lifecycleStarters.register(registration, sender),
+    );
 
     context.messaging.answer(agentContextContract, async (request) => {
       const item = await this.buildAgentContextItem(request.conversationId);

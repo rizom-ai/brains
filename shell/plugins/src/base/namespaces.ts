@@ -1,6 +1,7 @@
 import {
   answerContract,
   collectContract,
+  commandContract,
   requestContract,
 } from "@brains/messaging-service";
 import type { GetMessagesOptions } from "@brains/conversation-service";
@@ -183,6 +184,8 @@ export function createMessagingNamespace(
       requestContract(messageBus, contract, payload, pluginId),
     gather: (contract, payload) =>
       collectContract(messageBus, contract, payload, pluginId),
+    command: (contract, payload) =>
+      commandContract(messageBus, contract, payload, pluginId),
     answer: (contract, handler, options): (() => void) => {
       if (executionOnly && options?.everyProcess !== true)
         return (): void => {};

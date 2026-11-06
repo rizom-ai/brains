@@ -1,4 +1,9 @@
-import type { BusCollection, BusContract, BusResult } from "@brains/contracts";
+import type {
+  BusAnswerMeta,
+  BusCollection,
+  BusContract,
+  BusResult,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
@@ -78,7 +83,26 @@ export async function collectContract<
 }
 
 /**
- * Answer a request or collect contract. The handler sees only valid
+ * Send a command to every owner. Nobody answers; an owner that fails does not
+ * keep the others from hearing it, and a command no plugin owns goes nowhere.
+ */
+export async function commandContract<TRequest extends z.ZodType>(
+  bus: Pick<IMessageBus, "send">,
+  contract: BusContract<TRequest, z.ZodType, "command">,
+  payload: z.input<TRequest>,
+  sender: string,
+): Promise<void> {
+  const command = contract.schema.parse(payload);
+  await bus.send({
+    type: contract.name,
+    payload: command,
+    sender,
+    broadcast: true,
+  });
+}
+
+/**
+ * Answer a request or collect contract, or hear a command. The handler sees only valid
  * requests; its reply leaves only when the contract accepts it. A request
  * contract has one owner, so a second one throws.
  */
@@ -87,8 +111,11 @@ export function answerContract<
   TResponse extends z.ZodType,
 >(
   bus: Pick<IMessageBus, "subscribe" | "getHandlerCount">,
-  contract: BusContract<TRequest, TResponse, "request" | "collect">,
-  handler: (request: z.output<TRequest>) => Promise<z.input<TResponse>>,
+  contract: BusContract<TRequest, TResponse>,
+  handler: (
+    request: z.output<TRequest>,
+    meta: BusAnswerMeta,
+  ) => Promise<z.input<TResponse>>,
   options: { owner: string; logger: Logger },
 ): () => void {
   const { owner, logger } = options;
@@ -108,8 +135,15 @@ export function answerContract<
       });
       return { success: false, error: `Invalid ${contract.name} request` };
     }
+    const meta = { sender: message.source };
     try {
-      const reply = contract.response.safeParse(await handler(request.data));
+      if (contract.delivery === "command") {
+        await handler(request.data, meta);
+        return { success: true };
+      }
+      const reply = contract.response.safeParse(
+        await handler(request.data, meta),
+      );
       if (reply.success) return { success: true, data: reply.data };
       logger.error(`${owner} answered ${contract.name} outside its contract`, {
         error: reply.error.message,

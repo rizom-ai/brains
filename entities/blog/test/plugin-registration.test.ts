@@ -1,4 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import {
+  publishAssetRegisterContract,
+  publishRegisterContract,
+  siteBuildStagingContract,
+} from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { BlogPlugin } from "../src/plugin";
 import { PermissionService } from "@brains/templates";
@@ -28,10 +33,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     receivedMessages = [];
 
     for (const eventType of [
-      "publish:register",
+      publishRegisterContract.name,
       "publish:report:success",
       "publish:report:failure",
-      "publish-assets:register",
+      publishAssetRegisterContract.name,
     ]) {
       harness.subscribe(eventType, async (msg) => {
         receivedMessages.push({ type: eventType, payload: msg.payload });
@@ -71,7 +76,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new BlogPlugin({}));
 
       expect(
-        receivedMessages.find((m) => m.type === "publish:register"),
+        receivedMessages.find((m) => m.type === publishRegisterContract.name),
       ).toBeUndefined();
 
       await harness.sendMessage(
@@ -82,7 +87,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeDefined();
       expect(registerMessage?.payload).toMatchObject({
@@ -95,7 +100,9 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new BlogPlugin({}));
 
       expect(
-        receivedMessages.find((m) => m.type === "publish-assets:register"),
+        receivedMessages.find(
+          (m) => m.type === publishAssetRegisterContract.name,
+        ),
       ).toBeUndefined();
 
       await harness.sendMessage(
@@ -106,7 +113,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish-assets:register",
+        (m) => m.type === publishAssetRegisterContract.name,
       );
       expect(registerMessage?.payload).toMatchObject({
         entityType: "post",
@@ -125,7 +132,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       });
       await localHarness.installPlugin(new BlogPlugin({}));
       const lateMessages: Array<{ type: string; payload: unknown }> = [];
-      for (const eventType of ["publish:register", "publish-assets:register"]) {
+      for (const eventType of [
+        publishRegisterContract.name,
+        publishAssetRegisterContract.name,
+      ]) {
         localHarness.subscribe(eventType, async (msg) => {
           lateMessages.push({ type: eventType, payload: msg.payload });
           return { success: true };
@@ -140,8 +150,8 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       expect(lateMessages.map((m) => m.type).sort()).toEqual([
-        "publish-assets:register",
-        "publish:register",
+        publishAssetRegisterContract.name,
+        publishRegisterContract.name,
       ]);
     });
   });
@@ -315,7 +325,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
       try {
         await harness.sendMessage(
-          "site:build:staging",
+          siteBuildStagingContract.name,
           { ...payload, outputDir: stagingDir },
           "site-builder",
           true,
@@ -353,7 +363,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
       try {
         await harness.sendMessage(
-          "site:build:staging",
+          siteBuildStagingContract.name,
           {
             environment: "preview" as const,
             routesBuilt: 1,

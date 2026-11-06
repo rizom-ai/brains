@@ -22,6 +22,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
   PUBLISH_CHANNELS,
+  publishRegisterContract,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
@@ -287,13 +288,10 @@ export class PortfolioPlugin extends EntityPlugin<
     };
 
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.messaging.send({
-        type: PUBLISH_CHANNELS.register,
-        payload: {
-          entityType: "project",
-          provider,
-          config: { executionMode: "provider" },
-        },
+      await context.messaging.command(publishRegisterContract, {
+        entityType: "project",
+        provider,
+        config: { executionMode: "provider" },
       });
       return { success: true };
     });

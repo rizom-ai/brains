@@ -1,7 +1,10 @@
 import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
+import {
+  PUBLISH_CHANNELS,
+  publishRegisterContract,
+  type PublishProvider,
+} from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
-import type { PublishProvider } from "@brains/contracts";
 import {
   PublishExecuteHandler,
   type PublishExecutePayload,
@@ -24,13 +27,10 @@ export function registerWithPublishPipeline(
   context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
     const provider = providers.values().next().value;
 
-    await context.messaging.send({
-      type: PUBLISH_CHANNELS.register,
-      payload: {
-        entityType: "social-post",
-        provider: provider,
-        config: { publishResultIdField: "platformPostId" },
-      },
+    await context.messaging.command(publishRegisterContract, {
+      entityType: "social-post",
+      provider: provider,
+      config: { publishResultIdField: "platformPostId" },
     });
 
     logger.info("Registered social-post with publish-pipeline");

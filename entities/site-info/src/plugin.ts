@@ -9,8 +9,8 @@ import { ENTITY_CHANNELS, DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { readString } from "@brains/utils/record-fields";
 import {
-  SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
+  siteMetadataContract,
 } from "@brains/site-composition";
 import {
   siteInfoSchema,
@@ -73,12 +73,10 @@ export class SiteInfoPlugin extends EntityPlugin<
       },
     );
 
-    context.messaging.subscribeExecution(
-      SITE_METADATA_GET_CHANNEL,
-      async () => {
-        const siteInfo = await service.getSiteInfo();
-        return { success: true, data: siteInfo };
-      },
+    context.messaging.answer(
+      siteMetadataContract,
+      () => service.getSiteInfo(),
+      { everyProcess: true },
     );
 
     // Observed: a site-info change synced by the worker refreshes this

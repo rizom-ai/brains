@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { messagingFor } from "../test-helpers";
 import {
   SiteBuildJobHandler,
   type SiteBuildJobHandlerConfig,
@@ -42,17 +43,21 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     sendMessage: ReturnType<typeof mock>;
   } {
     const { sendMessage } = createMockMessageSender();
-    const handler = new SiteBuildJobHandler(createSilentLogger(), sendMessage, {
-      siteBuilder: mockSiteBuilder,
-      layouts: {},
-      defaultSiteConfig: {
-        represents: "anchor",
-        title: "Test",
-        description: "Test",
+    const handler = new SiteBuildJobHandler(
+      createSilentLogger(),
+      messagingFor(sendMessage),
+      {
+        siteBuilder: mockSiteBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test",
+          description: "Test",
+        },
+        sharedImagesDir: "./dist/images",
+        ...overrides,
       },
-      sharedImagesDir: "./dist/images",
-      ...overrides,
-    });
+    );
     return { handler, sendMessage };
   }
 

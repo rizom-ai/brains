@@ -35,6 +35,11 @@ export type BusResult<T> =
   | { status: "unavailable" }
   | { status: "failed"; error: string };
 
+/** What an owner learns about a call besides the request: the plugin that sent it. */
+export interface BusAnswerMeta {
+  sender: string;
+}
+
 export function defineBusContract<
   TRequest extends z.ZodType,
   TResponse extends z.ZodType,

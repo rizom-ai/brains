@@ -1,10 +1,3 @@
-export const A2A_CHANNELS = {
-  callRequest: "a2a:call:request",
-  callAgents: "a2a:call:agents",
-  /** Ask one saved, approved peer a question within the network-ask budget. */
-  askRequest: "a2a:ask:request",
-} as const;
-
 export const BUTTONDOWN_CHANNELS = {
   isConfigured: "buttondown:is-configured",
   send: "buttondown:send",
@@ -17,7 +10,6 @@ export const DASHBOARD_CHANNELS = {
 
 export const DIRECTORY_SYNC_CHANNELS = {
   getRepoInfo: "git-sync:get-repo-info",
-  statusRequest: "sync:status:request",
   configureRequest: "sync:configure:request",
   initialCompleted: "sync:initial:completed",
   entityExportRequest: "entity:export:request",
@@ -33,12 +25,9 @@ export const ENTITY_CHANNELS = {
 
 export const GENERATE_CHANNELS = {
   register: "generate:register",
-  execute: "generate:execute",
   completed: "generate:completed",
   failed: "generate:failed",
   skipped: "generate:skipped",
-  reportSuccess: "generate:report:success",
-  reportFailure: "generate:report:failure",
 } as const;
 
 export const IMAGE_CHANNELS = {
@@ -58,7 +47,6 @@ export const PROJECT_CHANNELS = {
 } as const;
 
 export const PUBLISH_CHANNELS = {
-  register: "publish:register",
   execute: "publish:execute",
   queue: "publish:queue",
   direct: "publish:direct",
@@ -71,10 +59,6 @@ export const PUBLISH_CHANNELS = {
   completed: "publish:completed",
   failed: "publish:failed",
   listResponse: "publish:list:response",
-} as const;
-
-export const PUBLISH_ASSET_CHANNELS = {
-  register: "publish-assets:register",
 } as const;
 
 export const PROJECTION_CHANNELS = {
@@ -93,27 +77,12 @@ export const PLUGIN_CHANNELS = {
 } as const;
 
 export const SITE_BUILDER_CHANNELS = {
-  routesList: "site-builder:routes:list",
-  routeRegister: "plugin:site-builder:route:register",
   routeUnregister: "plugin:site-builder:route:unregister",
   routeList: "plugin:site-builder:route:list",
   routeGet: "plugin:site-builder:route:get",
-  /**
-   * Collected when a site builds: each subscriber answers with one script
-   * string for every page's head. Subscribe with `subscribeExecution` in
-   * `onRegister`; builds run in the worker, which never runs the ready phase.
-   */
-  headScripts: "plugin:site-builder:head-scripts",
-  /**
-   * Collected when a site builds: each subscriber answers with its slot
-   * contributions, `{ pluginId, slotName, render, priority? }[]`. Subscribe
-   * with `subscribeExecution` in `onRegister`, as for `headScripts`.
-   */
-  slots: "plugin:site-builder:slots",
 } as const;
 
 export const SITE_CHANNELS = {
-  buildStaging: "site:build:staging",
   buildCompleted: "site:build:completed",
 } as const;
 

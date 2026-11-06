@@ -7,6 +7,7 @@ import type {
 import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
 import type {
+  BusAnswerMeta,
   BusCollection,
   BusContract,
   BusResult,
@@ -79,15 +80,28 @@ export interface IMessagingNamespace {
   ): Promise<BusCollection<z.output<TResponse>>>;
 
   /**
-   * Own a request contract, or answer a collect contract among others: the
-   * handler sees only valid requests, and its reply leaves only when the
-   * contract accepts it. A request contract has one owner; a second throws.
+   * Send a command to every plugin that hears it; nobody answers. An invalid
+   * command is the caller's bug and throws.
+   */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    payload: z.input<TRequest>,
+  ): Promise<void>;
+
+  /**
+   * Own a request contract, answer a collect contract among others, or hear
+   * a command: the handler sees only valid requests, with the plugin that
+   * sent them, and its reply leaves only when the contract accepts it. A
+   * request contract has one owner; a second throws.
    * An execution-only process answers only with `everyProcess`, as
    * `subscribeExecution` does.
    */
   answer<TRequest extends z.ZodType, TResponse extends z.ZodType>(
-    contract: BusContract<TRequest, TResponse, "request" | "collect">,
-    handler: (request: z.output<TRequest>) => Promise<z.input<TResponse>>,
+    contract: BusContract<TRequest, TResponse>,
+    handler: (
+      request: z.output<TRequest>,
+      meta: BusAnswerMeta,
+    ) => Promise<z.input<TResponse>>,
     options?: { everyProcess?: boolean },
   ): () => void;
 

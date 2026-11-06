@@ -110,3 +110,34 @@ describe("bus contracts", () => {
     ).toThrow("test:measure already has an owner");
   });
 });
+
+const announceSchema = z.strictObject({ entityType: z.string() });
+const announce: BusContract<typeof announceSchema, z.ZodVoid, "command"> =
+  defineBusContract({
+    channel: "test:announce",
+    request: announceSchema,
+    response: z.void(),
+    delivery: "command",
+  });
+
+describe("command contracts through the context", () => {
+  it("reach every plugin that hears them", async () => {
+    const shell = createMockShell();
+    const heard: string[] = [];
+    for (const pluginId of ["newsletter", "social-media"]) {
+      createBasePluginContext(shell, pluginId).messaging.answer(
+        announce,
+        async ({ entityType }) => {
+          heard.push(`${pluginId}:${entityType}`);
+        },
+      );
+    }
+
+    await createBasePluginContext(shell, "content-pipeline").messaging.command(
+      announce,
+      { entityType: "post" },
+    );
+
+    expect(heard.sort()).toEqual(["newsletter:post", "social-media:post"]);
+  });
+});

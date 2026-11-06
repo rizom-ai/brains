@@ -3,7 +3,11 @@ import { defineBusContract, type BusContract } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { MessageBus } from "../src";
-import { answerContract, collectContract } from "../src/bus-contracts";
+import {
+  answerContract,
+  collectContract,
+  commandContract,
+} from "../src/bus-contracts";
 
 const questionSchema = z.strictObject({ topic: z.string() });
 const itemSchema = z.strictObject({ source: z.string(), text: z.string() });
@@ -84,5 +88,87 @@ describe("collect contracts", () => {
     expect(
       await collectContract(bus(), gather, { topic: "launch" }, "shell"),
     ).toEqual({ status: "unavailable" });
+  });
+});
+
+const announceSchema = z.strictObject({ entityType: z.string() });
+
+const announce: BusContract<typeof announceSchema, z.ZodVoid, "command"> =
+  defineBusContract({
+    channel: "test:announce",
+    request: announceSchema,
+    response: z.void(),
+    delivery: "command",
+  });
+
+describe("command contracts", () => {
+  it("reaches every owner, even when one of them fails", async () => {
+    const messageBus = bus();
+    const logger = createSilentLogger("owners");
+    const heard: string[] = [];
+    answerContract(
+      messageBus,
+      announce,
+      async () => {
+        throw new Error("newsletter is down");
+      },
+      { owner: "newsletter", logger },
+    );
+    answerContract(
+      messageBus,
+      announce,
+      async ({ entityType }) => {
+        heard.push(entityType);
+      },
+      { owner: "social-media", logger },
+    );
+
+    await commandContract(
+      messageBus,
+      announce,
+      { entityType: "social-post" },
+      "content-pipeline",
+    );
+
+    expect(heard).toEqual(["social-post"]);
+  });
+
+  it("tells each owner who sent the command", async () => {
+    const messageBus = bus();
+    const senders: string[] = [];
+    answerContract(
+      messageBus,
+      announce,
+      async (_command, { sender }) => {
+        senders.push(sender);
+      },
+      { owner: "newsletter", logger: createSilentLogger("owners") },
+    );
+
+    await commandContract(
+      messageBus,
+      announce,
+      { entityType: "post" },
+      "content-pipeline",
+    );
+
+    expect(senders).toEqual(["content-pipeline"]);
+  });
+
+  it("refuses an invalid command before it is sent", async () => {
+    expect(
+      commandContract(bus(), announce, JSON.parse("{}"), "content-pipeline"),
+    ).rejects.toThrow();
+  });
+
+  it("delivers to no one quietly", async () => {
+    expect(
+      await commandContract(
+        bus(),
+        announce,
+        { entityType: "post" },
+        "content-pipeline",
+      ),
+    ).toBeUndefined();
   });
 });

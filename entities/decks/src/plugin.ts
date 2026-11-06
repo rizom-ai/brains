@@ -15,7 +15,7 @@ import {
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
 } from "@brains/plugins";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
+import { PUBLISH_CHANNELS, publishRegisterContract } from "@brains/contracts";
 import { fetchSiteInfo } from "@brains/site-composition";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
@@ -151,16 +151,13 @@ export class DecksPlugin extends EntityPlugin<
 
   private deferPublishRegistration(context: EntityPluginContext): void {
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.messaging.send({
-        type: PUBLISH_CHANNELS.register,
-        payload: {
-          entityType: "deck",
-          provider: {
-            name: "internal",
-            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-          },
-          config: { executionMode: "provider" },
+      await context.messaging.command(publishRegisterContract, {
+        entityType: "deck",
+        provider: {
+          name: "internal",
+          publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
         },
+        config: { executionMode: "provider" },
       });
       return { success: true };
     });

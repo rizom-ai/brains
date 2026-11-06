@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { publishRegisterContract } from "@brains/contracts";
+import { siteBuilderSlotsContract } from "@brains/site-composition";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ReactElement } from "react";
@@ -22,10 +23,13 @@ describe("newsletter provider registration", () => {
   it("registers Buttondown publishing and its matching signup action", async () => {
     const harness = createPluginHarness<ButtondownPlugin>();
     const publishes: PublishRegistration[] = [];
-    harness.subscribe<PublishRegistration>("publish:register", async (msg) => {
-      publishes.push(msg.payload);
-      return { success: true };
-    });
+    harness.subscribe<PublishRegistration>(
+      publishRegisterContract.name,
+      async (msg) => {
+        publishes.push(msg.payload);
+        return { success: true };
+      },
+    );
     await harness.installPlugin(
       new ButtondownPlugin({ apiKey: "buttondown-key", doubleOptIn: true }),
     );
@@ -57,10 +61,13 @@ describe("newsletter provider registration", () => {
   it("registers Resend publishing and its matching signup action", async () => {
     const harness = createPluginHarness<ResendPlugin>();
     const publishes: PublishRegistration[] = [];
-    harness.subscribe<PublishRegistration>("publish:register", async (msg) => {
-      publishes.push(msg.payload);
-      return { success: true };
-    });
+    harness.subscribe<PublishRegistration>(
+      publishRegisterContract.name,
+      async (msg) => {
+        publishes.push(msg.payload);
+        return { success: true };
+      },
+    );
     await harness.installPlugin(
       new ResendPlugin({
         apiKey: "resend-key",
@@ -103,7 +110,7 @@ describe("newsletter provider registration", () => {
   it("registers nothing when a service provider is incomplete", async () => {
     const harness = createPluginHarness<ResendPlugin>();
     const publishes: unknown[] = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       publishes.push(msg.payload);
       return { success: true };
     });
@@ -142,7 +149,7 @@ async function slotsInWorker(
   const answers = await shell
     .getMessageBus()
     .collect<unknown, SlotRegistration[]>({
-      type: SITE_BUILDER_CHANNELS.slots,
+      type: siteBuilderSlotsContract.name,
       payload: {},
       sender: "site-builder",
     });

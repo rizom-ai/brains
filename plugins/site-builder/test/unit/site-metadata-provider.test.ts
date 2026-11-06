@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SITE_METADATA_GET_CHANNEL } from "@brains/site-composition";
+import { siteMetadataContract } from "@brains/site-composition";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { z } from "@brains/utils/zod";
 
@@ -20,7 +20,7 @@ const siteResourceContentSchema = z.looseObject({
 describe("site-builder metadata provider contract", () => {
   it("uses metadata from the shared provider channel for brain://site", async () => {
     const harness = createPluginHarness();
-    harness.subscribe(SITE_METADATA_GET_CHANNEL, () => ({
+    harness.subscribe(siteMetadataContract.name, () => ({
       success: true,
       data: {
         title: "Provided Site",
@@ -51,7 +51,7 @@ describe("site-builder metadata provider contract", () => {
 
   it("keeps the site's chrome in its other languages", async () => {
     const harness = createPluginHarness();
-    harness.subscribe(SITE_METADATA_GET_CHANNEL, () => ({
+    harness.subscribe(siteMetadataContract.name, () => ({
       success: true,
       data: {
         title: "The Fourth",

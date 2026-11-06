@@ -1,7 +1,4 @@
-import type { PublishProvider } from "@brains/contracts";
 import type { ToolContext } from "@brains/plugins";
-import type { PublishConfigInput } from "./config";
-import type { PublishAssetDefinition } from "../publish-assets";
 
 export interface PublishAuthContext {
   interfaceType?: ToolContext["interfaceType"] | undefined;
@@ -20,13 +17,6 @@ export const SYSTEM_PUBLISH_AUTH_CONTEXT: PublishAuthContext = {
 /**
  * Message payloads for plugin → service communication
  */
-
-/** Register an entity type for publishing */
-export interface PublishRegisterPayload {
-  entityType: string;
-  provider?: PublishProvider;
-  config?: PublishConfigInput;
-}
 
 /** Add entity to publish queue */
 export interface PublishQueuePayload {
@@ -122,7 +112,6 @@ export interface PublishListResponsePayload {
  */
 export const PUBLISH_MESSAGES = {
   // Plugin → Service
-  REGISTER: "publish:register",
   EXECUTE: "publish:execute",
   QUEUE: "publish:queue",
   DIRECT: "publish:direct",
@@ -148,23 +137,6 @@ export interface GenerateRegisterPayload {
   entityType: string;
 }
 
-/** Trigger generation for an entity type (scheduler → plugin) */
-export interface GenerateExecutePayload {
-  entityType: string;
-}
-
-/** Generation completed successfully */
-export interface GenerateCompletedPayload {
-  entityType: string;
-  entityId: string;
-}
-
-/** Generation failed */
-export interface GenerateFailedPayload {
-  entityType: string;
-  error: string;
-}
-
 /** Generation skipped due to conditions */
 export interface GenerateSkippedPayload {
   entityType: string;
@@ -177,22 +149,9 @@ export interface GenerateSkippedPayload {
 export const GENERATE_MESSAGES = {
   // Plugin → Service
   REGISTER: "generate:register",
-  REPORT_SUCCESS: "generate:report:success",
-  REPORT_FAILURE: "generate:report:failure",
 
   // Service → Plugin
-  EXECUTE: "generate:execute",
   COMPLETED: "generate:completed",
   FAILED: "generate:failed",
   SKIPPED: "generate:skipped",
-} as const;
-
-/** Register a publish asset policy. */
-export type PublishAssetRegisterPayload = PublishAssetDefinition;
-
-/**
- * Message type constants for publish assets.
- */
-export const PUBLISH_ASSET_MESSAGES = {
-  REGISTER: "publish-assets:register",
 } as const;

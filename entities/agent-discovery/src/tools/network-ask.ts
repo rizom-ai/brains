@@ -1,5 +1,5 @@
 import { type Tool, type ToolResponse } from "@brains/plugins";
-import { A2A_CHANNELS } from "@brains/contracts";
+import { a2aAskContract } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -92,24 +92,20 @@ async function hasApprovedPeer(context: NetworkAskContext): Promise<boolean> {
   return approved > 0;
 }
 
-/** One peer's reply over the A2A ask channel, however the bus answered. */
+/** One peer's reply to the A2A ask contract; a refused question is a failure. */
 async function askPeer(
   context: NetworkAskContext,
   peer: PeerCandidate,
   question: string,
 ): Promise<PeerReply> {
   try {
-    const reply = await context.messaging.send({
-      type: A2A_CHANNELS.askRequest,
-      payload: { agent: peer.id, question },
+    return await context.messaging.request(a2aAskContract, {
+      agent: peer.id,
+      question,
     });
-    if ("noop" in reply) return reply;
-    return reply.success
-      ? { success: true, data: reply.data }
-      : { success: false, ...(reply.error ? { error: reply.error } : {}) };
   } catch (error) {
     return {
-      success: false,
+      status: "failed",
       error: getErrorMessage(error, "network unavailable"),
     };
   }

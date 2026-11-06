@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import { dirname, join } from "path";
-import { SITE_CHANNELS, type SiteBuildStagingPayload } from "@brains/contracts";
+import { siteBuildStagingContract } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import { renderEpub } from "@brains/media-page-composer";
 import { getErrorMessage } from "@brains/utils/error";
@@ -25,23 +25,22 @@ export function subscribeToBookEpubStaging(
   context: EntityPluginContext,
   logger: Logger,
 ): void {
-  context.messaging.subscribeExecution<
-    SiteBuildStagingPayload,
-    { success: boolean }
-  >(SITE_CHANNELS.buildStaging, async (message) => {
-    const payload = message.payload;
-    try {
-      await writeBookEpubs(context, payload.outputDir);
-    } catch (error) {
-      // A thrown error would be swallowed by the broadcast; reporting it fails
-      // the build and keeps the previous generation, links and files intact.
-      logger.error("Failed to write book EPUBs", error);
-      payload.reportFailure(
-        `Book EPUB generation failed: ${getErrorMessage(error)}`,
-      );
-    }
-    return { success: true };
-  });
+  context.messaging.answer(
+    siteBuildStagingContract,
+    async (payload) => {
+      try {
+        await writeBookEpubs(context, payload.outputDir);
+      } catch (error) {
+        // A thrown error would be swallowed by the broadcast; reporting it fails
+        // the build and keeps the previous generation, links and files intact.
+        logger.error("Failed to write book EPUBs", error);
+        payload.reportFailure(
+          `Book EPUB generation failed: ${getErrorMessage(error)}`,
+        );
+      }
+    },
+    { everyProcess: true },
+  );
 }
 
 async function writeBookEpubs(

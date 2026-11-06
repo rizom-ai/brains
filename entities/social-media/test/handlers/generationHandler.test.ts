@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import {
+  generateReportFailureContract,
+  generateReportSuccessContract,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   GenerationJobHandler,
@@ -161,16 +165,16 @@ describe("GenerationJobHandler", () => {
 
     beforeEach(() => {
       sentMessages = [];
-      harness.subscribe("generate:report:success", async (msg) => {
+      harness.subscribe(generateReportSuccessContract.name, async (msg) => {
         sentMessages.push({
-          type: "generate:report:success",
+          type: generateReportSuccessContract.name,
           payload: msg.payload,
         });
         return { success: true };
       });
-      harness.subscribe("generate:report:failure", async (msg) => {
+      harness.subscribe(generateReportFailureContract.name, async (msg) => {
         sentMessages.push({
-          type: "generate:report:failure",
+          type: generateReportFailureContract.name,
           payload: msg.payload,
         });
         return { success: true };
@@ -191,7 +195,7 @@ describe("GenerationJobHandler", () => {
 
       expect(result.success).toBe(false);
       const failureMsg = sentMessages.find(
-        (m) => m.type === "generate:report:failure",
+        (m) => m.type === generateReportFailureContract.name,
       );
       expect(failureMsg).toBeDefined();
     });
@@ -207,7 +211,7 @@ describe("GenerationJobHandler", () => {
 
       expect(result.success).toBe(false);
       const failureMsg = sentMessages.find(
-        (m) => m.type === "generate:report:failure",
+        (m) => m.type === generateReportFailureContract.name,
       );
       expect(failureMsg).toBeDefined();
     });
@@ -242,7 +246,7 @@ describe("GenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       const successMsg = sentMessages.find(
-        (m) => m.type === "generate:report:success",
+        (m) => m.type === generateReportSuccessContract.name,
       );
       expect(successMsg).toBeDefined();
     });

@@ -1,4 +1,8 @@
 import { type ToolResponse } from "@brains/plugins";
+import {
+  directorySyncStatusContract,
+  type DirectorySyncStatusResponse,
+} from "@brains/contracts";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
@@ -142,17 +146,8 @@ describe("DirectorySyncPlugin", () => {
     it("should respond to sync status requests", async () => {
       const response = await harness.sendMessage<
         Record<string, never>,
-        {
-          syncPath: string;
-          isInitialized: boolean;
-          watchEnabled: boolean;
-          lastSync: string | null;
-          totalFiles: number;
-          byEntityType: Record<string, number>;
-          git: unknown;
-          managementUrl?: string;
-        }
-      >("sync:status:request", {}, "test");
+        DirectorySyncStatusResponse
+      >(directorySyncStatusContract.name, {}, "test");
 
       expect(response).toBeDefined();
       expect(response?.syncPath).toBe(syncPath);

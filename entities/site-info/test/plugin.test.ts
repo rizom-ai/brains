@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
-  SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
+  siteMetadataContract,
 } from "@brains/site-composition";
 import { SiteInfoPlugin } from "../src/plugin";
 
@@ -53,10 +53,7 @@ describe("SiteInfoPlugin", () => {
     });
     await harness.installPlugin(plugin);
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(siteMetadataContract.name, {});
 
     expect(data).toMatchObject({
       title: "Provider Site",
@@ -67,10 +64,7 @@ describe("SiteInfoPlugin", () => {
   it("derives metadata from the anchor when site-info is absent", async () => {
     await harness.installPlugin(new SiteInfoPlugin());
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(siteMetadataContract.name, {});
 
     expect(data).toMatchObject({
       represents: "anchor",
@@ -89,10 +83,7 @@ describe("SiteInfoPlugin", () => {
       },
     });
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(siteMetadataContract.name, {});
 
     expect(data).toMatchObject({
       represents: "brain",
@@ -111,10 +102,7 @@ describe("SiteInfoPlugin", () => {
       },
     });
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(siteMetadataContract.name, {});
 
     expect(data).toMatchObject({
       represents: "anchor",

@@ -1,5 +1,9 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
-import { GENERATE_CHANNELS, IMAGE_CHANNELS } from "@brains/contracts";
+import {
+  IMAGE_CHANNELS,
+  generateReportFailureContract,
+  generateReportSuccessContract,
+} from "@brains/contracts";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { RetryScope } from "@brains/utils/retry-backoff";
@@ -293,12 +297,9 @@ ${sourceEntity.content}`,
     _data: GenerationJobData,
     error: string,
   ): Promise<void> {
-    await this.context.messaging.send({
-      type: GENERATE_CHANNELS.reportFailure,
-      payload: {
-        entityType: "social-post",
-        error,
-      },
+    await this.context.messaging.command(generateReportFailureContract, {
+      entityType: "social-post",
+      error,
     });
   }
 
@@ -337,12 +338,9 @@ ${sourceEntity.content}`,
       );
     }
 
-    await this.context.messaging.send({
-      type: GENERATE_CHANNELS.reportSuccess,
-      payload: {
-        entityType: "social-post",
-        entityId,
-      },
+    await this.context.messaging.command(generateReportSuccessContract, {
+      entityType: "social-post",
+      entityId,
     });
   }
 

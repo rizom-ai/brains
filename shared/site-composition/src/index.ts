@@ -12,8 +12,20 @@ export {
   RegisterRoutesPayloadSchema,
   RouteDefinitionSchema,
   SectionDefinitionSchema,
+  siteBuilderRouteRegisterContract,
+  siteBuilderRoutesContract,
+  siteBuilderRoutesRequestSchema,
+  siteBuilderRoutesResponseSchema,
   UnregisterRoutesPayloadSchema,
 } from "./routes";
+export {
+  siteBuilderSlotsContract,
+  siteBuilderSlotsRequestSchema,
+  siteBuilderSlotsResponseSchema,
+  siteSlotContributionSchema,
+  type SiteSlotContribution,
+  type SiteSlotRender,
+} from "./slots";
 export type {
   EntityDisplayEntry,
   GetRoutePayload,
@@ -33,7 +45,8 @@ export type {
   UnregisterRoutesPayload,
 } from "./routes";
 export {
-  SITE_METADATA_GET_CHANNEL,
+  siteMetadataContract,
+  siteMetadataRequestSchema,
   SITE_METADATA_UPDATED_CHANNEL,
   siteLayoutInfoSchema,
   siteMetadataCTASchema,

@@ -1,13 +1,13 @@
 import {
   GetRoutePayloadSchema,
   ListRoutesPayloadSchema,
-  RegisterRoutesPayloadSchema,
   UnregisterRoutesPayloadSchema,
+  siteBuilderRouteRegisterContract,
+  siteBuilderRoutesContract,
 } from "@brains/site-composition";
 import type {
   GetRouteResponse,
   ListRoutesResponse,
-  RouteDefinition,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
@@ -28,19 +28,17 @@ export function setupRouteHandlers(
   logger: Logger,
 ): void {
   // Register handler for route registration
-  context.messaging.subscribeExecution(
-    SITE_BUILDER_CHANNELS.routeRegister,
-    async (message) => {
+  context.messaging.answer(
+    siteBuilderRouteRegisterContract,
+    async ({ routes, pluginId }) => {
       try {
-        const payload = RegisterRoutesPayloadSchema.parse(message.payload);
-        const { routes, pluginId } = payload;
         registerConfigRoutes(routes, pluginId, routeRegistry);
-        return { success: true };
       } catch (error) {
         logger.error("Failed to register routes", { error });
-        return { success: false, error: "Failed to register routes" };
+        throw new Error("Failed to register routes", { cause: error });
       }
     },
+    { everyProcess: true },
   );
 
   // Handler for unregistering routes
@@ -100,10 +98,9 @@ export function setupRouteHandlers(
   );
 
   // Handler for site-content plugin to discover all routes
-  context.messaging.subscribeExecution<unknown, RouteDefinition[]>(
-    SITE_BUILDER_CHANNELS.routesList,
-    async () => {
-      return { success: true, data: routeRegistry.list() };
-    },
+  context.messaging.answer(
+    siteBuilderRoutesContract,
+    async () => routeRegistry.list(),
+    { everyProcess: true },
   );
 }

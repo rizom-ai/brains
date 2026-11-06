@@ -2,22 +2,16 @@ import {
   internalFullScope,
   type InterfacePluginContext,
 } from "@brains/plugins";
-import { A2A_CHANNELS, SourceCitationSchema } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import {
+  a2aAgentsContract,
+  a2aAskContract,
+  a2aCallContract,
+  a2aPeerAnswerSchema,
+  type A2ADirectoryAgent,
+  type A2APeerAnswer,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { executeAgentCall, type A2AClientDeps } from "./client";
-
-const networkAskMessageSchema = z.object({
-  agent: z.string().trim().min(1).max(253),
-  question: z.string().trim().min(1).max(4_000),
-});
-
-/** What a peer's answer gives the asking brain: its text and its citations. */
-const peerAnswerSchema = z.object({
-  state: z.string(),
-  response: z.string(),
-  sources: z.array(SourceCitationSchema),
-});
 
 /** How a peer is asked: the question, then what kind of answer serves a visitor. */
 export function networkAskMessage(question: string): string {
@@ -33,17 +27,6 @@ export interface A2AMessageHandlerOptions {
   networkAskTimeoutMs: number;
 }
 
-const askAgentMessageSchema = z.object({
-  agent: z.string().trim().min(1).max(253),
-  instruction: z.string().trim().min(1).max(2_000),
-  selection: z.string().min(1).max(8_000),
-});
-
-export interface A2ADirectoryAgent {
-  id: string;
-  label: string;
-}
-
 /**
  * Register the in-process A2A surface used by packages that must not depend
  * on this interface directly. Calls use the exact outbound validation,
@@ -55,84 +38,70 @@ export function registerA2ACallMessageHandlers(
   deps: A2AClientDeps,
   options: A2AMessageHandlerOptions = { networkAskTimeoutMs: 30_000 },
 ): void {
-  context.messaging.subscribe(A2A_CHANNELS.askRequest, async (message) => {
-    const parsed = networkAskMessageSchema.safeParse(message.payload);
-    if (!parsed.success) {
-      return { success: false, error: "Invalid network ask request" };
-    }
-    const { agent, question } = parsed.data;
-    const budgetMs = options.networkAskTimeoutMs;
-    const budget = AbortSignal.timeout(budgetMs);
-    const timedOut = {
-      success: false,
-      error: `${agent} did not answer within ${budgetMs} ms`,
-    };
-    try {
-      const result = await executeAgentCall(
-        { agent, message: networkAskMessage(question) },
-        { ...deps, maxNetworkAttempts: 1 },
-        { requireSaved: true, signal: budget },
-      );
-      if (budget.aborted) return timedOut;
-      if ("success" in result && result.success === true) {
-        const answer = peerAnswerSchema.safeParse(result.data);
-        if (!answer.success)
-          return { success: false, error: `${agent} gave no readable answer` };
-        if (answer.data.state !== "completed")
-          return {
-            success: false,
-            error: `${agent} did not answer: ${answer.data.response}`,
-          };
-        return { success: true, data: answer.data };
+  context.messaging.answer(
+    a2aAskContract,
+    async ({ agent, question }): Promise<A2APeerAnswer> => {
+      const budgetMs = options.networkAskTimeoutMs;
+      const budget = AbortSignal.timeout(budgetMs);
+      const timedOut = `${agent} did not answer within ${budgetMs} ms`;
+      let result: Awaited<ReturnType<typeof executeAgentCall>>;
+      try {
+        result = await executeAgentCall(
+          { agent, message: networkAskMessage(question) },
+          { ...deps, maxNetworkAttempts: 1 },
+          { requireSaved: true, signal: budget },
+        );
+      } catch (error) {
+        throw new Error(
+          budget.aborted
+            ? timedOut
+            : getErrorMessage(error, `${agent} did not answer`),
+          { cause: error },
+        );
       }
-      return {
-        success: false,
-        error: "error" in result ? result.error : `${agent} did not answer`,
-      };
-    } catch (error) {
-      if (budget.aborted) return timedOut;
-      return {
-        success: false,
-        error: getErrorMessage(error, `${agent} did not answer`),
-      };
-    }
-  });
+      if (budget.aborted) throw new Error(timedOut);
+      if (!("success" in result) || result.success !== true) {
+        throw new Error(
+          "error" in result ? result.error : `${agent} did not answer`,
+        );
+      }
+      const answer = a2aPeerAnswerSchema.safeParse(result.data);
+      if (!answer.success) throw new Error(`${agent} gave no readable answer`);
+      if (answer.data.state !== "completed") {
+        throw new Error(`${agent} did not answer: ${answer.data.response}`);
+      }
+      return answer.data;
+    },
+  );
 
-  context.messaging.subscribe(A2A_CHANNELS.callRequest, async (message) => {
-    const parsed = askAgentMessageSchema.safeParse(message.payload);
-    if (!parsed.success) {
-      return { success: false, error: "Invalid A2A call request" };
-    }
+  context.messaging.answer(
+    a2aCallContract,
+    async ({ agent, instruction, selection }): Promise<A2APeerAnswer> => {
+      const result = await executeAgentCall(
+        {
+          agent,
+          message: [
+            "A Studio author is asking about selected markdown.",
+            `Instruction: ${instruction}`,
+            "",
+            "Selected markdown:",
+            selection,
+          ].join("\n"),
+        },
+        deps,
+        { requireSaved: true },
+      );
+      if (!("success" in result) || result.success !== true) {
+        throw new Error("error" in result ? result.error : "Agent call failed");
+      }
+      const answer = a2aPeerAnswerSchema.safeParse(result.data);
+      if (!answer.success) throw new Error("Invalid response from agent");
+      return answer.data;
+    },
+  );
 
-    const { agent, instruction, selection } = parsed.data;
-    const result = await executeAgentCall(
-      {
-        agent,
-        message: [
-          "A Studio author is asking about selected markdown.",
-          `Instruction: ${instruction}`,
-          "",
-          "Selected markdown:",
-          selection,
-        ].join("\n"),
-      },
-      deps,
-      { requireSaved: true },
-    );
-
-    if ("success" in result && result.success === true) {
-      return { success: true, data: result.data };
-    }
-    return {
-      success: false,
-      error: "error" in result ? result.error : "Agent call failed",
-    };
-  });
-
-  context.messaging.subscribe(A2A_CHANNELS.callAgents, async () => {
-    if (!context.entityService.hasEntityType("agent")) {
-      return { success: true, data: { agents: [] } };
-    }
+  context.messaging.answer(a2aAgentsContract, async () => {
+    if (!context.entityService.hasEntityType("agent")) return { agents: [] };
 
     const entities = await context.entityService.listEntities({
       entityType: "agent",
@@ -155,6 +124,6 @@ export function registerA2ACallMessageHandlers(
       })
       .sort((left, right) => left.label.localeCompare(right.label));
 
-    return { success: true, data: { agents } };
+    return { agents };
   });
 }

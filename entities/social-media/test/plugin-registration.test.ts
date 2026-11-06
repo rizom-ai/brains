@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
 import { createTestEntity } from "@brains/entity-service/test";
 import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
@@ -18,8 +19,11 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
     });
     receivedMessages = [];
 
-    harness.subscribe("publish:register", async (msg) => {
-      receivedMessages.push({ type: "publish:register", payload: msg.payload });
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
+      receivedMessages.push({
+        type: publishRegisterContract.name,
+        payload: msg.payload,
+      });
       return { success: true };
     });
   });
@@ -108,7 +112,7 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeDefined();
       expect(registerMessage?.payload).toMatchObject({
@@ -127,7 +131,7 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       await harness.installPlugin(new SocialMediaPlugin({}));
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeUndefined();
     });

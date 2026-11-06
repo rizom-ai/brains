@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
 import { createTestEntity } from "@brains/entity-service/test";
 import { DecksPlugin } from "../src/plugin";
@@ -41,7 +42,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
     receivedMessages = [];
 
     for (const eventType of [
-      "publish:register",
+      publishRegisterContract.name,
       "publish:report:success",
       "publish:report:failure",
     ]) {
@@ -99,7 +100,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new DecksPlugin());
 
       expect(
-        receivedMessages.find((m) => m.type === "publish:register"),
+        receivedMessages.find((m) => m.type === publishRegisterContract.name),
       ).toBeUndefined();
 
       await harness.sendMessage(
@@ -110,7 +111,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeDefined();
       expect(registerMessage?.payload).toMatchObject({

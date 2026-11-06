@@ -2,6 +2,8 @@ import { decodeEntityIdPath } from "@brains/plugins";
 import {
   DIRECTORY_SYNC_CHANNELS,
   directorySyncPathContract,
+  directorySyncStatusContract,
+  type DirectorySyncStatusResponse,
 } from "@brains/contracts";
 import {
   containmentOf,
@@ -120,30 +122,19 @@ export function registerMessageHandlers(
     return { relativePath, leaf, owner, writable };
   });
 
-  subscribe(DIRECTORY_SYNC_CHANNELS.statusRequest, async () => {
-    try {
-      const ds = getDirectorySync();
-      const status = await ds.getStatus();
-      const managementUrl = getManagementUrl?.();
-      return {
-        success: true,
-        data: {
-          syncPath: status.syncPath,
-          isInitialized: status.exists,
-          watchEnabled: status.watching,
-          lastSync: status.lastSync?.toISOString() ?? null,
-          totalFiles: status.stats.totalFiles,
-          byEntityType: status.stats.byEntityType,
-          git: await queryGitStatus(getGitSync?.(), logger),
-          ...(managementUrl ? { managementUrl } : {}),
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: getErrorMessage(error, "Status check failed"),
-      };
-    }
+  context.messaging.answer(directorySyncStatusContract, async () => {
+    const status = await getDirectorySync().getStatus();
+    const managementUrl = getManagementUrl?.();
+    return {
+      syncPath: status.syncPath,
+      isInitialized: status.exists,
+      watchEnabled: status.watching,
+      lastSync: status.lastSync?.toISOString() ?? null,
+      totalFiles: status.stats.totalFiles,
+      byEntityType: status.stats.byEntityType,
+      git: await queryGitStatus(getGitSync?.(), logger),
+      ...(managementUrl ? { managementUrl } : {}),
+    };
   });
 
   subscribe<{ syncPath: string }>(
@@ -188,14 +179,7 @@ export function registerMessageHandlers(
 async function queryGitStatus(
   gitSync: GitStatusSource | undefined,
   logger: Logger,
-): Promise<{
-  branch: string;
-  hasChanges: boolean;
-  ahead: number;
-  behind: number;
-  lastCommit: string | null;
-  remote: string | null;
-} | null> {
+): Promise<DirectorySyncStatusResponse["git"]> {
   if (!gitSync) return null;
   try {
     const status = await gitSync.getStatus();

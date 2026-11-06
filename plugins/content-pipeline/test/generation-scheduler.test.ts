@@ -6,6 +6,8 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { GENERATE_MESSAGES } from "../src/types/messages";
+import { generateExecuteContract } from "@brains/contracts";
+import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import {
   createMockLogger,
@@ -236,7 +238,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
       await backend.tick("* * * * *");
 
       const executeMessages = messageBus.sentMessages.filter(
-        (m) => m.type === GENERATE_MESSAGES.EXECUTE,
+        (m) => m.type === generateExecuteContract.name,
       );
       expect(executeMessages.length).toBeGreaterThan(0);
       expect(executeMessages[0]?.payload).toMatchObject({
@@ -248,20 +250,20 @@ describe("ContentScheduler - Generation Scheduling", () => {
       // Each generator answers for the types it does not own, as the
       // newsletter and social-post plugins do; one of them answering first
       // must not keep the other from hearing its own type.
-      const bus = createMockShell().getMessageBus();
+      const shell = createMockShell();
       const generated: string[] = [];
       for (const owned of ["newsletter", "social-post"]) {
-        bus.subscribe<{ entityType: string }, { success: boolean }>(
-          GENERATE_MESSAGES.EXECUTE,
-          async (message) => {
-            if (message.payload.entityType === owned) generated.push(owned);
-            return { success: true };
+        createServicePluginContext(shell, owned).messaging.answer(
+          generateExecuteContract,
+          async ({ entityType }) => {
+            if (entityType === owned) generated.push(owned);
           },
         );
       }
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          messageBus: bus,
+          messageBus: createServicePluginContext(shell, "content-pipeline")
+            .messaging,
           generationSchedules: {
             newsletter: "* * * * *",
             "social-post": "* * * * *",

@@ -76,9 +76,9 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
 }
 
 /**
- * The scheduler publishes events and reads no responses, so the adapter returns
- * the publisher it needs rather than a whole message bus whose other members
- * it would have to stub as no-ops.
+ * The scheduler publishes events and commands and reads no responses, so the
+ * adapter returns the publisher it needs rather than a whole message bus whose
+ * other members it would have to stub as no-ops.
  */
 function createMessageBusAdapter(
   context: ServicePluginContext,
@@ -93,5 +93,9 @@ function createMessageBusAdapter(
     });
   };
 
-  return { send };
+  return {
+    send,
+    command: (contract, payload) =>
+      context.messaging.command(contract, payload),
+  };
 }

@@ -49,6 +49,18 @@ export {
   type SourceBrain,
 } from "./ask-box";
 export {
+  a2aAgentsContract,
+  a2aAgentsRequestSchema,
+  a2aAgentsResponseSchema,
+  a2aAskContract,
+  a2aAskRequestSchema,
+  a2aCallContract,
+  a2aCallRequestSchema,
+  a2aPeerAnswerSchema,
+  type A2ADirectoryAgent,
+  type A2APeerAnswer,
+} from "./a2a";
+export {
   agentActionContract,
   agentActionRequestSchema,
   agentActionResponseSchema,
@@ -278,7 +290,6 @@ export {
   type SpaceNoticeResult,
 } from "./space-notice";
 export {
-  A2A_CHANNELS,
   BUTTONDOWN_CHANNELS,
   DASHBOARD_CHANNELS,
   DIRECTORY_SYNC_CHANNELS,
@@ -290,7 +301,6 @@ export {
   PLUGIN_CHANNELS,
   PROJECT_CHANNELS,
   PROJECTION_CHANNELS,
-  PUBLISH_ASSET_CHANNELS,
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
   SITE_BUILDER_CHANNELS,
@@ -303,6 +313,13 @@ export {
   directorySyncPathResponseSchema,
   type DirectorySyncPathRequest,
 } from "./directory-sync-path";
+export {
+  directorySyncGitStatusSchema,
+  directorySyncStatusContract,
+  directorySyncStatusRequestSchema,
+  directorySyncStatusResponseSchema,
+  type DirectorySyncStatusResponse,
+} from "./directory-sync-status";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,
@@ -331,16 +348,52 @@ export {
   type StyleGuideVoice,
 } from "./style-guide";
 export {
+  siteHeadScriptResponseSchema,
+  siteHeadScriptsContract,
+  siteHeadScriptsRequestSchema,
+} from "./site-head-scripts";
+export {
   SITE_BUILD_MANIFEST_FILE,
   SITE_BUILD_MANIFEST_PATH,
+  siteBuildStagingContract,
+  siteBuildStagingSchema,
   type SiteBuildCompletedPayload,
   type SiteBuildStagingPayload,
 } from "./site-build";
 export {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  lifecycleStarterRegistrationSchema,
+  lifecycleStarterRegistrationContract,
+  type LifecycleStarterRegistrationResult,
   type LifecycleStarterRegistration,
 } from "./playbook-lifecycle-starter";
+export {
+  publishAssetDefinitionSchema,
+  publishAssetRegisterContract,
+  publishAssetTargetFieldSchema,
+  publishConfigSchema,
+  publishExecutionModeSchema,
+  publishProviderSchema,
+  publishRegisterContract,
+  publishRegisterSchema,
+  type PublishAssetDefinition,
+  type PublishAssetFieldReference,
+  type PublishAssetRequirement,
+  type PublishAssetTargetField,
+  type PublishConfig,
+  type PublishConfigInput,
+  type PublishExecutionMode,
+  type PublishRegisterPayload,
+} from "./publish-register";
+export {
+  generateExecuteContract,
+  generateExecuteSchema,
+  generateReportFailureContract,
+  generateReportFailureSchema,
+  generateReportSuccessContract,
+  generateReportSuccessSchema,
+  type GenerateExecutePayload,
+  type GenerateReportFailurePayload,
+  type GenerateReportSuccessPayload,
+} from "./generation-commands";
 export type {
   PublishResult,
   PublishProvider,
@@ -425,6 +478,7 @@ export {
 export { WEB_ROUTE_ROLES, type WebRouteRole } from "./web-route-role";
 export {
   defineBusContract,
+  type BusAnswerMeta,
   type BusCollection,
   type BusContract,
   type BusDelivery,

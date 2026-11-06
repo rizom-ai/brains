@@ -1,7 +1,7 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, ToolContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter, SYSTEM_CHANNELS } from "@brains/plugins";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
+import { PUBLISH_CHANNELS, publishRegisterContract } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import {
   blogPostFrontmatterSchema,
@@ -21,13 +21,10 @@ export function registerWithPublishPipeline(
   };
 
   context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-    await context.messaging.send({
-      type: PUBLISH_CHANNELS.register,
-      payload: {
-        entityType: "post",
-        provider: internalProvider,
-        config: { executionMode: "provider" },
-      },
+    await context.messaging.command(publishRegisterContract, {
+      entityType: "post",
+      provider: internalProvider,
+      config: { executionMode: "provider" },
     });
 
     logger.info("Registered post with publish-pipeline");

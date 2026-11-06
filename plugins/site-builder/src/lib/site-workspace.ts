@@ -422,7 +422,7 @@ export class SiteWorkspaceProvider {
     const { context, config, routeRegistry, statusService } = this.options;
     const [metadata, status, previewPublication, productionPublication] =
       await Promise.all([
-        resolveSiteMetadata(context.messaging.send, config.siteInfo),
+        resolveSiteMetadata(context.messaging, config.siteInfo),
         statusService.getSnapshot(),
         readSitePublicationStatus(config.previewOutputDir, "preview"),
         readSitePublicationStatus(config.productionOutputDir, "production"),

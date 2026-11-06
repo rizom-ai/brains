@@ -32,12 +32,18 @@ export function createMockMessageSender(): {
 }
 
 /**
- * Create a mock scheduler-style message publisher (`send`) that records
- * sent messages in a `sentMessages` array for assertions.
+ * Create a mock scheduler-style message publisher (`send` and `command`) that
+ * records sent messages, a command under its contract's channel name, in a
+ * `sentMessages` array for assertions.
  */
 export function createMockMessagePublisher(): {
   send: ReturnType<typeof mock>;
+  command: ReturnType<typeof mock>;
   sentMessages: SentMessage[];
 } {
-  return createRecordingSend();
+  const { send, sentMessages } = createRecordingSend();
+  const command = mock(async (contract: { name: string }, payload: unknown) => {
+    sentMessages.push({ type: contract.name, payload });
+  });
+  return { send, command, sentMessages };
 }

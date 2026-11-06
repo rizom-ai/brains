@@ -5,8 +5,8 @@ import { slugify } from "@brains/utils/string-utils";
 import type {
   PublishAssetDefinition,
   PublishAssetTargetField,
-  PublishAssetRegistry,
-} from "./publish-assets";
+} from "@brains/contracts";
+import type { PublishAssetRegistry } from "./publish-assets";
 
 export interface PublishAssetPreflightResult {
   checked: number;

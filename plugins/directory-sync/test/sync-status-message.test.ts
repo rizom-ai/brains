@@ -2,6 +2,8 @@ import { describe, it, expect } from "bun:test";
 import {
   directorySyncPathContract,
   directorySyncPathResponseSchema,
+  directorySyncStatusContract,
+  type DirectorySyncStatusResponse,
 } from "@brains/contracts";
 import { registerMessageHandlers } from "../src/lib/message-handlers";
 import type {
@@ -18,21 +20,6 @@ import type { DirectorySyncStatus, GitSyncStatus } from "../src/types";
  * changes and what the latest commit is — degrading to git: null when git
  * is unavailable rather than failing the whole status.
  */
-
-interface SyncStatusResponse {
-  syncPath: string;
-  isInitialized: boolean;
-  watchEnabled: boolean;
-  lastSync: string | null;
-  git: {
-    branch: string;
-    hasChanges: boolean;
-    ahead: number;
-    behind: number;
-    lastCommit: string | null;
-    remote: string | null;
-  } | null;
-}
 
 function fakeDirectorySync(
   overrides: Partial<DirectorySyncStatus> = {},
@@ -202,8 +189,8 @@ describe("sync:status:request message handler", () => {
 
     const result = await harness.sendMessage<
       Record<string, never>,
-      SyncStatusResponse
-    >("sync:status:request", {});
+      DirectorySyncStatusResponse
+    >(directorySyncStatusContract.name, {});
 
     expect(result).toBeDefined();
     expect(result?.syncPath).toBe("/tmp/sync");
@@ -227,8 +214,8 @@ describe("sync:status:request message handler", () => {
 
     const result = await harness.sendMessage<
       Record<string, never>,
-      SyncStatusResponse
-    >("sync:status:request", {});
+      DirectorySyncStatusResponse
+    >(directorySyncStatusContract.name, {});
 
     expect(result).toBeDefined();
     expect(result?.git).toBeNull();
@@ -249,8 +236,8 @@ describe("sync:status:request message handler", () => {
 
     const result = await harness.sendMessage<
       Record<string, never>,
-      SyncStatusResponse
-    >("sync:status:request", {});
+      DirectorySyncStatusResponse
+    >(directorySyncStatusContract.name, {});
 
     expect(result).toBeDefined();
     expect(result?.git).toBeNull();
@@ -274,8 +261,8 @@ describe("sync:status:request message handler", () => {
 
     const result = await harness.sendMessage<
       Record<string, never>,
-      SyncStatusResponse
-    >("sync:status:request", {});
+      DirectorySyncStatusResponse
+    >(directorySyncStatusContract.name, {});
 
     expect(result?.git).toEqual({
       branch: "main",

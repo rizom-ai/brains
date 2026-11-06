@@ -1,5 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { consoleJumpDestinationsContract } from "@brains/contracts";
+import {
+  consoleJumpDestinationsContract,
+  directorySyncStatusContract,
+} from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
@@ -672,7 +675,7 @@ describe("DashboardPlugin", () => {
 
     it("keeps private operator diagnostics out of the public System tab", async () => {
       let syncStatusCalls = 0;
-      harness.subscribe("sync:status:request", async () => {
+      harness.subscribe(directorySyncStatusContract.name, async () => {
         syncStatusCalls += 1;
         return {
           success: true,

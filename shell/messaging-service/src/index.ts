@@ -30,5 +30,6 @@ export type {
 export {
   answerContract,
   collectContract,
+  commandContract,
   requestContract,
 } from "./bus-contracts";

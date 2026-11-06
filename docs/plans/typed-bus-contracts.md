@@ -2,7 +2,11 @@
 
 ## Status
 
-**In progress; Phases 1–3 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather` and `answer`. Contracts so far: `note:capture`, `auth:principal:resolve`, `notifications:send`, `agent:context:request`, `guest:asked-before`, `projection:wave-ready`, `agent:action:request`, `sync:path:request`, `email:source-read`, `email:inbound`, `console:jump-destinations`, `chat:space-notice`, `chat:space-notice-action`, `topics:public-titles` and `topics:source-types`.
+**In progress; Phases 1–4 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract`, `commandContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather`, `command` and `answer`. All three delivery modes are live: a command is broadcast, every owner hears it, nobody answers, and an owner that fails does not keep the others from hearing it.
+
+Contracts so far: `note:capture`, `auth:principal:resolve`, `notifications:send`, `agent:context:request`, `guest:asked-before`, `projection:wave-ready`, `agent:action:request`, `sync:path:request`, `email:source-read`, `email:inbound`, `console:jump-destinations`, `chat:space-notice`, `chat:space-notice-action`, `topics:public-titles`, `topics:source-types`, `a2a:ask:request`, `a2a:call:request`, `a2a:call:agents`, `sync:status:request`, `plugin:site-builder:head-scripts` (collect), `publish:register`, `publish-assets:register`, `generate:execute`, `generate:report:success`, `generate:report:failure` and `site:build:staging` (commands), and `playbooks:register-lifecycle-starter`. `site:metadata:get`, `plugin:site-builder:route:register` (command), `site-builder:routes:list` and `plugin:site-builder:slots` (collect) are declared in `@brains/site-composition`, beside the schemas they carry, because `@brains/contracts` sits below it.
+
+An `answer` handler receives the plugin that sent the call beside the request. The namespace stamps its own plugin id on everything it sends, so a plugin cannot speak for another; the lifecycle starter owner keys each registration by it.
 
 35 live message-bus channels carry requests or commands across package boundaries. Fourteen run from shell code to a plugin, and 21 run between plugins. Two typed context namespaces wrap a few of them: `context.dashboard` (four channels) and `context.studio` (two). Everything else is a raw `messaging.send({ type, payload })` whose reply the caller casts to the type it expects.
 
@@ -72,10 +76,6 @@ The public `@rizom/brain` authoring SDK does not gain contracts in this plan. Ex
 ## Phases
 
 Phases land as commits on one branch and PR, opened after the walking skeleton. Each phase leaves every channel either fully migrated or untouched.
-
-### Phase 4 — Plugin channels with local or missing schemas
-
-The three A2A channels, `sync:status:request`, `site:metadata:get`, the site-builder route, head-script and slot channels, `publish:register`, `publish-assets:register`, `generate:execute` and the generation reports, `playbooks:register-lifecycle-starter`, and `site:build:staging`. Each gets its contract in `@brains/contracts`, and each local schema copy is deleted.
 
 ### Phase 5 — Dashboard and Studio namespaces on contracts
 

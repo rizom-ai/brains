@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { PortfolioPlugin } from "../src/plugin";
 import {
@@ -56,7 +57,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
     receivedMessages = [];
 
     for (const eventType of [
-      "publish:register",
+      publishRegisterContract.name,
       "publish:report:success",
       "publish:report:failure",
     ]) {
@@ -72,7 +73,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new PortfolioPlugin({}));
 
       expect(
-        receivedMessages.find((m) => m.type === "publish:register"),
+        receivedMessages.find((m) => m.type === publishRegisterContract.name),
       ).toBeUndefined();
 
       await harness.sendMessage(
@@ -83,7 +84,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeDefined();
       expect(registerMessage?.payload).toMatchObject({

@@ -59,6 +59,12 @@ export interface SiteBuildJobHandlerConfig {
   statusService?: BuildStatusRecorder | undefined;
 }
 
+/** What a build sends: its completion event, and the site metadata it asks for. */
+type SiteBuildMessaging = Pick<
+  ServicePluginContext["messaging"],
+  "send" | "request"
+>;
+
 /**
  * Job handler for site building operations
  */
@@ -67,11 +73,11 @@ export class SiteBuildJobHandler extends BaseJobHandler<
   SiteBuildJobData,
   SiteBuildJobResult
 > {
-  private sendMessage: ServicePluginContext["messaging"]["send"];
+  private messaging: SiteBuildMessaging;
   private cfg: SiteBuildJobHandlerConfig;
   constructor(
     logger: Logger,
-    sendMessage: ServicePluginContext["messaging"]["send"],
+    messaging: SiteBuildMessaging,
     cfg: SiteBuildJobHandlerConfig,
   ) {
     super(logger, {
@@ -82,7 +88,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
       executionTimeoutMs: 30 * 60_000,
     });
-    this.sendMessage = sendMessage;
+    this.messaging = messaging;
     this.cfg = cfg;
   }
 
@@ -123,7 +129,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       });
 
       const siteConfig = await resolveSiteMetadata(
-        this.sendMessage,
+        this.messaging,
         data.siteConfig ?? this.cfg.defaultSiteConfig,
       );
       const configuredSiteUrl =
@@ -224,7 +230,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           `Emitting site:build:completed event for ${environment} environment`,
         );
 
-        await this.sendMessage({
+        await this.messaging.send({
           type: SITE_CHANNELS.buildCompleted,
           payload: {
             outputDir: data.outputDir,

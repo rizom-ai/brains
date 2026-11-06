@@ -1,4 +1,5 @@
-import type { PublishResult } from "@brains/contracts";
+import type { BusContract, PublishResult } from "@brains/contracts";
+import type { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
@@ -21,6 +22,11 @@ export interface SchedulerMessagePublisher {
     sender?: string;
     broadcast?: boolean;
   }): Promise<unknown>;
+  /** A command every owner hears, as `IMessagingNamespace.command`. */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    payload: z.input<TRequest>,
+  ): Promise<void>;
 }
 
 export interface GenerateExecuteEvent {

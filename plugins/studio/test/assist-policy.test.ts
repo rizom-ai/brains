@@ -1,4 +1,8 @@
-import type { AuthPrincipal } from "@brains/contracts";
+import {
+  a2aAgentsContract,
+  a2aCallContract,
+  type AuthPrincipal,
+} from "@brains/contracts";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import type { ZodType } from "@brains/utils/zod";
@@ -189,7 +193,7 @@ describe("Studio assist policy", () => {
     const calls: unknown[] = [];
     fixture.shell
       .getMessageBus()
-      .subscribe("a2a:call:agents", async (message) => {
+      .subscribe(a2aAgentsContract.name, async (message) => {
         calls.push(message.payload);
         return {
           success: true,
@@ -198,11 +202,15 @@ describe("Studio assist policy", () => {
       });
     fixture.shell
       .getMessageBus()
-      .subscribe("a2a:call:request", async (message) => {
+      .subscribe(a2aCallContract.name, async (message) => {
         calls.push(message.payload);
         return {
           success: true,
-          data: { state: "completed", response: "Looks accurate." },
+          data: {
+            state: "completed",
+            response: "Looks accurate.",
+            sources: [],
+          },
         };
       });
 

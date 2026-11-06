@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { A2AInterface } from "../src/a2a-interface";
+import {
+  a2aAgentsContract,
+  a2aAskContract,
+  a2aCallContract,
+} from "@brains/contracts";
 
 function mockA2AFetch(): ReturnType<typeof mock> {
   return mock(async (input: string | URL | Request): Promise<Response> => {
@@ -64,7 +69,7 @@ describe("A2A call message handlers", () => {
 
   it("lists only approved directory agents", async () => {
     const response = await harness.getMockShell().getMessageBus().send({
-      type: "a2a:call:agents",
+      type: a2aAgentsContract.name,
       payload: {},
       sender: "studio",
     });
@@ -82,7 +87,7 @@ describe("A2A call message handlers", () => {
       .getMockShell()
       .getMessageBus()
       .send({
-        type: "a2a:call:request",
+        type: a2aCallContract.name,
         payload: {
           agent: "approved.example",
           instruction: "Is this accurate?",
@@ -115,7 +120,7 @@ describe("A2A call message handlers", () => {
         .getMockShell()
         .getMessageBus()
         .send({
-          type: "a2a:call:request",
+          type: a2aCallContract.name,
           payload: { agent, instruction: "Review", selection: "Text" },
           sender: "studio",
         });
@@ -129,7 +134,7 @@ describe("A2A call message handlers", () => {
       .getMockShell()
       .getMessageBus()
       .send({
-        type: "a2a:call:request",
+        type: a2aCallContract.name,
         payload: {
           agent: "unknown.example",
           instruction: "Review",
@@ -244,7 +249,7 @@ describe("A2A network ask channel", () => {
       .getMockShell()
       .getMessageBus()
       .send({
-        type: "a2a:ask:request",
+        type: a2aAskContract.name,
         payload: { agent, question: "What do you know about gardens?" },
         sender: "agent",
       });

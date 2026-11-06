@@ -10,11 +10,12 @@ import {
   type Mock,
 } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
+import { PUBLISH_MESSAGES } from "../src/types/messages";
 import {
-  PUBLISH_ASSET_MESSAGES,
-  PUBLISH_MESSAGES,
-} from "../src/types/messages";
-import type { PublishProvider } from "@brains/contracts";
+  publishAssetRegisterContract,
+  publishRegisterContract,
+  type PublishProvider,
+} from "@brains/contracts";
 import type { DashboardWidgetProviderContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 import {
@@ -289,7 +290,7 @@ describe("ContentPipelinePlugin", () => {
 
     it("uses internal providers through direct provider execution", async () => {
       const publish = mock(async () => ({ id: "email-1" }));
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "newsletter",
         provider: { name: "internal", publish },
         config: {
@@ -334,7 +335,7 @@ Newsletter body`,
 
     it("uses registered provider for direct publish messages", async () => {
       const publish = mock(async () => ({ id: "platform-post-1" }));
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "post",
         provider: { name: "test-provider", publish },
       });
@@ -392,7 +393,7 @@ Post body`,
         .register("post", "og-image", {
           resolve: () => undefined,
         });
-      await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+      await localHarness.sendMessage(publishAssetRegisterContract.name, {
         entityType: "post",
         attachmentType: "og-image",
         mediaEntityType: "image",
@@ -401,7 +402,7 @@ Post body`,
         autoGenerate: true,
         jobType: "image:image-render-source",
       });
-      await localHarness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await localHarness.sendMessage(publishRegisterContract.name, {
         entityType: "post",
         provider: {
           name: "test-provider",
@@ -498,7 +499,7 @@ Post body`,
           metadata: { status: "draft", title: "Post 3" },
         },
       ]);
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "social-post",
         provider: {
           name: "linkedin",
@@ -530,7 +531,7 @@ Post body`,
           metadata: { status: "queued", title: "Workflow card" },
         },
       ]);
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "social-post",
         provider: {
           name: "linkedin",
@@ -574,7 +575,7 @@ Post body`,
 
   describe("publish asset registration", () => {
     it("registers publish assets via message bus", async () => {
-      await harness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishAssetRegisterContract.name, {
         entityType: "post",
         attachmentType: "og-image",
         mediaEntityType: "image",
@@ -613,7 +614,7 @@ Post body`,
         .register("post", "og-image", {
           resolve: () => undefined,
         });
-      await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+      await localHarness.sendMessage(publishAssetRegisterContract.name, {
         entityType: "post",
         attachmentType: "og-image",
         mediaEntityType: "image",
@@ -681,7 +682,7 @@ Body`,
         publish: async () => ({ id: "result" }),
       };
 
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "blog-post",
         provider,
       });
@@ -695,7 +696,7 @@ Body`,
         publish: async () => ({ id: "result" }),
       };
 
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "blog-post",
         provider,
         config: { executionMode: "invalid" },
@@ -714,11 +715,11 @@ Body`,
         publish: async () => ({ id: "internal-result" }),
       };
 
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "post",
         provider: explicitProvider,
       });
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "post",
         provider: internalProvider,
       });

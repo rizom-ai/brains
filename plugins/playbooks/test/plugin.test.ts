@@ -13,7 +13,7 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationContract,
   playbookRunSchema,
   playbookManageOutputSchema,
   playbookStatusResponseSchema,
@@ -1047,7 +1047,7 @@ describe("PlaybooksPlugin", () => {
       },
       { registered: boolean; id: string }
     >(
-      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+      lifecycleStarterRegistrationContract.name,
       {
         id: "onboarding",
         trigger: "first-admin-web-chat",
@@ -1118,11 +1118,11 @@ describe("PlaybooksPlugin", () => {
     const first = await harness.sendMessage<
       typeof payload,
       { registered: boolean; id: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
+    >(lifecycleStarterRegistrationContract.name, payload, "rover-onboarding");
     const second = await harness.sendMessage<
       typeof payload,
       { registered: boolean; id: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
+    >(lifecycleStarterRegistrationContract.name, payload, "rover-onboarding");
 
     expect(first).toEqual({ registered: true, id: "onboarding" });
     expect(second).toEqual({ registered: true, id: "onboarding" });
@@ -1168,14 +1168,18 @@ describe("PlaybooksPlugin", () => {
     };
 
     await harness.sendMessage(
-      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+      lifecycleStarterRegistrationContract.name,
       firstPayload,
       "rover-onboarding",
     );
     const conflict = await harness.sendMessage<
       typeof conflictPayload,
       { registered: boolean; id: string; ignored?: boolean; reason?: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, conflictPayload, "other-plugin");
+    >(
+      lifecycleStarterRegistrationContract.name,
+      conflictPayload,
+      "other-plugin",
+    );
 
     expect(conflict).toEqual(
       expect.objectContaining({

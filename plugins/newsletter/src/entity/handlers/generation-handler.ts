@@ -3,7 +3,11 @@ import {
   ensureUniqueTitle,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { GENERATE_CHANNELS, NEWSLETTER_CHANNELS } from "@brains/contracts";
+import {
+  NEWSLETTER_CHANNELS,
+  generateReportFailureContract,
+  generateReportSuccessContract,
+} from "@brains/contracts";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -243,12 +247,9 @@ Summarize each post and link to it.`;
     _data: GenerationJobData,
     error: string,
   ): Promise<void> {
-    await this.context.messaging.send({
-      type: GENERATE_CHANNELS.reportFailure,
-      payload: {
-        entityType: "newsletter",
-        error,
-      },
+    await this.context.messaging.command(generateReportFailureContract, {
+      entityType: "newsletter",
+      error,
     });
   }
 
@@ -258,12 +259,9 @@ Summarize each post and link to it.`;
     _progressReporter: ProgressReporter,
     _generated: GeneratedContent,
   ): Promise<void> {
-    await this.context.messaging.send({
-      type: GENERATE_CHANNELS.reportSuccess,
-      payload: {
-        entityType: "newsletter",
-        entityId,
-      },
+    await this.context.messaging.command(generateReportSuccessContract, {
+      entityType: "newsletter",
+      entityId,
     });
   }
 

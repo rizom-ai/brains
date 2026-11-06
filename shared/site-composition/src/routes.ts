@@ -1,3 +1,4 @@
+import { defineBusContract, type BusContract } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { languageTagSchema, routeTranslationSchema } from "@rizom/site";
 export {
@@ -144,6 +145,22 @@ export type RegisterRoutesPayload = z.output<
   typeof RegisterRoutesPayloadSchema
 >;
 
+/**
+ * A plugin declares its site pages; the site builder registers them. Heard in
+ * every process, as the site builds in the worker. Declared here, beside its
+ * schema, because `@brains/contracts` sits below site composition.
+ */
+export const siteBuilderRouteRegisterContract: BusContract<
+  typeof RegisterRoutesPayloadSchema,
+  z.ZodVoid,
+  "command"
+> = defineBusContract({
+  channel: "plugin:site-builder:route:register",
+  request: RegisterRoutesPayloadSchema,
+  response: z.void(),
+  delivery: "command",
+});
+
 export const UnregisterRoutesPayloadSchema: z.ZodObject<{
   paths: z.ZodOptional<z.ZodArray<z.ZodString>>;
   pluginId: z.ZodOptional<z.ZodString>;
@@ -170,6 +187,31 @@ export const GetRoutePayloadSchema: z.ZodObject<{ path: z.ZodString }> =
   });
 
 export type GetRoutePayload = z.output<typeof GetRoutePayloadSchema>;
+
+type SiteBuilderRoutesRequestSchema = z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
+>;
+
+export const siteBuilderRoutesRequestSchema: SiteBuilderRoutesRequestSchema =
+  z.strictObject({});
+
+type SiteBuilderRoutesResponseSchema = z.ZodArray<typeof RouteDefinitionSchema>;
+
+export const siteBuilderRoutesResponseSchema: SiteBuilderRoutesResponseSchema =
+  z.array(RouteDefinitionSchema);
+
+/** Every route the site builder knows, for plugins that fill them. */
+export const siteBuilderRoutesContract: BusContract<
+  SiteBuilderRoutesRequestSchema,
+  SiteBuilderRoutesResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "site-builder:routes:list",
+  request: siteBuilderRoutesRequestSchema,
+  response: siteBuilderRoutesResponseSchema,
+  delivery: "request",
+});
 
 export interface RouteOperationResponse {
   success: boolean;

@@ -1,4 +1,14 @@
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import {
+  ENTITY_CHANNELS,
+  generateReportFailureContract,
+  generateReportSuccessContract,
+  publishAssetRegisterContract,
+  publishRegisterContract,
+  type GenerateReportFailurePayload,
+  type GenerateReportSuccessPayload,
+  type PublishAssetDefinition,
+} from "@brains/contracts";
+import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -12,12 +22,9 @@ import {
 } from "../schemas/publishable";
 import {
   PUBLISH_MESSAGES,
-  GENERATE_MESSAGES,
-  PUBLISH_ASSET_MESSAGES,
   SYSTEM_PUBLISH_AUTH_CONTEXT,
 } from "../types/messages";
 import type {
-  PublishRegisterPayload,
   PublishQueuePayload,
   PublishDirectPayload,
   PublishRemovePayload,
@@ -27,16 +34,11 @@ import type {
   PublishReportFailurePayload,
   PublishCompletedPayload,
   PublishFailedPayload,
-  GenerateCompletedPayload,
-  GenerateFailedPayload,
-  PublishAssetRegisterPayload,
 } from "../types/messages";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishEntityExecutor } from "../publish-executor";
 import type { PublishAssetRegistry } from "../publish-assets";
-import { publishAssetDefinitionSchema } from "../publish-assets";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
-import { publishConfigSchema } from "../types/config";
 
 export interface MessageHandlerDeps {
   queueManager: QueueManager;
@@ -67,9 +69,8 @@ function subscribeToPublishMessages(
   context: ServicePluginContext,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.subscribe<PublishRegisterPayload, { success: boolean }>(
-    PUBLISH_MESSAGES.REGISTER,
-    async (msg) => handleRegister(deps, msg.payload),
+  context.messaging.answer(publishRegisterContract, async (registration) =>
+    handleRegister(deps, registration),
   );
 
   context.messaging.subscribe<PublishQueuePayload, { success: boolean }>(
@@ -141,18 +142,16 @@ function subscribeToGenerationMessages(
   context: ServicePluginContext,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.subscribeExecution<
-    GenerateCompletedPayload,
-    { success: boolean }
-  >(GENERATE_MESSAGES.REPORT_SUCCESS, async (msg) =>
-    handleGenerationCompleted(deps, msg.payload),
+  context.messaging.answer(
+    generateReportSuccessContract,
+    async (report) => handleGenerationCompleted(deps, report),
+    { everyProcess: true },
   );
 
-  context.messaging.subscribeExecution<
-    GenerateFailedPayload,
-    { success: boolean }
-  >(GENERATE_MESSAGES.REPORT_FAILURE, async (msg) =>
-    handleGenerationFailed(deps, msg.payload),
+  context.messaging.answer(
+    generateReportFailureContract,
+    async (report) => handleGenerationFailed(deps, report),
+    { everyProcess: true },
   );
 
   deps.logger.debug("Subscribed to generation messages");
@@ -162,11 +161,8 @@ function subscribeToPublishAssetMessages(
   context: ServicePluginContext,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.subscribe<
-    PublishAssetRegisterPayload,
-    { success: boolean }
-  >(PUBLISH_ASSET_MESSAGES.REGISTER, async (msg) =>
-    handlePublishAssetRegister(deps, msg.payload),
+  context.messaging.answer(publishAssetRegisterContract, async (definition) =>
+    handlePublishAssetRegister(deps, definition),
   );
 
   deps.logger.debug("Subscribed to publish asset messages");
@@ -202,56 +198,33 @@ function subscribeToEntityChangeMessages(
 
 async function handleRegister(
   deps: MessageHandlerDeps,
-  payload: PublishRegisterPayload,
-): Promise<{ success: boolean }> {
-  const { entityType, provider, config } = payload;
-
+  registration: z.output<typeof publishRegisterContract.schema>,
+): Promise<void> {
+  const { entityType, provider, config } = registration;
+  if (!provider) return;
   try {
-    const parsedConfig = config
-      ? publishConfigSchema.safeParse(config)
-      : undefined;
-    if (parsedConfig && !parsedConfig.success) {
-      deps.logger.warn("Invalid publish provider config", {
-        entityType,
-        error: parsedConfig.error.message,
-      });
-      return { success: false };
-    }
-
-    if (provider) {
-      deps.providerRegistry.register(entityType, provider, parsedConfig?.data);
-      deps.logger.info(`Registered provider for entity type: ${entityType}`, {
-        providerName: provider.name,
-        executionMode: deps.providerRegistry.getExecutionMode(entityType),
-      });
-    }
-    return { success: true };
+    deps.providerRegistry.register(entityType, provider, config);
   } catch (error) {
     const errorMessage = getErrorMessage(error);
     deps.logger.error(`Failed to register provider: ${errorMessage}`);
-    return { success: false };
+    throw error;
   }
+  deps.logger.info(`Registered provider for entity type: ${entityType}`, {
+    providerName: provider.name,
+    executionMode: deps.providerRegistry.getExecutionMode(entityType),
+  });
 }
 
 async function handlePublishAssetRegister(
   deps: MessageHandlerDeps,
-  payload: PublishAssetRegisterPayload,
-): Promise<{ success: boolean }> {
-  const parsed = publishAssetDefinitionSchema.safeParse(payload);
-  if (!parsed.success) {
-    deps.logger.warn("Invalid publish asset registration", {
-      error: parsed.error.message,
-    });
-    return { success: false };
-  }
-
-  deps.publishAssetRegistry.register(parsed.data);
+  definition: PublishAssetDefinition,
+): Promise<void> {
+  deps.publishAssetRegistry.register(definition);
   deps.logger.info("Registered publish asset", {
-    entityType: parsed.data.entityType,
-    attachmentType: parsed.data.attachmentType,
-    mediaEntityType: parsed.data.mediaEntityType,
+    entityType: definition.entityType,
+    attachmentType: definition.attachmentType,
+    mediaEntityType: definition.mediaEntityType,
   });
-  return { success: true };
 }
 
 async function handleEntityChange(
@@ -483,24 +456,18 @@ async function handleReportFailure(
 
 async function handleGenerationCompleted(
   deps: MessageHandlerDeps,
-  payload: GenerateCompletedPayload,
-): Promise<{ success: boolean }> {
-  const { entityType, entityId } = payload;
-
+  report: GenerateReportSuccessPayload,
+): Promise<void> {
+  const { entityType, entityId } = report;
   deps.scheduler.completeGeneration(entityType, entityId);
   deps.logger.info("Generation completed", { entityType, entityId });
-
-  return { success: true };
 }
 
 async function handleGenerationFailed(
   deps: MessageHandlerDeps,
-  payload: GenerateFailedPayload,
-): Promise<{ success: boolean }> {
-  const { entityType, error } = payload;
-
+  report: GenerateReportFailurePayload,
+): Promise<void> {
+  const { entityType, error } = report;
   deps.scheduler.failGeneration(entityType, error);
   deps.logger.warn("Generation failed", { entityType, error });
-
-  return { success: true };
 }
