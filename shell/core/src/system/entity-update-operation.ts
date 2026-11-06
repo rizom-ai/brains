@@ -144,6 +144,19 @@ export function applyFieldUpdates(
       nextEntity.content,
       nextMetadata,
     );
+  // Where metadata is the frontmatter, covers and social cards are metadata
+  // too. Such a type is read back as its body alone, so a cleared one has no
+  // frontmatter to be removed from; the metadata carries the change.
+  if (registry.getAdapter(entity.entityType).metadataFromFrontmatter === true) {
+    const metadata = { ...nextEntity.metadata };
+    for (const key of ["coverImageId", "ogImageId"]) {
+      if (!Object.hasOwn(fields, key)) continue;
+      const value = fields[key];
+      if (typeof value === "string") metadata[key] = value;
+      else delete metadata[key];
+    }
+    nextEntity.metadata = metadata;
+  }
   return nextEntity;
 }
 
@@ -257,10 +270,16 @@ function validateFieldUpdatePersistence(
       error: getErrorMessage(error, "Invalid field update"),
     };
   }
+  // Where covers and social cards are metadata (see applyFieldUpdates),
+  // whether a write keeps them is settled the same way as any field.
+  const imageFieldsAreMetadata =
+    entityRegistry.getAdapter(entity.entityType).metadataFromFrontmatter ===
+    true;
   const requested = Object.keys(fields).filter(
     (key) =>
       !sourceFields.has(key) &&
-      !NON_METADATA_FIELD_KEYS.has(key) &&
+      (!NON_METADATA_FIELD_KEYS.has(key) ||
+        (imageFieldsAreMetadata && key !== "visibility")) &&
       key in frontmatterSchema.shape,
   );
   if (requested.length === 0) return undefined;
