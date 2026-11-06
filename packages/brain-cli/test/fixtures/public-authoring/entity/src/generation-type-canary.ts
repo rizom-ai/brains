@@ -106,22 +106,6 @@ async function allocateSummary(
   };
 }
 
-// Typed outright: a literal returned from an inline callback is widened
-// before the metadata schema can type it.
-function summaryStub(input: { readonly id: string; readonly title: string }): {
-  readonly content: string;
-  readonly metadata: z.input<typeof summaryMetadata>;
-} {
-  return {
-    content: "",
-    metadata: {
-      title: input.title,
-      bookmarkId: input.id,
-      status: "generating",
-    },
-  };
-}
-
 export const summary = defineEntity({
   type: "bookmark-summary",
   purpose: "A generated summary of a saved page.",
@@ -135,7 +119,10 @@ export const summary = defineEntity({
       requiredPermission: "trusted",
     },
   },
-  stub: summaryStub,
+  stub: ({ id, title }) => ({
+    content: "",
+    metadata: { title, bookmarkId: id, status: "generating" },
+  }),
   generation,
   jobs,
   create: {

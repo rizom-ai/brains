@@ -39,6 +39,25 @@ export type {
 export type EntityVisibility = "public" | "shared" | "restricted";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
 
+type ReadonlyInput<T> = T extends Date | ((...args: never[]) => unknown)
+  ? T
+  : { readonly [K in keyof T]: ReadonlyInput<T[K]> };
+
+/**
+ * Metadata a definition writes — a seed, a stub, a decoded document, a
+ * create or a generation result: the schema's input, also accepted
+ * read-only.
+ *
+ * Spelled through the schema's own input slot so that, with `defineEntity`
+ * taking its schema as a `const` parameter, a literal written inline is in a
+ * const context. It then keeps its literal type even before the schema is
+ * inferred, which TypeScript has not yet done when it checks a callback
+ * without parameters. A const context makes arrays read-only, hence the
+ * read-only form.
+ */
+type EntityMetadataInput<TMetadataSchema extends EntityMetadataSchema> =
+  TMetadataSchema["_zod"]["input"] | ReadonlyInput<z.input<TMetadataSchema>>;
+
 export interface EntityMarkdownDocument<TMetadata> {
   readonly content: string;
   readonly metadata: TMetadata;
@@ -55,7 +74,7 @@ export interface EntityMarkdownCodec<
   decode(input: {
     readonly content: string;
     readonly frontmatter: Readonly<Record<string, unknown>>;
-  }): EntityMarkdownDocument<z.input<TMetadataSchema>>;
+  }): EntityMarkdownDocument<EntityMetadataInput<TMetadataSchema>>;
   encode(
     input: EntityMarkdownDocument<z.output<TMetadataSchema>>,
   ): EncodedEntityMarkdown;
@@ -87,7 +106,7 @@ export interface EntitySeedDefinition<
   readonly id: string;
   /** Lazy, so the default is only built when it is actually needed. */
   readonly content: () => string;
-  readonly metadata?: z.input<TMetadataSchema> | undefined;
+  readonly metadata?: EntityMetadataInput<TMetadataSchema> | undefined;
 }
 
 /**
@@ -189,7 +208,7 @@ export interface EntityDefinition<
   readonly stub?:
     | ((input: { readonly id: string; readonly title: string }) => {
         readonly content: string;
-        readonly metadata: z.input<TMetadataSchema>;
+        readonly metadata: EntityMetadataInput<TMetadataSchema>;
       })
     | undefined;
   /**
@@ -511,7 +530,7 @@ export type EntityCreateResolution<
       readonly create: {
         readonly id: string;
         readonly content: string;
-        readonly metadata: z.input<TMetadataSchema>;
+        readonly metadata: EntityMetadataInput<TMetadataSchema>;
       };
       readonly attachment?: EntityCreateAttachment | undefined;
     }
@@ -524,7 +543,7 @@ export type EntityCreateResolution<
       readonly update: {
         readonly id: string;
         readonly content: string;
-        readonly metadata: z.input<TMetadataSchema>;
+        readonly metadata: EntityMetadataInput<TMetadataSchema>;
       };
     }
   | { readonly refuse: string };
@@ -568,7 +587,7 @@ export type EntityCreateAllocation<
       readonly create: {
         readonly id: string;
         readonly content: string;
-        readonly metadata: z.input<TMetadataSchema>;
+        readonly metadata: EntityMetadataInput<TMetadataSchema>;
       };
       readonly delegate: EntityCreateDelegation;
       readonly attachment?: EntityCreateAttachment | undefined;
@@ -670,7 +689,7 @@ export type EntityGenerationResult<
   | {
       readonly success: true;
       readonly content: string;
-      readonly metadata: z.input<TMetadataSchema>;
+      readonly metadata: EntityMetadataInput<TMetadataSchema>;
       /** The id when nothing was allocated; defaults to the slugified title. */
       readonly id?: string | undefined;
       /** Extra fields merged into the job's success result. */

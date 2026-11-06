@@ -554,10 +554,13 @@ describe("declared seeds", () => {
   });
 
   it("creates the entity once startup content settles", async () => {
-    // Seed metadata is the schema's input: defaulted fields may be omitted.
+    // Seed metadata is the schema's input, also accepted read-only:
+    // defaulted fields may be omitted.
     expectTypeOf<
       NonNullable<EntitySeedDefinition<typeof houseStyle.metadata>["metadata"]>
-    >().toEqualTypeOf<{ tone?: string | undefined }>();
+    >().toEqualTypeOf<
+      { tone?: string | undefined } | { readonly tone?: string | undefined }
+    >();
     const harness = await installed(houseStyle);
     try {
       await harness.sendMessage(SYSTEM_CHANNELS.startupContentSettled, {});

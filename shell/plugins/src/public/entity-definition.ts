@@ -85,7 +85,9 @@ export type {
 
 export function defineEntity<
   const TType extends string,
-  TMetadataSchema extends EntityMetadataSchema,
+  // `const` keeps a literal written inline as metadata a literal; see
+  // EntityMetadataInput.
+  const TMetadataSchema extends EntityMetadataSchema,
   TGenerationInput extends z.ZodType = z.ZodType,
 >(definition: {
   readonly type: TType;
@@ -113,14 +115,7 @@ export function defineEntity<
   readonly jobs?: Readonly<Record<string, AnyEntityJobDeclaration>> | undefined;
   readonly generation?:
     EntityGenerationDeclaration<TGenerationInput, TMetadataSchema> | undefined;
-  readonly stub?:
-    | ((input: { readonly id: string; readonly title: string }) => {
-        readonly content: string;
-        // Not an inference site: the schema decides the type, and a literal
-        // in the stub must not be widened into a competing candidate.
-        readonly metadata: NoInfer<z.input<TMetadataSchema>>;
-      })
-    | undefined;
+  readonly stub?: EntityDefinition<TType, TMetadataSchema>["stub"];
   readonly scheduledGeneration?:
     EntityScheduledGenerationDeclaration | undefined;
   readonly instructions?: string | undefined;

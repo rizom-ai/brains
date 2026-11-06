@@ -206,6 +206,8 @@ The runtime owns base entity fields, persistence, markdown validation, search in
 
 `classification` stays top-level and is refused inside `config`.
 
+Metadata a definition writes — a seed, a `stub`, a decoded document, a create resolution or allocation, a generation result — is the schema's input, also accepted read-only. Written inline in `defineEntity`, it keeps its literal types without an annotation, including from a callback that takes no parameters, so an enum value needs no cast; one the schema does not accept is still refused.
+
 The other basic slots on `defineEntity`:
 
 - `metadataFrom(stored)` migrates stored metadata into the current schema before every parse, so records written in an older shape still read and validate. It must return current metadata unchanged.
