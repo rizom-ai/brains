@@ -83,11 +83,11 @@ describe("The Fourth in two languages", () => {
   test("signs the footer in the page's language", () => {
     const english = renderLayout("en", BOTH);
     expect(english).toContain("(Brand consultancy)");
-    expect(english).toContain("Made in Taipei");
+    expect(english).toContain(">Powered by Rizom</a>");
     const chinese = renderLayout("zh-TW", BOTH, "/zh-tw");
     expect(chinese).toContain("（品牌顧問）");
-    expect(chinese).toContain("台北出品");
-    expect(chinese).not.toContain("Made in Taipei");
+    expect(chinese).toContain(">由 Rizom 提供技術支援</a>");
+    expect(chinese).not.toContain("Powered by Rizom");
   });
 
   test("sets Chinese in Noto, loaded only on Chinese pages", () => {

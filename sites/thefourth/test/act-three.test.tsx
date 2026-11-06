@@ -69,24 +69,19 @@ describe("Act III, enter the guide", () => {
     );
   });
 
-  test("links each way in to its program once the program has a page", () => {
-    expect(renderActThree()).not.toContain("Communication Diagnosis →");
-    const fallback = JSON.parse(
-      JSON.stringify(site.content?.["home"]?.["act-three"] ?? {}),
-    );
-    const html = renderActThree({
-      ...fallback,
-      spells: [
-        {
-          ...fallback.spells[0],
-          link: { label: "Communication Diagnosis →", href: "/diagnosis" },
-        },
-        ...fallback.spells.slice(1),
-      ],
-    });
-    expect(html).toContain(
-      '<a class="tf-link" href="/diagnosis">Communication Diagnosis →</a>',
-    );
+  test("names each way in's program in bold, without links or a list of programs", () => {
+    const html = renderActThree();
+    for (const program of [
+      "Communication Diagnosis",
+      "Positioning &amp; Playbook",
+      "Creator Match",
+    ]) {
+      expect(html).toContain(
+        `<strong class="tf-guide-spell__program">${program}</strong>`,
+      );
+    }
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("Explore all programs");
   });
   test("names the worlds it works in, without links to pages that do not exist", () => {
     const html = renderActThree();

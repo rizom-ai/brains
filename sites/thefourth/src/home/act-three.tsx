@@ -7,21 +7,20 @@ import {
 } from "@rizom/site";
 import { ActHeading } from "./act-heading";
 import { Eye } from "./eye";
-import { TextLink } from "./links";
 
 /**
  * Act III, enter the guide: The Fourth's three ways in, each a giant word on
  * a mint disc with its mark (an eye, a talking screen, a handset on its
  * cord), alternating sides, then the worlds it works in. Act I's "How it
- * works" lands here. Each way links to its program once the program has a
- * page; the worlds are labels until they have pages of their own.
+ * works" lands here. Each way names its program in bold; the programs and
+ * the worlds are words until they have pages of their own.
  */
 const guideSpellSchema = z.object({
   word: z.string(),
   name: z.string(),
   text: z.string(),
   mark: z.enum(["eye", "screen", "handset"]),
-  link: z.object({ label: z.string(), href: z.string().default("") }),
+  program: z.string(),
 });
 
 const sectorSchema = z.object({
@@ -177,11 +176,9 @@ function ActThreeSection({
               <div className="tf-guide-spell__text">
                 <span className="tf-eyebrow">{spell.name}</span>
                 <span>{spell.text}</span>
-                {spell.link.href && (
-                  <TextLink
-                    link={{ label: spell.link.label, href: spell.link.href }}
-                  />
-                )}
+                <strong className="tf-guide-spell__program">
+                  {spell.program}
+                </strong>
               </div>
             </div>
           );
@@ -211,7 +208,7 @@ export const actThree: SectionDefinition = defineSection(
   {
     title: "Act III — Enter the guide",
     description:
-      "The guide's three ways in (word, name, text, mark: eye, screen or handset, and the program's link, shown once it has an href) and the worlds The Fourth works in, each with its light.",
+      "The guide's three ways in (word, name, text, mark: eye, screen or handset, and the program it names) and the worlds The Fourth works in, each with its light.",
   },
 );
 
@@ -227,21 +224,21 @@ export const actThreeContent: JsonObject = {
       name: "The fourth dimension",
       text: "A new angle on what you already have. Our Communication Diagnosis, built on ContentDNA™.",
       mark: "eye",
-      link: { label: "Communication Diagnosis →", href: "" },
+      program: "Communication Diagnosis",
     },
     {
       word: "Tell.",
       name: "The fourth act",
       text: "The story, in the order your audience thinks. We hand your team the plan.",
       mark: "screen",
-      link: { label: "Positioning & Playbook →", href: "" },
+      program: "Positioning & Playbook",
     },
     {
       word: "Reach.",
       name: "The fourth wall",
       text: "The right voices for your message, chosen for fit, not follower count.",
       mark: "handset",
-      link: { label: "Creator Match →", href: "" },
+      program: "Creator Match",
     },
   ],
   sectorsPrompt: "Which world are you from?",

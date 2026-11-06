@@ -68,17 +68,21 @@ describe("Act IV, the fourth act", () => {
     expect(withPhoto).toContain('src="/images/rizom-workshop.webp"');
   });
 
-  test("leaves out the placeholder testimonial and links to stories that do not exist", () => {
+  test("pins Rizom's word beside its story and TWTN's on the other side, on paper", () => {
     const html = renderActFour();
-    expect(html).not.toContain("TESTIMONIAL");
-    expect(html).not.toContain("Read the story");
-    expect(html).not.toContain("Read the full stories");
-    expect(html.match(/<a /g)?.length).toBe(1);
+    expect(html).toMatch(
+      /<figure class="tf-card tf-card--quote tf-card--quote-right">[^]*<blockquote[^>]*>The right branding also helps us find the right business model, and The Fourth knows what they’re doing\.<\/blockquote><figcaption[^>]*>Founder, Rizom<\/figcaption><\/figure>/,
+    );
+    expect(html).toMatch(
+      /<figure class="tf-card tf-card--quote tf-card--quote-left">[^]*<blockquote[^>]*>Mid-size businesses like us don’t have big budgets for marketing, but The Fourth helped us put our money in the right places\.<\/blockquote><figcaption[^>]*>Deputy Manager, TWTN<\/figcaption><\/figure>/,
+    );
   });
 
-  test("offers to unlock the visitor's own, by email", () => {
-    expect(renderActFour()).toContain(
-      '<a class="tf-link" href="mailto:nihao.fourth@gmail.com">Unlock yours →</a>',
-    );
+  test("pins its cards without links: no story pages and no unlocking here", () => {
+    const html = renderActFour();
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("Unlock yours");
+    expect(html).not.toContain("Read the story");
+    expect(html).not.toContain("Read the full stories");
   });
 });
