@@ -67,7 +67,7 @@ Mechanical migration onto the fixed API, one PR per slice. A gap a conversion fi
 5. **Interfaces:** chat-repl, email, mcp, a2a, chat, web-chat; the scheduled-maintenance move into `@brains/scheduler`.
 6. **Runtime HTTP host:** `interfaces/webserver` becomes `shell/http-host`, started by the shell; top-level `port` and an `http` section replace `plugins.webserver`; site-builder's serving paths move with it.
 7. **Large services:** content-pipeline, dashboard, site-builder, site-content, newsletter, email-workflows, atproto, stock-photo, contact, analytics, studio, directory-sync with the entity mirror.
-8. **Heavily changed hybrids:** topics, conversation-memory, agent-discovery, assessment, faq (its job-type renames as job-queue migrations), book; the shell's conversation projection backfill and poller; entity-service's `apply-entity-*`.
+8. **Heavily changed hybrids:** topics, conversation-memory, agent-discovery (with the `atprotoDiscovery` entity slot, an internal `@brains/sdk/internal/*` slot rather than a public one, since agent-discovery is its only consumer), assessment, faq (its job-type renames as job-queue migrations), book; the shell's conversation projection backfill and poller; entity-service's `apply-entity-*`.
 9. **Packages new since the fork:** guide, action-board, linkedin-import, oauth-broker, the analytics entity.
 10. **Close-out:** the class bases removed from the public entries; the SDK-only boundary rule; the site packages' declarative data sources.
 
