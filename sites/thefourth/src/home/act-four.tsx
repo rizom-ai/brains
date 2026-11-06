@@ -36,9 +36,9 @@ const actFourSchema = z.object({
     rest: z.string(),
     photo: z.string().default(""),
   }),
-  testimonials: z.array(
-    z.object({ quote: z.string(), attribution: z.string() }),
-  ),
+  testimonials: z
+    .array(z.object({ quote: z.string(), attribution: z.string() }))
+    .default([]),
 });
 
 function Figure({

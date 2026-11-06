@@ -78,6 +78,15 @@ describe("Act IV, the fourth act", () => {
     );
   });
 
+  test("pins no testimonial card when the content names none", () => {
+    const { testimonials: _testimonials, ...withoutTestimonials } = JSON.parse(
+      JSON.stringify(site.content?.["home"]?.["act-four"] ?? {}),
+    );
+    const html = renderActFour(withoutTestimonials);
+    expect(html).toContain("Tech &amp; AI · Rizom");
+    expect(html).not.toContain("tf-card--quote");
+  });
+
   test("pins its cards without links: no story pages and no unlocking here", () => {
     const html = renderActFour();
     expect(html).not.toContain("<a ");
