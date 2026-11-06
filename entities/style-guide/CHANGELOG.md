@@ -1,5 +1,14 @@
 # @brains/style-guide
 
+## 0.2.0-alpha.636
+
+### Patch Changes
+
+- Updated dependencies [[`11b7280`](https://github.com/rizom-ai/brains/commit/11b72805aacd377e1ea1db3b36109c57c541eca5)]:
+  - @brains/contracts@0.2.0-alpha.636
+  - @brains/plugins@0.2.0-alpha.636
+  - @brains/utils@0.2.0-alpha.636
+
 ## 0.2.0-alpha.635
 
 ### Patch Changes

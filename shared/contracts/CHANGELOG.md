@@ -1,5 +1,13 @@
 # @brains/contracts
 
+## 0.2.0-alpha.636
+
+### Patch Changes
+
+- [#831](https://github.com/rizom-ai/brains/pull/831) [`11b7280`](https://github.com/rizom-ai/brains/commit/11b72805aacd377e1ea1db3b36109c57c541eca5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The authoring surface moves into a new `@brains/sdk` package, and the `@rizom/brain`, `/plugins`, `/entities`, `/services`, `/interfaces` and `/templates` entries re-export it. The published surface is unchanged. `defineBrain`, `defineBundle`, `use` and the brain-definition contract move from `@brains/app` into the SDK, and `reasoningEffortSchema` now lives once in `@brains/contracts`.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.636
+
 ## 0.2.0-alpha.635
 
 ### Patch Changes
