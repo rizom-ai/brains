@@ -1,8 +1,8 @@
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  dashboardWidgetRegisterContract,
   SYSTEM_CHANNELS,
   type BaseEntity,
 } from "@brains/plugins";
@@ -42,7 +42,7 @@ describe("registerTopicsDashboardWidget", () => {
       listEntitiesImpl: async (): Promise<BaseEntity[]> => topics,
     });
     context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
+      dashboardWidgetRegisterContract.name,
       async () => ({ success: true }),
     );
 
@@ -121,7 +121,7 @@ describe("registerTopicsDashboardWidget", () => {
       },
     });
     context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
+      dashboardWidgetRegisterContract.name,
       async () => ({ success: true }),
     );
     registerTopicsDashboardWidget({ context });

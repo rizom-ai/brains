@@ -5,7 +5,7 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   internalFullScope,
   type AccountSettingsBackend,
   type AccountSettingsStorageIdentity,
@@ -218,7 +218,7 @@ async function fixture(
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       (message) => {
         workspaces.push(message.payload);
         return { success: true, data: { workspaceUrl: "/studio/linkedin" } };

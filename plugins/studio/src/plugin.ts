@@ -4,21 +4,16 @@ import {
   consoleJumpDestinationsContract,
 } from "@brains/contracts";
 import type {
-  StudioOverviewContributionRegistration,
-  StudioOverviewContributionUnregistration,
-  StudioWorkspaceRegistration,
-  StudioWorkspaceRegistrationResult,
-  StudioWorkspaceUnregistration,
   ServicePluginContext,
   UserPermissionLevel,
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   ServicePlugin,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
@@ -37,7 +32,6 @@ import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 
-import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
@@ -258,26 +252,16 @@ export class StudioPlugin extends ServicePlugin<
             parseEntityDisplay(context.entityDisplay),
         }),
     );
-    context.messaging.subscribe<StudioOverviewContributionRegistration>(
-      STUDIO_OVERVIEW_REGISTER_MESSAGE,
-      (message) => {
-        try {
-          this.overviewRegistry.register(message.payload);
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
+    context.messaging.answer(
+      studioOverviewContributionRegisterContract,
+      async (contribution) => {
+        this.overviewRegistry.register(contribution);
       },
     );
-    context.messaging.subscribe<StudioOverviewContributionUnregistration>(
-      STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-      (message) => {
-        try {
-          this.overviewRegistry.unregister(message.payload);
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
+    context.messaging.answer(
+      studioOverviewContributionUnregisterContract,
+      async (request) => {
+        this.overviewRegistry.unregister(request);
       },
     );
 
@@ -323,47 +307,33 @@ export class StudioPlugin extends ServicePlugin<
           : undefined,
     });
 
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      StudioWorkspaceRegistrationResult
-    >(STUDIO_WORKSPACE_REGISTER_MESSAGE, async (message) => {
-      try {
+    context.messaging.answer(
+      studioWorkspaceRegisterContract,
+      async (registration) => {
         if (
-          message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
-          message.payload.id === STUDIO_CHAT_WORKSPACE_ID ||
-          message.payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
+          registration.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
+          registration.id === STUDIO_CHAT_WORKSPACE_ID ||
+          registration.id === STUDIO_OVERVIEW_WORKSPACE_ID
         ) {
           throw new Error(
-            `Studio workspace id is reserved by the host: ${message.payload.id}`,
+            `Studio workspace id is reserved by the host: ${registration.id}`,
           );
         }
-        const workspace = this.workspaceRegistry.register(message.payload);
+        const workspace = this.workspaceRegistry.register(registration);
         return {
-          success: true,
-          data: {
-            workspaceUrl: studioWorkspacePath(
-              this.config.routePath,
-              workspace.id,
-            ),
-          },
+          workspaceUrl: studioWorkspacePath(
+            this.config.routePath,
+            workspace.id,
+          ),
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error),
-        };
-      }
-    });
-    context.messaging.subscribe<StudioWorkspaceUnregistration>(
-      STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
-      (message) => {
-        if (message.payload.pluginId !== "studio") {
-          this.workspaceRegistry.unregister(
-            message.payload.pluginId,
-            message.payload.workspaceId,
-          );
+      },
+    );
+    context.messaging.answer(
+      studioWorkspaceUnregisterContract,
+      async ({ pluginId, workspaceId }) => {
+        if (pluginId !== "studio") {
+          this.workspaceRegistry.unregister(pluginId, workspaceId);
         }
-        return { success: true };
       },
     );
   }

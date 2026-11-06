@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { inboundEmailContract, type InboundEmail } from "@brains/contracts";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { createMockShell, createPluginHarness } from "@brains/plugins/test";
@@ -150,7 +150,7 @@ Prioritize collaboration connected to Project Aurora.`,
       ).length;
     let workspace: StudioWorkspaceRegistration | undefined;
     harness.subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         workspace = message.payload;
         return {

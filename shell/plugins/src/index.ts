@@ -875,8 +875,6 @@ export {
   type SitePageSlot,
 } from "./types/web-routes";
 export {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   assertStudioWorkspaceAdmin,
   type StudioWorkspaceActor,
@@ -888,9 +886,22 @@ export {
   type StudioWorkspaceUnregistration,
 } from "./types/studio-workspace";
 export {
+  dashboardDigestLineSchema,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+} from "./contracts/dashboard-widget-contracts";
+export {
+  studioOverviewContributionSchema,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+} from "./contracts/studio-overview-contracts";
+export {
+  studioWorkspaceRegistrationSchema,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
+} from "./contracts/studio-workspace-contracts";
+export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   type DashboardDigestLine,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,

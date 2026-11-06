@@ -3,8 +3,8 @@ import { describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   defineEntityCatalog,
   defineStudioWorkspace,
@@ -272,7 +272,7 @@ describe("declarative Studio workspace runtime", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return {
@@ -286,7 +286,7 @@ describe("declarative Studio workspace runtime", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceUnregistration>(
-        STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+        studioWorkspaceUnregisterContract.name,
         (message) => {
           unregistrations.push(message.payload);
           return { success: true };
@@ -483,7 +483,7 @@ describe("declarative Studio workspace runtime", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         () => {
           registrations += 1;
           return { success: true };
@@ -538,7 +538,7 @@ describe("declarative Studio workspace runtime", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         (message) => {
           registration = message.payload;
           return { success: true, data: { workspaceUrl: "/studio/query" } };
@@ -637,7 +637,7 @@ describe("declarative Studio workspace runtime", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         (message) => {
           registration = message.payload;
           return { success: true, data: { workspaceUrl: "/studio/prepared" } };
@@ -833,7 +833,7 @@ describe("declarative Studio workspace runtime", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         () => {
           registrations += 1;
           return {
@@ -1970,7 +1970,7 @@ describe("publication workspace registration", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return {

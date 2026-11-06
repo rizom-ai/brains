@@ -1,12 +1,14 @@
 import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+  createServicePluginContext,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
   defineAccountSettings,
   defineDashboardWidget,
   defineEntity,
@@ -166,7 +168,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return { success: true };
@@ -175,7 +177,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        STUDIO_OVERVIEW_REGISTER_MESSAGE,
+        studioOverviewContributionRegisterContract.name,
         (message) => {
           overviewRegistrations.push(message.payload);
           return { success: true };
@@ -184,7 +186,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<{ widgetId?: string }>(
-        DASHBOARD_CHANNELS.unregisterWidget,
+        dashboardWidgetUnregisterContract.name,
         (message) => {
           if (message.payload.widgetId) {
             unregistered.push(message.payload.widgetId);
@@ -195,7 +197,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<{ contributionId?: string }>(
-        STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+        studioOverviewContributionUnregisterContract.name,
         (message) => {
           if (message.payload.contributionId) {
             overviewUnregistered.push(message.payload.contributionId);
@@ -308,7 +310,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return { success: true };
@@ -422,7 +424,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.set(message.payload.id, message.payload);
           return { success: true };
@@ -430,7 +432,7 @@ describe("declarative dashboard widget runtime", () => {
       );
     shell
       .getMessageBus()
-      .subscribe(DASHBOARD_CHANNELS.unregisterWidget, () => ({
+      .subscribe(dashboardWidgetUnregisterContract.name, () => ({
         success: true,
       }));
 
@@ -621,10 +623,12 @@ describe("declarative dashboard widget runtime", () => {
       logger: createSilentLogger("dashboard-duplicate"),
     });
     let registrations = 0;
-    shell.getMessageBus().subscribe(DASHBOARD_CHANNELS.registerWidget, () => {
-      registrations += 1;
-      return { success: true };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(dashboardWidgetRegisterContract.name, () => {
+        registrations += 1;
+        return { success: true };
+      });
 
     const plugin = instantiate(definition);
     await plugin.register(shell);
@@ -669,7 +673,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registered.push(message.payload.id);
           return message.payload.id === "second"
@@ -680,7 +684,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<{ widgetId?: string }>(
-        DASHBOARD_CHANNELS.unregisterWidget,
+        dashboardWidgetUnregisterContract.name,
         (message) => {
           if (message.payload.widgetId) {
             unregistered.push(message.payload.widgetId);
@@ -726,10 +730,12 @@ describe("declarative dashboard widget runtime", () => {
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-worker-exclusion"),
     });
-    shell.getMessageBus().subscribe(DASHBOARD_CHANNELS.registerWidget, () => {
-      registrations += 1;
-      return { success: true };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(dashboardWidgetRegisterContract.name, () => {
+        registrations += 1;
+        return { success: true };
+      });
 
     const plugin = instantiate(definition);
     await plugin.register(shell, { executionOnly: true });
@@ -772,7 +778,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return { success: true };
@@ -780,7 +786,7 @@ describe("declarative dashboard widget runtime", () => {
       );
     shell
       .getMessageBus()
-      .subscribe(DASHBOARD_CHANNELS.unregisterWidget, () => ({
+      .subscribe(dashboardWidgetUnregisterContract.name, () => ({
         success: true,
       }));
 
@@ -796,5 +802,92 @@ describe("declarative dashboard widget runtime", () => {
     const shutdown = plugin.shutdown?.();
     expect(pending).rejects.toThrow("shutting down");
     await shutdown;
+  });
+});
+
+describe("dashboard namespace on the widget contracts", () => {
+  const widget: DashboardWidgetRegistration = {
+    id: "library",
+    title: "Library",
+    group: "knowledge",
+    rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+    visibility: "trusted",
+    dataProvider: async () => ({ view: { blocks: [] } }),
+  };
+
+  it("contributes nothing when no host is mounted", async () => {
+    const context = createServicePluginContext(createMockShell(), "reading");
+
+    expect(context.dashboard.isAvailable()).toBe(false);
+    expect(await context.dashboard.registerWidget(widget)).toBe(false);
+    expect(await context.dashboard.unregisterWidget("library")).toBe(false);
+  });
+
+  it("leaves a widget unchecked by a host that is not mounted", async () => {
+    const shell = createMockShell();
+    createServicePluginContext(shell, "host").messaging.answer(
+      dashboardWidgetRegisterContract,
+      async () => {},
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    // Overview's limits (an integer priority) apply only where Studio runs.
+    expect(
+      await context.dashboard.registerWidget({ ...widget, priority: 1.5 }),
+    ).toBe(true);
+  });
+
+  it("sends the widget, stamped with its plugin, to both hosts", async () => {
+    const shell = createMockShell();
+    const dashboard: unknown[] = [];
+    const overview: unknown[] = [];
+    const withdrawn: unknown[] = [];
+    const host = createServicePluginContext(shell, "host");
+    host.messaging.answer(dashboardWidgetRegisterContract, async (request) => {
+      dashboard.push(request.pluginId);
+    });
+    host.messaging.answer(
+      studioOverviewContributionRegisterContract,
+      async (request) => {
+        overview.push(request.pluginId);
+      },
+    );
+    host.messaging.answer(
+      dashboardWidgetUnregisterContract,
+      async (request) => {
+        withdrawn.push(request);
+      },
+    );
+    host.messaging.answer(
+      studioOverviewContributionUnregisterContract,
+      async (request) => {
+        withdrawn.push(request);
+      },
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    expect(await context.dashboard.registerWidget(widget)).toBe(true);
+    expect(await context.dashboard.unregisterWidget("library")).toBe(true);
+    expect(dashboard).toEqual(["reading"]);
+    expect(overview).toEqual(["reading"]);
+    expect(withdrawn).toEqual([
+      { pluginId: "reading", widgetId: "library" },
+      { pluginId: "reading", contributionId: "library" },
+    ]);
+  });
+
+  it("throws the host's refusal", async () => {
+    const shell = createMockShell();
+    createServicePluginContext(shell, "host").messaging.answer(
+      dashboardWidgetRegisterContract,
+      async () => {
+        throw new Error("host rejected widget");
+      },
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    expect(context.dashboard.registerWidget(widget)).rejects.toThrow(
+      "Dashboard widget register failed: host rejected widget",
+    );
   });
 });

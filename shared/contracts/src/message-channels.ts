@@ -3,11 +3,6 @@ export const BUTTONDOWN_CHANNELS = {
   send: "buttondown:send",
 } as const;
 
-export const DASHBOARD_CHANNELS = {
-  registerWidget: "dashboard:register-widget",
-  unregisterWidget: "dashboard:unregister-widget",
-} as const;
-
 export const DIRECTORY_SYNC_CHANNELS = {
   getRepoInfo: "git-sync:get-repo-info",
   configureRequest: "sync:configure:request",

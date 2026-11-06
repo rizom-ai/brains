@@ -22,7 +22,7 @@ import {
 import {
   BaseEntityAdapter,
   baseEntitySchema,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type BaseEntity,
   type IAgentService,
   type IConversationService,
@@ -258,7 +258,7 @@ async function setup(
     .getMockShell()
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       (registration) => {
         workspaces.push(registration.payload);
         return {
