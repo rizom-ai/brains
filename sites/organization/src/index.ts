@@ -26,6 +26,15 @@ const site: SitePackage<OrganizationSiteConfigInput, Plugin> = {
     topic: { label: "Topic", navigation: { slot: "secondary" } },
     link: { label: "Link", navigation: { slot: "secondary" } },
     base: { label: "Note", navigation: { show: false } },
+    series: { label: "Series", navigation: { slot: "secondary" } },
+    project: { label: "Project", navigation: { slot: "secondary" } },
+    "social-post": {
+      label: "Social Post",
+      pluralName: "social-posts",
+      navigation: { slot: "secondary" },
+    },
+    newsletter: { label: "Newsletter", navigation: { slot: "secondary" } },
+    summary: { label: "Summary", navigation: { slot: "secondary" } },
   },
 };
 
