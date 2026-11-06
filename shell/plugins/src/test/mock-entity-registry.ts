@@ -92,7 +92,10 @@ export function createMockEntityRegistry(
     registerPersistValidator: (): void => {},
     getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: () => undefined,
+    // As the real registry: the adapter's schema, with the extensions this
+    // double never records merged in.
+    getEffectiveFrontmatterSchema: (type: string) =>
+      store.adapters.get(type)?.frontmatterSchema,
     getFrontmatterExtensions: () => [],
     getGroupings: () => [],
     registerGroupingSource: (): never => {

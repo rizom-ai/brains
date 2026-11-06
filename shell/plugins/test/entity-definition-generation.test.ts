@@ -548,6 +548,20 @@ describe("linking what a generation produced", () => {
         success: false,
         error: "Entity type 'jotting' doesn't support cover images",
       });
+      // A declared type's metadata is its frontmatter: a link into a field its
+      // schema does not declare would be stored where no read reaches it.
+      expect(
+        await run(harness, "render:generation", {
+          target: "scribble",
+          targetType: "jotting",
+          mode: "list",
+        }),
+      ).toEqual({
+        success: false,
+        error:
+          "Entity type 'jotting' declares no metadata field 'renders' to link into",
+      });
+      expect(await stored(harness, "render", "render-scribble")).toBeNull();
     } finally {
       await harness.reset();
     }

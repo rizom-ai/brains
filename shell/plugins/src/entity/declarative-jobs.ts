@@ -216,7 +216,39 @@ export async function generationLinkProblem(
   ) {
     return `Entity type '${link.entityType}' doesn't support cover images`;
   }
-  return undefined;
+  // A declared type's metadata is its frontmatter, so a link writes one of
+  // its metadata fields; one the schema does not declare would be stored
+  // where no read reaches it. Other types keep free-form frontmatter.
+  if (
+    context.entities.getAdapter(link.entityType)?.metadataFromFrontmatter !==
+    true
+  ) {
+    return undefined;
+  }
+  const schema = context.entities.getEffectiveFrontmatterSchema(
+    link.entityType,
+  );
+  if (!schema) return undefined;
+  const linked = "field" in link ? link.field : link.list;
+  // The metadata as the link would leave it, with a stand-in for the id.
+  const probe = {
+    ...target.metadata,
+    [linked]:
+      "field" in link
+        ? "linked-entity"
+        : appendToList(target.metadata[link.list], link, "linked-entity"),
+  };
+  let parsed: unknown;
+  try {
+    parsed = schema.parse(probe);
+  } catch {
+    return `Entity type '${link.entityType}' field '${linked}' cannot hold a link`;
+  }
+  return typeof parsed === "object" &&
+    parsed !== null &&
+    Object.hasOwn(parsed, linked)
+    ? undefined
+    : `Entity type '${link.entityType}' declares no metadata field '${linked}' to link into`;
 }
 
 /**

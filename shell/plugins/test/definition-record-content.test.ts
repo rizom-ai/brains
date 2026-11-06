@@ -552,3 +552,64 @@ describe("a generation links into a declared target through the real service", (
     expect(essay?.content).toBe("Body");
   });
 });
+
+describe("a generation refuses a link its declared target cannot hold", () => {
+  const plain = defineEntity({
+    type: "plain",
+    purpose: "Declares no list of renders",
+    metadata: z.object({ title: z.string() }),
+  });
+  const renderPlain = defineEntity({
+    type: "render-plain",
+    purpose: "A render linked into a plain target",
+    metadata: z.object({ title: z.string() }),
+    generation: {
+      input: z.object({}),
+      generate: async () => ({
+        success: true,
+        id: "render-plain-1",
+        content: "rendered",
+        metadata: { title: "Render" },
+        linkInto: { entityType: "plain", entityId: "page", list: "renders" },
+      }),
+    },
+  });
+
+  it("before anything is saved", async () => {
+    const { service, shell } = await realShell([plain, renderPlain]);
+    await service.createEntity({
+      entity: {
+        id: "page",
+        entityType: "plain",
+        content: "Body",
+        metadata: { title: "Page" },
+      },
+    });
+    const handler = shell
+      .getJobQueueService()
+      .getHandler("render-plain:generation");
+    const data = handler?.validateAndParse({});
+    if (!handler || data === null || data === undefined) {
+      throw new Error("No generation handler");
+    }
+    expect(
+      await handler.process(
+        data,
+        "job-plain",
+        createMockProgressReporter(),
+        new AbortController().signal,
+      ),
+    ).toEqual({
+      success: false,
+      error:
+        "Entity type 'plain' declares no metadata field 'renders' to link into",
+    });
+    expect(
+      await service.getEntityRaw({
+        entityType: "render-plain",
+        id: "render-plain-1",
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+  });
+});
