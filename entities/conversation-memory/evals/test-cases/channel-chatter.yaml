@@ -1,0 +1,31 @@
+id: channel-action-items-chatter
+name: Finds no action items in channel chatter
+description: >-
+  Questions, opinions, thanks and a report of finished work are not action
+  items; the pickup returns none.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+  - hallucination
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: How did the board meeting go yesterday?
+    - speaker: Niels
+      userId: usr_niels
+      content: Pretty well, I think the deck landed. I already sent everyone the notes this morning.
+    - speaker: Jo
+      userId: usr_jo
+      content: Nice, thanks for doing that!
+    - speaker: Natalie
+      content: I like the new logo by the way.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0

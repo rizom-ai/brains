@@ -5,6 +5,7 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import type {
+  CreateCheckResult,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -116,6 +117,13 @@ export abstract class EntityPlugin<
           this.interceptCreate(input, executionContext, context),
       );
     }
+    if (this.checkCreate !== EntityPlugin.prototype.checkCreate) {
+      context.entities.registerCreateCheck(
+        this.entityType,
+        (input, executionContext) =>
+          this.checkCreate(input, executionContext, context),
+      );
+    }
 
     // Auto-register generation handler if provided
     const handler = this.createGenerationHandler(context);
@@ -157,6 +165,20 @@ export abstract class EntityPlugin<
     _context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     return { kind: "continue", input };
+  }
+
+  /**
+   * Override to check a system_create for this entity type before the user
+   * is asked to confirm it: ask for a missing piece, refuse unusable input,
+   * or fill in the title and fields the confirmation shows and the
+   * confirmed create (`interceptCreate`) receives. Reads only.
+   */
+  protected async checkCreate(
+    _input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    _context: EntityPluginContext,
+  ): Promise<CreateCheckResult> {
+    return { kind: "ready" };
   }
 
   /**

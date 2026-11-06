@@ -24,7 +24,7 @@ type PromptFrontmatterSchema = z.ZodObject<{
 export const promptFrontmatterSchema: PromptFrontmatterSchema = z.object({
   title: z.string(),
   target: z.string(),
-  defaultHash: z.string().optional(),
+  defaultHash: z.string().optional().meta({ studioWidget: "hidden" }),
 });
 
 export interface PromptMetadata {

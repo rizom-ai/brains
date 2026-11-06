@@ -1,7 +1,7 @@
 import type {
   AppendAuthAuditEventInput,
   AuthPrincipal,
-} from "@brains/auth-service";
+} from "@brains/contracts";
 import type { ActorRef } from "@brains/contracts";
 import type {
   ContentVisibility,
@@ -36,7 +36,10 @@ export interface StudioTypeCapabilities {
 export interface StudioEntityTypeInfo {
   entityType: string;
   classification: EntityTypeClassification;
+  /** What the collection is called, e.g. "Notes". */
   label: string;
+  /** What one entry is called, e.g. "Note"; singletons use it as their name. */
+  singularLabel: string;
   isSingleton: boolean;
   hasBody: boolean;
   count: number;
@@ -58,6 +61,14 @@ export interface EditorRouteOptions {
   getGroupingDefinitions?: () => GroupingDefinitionsSnapshot;
   recordAuditEvent?:
     ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
+  /** The brain's members, who people fields are assigned from. */
+  listMembers?: (() => Promise<StudioMember[]>) | undefined;
+}
+
+/** A brain member as people fields offer them: an id and a name. */
+export interface StudioMember {
+  id: string;
+  name: string;
 }
 
 export type StudioRequestAccessResolution =

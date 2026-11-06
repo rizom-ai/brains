@@ -8,7 +8,10 @@ import {
 import { createSiteBuilderServices } from "../test-helpers";
 import type { EntityDisplayMap } from "../../src/config";
 import { createSilentLogger } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type {
+  ListEntitiesRequest,
+  ServicePluginContext,
+} from "@brains/plugins";
 import {
   createSiteImageRenderer,
   type SiteImageLookup,
@@ -66,6 +69,35 @@ describe("SiteBuilder - URL Enrichment", () => {
     ).toEqual(["cover", "inline", "og"]);
     expect(mockContext.entityService.listEntities).toHaveBeenCalledTimes(1);
     expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
+  });
+
+  it("scans a large type a page at a time", async () => {
+    const posts = Array.from({ length: 2500 }, (_, index) =>
+      createTestEntity("post", {
+        id: `post-${index}`,
+        content: `---\ncoverImageId: cover-${index}\n---\nText`,
+      }),
+    );
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "post",
+    ]);
+    const listEntities = spyOn(
+      mockContext.entityService,
+      "listEntities",
+    ).mockImplementation(async (request: ListEntitiesRequest) => {
+      const offset = request.options?.offset ?? 0;
+      const limit = request.options?.limit ?? posts.length;
+      return posts.slice(offset, offset + limit);
+    });
+
+    const ids = await collectAllImageIds(mockContext.entityService, logger);
+
+    expect(ids).toHaveLength(2500);
+    expect(ids).toContain("cover-2499");
+    const limits = listEntities.mock.calls.map(
+      ([request]) => request.options?.limit,
+    );
+    expect(limits).toEqual([1000, 1000, 1000]);
   });
 
   it("discovers full, collapsed and shortcut image references, not unused definitions or ordinary links", async () => {

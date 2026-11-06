@@ -4,12 +4,10 @@ export const seriesStyles: Record<
   | "figure"
   | "caption"
   | "chart"
+  | "flat"
   | "hit"
   | "marker"
   | "bar"
-  | "good"
-  | "warn"
-  | "error"
   | "missing"
   | "axis"
   | "peak",
@@ -34,6 +32,8 @@ export const seriesStyles: Record<
     height: "140px",
     overflow: "visible",
   },
+  // Nothing to plot: keep the timeline, drop the empty plot area.
+  flat: { height: "24px" },
   hit: {
     fill: "transparent",
   },
@@ -47,9 +47,6 @@ export const seriesStyles: Record<
     },
     transition: "fill 120ms ease",
   },
-  good: { fill: "var(--console-ok)" },
-  warn: { fill: "var(--console-warn)" },
-  error: { fill: "var(--console-err)" },
   missing: {
     fill: "none",
     stroke: "var(--console-rule-strong)",

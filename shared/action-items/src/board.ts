@@ -1,14 +1,19 @@
 import { computeContentHash } from "@brains/utils/hash";
+import { ENTITY_SYSTEM_FIELDS } from "@brains/plugins";
 import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
 import { CONVERSATION_SUMMARY_ENTITY_TYPE } from "./constants";
 import { channelLabel } from "./format";
-import { ACTION_ITEM_RETIRED_FIELDS } from "./stored-shape";
+import {
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
+} from "./stored-shape";
 import {
   actionItemMetadataSchema,
   actionItemOrigin,
+  type ActionItemAssignee,
   type ActionItemEntity,
   type ActionItemStatus,
 } from "./schema";
@@ -17,7 +22,12 @@ import {
 const OWNED_FIELDS: ReadonlySet<string> = new Set(
   Object.keys(actionItemMetadataSchema.shape),
 );
-const RETIRED_FIELDS: ReadonlySet<string> = new Set(ACTION_ITEM_RETIRED_FIELDS);
+const RETIRED_FIELDS: ReadonlySet<string> = new Set([
+  ...ACTION_ITEM_RETIRED_FIELDS,
+  ...ACTION_ITEM_TRANSLATED_FIELDS,
+]);
+/** Keys the entity service writes on every card, such as its visibility. */
+const SYSTEM_FIELDS: ReadonlySet<string> = new Set(ENTITY_SYSTEM_FIELDS);
 
 /** A card's status moved underneath the person moving it. */
 export class StaleActionItemStatusError extends Error {
@@ -50,7 +60,9 @@ function frontmatterFields(content: string): Record<string, unknown> {
  * in their current shape, then every extension (a grouping) as stored.
  * Retired fields are not written back.
  */
-function frontmatterToWrite(entity: ActionItemEntity): Record<string, unknown> {
+export function actionItemFrontmatter(
+  entity: ActionItemEntity,
+): Record<string, unknown> {
   const owned = Object.entries(entity.metadata).filter(
     ([, value]) => value !== undefined,
   );
@@ -69,6 +81,15 @@ export function actionItemBodyHash(content: string): string {
   return computeContentHash(actionItemBody(content));
 }
 
+/** Who a card is assigned to, as a hash of their ids in any order. */
+export function actionItemAssigneeHash(
+  assignedTo: readonly Pick<ActionItemAssignee, "id">[] | undefined,
+): string {
+  return computeContentHash(
+    JSON.stringify((assignedTo ?? []).map((assignee) => assignee.id).sort()),
+  );
+}
+
 /**
  * Once anything but the projector has written an item it belongs to the board,
  * and re-projection must neither delete nor overwrite it. Read from stored
@@ -79,8 +100,18 @@ export function isBoardOwned(entity: ActionItemEntity): boolean {
   const fields = Object.keys(frontmatterFields(entity.content));
   if (
     fields.some(
-      (field) => !OWNED_FIELDS.has(field) && !RETIRED_FIELDS.has(field),
+      (field) =>
+        !OWNED_FIELDS.has(field) &&
+        !RETIRED_FIELDS.has(field) &&
+        !SYSTEM_FIELDS.has(field),
     )
+  )
+    return true;
+  const assignees = entity.metadata.projectedAssigneeHash;
+  if (
+    assignees !== undefined &&
+    (actionItemAssigneeHash(entity.metadata.assignedTo) !== assignees ||
+      entity.metadata.dueDate !== entity.metadata.projectedDueDate)
   )
     return true;
   const projected = entity.metadata.projectedBodyHash;
@@ -102,7 +133,7 @@ export function applyMove(
     throw new Error(`Action item is already ${move.to}`);
   }
   const content = generateMarkdown(
-    { ...frontmatterToWrite(entity), status: move.to },
+    { ...actionItemFrontmatter(entity), status: move.to },
     actionItemBody(entity.content),
   );
   return {
@@ -118,6 +149,13 @@ export function actionItemTitle(entity: ActionItemEntity): string {
   const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
   const title = heading?.replace(/^Action item:\s*/, "");
   return title !== undefined && title.length > 0 ? title : entity.id;
+}
+
+/** A card's text: its body under the heading, notes included. */
+export function actionItemText(entity: ActionItemEntity): string {
+  return actionItemBody(entity.content)
+    .replace(/^#[^\n]*\n/, "")
+    .trim();
 }
 
 export interface ActionItemNote {
@@ -143,7 +181,7 @@ export function applyNote(
   const next = /^## Notes$/m.test(body)
     ? `${ended}${line}`
     : `${ended}\n## Notes\n\n${line}`;
-  const content = generateMarkdown(frontmatterToWrite(entity), next);
+  const content = generateMarkdown(actionItemFrontmatter(entity), next);
   return { ...entity, content, contentHash: computeContentHash(content) };
 }
 
@@ -153,13 +191,15 @@ export function actionItemCapturedAt(entity: ActionItemEntity): string {
 }
 
 export interface ActionItemSource {
-  /** Where the item came from, in a word: its channel, or the Inbox. */
+  /** Where the item came from, in a word: its channel, the Inbox, or the Board. */
   place: string;
-  link: { label: string; entityType: string; entityId: string };
+  /** The entity it came from; a card added on the board has none. */
+  link?: { label: string; entityType: string; entityId: string };
 }
 
 export function actionItemSource(entity: ActionItemEntity): ActionItemSource {
   const origin = actionItemOrigin(entity.metadata);
+  if (origin.kind === "board") return { place: "Board" };
   return origin.kind === "conversation"
     ? {
         place: channelLabel(origin.channelName, origin.channelId),

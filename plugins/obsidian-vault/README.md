@@ -20,6 +20,8 @@ Singleton entities (e.g., `brain-character`, `anchor-profile`, `site-info`) are 
 
 Bases files are only written if they don't already exist. This lets users customize views without them being overwritten on the next sync. Templates and fileClasses are always regenerated.
 
+Base files are named the way Studio names collections (`FAQs.base`, `Site Content.base`). A base found under its earlier name (`Faqs.base`, `Site Contents.base`) moves to the current name once: an untouched one is regenerated, an edited one keeps its content.
+
 ## Obsidian setup
 
 ### 1. Templates (core plugin)

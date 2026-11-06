@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils/error";
-import { BrokerConnection } from "./client";
+import { connectBroker } from "./load-client";
 
 /**
  * What the checkout's owner is doing, asked on request.
@@ -68,7 +68,7 @@ export function probeBrokerActivity(
   socketPath: string,
 ): () => Promise<BrokerActivity> {
   return async (): Promise<BrokerActivity> => {
-    const connection = await BrokerConnection.connect(socketPath);
+    const connection = await connectBroker(socketPath);
     try {
       const status = await connection.status();
       return {

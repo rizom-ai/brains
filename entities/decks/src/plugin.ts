@@ -1,4 +1,8 @@
 import type {
+  CreateCheckResult,
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
   Plugin,
   EntityPluginContext,
   EntityTypeConfig,
@@ -12,7 +16,6 @@ import {
   emptyEntityPluginConfigSchema,
 } from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-composition";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
@@ -39,6 +42,7 @@ import {
 } from "./attachments/og-image-template";
 import { createDeckOgImageProvider } from "./attachments/og-image-provider";
 import { createDeckAtprotoProjection } from "./atproto-projection";
+import { checkDeckText, createDeckFromText } from "./lib/create-from-text";
 import packageJson from "../package.json";
 
 const generateDeckEvalInputSchema: z.ZodObject<{
@@ -75,7 +79,6 @@ export class DecksPlugin extends EntityPlugin<
   readonly adapter: typeof deckAdapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(deps: DecksPluginDeps = {}) {
     super("decks", packageJson, {}, emptyEntityPluginConfigSchema);
@@ -110,6 +113,22 @@ export class DecksPlugin extends EntityPlugin<
     return { weight: 1.5, projectionSourceRole: "primary" };
   }
 
+  protected override async checkCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateCheckResult> {
+    return checkDeckText(input, context);
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    return createDeckFromText(input, context);
+  }
+
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
@@ -118,10 +137,7 @@ export class DecksPlugin extends EntityPlugin<
     this.registerCarouselAttachmentProvider(context);
     this.registerOgImageAttachmentProvider(context);
     this.registerEvalHandlers(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createDeckAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createDeckAtprotoProjection());
 
     this.logger.info("Decks plugin registered");
   }
@@ -131,8 +147,6 @@ export class DecksPlugin extends EntityPlugin<
     this.unregisterCarouselAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 
   private deferPublishRegistration(context: EntityPluginContext): void {

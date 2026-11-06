@@ -502,9 +502,6 @@ export function SourcesPart({
                     <span>{`score ${score.toFixed(2)}`}</span>
                   ) : null}
                 </div>
-                {source.excerpt ? (
-                  <p className="web-chat-source-excerpt">{source.excerpt}</p>
-                ) : null}
               </li>
             );
           })}

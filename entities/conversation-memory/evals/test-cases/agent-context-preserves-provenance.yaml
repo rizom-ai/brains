@@ -18,7 +18,7 @@ input:
   channelName: Relay Team
   userPermissionLevel: trusted
   memory:
-    - id: summary-1
+    - id: relay-conv
       entityType: summary
       conversationId: relay-conv
       interfaceType: mcp

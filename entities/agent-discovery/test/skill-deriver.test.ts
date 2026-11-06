@@ -303,6 +303,25 @@ describe("deriveSkills", () => {
 });
 
 describe("buildSkillPrompt", () => {
+  it("asks to keep the names of current skills that still fit", () => {
+    const prompt = buildSkillPrompt({
+      topicTitles: ["Event Sourcing"],
+      toolDescriptions: [],
+      tagVocabulary: [],
+      currentSkills: ["Design resilient systems"],
+    });
+
+    expect(prompt).toContain("- Design resilient systems");
+    expect(prompt).toContain("keep its name exactly");
+    expect(
+      buildSkillPrompt({
+        topicTitles: ["Event Sourcing"],
+        toolDescriptions: [],
+        tagVocabulary: [],
+      }),
+    ).not.toContain("keep its name exactly");
+  });
+
   it("should include topic titles grouped", () => {
     const input: SkillDeriverInput = {
       topicTitles: ["Event Sourcing", "Distributed Systems", "Urban Sensing"],

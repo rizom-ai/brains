@@ -1,3 +1,4 @@
+import type { StudioMember } from "../../src/editor-contracts";
 import type {
   RuntimeStudioWorkspaceData,
   StudioWorkspaceDescriptor,
@@ -104,6 +105,8 @@ export interface FieldDescriptor {
   field?: FieldDescriptor;
   fields?: FieldDescriptor[];
 }
+
+export type { StudioMember } from "../../src/editor-contracts";
 
 export interface TypeSchema {
   groupingDefinitions?: {
@@ -269,7 +272,7 @@ function apiErrorPayload(payload: unknown): {
 
 export type FieldAssistResponse =
   | {
-      variant: "summarise";
+      variant: "summarize";
       targetField: string;
       suggestion: string;
     }
@@ -556,7 +559,7 @@ export class StudioApi {
   }
 
   async requestFieldAssist(input: {
-    variant: "summarise" | "tag-suggest";
+    variant: "summarize" | "tag-suggest";
     entityType: string;
     id: string;
     targetField: string;
@@ -595,6 +598,13 @@ export class StudioApi {
         body: JSON.stringify(input),
       },
     );
+  }
+
+  async fetchMembers(): Promise<StudioMember[]> {
+    const { members } = await this.requestJson<{ members: StudioMember[] }>(
+      this.path("members"),
+    );
+    return members;
   }
 
   async fetchSyncStatus(): Promise<SyncStatus> {

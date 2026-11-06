@@ -4,7 +4,11 @@ import { Button } from "@brains/app-ui-react";
 import type { FormEvent, KeyboardEvent, ReactElement } from "react";
 import type { StudioAppViewProps } from "./app-view-props";
 import { BodyEditor } from "./body-editor";
-import { isEditorSaveBlocked } from "./editor-save-rule";
+import {
+  STUDIO_SAVE_REASON_ID,
+  editorSaveBlockReason,
+  isEditorSaveBlocked,
+} from "./editor-save-rule";
 import { editorDocumentKey } from "./editor-workflow";
 import { PublicationActions } from "./publication-actions";
 import type { StudioAppModel } from "./studio-app-model";
@@ -72,6 +76,13 @@ export function StudioEditorPane(
     props.model,
     hasUnsavedChanges,
   );
+  const saveBlockReason = editorSaveBlockReason(
+    editor,
+    props.model,
+    hasUnsavedChanges,
+  );
+  // A singleton is one settings document, saved rather than created.
+  const creating = mode.kind === "create" && !entitySchema.isSingleton;
 
   // An invalid field on a hidden phone pane would fail silently, so the
   // Properties pane opens and the first invalid field takes focus.
@@ -149,11 +160,20 @@ export function StudioEditorPane(
               type="submit"
               className="studio-editor-head-save"
               variant={hasUnsavedChanges ? "default" : "outline"}
-              title="Save changes (Ctrl+S or ⌘S)"
+              title={`${creating ? "Create" : "Save changes"} (Ctrl+S or ⌘S)`}
               aria-keyshortcuts="Control+s Meta+s"
               disabled={saveBlocked}
+              {...(saveBlockReason && {
+                "aria-describedby": STUDIO_SAVE_REASON_ID,
+              })}
             >
-              {saveState.kind === "saving" ? "Saving…" : "Save changes"}
+              {saveState.kind === "saving"
+                ? creating
+                  ? "Creating…"
+                  : "Saving…"
+                : creating
+                  ? "Create"
+                  : "Save changes"}
             </Button>
           ) : undefined
         }

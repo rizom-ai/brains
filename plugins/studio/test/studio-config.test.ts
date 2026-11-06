@@ -7,12 +7,73 @@ import {
   zodFieldToStudioWidget,
 } from "../src/config";
 
+describe("values Studio cannot edit as text", () => {
+  it("become read-only structure instead of a blank text box", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "sections",
+        z.record(z.string(), z.object({ blurb: z.string() })),
+      ),
+    ).toMatchObject({ widget: "object" });
+    expect(zodFieldToStudioWidget("payload", z.unknown())).toMatchObject({
+      widget: "object",
+    });
+  });
+});
+
+describe("people fields", () => {
+  const people = z.array(
+    z.object({ name: z.string(), id: z.string().optional() }),
+  );
+
+  it("become a members widget when the schema assigns from members", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "assignedTo",
+        people.optional().meta({ studioWidget: "members" }),
+      ),
+    ).toMatchObject({ name: "assignedTo", widget: "members", required: false });
+  });
+
+  it("become read-only facts or disappear as the schema marks them", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "origin",
+        z.enum(["conversation", "board"]).optional().meta({
+          studioWidget: "provenance",
+        }),
+      ),
+    ).toMatchObject({ name: "origin", widget: "provenance" });
+    expect(
+      zodFieldToStudioWidget(
+        "projectedBodyHash",
+        z.string().optional().meta({ studioWidget: "hidden" }),
+      ),
+    ).toMatchObject({ widget: "hidden" });
+  });
+
+  it("become a people widget when the schema only names people", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "requestedBy",
+        people.optional().meta({ studioWidget: "people" }),
+      ),
+    ).toMatchObject({ name: "requestedBy", widget: "people" });
+  });
+});
+
 describe("zodFieldToStudioWidget", () => {
   it("should map z.string() to string widget", () => {
     const result = zodFieldToStudioWidget("title", z.string());
     expect(result.widget).toBe("string");
     expect(result.name).toBe("title");
     expect(result.label).toBe("Title");
+  });
+
+  it("maps an ISO date to the date widget", () => {
+    expect(
+      zodFieldToStudioWidget("dueDate", z.iso.date().optional()).widget,
+    ).toBe("date");
   });
 
   it("should map z.string().datetime() to datetime widget", () => {
@@ -133,6 +194,25 @@ describe("entityTypeLabels", () => {
     expect(entityTypeLabels("social-post", socialPosts)).toEqual({
       label: "Social Post",
       pluralLabel: "Social Posts",
+    });
+  });
+
+  it("does not pluralize mass nouns, invariant words or acronyms wrongly", () => {
+    expect(entityTypeLabels("ask-content")).toEqual({
+      label: "Ask Content",
+      pluralLabel: "Ask Content",
+    });
+    expect(entityTypeLabels("site-info")).toEqual({
+      label: "Site Info",
+      pluralLabel: "Site Info",
+    });
+    expect(entityTypeLabels("series")).toEqual({
+      label: "Series",
+      pluralLabel: "Series",
+    });
+    expect(entityTypeLabels("faq")).toEqual({
+      label: "FAQ",
+      pluralLabel: "FAQs",
     });
   });
 });

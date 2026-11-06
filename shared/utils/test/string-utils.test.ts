@@ -4,6 +4,10 @@ import {
   truncateSlug,
   generateIdFromText,
   pluralize,
+  formatLabel,
+  displayTitleFrom,
+  formatByteSize,
+  pluralizeLabel,
   toDisplayName,
   normalizeTag,
   normalizeTags,
@@ -205,7 +209,9 @@ describe("string-utils", () => {
 
     it("should handle hyphenated entity types", () => {
       expect(toDisplayName("social-post")).toBe("Social Posts");
-      expect(toDisplayName("site-info")).toBe("Site Infos");
+      expect(toDisplayName("site-info")).toBe("Site Info");
+      expect(toDisplayName("site-content")).toBe("Site Content");
+      expect(toDisplayName("faq")).toBe("FAQs");
     });
 
     it("should handle invariant words", () => {
@@ -215,6 +221,68 @@ describe("string-utils", () => {
     it("should only pluralize the last word", () => {
       expect(toDisplayName("anchor-profile")).toBe("Anchor Profiles");
       expect(toDisplayName("brain-character")).toBe("Brain Characters");
+    });
+  });
+
+  describe("formatLabel", () => {
+    it("title-cases identifiers", () => {
+      expect(formatLabel("social-post")).toBe("Social Post");
+      expect(formatLabel("publishedAt")).toBe("Published At");
+      expect(formatLabel("series_name")).toBe("Series Name");
+    });
+
+    it("keeps acronyms and brand names in their usual form", () => {
+      expect(formatLabel("faq")).toBe("FAQ");
+      expect(formatLabel("ogImage")).toBe("OG Image");
+      expect(formatLabel("canonicalUrl")).toBe("Canonical URL");
+      expect(formatLabel("atprotoUri")).toBe("AT Protocol URI");
+      expect(formatLabel("cta")).toBe("CTA");
+      expect(formatLabel("conversation-memory-ai-response")).toBe(
+        "Conversation Memory AI Response",
+      );
+      expect(formatLabel("social-media-linkedin")).toBe(
+        "Social Media LinkedIn",
+      );
+    });
+  });
+
+  describe("displayTitleFrom", () => {
+    it("prefers a title, then a name, then a question", () => {
+      expect(displayTitleFrom({ title: "A post", name: "post" })).toBe(
+        "A post",
+      );
+      expect(displayTitleFrom({ name: "Design resilient systems" })).toBe(
+        "Design resilient systems",
+      );
+      expect(displayTitleFrom({ question: "Which posts are published?" })).toBe(
+        "Which posts are published?",
+      );
+    });
+
+    it("has no title when none of them is readable text", () => {
+      expect(displayTitleFrom({ title: "  ", name: 3 })).toBeUndefined();
+      expect(displayTitleFrom({})).toBeUndefined();
+    });
+  });
+
+  describe("pluralizeLabel", () => {
+    it("pluralizes a display label, keeping mass nouns and plurals", () => {
+      expect(pluralizeLabel("Social Post")).toBe("Social Posts");
+      expect(pluralizeLabel("FAQ")).toBe("FAQs");
+      expect(pluralizeLabel("Ask Content")).toBe("Ask Content");
+      expect(pluralizeLabel("Site Info")).toBe("Site Info");
+      expect(pluralizeLabel("Series")).toBe("Series");
+    });
+  });
+
+  describe("formatByteSize", () => {
+    it("reads sizes in bytes, kilobytes and megabytes", () => {
+      expect(formatByteSize(0)).toBe("0 bytes");
+      expect(formatByteSize(1)).toBe("1 byte");
+      expect(formatByteSize(999)).toBe("999 bytes");
+      expect(formatByteSize(1_500)).toBe("1.5 KB");
+      expect(formatByteSize(4_000_000)).toBe("4 MB");
+      expect(formatByteSize(12_345_678)).toBe("12.3 MB");
     });
   });
 

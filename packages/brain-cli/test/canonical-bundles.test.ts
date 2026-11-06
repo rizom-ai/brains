@@ -57,7 +57,7 @@ const targetRecipes: Record<TargetRecipeName, TargetRecipeSelection> = {
   team: {
     bundleContract,
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
-    add: ["docs"],
+    add: ["docs", "action-board"],
   },
 };
 
@@ -66,7 +66,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "prompt",
     "profile",
     "style-guide",
-    "ask-content",
     "note",
     "link",
     "topics",
@@ -94,7 +93,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "dashboard",
     "admin",
     "conversation-memory",
-    "action-board",
     "faq",
     "unified-inbox",
     "mcp",
@@ -139,7 +137,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "stock-photo",
     "atproto",
     "conversation-memory",
-    "action-board",
     "faq",
     "unified-inbox",
     "mcp",

@@ -49,11 +49,14 @@ function createTransport(options: { extraTool?: boolean } = {}): {
         },
       },
       ({ message }) => {
-        if (message === "write") {
+        if (message === "write" || message === "write with reply") {
           return toolResult({
             needsConfirmation: true,
             toolName: "system_create",
             summary: "Save the note?",
+            ...(message === "write with reply"
+              ? { text: "Here is the note.\n\nConfirmation required." }
+              : {}),
             completionSummary: "Saved the note.",
             preview: "MCP Basic Evidence Note",
             args: {
@@ -150,6 +153,17 @@ describe("MCPProtocolAgentService", () => {
           args: { entityType: "note" },
         },
       ]);
+      expect(pending.text).toBe("Save the note?");
+
+      // What the agent wrote is the reply the MCP client sees.
+      const withReply = await service.chat(
+        "write with reply",
+        "conversation-1",
+        { userPermissionLevel: "admin", isAnchor: true },
+      );
+      expect(withReply.text).toBe(
+        "Here is the note.\n\nConfirmation required.",
+      );
 
       const confirmed = await service.confirmPendingAction(
         "conversation-1",

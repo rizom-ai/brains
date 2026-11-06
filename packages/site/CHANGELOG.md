@@ -1,5 +1,17 @@
 # @rizom/site
 
+## 0.2.0-alpha.241
+
+### Minor Changes
+
+- [#802](https://github.com/rizom-ai/brains/pull/802) [`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: a route places a schema-first section by its runtime name, `namespace:name` (`home:hero`), the same form every template has. The dotted `home.hero` was rewritten by `defineSite()` only, so a site exported without it rendered nothing for those sections; it is now rejected with the colon spelling to use. `defineSite()` still makes `content.home.hero` the fallback of the section placed as `home:hero`, and validation messages name sections the same way. The bundled sites use the colon form.
+
+## 0.2.0-alpha.240
+
+### Patch Changes
+
+- [#778](https://github.com/rizom-ai/brains/pull/778) [`66de6ee`](https://github.com/rizom-ai/brains/commit/66de6ee6c8c1a29d5b4d9220dcc7375dd5e679b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site can declare the languages it is built in: `defineSite({ languages: ["en", "zh-TW"] })`, the first the default. Language tags are validated, a language declared twice is refused, and so is a route under another language's path. `languagePath(language, defaultLanguage, path)` gives where a page lives in a language: the default keeps the route's own path, every other language puts its lowercased tag in front (`/zh-tw/about`). Layouts receive the page's `language` and its `alternates` (`SiteAlternate`: every language the page is built in, with its path there), for a language switch that offers only what exists. A route can carry its head and navigation label in the other languages (`translations: { "zh-TW": { title, description, navigationLabel } }`), and site metadata its title, description, copyright and call to action (`translations`, `SiteMetadataTranslation`). A section can be drawn another way in another language: `defineSection(schema, Component, { …meta, components: { "zh-TW": ComponentZh } })`; both drawings read the same copy fields.
+
 ## 0.2.0-alpha.239
 
 ### Patch Changes

@@ -189,20 +189,6 @@ describe("brain init", () => {
       expect(yaml).not.toContain("preset:");
     });
 
-    it("should wire personal first-passkey setup email", () => {
-      scaffold(testDir, { recipe: "personal" });
-
-      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain("auth-service:");
-      expect(yaml).toContain("setupEmail: ${SETUP_EMAIL_TO}");
-      expect(yaml).toContain("notifications:");
-      expect(yaml).toContain("address: ${SETUP_EMAIL_TO}");
-      expect(yaml).toContain("email:");
-      expect(yaml).toContain("transport: resend");
-      expect(yaml).toContain("apiKey: ${SETUP_EMAIL_API_KEY}");
-      expect(yaml).toContain("from: ${SETUP_EMAIL_FROM}");
-    });
-
     it("should leave git sync disabled when no contentRepo is provided", () => {
       scaffold(testDir, { recipe: "personal" });
 

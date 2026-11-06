@@ -1,7 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 
 export const formFieldStyles: Record<
-  "label" | "control" | "checkboxLabel" | "checkbox",
+  "label" | "wideLabel" | "control" | "textarea" | "checkboxLabel" | "checkbox",
   stylex.StyleXStyles
 > = stylex.create({
   label: {
@@ -13,6 +13,8 @@ export const formFieldStyles: Record<
     fontSize: 10,
     overflowWrap: "anywhere",
   },
+  // Longer text spans the form row instead of sharing it.
+  wideLabel: { gridColumn: "1 / -1" },
   control: {
     minHeight: { default: 38, "@media (max-width: 640px)": 44 },
     minWidth: 0,
@@ -32,6 +34,7 @@ export const formFieldStyles: Record<
     outlineColor: "var(--console-accent)",
     outlineOffset: -2,
   },
+  textarea: { minHeight: 88, resize: "vertical", lineHeight: 1.45 },
   checkboxLabel: {
     display: "flex",
     alignItems: "center",

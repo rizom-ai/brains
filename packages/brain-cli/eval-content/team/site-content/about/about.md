@@ -1,8 +1,3 @@
----
-routeId: about
-sectionId: about
----
-
 # About Team Brain
 
 ## Title

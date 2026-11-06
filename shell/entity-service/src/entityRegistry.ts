@@ -11,6 +11,7 @@ import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
   type InvalidFieldPolicy,
+  unwrittenFields,
 } from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
 import {
@@ -29,6 +30,7 @@ import {
 } from "./entity-grouping";
 import type {
   BaseEntity,
+  CreateCheck,
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
@@ -46,6 +48,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
+  private createChecks = new Map<string, CreateCheck>();
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
@@ -112,6 +115,16 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
 
+    const declared = declaredMetadataKeys(schema);
+    const stillDeclared = unwrittenFields(config ?? {}).find((field) =>
+      declared.has(field),
+    );
+    if (stillDeclared !== undefined) {
+      throw new Error(
+        `Entity type registration failed: ${type} retires ${stillDeclared}, which its metadata schema still declares`,
+      );
+    }
+
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
@@ -129,6 +142,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.entityAdapters.delete(type);
     this.entityConfigs.delete(type);
     this.createInterceptors.delete(type);
+    this.createChecks.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
     this.groupingExtensions.delete(type);
@@ -153,9 +167,7 @@ export class EntityRegistry implements IEntityRegistry {
   getSchema(type: string): UnknownEntitySchema {
     const schema = this.entitySchemas.get(type);
     if (!schema) {
-      throw new Error(
-        `Entity type registration failed for ${type}: No schema registered for entity type`,
-      );
+      throw new Error(`Unknown entity type ${type}: no schema registered`);
     }
     return schema;
   }
@@ -167,9 +179,7 @@ export class EntityRegistry implements IEntityRegistry {
   getAdapter(type: string): EntityAdapter<BaseEntity> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
-      throw new Error(
-        `Entity type registration failed for ${type}: No adapter registered for entity type`,
-      );
+      throw new Error(`Unknown entity type ${type}: no adapter registered`);
     }
 
     const effectiveSchema = this.mergeExtensions(
@@ -317,6 +327,14 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined {
     return this.createInterceptors.get(type);
+  }
+
+  registerCreateCheck(type: string, check: CreateCheck): void {
+    this.createChecks.set(type, check);
+  }
+
+  getCreateCheck(type: string): CreateCheck | undefined {
+    return this.createChecks.get(type);
   }
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void {
@@ -708,4 +726,18 @@ export class EntityRegistry implements IEntityRegistry {
       }
     });
   }
+}
+
+/**
+ * The top-level metadata keys an entity schema declares. A retired field is
+ * dropped from stored metadata, so the schema must not require it.
+ */
+function declaredMetadataKeys(
+  schema: UnknownEntitySchema,
+): ReadonlySet<string> {
+  if (!(schema instanceof z.ZodObject)) return new Set();
+  const metadata: unknown = schema.shape["metadata"];
+  return metadata instanceof z.ZodObject
+    ? new Set(Object.keys(metadata.shape))
+    : new Set();
 }

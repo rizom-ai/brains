@@ -60,7 +60,6 @@ export class ButtondownPlugin extends ServicePlugin<
       provider,
       {
         pluginId: this.id,
-        publishResultIdField: "buttondownId",
         signupAction: "/api/buttondown/subscribe",
         signupSuccessMessage: this.config.doubleOptIn
           ? "Check your email to confirm your subscription."

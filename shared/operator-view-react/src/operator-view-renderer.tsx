@@ -18,7 +18,8 @@ import type {
   OperatorViewComponents,
   PresentedActionResult,
 } from "./operator-view-host";
-import { ActionResult, OperatorActionButton } from "./operator-view-actions";
+import { ActionResult } from "./operator-action-result";
+import { OperatorActionButton } from "./operator-view-actions";
 import { StatsBlock } from "./operator-view-blocks";
 import { ViewBlock, blockSpan } from "./operator-view-panels";
 
@@ -83,7 +84,7 @@ export function OperatorViewRenderer(
     >
       <main
         {...frame}
-        className={`declarative-workspace operator-view ${frame.className ?? ""}`}
+        data-operator-view=""
         data-control-engine={components.engine}
       >
         {props.renderHead !== false && hasHead && (
@@ -124,14 +125,10 @@ export function OperatorViewRenderer(
             </div>
           </header>
         )}
-        <div
-          {...sections}
-          data-operator-blocks=""
-          className={`declarative-blocks ${sections.className ?? ""}`}
-        >
+        <div {...sections} data-operator-blocks="">
           {actionReceipt && (
             <section
-              className={`operator-block operator-block--action declarative-action-receipt ${stylex.props(workspace.section, workspace.wide).className ?? ""}`}
+              {...stylex.props(workspace.section, workspace.wide)}
               data-block="action"
               data-span="wide"
             >
@@ -143,7 +140,11 @@ export function OperatorViewRenderer(
           )}
           {bodyBlocks.map((block, index) => (
             <section
-              className={`operator-block operator-block--${block.type} ${stylex.props(workspace.section, blockSpan(block.type) === "wide" && workspace.wide, block.type === "query" && workspace.query).className ?? ""}`}
+              {...stylex.props(
+                workspace.section,
+                blockSpan(block.type) === "wide" && workspace.wide,
+                block.type === "query" && workspace.query,
+              )}
               key={block.id ?? `${block.type}:${index}`}
               data-block={block.type}
               data-span={blockSpan(block.type)}

@@ -1,3 +1,4 @@
+import { normalizeIssuer } from "@brains/plugins";
 import {
   CHAT_INTERACTION_ID,
   MCP_INTERACTION_ID,
@@ -22,7 +23,6 @@ import {
   AuthService,
   AuthServicePlugin,
   authServicePlugin,
-  normalizeIssuer,
   reinitializeAuthAccessStorage,
   type AuthServiceConfig,
 } from "../src";
@@ -159,6 +159,25 @@ describe("AuthService", () => {
     expect(() => normalizeIssuer("https://brain.example.com/auth")).toThrow(
       "OAuth issuer must be an origin",
     );
+  });
+
+  it("serves its service to other plugins through context.auth until shutdown", async () => {
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+      }),
+    );
+    const registry = harness.getMockShell().getAuthRegistry();
+    expect(registry.get()).toBeInstanceOf(AuthService);
+    expect(registry.get()?.getIssuer()).toBe("https://brain.example.com");
+
+    await harness.reset();
+
+    expect(registry.get()).toBeUndefined();
   });
 
   it("keeps default auth storage outside the synchronized content tree", () => {
@@ -420,6 +439,29 @@ describe("AuthService", () => {
       issuer: "http://127.0.0.1:8080",
       token_endpoint: "http://127.0.0.1:8080/token",
     });
+  });
+
+  it("sends a newly registered operator to the brain's home surface", async () => {
+    const studio = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+      resolveHomePath: (): string => "/studio",
+    });
+    await studio.initialize();
+    const studioPage = await studio.handleRequest(
+      new Request(studio.getSetupUrl("http://localhost:8080") ?? ""),
+    );
+    expect(await studioPage.text()).toContain('location.href = "/studio";');
+
+    const plain = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+    await plain.initialize();
+    const plainPage = await plain.handleRequest(
+      new Request(plain.getSetupUrl("http://localhost:8080") ?? ""),
+    );
+    expect(await plainPage.text()).toContain('location.href = "/";');
   });
 
   it("serves setup page and registration options before passkey enrollment", async () => {

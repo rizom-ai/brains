@@ -84,6 +84,21 @@ Each sibling adds only what it needs:
 | `daemons`                               | —      | —       | ✅        |
 | `conversations` (write)                 | —      | —       | ✅        |
 
+## Analytics reports
+
+`system_analytics` answers aggregate questions through typed reports. Core registers `overview`, `publishing-cadence` and `content-health`; a plugin adds its own in `onRegister`:
+
+```typescript
+context.analytics.register(
+  defineAnalyticsReport({ type, description, params, minVisibility, handler }),
+);
+```
+
+- The tool's input schema is built after plugins register: `type` is an enum of every report, and `params` shows each report's fields.
+- The registry (`AnalyticsRegistry`) validates params against the report's own schema and refuses a caller below its `minVisibility`.
+- The handler receives a read-only entity service and the caller's `visibilityScope`. A public caller reads published entities only.
+- Report definitions carry no output schema. A consumer that renders a report, such as Studio's Traffic workspace, parses it with its own schema, so drift fails that consumer.
+
 ## Testing
 
 ```typescript

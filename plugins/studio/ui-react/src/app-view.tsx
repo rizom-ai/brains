@@ -12,8 +12,8 @@ import {
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { editorClassName as editorClass } from "./studio-editor.styles";
 import type { EntityTypeInfo, StudioWorkspaceInfo, TypeSchema } from "./api";
-import { TypeSwitcher } from "./entity-fields";
 import { DeleteDialog } from "./editor-status";
+import { entityTitle } from "./ui-utils";
 import { StudioChrome } from "./studio-chrome";
 import {
   navigationClassName as navClass,
@@ -26,6 +26,7 @@ import { deriveStudioAppModel, workspaceRailBadges } from "./studio-app-model";
 import { StudioEditorPane } from "./studio-editor-pane";
 import { StudioLibraryPane } from "./studio-library-pane";
 import { StudioWorkspacePane } from "./studio-workspace-pane";
+import { TypeSwitcher } from "./studio-type-navigation";
 export type { MobileEditorPane, StudioAppViewProps } from "./app-view-props";
 
 /** Pane preferences are presentation-only and stay in the mounted app. */
@@ -234,7 +235,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       </div>
       {deleteOpen && mode.kind === "edit" && canDelete && (
         <DeleteDialog
-          entityId={mode.entity.id}
+          title={entityTitle(mode.entity)}
           deleting={deleting}
           onCancel={() => dispatchEditor({ type: "deleteCancelled" })}
           onConfirm={remove}

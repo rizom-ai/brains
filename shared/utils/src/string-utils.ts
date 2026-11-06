@@ -188,23 +188,71 @@ export function formatLabel(name: string): string {
   return name
     .replace(/[-_]/g, " ")
     .replace(/([A-Z])/g, " $1")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .replace(/\s+/g, " ")
-    .trim();
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(
+      (word) =>
+        LABEL_WORDS[word.toLowerCase()] ??
+        word.charAt(0).toUpperCase() + word.slice(1),
+    )
+    .join(" ");
+}
+
+/** Metadata keys that name an entry, in the order people expect to read them. */
+const TITLE_KEYS = ["title", "name", "question"] as const;
+
+/** The readable name in an entry's metadata, if it has one. */
+export function displayTitleFrom(
+  metadata: Record<string, unknown>,
+): string | undefined {
+  for (const key of TITLE_KEYS) {
+    const value = metadata[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+/** Words whose usual written form is not plain title case. */
+const LABEL_WORDS: Record<string, string> = {
+  ai: "AI",
+  api: "API",
+  atproto: "AT Protocol",
+  css: "CSS",
+  cta: "CTA",
+  faq: "FAQ",
+  github: "GitHub",
+  html: "HTML",
+  id: "ID",
+  json: "JSON",
+  linkedin: "LinkedIn",
+  og: "OG",
+  pdf: "PDF",
+  rss: "RSS",
+  seo: "SEO",
+  ui: "UI",
+  uri: "URI",
+  url: "URL",
+};
+
+/** Words a label names as an amount, not as countable items. */
+const MASS_NOUNS = new Set(["content", "info", "information", "data", "media"]);
+
+/**
+ * Pluralize a display label for people, not for paths: a label already
+ * plural or ending in a mass noun ("Ask Content", "Site Info") stays as is.
+ */
+export function pluralizeLabel(label: string): string {
+  const last = label.split(" ").at(-1)?.toLowerCase() ?? "";
+  if (label.endsWith("s") || MASS_NOUNS.has(last)) return label;
+  return pluralize(label);
 }
 
 /**
- * Convert a kebab-case entity type to a human-friendly display name.
- * Splits on hyphens, title-cases each word, pluralizes the last word.
+ * Convert a kebab-case entity type to a human-friendly collection name:
+ * "social-post" → "Social Posts", "faq" → "FAQs", "site-info" → "Site Info".
  */
 export function toDisplayName(entityType: string): string {
-  const words = entityType.split("-");
-  const titleCased = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
-  const lastWord = titleCased.pop();
-  if (lastWord) {
-    titleCased.push(pluralize(lastWord));
-  }
-  return titleCased.join(" ");
+  return pluralizeLabel(formatLabel(entityType));
 }
 
 const LINK_LABEL_CANONICAL: Record<string, string> = {
@@ -300,4 +348,12 @@ function textHash(text: string): string {
     0x811c9dc5,
   );
   return hash.toString(36);
+}
+
+/** A size as people read it: bytes, then decimal kilobytes and megabytes. */
+export function formatByteSize(bytes: number): string {
+  if (bytes < 1_000) return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+  const [size, unit] =
+    bytes < 1_000_000 ? [bytes / 1_000, "KB"] : [bytes / 1_000_000, "MB"];
+  return `${Number(size.toFixed(1))} ${unit}`;
 }

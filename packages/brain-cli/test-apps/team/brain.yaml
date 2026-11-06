@@ -12,6 +12,7 @@ bundles:
   - team
 add:
   - docs
+  - action-board
 
 plugins:
   directory-sync:

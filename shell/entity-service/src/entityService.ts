@@ -7,6 +7,7 @@ import type {
   StageAssetOptions,
   StagedAsset,
 } from "@brains/assets";
+import { internalFullScope } from "./internal-scope";
 import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
@@ -57,6 +58,7 @@ import type {
   ApplyEntityMutationOnceRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
+  NearestEntity,
   NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
@@ -87,6 +89,7 @@ import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
+import { unwrittenFields } from "./frontmatter-extensions";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations, validatePersist } from "./entity-mutations";
 import {
@@ -139,6 +142,7 @@ export interface EntityServiceOptions {
  * - EntitySerializer: markdown serialization
  * - ContentResolver: entity reference resolution
  */
+
 export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
@@ -256,7 +260,11 @@ export class EntityService implements IEntityService {
           );
           const validated = options.entityRegistry.validateEntity(
             entity.entityType,
-            { ...parsed, ...entity.metadata, ...entity },
+            {
+              ...parsed,
+              ...entity.metadata,
+              ...this.entitySerializer.withoutRetiredFields(entity),
+            },
           );
           await validatePersist(options.entityRegistry, validated, operation);
           return validated;
@@ -334,6 +342,7 @@ export class EntityService implements IEntityService {
         this.logger,
         embeddingsEnabled,
         () => this.declaredPublishGates(),
+        () => this.entityRegistry.getAllEntityTypes(),
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -734,6 +743,43 @@ export class EntityService implements IEntityService {
     await this.initialize();
     this.indexReady = false;
     return this.entityMutations.backfillMissingEmbeddings();
+  }
+
+  public async rewriteRetiredFields(): Promise<{ rewritten: number }> {
+    await this.initialize();
+    const types = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          unwrittenFields(this.entityRegistry.getEntityTypeConfig(type))
+            .length > 0,
+      );
+    const rewritten = await types.reduce<Promise<number>>(
+      async (total, type) => (await total) + (await this.rewriteType(type)),
+      Promise.resolve(0),
+    );
+    return { rewritten };
+  }
+
+  /** Entities of one type still carrying a retired field, rewritten one by one. */
+  private async rewriteType(type: string): Promise<number> {
+    const ids = await this.entityQueries.idsCarryingFrontmatterFields(
+      type,
+      unwrittenFields(this.entityRegistry.getEntityTypeConfig(type)),
+    );
+    await ids.reduce<Promise<void>>(async (previous, id) => {
+      await previous;
+      const entity = await this.getEntity({
+        entityType: type,
+        id,
+        visibilityScope: internalFullScope(
+          "retired frontmatter field rewrite migration",
+        ),
+      });
+      // Reads already parse past retired fields; writing re-serializes without them.
+      if (entity) await this.updateEntity({ entity });
+    }, Promise.resolve());
+    return ids.length;
   }
 
   public isIndexReady(): boolean {
@@ -1239,9 +1285,7 @@ export class EntityService implements IEntityService {
 
   public async nearestToEntity(
     request: NearestToEntityRequest,
-  ): Promise<
-    Array<{ entityId: string; entityType: string; distance: number }>
-  > {
+  ): Promise<NearestEntity[]> {
     await this.initialize();
     return this.entitySearch.nearestToEntity(request);
   }

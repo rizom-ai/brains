@@ -68,6 +68,37 @@ describe("queued import admission", () => {
     ]);
     expect(operations.at(-1)?.type).toBe("directory-cleanup");
   });
+  test("names the entity types the scheduler admitted on each import job", async () => {
+    // A worker of another build can claim the job: during a rolling deploy
+    // the old container's worker shares the job queue. It must be able to
+    // tell that it cannot import what this process admitted.
+    const service = createMockEntityService({ entityTypes: ["doc", "guide"] });
+    const context = createMockServicePluginContext({ entityService: service });
+    const manager = new BatchOperationsManager({
+      logger: createSilentLogger(),
+      syncPath: "/tmp/import-plan",
+      deleteOnFileRemoval: true,
+    });
+
+    await manager.queueSyncBatch(context, "test", [
+      "doc/a.md",
+      "guide/writer.md",
+      "guide/team.md",
+      "README.md",
+    ]);
+
+    const operations = context.jobs.enqueueBatch.mock.calls[0]?.[0] ?? [];
+    const imports = operations
+      .filter((operation) => operation.type === "directory-import")
+      .map((operation) =>
+        directoryImportJobSchema.parse(
+          JSON.parse(JSON.stringify(operation.data)),
+        ),
+      );
+    // README.md maps to note, which this brain does not register: the
+    // import skips it as before, so it is not a type the job requires.
+    expect(imports[0]?.entityTypes).toEqual(["doc", "guide"]);
+  });
   test("does not enqueue unguarded work when snapshot capture fails", async () => {
     const service = createMockEntityService();
     spyOn(service, "getEntityWriteSnapshot").mockRejectedValue(

@@ -411,7 +411,16 @@ export const chatLayout: Record<
     minWidth: 0,
     borderWidth: 1,
     borderStyle: "solid",
-    borderColor: "var(--console-rule-strong)",
+    borderColor: {
+      default: "var(--console-rule-strong)",
+      ":focus-within": "var(--console-accent)",
+    },
+    // The whole composer shows focus, so the message field draws no second
+    // ring inside it.
+    boxShadow: {
+      default: "none",
+      ":focus-within": "0 0 0 1px var(--console-accent)",
+    },
     borderRadius: 12,
     padding: "8px 10px",
     backgroundColor: "var(--console-card)",
@@ -446,10 +455,7 @@ export const chatLayout: Record<
     fontSize: 16,
     lineHeight: 1.5,
     color: "var(--console-text)",
-    ":focus-visible": {
-      outline: "2px solid var(--console-accent)",
-      outlineOffset: 2,
-    },
+    outline: "none",
   },
   attachButton: {
     display: "inline-flex",

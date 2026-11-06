@@ -1,3 +1,4 @@
+import { findRouteByRole } from "../types/web-routes";
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
@@ -189,6 +190,7 @@ export function createServicePluginContext(
 
     webRoutes: {
       getRoutes: () => shell.getPluginWebRoutes(),
+      findByRole: (role) => findRouteByRole(shell.getPluginWebRoutes(), role),
     },
 
     content: {

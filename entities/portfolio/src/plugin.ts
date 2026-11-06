@@ -1,3 +1,11 @@
+import {
+  createTemplate,
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+  paginationInfoSchema,
+} from "@brains/plugins";
 import type {
   Plugin,
   EntityPluginContext,
@@ -5,27 +13,19 @@ import type {
   JobHandler,
   Template,
   DataSource,
+  CreateCheckResult,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import {
-  EntityPlugin,
-  SYSTEM_CHANNELS,
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
 import {
   PUBLISH_CHANNELS,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
 import { PROJECT_CHANNELS } from "./project-channels";
-import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import {
   projectSchema,
@@ -51,6 +51,11 @@ import {
   projectViewSchema,
 } from "./templates/project-view";
 import { projectGenerationTemplate } from "./templates/generation-template";
+import { projectFromTextTemplate } from "./templates/from-text-template";
+import {
+  checkProjectText,
+  createProjectFromText,
+} from "./lib/create-from-text";
 import {
   buildProjectGenerationPrompt,
   generatedProjectContentSchema,
@@ -119,7 +124,6 @@ export class PortfolioPlugin extends EntityPlugin<
   readonly entityType = "project" as const;
   readonly schema: typeof projectSchema = projectSchema;
   readonly adapter: ProjectAdapter = projectAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
@@ -131,13 +135,21 @@ export class PortfolioPlugin extends EntityPlugin<
     return { projectionSourceRole: "secondary" };
   }
 
+  protected override async checkCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateCheckResult> {
+    return checkProjectText(input, context);
+  }
+
   protected override async interceptCreate(
     input: CreateInput,
     executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     if (!input.prompt || input.content) {
-      return { kind: "continue", input };
+      return createProjectFromText(input, context);
     }
 
     const year = extractProjectYear(input.title, input.prompt);
@@ -213,6 +225,7 @@ export class PortfolioPlugin extends EntityPlugin<
         },
       }),
       generation: projectGenerationTemplate,
+      "from-text": projectFromTextTemplate,
       "og-image": projectOgImageTemplate,
       "project-printable": projectPrintableTemplate,
     };
@@ -238,10 +251,7 @@ export class PortfolioPlugin extends EntityPlugin<
     );
     this.deferPublishRegistration(context);
     this.subscribeToPublishExecute(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createProjectAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createProjectAtprotoProjection());
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -249,8 +259,6 @@ export class PortfolioPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 
   private registerEvalHandlers(context: EntityPluginContext): void {

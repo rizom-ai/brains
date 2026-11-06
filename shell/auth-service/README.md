@@ -50,6 +50,19 @@ Request authorization follows one path:
 
 Exact grants from `brain.yaml` are first-start bootstrap and explicit recovery input, not a request-time authorization fallback. Reversible channel destinations remain private person claims and are omitted from public responses, model context, logs, invitation attempts, and audit metadata.
 
+## Channel identities
+
+A channel is an explicitly registered, app-scoped type owned by exactly one message-interface plugin. This is an operator decision; revising it requires operator sign-off.
+
+- **Descriptors and providers are separate registrations**, both owned by the channel's interface. A descriptor is browser-safe metadata: display name, subject label and subject pattern. A delivery provider is keyed by channel type, has dynamic availability, and performs sends. One interface may register several descriptors: `interfaces/chat` registers `discord` and `slack`.
+- **Identity types are validated text.** A type is valid if it is a reserved auth or credential kind (`passkey`, `oauth`, `did`, `a2a`, `mcp`) or a finalized registered channel type. Every write path rejects any other type, so an uninstalled or misspelled channel cannot create a dangling grant. An identity store used without a channel registry accepts only the legacy `email` and `discord` channel types.
+- **Connecting a channel is a per-person Admin action.** The Admin People workspace attaches a channel identity to a person, validated against the descriptor's subject pattern and audited as `auth.identity.attached` or `auth.identity.detached`. The person's role then governs messages from that channel subject. An Admin attaching a channel ID vouches for it: Admin-asserted identities are authoritative for role resolution.
+- **Lookup subjects stay hashed; deliverable subjects stay private.** Lookup uses `normalizeIdentityKey` and `hashIdentityKey`. A raw deliverable destination may persist only on its private person claim, never in invitation attempts, audit metadata, logs, model context, public cards or broad roster projections.
+- **Automatic and manual delivery are explicit modes.** Automatic delivery requires a registered, currently available provider, checked outside the auth transaction just before account creation, and fails before creation when absent. Manual delivery is never an implicit fallback: it requires a descriptor that allows it, an active Admin, same-origin explicit confirmation, a current unconsumed token and a content-free audit event.
+- **Outbound-only interfaces are first-class.** `MessageInterfacePlugin` does not require a listener, daemon or conversation ingestion; `interfaces/email` owns the `email` channel and only sends.
+
+Self-service channel connection, where a person proves their own channel, is not implemented.
+
 ## Invitations and setup
 
 Invitations and provider attempts are durable, separate rows. Account creation is transactionally idempotent; provider work occurs outside the transaction. Automatic delivery requires an available registered channel provider. Explicit manual delivery stays pending until an active Admin confirms it. Resend rotates the setup token, cancellation is terminal, and only provider acceptance or audited manual confirmation makes the current delivery claimable.

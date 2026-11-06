@@ -1,3 +1,5 @@
+import { internalFullScope } from "./internal-scope";
+import { deleteEntityFts, insertEntityFts } from "./entity-fts";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
 import { EntityMutationReceiptStore } from "./entity-mutation-receipt-store";
@@ -304,12 +306,13 @@ export class EntityMutations {
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Generate ID, timestamps, and contentHash if not provided
     const now = new Date().toISOString();
+    const current = this.entitySerializer.withoutRetiredFields(entity);
     const entityWithDefaults = {
-      ...entity,
+      ...current,
       id: entity.id ?? createId(),
       created: entity.created ?? now,
       updated: entity.updated ?? now,
-      contentHash: computeContentHash(entity.content),
+      contentHash: computeContentHash(current.content),
     };
 
     // Validate entity against its schema
@@ -460,7 +463,7 @@ export class EntityMutations {
     const priorData = await this.entityQueries.getEntityData(
       source.entityType,
       source.id,
-      "restricted",
+      internalFullScope("fold revision check, internal mutation"),
     );
     if (!priorData || entityRevision(priorData) !== source.expectedRevision) {
       throw new EntityWriteConflictError(source.entityType, source.id);
@@ -547,10 +550,11 @@ export class EntityMutations {
     const assertGroupingsCurrent =
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Validate and serialize first to compute the new content hash
+    const current = this.entitySerializer.withoutRetiredFields(entity);
     const updatedEntity = {
-      ...entity,
+      ...current,
       updated: new Date().toISOString(),
-      contentHash: computeContentHash(entity.content),
+      contentHash: computeContentHash(current.content),
     };
 
     const validatedEntity = this.entityRegistry.validateEntity(
@@ -933,7 +937,7 @@ export class EntityMutations {
     const priorData = await this.entityQueries.getEntityData(
       entityType,
       id,
-      "restricted",
+      internalFullScope("delete prior-state lookup, internal mutation"),
     );
     // A purged type is no longer registered: its rows have no adapter to parse.
     const prior =
@@ -1279,9 +1283,7 @@ export class EntityMutations {
   ): Promise<void> {
     await this.deleteFtsIndex(database, entityId, entityType);
     if (!this.isFullTextSearchable(entityType)) return;
-    await database.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
-    );
+    await insertEntityFts(database, entityType, entityId, content);
   }
 
   private async pruneFtsIndexIfExcluded(
@@ -1298,9 +1300,7 @@ export class EntityMutations {
     entityId: string,
     entityType: string,
   ): Promise<void> {
-    await database.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
+    await deleteEntityFts(database, entityType, entityId);
   }
 
   private isFullTextSearchable(entityType: string): boolean {

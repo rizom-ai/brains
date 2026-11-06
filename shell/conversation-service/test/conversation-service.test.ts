@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  setSystemTime,
+  spyOn,
+} from "bun:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
@@ -10,7 +18,6 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
 import type { ConversationDB } from "../src/database";
 import type {
-  ConversationServiceConfig,
   ConversationMetadata,
   StartConversationRequest,
 } from "../src/types";
@@ -31,7 +38,6 @@ describe("ConversationService", () => {
   let db: ConversationDB;
   let client: Client;
   let logger: Logger;
-  let config: ConversationServiceConfig;
   let messageBus: MessageBus;
   let cleanup: () => Promise<void>;
   let dbPath: string;
@@ -57,11 +63,8 @@ describe("ConversationService", () => {
     // Create MessageBus for tests
     messageBus = MessageBus.createFresh(logger);
 
-    // Create config
-    config = {};
-
     // Create service with real database
-    service = ConversationService.createFresh(db, logger, messageBus, config);
+    service = ConversationService.createFresh(db, logger, messageBus);
   });
 
   afterEach(async () => {
@@ -884,6 +887,48 @@ describe("ConversationService", () => {
       expect(result[2]?.content).toBe("Third message");
     });
 
+    describe("messages that share a timestamp", () => {
+      const contents = ["First message", "Second message", "Third message"];
+
+      beforeEach(async () => {
+        // Messages added within one millisecond share their timestamp.
+        setSystemTime(new Date("2026-11-02T12:00:00.000Z"));
+        await service.startConversation({
+          sessionId: "conv-same-instant",
+          interfaceType: "cli",
+          channelId: "test-channel",
+          metadata: testMetadata,
+        });
+        for (const [index, content] of contents.entries()) {
+          await service.addMessage({
+            conversationId: "conv-same-instant",
+            role: index % 2 === 0 ? "user" : "assistant",
+            content,
+          });
+        }
+      });
+
+      afterEach(() => {
+        setSystemTime();
+      });
+
+      it("returns the most recent ones in the order they were added", async () => {
+        const result = await service.getMessages("conv-same-instant");
+
+        expect(result.map((message) => message.content)).toEqual(contents);
+      });
+
+      it("returns a range in the order they were added", async () => {
+        const result = await service.getMessages("conv-same-instant", {
+          range: { start: 2, end: 3 },
+        });
+
+        expect(result.map((message) => message.content)).toEqual(
+          contents.slice(1),
+        );
+      });
+    });
+
     it("should limit the number of messages retrieved", async () => {
       const conversationId = "conv-123";
       const limit = 2;
@@ -1385,17 +1430,13 @@ describe("ConversationService", () => {
     });
   });
 
-  describe("digest window calculations", () => {
+  describe("reading a range of messages", () => {
     it("should calculate correct window ranges for small conversations", async () => {
       // Create a service that can access private methods for testing
       const testService = ConversationService.createFresh(
         db,
         logger,
         messageBus,
-        {
-          digestTriggerInterval: 2,
-          digestWindowSize: 5,
-        },
       );
 
       const conversationId = "test-window";
@@ -1423,7 +1464,6 @@ describe("ConversationService", () => {
         content: "Message 3",
       });
 
-      // Test getMessages with range (this is the same logic digest uses)
       const window1to2 = await testService.getMessages(conversationId, {
         range: { start: 1, end: 2 },
       });
@@ -1443,10 +1483,6 @@ describe("ConversationService", () => {
         db,
         logger,
         messageBus,
-        {
-          digestTriggerInterval: 10,
-          digestWindowSize: 20,
-        },
       );
 
       const conversationId = "test-large-window";

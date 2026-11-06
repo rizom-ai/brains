@@ -188,7 +188,6 @@ describe("AuthService operation draining", () => {
     const entered = deferred();
     const release = deferred();
     let nested: Promise<unknown> | undefined;
-    let nestedFinished = false;
     let nestedFinishedBeforeRecoveryReturned = false;
     const recover = spyOn(
       runtime.getInvitationService(),
@@ -196,12 +195,11 @@ describe("AuthService operation draining", () => {
     ).mockImplementation(async (): Promise<number> => {
       entered.resolve();
       await release.promise;
-      nested = service.listUsers().then((users) => {
-        nestedFinished = true;
-        return users;
-      });
-      await new Promise<void>((resolve) => setImmediate(resolve));
-      nestedFinishedBeforeRecoveryReturned = nestedFinished;
+      // An admitted nested call settles while recovery still runs; one deferred
+      // behind close would wait for this recovery and never settle here.
+      nested = service.listUsers();
+      await nested;
+      nestedFinishedBeforeRecoveryReturned = true;
       return 0;
     });
     // Drive the same Promise admission used by a scheduled supervisor run.
@@ -234,7 +232,6 @@ describe("AuthService operation draining", () => {
     const entered = deferred();
     const release = deferred();
     let nested: Promise<unknown> | undefined;
-    let nestedFinished = false;
     let nestedFinishedBeforeMaintenanceReturned = false;
     const prune = spyOn(
       runtime.clientStore,
@@ -242,12 +239,11 @@ describe("AuthService operation draining", () => {
     ).mockImplementation(async (): Promise<number> => {
       entered.resolve();
       await release.promise;
-      nested = service.listUsers().then((users) => {
-        nestedFinished = true;
-        return users;
-      });
-      await new Promise<void>((resolve) => setImmediate(resolve));
-      nestedFinishedBeforeMaintenanceReturned = nestedFinished;
+      // An admitted nested call settles while maintenance still runs; one deferred
+      // behind close would wait for this maintenance and never settle here.
+      nested = service.listUsers();
+      await nested;
+      nestedFinishedBeforeMaintenanceReturned = true;
       return 0;
     });
     const starting = runtime.oauthEndpoints.startClientMaintenance();

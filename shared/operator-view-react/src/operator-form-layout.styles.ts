@@ -7,6 +7,7 @@ export const formLayoutStyles: Record<"form" | "submit", stylex.StyleXStyles> =
       gridTemplateColumns: {
         default: "repeat(2, minmax(0, 1fr))",
         "@media (max-width: 640px)": "minmax(0, 1fr)",
+        "@container operator (max-width: 640px)": "minmax(0, 1fr)",
         "@container operator-aside (min-width: 0px)": "minmax(0, 1fr)",
       },
       gap: 12,

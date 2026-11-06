@@ -84,6 +84,46 @@ describe("BookDataSource", () => {
     ).toBe(true);
   });
 
+  it("reads a book's sections by their slug prefix, the book alone", async () => {
+    const listEntities = spyOn(shell.getEntityService(), "listEntities");
+
+    const result = await datasource.fetch(
+      { entityType: "book", query: { id: "erstes" } },
+      bookDetailPageSchema,
+      context,
+    );
+
+    expect(result.score.map((entry) => entry.slug)).toEqual([
+      "erstes/1",
+      "erstes/2",
+      "erstes/3",
+    ]);
+    const sectionFilters = listEntities.mock.calls
+      .filter(([request]) => request.entityType === "book-section")
+      .map(([request]) => request.options?.filter);
+    expect(sectionFilters).toContainEqual({
+      metadataPrefix: { slug: "erstes/" },
+    });
+    expect(
+      sectionFilters.some((filter) => filter?.metadata?.["book"] !== undefined),
+    ).toBe(false);
+  });
+
+  it("counts a book's sections by their slug prefix when the book has no count", async () => {
+    const countEntities = spyOn(shell.getEntityService(), "countEntities");
+
+    const result = await datasource.fetch(
+      { entityType: "book-section", query: { id: "erstes/2" } },
+      bookSectionPageSchema,
+      context,
+    );
+
+    expect(result.total).toBe(3);
+    expect(
+      countEntities.mock.calls.map(([request]) => request.options),
+    ).toEqual([{ filter: { metadataPrefix: { slug: "erstes/" } } }]);
+  });
+
   it("carries what the page shows: its text once, links to its neighbours, its book without text", async () => {
     const result = await datasource.fetch(
       { entityType: "book-section", query: { id: "erstes/2" } },
@@ -261,23 +301,25 @@ describe("BookDataSource", () => {
       entityType: "topic",
       distance,
     });
-    const nearestToEntity = nearestStore([
-      near("fern", 0.7),
-      near("mitleid", 0.3),
-      near("macht", 0.55),
-      near("leben", 0.5),
-      near("schwaeche", 0.58),
-    ]);
+    const topics = ["fern", "mitleid", "macht", "leben", "schwaeche"].map(
+      (id) => topic(id, id.toUpperCase()),
+    );
+    const nearestToEntity = nearestStore(
+      [
+        near("fern", 0.7),
+        near("mitleid", 0.3),
+        near("macht", 0.55),
+        near("leben", 0.5),
+        near("schwaeche", 0.58),
+      ],
+      topics,
+    );
     const themeSchema = z.object({
       themes: z.array(z.object({ id: z.string(), title: z.string() })),
     });
 
     beforeEach(() => {
-      shell.addEntities(
-        ["fern", "mitleid", "macht", "leben", "schwaeche"].map((id) =>
-          topic(id, id.toUpperCase()),
-        ),
-      );
+      shell.addEntities(topics);
     });
 
     it("finds a section's nearest themes, closest first, three at most", async () => {

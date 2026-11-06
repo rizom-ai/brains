@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/entity-service";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { JsonObject } from "@brains/contracts";
@@ -153,7 +154,9 @@ function runtimeJobHandler(
             const entity = await context.entityService.getEntity({
               entityType: entityDefinition.type,
               id,
-              visibilityScope: "restricted",
+              visibilityScope: internalFullScope(
+                "declarative service jobs read as the service",
+              ),
             });
             return entity
               ? parseDefinitionEntity(entityDefinition, entity)

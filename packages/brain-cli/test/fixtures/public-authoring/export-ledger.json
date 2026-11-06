@@ -481,7 +481,13 @@
       ],
       "advanced-with-consumer": [
         "entityDisplaySchema",
-        "siteDefinitionOverridesSchema"
+        "languagePath",
+        "languageTagSchema",
+        "RouteTranslation",
+        "routeTranslationSchema",
+        "SiteAlternate",
+        "siteDefinitionOverridesSchema",
+        "SiteMetadataTranslation"
       ],
       "internal/removable": [
         "RizomBrandSuffix",

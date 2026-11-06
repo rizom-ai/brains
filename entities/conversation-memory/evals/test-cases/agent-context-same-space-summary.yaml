@@ -17,7 +17,7 @@ input:
   channelName: Relay Team
   userPermissionLevel: trusted
   memory:
-    - id: summary-same
+    - id: earlier-relay-conv
       entityType: summary
       conversationId: earlier-relay-conv
       interfaceType: mcp
@@ -32,7 +32,7 @@ input:
 expectedOutput:
   validateEach:
     - path: items[0].id
-      equals: summary-same
+      equals: earlier-relay-conv
     - path: items[0].source
       equals: conversation-memory
     - path: items[0].content

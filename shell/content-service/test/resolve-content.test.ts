@@ -49,7 +49,7 @@ describe("ContentService.resolveContent", () => {
 
     // Set up spies
     dataSourceGetSpy = spyOn(mockDataSourceRegistry, "get");
-    getEntitySpy = spyOn(mockEntityService, "getEntity");
+    getEntitySpy = spyOn(mockEntityService, "getEntityRaw");
 
     contentService = new ContentService(mockDependencies);
   });
@@ -124,6 +124,39 @@ describe("ContentService.resolveContent", () => {
   });
 
   describe("Saved content resolution", () => {
+    // A section's saved content is parsed by its template and rendered by the
+    // site, which maps image references to the images it builds. Read through
+    // the resolving lookup, every reference arrived inlined as a data URL.
+    it("reads saved content raw, so image references stay references", async () => {
+      templateRegistry.register("home:act-one", {
+        name: "home:act-one",
+        description: "Act I",
+        schema: z.object({ photo: z.string() }),
+        formatter: {
+          format: (data) => JSON.stringify(data),
+          parse: (content) => JSON.parse(content),
+        },
+        requiredPermission: "public",
+      });
+      getEntitySpy.mockResolvedValue({
+        id: "home:act-one",
+        entityType: "site-content",
+        content: JSON.stringify({
+          photo: "![A TWTN athlete](entity://image/twtn-athlete)",
+        }),
+      });
+      const resolved = spyOn(mockDependencies.entityService, "getEntity");
+
+      const result = await contentService.resolveContent("home:act-one", {
+        savedContent: { entityType: "site-content", entityId: "home:act-one" },
+      });
+
+      expect(result).toEqual({
+        photo: "![A TWTN athlete](entity://image/twtn-athlete)",
+      });
+      expect(resolved).not.toHaveBeenCalled();
+    });
+
     it("should resolve saved content when formatter is available", async () => {
       const mockTemplate: Template = {
         name: "article",
@@ -159,7 +192,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toEqual(savedArticle);
-      expect(mockDependencies.entityService.getEntity).toHaveBeenCalledWith({
+      expect(mockDependencies.entityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "site-content-preview",
         id: "article-123",
       });
@@ -195,7 +228,9 @@ describe("ContentService.resolveContent", () => {
 
       // Should skip to fallback since no formatter
       expect(result).toEqual({ cpu: 0, memory: 0 });
-      expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled();
+      expect(
+        mockDependencies.entityService.getEntityRaw,
+      ).not.toHaveBeenCalled();
       // Site builds offer saved content to every section; a template that
       // cannot read it simply does not, which is not worth a warning.
       expect(warn).not.toHaveBeenCalled();
@@ -278,7 +313,9 @@ describe("ContentService.resolveContent", () => {
 
       expect(result).toBe("Fresh data");
       expect(mockDataSource.fetch).toHaveBeenCalled();
-      expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled(); // Skipped
+      expect(
+        mockDependencies.entityService.getEntityRaw,
+      ).not.toHaveBeenCalled(); // Skipped
     });
 
     it("should prioritize saved content over fallback", async () => {
@@ -309,7 +346,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toBe("Saved data");
-      expect(mockDependencies.entityService.getEntity).toHaveBeenCalled();
+      expect(mockDependencies.entityService.getEntityRaw).toHaveBeenCalled();
     });
   });
 
@@ -368,7 +405,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toBe("Fallback after missing entity");
-      expect(mockDependencies.entityService.getEntity).toHaveBeenCalled();
+      expect(mockDependencies.entityService.getEntityRaw).toHaveBeenCalled();
     });
   });
 
@@ -1209,7 +1246,7 @@ describe("ContentService.resolveContent", () => {
         visibilityScope: "public",
       });
 
-      expect(mockDependencies.entityService.getEntity).toHaveBeenCalledWith({
+      expect(mockDependencies.entityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "site-content",
         id: "section-id",
         visibilityScope: "public",
@@ -1474,7 +1511,9 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toEqual({ count: 99 });
-      expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled();
+      expect(
+        mockDependencies.entityService.getEntityRaw,
+      ).not.toHaveBeenCalled();
     });
 
     it("validates the merged result against the template schema", async () => {

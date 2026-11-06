@@ -1,5 +1,267 @@
 # @brains/ops
 
+## 0.2.0-alpha.633
+
+No changes in this release.
+
+## 0.2.0-alpha.632
+
+No changes in this release.
+
+## 0.2.0-alpha.631
+
+No changes in this release.
+
+## 0.2.0-alpha.630
+
+No changes in this release.
+
+## 0.2.0-alpha.629
+
+No changes in this release.
+
+## 0.2.0-alpha.628
+
+No changes in this release.
+
+## 0.2.0-alpha.627
+
+No changes in this release.
+
+## 0.2.0-alpha.626
+
+No changes in this release.
+
+## 0.2.0-alpha.625
+
+No changes in this release.
+
+## 0.2.0-alpha.624
+
+No changes in this release.
+
+## 0.2.0-alpha.623
+
+No changes in this release.
+
+## 0.2.0-alpha.622
+
+No changes in this release.
+
+## 0.2.0-alpha.621
+
+No changes in this release.
+
+## 0.2.0-alpha.620
+
+No changes in this release.
+
+## 0.2.0-alpha.619
+
+No changes in this release.
+
+## 0.2.0-alpha.618
+
+No changes in this release.
+
+## 0.2.0-alpha.617
+
+No changes in this release.
+
+## 0.2.0-alpha.616
+
+No changes in this release.
+
+## 0.2.0-alpha.615
+
+No changes in this release.
+
+## 0.2.0-alpha.614
+
+No changes in this release.
+
+## 0.2.0-alpha.613
+
+No changes in this release.
+
+## 0.2.0-alpha.612
+
+No changes in this release.
+
+## 0.2.0-alpha.611
+
+No changes in this release.
+
+## 0.2.0-alpha.610
+
+No changes in this release.
+
+## 0.2.0-alpha.609
+
+No changes in this release.
+
+## 0.2.0-alpha.608
+
+No changes in this release.
+
+## 0.2.0-alpha.607
+
+No changes in this release.
+
+## 0.2.0-alpha.606
+
+No changes in this release.
+
+## 0.2.0-alpha.605
+
+No changes in this release.
+
+## 0.2.0-alpha.604
+
+No changes in this release.
+
+## 0.2.0-alpha.603
+
+No changes in this release.
+
+## 0.2.0-alpha.602
+
+No changes in this release.
+
+## 0.2.0-alpha.601
+
+No changes in this release.
+
+## 0.2.0-alpha.600
+
+No changes in this release.
+
+## 0.2.0-alpha.599
+
+No changes in this release.
+
+## 0.2.0-alpha.598
+
+No changes in this release.
+
+## 0.2.0-alpha.597
+
+No changes in this release.
+
+## 0.2.0-alpha.596
+
+No changes in this release.
+
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- [#724](https://github.com/rizom-ai/brains/pull/724) [`3045b2f`](https://github.com/rizom-ai/brains/commit/3045b2f645076186cffe3d6edbd0cb20e0bce032) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A fleet user file can name shared conversation `spaces` (for example `discord:<channel id>`), rendered into the brain's `brain.yaml`. People in a space are trusted, and the brain keeps the space's conversations as team memory.
+
+## 0.2.0-alpha.594
+
+No changes in this release.
+
+## 0.2.0-alpha.593
+
+No changes in this release.
+
+## 0.2.0-alpha.592
+
+No changes in this release.
+
+## 0.2.0-alpha.591
+
+No changes in this release.
+
+## 0.2.0-alpha.590
+
+No changes in this release.
+
+## 0.2.0-alpha.589
+
+No changes in this release.
+
+## 0.2.0-alpha.588
+
+No changes in this release.
+
+## 0.2.0-alpha.587
+
+No changes in this release.
+
+## 0.2.0-alpha.586
+
+No changes in this release.
+
+## 0.2.0-alpha.585
+
+No changes in this release.
+
+## 0.2.0-alpha.584
+
+No changes in this release.
+
+## 0.2.0-alpha.583
+
+No changes in this release.
+
+## 0.2.0-alpha.582
+
+No changes in this release.
+
+## 0.2.0-alpha.581
+
+No changes in this release.
+
+## 0.2.0-alpha.580
+
+No changes in this release.
+
+## 0.2.0-alpha.579
+
+No changes in this release.
+
+## 0.2.0-alpha.578
+
+No changes in this release.
+
+## 0.2.0-alpha.577
+
+No changes in this release.
+
+## 0.2.0-alpha.576
+
+No changes in this release.
+
+## 0.2.0-alpha.575
+
+No changes in this release.
+
+## 0.2.0-alpha.574
+
+No changes in this release.
+
+## 0.2.0-alpha.573
+
+No changes in this release.
+
+## 0.2.0-alpha.572
+
+No changes in this release.
+
+## 0.2.0-alpha.571
+
+No changes in this release.
+
+## 0.2.0-alpha.570
+
+No changes in this release.
+
+## 0.2.0-alpha.569
+
+No changes in this release.
+
 ## 0.2.0-alpha.568
 
 No changes in this release.

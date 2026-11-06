@@ -312,6 +312,41 @@ describe("sync tool", () => {
     expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });
 
+  it("asks the sync-request job to rescan every file when full is set", async () => {
+    // Operators recover files an earlier sync skipped (a type enabled after
+    // its files arrived) without restarting the brain.
+    const { directorySync } = createMockDirectorySync();
+    const { gitSync } = createMockGitSync();
+    const enqueueMock = mock(async () => "job-123");
+    context = {
+      ...context,
+      jobs: { ...context.jobs, enqueue: enqueueMock },
+    };
+
+    const tools = createDirectorySyncTools(
+      directorySync,
+      context,
+      "directory-sync",
+      gitSync,
+    );
+    const syncTool = findTool(tools, "directory_sync");
+    const result = parseToolResult(
+      await syncTool.handler({ action: "sync", full: true }, toolContext),
+    );
+
+    expect(result.success).toBe(true);
+    expect(enqueueMock).toHaveBeenCalledWith({
+      type: "sync-request",
+      data: {
+        source: "plugin:directory-sync",
+        interfaceType: "mcp",
+        channelId: undefined,
+        full: true,
+      },
+      toolContext,
+    });
+  });
+
   it("should skip git pull when no gitSync", async () => {
     const { directorySync } = createMockDirectorySync();
 

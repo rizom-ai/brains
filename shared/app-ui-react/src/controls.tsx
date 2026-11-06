@@ -172,27 +172,33 @@ const styles = stylex.create({
     paddingBlock: "10px",
     paddingInline: "20px",
   },
+  // Icon buttons often carry a glyph label such as "•••"; it must never wrap
+  // inside the fixed square, including the wider phone touch target.
   icon: {
     height: "36px",
     minHeight: "36px",
     padding: 0,
+    whiteSpace: "nowrap",
     width: "36px",
   },
   iconXs: {
     height: "28px",
     minHeight: "28px",
     padding: 0,
+    whiteSpace: "nowrap",
     width: "28px",
   },
   iconSm: {
     height: "32px",
     minHeight: "32px",
     padding: 0,
+    whiteSpace: "nowrap",
     width: "32px",
   },
   iconLg: {
     height: "42px",
     minHeight: "42px",
+    whiteSpace: "nowrap",
     padding: 0,
     width: "42px",
   },
@@ -212,7 +218,13 @@ const styles = stylex.create({
     boxSizing: "border-box",
     color: "var(--console-text)",
     fontFamily: "var(--console-ui)",
-    fontSize: "16px",
+    // The UI's own size on desktop; 16px where a touch browser would zoom
+    // into a smaller field on focus.
+    fontSize: {
+      default: "13px",
+      "@media (max-width: 640px)": "16px",
+      "@media (pointer: coarse)": "16px",
+    },
     lineHeight: 1.35,
     minHeight: "40px",
     minWidth: 0,

@@ -17,13 +17,14 @@ import {
   shouldBlockChatNavigation,
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
-import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
+import type { AuthAccountRole } from "@brains/contracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   lazy,
   Suspense,
   useCallback,
+  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -202,6 +203,11 @@ export function App(): ReactElement {
     kind: "idle",
   });
   const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
+  // A new entry starts where it is written; existing ones keep the chosen view.
+  const creating = editor.mode.kind === "create";
+  useEffect(() => {
+    if (creating) setBodyMode("source");
+  }, [creating]);
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const preferredMobilePane = useRef<MobileEditorPane | null>(null);
   const selectMobilePane = useCallback((pane: MobileEditorPane): void => {

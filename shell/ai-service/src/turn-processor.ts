@@ -72,6 +72,7 @@ import {
   buildAgentContactCandidates,
   buildEntityMemoryRefs,
   buildRetrievedEntityRefs,
+  buildToolErrorFallback,
   buildToolResultPromptFallback,
   withAnswerSources,
   type AgentContactCandidate,
@@ -80,6 +81,7 @@ import {
 import { buildAssistantActor } from "./assistant-actor";
 import { buildBrainCallOptions } from "./call-options";
 import { buildConfirmedActionResult } from "./confirmed-action";
+import { composeConfirmationReply } from "./confirmation-reply";
 import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
 
@@ -133,6 +135,17 @@ interface PreparedTurn {
   contextItems: AgentContextItem[] | undefined;
   messages: ReturnType<typeof buildModelMessages>;
   agentContextInstructions: ReturnType<typeof buildAgentContextInstructions>;
+}
+
+interface PostConfirmationFollowUpParams {
+  conversationId: string;
+  resultText: string;
+  interfaceType: string;
+  channelId: string | undefined;
+  channelName: string;
+  userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  isAnchor: boolean;
+  signal: AbortSignal | undefined;
 }
 
 export class TurnProcessor {
@@ -577,10 +590,12 @@ export class TurnProcessor {
 
     const responseText =
       pendingConfirmations.length > 0
-        ? "Confirmation required."
+        ? composeConfirmationReply(result.text)
         : result.text.trim().length > 0
           ? result.text
-          : (buildToolResultPromptFallback(toolResults) ?? result.text);
+          : (buildToolResultPromptFallback(toolResults) ??
+            (guest ? undefined : buildToolErrorFallback(toolResults)) ??
+            result.text);
     const entityMemoryRefs =
       guest || pendingConfirmations.length > 0
         ? []
@@ -733,8 +748,9 @@ export class TurnProcessor {
     );
     const response = failed
       ? undefined
-      : await this.generatePostConfirmationFollowUp({
+      : await this.followUpAfterConfirmedAction({
           conversationId,
+          toolName: pendingConfirmation.toolName,
           resultText: outcome.resultText,
           interfaceType,
           channelId,
@@ -743,7 +759,10 @@ export class TurnProcessor {
           isAnchor,
           signal,
         });
-    const fallbackText = buildAsyncGenerationFallback(outcome.toolResult.data);
+    const fallbackText = buildAsyncGenerationFallback(
+      pendingConfirmation.toolName,
+      outcome.toolResult.data,
+    );
     const responseText = response?.text.trim()
       ? `${outcome.resultText}\n\n${response.text}`
       : fallbackText
@@ -822,16 +841,30 @@ export class TurnProcessor {
     }
   }
 
-  private async generatePostConfirmationFollowUp(params: {
-    conversationId: string;
-    resultText: string;
-    interfaceType: string;
-    channelId: string | undefined;
-    channelName: string;
-    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
-    isAnchor: boolean;
-    signal: AbortSignal | undefined;
-  }): Promise<AgentResponse | undefined> {
+  /**
+   * The follow-up reply to an action that already ran and succeeded. A reply
+   * that fails leaves the turn with the action's own success result instead
+   * of reporting the action as failed; a stopped turn still stops.
+   */
+  private async followUpAfterConfirmedAction(
+    params: PostConfirmationFollowUpParams & { toolName: string },
+  ): Promise<AgentResponse | undefined> {
+    try {
+      return await this.generatePostConfirmationFollowUp(params);
+    } catch (error) {
+      params.signal?.throwIfAborted();
+      this.deps.logger.warn("Follow-up reply after confirmed action failed", {
+        conversationId: params.conversationId,
+        toolName: params.toolName,
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  private async generatePostConfirmationFollowUp(
+    params: PostConfirmationFollowUpParams,
+  ): Promise<AgentResponse | undefined> {
     params.signal?.throwIfAborted();
     if (!this.deps.agentContextProvider) return undefined;
 
@@ -882,7 +915,7 @@ export class TurnProcessor {
     return {
       text:
         pendingConfirmations.length > 0
-          ? "Confirmation required."
+          ? composeConfirmationReply(result.text)
           : result.text,
       toolResults,
       ...(cards.length > 0 ? { cards } : {}),

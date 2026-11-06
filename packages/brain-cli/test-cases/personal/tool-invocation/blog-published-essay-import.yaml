@@ -1,0 +1,46 @@
+id: tool-invocation-blog-published-essay-import
+name: Published Essay Imports With Its Date and Canonical Address
+description: Verifies an essay the user says was published elsewhere is created as a published post with its original date and address in fields, and its text from the user's message.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - blog
+  - finalized-content
+  - regression
+  - recipe-professional
+
+turns:
+  - userMessage: |
+      This essay was published on Substack on 12 March 2025 at https://janhein.substack.com/p/on-slowness. Make it a published post with that original date, and keep that address as the canonical one.
+
+      # On Slowness
+
+      I write slowly, and I have stopped apologizing for it.
+
+      Speed is a habit of the platform, not of the work.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+        source.kind: user-message
+        fields.status: published
+        fields.publishedAt: "2025-03-12"
+        fields.canonicalUrl: https://janhein.substack.com/p/on-slowness
+      argsAbsent:
+        - prompt
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 31000

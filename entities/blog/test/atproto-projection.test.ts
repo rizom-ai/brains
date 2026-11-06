@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
   createServicePluginContext,
   generateMarkdownWithFrontmatter,
@@ -8,17 +8,12 @@ import {
   createMockShell,
   createPluginHarness,
 } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";
 import type { BlogPost, BlogPostStatus } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
 describe("blog ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps blog posts to ai.rizom.brain.post records", async () => {
     const projection = createBlogAtprotoProjection();
     const entity = createMockPost(
@@ -228,41 +223,8 @@ describe("blog ATProto projection", () => {
     });
   });
 
-  it("stores the custom ATProto post URI in blog frontmatter after publish", async () => {
-    const projection = createBlogAtprotoProjection();
-    const entity = createMockPost(
-      "post-1",
-      "Distributed Brains",
-      "distributed-brains",
-      "published",
-      { publishedAt: "2026-05-28T12:00:00.000Z" },
-    );
-    const shell = createMockShell();
-    shell.addEntities([entity]);
-    const context = createServicePluginContext(shell, "blog");
-    const record = await projection.buildRecord({
-      entity,
-      context,
-      config: {},
-    });
-
-    await projection.onPublished?.({
-      entity,
-      context,
-      record,
-      uri: "at://did:plc:repo/ai.rizom.brain.post/abc",
-      cid: "cid",
-    });
-
-    const updated = await context.entityService.getEntity({
-      entityType: "post",
-      id: "post-1",
-    });
-
-    expect(updated?.content).toContain("atprotoUri:");
-    expect(updated?.content).toContain(
-      "at://did:plc:repo/ai.rizom.brain.post/abc",
-    );
+  it("leaves a post untouched after publishing: nothing reads its ATProto URI", () => {
+    expect(createBlogAtprotoProjection().onPublished).toBeUndefined();
   });
 
   it("registers the blog projection when the blog plugin registers", async () => {
@@ -272,7 +234,10 @@ describe("blog ATProto projection", () => {
 
     await harness.installPlugin(new BlogPlugin({}));
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("post");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("post");
     expect(projection?.collection).toBe("ai.rizom.brain.post");
   });
 });

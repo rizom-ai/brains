@@ -113,6 +113,7 @@ describe("studio plugin", () => {
       "GET /studio/api/types exact",
       "GET /studio/api/workspace exact",
       "POST /studio/api/workspace exact",
+      "GET /studio/api/members exact",
       "GET /studio/api/schema exact",
       "GET /studio/api/images exact",
       "POST /studio/api/destination exact",

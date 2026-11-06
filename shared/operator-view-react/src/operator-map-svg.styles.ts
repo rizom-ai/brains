@@ -222,13 +222,13 @@ export const mapSvgStyles: Record<
   },
   regionText: {
     fill: "var(--console-text-dim)",
-    fontSize: { default: 8.5, "@media (max-width: 700px)": 10 },
+    fontSize: { default: 8.5, "@media (max-width: 720px)": 10 },
     fontWeight: 500,
     letterSpacing: ".08em",
   },
   count: {
     fill: "var(--console-secondary)",
-    fontSize: { default: 9, "@media (max-width: 700px)": 10 },
+    fontSize: { default: 9, "@media (max-width: 720px)": 10 },
     fontWeight: 600,
   },
   axisText: {
@@ -239,19 +239,19 @@ export const mapSvgStyles: Record<
   distanceText: {
     fill: "var(--console-text-faint)",
     fontFamily: "var(--console-mono)",
-    fontSize: { default: 8, "@media (max-width: 700px)": 12 },
+    fontSize: { default: 8, "@media (max-width: 720px)": 12 },
     letterSpacing: ".08em",
   },
   groupText: {
     fill: "var(--console-secondary)",
-    fontSize: { default: 8, "@media (max-width: 700px)": 12 },
+    fontSize: { default: 8, "@media (max-width: 720px)": 12 },
     fontWeight: 600,
     letterSpacing: ".16em",
   },
   identityText: {
     fill: "var(--console-text-dim)",
     fontFamily: "var(--console-mono)",
-    fontSize: { default: 8, "@media (max-width: 700px)": 12 },
+    fontSize: { default: 8, "@media (max-width: 720px)": 12 },
     letterSpacing: ".22em",
     textTransform: "uppercase",
   },
@@ -261,7 +261,7 @@ export const mapSvgStyles: Record<
     strokeWidth: 3,
     paintOrder: "stroke",
     fontFamily: "var(--console-mono)",
-    fontSize: { default: 9, "@media (max-width: 700px)": 16 },
+    fontSize: { default: 9, "@media (max-width: 720px)": 16 },
     letterSpacing: ".06em",
   },
 });

@@ -1,5 +1,5 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import { formatLabel, pluralize } from "@brains/utils/string-utils";
+import { formatLabel, pluralizeLabel } from "@brains/utils/string-utils";
 import {
   getArrayElement,
   getKind,
@@ -56,11 +56,6 @@ const LONG_TEXT_FIELDS = new Set([
   "tagline",
   "story",
 ]);
-
-function pluralizeLabel(label: string): string {
-  if (label.endsWith("s")) return label;
-  return pluralize(label);
-}
 
 /**
  * Notes use whole-document editing unless their type participates in a
@@ -128,6 +123,25 @@ function readStudioCondition(
   return { field: condition["field"], value: condition["value"] };
 }
 
+/** Presentations a schema can ask Studio for, by `studioWidget` metadata. */
+const STUDIO_WIDGETS = [
+  // People assigned from the brain's members.
+  "members",
+  // People named, by name only.
+  "people",
+  // Facts about where an entry came from: shown read-only, never edited.
+  "provenance",
+  // Bookkeeping no one reads or edits: left off the form.
+  "hidden",
+] as const;
+
+function readStudioWidget(
+  schema: unknown,
+): (typeof STUDIO_WIDGETS)[number] | undefined {
+  const widget = readMetadata(schema)?.["studioWidget"];
+  return STUDIO_WIDGETS.find((candidate) => candidate === widget);
+}
+
 /**
  * String fields holding image-entity ids follow the <role>ImageId naming
  * convention (coverImageId, ogImageId, plain imageId).
@@ -157,6 +171,9 @@ export function zodFieldToStudioWidget(
     ...(condition && { condition }),
   };
 
+  const studioWidget = readStudioWidget(fieldSchema);
+  if (studioWidget) return { ...base, widget: studioWidget };
+
   switch (kind) {
     case "string": {
       if (isImageReferenceField(name)) {
@@ -164,6 +181,9 @@ export function zodFieldToStudioWidget(
       }
       if (hasStringFormat(inner, "datetime")) {
         return { ...base, widget: "datetime" };
+      }
+      if (hasStringFormat(inner, "date")) {
+        return { ...base, widget: "date" };
       }
       if (LONG_TEXT_FIELDS.has(name)) {
         return { ...base, widget: "text" };
@@ -196,6 +216,12 @@ export function zodFieldToStudioWidget(
       );
       return { ...base, widget: "object", fields };
     }
+    // A record or an unknown value cannot be typed as text: it reads as
+    // structure instead of a blank box that would overwrite it.
+    case "record":
+    case "unknown":
+    case "any":
+      return { ...base, widget: "object" };
     case "literal":
       return { ...base, widget: "string" };
     default:

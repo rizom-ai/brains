@@ -16,6 +16,7 @@ import {
   inboxCardId,
   moveActionItem,
   trackInboxItem,
+  createActionItem,
 } from "@brains/action-items";
 import {
   actionItemBody,
@@ -23,7 +24,7 @@ import {
   actionItemSource,
   actionItemTitle,
 } from "@brains/action-items";
-import { formatAge } from "@brains/action-items";
+import { formatAge, formatShortDate } from "@brains/action-items";
 import {
   actionItemSchema,
   actionItemStatusSchema,
@@ -94,13 +95,20 @@ const cardSchema = z.object({
   title: z.string(),
   status: actionItemStatusSchema,
   assignees: z.array(z.string()),
+  /** When it is due, as YYYY-MM-DD; most cards have none. */
+  dueDate: z.string().optional(),
+  /** Still to do and past its due date. */
+  overdue: z.boolean(),
   age: z.string(),
   place: z.string(),
-  source: z.object({
-    label: z.string(),
-    entityType: z.string(),
-    id: z.string(),
-  }),
+  /** The entity the card came from; a card added on the board has none. */
+  source: z
+    .object({
+      label: z.string(),
+      entityType: z.string(),
+      id: z.string(),
+    })
+    .optional(),
 });
 
 const openCardSchema = z.object({
@@ -110,6 +118,7 @@ const openCardSchema = z.object({
   status: actionItemStatusSchema,
   assignees: z.array(z.string()),
   requesters: z.array(z.string()),
+  dueDate: z.string().optional(),
   channel: z.string(),
   notes: z.string().optional(),
 });
@@ -145,8 +154,16 @@ const projectsSchema = z.object({
   selected: rollupSchema.optional(),
 });
 
+const memberSchema: z.ZodObject<{ id: z.ZodString; name: z.ZodString }> =
+  z.object({ id: z.string(), name: z.string() });
+
+/** A brain member a card can be assigned to. */
+export type BoardMember = z.output<typeof memberSchema>;
+
 const dataSchema = z.object({
   cards: z.array(cardSchema),
+  /** Who a card can be assigned to: the brain's members. */
+  members: z.array(memberSchema),
   open: openCardSchema.optional(),
   track: trackSchema.optional(),
   /** Present when the brain defines a project grouping over action items. */
@@ -175,8 +192,11 @@ const boardSources = defineEntityCatalog({
   label: "Action items and their sources",
 });
 
-/** How a move went, in a sentence the board shows the mover. */
-const moveResultSchema = z.object({ status: z.string() });
+/**
+ * What went wrong with a board action, in a sentence for the person who ran
+ * it. An action that worked says nothing: the board itself shows the change.
+ */
+const moveResultSchema = z.object({ status: z.string().optional() });
 
 const moveResult = {
   title: "Move",
@@ -218,10 +238,28 @@ const trackAction = defineWorkspaceAction({
     entityId: z.string().min(1),
     title: z.string().trim().min(1).max(500),
     text: z.string().max(4_000),
-    assignee: z.string().max(200).optional(),
+    /** The member who should do it. */
+    assigneeId: z.string().max(200).optional(),
   }),
   output: moveResultSchema,
 });
+
+const createAction = defineWorkspaceAction({
+  name: "create",
+  label: "New card",
+  input: z.object({
+    title: z.string().trim().min(1).max(500),
+    text: z.string().max(4_000).optional(),
+    /** The member who should do it. */
+    assigneeId: z.string().max(200).optional(),
+  }),
+  output: moveResultSchema,
+});
+
+const createResult = {
+  title: "New card",
+  fields: { status: { label: "Outcome" } },
+} as const;
 
 const trackResult = {
   title: "Track",
@@ -244,7 +282,8 @@ type BoardAction =
   | typeof moveAction
   | typeof dropAction
   | typeof noteAction
-  | typeof trackAction;
+  | typeof trackAction
+  | typeof createAction;
 
 /** The project filter and, once a project is chosen, its roll-up. */
 function projectBlocks(projects: Projects): OperatorRegionBlock<BoardAction>[] {
@@ -314,6 +353,9 @@ function openCardBlocks(card: OpenCard): OperatorRegionBlock<BoardAction>[] {
         ...(card.requesters.length > 0
           ? [{ label: "Requested by", value: card.requesters.join(", ") }]
           : []),
+        ...(card.dueDate
+          ? [{ label: "Due", value: formatShortDate(card.dueDate) }]
+          : []),
         { label: "From", value: card.channel },
       ],
     },
@@ -352,7 +394,7 @@ const boardWorkspace = defineStudioWorkspace({
   entityCatalog: boardSources,
   query: boardQuerySchema,
   data: dataSchema,
-  actions: [moveAction, dropAction, noteAction, trackAction],
+  actions: [moveAction, dropAction, noteAction, trackAction, createAction],
   view: ({ data }) => ({
     title: "Board",
     description: "Action items from the team's conversations.",
@@ -385,6 +427,7 @@ const boardWorkspace = defineStudioWorkspace({
                       action: trackAction,
                       label: "Track on the board",
                       input: {
+                        ...unassignable(data.members),
                         sourceId: data.track.sourceId,
                         entityType: data.track.entityType,
                         entityId: data.track.entityId,
@@ -396,11 +439,11 @@ const boardWorkspace = defineStudioWorkspace({
                         submitLabel: "Track on the board",
                         fields: {
                           title: { label: "Title", control: "text" as const },
-                          text: { label: "Details", control: "text" as const },
-                          assignee: {
-                            label: "Assign to",
-                            control: "text" as const,
+                          text: {
+                            label: "Details",
+                            control: "textarea" as const,
                           },
+                          ...assigneeField(data.members),
                         },
                       },
                       result: trackResult,
@@ -409,6 +452,23 @@ const boardWorkspace = defineStudioWorkspace({
             },
           ]
         : []),
+      {
+        type: "action" as const,
+        id: "new-card",
+        action: createAction,
+        label: "New card",
+        input: unassignable(data.members),
+        form: {
+          presentation: "disclosure" as const,
+          submitLabel: "Add to To do",
+          fields: {
+            title: { label: "Title", control: "text" as const },
+            text: { label: "Details", control: "textarea" as const },
+            ...assigneeField(data.members),
+          },
+        },
+        result: createResult,
+      },
       {
         type: "detail",
         id: "board-detail",
@@ -438,14 +498,41 @@ const boardWorkspace = defineStudioWorkspace({
             }
           : {}),
       },
-      {
-        type: "text",
-        id: "board-done-window",
-        text: `Done shows the ${DONE_LIMIT} most recently finished cards; older ones stay in the Library.`,
-      },
     ],
   }),
 });
+
+/** The Assign to choice, among the brain's members; none when it has none. */
+function assigneeField(members: readonly BoardMember[]): {
+  assigneeId?: {
+    label: string;
+    control: "select";
+    options: { value: string; label: string }[];
+  };
+} {
+  if (members.length === 0) return {};
+  return {
+    assigneeId: {
+      label: "Assign to",
+      control: "select",
+      options: members.map((member) => ({
+        value: member.id,
+        label: member.name,
+      })),
+    },
+  };
+}
+
+/**
+ * With no members to choose from, the form offers no Assign to, so the action
+ * input carries the empty choice instead: Studio needs every input field
+ * either on the form or bound.
+ */
+function unassignable(members: readonly BoardMember[]): {
+  assigneeId?: string;
+} {
+  return members.length === 0 ? { assigneeId: "" } : {};
+}
 
 function cardItem(card: BoardCard): {
   id: string;
@@ -477,9 +564,13 @@ function cardItem(card: BoardCard): {
   return {
     id: card.id,
     title: card.title,
-    metadata: [...card.assignees, card.age, card.place].filter(
-      (segment) => segment.length > 0,
-    ),
+    metadata: [
+      ...card.assignees,
+      card.dueDate ? `due ${formatShortDate(card.dueDate)}` : "",
+      card.age,
+      card.place,
+    ].filter((segment) => segment.length > 0),
+    ...(card.overdue ? { badges: [{ label: "Overdue", tone: "warn" }] } : {}),
     link: { detail: { itemId: card.id } },
     links: [
       ...(card.id.length <= LINKABLE_ID_LENGTH
@@ -494,7 +585,7 @@ function cardItem(card: BoardCard): {
             },
           ]
         : []),
-      ...(card.source.id.length <= LINKABLE_ID_LENGTH
+      ...(card.source && card.source.id.length <= LINKABLE_ID_LENGTH
         ? [
             {
               label: card.source.label,
@@ -526,6 +617,14 @@ function cardItem(card: BoardCard): {
   };
 }
 
+/** Still to do or under way, and its due date has passed (UTC days). */
+function isOverdue(entity: ActionItemEntity, now: Date): boolean {
+  const due = entity.metadata.dueDate;
+  const finished =
+    entity.metadata.status === "done" || entity.metadata.status === "dropped";
+  return !!due && !finished && due < now.toISOString().slice(0, 10);
+}
+
 function toCard(entity: ActionItemEntity, now: Date): BoardCard {
   const source = actionItemSource(entity);
   return {
@@ -535,13 +634,19 @@ function toCard(entity: ActionItemEntity, now: Date): BoardCard {
     assignees: (entity.metadata.assignedTo ?? []).map(
       (assignee) => assignee.name,
     ),
+    ...(entity.metadata.dueDate ? { dueDate: entity.metadata.dueDate } : {}),
+    overdue: isOverdue(entity, now),
     age: formatAge(actionItemCapturedAt(entity), now),
     place: source.place,
-    source: {
-      label: source.link.label,
-      entityType: source.link.entityType,
-      id: source.link.entityId,
-    },
+    ...(source.link
+      ? {
+          source: {
+            label: source.link.label,
+            entityType: source.link.entityType,
+            id: source.link.entityId,
+          },
+        }
+      : {}),
   };
 }
 
@@ -571,6 +676,7 @@ function toOpenCard(entity: ActionItemEntity): OpenCard {
     requesters: (entity.metadata.requestedBy ?? []).flatMap((requester) =>
       requester.name ? [requester.name] : [],
     ),
+    ...(entity.metadata.dueDate ? { dueDate: entity.metadata.dueDate } : {}),
     channel: actionItemSource(entity).place,
     ...(notes ? { notes } : {}),
   };
@@ -589,7 +695,11 @@ export interface BoardWorkspaceDeps {
   projectGrouping?: string;
   /** The visibility the brain gives action items, for cards tracked from the Inbox. */
   visibility: ContentVisibility;
+  /** The brain's members, who cards can be assigned to; none where unknown. */
+  members?: () => Promise<readonly BoardMember[]>;
 }
+
+const NOT_A_MEMBER = "That person is not a member of this brain.";
 
 /** Registers the Board workspace; a no-op where Studio does not run. */
 export async function registerBoardWorkspace(
@@ -597,11 +707,22 @@ export async function registerBoardWorkspace(
   deps: BoardWorkspaceDeps,
 ): Promise<string | undefined> {
   const now = (): Date => deps.now?.() ?? new Date();
+  const members = async (): Promise<BoardMember[]> => [
+    ...((await deps.members?.()) ?? []),
+  ];
+  /** The member an action names, or false when it names someone else. */
+  const assigneeFor = async (
+    assigneeId: string | undefined,
+  ): Promise<{ name: string; id: string } | undefined | false> => {
+    if (!assigneeId) return undefined;
+    const member = (await members()).find(({ id }) => id === assigneeId);
+    return member ? { name: member.name, id: `user:${member.id}` } : false;
+  };
 
   const move = async (
     caller: OperatorCaller | null,
     request: { id: string; from: ActionItemStatus; to: ActionItemStatus },
-  ): Promise<{ status: string }> => {
+  ): Promise<{ status?: string }> => {
     if (!caller) throw new Error("Moving a card requires a signed-in member");
     const result = await moveActionItem(
       {
@@ -614,7 +735,7 @@ export async function registerBoardWorkspace(
     // Outcomes travel as the action result: the host redacts thrown errors.
     switch (result.status) {
       case "moved":
-        return { status: `Moved to ${STATUS_LABELS[request.to]}.` };
+        return {};
       case "not-found":
         return { status: "This card is no longer on the board." };
       case "conflict":
@@ -707,6 +828,7 @@ export async function registerBoardWorkspace(
               )
             : null;
           return {
+            members: await members(),
             cards: shown
               .flatMap((cards) => cards.slice(0, COLUMN_LIMIT))
               .map((entity) => toCard(entity, at)),
@@ -748,6 +870,8 @@ export async function registerBoardWorkspace(
             if (!caller) {
               throw new Error("Tracking requires a signed-in member");
             }
+            const assignee = await assigneeFor(input.assigneeId);
+            if (assignee === false) return { status: NOT_A_MEMBER };
             const result = await trackInboxItem(
               {
                 entityService: context.entityService,
@@ -762,17 +886,37 @@ export async function registerBoardWorkspace(
                 },
                 title: input.title,
                 text: input.text,
-                assignee: input.assignee,
+                assignee,
                 actor: { kind: "user", userId: caller.actor.id },
                 actorName: caller.actor.displayName,
               },
             );
-            return {
-              status:
-                result.status === "tracked"
-                  ? "Tracked on the board."
-                  : "This Inbox item is already on the board.",
-            };
+            return result.status === "tracked"
+              ? {}
+              : { status: "This Inbox item is already on the board." };
+          }),
+          createAction.bind(bindingContext, async ({ caller, input }) => {
+            if (!caller) {
+              throw new Error("Adding a card requires a signed-in member");
+            }
+            const assignee = await assigneeFor(input.assigneeId);
+            if (assignee === false) return { status: NOT_A_MEMBER };
+            await createActionItem(
+              {
+                entityService: context.entityService,
+                visibility: deps.visibility,
+                now,
+              },
+              {
+                title: input.title,
+                text: input.text ?? "",
+                assignee,
+                actor: { kind: "user", userId: caller.actor.id },
+                actorName: caller.actor.displayName,
+                origin: { kind: "board" },
+              },
+            );
+            return {};
           }),
           noteAction.bind(bindingContext, async ({ caller, input }) => {
             if (!caller)
@@ -789,14 +933,14 @@ export async function registerBoardWorkspace(
                 actorName: caller.actor.displayName,
               },
             );
-            return {
-              status:
-                result.status === "noted"
-                  ? "Note added."
-                  : result.status === "not-found"
-                    ? "This card is no longer on the board."
-                    : "This card changed while you wrote; add the note again.",
-            };
+            return result.status === "noted"
+              ? {}
+              : {
+                  status:
+                    result.status === "not-found"
+                      ? "This card is no longer on the board."
+                      : "This card changed while you wrote; add the note again.",
+                };
           }),
         ],
       }),

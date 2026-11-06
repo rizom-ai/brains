@@ -46,19 +46,14 @@ export type AgentFrontmatterSchema = z.ZodObject<{
   organization: z.ZodOptional<z.ZodString>;
   brainName: z.ZodString;
   url: z.ZodString;
-  did: z.ZodOptional<z.ZodString>;
   repoDid: z.ZodOptional<z.ZodString>;
   brainDid: z.ZodOptional<z.ZodString>;
-  anchorDid: z.ZodOptional<z.ZodString>;
   cardUri: z.ZodOptional<z.ZodString>;
   cardCid: z.ZodOptional<z.ZodString>;
-  cardObservedAt: z.ZodOptional<z.ZodString>;
-  cardLastCheckedAt: z.ZodOptional<z.ZodString>;
   cardLastError: z.ZodOptional<z.ZodString>;
   cardFailureCount: z.ZodOptional<z.ZodNumber>;
   cardUnavailableAt: z.ZodOptional<z.ZodString>;
   cardStaleAfter: z.ZodOptional<z.ZodString>;
-  a2aEndpoint: z.ZodOptional<z.ZodString>;
   status: AgentStatusSchema;
   discoveredAt: z.ZodString;
   introducedBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -79,65 +74,58 @@ export const agentFrontmatterSchema: AgentFrontmatterSchema = z.object({
   // Brain (what)
   brainName: z.string().describe("Name of the brain instance"),
   url: z.string().url().describe("Brain endpoint URL"),
-  did: z.string().optional().describe("Decentralized identifier (public)"),
-  repoDid: z.string().optional().describe("ATProto repo DID"),
-  brainDid: z.string().optional().describe("ATProto brain DID"),
-  anchorDid: z.string().optional().describe("ATProto anchor DID"),
-  cardUri: z.string().optional().describe("ATProto brain card URI"),
-  cardCid: z.string().optional().describe("ATProto brain card CID"),
-  cardObservedAt: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("When the ATProto brain card snapshot last changed"),
-  cardLastCheckedAt: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("When the ATProto brain card was last checked"),
-  cardLastError: z
+  repoDid: z
     .string()
     .optional()
-    .describe("Last ATProto brain card refresh error"),
-  cardFailureCount: z
-    .number()
-    .int()
-    .nonnegative()
-    .optional()
-    .describe("Consecutive ATProto brain card refresh failures"),
-  cardUnavailableAt: z
+    .meta({ description: "ATProto repo DID", studioWidget: "provenance" }),
+  brainDid: z
     .string()
-    .datetime()
     .optional()
-    .describe("When the remote ATProto brain card became unavailable"),
-  cardStaleAfter: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("When a never-approved unavailable card may be archived"),
-  a2aEndpoint: z.string().url().optional().describe("A2A endpoint URL"),
+    .meta({ description: "ATProto brain DID", studioWidget: "provenance" }),
+  cardUri: z.string().optional().meta({
+    description: "ATProto brain card URI",
+    studioWidget: "provenance",
+  }),
+  cardCid: z.string().optional().meta({
+    description: "ATProto brain card CID",
+    studioWidget: "provenance",
+  }),
+  cardLastError: z.string().optional().meta({
+    description: "Last ATProto brain card refresh error",
+    studioWidget: "hidden",
+  }),
+  cardFailureCount: z.number().int().nonnegative().optional().meta({
+    description: "Consecutive ATProto brain card refresh failures",
+    studioWidget: "hidden",
+  }),
+  cardUnavailableAt: z.string().datetime().optional().meta({
+    description: "When the remote ATProto brain card became unavailable",
+    studioWidget: "hidden",
+  }),
+  cardStaleAfter: z.string().datetime().optional().meta({
+    description: "When a never-approved unavailable card may be archived",
+    studioWidget: "hidden",
+  }),
 
   // Relationship
   status: agentStatusSchema,
-  discoveredAt: z
-    .string()
-    .datetime()
-    .describe("When this agent was first discovered"),
+  discoveredAt: z.string().datetime().meta({
+    description: "When this agent was first discovered",
+    studioWidget: "provenance",
+  }),
 
   // Sighting provenance — present on second-order agents discovered
   // through a connected peer's directory. A discovered agent with
   // introducers charts as a sighting on the proximity map; approval
   // promotes it to a first-order contact and drops the provenance.
-  introducedBy: z
-    .array(z.string())
-    .optional()
-    .describe("Agent ids of the peers whose directories reported this agent"),
-  hops: z
-    .number()
-    .int()
-    .min(2)
-    .optional()
-    .describe("Discovery order: 2 = sighted through a first-order peer"),
+  introducedBy: z.array(z.string()).optional().meta({
+    description: "Agent ids of the peers whose directories reported this agent",
+    studioWidget: "provenance",
+  }),
+  hops: z.number().int().min(2).optional().meta({
+    description: "Discovery order: 2 = sighted through a first-order peer",
+    studioWidget: "provenance",
+  }),
 });
 
 export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
@@ -150,16 +138,12 @@ export type AgentMetadataSchema = z.ZodObject<{
   slug: z.ZodString;
   repoDid: z.ZodOptional<z.ZodString>;
   brainDid: z.ZodOptional<z.ZodString>;
-  anchorDid: z.ZodOptional<z.ZodString>;
   cardUri: z.ZodOptional<z.ZodString>;
   cardCid: z.ZodOptional<z.ZodString>;
-  cardObservedAt: z.ZodOptional<z.ZodString>;
-  cardLastCheckedAt: z.ZodOptional<z.ZodString>;
   cardLastError: z.ZodOptional<z.ZodString>;
   cardFailureCount: z.ZodOptional<z.ZodNumber>;
   cardUnavailableAt: z.ZodOptional<z.ZodString>;
   cardStaleAfter: z.ZodOptional<z.ZodString>;
-  a2aEndpoint: z.ZodOptional<z.ZodString>;
 }>;
 
 /**
@@ -173,16 +157,12 @@ export const agentMetadataSchema: AgentMetadataSchema = z.object({
   slug: z.string(),
   repoDid: z.string().optional(),
   brainDid: z.string().optional(),
-  anchorDid: z.string().optional(),
   cardUri: z.string().optional(),
   cardCid: z.string().optional(),
-  cardObservedAt: z.string().datetime().optional(),
-  cardLastCheckedAt: z.string().datetime().optional(),
   cardLastError: z.string().optional(),
   cardFailureCount: z.number().int().nonnegative().optional(),
   cardUnavailableAt: z.string().datetime().optional(),
   cardStaleAfter: z.string().datetime().optional(),
-  a2aEndpoint: z.string().url().optional(),
 });
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;

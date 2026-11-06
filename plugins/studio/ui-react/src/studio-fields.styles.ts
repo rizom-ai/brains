@@ -9,6 +9,7 @@ type FieldStyle =
   | "control"
   | "date"
   | "readOnly"
+  | "fact"
   | "imageRef"
   | "imageCode"
   | "clear"
@@ -94,6 +95,9 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
         ":is([data-climate='instrument'] *)": "dark",
       },
     },
+    // A read-only fact: a long unbroken value (an id, a URL) wraps inside
+    // the properties panel instead of widening it.
+    fact: { minWidth: 0, overflowWrap: "anywhere" },
     readOnly: {
       fontFamily: "var(--console-mono)",
       borderStyle: "dashed",

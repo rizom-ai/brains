@@ -38,6 +38,8 @@ export class TrafficSnapshotPlugin extends EntityPlugin<
         publish: "never",
       },
       embeddable: false,
+      // The days fix the week; these stored copies are no longer written.
+      retiredFields: ["week", "start", "end"],
       fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",

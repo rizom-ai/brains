@@ -175,7 +175,11 @@ export const actionItemSourceRefSchema: ActionItemSourceRefSchema = z.object({
 type ActionItemMetadataSchema = z.ZodObject<{
   /** Absent on items projected before origins were recorded: a conversation. */
   origin: z.ZodOptional<
-    z.ZodEnum<{ conversation: "conversation"; inbox: "inbox" }>
+    z.ZodEnum<{
+      conversation: "conversation";
+      inbox: "inbox";
+      board: "board";
+    }>
   >;
   conversationId: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodOptional<z.ZodString>;
@@ -186,7 +190,10 @@ type ActionItemMetadataSchema = z.ZodObject<{
   status: ActionItemStatusSchema;
   assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
   requestedBy: z.ZodOptional<z.ZodArray<typeof actionItemRequesterSchema>>;
+  dueDate: z.ZodOptional<z.ZodISODate>;
   projectedBodyHash: z.ZodOptional<z.ZodString>;
+  projectedAssigneeHash: z.ZodOptional<z.ZodString>;
+  projectedDueDate: z.ZodOptional<z.ZodISODate>;
 }>;
 
 const CONVERSATION_FIELDS = [
@@ -195,11 +202,15 @@ const CONVERSATION_FIELDS = [
   "channelId",
 ] as const;
 
-/** A conversation item carries its conversation; an Inbox item, its source. */
+/**
+ * A conversation item carries its conversation; an Inbox item, its source. A
+ * card added on the board needs neither.
+ */
 function requireOriginFields(
   metadata: Record<string, unknown>,
   context: z.RefinementCtx,
 ): void {
+  if (metadata["origin"] === "board") return;
   const required =
     metadata["origin"] === "inbox"
       ? (["sourceRef"] as const)
@@ -218,24 +229,48 @@ function requireOriginFields(
   }
 }
 
+/** Where a card came from: facts Studio shows, never fields it edits. */
+const provenance = { studioWidget: "provenance" } as const;
+/** Ids the origin is routed by; unreadable chat-app ids, so never shown. */
+const routing = { studioWidget: "hidden" } as const;
+
 const originShape = {
-  origin: z.enum(["conversation", "inbox"]).optional(),
-  conversationId: z.string().optional(),
-  interfaceType: z.string().optional(),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  sourceRef: actionItemSourceRefSchema.optional(),
-  capturedAt: z.iso.datetime(),
+  origin: z
+    .enum(["conversation", "inbox", "board"])
+    .optional()
+    .meta(provenance),
+  conversationId: z.string().optional().meta(routing),
+  interfaceType: z.string().optional().meta(provenance),
+  channelId: z.string().optional().meta(routing),
+  channelName: z.string().optional().meta(provenance),
+  sourceRef: actionItemSourceRefSchema.optional().meta(provenance),
+  capturedAt: z.iso.datetime().meta(provenance),
 };
 
 export const actionItemMetadataSchema: ActionItemMetadataSchema = z
   .object({
     ...originShape,
     status: actionItemStatusSchema,
-    assignedTo: z.array(actionItemAssigneeSchema).optional(),
-    requestedBy: z.array(actionItemRequesterSchema).optional(),
+    // Studio assigns from the brain's members and shows people by name.
+    assignedTo: z
+      .array(actionItemAssigneeSchema)
+      .optional()
+      .meta({ studioWidget: "members" }),
+    requestedBy: z
+      .array(actionItemRequesterSchema)
+      .optional()
+      .meta({ studioWidget: "people" }),
+    /** When the work is due, when someone named a date; most cards have none. */
+    dueDate: z.iso.date().optional(),
     /** Body hash when the projector wrote the item; a different body is the board's. */
-    projectedBodyHash: z.string().optional(),
+    projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
+    /** Owner hash when a finder wrote the item; a different owner is the board's. */
+    projectedAssigneeHash: z
+      .string()
+      .optional()
+      .meta({ studioWidget: "hidden" }),
+    /** Due date when a finder wrote the item; a different one is the board's. */
+    projectedDueDate: z.iso.date().optional().meta({ studioWidget: "hidden" }),
   })
   .superRefine(requireOriginFields);
 
@@ -255,7 +290,16 @@ export const actionItemStoredMetadataSchema: z.ZodPreprocess<
       status: actionItemStatusSchema,
       assignedTo: z.array(storedAssigneeSchema).optional(),
       requestedBy: z.array(storedRequesterSchema).optional(),
-      projectedBodyHash: z.string().optional(),
+      dueDate: z.iso.date().optional(),
+      projectedBodyHash: z.string().optional().meta({ studioWidget: "hidden" }),
+      projectedAssigneeHash: z
+        .string()
+        .optional()
+        .meta({ studioWidget: "hidden" }),
+      projectedDueDate: z.iso
+        .date()
+        .optional()
+        .meta({ studioWidget: "hidden" }),
     })
     .superRefine(requireOriginFields),
 );
@@ -277,7 +321,9 @@ export type ActionItemOrigin =
       /** When the conversation it came from ended. */
       capturedAt: string;
     }
-  | { kind: "inbox"; sourceRef: ActionItemSourceRef; capturedAt: string };
+  | { kind: "inbox"; sourceRef: ActionItemSourceRef; capturedAt: string }
+  /** Added on the board by hand; `capturedAt` is when. */
+  | { kind: "board"; capturedAt: string };
 
 /** Where an action item came from; the schema guarantees one complete answer. */
 export function actionItemOrigin(
@@ -292,6 +338,9 @@ export function actionItemOrigin(
     | "capturedAt"
   >,
 ): ActionItemOrigin {
+  if (metadata.origin === "board") {
+    return { kind: "board", capturedAt: metadata.capturedAt };
+  }
   if (metadata.origin === "inbox" && metadata.sourceRef) {
     return {
       kind: "inbox",

@@ -5,13 +5,11 @@ import { Window } from "happy-dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import {
-  StudioBrowseDestinations,
-  studioArea,
-  TypeSwitcher,
-} from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
 import { studioTypeHierarchy } from "../../src/config";
+import { StudioBrowseDestinations } from "./studio-navigation-parts";
+import { studioArea } from "./studio-areas";
+import { TypeSwitcher } from "./studio-type-navigation";
 
 let restoreGlobals: RestoreGlobals;
 let browser: Window;
@@ -31,6 +29,7 @@ const types: EntityTypeInfo[] = [
     entityType: "note",
     classification: "content",
     label: "Notes",
+    singularLabel: "Note",
     isSingleton: false,
     hasBody: true,
     count: 12,
@@ -41,6 +40,7 @@ const types: EntityTypeInfo[] = [
     entityType: "style-guide",
     classification: "system",
     label: "Style Guides",
+    singularLabel: "Style Guide",
     isSingleton: true,
     hasBody: true,
     count: 1,
@@ -51,6 +51,7 @@ const types: EntityTypeInfo[] = [
     entityType: "prompt",
     classification: "system",
     label: "Prompts",
+    singularLabel: "Prompt",
     isSingleton: false,
     hasBody: true,
     count: 18,
@@ -61,6 +62,7 @@ const types: EntityTypeInfo[] = [
     entityType: "agent",
     classification: "system",
     label: "Agents",
+    singularLabel: "Agent",
     isSingleton: false,
     hasBody: true,
     count: 15,

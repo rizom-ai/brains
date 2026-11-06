@@ -7,10 +7,7 @@ import type { SiteContent } from "../../src/schemas/site-content";
 export function createMockSiteContent(
   overrides: Partial<Omit<SiteContent, "contentHash">> & { content: string },
 ): SiteContent {
-  const metadata = overrides.metadata ?? {
-    routeId: "test-route",
-    sectionId: "test-section",
-  };
+  const metadata = overrides.metadata ?? {};
   return createTestEntity<SiteContent>("site-content", {
     id: overrides.id ?? "test-site-content",
     content: overrides.content,

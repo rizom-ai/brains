@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. Posture—from private personal use to public professional publishing or shared team memory—is configuration, not a separate product.</p>
-      <div class="updated">Last updated: 2026-10-08 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-11-05 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -99,21 +99,13 @@
           <div class="card-desc">make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.</div>
           <div class="card-file">generation-voice-and-prompt-freshness.md</div>
         </div>
-        <div class="card status-partial">
+        <div class="card status-active">
           <div class="card-head">
-            <span class="card-name">System analytics tool</span>
-            <span class="badge badge-partial">In progress</span>
+            <span class="card-name">LinkedIn Import</span>
+            <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">one extensible typed analytics/reporting surface.</div>
-          <div class="card-file">system-analytics-tool.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Agent tool surface consolidation</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.</div>
-          <div class="card-file">agent-tool-surface-consolidation.md</div>
+          <div class="card-desc">an opt-in plugin that imports the owner's LinkedIn profile, skills and history into <code>anchor-profile</code> from Studio, through LinkedIn's DMA portability API (EEA) or an uploaded data export, merging without overwriting what the owner wrote.</div>
+          <div class="card-file">linkedin-import.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -123,11 +115,27 @@
           <div class="card-desc">provider-neutral, permission-gated, audited web search.</div>
           <div class="card-file">web-search-tool.md</div>
         </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Moving-in guides</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">a <code>guide</code> entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from <code>docs/guides/</code> with the docs.</div>
+          <div class="card-file">moving-in-guides.md</div>
+        </div>
         </div>
       </details>
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§2</span>The collective posture</summary>
         <div class="cards">
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Action items from team channels</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">action items picked up from a configured team channel as people talk, announced in the channel with Undo, processed from a durable per-space bookmark.</div>
+          <div class="card-file">channel-action-items.md</div>
+        </div>
         <div class="card status-parked">
           <div class="card-head">
             <span class="card-name">Team-Posture Capabilities</span>
@@ -148,14 +156,6 @@
           </div>
           <div class="card-desc">an Account → AI tools tab with the MCP address and per-client steps, and shorter onboarding emails that greet the person, say what the brain is for, and link there.</div>
           <div class="card-file">onboarding-ai-tools.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Connected channels (extensible channel identity)</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">make Slack's attached identities govern its messages, proving extensibility end to end.</div>
-          <div class="card-file">connected-channels.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -254,6 +254,14 @@
           </div>
           <div class="card-desc">optional network-first installable shell without an offline-authoring claim.</div>
           <div class="card-file">operator-console-pwa.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Bilingual sites</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">sites in more than one language: languages declared once, every page built per language under its tag, copy stored per language, untranslated pages skipped; The Fourth in Traditional Chinese first.</div>
+          <div class="card-file">bilingual-sites.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
@@ -379,6 +387,14 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Typed contracts for cross-plugin bus calls</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">one typed contract for every cross-plugin bus request, command and job, replacing raw channel sends and reply casts.</div>
+          <div class="card-file">typed-bus-contracts.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Salvage the Turso branch onto libSQL</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -387,10 +403,18 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Frontmatter hygiene</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">keep entity frontmatter to what a person authors or reads: a retired-fields mechanism with a rewrite on start, then verified trims of conversation memory, agents, publishing and small types.</div>
+          <div class="card-file">frontmatter-hygiene.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Local Model Runtime</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.</div>
+          <div class="card-desc">per-brain model selection for embeddings, text and images, with a local runtime sidecar; a fully local proof-of-concept brain (text + embeddings) by 2026-11-20 for the Mozilla Human-Scale AI application.</div>
           <div class="card-file">local-model-runtime.md</div>
         </div>
         <div class="card status-parked">

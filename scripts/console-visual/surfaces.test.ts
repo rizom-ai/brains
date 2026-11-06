@@ -4,6 +4,7 @@ import {
   consoleSurfaces,
   isStudioAppShellSurface,
   planSurface,
+  viewportCapturesSurface,
 } from "./surfaces";
 
 describe("consoleSurfaces", () => {
@@ -46,6 +47,7 @@ describe("planSurface", () => {
     ["studio-content-sync", "/studio/workspaces/directory-sync%3Async"],
     ["studio-site", "/studio/workspaces/site-builder%3Asite"],
     ["studio-publishing", "/studio/workspaces/content-pipeline%3Apublishing"],
+    ["studio-board", "/studio/workspaces/action-board%3Aboard"],
     [
       "studio-administration-invitations-form",
       "/studio/workspaces/admin%3Aadministration",
@@ -73,6 +75,21 @@ describe("planSurface", () => {
     );
     expect(planSurface("studio-chat", "empty").workspaceQuery).toBe("");
     expect(planSurface("studio-library", undefined).workspaceQuery).toBe("");
+    // An open Inbox item beside the queue, and a keyboard-focused control on
+    // the board: the states the open-row marker and focus rings show in.
+    expect(planSurface("studio-inbox-open", undefined)).toMatchObject({
+      route: "/studio/workspaces/unified-inbox%3Ainbox",
+      workspaceQuery: "&selected=email%3Afield-notes",
+    });
+    expect(planSurface("studio-board-focus", undefined)).toMatchObject({
+      route: "/studio/workspaces/action-board%3Aboard",
+      workspaceQuery: "",
+    });
+    // The board with a card open, so the open row's marker is captured.
+    expect(planSurface("studio-board-open", undefined)).toMatchObject({
+      route: "/studio/workspaces/action-board%3Aboard",
+      workspaceQuery: "&card=partner-update",
+    });
   });
 
   it("names the reviewed System type, single document or collection", () => {
@@ -126,5 +143,27 @@ describe("isStudioAppShellSurface", () => {
       "studio-invalid",
       "studio-upload",
     ]);
+  });
+});
+
+describe("viewportCapturesSurface", () => {
+  it("captures workspaces, not the library or editor, beside the section nav at 1024", () => {
+    const narrowDesktop = { width: 1024, height: 900 };
+    expect(viewportCapturesSurface("studio-board", narrowDesktop)).toBe(true);
+    expect(
+      viewportCapturesSurface(
+        "studio-administration-invitations",
+        narrowDesktop,
+      ),
+    ).toBe(true);
+    expect(viewportCapturesSurface("studio-editor", narrowDesktop)).toBe(false);
+    expect(viewportCapturesSurface("dashboard", narrowDesktop)).toBe(false);
+  });
+
+  it("skips the secondary editor states at tablet width", () => {
+    expect(viewportCapturesSurface("studio-delete", { width: 768 })).toBe(
+      false,
+    );
+    expect(viewportCapturesSurface("studio-delete", { width: 390 })).toBe(true);
   });
 });

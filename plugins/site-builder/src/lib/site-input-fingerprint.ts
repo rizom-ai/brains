@@ -1,4 +1,8 @@
-import type { LayoutComponent, PreparedSiteBuild } from "@brains/site-engine";
+import type {
+  LayoutComponent,
+  PreparedRoute,
+  PreparedSiteEnvelope,
+} from "@brains/site-engine";
 import { sha256Hex } from "@brains/utils/hash";
 import { randomUUID } from "crypto";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -13,12 +17,25 @@ import type { StaticSiteBuilderFactory } from "./static-site-builder";
 export const RENDERER_PROCESS_IDENTITY: string = randomUUID();
 
 export interface SiteInputFingerprintOptions {
-  preparedBuild: PreparedSiteBuild;
+  /** The build's fields besides its pages. */
+  envelope: PreparedSiteEnvelope;
+  /** Each page's renderer input as a hash, in route order. */
+  routeDigests: readonly string[];
+  /** The templates the pages' sections use. */
+  templates: readonly string[];
   layouts: Record<string, LayoutComponent>;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   sendMessage: SiteBuilderServices["sendMessage"];
   rendererIdentity: string;
+}
+
+/** One page's renderer input as a hash. A site's fingerprint is built from
+ *  its pages' hashes, so no build is ever serialized whole: a book brain's
+ *  thousands of pages would otherwise make one string as large as the build,
+ *  several times over. */
+export function fingerprintPreparedRoute(route: PreparedRoute): string {
+  return sha256Hex(stableSerialize(route));
 }
 
 /** Hash all serializable renderer inputs, the selected renderer functions and
@@ -34,20 +51,17 @@ export function computeSiteInputFingerprint(
     buildId: _buildId,
     preparedAt: _preparedAt,
     ...preparedInput
-  } = options.preparedBuild;
-  const templateNames = Array.from(
-    new Set(
-      options.preparedBuild.routes.flatMap((route) =>
-        route.sections.map((section) => section.template),
-      ),
-    ),
-  ).sort();
+  } = options.envelope;
+  const templateNames = [...new Set(options.templates)].sort();
 
   return sha256Hex(
     stableSerialize({
-      version: 2,
+      version: 4,
       rendererIdentity: options.rendererIdentity,
-      preparedInput,
+      preparedInput: {
+        ...preparedInput,
+        routes: options.routeDigests,
+      },
       layouts: Object.fromEntries(
         Object.entries(options.layouts)
           .sort(([left], [right]) => left.localeCompare(right))

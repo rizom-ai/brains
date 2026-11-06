@@ -68,6 +68,20 @@ export function packagesMissingTestScript(
 }
 
 /**
+ * Packages whose `test` script builds first. Turbo builds a package before
+ * its own tests and before its dependents' tests; building again inside the
+ * test script rewrites dist while dependents' tests import from it.
+ */
+export function packagesRebuildingInTests(
+  packages: WorkspacePackage[],
+): string[] {
+  return packages
+    .filter((pkg) => /\bbun run build\b/.test(pkg.scripts["test"] ?? ""))
+    .map((pkg) => pkg.dir)
+    .sort();
+}
+
+/**
  * Script-level test files that no root script would run.
  *
  * A target ending in `/` covers everything beneath it; any other target must

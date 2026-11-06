@@ -172,7 +172,7 @@ values:
   });
 
   describe("extractMetadata", () => {
-    it("should extract role and values as metadata", () => {
+    it("should extract name, role and values as metadata", () => {
       const content = adapter.createCharacterContent({
         name: "Team Brain",
         role: "Team coordinator",
@@ -188,6 +188,7 @@ values:
       const metadata = adapter.extractMetadata(entity);
 
       expect(metadata).toEqual({
+        name: "Team Brain",
         role: "Team coordinator",
         values: ["collaboration", "transparency", "accessibility"],
       });

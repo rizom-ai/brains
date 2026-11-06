@@ -1,15 +1,14 @@
-import { getActiveAuthService } from "@brains/auth-service";
+import {
+  ConfirmationArgsStore,
+  type Tool,
+  type ToolResponse,
+} from "@brains/plugins";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   EntityPluginContext,
   ServicePluginContext,
 } from "@brains/plugins";
-import {
-  ConfirmationArgsStore,
-  type Tool,
-  type ToolResponse,
-} from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { extractDomain, type FetchFn } from "../lib/fetch-agent-card";
@@ -34,7 +33,7 @@ type AgentSetTrustLevelInput = z.infer<typeof agentSetTrustLevelInputSchema>;
 
 type AgentSetTrustLevelContext = Pick<
   EntityPluginContext | ServicePluginContext,
-  "entityService"
+  "entityService" | "auth"
 >;
 
 const jwksSchema = z.object({
@@ -69,9 +68,7 @@ async function resolveAgentDomain(
   );
   if (!entity) return null;
 
-  const domain = normalizeAgentLookup(
-    entity.metadata.a2aEndpoint ?? entity.metadata.url,
-  );
+  const domain = normalizeAgentLookup(entity.metadata.url);
   if (!domain) return null;
   return { domain };
 }
@@ -123,7 +120,7 @@ export function createAgentSetTrustLevelTool(
         };
       }
 
-      const authService = getActiveAuthService();
+      const authService = context.auth.get();
       const actorUserId = authenticatedUserId(toolContext);
       if (!authService) {
         return {

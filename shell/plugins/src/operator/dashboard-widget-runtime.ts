@@ -24,8 +24,13 @@ import {
   type RuntimeDashboardDigest,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
-  type RuntimeOperatorValidationIssue,
 } from "./operator-view-runtime";
+import {
+  parseOperatorData,
+  runtimeError,
+  validationDetail,
+  type OperatorRuntimeIdentity,
+} from "./operator-runtime-errors";
 import { meetsPermission } from "./contract-assertions";
 import type { BasePluginContext } from "../base/context";
 import type { OperatorCaller } from "./operator-context-contract";
@@ -34,53 +39,9 @@ type DashboardDigestProviderResult = ReturnType<
   NonNullable<DashboardWidgetRegistration["digestProvider"]>
 >;
 
-interface RuntimeWidgetIdentity {
-  readonly publicServiceId: string;
-  readonly packageName: string;
-  readonly widgetId: string;
-}
-
-function runtimeError(
-  identity: RuntimeWidgetIdentity,
-  stage: string,
-  detail?: string,
-): Error {
-  return new Error(
-    `Service "${identity.publicServiceId}" package "${identity.packageName}" dashboard widget "${identity.widgetId}" ${stage}${detail ? `: ${detail}` : ""}`,
-  );
-}
-
-function validationDetail(
-  issues: readonly RuntimeOperatorValidationIssue[],
-): string {
-  return issues
-    .slice(0, 5)
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join(".") : "value";
-      return `${path}: ${issue.message}`;
-    })
-    .join("; ");
-}
-
-function parseWidgetData<TSchema extends z.ZodType<unknown, unknown>>(
-  schema: TSchema,
-  input: unknown,
-  identity: RuntimeWidgetIdentity,
-): z.output<TSchema> {
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) {
-    throw runtimeError(
-      identity,
-      "returned invalid data; return a value matching its data schema",
-      validationDetail(parsed.error.issues),
-    );
-  }
-  return parsed.data;
-}
-
 function parseWidgetView(
   input: unknown,
-  identity: RuntimeWidgetIdentity,
+  identity: OperatorRuntimeIdentity,
 ): RuntimeDashboardOperatorView {
   const parsed = safeParseRuntimeDashboardOperatorView(input);
   if (!parsed.success) {
@@ -95,7 +56,7 @@ function parseWidgetView(
 
 function parseWidgetDigest(
   input: unknown,
-  identity: RuntimeWidgetIdentity,
+  identity: OperatorRuntimeIdentity,
 ): RuntimeDashboardDigest {
   const parsed = safeParseRuntimeDashboardDigest(input);
   if (!parsed.success) {
@@ -137,10 +98,11 @@ export function createDeclarativeDashboardWidgetRegistration<
   readonly includeSource?: boolean | undefined;
 }): DashboardWidgetRegistration {
   const definition = input.binding.definition;
-  const identity: RuntimeWidgetIdentity = {
+  const identity: OperatorRuntimeIdentity = {
     publicServiceId: input.publicServiceId,
     packageName: input.packageName,
-    widgetId: definition.id,
+    surface: "dashboard widget",
+    id: definition.id,
   };
   const load = getDashboardWidgetLoader(input.binding);
 
@@ -188,7 +150,7 @@ export function createDeclarativeDashboardWidgetRegistration<
         throw runtimeError(identity, "data loader failed");
       }
       runtimeProvider.signal.throwIfAborted();
-      const data = parseWidgetData(definition.data, rawData, identity);
+      const data = parseOperatorData(definition.data, rawData, identity);
 
       let rawView: unknown;
       try {

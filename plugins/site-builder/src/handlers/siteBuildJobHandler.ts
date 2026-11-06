@@ -13,15 +13,19 @@ import {
 } from "../types/job-types";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
-import type { SiteBuildStatusService } from "../lib/site-build-status";
+import type {
+  SiteBuildEnvironment,
+  SiteBuildStatusService,
+} from "../lib/site-build-status";
 
 /**
- * The four transitions this handler records. The service does more; asking for
- * all of it meant a test could not record a subset without asserting it was
- * the whole service.
+ * The transitions this handler records, and whether the last build failed. The
+ * service does more; asking for all of it meant a test could not record a
+ * subset without asserting it was the whole service.
  */
 export type BuildStatusRecorder = Pick<
   SiteBuildStatusService,
+  | "hasUnresolvedFailure"
   | "markBuilding"
   | "markSuccess"
   | "markSkipped"
@@ -50,6 +54,8 @@ export interface SiteBuildJobHandlerConfig {
   getHeadScripts?: (() => Promise<string[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
+  /** The site's languages, the first its default. */
+  languages?: string[] | undefined;
   statusService?: BuildStatusRecorder | undefined;
 }
 
@@ -89,6 +95,9 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     const environment = data.environment ?? "preview";
     const enableContentGeneration = data.enableContentGeneration ?? false;
 
+    // Unchanged inputs would skip the render, but after a failure the output
+    // is rebuilt rather than trusted.
+    const publishUnchanged = await this.lastBuildFailed(environment);
     await this.recordStatus(
       () => this.cfg.statusService?.markBuilding(environment, jobId),
       "building",
@@ -143,6 +152,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           ...(this.cfg.staticAssets && {
             staticAssets: this.cfg.staticAssets,
           }),
+          ...(this.cfg.languages && { languages: this.cfg.languages }),
+          publishUnchanged,
         },
         buildProgressReporter.toCallback(),
       );
@@ -235,8 +246,13 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 
       // A superseded build's request is served by the build that replaced
       // it, so its job is done; any other cancellation is retried.
+      const completed = result.success || result.superseded === true;
       return {
-        success: result.success || result.superseded === true,
+        success: completed,
+        // The queue records this as the failure, which Site then shows.
+        ...(!completed && {
+          error: result.errors?.join("; ") ?? "Site build failed",
+        }),
         ...(result.cancelled && { cancelled: true }),
         ...(result.skipped && { skipped: true }),
         routesBuilt: result.routesBuilt,
@@ -258,6 +274,23 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       );
       this.logger.error("Site build job failed", error);
       throw error;
+    }
+  }
+
+  private async lastBuildFailed(
+    environment: SiteBuildEnvironment,
+  ): Promise<boolean> {
+    try {
+      return (
+        (await this.cfg.statusService?.hasUnresolvedFailure(environment)) ??
+        false
+      );
+    } catch (error) {
+      // Unreadable status costs at most a skipped render; the build goes on.
+      this.logger.error("Failed to read the last site build outcome", {
+        error,
+      });
+      return false;
     }
   }
 

@@ -16,7 +16,7 @@ input:
   channelId: relay-team
   includeOtherSpaces: true
   memory:
-    - id: other-summary
+    - id: other-conv
       entityType: summary
       conversationId: other-conv
       interfaceType: mcp

@@ -17,6 +17,7 @@ import {
 } from "../test-helpers";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
+import type { BuildContext } from "../../src/lib/static-site-builder";
 
 interface TestSiteBuilder {
   build(options: Omit<SiteBuilderOptions, "siteUrl">): Promise<BuildResult>;
@@ -48,9 +49,14 @@ describe("SiteBuilder dataQuery handling", () => {
     // Create route registry
     mockRouteRegistry = new RouteRegistry(logger);
 
-    // Create mock static site builder
+    // Create mock static site builder; like any renderer it asks for every
+    // page, which is when a page's content is resolved.
     mockStaticSiteBuilder = {
-      build: mock().mockResolvedValue({ success: true }),
+      build: mock(
+        async (context: BuildContext, _progress, signal: AbortSignal) => {
+          await context.routes.each(async () => undefined, signal);
+        },
+      ),
       clean: mock().mockResolvedValue(undefined),
     };
 

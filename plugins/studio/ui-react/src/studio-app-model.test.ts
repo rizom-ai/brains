@@ -17,6 +17,7 @@ function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
     entityType: "note",
     classification: "content",
     label: "Notes",
+    singularLabel: "Note",
     isSingleton: false,
     hasBody: true,
     count: 0,
@@ -163,7 +164,7 @@ describe("deriveStudioAppModel", () => {
       deriveStudioAppModel({ ...props, groupingView: "Clients" }).editing,
     ).toBe(false);
   });
-  it("counts entities in the listing head and marks filtered results", () => {
+  it("counts entries in the listing head and leaves filtered counts to the filter bar", () => {
     const plain = deriveStudioAppModel(viewProps({ entityTotal: 3 }));
     const filtered = deriveStudioAppModel(
       viewProps({
@@ -173,9 +174,9 @@ describe("deriveStudioAppModel", () => {
     );
 
     expect(plain.listingHead.title).toBe("Notes");
-    expect(plain.listingHead.metadata?.[0]).toBe("3 entities");
+    expect(plain.listingHead.metadata?.[0]).toBe("3 entries");
     expect(plain.collectionFiltered).toBe(false);
-    expect(filtered.listingHead.metadata?.[0]).toBe("3 matching entities");
+    expect(filtered.listingHead.metadata).toEqual([]);
     expect(filtered.collectionFiltered).toBe(true);
   });
 
@@ -188,7 +189,20 @@ describe("deriveStudioAppModel", () => {
     );
 
     expect(model.hierarchyKind).toBe("folder");
-    expect(model.listingHead.metadata).toContain("1 folder · 3 in total");
+    expect(model.listingHead.metadata).toContain(
+      "1 folder · 3 entries in total",
+    );
+  });
+
+  it("does not announce an empty level above its folders", () => {
+    const model = deriveStudioAppModel(
+      viewProps({
+        entityTotal: 0,
+        folders: [{ path: ["about"], name: "about", descendantCount: 1 }],
+      }),
+    );
+
+    expect(model.listingHead.metadata).toEqual(["1 folder · 1 entry in total"]);
   });
 
   it("names hierarchy levels the way the type does", () => {
@@ -207,7 +221,7 @@ describe("deriveStudioAppModel", () => {
     );
 
     expect(model.hierarchyKind).toBe("page");
-    expect(model.listingHead.metadata).toContain("1 page · 2 in total");
+    expect(model.listingHead.metadata).toContain("1 page · 2 entries in total");
   });
 
   it("only allows creating a flat type at the collection root", () => {
@@ -476,11 +490,11 @@ describe("deriveListingHead", () => {
   };
   const query = viewProps().collectionQuery;
 
-  it("counts entities across the collection in the singular and plural", () => {
+  it("counts entries across the collection in the singular and plural", () => {
     expect(
       deriveListingHead({ ...viewProps(), entityTotal: 1 }, plainContext)
         .listingHead.metadata,
-    ).toEqual(["1 entity"]);
+    ).toEqual(["1 entry"]);
     expect(
       deriveListingHead(
         {
@@ -493,7 +507,7 @@ describe("deriveListingHead", () => {
     ).toMatchObject({
       collectionFiltered: true,
       directFolderCount: false,
-      listingHead: { metadata: ["1 matching entity"] },
+      listingHead: { metadata: [] },
     });
   });
 
@@ -517,7 +531,7 @@ describe("deriveListingHead", () => {
         },
         plainContext,
       ).listingHead.metadata,
-    ).toEqual(["2 matching entries here"]);
+    ).toEqual([]);
   });
 
   it("names the scope of a folder listing that is not a direct count", () => {
@@ -529,7 +543,7 @@ describe("deriveListingHead", () => {
         },
         plainContext,
       ).listingHead.metadata,
-    ).toEqual(["0 entities", "Whole collection"]);
+    ).toEqual(["0 entries", "Whole collection"]);
     expect(
       deriveListingHead(
         {
@@ -538,7 +552,7 @@ describe("deriveListingHead", () => {
         },
         { ...plainContext, hierarchyKind: "page" },
       ).listingHead.metadata,
-    ).toEqual(["0 matching entities", "In this page"]);
+    ).toEqual(["In this page"]);
   });
 
   it("pluralizes sub-levels and flags pending sync", () => {
@@ -556,7 +570,7 @@ describe("deriveListingHead", () => {
 
     expect(head.listingHead.metadata).toEqual([
       "2 entries here",
-      "2 pages · 9 in total",
+      "2 pages · 9 entries in total",
       "Sync pending",
     ]);
   });
@@ -642,10 +656,64 @@ describe("deriveEditorHead", () => {
     );
 
     expect(head).toMatchObject({
-      heading: "New Notes",
+      heading: "New note",
       publicationState: null,
-      editorHead: { title: "New Notes", metadata: ["Note · new"] },
+      editorHead: { title: "New note", metadata: ["Note · new"] },
     });
+  });
+
+  it.each([
+    [
+      { entityType: "series", label: "Series", singularLabel: "Series" },
+      "New series",
+      "Series",
+    ],
+    [
+      { entityType: "faq", label: "FAQs", singularLabel: "FAQ" },
+      "New FAQ",
+      "FAQ",
+    ],
+    [
+      {
+        entityType: "ask-content",
+        label: "Ask Content",
+        singularLabel: "Ask Content",
+      },
+      "New ask content",
+      "Ask Content",
+    ],
+  ])("names a new %o entry by its singular label", (type, heading, entry) => {
+    const head = deriveEditorHead(
+      {
+        ...viewProps({ entityType: type.entityType }),
+        ...withMode({ kind: "create" }),
+      },
+      { ...context, activeType: typeInfo(type) },
+    );
+
+    expect(head).toMatchObject({ heading, entryLabel: entry });
+  });
+
+  it("names a singleton that does not exist yet by its name, not as new", () => {
+    const askContent = typeInfo({
+      entityType: "ask-content",
+      label: "Ask Content",
+      singularLabel: "Ask Content",
+      isSingleton: true,
+    });
+    const head = deriveEditorHead(
+      {
+        ...viewProps({ entityType: "ask-content" }),
+        ...withMode({ kind: "create" }),
+      },
+      {
+        ...context,
+        activeType: askContent,
+        entitySchema: { ...schema, isSingleton: true },
+      },
+    );
+
+    expect(head.heading).toBe("Ask Content");
   });
 
   it("names a singleton by its singular label under its area", () => {
@@ -653,6 +721,7 @@ describe("deriveEditorHead", () => {
       entityType: "anchor-profile",
       classification: "system",
       label: "Profiles",
+      singularLabel: "Profile",
       isSingleton: true,
     });
     const head = deriveEditorHead(

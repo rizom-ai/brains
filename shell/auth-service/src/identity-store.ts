@@ -1,3 +1,7 @@
+import type {
+  AttachAuthIdentityInput,
+  ResolveAuthIdentityInput,
+} from "@brains/contracts";
 import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
@@ -32,24 +36,6 @@ export interface AuthIdentityStoreOptions {
 export interface AuthIdentityRecord extends AuthIdentity {
   evidence: AuthIdentityEvidence[];
   verifiedAt: number | null;
-}
-
-export interface AttachAuthIdentityInput {
-  userId: string;
-  type: AuthIdentityType;
-  subject: string;
-  issuer?: string;
-  deliverySubject?: string;
-  label?: string;
-  visibility?: AuthIdentityVisibility;
-  verifiedAt?: number;
-  source?: { kind: AuthIdentitySourceKind; id?: string };
-}
-
-export interface ResolveAuthIdentityInput {
-  type: AuthIdentityType;
-  subject: string;
-  issuer?: string;
 }
 
 export type AuthIdentityLookupResult =

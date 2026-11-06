@@ -2,7 +2,7 @@
 
 ## Status
 
-**Partially implemented — revalidated on 2026-10-16; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The stable `0.2` route-authoring contract is declarative `defineRoute()` from `@rizom/brain/interfaces` (security `public` or `protocol`), which the declarative interface plugin adapts to the internal `getWebRoutes()` getter, the registry's only ingress. Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
+**Partially implemented — revalidated on 2026-10-16; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The stable `0.2` route-authoring contract is declarative `defineRoute()` from `@rizom/brain/interfaces` (security `public` or `protocol`), which the declarative interface plugin adapts to the internal `getWebRoutes()` getter, the registry's only ingress. Phase 5 step 1 is implemented for Dashboard, Chat and Studio (approved 2026-11-05). Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
 
 The [public-authoring release gate](./public-authoring-api-0.2.md) deliberately freezes only the existing handler-backed web-route contract. It excludes tool-backed API routes, non-public shared-host admission, centralized operator authentication, and `context.http.register()` from the `0.2` stable ledger. This plan must not widen that ledger accidentally.
 
@@ -229,6 +229,7 @@ Gate:
 ### Phase 5 — Advertising, diagnostics, and cleanup
 
 1. Add optional route advertisement metadata for Dashboard, Chat, Studio, MCP, and A2A.
+   - Dashboard, Chat and Studio: done. A web route claims a well-known role (`WebRouteDefinition.role`, vocabulary `WEB_ROUTE_ROLES` in `@brains/contracts`); `context.webRoutes.findByRole()` and the console strip resolve doors from it, with no plugin ids in shell. MCP and A2A remain.
 2. Keep manual endpoint registration for external/static URLs such as Site and Preview.
 3. Diagnose route-backed advertised URLs that do not resolve to a registered route.
 4. Document the route manifest and ownership model in architecture and external-plugin authoring docs.

@@ -22,11 +22,6 @@ function createPreparedBuild(): PreparedSiteBuild {
       {
         id: "home",
         path: "/",
-        title: "Home",
-        description: "Home route",
-        layout: "default",
-        fullscreen: false,
-        sections: [],
         headScripts: [],
       },
     ],

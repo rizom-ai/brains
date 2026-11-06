@@ -78,6 +78,7 @@ function formControlSupportsSchema(
     case "select":
       return kind === "string" || kind === "enum";
     case "text":
+    case "textarea":
     case "url":
       return kind === "string";
   }

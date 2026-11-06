@@ -515,7 +515,7 @@ describe("native Studio Chat workspace", () => {
     });
   }
 
-  it("shares collection search, filter disclosure and truthful ranges without inventing a Chat total", async () => {
+  it("shares collection search and filter disclosure, and needs no pager for one page", async () => {
     await mountChat(new StudioChatDraftStore());
     await openHistory();
     const controls = document.querySelector(
@@ -523,15 +523,11 @@ describe("native Studio Chat workspace", () => {
     );
     expect(controls).not.toBeNull();
     expect(controls?.querySelector("summary")?.textContent).toBe("Filter");
-    const pages = document.querySelector('[aria-label="Conversation pages"]');
-    expect(pages?.textContent).toContain("1–2");
-    expect(pages?.textContent).not.toContain(" of ");
-    const buttons = [...(pages?.querySelectorAll("button") ?? [])];
-    expect(buttons.map((button) => button.textContent)).toEqual([
-      "Previous",
-      "Next",
-    ]);
-    expect(buttons.every((button) => button.disabled)).toBe(true);
+    // Two conversations fit on one page, so there is nothing to page through;
+    // longer histories keep a range without an invented total (below).
+    expect(
+      document.querySelector('[aria-label="Conversation pages"]'),
+    ).toBeNull();
   });
 
   it("pages an unknown Chat total through an empty trailing page without dropping the draft", async () => {

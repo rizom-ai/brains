@@ -27,7 +27,7 @@ describe("AgentAdapter", () => {
         organization: "Rizom",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
-        did: "did:web:yeehaa.io",
+        brainDid: "did:web:yeehaa.io",
         status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
         about: "Founder of Rizom, working on institutional design.",
@@ -93,8 +93,6 @@ describe("AgentAdapter", () => {
         discoveredAt: "2026-03-31T00:00:00.000Z",
         cardUri: "at://did:plc:peer/ai.rizom.brain.card/self",
         cardCid: "bafy-card",
-        cardObservedAt: "2026-07-22T08:00:00.000Z",
-        cardLastCheckedAt: "2026-07-22T09:00:00.000Z",
         cardLastError: "temporary failure",
         about: "Peer brain.",
         skills: [],
@@ -103,13 +101,7 @@ describe("AgentAdapter", () => {
 
       const partial = adapter.fromMarkdown(content);
 
-      expect(content).toContain("cardObservedAt:");
-      expect(content).toContain("cardLastCheckedAt:");
       expect(content).toContain("cardLastError: temporary failure");
-      expect(partial.metadata?.cardObservedAt).toBe("2026-07-22T08:00:00.000Z");
-      expect(partial.metadata?.cardLastCheckedAt).toBe(
-        "2026-07-22T09:00:00.000Z",
-      );
       expect(partial.metadata?.cardLastError).toBe("temporary failure");
     });
 
@@ -141,19 +133,14 @@ describe("AgentAdapter", () => {
       organization: "Peer Org",
       brainName: "Peer Brain",
       url: "https://peer.example.com",
-      did: "did:web:peer.example.com",
       repoDid: "did:plc:peer",
       brainDid: "did:web:peer.example.com",
-      anchorDid: "did:plc:anchor",
       cardUri: "at://did:plc:peer/ai.rizom.brain.card/self",
       cardCid: "bafy-card",
-      cardObservedAt: "2026-07-22T08:00:00.000Z",
-      cardLastCheckedAt: "2026-07-22T09:00:00.000Z",
       cardLastError: "temporary failure",
       cardFailureCount: 2,
       cardUnavailableAt: "2026-07-22T10:00:00.000Z",
       cardStaleAfter: "2026-07-23T10:00:00.000Z",
-      a2aEndpoint: "https://peer.example.com/a2a",
       status: "discovered",
       discoveredAt: "2026-03-31T00:00:00.000Z",
       introducedBy: ["ranger.rizom.ai"],
@@ -461,7 +448,6 @@ Test agent.
         organization: "Rizom",
         brainName: "Ranger Brain",
         url: "https://ranger.rizom.ai",
-        did: "did:web:ranger.rizom.ai",
         status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
         about: "Discovery and registry agent for the Rizom network.",
@@ -530,7 +516,7 @@ Test agent.
         organization: "Rizom",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
-        did: "did:web:yeehaa.io",
+        brainDid: "did:web:yeehaa.io",
         status: "discovered",
         discoveredAt: "2026-04-20T00:00:00.000Z",
         about: "Founder of Rizom.",

@@ -134,7 +134,7 @@ for (const width of [1440, 768, 390])
         const title = head.querySelector("h1");
         if (!title) throw new Error("Page title must be a level-one heading");
         expect(window.getComputedStyle(title).fontSize).toBe(
-          width <= 640 ? "29px" : "36px",
+          width <= 640 ? "26px" : "36px",
         );
         expect(window.getComputedStyle(title).fontWeight).toBe("600");
         expect(window.getComputedStyle(head).borderBottomWidth).toBe("2px");
@@ -149,7 +149,7 @@ for (const width of [1440, 768, 390])
       );
       const fields = doc.querySelector("fieldset"),
         number = doc.querySelector("input[type=number]"),
-        raw = doc.querySelector("textarea"),
+        raw = doc.querySelector('[data-studio-field="structured"]'),
         tag = doc.querySelector("[data-studio-field=tags] input"),
         remove = doc.querySelector('button[aria-label="Remove Exact tag α"]');
       if (!fields || !number || !raw || !tag || !remove)
@@ -158,11 +158,12 @@ for (const width of [1440, 768, 390])
         0,
       );
       expect(number.getAttribute("value")).toBe("0");
-      expect(raw.hasAttribute("disabled")).toBe(true);
-      expect(raw.textContent).toBe(
-        JSON.stringify({ zero: 0, off: false, empty: null }, null, 2),
-      );
-      expect(window.getComputedStyle(raw).borderTopStyle).toBe("dashed");
+      // Read-only structure reads as content, keeping falsy values visible.
+      expect(raw.querySelector("textarea")).toBeNull();
+      expect(raw.textContent).toContain("zero0");
+      expect(raw.textContent).toContain("offNo");
+      expect(raw.textContent).toContain("emptyNot set");
+      expect(raw.textContent).not.toContain("{");
       expect(parseFloat(window.getComputedStyle(tag).borderTopWidth)).toBe(0);
       expect(
         parseFloat(
@@ -227,7 +228,9 @@ test("compiled prose retains safe links, fenced-code controls and ordered-list s
   );
   expect(html).toContain('start="3"');
   expect(html).toContain('data-streamdown="link"');
-  expect(html).toContain('type="button">Exact link</button>');
+  expect(html).toContain('href="https://example.com/path?q=a%2Fb"');
+  expect(html).toContain('target="_blank" rel="noopener noreferrer"');
+  expect(html).toMatch(/<a [^>]*>Exact link<\/a>/);
   expect(html).toContain('data-streamdown="code-block-actions"');
   expect(html).toContain('data-streamdown="code-block-copy-button"');
   expect(html).not.toContain('data-streamdown="code-block-download-button"');

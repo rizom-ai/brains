@@ -12,7 +12,7 @@ export function OperatorSource(props: {
 }): ReactElement {
   const root = stylex.props(s.root, props.framed !== false && s.frame);
   return (
-    <article {...root} className={`operator-source ${root.className ?? ""}`}>
+    <article {...root} data-source="">
       {props.label && (
         <h3
           {...stylex.props(

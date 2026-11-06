@@ -1,0 +1,30 @@
+id: docs-guide-ask-team
+name: A team losing knowledge is pointed to the team guide
+description: >-
+  A visitor's team loses what it knows when people leave. The answer comes from
+  the team guide (one shared brain: invite the team, connect the team's channel,
+  bring shared documents in) and cites the guide at its page.
+type: response_quality
+setup:
+  permissionLevel: public
+tags:
+  - recipe-docs
+  - docs
+  - guides
+  - search
+
+turns:
+  - userMessage: "Our team keeps losing what we know when people leave. Can a brain help with that?"
+
+successCriteria:
+  expectedSources:
+    - id: guide:team
+      url: https://docs.rizom.ai/guides/team
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  responseCriteria:
+    - "Describes a shared team brain that keeps what the team knows, such as by bringing in the team's shared documents and conversations."
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 40000

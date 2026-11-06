@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createStylexBunTransform } from "@brains/build-tools";
 import { runProcess } from "@brains/utils/run-process";
@@ -44,11 +44,14 @@ if (!entry) throw new Error("Missing compiled operator entry");
 const compiled = await entry.text();
 const css = stylex.css();
 await mkdir(outdir, { recursive: true });
+// Host UI builds rebuild this package and read its dist concurrently, so each
+// file is written in a staging directory and renamed into place whole.
+const staging = await mkdtemp(join(outdir, ".build-"));
 const result = await Bun.build({
   ...options,
   entrypoints: ["compiled-operator-entry"],
   naming: { entry: "index.js" },
-  outdir,
+  outdir: staging,
   define: { __OPERATOR_STYLEX_CSS__: JSON.stringify(css) },
   plugins: [
     {
@@ -69,7 +72,13 @@ const result = await Bun.build({
 });
 if (!result.success)
   throw new AggregateError(result.logs, "Could not build operator components");
-if (!result.outputs.some((output) => output.path === join(outdir, "index.js")))
+if (!result.outputs.some((output) => output.path === join(staging, "index.js")))
   throw new Error("Build did not emit the public operator entry");
-await writeFile(join(outdir, "stylex.css"), css + "\n");
+await writeFile(join(staging, "stylex.css"), css + "\n");
+await Promise.all(
+  ["index.js", "stylex.css"].map((name) =>
+    rename(join(staging, name), join(outdir, name)),
+  ),
+);
+await rm(staging, { recursive: true, force: true });
 console.log("Built shared operator components and static StyleX CSS");

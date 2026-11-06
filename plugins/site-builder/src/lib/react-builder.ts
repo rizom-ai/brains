@@ -5,6 +5,12 @@ import type {
   BuildContext,
 } from "./static-site-builder";
 import { sha256Hex } from "@brains/utils/hash";
+import { escapeHtml } from "@brains/utils/string-utils";
+import {
+  PageLanguageContext,
+  type SiteLayoutInfo,
+  type SiteMetadataTranslation,
+} from "@brains/site-composition";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -22,12 +28,12 @@ import {
   iconHeadPaths,
   createSiteImageRenderer,
   HeadCollector,
+  TailwindCandidates,
   TailwindCSSProcessor,
   type CSSProcessor,
   type PreparedRoute,
-  type PreparedSiteBuild,
+  type PreparedSiteEnvelope,
 } from "@brains/site-engine";
-import { pLimit } from "@brains/utils/p-limit";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
 import { resolveSafeOutputFile } from "./output-path";
@@ -56,7 +62,7 @@ export class ReactBuilder implements StaticSiteBuilder {
   ): Promise<void> {
     signal.throwIfAborted();
     const { preparedBuild } = context;
-    const total = preparedBuild.routes.length + 4;
+    const total = context.routes.count + 4;
     let progress = 0;
     const reportProgress = (message: string): void => {
       progress++;
@@ -70,22 +76,17 @@ export class ReactBuilder implements StaticSiteBuilder {
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
     signal.throwIfAborted();
 
-    // Build routes concurrently from the immutable prepared snapshot.
-    const limit = pLimit(4);
-    const routeResults = await Promise.allSettled(
-      preparedBuild.routes.map((route) =>
-        limit(async () => {
-          signal.throwIfAborted();
-          reportProgress(`Building route: ${route.path}`);
-          await this.buildRoute(route, context, preparedBuild, signal);
-        }),
-      ),
-    );
-    signal.throwIfAborted();
-    const rejectedRoute = routeResults.find(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    );
-    if (rejectedRoute) throw rejectedRoute.reason;
+    // Build each page as its source prepares it, a few at a time, collecting
+    // the classes each page uses for styling as it is written; the page is
+    // dropped once written.
+    const candidates = new TailwindCandidates();
+    const rendered = new Set<string>();
+    await context.routes.each(async (route) => {
+      reportProgress(`Building route: ${route.path}`);
+      const page = await this.buildRoute(route, context, preparedBuild, signal);
+      rendered.add(page.file);
+      candidates.add(page.html);
+    }, signal);
 
     // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
@@ -99,10 +100,15 @@ export class ReactBuilder implements StaticSiteBuilder {
     await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
     signal.throwIfAborted();
 
-    // Styles come last: Tailwind scans the emitted pages and the runtime
-    // scripts that toggle classes on them, so both must be on disk.
+    // Styles come last: Tailwind reads the classes the pages use and scans
+    // the runtime scripts that toggle classes on them, so both must be done.
     reportProgress("Processing Tailwind CSS");
-    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
+    await this.processStyles(
+      preparedBuild.themeCSS ?? "",
+      candidates,
+      rendered,
+      signal,
+    );
     signal.throwIfAborted();
 
     reportProgress("React build complete");
@@ -136,9 +142,9 @@ export class ReactBuilder implements StaticSiteBuilder {
   private async buildRoute(
     route: PreparedRoute,
     context: BuildContext,
-    preparedBuild: PreparedSiteBuild,
+    preparedBuild: PreparedSiteEnvelope,
     signal: AbortSignal,
-  ): Promise<void> {
+  ): Promise<{ file: string; html: string }> {
     signal.throwIfAborted();
     this.logger.debug(`Building route: ${route.path}`);
 
@@ -146,7 +152,13 @@ export class ReactBuilder implements StaticSiteBuilder {
       route.sections,
       context,
     );
-    const siteLayoutInfo = preparedBuild.site;
+    // A translated page wears the site's chrome in its language and lists
+    // the pages of its language.
+    const siteLayoutInfo = {
+      ...translatedSite(preparedBuild.site, route.siteTranslation),
+      ...(route.siteNavigation && { navigation: route.siteNavigation }),
+    };
+    const alternates = route.alternates ?? [];
 
     // Create head collector for SSR, linking only the icons the build has.
     const icon =
@@ -178,7 +190,9 @@ export class ReactBuilder implements StaticSiteBuilder {
           children: h("div", null, ...sectionComponents),
         }),
       });
-      layoutHtml = renderToStaticMarkup(wrapper);
+      layoutHtml = renderToStaticMarkup(
+        h(PageLanguageContext.Provider, { value: route.language }, wrapper),
+      );
     } else {
       // Normal: wrap sections in the site layout
       const layoutName = route.layout;
@@ -199,6 +213,8 @@ export class ReactBuilder implements StaticSiteBuilder {
         description: resolvedDescription,
         path: route.path,
         siteInfo: siteLayoutInfo,
+        language: route.language,
+        alternates,
         ...(context.slots && { slots: context.slots }),
       };
 
@@ -209,7 +225,13 @@ export class ReactBuilder implements StaticSiteBuilder {
           children: h(LayoutComponent, layoutProps),
         }),
       });
-      layoutHtml = renderToStaticMarkup(layoutWithProvider);
+      layoutHtml = renderToStaticMarkup(
+        h(
+          PageLanguageContext.Provider,
+          { value: route.language },
+          layoutWithProvider,
+        ),
+      );
     }
     signal.throwIfAborted();
 
@@ -235,12 +257,14 @@ export class ReactBuilder implements StaticSiteBuilder {
     // Create full HTML page with head data
     const html = createHTMLShell(
       layoutHtml,
-      headCollector.generateHeadHTML(),
+      headCollector.generateHeadHTML() +
+        languageLinks(alternates, preparedBuild.siteUrl),
       preparedBuild.site.title,
       preparedBuild.site.themeMode,
       preparedBuild.site.analyticsScript,
       allHeadScripts,
       headPaths,
+      route.language,
     );
 
     // Determine output path
@@ -255,6 +279,7 @@ export class ReactBuilder implements StaticSiteBuilder {
     }
 
     await fs.writeFile(fullPath, html, { encoding: "utf-8", signal });
+    return { file: fullPath, html };
   }
 
   private createSectionComponents(
@@ -281,11 +306,22 @@ export class ReactBuilder implements StaticSiteBuilder {
 
   private async processStyles(
     themeCSS: string,
+    candidates: TailwindCandidates,
+    rendered: ReadonlySet<string>,
     signal: AbortSignal,
   ): Promise<void> {
     signal.throwIfAborted();
     this.logger.debug("Processing CSS styles");
 
+    // HTML the build placed beside the pages, such as staged artifacts or
+    // public files, is styled as before: its classes join the pages'.
+    await collectOtherPages(this.outputDir, rendered, candidates, signal);
+    const candidatesFile = join(this.workingDir, "tailwind-candidates.html");
+    await fs.mkdir(this.workingDir, { recursive: true });
+    await fs.writeFile(candidatesFile, candidates.toSource(), {
+      encoding: "utf-8",
+      signal,
+    });
     // baseCSS is imported at the top of the file as text (inlined in bundle)
     // This avoids __dirname path issues when running from a bundled build
 
@@ -310,6 +346,7 @@ export class ReactBuilder implements StaticSiteBuilder {
       this.outputDir,
       this.logger,
       signal,
+      [candidatesFile],
     );
     signal.throwIfAborted();
 
@@ -430,4 +467,66 @@ export function createReactBuilder(
   options: StaticSiteBuilderOptions,
 ): StaticSiteBuilder {
   return new ReactBuilder(options);
+}
+
+/**
+ * Collect the classes of HTML in the output that the build did not render as
+ * a page, reading directories one at a time.
+ */
+async function collectOtherPages(
+  directory: string,
+  rendered: ReadonlySet<string>,
+  candidates: TailwindCandidates,
+  signal: AbortSignal,
+): Promise<void> {
+  signal.throwIfAborted();
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  await entries.reduce<Promise<void>>(async (previous, entry) => {
+    await previous;
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await collectOtherPages(path, rendered, candidates, signal);
+    } else if (entry.name.endsWith(".html") && !rendered.has(path)) {
+      candidates.add(await fs.readFile(path, { encoding: "utf-8", signal }));
+    }
+  }, Promise.resolve());
+}
+
+/**
+ * hreflang links from a page to every language it is built in, and
+ * x-default to the default language's, as absolute URLs. A page built in
+ * one language, or a build without a public URL, links none.
+ */
+function languageLinks(
+  alternates: Array<{ language: string; path: string }>,
+  siteUrl: string | undefined,
+): string {
+  const [defaultVersion] = alternates;
+  if (!siteUrl || !defaultVersion || alternates.length < 2) return "";
+  const base = siteUrl.replace(/\/+$/, "");
+  return [...alternates, { ...defaultVersion, language: "x-default" }]
+    .map(
+      ({ language, path }) =>
+        `\n    <link rel="alternate" hreflang="${escapeHtml(language)}" href="${escapeHtml(base + path)}">`,
+    )
+    .join("");
+}
+
+/** The site in a page's language: what the translation gives, else its own. */
+function translatedSite(
+  site: SiteLayoutInfo,
+  translation: SiteMetadataTranslation | undefined,
+): SiteLayoutInfo {
+  if (!translation) return site;
+  return {
+    ...site,
+    ...(translation.title !== undefined && { title: translation.title }),
+    ...(translation.description !== undefined && {
+      description: translation.description,
+    }),
+    ...(translation.copyright !== undefined && {
+      copyright: translation.copyright,
+    }),
+    ...(translation.cta !== undefined && { cta: translation.cta }),
+  };
 }

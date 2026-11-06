@@ -12,10 +12,11 @@ Preact to React without changing that seam.
 
 ## Why this is now answerable
 
-A site build is prepared into `PreparedSiteBuild` before any rendering happens: a
-frozen, JSON-serializable snapshot of routes, resolved section data, metadata,
-images, scripts, and static assets, holding no service callbacks or component
-functions. Rendering performs no entity or datasource reads.
+A site build is prepared into frozen, JSON-serializable data before it is
+rendered: a `PreparedSiteEnvelope` of metadata, images, scripts, and static
+assets, and a `PreparedRoute` per page with its resolved section data, each
+page prepared as the renderer asks for it. Neither holds service callbacks or
+component functions. Rendering performs no entity or datasource reads.
 
 That is the interesting part. A renderer no longer needs the shell, the entity
 service, or the datasource layer — it needs a JSON document, a staging
@@ -37,8 +38,8 @@ the migration that would follow.
 Run only as a time-boxed feasibility exercise, and only if something forces the
 question up the queue.
 
-1. Consume a serialized `PreparedSiteBuild` fixture. The deterministic renderer
-   test already produces one.
+1. Consume a serialized envelope and pages fixture. The deterministic renderer
+   test already produces them.
 2. Render into the same staging directory contract, producing artifacts the
    existing manifest validation accepts unchanged.
 3. Cover one authored route, one entity list route, one entity detail route,

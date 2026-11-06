@@ -1,8 +1,7 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { EMAIL_INBOUND, type InboundEmail } from "@brains/contracts";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  resetPromptMaterialization,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { createMockShell, createPluginHarness } from "@brains/plugins/test";
@@ -53,8 +52,6 @@ const wireClassification = {
 };
 
 describe("email workflow plugin", () => {
-  beforeEach(() => resetPromptMaterialization());
-
   it("activates the entity and service without a parallel prompt config", () => {
     expect(() =>
       Reflect.apply(emailWorkflows, undefined, [

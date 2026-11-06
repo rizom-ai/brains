@@ -1,0 +1,1 @@
+CREATE INDEX `idx_job_queue_root_job` ON `job_queue` (json_extract(`metadata`, '$.rootJobId'),`createdAt`,`id`);

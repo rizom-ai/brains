@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import {
-  resolvePrompt,
-  resetPromptMaterialization,
-} from "../../src/entity/prompt-resolver";
+import { resolvePrompt } from "../../src/entity/prompt-resolver";
 import type { IEntityService } from "@brains/entity-service";
 
 describe("resolvePrompt", () => {
@@ -11,7 +8,6 @@ describe("resolvePrompt", () => {
   let mockEntityService: Pick<IEntityService, "getEntity" | "createEntity">;
 
   beforeEach(() => {
-    resetPromptMaterialization();
     mockGetEntity = mock();
     mockCreateEntity = mock(() =>
       Promise.resolve({ entityId: "test", jobId: "" }),
@@ -20,6 +16,23 @@ describe("resolvePrompt", () => {
       getEntity: mockGetEntity,
       createEntity: mockCreateEntity,
     };
+  });
+
+  it("materializes a missing default in each brain's own store", async () => {
+    const store = (): Pick<IEntityService, "getEntity" | "createEntity"> => ({
+      getEntity: mock(() => Promise.resolve(null)),
+      createEntity: mock(() =>
+        Promise.resolve({ entityId: "x", jobId: "", skipped: false }),
+      ),
+    });
+    const first = store();
+    const second = store();
+
+    await resolvePrompt(first, "blog:generation", "Default");
+    await resolvePrompt(second, "blog:generation", "Default");
+
+    expect(first.createEntity).toHaveBeenCalledTimes(1);
+    expect(second.createEntity).toHaveBeenCalledTimes(1);
   });
 
   it("should return entity body when prompt entity exists", async () => {
@@ -192,6 +205,24 @@ describe("resolvePrompt", () => {
       expect(result).toBe("fallback prompt");
     });
 
+    it("keeps acronyms in titles derived from a target", async () => {
+      mockGetEntity.mockResolvedValue(null);
+
+      await resolvePrompt(
+        mockEntityService,
+        "conversation-memory:ai-response",
+        "fallback",
+      );
+
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          metadata: expect.objectContaining({
+            title: "Conversation Memory AI Response",
+          }),
+        }),
+      });
+    });
+
     it("should generate correct title from target", async () => {
       mockGetEntity.mockResolvedValue(null);
 
@@ -204,7 +235,7 @@ describe("resolvePrompt", () => {
       expect(mockCreateEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
-            title: "Social Media Linkedin",
+            title: "Social Media LinkedIn",
           }),
         }),
       });

@@ -34,6 +34,7 @@ describe("Studio owns operator Chat navigation", () => {
             definition: {
               path,
               method: "POST",
+              ...(path === "/api/talk" ? { role: "chat-api" as const } : {}),
               handler: (): Response => new Response(),
             },
           }));

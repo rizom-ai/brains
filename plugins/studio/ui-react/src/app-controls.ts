@@ -5,6 +5,7 @@ import {
   DisclosureSheet,
   Input,
   NativeSelect,
+  Textarea,
 } from "@brains/app-ui-react";
 import type { OperatorViewComponents } from "@brains/operator-view-react";
 import { createElement, type ComponentProps, type ReactElement } from "react";
@@ -32,6 +33,7 @@ export const STUDIO_OPERATOR_COMPONENTS: OperatorViewComponents = {
   Button,
   Input,
   Select: NativeSelect,
+  Textarea,
   ConfirmDialog,
   Disclosure: StudioDisclosure,
   Tabs: AppTabs,

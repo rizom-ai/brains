@@ -13,8 +13,15 @@ import { summarySchema, type SummaryEntity } from "../schemas/summary";
 import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
-import { getConversationSpaceId } from "./summary-space-eligibility";
 import { buildFallbackExcerpt } from "./excerpt";
+
+/** The space a conversation or a memory belongs to, for same-space recall. */
+function getConversationSpaceId(scope: {
+  interfaceType: string;
+  channelId: string;
+}): string {
+  return `${scope.interfaceType}:${scope.channelId}`;
+}
 
 const DEFAULT_MEMORY_LIMIT = 5;
 const CANDIDATE_MULTIPLIER = 4;
@@ -225,7 +232,7 @@ export class ConversationMemoryRetriever {
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
-            entryCount: entity.metadata.entryCount,
+            entryCount: summaryAdapter.parseBody(entity.content).entries.length,
           }
         : { status: entity.metadata.status }),
     };
@@ -343,7 +350,10 @@ export class ConversationMemoryRetriever {
     }
     const metadata = entity.metadata;
     return {
-      conversationId: metadata.conversationId,
+      // A summary is its conversation: its id is the conversation id.
+      conversationId: this.isSummaryEntity(entity)
+        ? entity.id
+        : entity.metadata.conversationId,
       spaceId:
         "spaceId" in metadata && typeof metadata.spaceId === "string"
           ? metadata.spaceId

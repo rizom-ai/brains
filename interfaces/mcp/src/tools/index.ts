@@ -1,7 +1,7 @@
+import { type ToolResponse } from "@brains/plugins";
 import { createHash, randomUUID } from "node:crypto";
 import { actorRefKey } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import type { ToolResponse } from "@brains/mcp-service";
 import type {
   Tool,
   InterfacePluginContext,

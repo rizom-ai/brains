@@ -1,0 +1,31 @@
+id: channel-action-items-context-not-recited
+name: Does not pick up tasks from messages already processed
+description: >-
+  The task was settled in messages an earlier run processed; the new messages
+  only add thanks. The pickup cites only new messages, so it returns none.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  processedThrough: 2
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Jo, can you book the venue for the spring gathering?
+    - speaker: Jo
+      userId: usr_jo
+      content: Yes, I'll call them tomorrow.
+    - speaker: Natalie
+      content: Thanks Jo!
+    - speaker: Niels
+      userId: usr_niels
+      content: Looking forward to it.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0

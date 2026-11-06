@@ -69,6 +69,8 @@ interface Fixture {
   calls: Parameters<IAgentService["chat"]>[];
   reply: (text: string, id: string) => Promise<string>;
   settlement: GuestTurnSettlement | undefined;
+  /** The failure the runtime reported with its text, if the turn failed. */
+  error: string | undefined;
   /** How the runtime screened the turn's question, if it said. */
   screening: GuestScreeningOutcome | undefined;
   sourceCards: Extract<ChatCard, { kind: "sources" }>[];
@@ -125,6 +127,7 @@ async function setup(
     askedBefore: undefined,
     reply: async (): Promise<string> => "Mock public-source answer",
     settlement: undefined,
+    error: undefined,
     screening: undefined,
     browser: (): Browser => {
       throw new Error("Not installed");
@@ -239,6 +242,7 @@ async function setup(
         text: reply,
         cards: state.sourceCards,
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        ...(state.error ? { error: state.error } : {}),
         ...(state.settlement ? { guestSettlement: state.settlement } : {}),
         ...(state.screening ? { guestScreening: state.screening } : {}),
         ...(state.askedBefore ? { askedBefore: state.askedBefore } : {}),
@@ -1348,6 +1352,38 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(state.calls).toHaveLength(2);
   });
 
+  it("shows a visitor the runtime's failure text, such as a provider decline, and settles the turn as failed", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const declined =
+      "The AI provider declined this request. Try rephrasing your message.";
+    state.reply = async (): Promise<string> => declined;
+    state.error = declined;
+    const request = message();
+    const result = await events(await browser.client.streamMessages(request));
+    expect(
+      result
+        .flatMap((event) => (event.type === "text-delta" ? [event.delta] : []))
+        .join(""),
+    ).toBe(declined);
+    // Finished as a failure the visitor can read, never as an answer.
+    expect(result).toContainEqual({ type: "finish", finishReason: "error" });
+    expect(
+      result.some(
+        (event) => event.type === "finish" && event.finishReason === "stop",
+      ),
+    ).toBe(false);
+    expect(result.some((event) => event.type === "error")).toBe(false);
+    // Settled as before: a failed turn at the answer cap, its cost unknown.
+    expect(await (await post(browser, request)).json()).toMatchObject({
+      state: "failed",
+    });
+    const [record] = await state.records();
+    expect(record?.state).toBe("failed");
+    expect(record?.cost).toEqual({ state: "unknown", reason: "missing-usage" });
+  });
+
   it("rechecks expiry after history reads and before delivering an answer", async () => {
     const state = await setup();
     const browser = state.browser();
@@ -1770,6 +1806,16 @@ describe("guest chat monitor in Studio", () => {
     expect(shown).toContain("switch-on");
     expect(shown).toContain("Monthly budget (USD)");
     expect(shown).not.toContain("switch-off");
+  });
+
+  it("reads money, sizes and the door in plain terms", async () => {
+    const shown = await view(await setup(managed));
+    expect(shown).toContain("Turn on guest chat");
+    expect(shown).not.toContain("Open guest chat");
+    expect(shown).toContain("$0.00");
+    expect(shown).not.toContain("$0.0000");
+    expect(shown).toMatch(/0 bytes of [0-9.]+ (KB|MB)/);
+    expect(shown).toContain("Recording guest questions");
   });
 
   it("opens with a budget only after a prepared confirmation, and closes at once", async () => {

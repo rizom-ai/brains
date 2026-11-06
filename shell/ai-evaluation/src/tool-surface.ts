@@ -1,4 +1,5 @@
 import type { AppConfig } from "@brains/app";
+import { AgentService } from "@brains/ai-service";
 import type { MCPProtocolMode, Tool } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
@@ -38,11 +39,22 @@ export interface ToolSurfaceReportInput {
     Record<UserPermissionLevel, RegisteredToolView[]>
   >;
   cliTools: RegisteredToolView[];
+  /** The instructions a non-Anchor caller at each level is sent. */
+  agentInstructions: Record<UserPermissionLevel, string>;
+}
+
+/** What a turn sends the model before any conversation, in bytes. */
+export interface AgentPromptSize {
+  instructionsBytes: number;
+  descriptionBytes: number;
+  schemaBytes: number;
+  initialPromptBytes: number;
 }
 
 export interface ToolSurfaceReport {
   internalTools: ToolSurfaceEntry[];
   agentTools: PermissionToolSurface;
+  agentPrompt: Record<UserPermissionLevel, AgentPromptSize>;
   protocolTools: ProtocolToolSurface;
   cliTools: ToolSurfaceEntry[];
 }
@@ -71,21 +83,31 @@ export async function runToolSurfaceReport(
   });
 
   try {
-    const mcpService = app.getShell().getMCPService();
+    const shell = app.getShell();
+    const mcpService = shell.getMCPService();
+    const agentService = shell.getAgentService();
+    if (!(agentService instanceof AgentService)) {
+      throw new Error(
+        "Tool surface report needs the brain's own agent service",
+      );
+    }
     return createToolSurfaceReport({
       internalTools: mcpService.listTools(),
-      agentTools: collectPermissionTools((level) =>
+      agentTools: byPermission((level) =>
         mcpService.listAgentToolsForPermissionLevel(level),
       ),
       protocolTools: {
-        basic: collectPermissionTools((level) =>
+        basic: byPermission((level) =>
           mcpService.listProtocolToolsForPermissionLevel(level, "basic"),
         ),
-        debug: collectPermissionTools((level) =>
+        debug: byPermission((level) =>
           mcpService.listProtocolToolsForPermissionLevel(level, "debug"),
         ),
       },
       cliTools: mcpService.getCliTools(),
+      agentInstructions: byPermission((level) =>
+        agentService.instructionsFor(level, { isAnchor: false }),
+      ),
     });
   } finally {
     await app.getShell().shutdown();
@@ -95,9 +117,13 @@ export async function runToolSurfaceReport(
 export function createToolSurfaceReport(
   input: ToolSurfaceReportInput,
 ): ToolSurfaceReport {
+  const agentTools = mapPermissionTools(input.agentTools);
   return {
     internalTools: toEntries(input.internalTools),
-    agentTools: mapPermissionTools(input.agentTools),
+    agentTools,
+    agentPrompt: byPermission((level) =>
+      promptSize(input.agentInstructions[level], agentTools[level]),
+    ),
     protocolTools: {
       basic: mapPermissionTools(input.protocolTools.basic),
       debug: mapPermissionTools(input.protocolTools.debug),
@@ -120,13 +146,13 @@ export function renderToolSurfaceReport(report: ToolSurfaceReport): string {
   ].join("\n");
 }
 
-function collectPermissionTools(
-  listTools: (level: UserPermissionLevel) => RegisteredToolView[],
-): Record<UserPermissionLevel, RegisteredToolView[]> {
+function byPermission<T>(
+  valueFor: (level: UserPermissionLevel) => T,
+): Record<UserPermissionLevel, T> {
   return {
-    public: listTools("public"),
-    trusted: listTools("trusted"),
-    admin: listTools("admin"),
+    public: valueFor("public"),
+    trusted: valueFor("trusted"),
+    admin: valueFor("admin"),
   };
 }
 
@@ -155,6 +181,25 @@ function toEntry({ pluginId, tool }: RegisteredToolView): ToolSurfaceEntry {
   };
 }
 
+function promptSize(
+  instructions: string,
+  tools: ToolSurfaceEntry[],
+): AgentPromptSize {
+  const instructionsBytes = byteLength(instructions);
+  const descriptionBytes = sum(tools.map((tool) => tool.descriptionBytes));
+  const schemaBytes = sum(tools.map((tool) => tool.schemaBytes));
+  return {
+    instructionsBytes,
+    descriptionBytes,
+    schemaBytes,
+    initialPromptBytes: instructionsBytes + descriptionBytes + schemaBytes,
+  };
+}
+
+function sum(values: number[]): number {
+  return values.reduce((total, value) => total + value, 0);
+}
+
 function compareEntries(
   left: ToolSurfaceEntry,
   right: ToolSurfaceEntry,
@@ -173,6 +218,10 @@ function renderSummary(report: ToolSurfaceReport): string {
       (level) =>
         `Agent tools (${labelPermission(level)}): ${report.agentTools[level].length}`,
     ),
+    ...PERMISSION_LEVELS.map((level) => {
+      const size = report.agentPrompt[level];
+      return `Agent prompt (${labelPermission(level)}): instructions ${size.instructionsBytes} bytes, tool descriptions ${size.descriptionBytes} bytes, tool schemas ${size.schemaBytes} bytes, initial prompt ${size.initialPromptBytes} bytes`;
+    }),
     ...PROTOCOL_MODES.flatMap((mode) =>
       PERMISSION_LEVELS.map(
         (level) =>

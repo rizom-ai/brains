@@ -1,5 +1,1441 @@
 # @brains/plugins
 
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/content-formatters@0.2.0-alpha.633
+  - @brains/site-composition@0.2.0-alpha.633
+  - @brains/ai-service@0.2.0-alpha.633
+  - @brains/content-service@0.2.0-alpha.633
+  - @brains/conversation-service@0.2.0-alpha.633
+  - @brains/entity-service@0.2.0-alpha.633
+  - @brains/identity-service@0.2.0-alpha.633
+  - @brains/job-queue@0.2.0-alpha.633
+  - @brains/mcp-service@0.2.0-alpha.633
+  - @brains/messaging-service@0.2.0-alpha.633
+  - @brains/templates@0.2.0-alpha.633
+  - @brains/atproto-contracts@0.2.0-alpha.633
+  - @brains/recurring-checks@0.2.0-alpha.633
+  - @brains/runtime-state@0.2.0-alpha.633
+  - @brains/scheduler@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.632
+  - @brains/content-formatters@0.2.0-alpha.632
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/site-composition@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/ai-service@0.2.0-alpha.632
+  - @brains/content-service@0.2.0-alpha.632
+  - @brains/conversation-service@0.2.0-alpha.632
+  - @brains/entity-service@0.2.0-alpha.632
+  - @brains/identity-service@0.2.0-alpha.632
+  - @brains/job-queue@0.2.0-alpha.632
+  - @brains/mcp-service@0.2.0-alpha.632
+  - @brains/messaging-service@0.2.0-alpha.632
+  - @brains/recurring-checks@0.2.0-alpha.632
+  - @brains/runtime-state@0.2.0-alpha.632
+  - @brains/scheduler@0.2.0-alpha.632
+  - @brains/templates@0.2.0-alpha.632
+
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.631
+  - @brains/content-formatters@0.2.0-alpha.631
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/site-composition@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/ai-service@0.2.0-alpha.631
+  - @brains/content-service@0.2.0-alpha.631
+  - @brains/conversation-service@0.2.0-alpha.631
+  - @brains/entity-service@0.2.0-alpha.631
+  - @brains/identity-service@0.2.0-alpha.631
+  - @brains/job-queue@0.2.0-alpha.631
+  - @brains/mcp-service@0.2.0-alpha.631
+  - @brains/messaging-service@0.2.0-alpha.631
+  - @brains/recurring-checks@0.2.0-alpha.631
+  - @brains/runtime-state@0.2.0-alpha.631
+  - @brains/scheduler@0.2.0-alpha.631
+  - @brains/templates@0.2.0-alpha.631
+
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.630
+  - @brains/content-formatters@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/site-composition@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/ai-service@0.2.0-alpha.630
+  - @brains/content-service@0.2.0-alpha.630
+  - @brains/conversation-service@0.2.0-alpha.630
+  - @brains/entity-service@0.2.0-alpha.630
+  - @brains/identity-service@0.2.0-alpha.630
+  - @brains/job-queue@0.2.0-alpha.630
+  - @brains/mcp-service@0.2.0-alpha.630
+  - @brains/messaging-service@0.2.0-alpha.630
+  - @brains/recurring-checks@0.2.0-alpha.630
+  - @brains/runtime-state@0.2.0-alpha.630
+  - @brains/scheduler@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/site-composition@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/ai-service@0.2.0-alpha.629
+  - @brains/content-service@0.2.0-alpha.629
+  - @brains/conversation-service@0.2.0-alpha.629
+  - @brains/entity-service@0.2.0-alpha.629
+  - @brains/identity-service@0.2.0-alpha.629
+  - @brains/job-queue@0.2.0-alpha.629
+  - @brains/mcp-service@0.2.0-alpha.629
+  - @brains/messaging-service@0.2.0-alpha.629
+  - @brains/recurring-checks@0.2.0-alpha.629
+  - @brains/runtime-state@0.2.0-alpha.629
+  - @brains/scheduler@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/site-composition@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/ai-service@0.2.0-alpha.628
+  - @brains/content-service@0.2.0-alpha.628
+  - @brains/conversation-service@0.2.0-alpha.628
+  - @brains/entity-service@0.2.0-alpha.628
+  - @brains/identity-service@0.2.0-alpha.628
+  - @brains/job-queue@0.2.0-alpha.628
+  - @brains/mcp-service@0.2.0-alpha.628
+  - @brains/messaging-service@0.2.0-alpha.628
+  - @brains/recurring-checks@0.2.0-alpha.628
+  - @brains/runtime-state@0.2.0-alpha.628
+  - @brains/scheduler@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies [[`bfbef10`](https://github.com/rizom-ai/brains/commit/bfbef100edddb555772581f62f748cca16c309a2)]:
+  - @brains/job-queue@0.2.0-alpha.627
+  - @brains/content-service@0.2.0-alpha.627
+  - @brains/entity-service@0.2.0-alpha.627
+  - @brains/recurring-checks@0.2.0-alpha.627
+  - @brains/ai-service@0.2.0-alpha.627
+  - @brains/identity-service@0.2.0-alpha.627
+  - @brains/content-formatters@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/site-composition@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/conversation-service@0.2.0-alpha.627
+  - @brains/mcp-service@0.2.0-alpha.627
+  - @brains/messaging-service@0.2.0-alpha.627
+  - @brains/runtime-state@0.2.0-alpha.627
+  - @brains/scheduler@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies [[`b9b7193`](https://github.com/rizom-ai/brains/commit/b9b7193794cfb15730a71a007cc5c3c8ee2510d4)]:
+  - @brains/conversation-service@0.2.0-alpha.626
+  - @brains/ai-service@0.2.0-alpha.626
+  - @brains/identity-service@0.2.0-alpha.626
+  - @brains/content-service@0.2.0-alpha.626
+  - @brains/content-formatters@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/site-composition@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/entity-service@0.2.0-alpha.626
+  - @brains/job-queue@0.2.0-alpha.626
+  - @brains/mcp-service@0.2.0-alpha.626
+  - @brains/messaging-service@0.2.0-alpha.626
+  - @brains/recurring-checks@0.2.0-alpha.626
+  - @brains/runtime-state@0.2.0-alpha.626
+  - @brains/scheduler@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.625
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/site-composition@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/ai-service@0.2.0-alpha.625
+  - @brains/content-service@0.2.0-alpha.625
+  - @brains/conversation-service@0.2.0-alpha.625
+  - @brains/entity-service@0.2.0-alpha.625
+  - @brains/identity-service@0.2.0-alpha.625
+  - @brains/job-queue@0.2.0-alpha.625
+  - @brains/mcp-service@0.2.0-alpha.625
+  - @brains/messaging-service@0.2.0-alpha.625
+  - @brains/recurring-checks@0.2.0-alpha.625
+  - @brains/runtime-state@0.2.0-alpha.625
+  - @brains/scheduler@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.624
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/site-composition@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/ai-service@0.2.0-alpha.624
+  - @brains/content-service@0.2.0-alpha.624
+  - @brains/conversation-service@0.2.0-alpha.624
+  - @brains/entity-service@0.2.0-alpha.624
+  - @brains/identity-service@0.2.0-alpha.624
+  - @brains/job-queue@0.2.0-alpha.624
+  - @brains/mcp-service@0.2.0-alpha.624
+  - @brains/messaging-service@0.2.0-alpha.624
+  - @brains/recurring-checks@0.2.0-alpha.624
+  - @brains/runtime-state@0.2.0-alpha.624
+  - @brains/scheduler@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.623
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/site-composition@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/ai-service@0.2.0-alpha.623
+  - @brains/content-service@0.2.0-alpha.623
+  - @brains/conversation-service@0.2.0-alpha.623
+  - @brains/entity-service@0.2.0-alpha.623
+  - @brains/identity-service@0.2.0-alpha.623
+  - @brains/job-queue@0.2.0-alpha.623
+  - @brains/mcp-service@0.2.0-alpha.623
+  - @brains/messaging-service@0.2.0-alpha.623
+  - @brains/recurring-checks@0.2.0-alpha.623
+  - @brains/runtime-state@0.2.0-alpha.623
+  - @brains/scheduler@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- [#799](https://github.com/rizom-ai/brains/pull/799) [`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving pasted text as a portfolio project, a deck, a doc or a post now asks for a missing year, section, title or slide break before the brain asks you to approve the save, in plain words. You answer, then approve once, and the approval shows the complete save: the title and the description, year or section the brain filled in. Approving no longer ends in "Failed: Create" with instructions meant for the agent, and you no longer approve twice. Entity plugins check a create before it is confirmed by overriding `checkCreate`.
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/entity-service@0.2.0-alpha.622
+  - @brains/ai-service@0.2.0-alpha.622
+  - @brains/content-service@0.2.0-alpha.622
+  - @brains/identity-service@0.2.0-alpha.622
+  - @brains/content-formatters@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/site-composition@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/conversation-service@0.2.0-alpha.622
+  - @brains/job-queue@0.2.0-alpha.622
+  - @brains/mcp-service@0.2.0-alpha.622
+  - @brains/messaging-service@0.2.0-alpha.622
+  - @brains/recurring-checks@0.2.0-alpha.622
+  - @brains/runtime-state@0.2.0-alpha.622
+  - @brains/scheduler@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies [[`16a68c4`](https://github.com/rizom-ai/brains/commit/16a68c4dd12f75c316ebcc9d62d43d9df8bb3534)]:
+  - @brains/job-queue@0.2.0-alpha.621
+  - @brains/content-service@0.2.0-alpha.621
+  - @brains/entity-service@0.2.0-alpha.621
+  - @brains/recurring-checks@0.2.0-alpha.621
+  - @brains/ai-service@0.2.0-alpha.621
+  - @brains/identity-service@0.2.0-alpha.621
+  - @brains/content-formatters@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/site-composition@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/conversation-service@0.2.0-alpha.621
+  - @brains/mcp-service@0.2.0-alpha.621
+  - @brains/messaging-service@0.2.0-alpha.621
+  - @brains/runtime-state@0.2.0-alpha.621
+  - @brains/scheduler@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.620
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/site-composition@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/ai-service@0.2.0-alpha.620
+  - @brains/content-service@0.2.0-alpha.620
+  - @brains/conversation-service@0.2.0-alpha.620
+  - @brains/entity-service@0.2.0-alpha.620
+  - @brains/identity-service@0.2.0-alpha.620
+  - @brains/job-queue@0.2.0-alpha.620
+  - @brains/mcp-service@0.2.0-alpha.620
+  - @brains/messaging-service@0.2.0-alpha.620
+  - @brains/recurring-checks@0.2.0-alpha.620
+  - @brains/runtime-state@0.2.0-alpha.620
+  - @brains/scheduler@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.619
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/site-composition@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/ai-service@0.2.0-alpha.619
+  - @brains/content-service@0.2.0-alpha.619
+  - @brains/conversation-service@0.2.0-alpha.619
+  - @brains/entity-service@0.2.0-alpha.619
+  - @brains/identity-service@0.2.0-alpha.619
+  - @brains/job-queue@0.2.0-alpha.619
+  - @brains/mcp-service@0.2.0-alpha.619
+  - @brains/messaging-service@0.2.0-alpha.619
+  - @brains/recurring-checks@0.2.0-alpha.619
+  - @brains/runtime-state@0.2.0-alpha.619
+  - @brains/scheduler@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.618
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/site-composition@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/ai-service@0.2.0-alpha.618
+  - @brains/content-service@0.2.0-alpha.618
+  - @brains/conversation-service@0.2.0-alpha.618
+  - @brains/entity-service@0.2.0-alpha.618
+  - @brains/identity-service@0.2.0-alpha.618
+  - @brains/job-queue@0.2.0-alpha.618
+  - @brains/mcp-service@0.2.0-alpha.618
+  - @brains/messaging-service@0.2.0-alpha.618
+  - @brains/recurring-checks@0.2.0-alpha.618
+  - @brains/runtime-state@0.2.0-alpha.618
+  - @brains/scheduler@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.617
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/site-composition@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/ai-service@0.2.0-alpha.617
+  - @brains/content-service@0.2.0-alpha.617
+  - @brains/conversation-service@0.2.0-alpha.617
+  - @brains/entity-service@0.2.0-alpha.617
+  - @brains/identity-service@0.2.0-alpha.617
+  - @brains/job-queue@0.2.0-alpha.617
+  - @brains/mcp-service@0.2.0-alpha.617
+  - @brains/messaging-service@0.2.0-alpha.617
+  - @brains/recurring-checks@0.2.0-alpha.617
+  - @brains/runtime-state@0.2.0-alpha.617
+  - @brains/scheduler@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies [[`a0c05f7`](https://github.com/rizom-ai/brains/commit/a0c05f71262117c789da4926c909ff31f2cd28e4)]:
+  - @brains/ai-service@0.2.0-alpha.616
+  - @brains/mcp-service@0.2.0-alpha.616
+  - @brains/content-service@0.2.0-alpha.616
+  - @brains/job-queue@0.2.0-alpha.616
+  - @brains/entity-service@0.2.0-alpha.616
+  - @brains/recurring-checks@0.2.0-alpha.616
+  - @brains/identity-service@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/site-composition@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/conversation-service@0.2.0-alpha.616
+  - @brains/messaging-service@0.2.0-alpha.616
+  - @brains/runtime-state@0.2.0-alpha.616
+  - @brains/scheduler@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- Updated dependencies [[`d7cd6c7`](https://github.com/rizom-ai/brains/commit/d7cd6c723f52dc915f5e2a1d2af27ba413c3b163)]:
+  - @brains/ai-service@0.2.0-alpha.615
+  - @brains/content-service@0.2.0-alpha.615
+  - @brains/content-formatters@0.2.0-alpha.615
+  - @brains/contracts@0.2.0-alpha.615
+  - @brains/site-composition@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+  - @brains/conversation-service@0.2.0-alpha.615
+  - @brains/entity-service@0.2.0-alpha.615
+  - @brains/identity-service@0.2.0-alpha.615
+  - @brains/job-queue@0.2.0-alpha.615
+  - @brains/mcp-service@0.2.0-alpha.615
+  - @brains/messaging-service@0.2.0-alpha.615
+  - @brains/recurring-checks@0.2.0-alpha.615
+  - @brains/runtime-state@0.2.0-alpha.615
+  - @brains/scheduler@0.2.0-alpha.615
+  - @brains/templates@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- [#788](https://github.com/rizom-ai/brains/pull/788) [`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Text pasted to be saved as a portfolio project, a deck or a doc is kept as written, the way posts are. A leading `# Title` heading becomes the title, and the brain fills in what the type needs: a project gets a card description and the year the text names, saved as a draft; a deck is split into slides on its headings when the text has no `---` separators, keeps its first heading as the title slide, and gets a description; a doc goes after the last page, in the docs' only section or the one the user names. When the year, the section, the title or the slide breaks cannot be derived, the brain asks once, and the save after the answer stores the originally pasted text unchanged, whatever the agent resends; a deck can take a slide per paragraph. A project page shows a body written outside the case-study sections, and listing projects shows each one's description. Generating a deck from a prompt works again: its placeholder kept no slide and failed every generation. A new deck without slide separators gets a validation message in Studio instead of a server error.
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/entity-service@0.2.0-alpha.614
+  - @brains/ai-service@0.2.0-alpha.614
+  - @brains/content-service@0.2.0-alpha.614
+  - @brains/identity-service@0.2.0-alpha.614
+  - @brains/content-formatters@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/site-composition@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/conversation-service@0.2.0-alpha.614
+  - @brains/job-queue@0.2.0-alpha.614
+  - @brains/mcp-service@0.2.0-alpha.614
+  - @brains/messaging-service@0.2.0-alpha.614
+  - @brains/recurring-checks@0.2.0-alpha.614
+  - @brains/runtime-state@0.2.0-alpha.614
+  - @brains/scheduler@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies [[`3eb382a`](https://github.com/rizom-ai/brains/commit/3eb382a06f8b849b5dee6a10467b71037edd162e)]:
+  - @brains/ai-service@0.2.0-alpha.613
+  - @brains/content-service@0.2.0-alpha.613
+  - @brains/content-formatters@0.2.0-alpha.613
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/site-composition@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/conversation-service@0.2.0-alpha.613
+  - @brains/entity-service@0.2.0-alpha.613
+  - @brains/identity-service@0.2.0-alpha.613
+  - @brains/job-queue@0.2.0-alpha.613
+  - @brains/mcp-service@0.2.0-alpha.613
+  - @brains/messaging-service@0.2.0-alpha.613
+  - @brains/recurring-checks@0.2.0-alpha.613
+  - @brains/runtime-state@0.2.0-alpha.613
+  - @brains/scheduler@0.2.0-alpha.613
+  - @brains/templates@0.2.0-alpha.613
+
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies [[`6fe5a04`](https://github.com/rizom-ai/brains/commit/6fe5a044ac5315e0c29075e9d810d0989217822f)]:
+  - @brains/ai-service@0.2.0-alpha.612
+  - @brains/mcp-service@0.2.0-alpha.612
+  - @brains/content-service@0.2.0-alpha.612
+  - @brains/job-queue@0.2.0-alpha.612
+  - @brains/entity-service@0.2.0-alpha.612
+  - @brains/recurring-checks@0.2.0-alpha.612
+  - @brains/identity-service@0.2.0-alpha.612
+  - @brains/content-formatters@0.2.0-alpha.612
+  - @brains/contracts@0.2.0-alpha.612
+  - @brains/site-composition@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/conversation-service@0.2.0-alpha.612
+  - @brains/messaging-service@0.2.0-alpha.612
+  - @brains/runtime-state@0.2.0-alpha.612
+  - @brains/scheduler@0.2.0-alpha.612
+  - @brains/templates@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.611
+  - @brains/contracts@0.2.0-alpha.611
+  - @brains/site-composition@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/ai-service@0.2.0-alpha.611
+  - @brains/content-service@0.2.0-alpha.611
+  - @brains/conversation-service@0.2.0-alpha.611
+  - @brains/entity-service@0.2.0-alpha.611
+  - @brains/identity-service@0.2.0-alpha.611
+  - @brains/job-queue@0.2.0-alpha.611
+  - @brains/mcp-service@0.2.0-alpha.611
+  - @brains/messaging-service@0.2.0-alpha.611
+  - @brains/recurring-checks@0.2.0-alpha.611
+  - @brains/runtime-state@0.2.0-alpha.611
+  - @brains/scheduler@0.2.0-alpha.611
+  - @brains/templates@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.610
+  - @brains/contracts@0.2.0-alpha.610
+  - @brains/site-composition@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/ai-service@0.2.0-alpha.610
+  - @brains/content-service@0.2.0-alpha.610
+  - @brains/conversation-service@0.2.0-alpha.610
+  - @brains/entity-service@0.2.0-alpha.610
+  - @brains/identity-service@0.2.0-alpha.610
+  - @brains/job-queue@0.2.0-alpha.610
+  - @brains/mcp-service@0.2.0-alpha.610
+  - @brains/messaging-service@0.2.0-alpha.610
+  - @brains/recurring-checks@0.2.0-alpha.610
+  - @brains/runtime-state@0.2.0-alpha.610
+  - @brains/scheduler@0.2.0-alpha.610
+  - @brains/templates@0.2.0-alpha.610
+
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.609
+  - @brains/contracts@0.2.0-alpha.609
+  - @brains/site-composition@0.2.0-alpha.609
+  - @brains/utils@0.2.0-alpha.609
+  - @brains/ai-service@0.2.0-alpha.609
+  - @brains/content-service@0.2.0-alpha.609
+  - @brains/conversation-service@0.2.0-alpha.609
+  - @brains/entity-service@0.2.0-alpha.609
+  - @brains/identity-service@0.2.0-alpha.609
+  - @brains/job-queue@0.2.0-alpha.609
+  - @brains/mcp-service@0.2.0-alpha.609
+  - @brains/messaging-service@0.2.0-alpha.609
+  - @brains/recurring-checks@0.2.0-alpha.609
+  - @brains/runtime-state@0.2.0-alpha.609
+  - @brains/scheduler@0.2.0-alpha.609
+  - @brains/templates@0.2.0-alpha.609
+
+## 0.2.0-alpha.608
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.608
+  - @brains/contracts@0.2.0-alpha.608
+  - @brains/site-composition@0.2.0-alpha.608
+  - @brains/utils@0.2.0-alpha.608
+  - @brains/ai-service@0.2.0-alpha.608
+  - @brains/content-service@0.2.0-alpha.608
+  - @brains/conversation-service@0.2.0-alpha.608
+  - @brains/entity-service@0.2.0-alpha.608
+  - @brains/identity-service@0.2.0-alpha.608
+  - @brains/job-queue@0.2.0-alpha.608
+  - @brains/mcp-service@0.2.0-alpha.608
+  - @brains/messaging-service@0.2.0-alpha.608
+  - @brains/recurring-checks@0.2.0-alpha.608
+  - @brains/runtime-state@0.2.0-alpha.608
+  - @brains/scheduler@0.2.0-alpha.608
+  - @brains/templates@0.2.0-alpha.608
+
+## 0.2.0-alpha.607
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.607
+  - @brains/contracts@0.2.0-alpha.607
+  - @brains/site-composition@0.2.0-alpha.607
+  - @brains/utils@0.2.0-alpha.607
+  - @brains/ai-service@0.2.0-alpha.607
+  - @brains/content-service@0.2.0-alpha.607
+  - @brains/conversation-service@0.2.0-alpha.607
+  - @brains/entity-service@0.2.0-alpha.607
+  - @brains/identity-service@0.2.0-alpha.607
+  - @brains/job-queue@0.2.0-alpha.607
+  - @brains/mcp-service@0.2.0-alpha.607
+  - @brains/messaging-service@0.2.0-alpha.607
+  - @brains/recurring-checks@0.2.0-alpha.607
+  - @brains/runtime-state@0.2.0-alpha.607
+  - @brains/scheduler@0.2.0-alpha.607
+  - @brains/templates@0.2.0-alpha.607
+
+## 0.2.0-alpha.606
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.606
+  - @brains/contracts@0.2.0-alpha.606
+  - @brains/site-composition@0.2.0-alpha.606
+  - @brains/utils@0.2.0-alpha.606
+  - @brains/ai-service@0.2.0-alpha.606
+  - @brains/content-service@0.2.0-alpha.606
+  - @brains/conversation-service@0.2.0-alpha.606
+  - @brains/entity-service@0.2.0-alpha.606
+  - @brains/identity-service@0.2.0-alpha.606
+  - @brains/job-queue@0.2.0-alpha.606
+  - @brains/mcp-service@0.2.0-alpha.606
+  - @brains/messaging-service@0.2.0-alpha.606
+  - @brains/recurring-checks@0.2.0-alpha.606
+  - @brains/runtime-state@0.2.0-alpha.606
+  - @brains/scheduler@0.2.0-alpha.606
+  - @brains/templates@0.2.0-alpha.606
+
+## 0.2.0-alpha.605
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.605
+  - @brains/contracts@0.2.0-alpha.605
+  - @brains/site-composition@0.2.0-alpha.605
+  - @brains/utils@0.2.0-alpha.605
+  - @brains/ai-service@0.2.0-alpha.605
+  - @brains/content-service@0.2.0-alpha.605
+  - @brains/conversation-service@0.2.0-alpha.605
+  - @brains/entity-service@0.2.0-alpha.605
+  - @brains/identity-service@0.2.0-alpha.605
+  - @brains/job-queue@0.2.0-alpha.605
+  - @brains/mcp-service@0.2.0-alpha.605
+  - @brains/messaging-service@0.2.0-alpha.605
+  - @brains/recurring-checks@0.2.0-alpha.605
+  - @brains/runtime-state@0.2.0-alpha.605
+  - @brains/scheduler@0.2.0-alpha.605
+  - @brains/templates@0.2.0-alpha.605
+
+## 0.2.0-alpha.604
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.604
+  - @brains/contracts@0.2.0-alpha.604
+  - @brains/site-composition@0.2.0-alpha.604
+  - @brains/utils@0.2.0-alpha.604
+  - @brains/ai-service@0.2.0-alpha.604
+  - @brains/content-service@0.2.0-alpha.604
+  - @brains/conversation-service@0.2.0-alpha.604
+  - @brains/entity-service@0.2.0-alpha.604
+  - @brains/identity-service@0.2.0-alpha.604
+  - @brains/job-queue@0.2.0-alpha.604
+  - @brains/mcp-service@0.2.0-alpha.604
+  - @brains/messaging-service@0.2.0-alpha.604
+  - @brains/recurring-checks@0.2.0-alpha.604
+  - @brains/runtime-state@0.2.0-alpha.604
+  - @brains/scheduler@0.2.0-alpha.604
+  - @brains/templates@0.2.0-alpha.604
+
+## 0.2.0-alpha.603
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.603
+  - @brains/contracts@0.2.0-alpha.603
+  - @brains/site-composition@0.2.0-alpha.603
+  - @brains/utils@0.2.0-alpha.603
+  - @brains/ai-service@0.2.0-alpha.603
+  - @brains/content-service@0.2.0-alpha.603
+  - @brains/conversation-service@0.2.0-alpha.603
+  - @brains/entity-service@0.2.0-alpha.603
+  - @brains/identity-service@0.2.0-alpha.603
+  - @brains/job-queue@0.2.0-alpha.603
+  - @brains/mcp-service@0.2.0-alpha.603
+  - @brains/messaging-service@0.2.0-alpha.603
+  - @brains/recurring-checks@0.2.0-alpha.603
+  - @brains/runtime-state@0.2.0-alpha.603
+  - @brains/scheduler@0.2.0-alpha.603
+  - @brains/templates@0.2.0-alpha.603
+
+## 0.2.0-alpha.602
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.602
+  - @brains/contracts@0.2.0-alpha.602
+  - @brains/site-composition@0.2.0-alpha.602
+  - @brains/utils@0.2.0-alpha.602
+  - @brains/ai-service@0.2.0-alpha.602
+  - @brains/content-service@0.2.0-alpha.602
+  - @brains/conversation-service@0.2.0-alpha.602
+  - @brains/entity-service@0.2.0-alpha.602
+  - @brains/identity-service@0.2.0-alpha.602
+  - @brains/job-queue@0.2.0-alpha.602
+  - @brains/mcp-service@0.2.0-alpha.602
+  - @brains/messaging-service@0.2.0-alpha.602
+  - @brains/recurring-checks@0.2.0-alpha.602
+  - @brains/runtime-state@0.2.0-alpha.602
+  - @brains/scheduler@0.2.0-alpha.602
+  - @brains/templates@0.2.0-alpha.602
+
+## 0.2.0-alpha.601
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.601
+  - @brains/contracts@0.2.0-alpha.601
+  - @brains/site-composition@0.2.0-alpha.601
+  - @brains/utils@0.2.0-alpha.601
+  - @brains/ai-service@0.2.0-alpha.601
+  - @brains/content-service@0.2.0-alpha.601
+  - @brains/conversation-service@0.2.0-alpha.601
+  - @brains/entity-service@0.2.0-alpha.601
+  - @brains/identity-service@0.2.0-alpha.601
+  - @brains/job-queue@0.2.0-alpha.601
+  - @brains/mcp-service@0.2.0-alpha.601
+  - @brains/messaging-service@0.2.0-alpha.601
+  - @brains/recurring-checks@0.2.0-alpha.601
+  - @brains/runtime-state@0.2.0-alpha.601
+  - @brains/scheduler@0.2.0-alpha.601
+  - @brains/templates@0.2.0-alpha.601
+
+## 0.2.0-alpha.600
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.600
+  - @brains/contracts@0.2.0-alpha.600
+  - @brains/site-composition@0.2.0-alpha.600
+  - @brains/utils@0.2.0-alpha.600
+  - @brains/ai-service@0.2.0-alpha.600
+  - @brains/content-service@0.2.0-alpha.600
+  - @brains/conversation-service@0.2.0-alpha.600
+  - @brains/entity-service@0.2.0-alpha.600
+  - @brains/identity-service@0.2.0-alpha.600
+  - @brains/job-queue@0.2.0-alpha.600
+  - @brains/mcp-service@0.2.0-alpha.600
+  - @brains/messaging-service@0.2.0-alpha.600
+  - @brains/recurring-checks@0.2.0-alpha.600
+  - @brains/runtime-state@0.2.0-alpha.600
+  - @brains/scheduler@0.2.0-alpha.600
+  - @brains/templates@0.2.0-alpha.600
+
+## 0.2.0-alpha.599
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.599
+  - @brains/contracts@0.2.0-alpha.599
+  - @brains/site-composition@0.2.0-alpha.599
+  - @brains/utils@0.2.0-alpha.599
+  - @brains/ai-service@0.2.0-alpha.599
+  - @brains/content-service@0.2.0-alpha.599
+  - @brains/conversation-service@0.2.0-alpha.599
+  - @brains/entity-service@0.2.0-alpha.599
+  - @brains/identity-service@0.2.0-alpha.599
+  - @brains/job-queue@0.2.0-alpha.599
+  - @brains/mcp-service@0.2.0-alpha.599
+  - @brains/messaging-service@0.2.0-alpha.599
+  - @brains/recurring-checks@0.2.0-alpha.599
+  - @brains/runtime-state@0.2.0-alpha.599
+  - @brains/scheduler@0.2.0-alpha.599
+  - @brains/templates@0.2.0-alpha.599
+
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.598
+  - @brains/contracts@0.2.0-alpha.598
+  - @brains/site-composition@0.2.0-alpha.598
+  - @brains/utils@0.2.0-alpha.598
+  - @brains/ai-service@0.2.0-alpha.598
+  - @brains/content-service@0.2.0-alpha.598
+  - @brains/conversation-service@0.2.0-alpha.598
+  - @brains/entity-service@0.2.0-alpha.598
+  - @brains/identity-service@0.2.0-alpha.598
+  - @brains/job-queue@0.2.0-alpha.598
+  - @brains/mcp-service@0.2.0-alpha.598
+  - @brains/messaging-service@0.2.0-alpha.598
+  - @brains/recurring-checks@0.2.0-alpha.598
+  - @brains/runtime-state@0.2.0-alpha.598
+  - @brains/scheduler@0.2.0-alpha.598
+  - @brains/templates@0.2.0-alpha.598
+
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.597
+  - @brains/contracts@0.2.0-alpha.597
+  - @brains/site-composition@0.2.0-alpha.597
+  - @brains/utils@0.2.0-alpha.597
+  - @brains/ai-service@0.2.0-alpha.597
+  - @brains/content-service@0.2.0-alpha.597
+  - @brains/conversation-service@0.2.0-alpha.597
+  - @brains/entity-service@0.2.0-alpha.597
+  - @brains/identity-service@0.2.0-alpha.597
+  - @brains/job-queue@0.2.0-alpha.597
+  - @brains/mcp-service@0.2.0-alpha.597
+  - @brains/messaging-service@0.2.0-alpha.597
+  - @brains/recurring-checks@0.2.0-alpha.597
+  - @brains/runtime-state@0.2.0-alpha.597
+  - @brains/scheduler@0.2.0-alpha.597
+  - @brains/templates@0.2.0-alpha.597
+
+## 0.2.0-alpha.596
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.596
+  - @brains/contracts@0.2.0-alpha.596
+  - @brains/site-composition@0.2.0-alpha.596
+  - @brains/utils@0.2.0-alpha.596
+  - @brains/ai-service@0.2.0-alpha.596
+  - @brains/content-service@0.2.0-alpha.596
+  - @brains/conversation-service@0.2.0-alpha.596
+  - @brains/entity-service@0.2.0-alpha.596
+  - @brains/identity-service@0.2.0-alpha.596
+  - @brains/job-queue@0.2.0-alpha.596
+  - @brains/mcp-service@0.2.0-alpha.596
+  - @brains/messaging-service@0.2.0-alpha.596
+  - @brains/recurring-checks@0.2.0-alpha.596
+  - @brains/runtime-state@0.2.0-alpha.596
+  - @brains/scheduler@0.2.0-alpha.596
+  - @brains/templates@0.2.0-alpha.596
+
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.595
+  - @brains/contracts@0.2.0-alpha.595
+  - @brains/site-composition@0.2.0-alpha.595
+  - @brains/utils@0.2.0-alpha.595
+  - @brains/ai-service@0.2.0-alpha.595
+  - @brains/content-service@0.2.0-alpha.595
+  - @brains/conversation-service@0.2.0-alpha.595
+  - @brains/entity-service@0.2.0-alpha.595
+  - @brains/identity-service@0.2.0-alpha.595
+  - @brains/job-queue@0.2.0-alpha.595
+  - @brains/mcp-service@0.2.0-alpha.595
+  - @brains/messaging-service@0.2.0-alpha.595
+  - @brains/recurring-checks@0.2.0-alpha.595
+  - @brains/runtime-state@0.2.0-alpha.595
+  - @brains/scheduler@0.2.0-alpha.595
+  - @brains/templates@0.2.0-alpha.595
+
+## 0.2.0-alpha.594
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.594
+  - @brains/contracts@0.2.0-alpha.594
+  - @brains/site-composition@0.2.0-alpha.594
+  - @brains/utils@0.2.0-alpha.594
+  - @brains/ai-service@0.2.0-alpha.594
+  - @brains/content-service@0.2.0-alpha.594
+  - @brains/conversation-service@0.2.0-alpha.594
+  - @brains/entity-service@0.2.0-alpha.594
+  - @brains/identity-service@0.2.0-alpha.594
+  - @brains/job-queue@0.2.0-alpha.594
+  - @brains/mcp-service@0.2.0-alpha.594
+  - @brains/messaging-service@0.2.0-alpha.594
+  - @brains/recurring-checks@0.2.0-alpha.594
+  - @brains/runtime-state@0.2.0-alpha.594
+  - @brains/scheduler@0.2.0-alpha.594
+  - @brains/templates@0.2.0-alpha.594
+
+## 0.2.0-alpha.593
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.593
+  - @brains/contracts@0.2.0-alpha.593
+  - @brains/site-composition@0.2.0-alpha.593
+  - @brains/utils@0.2.0-alpha.593
+  - @brains/ai-service@0.2.0-alpha.593
+  - @brains/content-service@0.2.0-alpha.593
+  - @brains/conversation-service@0.2.0-alpha.593
+  - @brains/entity-service@0.2.0-alpha.593
+  - @brains/identity-service@0.2.0-alpha.593
+  - @brains/job-queue@0.2.0-alpha.593
+  - @brains/mcp-service@0.2.0-alpha.593
+  - @brains/messaging-service@0.2.0-alpha.593
+  - @brains/recurring-checks@0.2.0-alpha.593
+  - @brains/runtime-state@0.2.0-alpha.593
+  - @brains/scheduler@0.2.0-alpha.593
+  - @brains/templates@0.2.0-alpha.593
+
+## 0.2.0-alpha.592
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.592
+  - @brains/contracts@0.2.0-alpha.592
+  - @brains/site-composition@0.2.0-alpha.592
+  - @brains/utils@0.2.0-alpha.592
+  - @brains/ai-service@0.2.0-alpha.592
+  - @brains/content-service@0.2.0-alpha.592
+  - @brains/conversation-service@0.2.0-alpha.592
+  - @brains/entity-service@0.2.0-alpha.592
+  - @brains/identity-service@0.2.0-alpha.592
+  - @brains/job-queue@0.2.0-alpha.592
+  - @brains/mcp-service@0.2.0-alpha.592
+  - @brains/messaging-service@0.2.0-alpha.592
+  - @brains/recurring-checks@0.2.0-alpha.592
+  - @brains/runtime-state@0.2.0-alpha.592
+  - @brains/scheduler@0.2.0-alpha.592
+  - @brains/templates@0.2.0-alpha.592
+
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.591
+  - @brains/contracts@0.2.0-alpha.591
+  - @brains/site-composition@0.2.0-alpha.591
+  - @brains/utils@0.2.0-alpha.591
+  - @brains/ai-service@0.2.0-alpha.591
+  - @brains/content-service@0.2.0-alpha.591
+  - @brains/conversation-service@0.2.0-alpha.591
+  - @brains/entity-service@0.2.0-alpha.591
+  - @brains/identity-service@0.2.0-alpha.591
+  - @brains/job-queue@0.2.0-alpha.591
+  - @brains/mcp-service@0.2.0-alpha.591
+  - @brains/messaging-service@0.2.0-alpha.591
+  - @brains/recurring-checks@0.2.0-alpha.591
+  - @brains/runtime-state@0.2.0-alpha.591
+  - @brains/scheduler@0.2.0-alpha.591
+  - @brains/templates@0.2.0-alpha.591
+
+## 0.2.0-alpha.590
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.590
+  - @brains/contracts@0.2.0-alpha.590
+  - @brains/site-composition@0.2.0-alpha.590
+  - @brains/utils@0.2.0-alpha.590
+  - @brains/ai-service@0.2.0-alpha.590
+  - @brains/content-service@0.2.0-alpha.590
+  - @brains/conversation-service@0.2.0-alpha.590
+  - @brains/entity-service@0.2.0-alpha.590
+  - @brains/identity-service@0.2.0-alpha.590
+  - @brains/job-queue@0.2.0-alpha.590
+  - @brains/mcp-service@0.2.0-alpha.590
+  - @brains/messaging-service@0.2.0-alpha.590
+  - @brains/recurring-checks@0.2.0-alpha.590
+  - @brains/runtime-state@0.2.0-alpha.590
+  - @brains/scheduler@0.2.0-alpha.590
+  - @brains/templates@0.2.0-alpha.590
+
+## 0.2.0-alpha.589
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.589
+  - @brains/contracts@0.2.0-alpha.589
+  - @brains/site-composition@0.2.0-alpha.589
+  - @brains/utils@0.2.0-alpha.589
+  - @brains/ai-service@0.2.0-alpha.589
+  - @brains/content-service@0.2.0-alpha.589
+  - @brains/conversation-service@0.2.0-alpha.589
+  - @brains/entity-service@0.2.0-alpha.589
+  - @brains/identity-service@0.2.0-alpha.589
+  - @brains/job-queue@0.2.0-alpha.589
+  - @brains/mcp-service@0.2.0-alpha.589
+  - @brains/messaging-service@0.2.0-alpha.589
+  - @brains/recurring-checks@0.2.0-alpha.589
+  - @brains/runtime-state@0.2.0-alpha.589
+  - @brains/scheduler@0.2.0-alpha.589
+  - @brains/templates@0.2.0-alpha.589
+
+## 0.2.0-alpha.588
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.588
+  - @brains/contracts@0.2.0-alpha.588
+  - @brains/site-composition@0.2.0-alpha.588
+  - @brains/utils@0.2.0-alpha.588
+  - @brains/ai-service@0.2.0-alpha.588
+  - @brains/content-service@0.2.0-alpha.588
+  - @brains/conversation-service@0.2.0-alpha.588
+  - @brains/entity-service@0.2.0-alpha.588
+  - @brains/identity-service@0.2.0-alpha.588
+  - @brains/job-queue@0.2.0-alpha.588
+  - @brains/mcp-service@0.2.0-alpha.588
+  - @brains/messaging-service@0.2.0-alpha.588
+  - @brains/recurring-checks@0.2.0-alpha.588
+  - @brains/runtime-state@0.2.0-alpha.588
+  - @brains/scheduler@0.2.0-alpha.588
+  - @brains/templates@0.2.0-alpha.588
+
+## 0.2.0-alpha.587
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.587
+  - @brains/contracts@0.2.0-alpha.587
+  - @brains/site-composition@0.2.0-alpha.587
+  - @brains/utils@0.2.0-alpha.587
+  - @brains/ai-service@0.2.0-alpha.587
+  - @brains/content-service@0.2.0-alpha.587
+  - @brains/conversation-service@0.2.0-alpha.587
+  - @brains/entity-service@0.2.0-alpha.587
+  - @brains/identity-service@0.2.0-alpha.587
+  - @brains/job-queue@0.2.0-alpha.587
+  - @brains/mcp-service@0.2.0-alpha.587
+  - @brains/messaging-service@0.2.0-alpha.587
+  - @brains/recurring-checks@0.2.0-alpha.587
+  - @brains/runtime-state@0.2.0-alpha.587
+  - @brains/scheduler@0.2.0-alpha.587
+  - @brains/templates@0.2.0-alpha.587
+
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.586
+  - @brains/contracts@0.2.0-alpha.586
+  - @brains/site-composition@0.2.0-alpha.586
+  - @brains/utils@0.2.0-alpha.586
+  - @brains/ai-service@0.2.0-alpha.586
+  - @brains/content-service@0.2.0-alpha.586
+  - @brains/conversation-service@0.2.0-alpha.586
+  - @brains/entity-service@0.2.0-alpha.586
+  - @brains/identity-service@0.2.0-alpha.586
+  - @brains/job-queue@0.2.0-alpha.586
+  - @brains/mcp-service@0.2.0-alpha.586
+  - @brains/messaging-service@0.2.0-alpha.586
+  - @brains/recurring-checks@0.2.0-alpha.586
+  - @brains/runtime-state@0.2.0-alpha.586
+  - @brains/scheduler@0.2.0-alpha.586
+  - @brains/templates@0.2.0-alpha.586
+
+## 0.2.0-alpha.585
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.585
+  - @brains/contracts@0.2.0-alpha.585
+  - @brains/site-composition@0.2.0-alpha.585
+  - @brains/utils@0.2.0-alpha.585
+  - @brains/ai-service@0.2.0-alpha.585
+  - @brains/content-service@0.2.0-alpha.585
+  - @brains/conversation-service@0.2.0-alpha.585
+  - @brains/entity-service@0.2.0-alpha.585
+  - @brains/identity-service@0.2.0-alpha.585
+  - @brains/job-queue@0.2.0-alpha.585
+  - @brains/mcp-service@0.2.0-alpha.585
+  - @brains/messaging-service@0.2.0-alpha.585
+  - @brains/recurring-checks@0.2.0-alpha.585
+  - @brains/runtime-state@0.2.0-alpha.585
+  - @brains/scheduler@0.2.0-alpha.585
+  - @brains/templates@0.2.0-alpha.585
+
+## 0.2.0-alpha.584
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.584
+  - @brains/contracts@0.2.0-alpha.584
+  - @brains/site-composition@0.2.0-alpha.584
+  - @brains/utils@0.2.0-alpha.584
+  - @brains/ai-service@0.2.0-alpha.584
+  - @brains/content-service@0.2.0-alpha.584
+  - @brains/conversation-service@0.2.0-alpha.584
+  - @brains/entity-service@0.2.0-alpha.584
+  - @brains/identity-service@0.2.0-alpha.584
+  - @brains/job-queue@0.2.0-alpha.584
+  - @brains/mcp-service@0.2.0-alpha.584
+  - @brains/messaging-service@0.2.0-alpha.584
+  - @brains/recurring-checks@0.2.0-alpha.584
+  - @brains/runtime-state@0.2.0-alpha.584
+  - @brains/scheduler@0.2.0-alpha.584
+  - @brains/templates@0.2.0-alpha.584
+
+## 0.2.0-alpha.583
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.583
+  - @brains/contracts@0.2.0-alpha.583
+  - @brains/site-composition@0.2.0-alpha.583
+  - @brains/utils@0.2.0-alpha.583
+  - @brains/ai-service@0.2.0-alpha.583
+  - @brains/content-service@0.2.0-alpha.583
+  - @brains/conversation-service@0.2.0-alpha.583
+  - @brains/entity-service@0.2.0-alpha.583
+  - @brains/identity-service@0.2.0-alpha.583
+  - @brains/job-queue@0.2.0-alpha.583
+  - @brains/mcp-service@0.2.0-alpha.583
+  - @brains/messaging-service@0.2.0-alpha.583
+  - @brains/recurring-checks@0.2.0-alpha.583
+  - @brains/runtime-state@0.2.0-alpha.583
+  - @brains/scheduler@0.2.0-alpha.583
+  - @brains/templates@0.2.0-alpha.583
+
+## 0.2.0-alpha.582
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.582
+  - @brains/contracts@0.2.0-alpha.582
+  - @brains/site-composition@0.2.0-alpha.582
+  - @brains/utils@0.2.0-alpha.582
+  - @brains/ai-service@0.2.0-alpha.582
+  - @brains/content-service@0.2.0-alpha.582
+  - @brains/conversation-service@0.2.0-alpha.582
+  - @brains/entity-service@0.2.0-alpha.582
+  - @brains/identity-service@0.2.0-alpha.582
+  - @brains/job-queue@0.2.0-alpha.582
+  - @brains/mcp-service@0.2.0-alpha.582
+  - @brains/messaging-service@0.2.0-alpha.582
+  - @brains/recurring-checks@0.2.0-alpha.582
+  - @brains/runtime-state@0.2.0-alpha.582
+  - @brains/scheduler@0.2.0-alpha.582
+  - @brains/templates@0.2.0-alpha.582
+
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.581
+  - @brains/contracts@0.2.0-alpha.581
+  - @brains/site-composition@0.2.0-alpha.581
+  - @brains/utils@0.2.0-alpha.581
+  - @brains/ai-service@0.2.0-alpha.581
+  - @brains/content-service@0.2.0-alpha.581
+  - @brains/conversation-service@0.2.0-alpha.581
+  - @brains/entity-service@0.2.0-alpha.581
+  - @brains/identity-service@0.2.0-alpha.581
+  - @brains/job-queue@0.2.0-alpha.581
+  - @brains/mcp-service@0.2.0-alpha.581
+  - @brains/messaging-service@0.2.0-alpha.581
+  - @brains/recurring-checks@0.2.0-alpha.581
+  - @brains/runtime-state@0.2.0-alpha.581
+  - @brains/scheduler@0.2.0-alpha.581
+  - @brains/templates@0.2.0-alpha.581
+
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.580
+  - @brains/contracts@0.2.0-alpha.580
+  - @brains/site-composition@0.2.0-alpha.580
+  - @brains/utils@0.2.0-alpha.580
+  - @brains/ai-service@0.2.0-alpha.580
+  - @brains/content-service@0.2.0-alpha.580
+  - @brains/conversation-service@0.2.0-alpha.580
+  - @brains/entity-service@0.2.0-alpha.580
+  - @brains/identity-service@0.2.0-alpha.580
+  - @brains/job-queue@0.2.0-alpha.580
+  - @brains/mcp-service@0.2.0-alpha.580
+  - @brains/messaging-service@0.2.0-alpha.580
+  - @brains/recurring-checks@0.2.0-alpha.580
+  - @brains/runtime-state@0.2.0-alpha.580
+  - @brains/scheduler@0.2.0-alpha.580
+  - @brains/templates@0.2.0-alpha.580
+
+## 0.2.0-alpha.579
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.579
+  - @brains/contracts@0.2.0-alpha.579
+  - @brains/site-composition@0.2.0-alpha.579
+  - @brains/utils@0.2.0-alpha.579
+  - @brains/ai-service@0.2.0-alpha.579
+  - @brains/content-service@0.2.0-alpha.579
+  - @brains/conversation-service@0.2.0-alpha.579
+  - @brains/entity-service@0.2.0-alpha.579
+  - @brains/identity-service@0.2.0-alpha.579
+  - @brains/job-queue@0.2.0-alpha.579
+  - @brains/mcp-service@0.2.0-alpha.579
+  - @brains/messaging-service@0.2.0-alpha.579
+  - @brains/recurring-checks@0.2.0-alpha.579
+  - @brains/runtime-state@0.2.0-alpha.579
+  - @brains/scheduler@0.2.0-alpha.579
+  - @brains/templates@0.2.0-alpha.579
+
+## 0.2.0-alpha.578
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.578
+  - @brains/contracts@0.2.0-alpha.578
+  - @brains/site-composition@0.2.0-alpha.578
+  - @brains/utils@0.2.0-alpha.578
+  - @brains/ai-service@0.2.0-alpha.578
+  - @brains/content-service@0.2.0-alpha.578
+  - @brains/conversation-service@0.2.0-alpha.578
+  - @brains/entity-service@0.2.0-alpha.578
+  - @brains/identity-service@0.2.0-alpha.578
+  - @brains/job-queue@0.2.0-alpha.578
+  - @brains/mcp-service@0.2.0-alpha.578
+  - @brains/messaging-service@0.2.0-alpha.578
+  - @brains/recurring-checks@0.2.0-alpha.578
+  - @brains/runtime-state@0.2.0-alpha.578
+  - @brains/scheduler@0.2.0-alpha.578
+  - @brains/templates@0.2.0-alpha.578
+
+## 0.2.0-alpha.577
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.577
+  - @brains/contracts@0.2.0-alpha.577
+  - @brains/site-composition@0.2.0-alpha.577
+  - @brains/utils@0.2.0-alpha.577
+  - @brains/ai-service@0.2.0-alpha.577
+  - @brains/content-service@0.2.0-alpha.577
+  - @brains/conversation-service@0.2.0-alpha.577
+  - @brains/entity-service@0.2.0-alpha.577
+  - @brains/identity-service@0.2.0-alpha.577
+  - @brains/job-queue@0.2.0-alpha.577
+  - @brains/mcp-service@0.2.0-alpha.577
+  - @brains/messaging-service@0.2.0-alpha.577
+  - @brains/recurring-checks@0.2.0-alpha.577
+  - @brains/runtime-state@0.2.0-alpha.577
+  - @brains/scheduler@0.2.0-alpha.577
+  - @brains/templates@0.2.0-alpha.577
+
+## 0.2.0-alpha.576
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.576
+  - @brains/contracts@0.2.0-alpha.576
+  - @brains/site-composition@0.2.0-alpha.576
+  - @brains/utils@0.2.0-alpha.576
+  - @brains/ai-service@0.2.0-alpha.576
+  - @brains/content-service@0.2.0-alpha.576
+  - @brains/conversation-service@0.2.0-alpha.576
+  - @brains/entity-service@0.2.0-alpha.576
+  - @brains/identity-service@0.2.0-alpha.576
+  - @brains/job-queue@0.2.0-alpha.576
+  - @brains/mcp-service@0.2.0-alpha.576
+  - @brains/messaging-service@0.2.0-alpha.576
+  - @brains/recurring-checks@0.2.0-alpha.576
+  - @brains/runtime-state@0.2.0-alpha.576
+  - @brains/scheduler@0.2.0-alpha.576
+  - @brains/templates@0.2.0-alpha.576
+
+## 0.2.0-alpha.575
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.575
+  - @brains/contracts@0.2.0-alpha.575
+  - @brains/site-composition@0.2.0-alpha.575
+  - @brains/utils@0.2.0-alpha.575
+  - @brains/ai-service@0.2.0-alpha.575
+  - @brains/content-service@0.2.0-alpha.575
+  - @brains/conversation-service@0.2.0-alpha.575
+  - @brains/entity-service@0.2.0-alpha.575
+  - @brains/identity-service@0.2.0-alpha.575
+  - @brains/job-queue@0.2.0-alpha.575
+  - @brains/mcp-service@0.2.0-alpha.575
+  - @brains/messaging-service@0.2.0-alpha.575
+  - @brains/recurring-checks@0.2.0-alpha.575
+  - @brains/runtime-state@0.2.0-alpha.575
+  - @brains/scheduler@0.2.0-alpha.575
+  - @brains/templates@0.2.0-alpha.575
+
+## 0.2.0-alpha.574
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.574
+  - @brains/contracts@0.2.0-alpha.574
+  - @brains/site-composition@0.2.0-alpha.574
+  - @brains/utils@0.2.0-alpha.574
+  - @brains/ai-service@0.2.0-alpha.574
+  - @brains/content-service@0.2.0-alpha.574
+  - @brains/conversation-service@0.2.0-alpha.574
+  - @brains/entity-service@0.2.0-alpha.574
+  - @brains/identity-service@0.2.0-alpha.574
+  - @brains/job-queue@0.2.0-alpha.574
+  - @brains/mcp-service@0.2.0-alpha.574
+  - @brains/messaging-service@0.2.0-alpha.574
+  - @brains/recurring-checks@0.2.0-alpha.574
+  - @brains/runtime-state@0.2.0-alpha.574
+  - @brains/scheduler@0.2.0-alpha.574
+  - @brains/templates@0.2.0-alpha.574
+
+## 0.2.0-alpha.573
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.573
+  - @brains/contracts@0.2.0-alpha.573
+  - @brains/site-composition@0.2.0-alpha.573
+  - @brains/utils@0.2.0-alpha.573
+  - @brains/ai-service@0.2.0-alpha.573
+  - @brains/content-service@0.2.0-alpha.573
+  - @brains/conversation-service@0.2.0-alpha.573
+  - @brains/entity-service@0.2.0-alpha.573
+  - @brains/identity-service@0.2.0-alpha.573
+  - @brains/job-queue@0.2.0-alpha.573
+  - @brains/mcp-service@0.2.0-alpha.573
+  - @brains/messaging-service@0.2.0-alpha.573
+  - @brains/recurring-checks@0.2.0-alpha.573
+  - @brains/runtime-state@0.2.0-alpha.573
+  - @brains/scheduler@0.2.0-alpha.573
+  - @brains/templates@0.2.0-alpha.573
+
+## 0.2.0-alpha.572
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.572
+  - @brains/contracts@0.2.0-alpha.572
+  - @brains/site-composition@0.2.0-alpha.572
+  - @brains/utils@0.2.0-alpha.572
+  - @brains/ai-service@0.2.0-alpha.572
+  - @brains/content-service@0.2.0-alpha.572
+  - @brains/conversation-service@0.2.0-alpha.572
+  - @brains/entity-service@0.2.0-alpha.572
+  - @brains/identity-service@0.2.0-alpha.572
+  - @brains/job-queue@0.2.0-alpha.572
+  - @brains/mcp-service@0.2.0-alpha.572
+  - @brains/messaging-service@0.2.0-alpha.572
+  - @brains/recurring-checks@0.2.0-alpha.572
+  - @brains/runtime-state@0.2.0-alpha.572
+  - @brains/scheduler@0.2.0-alpha.572
+  - @brains/templates@0.2.0-alpha.572
+
+## 0.2.0-alpha.571
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.571
+  - @brains/contracts@0.2.0-alpha.571
+  - @brains/site-composition@0.2.0-alpha.571
+  - @brains/utils@0.2.0-alpha.571
+  - @brains/ai-service@0.2.0-alpha.571
+  - @brains/content-service@0.2.0-alpha.571
+  - @brains/conversation-service@0.2.0-alpha.571
+  - @brains/entity-service@0.2.0-alpha.571
+  - @brains/identity-service@0.2.0-alpha.571
+  - @brains/job-queue@0.2.0-alpha.571
+  - @brains/mcp-service@0.2.0-alpha.571
+  - @brains/messaging-service@0.2.0-alpha.571
+  - @brains/recurring-checks@0.2.0-alpha.571
+  - @brains/runtime-state@0.2.0-alpha.571
+  - @brains/scheduler@0.2.0-alpha.571
+  - @brains/templates@0.2.0-alpha.571
+
+## 0.2.0-alpha.570
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.570
+  - @brains/contracts@0.2.0-alpha.570
+  - @brains/site-composition@0.2.0-alpha.570
+  - @brains/utils@0.2.0-alpha.570
+  - @brains/ai-service@0.2.0-alpha.570
+  - @brains/content-service@0.2.0-alpha.570
+  - @brains/conversation-service@0.2.0-alpha.570
+  - @brains/entity-service@0.2.0-alpha.570
+  - @brains/identity-service@0.2.0-alpha.570
+  - @brains/job-queue@0.2.0-alpha.570
+  - @brains/mcp-service@0.2.0-alpha.570
+  - @brains/messaging-service@0.2.0-alpha.570
+  - @brains/recurring-checks@0.2.0-alpha.570
+  - @brains/runtime-state@0.2.0-alpha.570
+  - @brains/scheduler@0.2.0-alpha.570
+  - @brains/templates@0.2.0-alpha.570
+
+## 0.2.0-alpha.569
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.569
+  - @brains/contracts@0.2.0-alpha.569
+  - @brains/site-composition@0.2.0-alpha.569
+  - @brains/utils@0.2.0-alpha.569
+  - @brains/ai-service@0.2.0-alpha.569
+  - @brains/content-service@0.2.0-alpha.569
+  - @brains/conversation-service@0.2.0-alpha.569
+  - @brains/entity-service@0.2.0-alpha.569
+  - @brains/identity-service@0.2.0-alpha.569
+  - @brains/job-queue@0.2.0-alpha.569
+  - @brains/mcp-service@0.2.0-alpha.569
+  - @brains/messaging-service@0.2.0-alpha.569
+  - @brains/recurring-checks@0.2.0-alpha.569
+  - @brains/runtime-state@0.2.0-alpha.569
+  - @brains/scheduler@0.2.0-alpha.569
+  - @brains/templates@0.2.0-alpha.569
+
 ## 0.2.0-alpha.568
 
 ### Patch Changes

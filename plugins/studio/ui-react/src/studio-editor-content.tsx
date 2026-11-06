@@ -6,9 +6,9 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { StudioEditorPresentation } from "./entity-fields";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import { editorContentStyles as content } from "./studio-editor-content.styles";
+import { type StudioEditorPresentation } from "./studio-type-navigation";
 
 export function revealStudioProperties(form: HTMLFormElement): void {
   // Native invalid events precede focus/reportValidity. Opening the existing

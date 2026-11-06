@@ -1,0 +1,5 @@
+---
+"@rizom/brain": patch
+---
+
+Studio's workspace cards hold together at every width. Blocks embedded in Studio now lay out by the width they are given, not only the window's, so beside the section navigation a board pairs its columns instead of squeezing four into a narrow pane, two-column pages stack, and rows wrap. A matrix lays out by its own width in any host, and a board card stacks its title over its actions in a narrow column, so titles no longer break mid-word. Facts flow into columns on wide pages and give a long value its own line. Routes tables span their column and read as compact entries on phones. Action forms gain a `textarea` control, used for a board card's details. Fields use the interface's type size on desktop, keeping 16px on phones and touch screens. Dialog and menu shadows no longer draw a pale halo on the paper climate. An empty series collapses to its timeline, Traffic's overview totals caption their change instead of repeating the total, Content sync's runs read like Site's builds, and a run of skipped site builds folds into one entry.

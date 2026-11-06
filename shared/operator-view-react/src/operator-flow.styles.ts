@@ -20,13 +20,25 @@ export const flowStyles: Record<
     overflowWrap: "anywhere",
   },
   track: {
-    display: { default: "flex", "@media (max-width: 640px)": "grid" },
-    gap: { default: 0, "@media (max-width: 640px)": 10 },
+    display: {
+      default: "flex",
+      "@media (max-width: 640px)": "grid",
+      "@container operator (max-width: 640px)": "grid",
+    },
+    gap: {
+      default: 0,
+      "@media (max-width: 640px)": 10,
+      "@container operator (max-width: 640px)": 10,
+    },
     margin: 0,
     // Keep the active station's 3px halo inside the scrolling viewport.
     padding: 3,
     listStyleType: "none",
-    overflowX: { default: "auto", "@media (max-width: 640px)": "visible" },
+    overflowX: {
+      default: "auto",
+      "@media (max-width: 640px)": "visible",
+      "@container operator (max-width: 640px)": "visible",
+    },
     maxWidth: "100%",
   },
   step: {
@@ -37,11 +49,28 @@ export const flowStyles: Record<
     width: {
       default: "8.5rem",
       "@media (max-width: 640px)": "auto",
-      "::after": { default: null, "@media (max-width: 640px)": 1 },
+      "@container operator (max-width: 640px)": "auto",
+      "::after": {
+        default: null,
+        "@media (max-width: 640px)": 1,
+        "@container operator (max-width: 640px)": 1,
+      },
     },
-    paddingRight: { default: 20, "@media (max-width: 640px)": 0 },
-    paddingLeft: { default: 0, "@media (max-width: 640px)": 24 },
-    paddingBottom: { default: 0, "@media (max-width: 640px)": 8 },
+    paddingRight: {
+      default: 20,
+      "@media (max-width: 640px)": 0,
+      "@container operator (max-width: 640px)": 0,
+    },
+    paddingLeft: {
+      default: 0,
+      "@media (max-width: 640px)": 24,
+      "@container operator (max-width: 640px)": 24,
+    },
+    paddingBottom: {
+      default: 0,
+      "@media (max-width: 640px)": 8,
+      "@container operator (max-width: 640px)": 8,
+    },
     color: "var(--console-text-muted)",
     content: {
       default: null,
@@ -49,30 +78,62 @@ export const flowStyles: Record<
     },
     top: {
       default: null,
-      "::after": { default: 5, "@media (max-width: 640px)": 14 },
+      "::after": {
+        default: 5,
+        "@media (max-width: 640px)": 14,
+        "@container operator (max-width: 640px)": 14,
+      },
     },
     left: {
       default: null,
-      "::after": { default: 14, "@media (max-width: 640px)": 4 },
+      "::after": {
+        default: 14,
+        "@media (max-width: 640px)": 4,
+        "@container operator (max-width: 640px)": 4,
+      },
     },
     right: {
       default: null,
-      "::after": { default: 12, "@media (max-width: 640px)": "auto" },
+      "::after": {
+        default: 12,
+        "@media (max-width: 640px)": "auto",
+        "@container operator (max-width: 640px)": "auto",
+      },
     },
     bottom: {
       default: null,
-      "::after": { default: null, "@media (max-width: 640px)": -5 },
+      "::after": {
+        default: null,
+        "@media (max-width: 640px)": -5,
+        "@container operator (max-width: 640px)": -5,
+      },
     },
     height: {
       default: null,
-      "::after": { default: 1, "@media (max-width: 640px)": "auto" },
+      "::after": {
+        default: 1,
+        "@media (max-width: 640px)": "auto",
+        "@container operator (max-width: 640px)": "auto",
+      },
     },
     backgroundColor: { default: null, "::after": "var(--console-rule-strong)" },
   },
   mark: {
-    position: { default: "static", "@media (max-width: 640px)": "absolute" },
-    top: { default: null, "@media (max-width: 640px)": 4 },
-    left: { default: null, "@media (max-width: 640px)": 0 },
+    position: {
+      default: "static",
+      "@media (max-width: 640px)": "absolute",
+      "@container operator (max-width: 640px)": "absolute",
+    },
+    top: {
+      default: null,
+      "@media (max-width: 640px)": 4,
+      "@container operator (max-width: 640px)": 4,
+    },
+    left: {
+      default: null,
+      "@media (max-width: 640px)": 0,
+      "@container operator (max-width: 640px)": 0,
+    },
     display: "block",
     boxSizing: "border-box",
     width: 9,

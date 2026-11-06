@@ -144,7 +144,6 @@ export function replySources(reply: Message): FaqSource[] {
       // A vetted card always titles its sources; the key stands in otherwise.
       title: source.title ?? source.id,
       ...(source.url ? { url: source.url } : {}),
-      ...(source.excerpt ? { excerpt: source.excerpt } : {}),
       ...(source.brain ? { brain: source.brain } : {}),
     })),
   );
@@ -270,11 +269,12 @@ export class FaqCaptureHandler extends BaseJobHandler<
       question: classification.question,
       status: "draft",
       asked: 1,
-      ...(sources.length > 0 ? { sources } : {}),
     };
     const content = faqAdapter.createFaqContent(
       frontmatter,
       classification.answer,
+      [],
+      sources,
     );
 
     const match = await findSameFaq(this.deps, { content, visibility });

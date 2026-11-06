@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import type {
   IRuntimeStateNamespace,
   ServiceEntityService,
@@ -225,7 +226,13 @@ export class ContactIntake {
 
   private read(id: string): Promise<ContactRequest | null> {
     return this.deps.entities.getEntity(
-      { entityType: "contact-request", id, visibilityScope: "restricted" },
+      {
+        entityType: "contact-request",
+        id,
+        visibilityScope: internalFullScope(
+          "contact intake idempotency; no content returned",
+        ),
+      },
       contactRequestSchema,
     );
   }

@@ -70,6 +70,9 @@ function createFakeApp(options?: { withWebhook?: boolean }): FakeApp {
     onNewMessage: (): void => {},
     onSubscribedMessage: (): void => {},
     onAction: (): void => {},
+    channel: (): never => {
+      throw new Error("These tests post into no channel");
+    },
   };
 }
 

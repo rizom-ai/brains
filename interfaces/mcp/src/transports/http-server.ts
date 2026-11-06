@@ -1,3 +1,8 @@
+import {
+  type IMCPTransport,
+  type ToolVisibility,
+  ToolVisibilitySchema,
+} from "@brains/plugins";
 import { timingSafeEqual } from "node:crypto";
 import {
   createMcpHandler,
@@ -6,8 +11,6 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
-import { ToolVisibilitySchema } from "@brains/mcp-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";

@@ -127,6 +127,8 @@ When a brain model adopts this package, add `"chat"` to `evalDisable` so live ch
 
 ## Platform permission guidance
 
+A speaker an Admin has attached to a person resolves through auth-service first: a Discord user ID under the `discord` channel type and a Slack member ID under `slack`. A resolved binding applies that person's role and can raise or lower what a rule grants; a revoked or suspended binding drops the speaker to public. Only unbound speakers fall through to permission rules.
+
 Use `discord:*` and `slack:*` permission rules for their respective adapters. Operator-grade deployments should prefer:
 
 - `requireMention: true` so ordinary channel chatter is not routed as commands.

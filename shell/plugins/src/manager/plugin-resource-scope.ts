@@ -159,6 +159,11 @@ function scopeRegistry<T extends object>(
   });
 }
 
+/** A registry's returned release function, as scopeRegistry hands it back untyped. */
+function isRelease(value: unknown): value is () => void {
+  return typeof value === "function";
+}
+
 function scopePluginRegistry<
   T extends { unregisterPlugin(pluginId: string): void },
 >(
@@ -358,6 +363,22 @@ export function createPluginScopedShell(
       );
     },
   );
+  const scopedAuthRegistry = scopeRegistry(
+    shell.getAuthRegistry(),
+    ["bindBackend"],
+    resources,
+    (_args, unbind): void => {
+      if (isRelease(unbind)) unbind();
+    },
+  );
+  const scopedAtprotoProjectionRegistry = scopeRegistry(
+    shell.getAtprotoProjectionRegistry(),
+    ["register"],
+    resources,
+    (_args, unregister): void => {
+      if (isRelease(unregister)) unregister();
+    },
+  );
   const scopedOperationalHealthRegistry = scopePluginRegistry(
     shell.getOperationalHealthRegistry(),
     ["register"],
@@ -432,6 +453,12 @@ export function createPluginScopedShell(
       }
       if (property === "getAccountSettingsRegistry") {
         return () => scopedAccountSettingsRegistry;
+      }
+      if (property === "getAuthRegistry") {
+        return () => scopedAuthRegistry;
+      }
+      if (property === "getAtprotoProjectionRegistry") {
+        return () => scopedAtprotoProjectionRegistry;
       }
       if (property === "getAnalyticsRegistry") {
         return () => scopedAnalyticsRegistry;

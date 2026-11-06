@@ -1,5 +1,1306 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/blog@0.2.0-alpha.633
+  - @brains/decks@0.2.0-alpha.633
+  - @brains/faq@0.2.0-alpha.633
+  - @brains/site-info@0.2.0-alpha.633
+  - @brains/topics@0.2.0-alpha.633
+  - @brains/content-formatters@0.2.0-alpha.633
+  - @brains/site-atlas@0.2.0-alpha.633
+  - @brains/site-composition@0.2.0-alpha.633
+  - @brains/ui-library@0.2.0-alpha.633
+  - @brains/plugins@0.2.0-alpha.633
+  - @brains/templates@0.2.0-alpha.633
+  - @brains/profile@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- [#827](https://github.com/rizom-ai/brains/pull/827) [`143a48c`](https://github.com/rizom-ai/brains/commit/143a48cf57685162c794956bbc186c109a76f7d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A professional profile takes three new optional fields: `headline`, `industry` and `location`. The professional site's about page sets the headline under the owner's name, above the description, and lists industry and location among the facts. The editorial homepage leads with the tagline, then the headline, then the description. Profiles without the new fields render as before.
+- Updated dependencies [[`143a48c`](https://github.com/rizom-ai/brains/commit/143a48cf57685162c794956bbc186c109a76f7d7)]:
+  - @brains/profile@0.2.0-alpha.632
+  - @brains/site-atlas@0.2.0-alpha.632
+  - @brains/blog@0.2.0-alpha.632
+  - @brains/decks@0.2.0-alpha.632
+  - @brains/faq@0.2.0-alpha.632
+  - @brains/site-info@0.2.0-alpha.632
+  - @brains/topics@0.2.0-alpha.632
+  - @brains/content-formatters@0.2.0-alpha.632
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/site-composition@0.2.0-alpha.632
+  - @brains/ui-library@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/plugins@0.2.0-alpha.632
+  - @brains/templates@0.2.0-alpha.632
+
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.631
+  - @brains/decks@0.2.0-alpha.631
+  - @brains/faq@0.2.0-alpha.631
+  - @brains/site-info@0.2.0-alpha.631
+  - @brains/topics@0.2.0-alpha.631
+  - @brains/profile@0.2.0-alpha.631
+  - @brains/content-formatters@0.2.0-alpha.631
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/site-atlas@0.2.0-alpha.631
+  - @brains/site-composition@0.2.0-alpha.631
+  - @brains/ui-library@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/plugins@0.2.0-alpha.631
+  - @brains/templates@0.2.0-alpha.631
+
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.630
+  - @brains/decks@0.2.0-alpha.630
+  - @brains/faq@0.2.0-alpha.630
+  - @brains/site-info@0.2.0-alpha.630
+  - @brains/topics@0.2.0-alpha.630
+  - @brains/profile@0.2.0-alpha.630
+  - @brains/content-formatters@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/site-atlas@0.2.0-alpha.630
+  - @brains/site-composition@0.2.0-alpha.630
+  - @brains/ui-library@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/plugins@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.629
+  - @brains/decks@0.2.0-alpha.629
+  - @brains/faq@0.2.0-alpha.629
+  - @brains/site-info@0.2.0-alpha.629
+  - @brains/topics@0.2.0-alpha.629
+  - @brains/profile@0.2.0-alpha.629
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/site-atlas@0.2.0-alpha.629
+  - @brains/site-composition@0.2.0-alpha.629
+  - @brains/ui-library@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/plugins@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.628
+  - @brains/decks@0.2.0-alpha.628
+  - @brains/faq@0.2.0-alpha.628
+  - @brains/site-info@0.2.0-alpha.628
+  - @brains/topics@0.2.0-alpha.628
+  - @brains/profile@0.2.0-alpha.628
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/site-atlas@0.2.0-alpha.628
+  - @brains/site-composition@0.2.0-alpha.628
+  - @brains/ui-library@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/plugins@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
+## 0.2.0-alpha.627
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.627
+  - @brains/blog@0.2.0-alpha.627
+  - @brains/decks@0.2.0-alpha.627
+  - @brains/faq@0.2.0-alpha.627
+  - @brains/site-info@0.2.0-alpha.627
+  - @brains/topics@0.2.0-alpha.627
+  - @brains/profile@0.2.0-alpha.627
+  - @brains/site-atlas@0.2.0-alpha.627
+  - @brains/ui-library@0.2.0-alpha.627
+  - @brains/content-formatters@0.2.0-alpha.627
+  - @brains/contracts@0.2.0-alpha.627
+  - @brains/site-composition@0.2.0-alpha.627
+  - @brains/utils@0.2.0-alpha.627
+  - @brains/templates@0.2.0-alpha.627
+
+## 0.2.0-alpha.626
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.626
+  - @brains/blog@0.2.0-alpha.626
+  - @brains/decks@0.2.0-alpha.626
+  - @brains/faq@0.2.0-alpha.626
+  - @brains/site-info@0.2.0-alpha.626
+  - @brains/topics@0.2.0-alpha.626
+  - @brains/profile@0.2.0-alpha.626
+  - @brains/site-atlas@0.2.0-alpha.626
+  - @brains/ui-library@0.2.0-alpha.626
+  - @brains/content-formatters@0.2.0-alpha.626
+  - @brains/contracts@0.2.0-alpha.626
+  - @brains/site-composition@0.2.0-alpha.626
+  - @brains/utils@0.2.0-alpha.626
+  - @brains/templates@0.2.0-alpha.626
+
+## 0.2.0-alpha.625
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.625
+  - @brains/decks@0.2.0-alpha.625
+  - @brains/faq@0.2.0-alpha.625
+  - @brains/site-info@0.2.0-alpha.625
+  - @brains/topics@0.2.0-alpha.625
+  - @brains/profile@0.2.0-alpha.625
+  - @brains/content-formatters@0.2.0-alpha.625
+  - @brains/contracts@0.2.0-alpha.625
+  - @brains/site-atlas@0.2.0-alpha.625
+  - @brains/site-composition@0.2.0-alpha.625
+  - @brains/ui-library@0.2.0-alpha.625
+  - @brains/utils@0.2.0-alpha.625
+  - @brains/plugins@0.2.0-alpha.625
+  - @brains/templates@0.2.0-alpha.625
+
+## 0.2.0-alpha.624
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.624
+  - @brains/decks@0.2.0-alpha.624
+  - @brains/faq@0.2.0-alpha.624
+  - @brains/site-info@0.2.0-alpha.624
+  - @brains/topics@0.2.0-alpha.624
+  - @brains/profile@0.2.0-alpha.624
+  - @brains/content-formatters@0.2.0-alpha.624
+  - @brains/contracts@0.2.0-alpha.624
+  - @brains/site-atlas@0.2.0-alpha.624
+  - @brains/site-composition@0.2.0-alpha.624
+  - @brains/ui-library@0.2.0-alpha.624
+  - @brains/utils@0.2.0-alpha.624
+  - @brains/plugins@0.2.0-alpha.624
+  - @brains/templates@0.2.0-alpha.624
+
+## 0.2.0-alpha.623
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.623
+  - @brains/decks@0.2.0-alpha.623
+  - @brains/faq@0.2.0-alpha.623
+  - @brains/site-info@0.2.0-alpha.623
+  - @brains/topics@0.2.0-alpha.623
+  - @brains/profile@0.2.0-alpha.623
+  - @brains/content-formatters@0.2.0-alpha.623
+  - @brains/contracts@0.2.0-alpha.623
+  - @brains/site-atlas@0.2.0-alpha.623
+  - @brains/site-composition@0.2.0-alpha.623
+  - @brains/ui-library@0.2.0-alpha.623
+  - @brains/utils@0.2.0-alpha.623
+  - @brains/plugins@0.2.0-alpha.623
+  - @brains/templates@0.2.0-alpha.623
+
+## 0.2.0-alpha.622
+
+### Patch Changes
+
+- Updated dependencies [[`adb2416`](https://github.com/rizom-ai/brains/commit/adb241616ff6bcc28b92a00d9538c6a2668fb8ad)]:
+  - @brains/plugins@0.2.0-alpha.622
+  - @brains/decks@0.2.0-alpha.622
+  - @brains/blog@0.2.0-alpha.622
+  - @brains/faq@0.2.0-alpha.622
+  - @brains/site-info@0.2.0-alpha.622
+  - @brains/topics@0.2.0-alpha.622
+  - @brains/profile@0.2.0-alpha.622
+  - @brains/site-atlas@0.2.0-alpha.622
+  - @brains/ui-library@0.2.0-alpha.622
+  - @brains/content-formatters@0.2.0-alpha.622
+  - @brains/contracts@0.2.0-alpha.622
+  - @brains/site-composition@0.2.0-alpha.622
+  - @brains/utils@0.2.0-alpha.622
+  - @brains/templates@0.2.0-alpha.622
+
+## 0.2.0-alpha.621
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.621
+  - @brains/blog@0.2.0-alpha.621
+  - @brains/decks@0.2.0-alpha.621
+  - @brains/faq@0.2.0-alpha.621
+  - @brains/site-info@0.2.0-alpha.621
+  - @brains/topics@0.2.0-alpha.621
+  - @brains/profile@0.2.0-alpha.621
+  - @brains/site-atlas@0.2.0-alpha.621
+  - @brains/ui-library@0.2.0-alpha.621
+  - @brains/content-formatters@0.2.0-alpha.621
+  - @brains/contracts@0.2.0-alpha.621
+  - @brains/site-composition@0.2.0-alpha.621
+  - @brains/utils@0.2.0-alpha.621
+  - @brains/templates@0.2.0-alpha.621
+
+## 0.2.0-alpha.620
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.620
+  - @brains/decks@0.2.0-alpha.620
+  - @brains/faq@0.2.0-alpha.620
+  - @brains/site-info@0.2.0-alpha.620
+  - @brains/topics@0.2.0-alpha.620
+  - @brains/profile@0.2.0-alpha.620
+  - @brains/content-formatters@0.2.0-alpha.620
+  - @brains/contracts@0.2.0-alpha.620
+  - @brains/site-atlas@0.2.0-alpha.620
+  - @brains/site-composition@0.2.0-alpha.620
+  - @brains/ui-library@0.2.0-alpha.620
+  - @brains/utils@0.2.0-alpha.620
+  - @brains/plugins@0.2.0-alpha.620
+  - @brains/templates@0.2.0-alpha.620
+
+## 0.2.0-alpha.619
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.619
+  - @brains/decks@0.2.0-alpha.619
+  - @brains/faq@0.2.0-alpha.619
+  - @brains/site-info@0.2.0-alpha.619
+  - @brains/topics@0.2.0-alpha.619
+  - @brains/profile@0.2.0-alpha.619
+  - @brains/content-formatters@0.2.0-alpha.619
+  - @brains/contracts@0.2.0-alpha.619
+  - @brains/site-atlas@0.2.0-alpha.619
+  - @brains/site-composition@0.2.0-alpha.619
+  - @brains/ui-library@0.2.0-alpha.619
+  - @brains/utils@0.2.0-alpha.619
+  - @brains/plugins@0.2.0-alpha.619
+  - @brains/templates@0.2.0-alpha.619
+
+## 0.2.0-alpha.618
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.618
+  - @brains/decks@0.2.0-alpha.618
+  - @brains/faq@0.2.0-alpha.618
+  - @brains/site-info@0.2.0-alpha.618
+  - @brains/topics@0.2.0-alpha.618
+  - @brains/profile@0.2.0-alpha.618
+  - @brains/content-formatters@0.2.0-alpha.618
+  - @brains/contracts@0.2.0-alpha.618
+  - @brains/site-atlas@0.2.0-alpha.618
+  - @brains/site-composition@0.2.0-alpha.618
+  - @brains/ui-library@0.2.0-alpha.618
+  - @brains/utils@0.2.0-alpha.618
+  - @brains/plugins@0.2.0-alpha.618
+  - @brains/templates@0.2.0-alpha.618
+
+## 0.2.0-alpha.617
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.617
+  - @brains/decks@0.2.0-alpha.617
+  - @brains/faq@0.2.0-alpha.617
+  - @brains/site-info@0.2.0-alpha.617
+  - @brains/topics@0.2.0-alpha.617
+  - @brains/profile@0.2.0-alpha.617
+  - @brains/content-formatters@0.2.0-alpha.617
+  - @brains/contracts@0.2.0-alpha.617
+  - @brains/site-atlas@0.2.0-alpha.617
+  - @brains/site-composition@0.2.0-alpha.617
+  - @brains/ui-library@0.2.0-alpha.617
+  - @brains/utils@0.2.0-alpha.617
+  - @brains/plugins@0.2.0-alpha.617
+  - @brains/templates@0.2.0-alpha.617
+
+## 0.2.0-alpha.616
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.616
+  - @brains/blog@0.2.0-alpha.616
+  - @brains/decks@0.2.0-alpha.616
+  - @brains/faq@0.2.0-alpha.616
+  - @brains/site-info@0.2.0-alpha.616
+  - @brains/topics@0.2.0-alpha.616
+  - @brains/profile@0.2.0-alpha.616
+  - @brains/site-atlas@0.2.0-alpha.616
+  - @brains/ui-library@0.2.0-alpha.616
+  - @brains/content-formatters@0.2.0-alpha.616
+  - @brains/contracts@0.2.0-alpha.616
+  - @brains/site-composition@0.2.0-alpha.616
+  - @brains/utils@0.2.0-alpha.616
+  - @brains/templates@0.2.0-alpha.616
+
+## 0.2.0-alpha.615
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.615
+  - @brains/blog@0.2.0-alpha.615
+  - @brains/decks@0.2.0-alpha.615
+  - @brains/faq@0.2.0-alpha.615
+  - @brains/site-info@0.2.0-alpha.615
+  - @brains/topics@0.2.0-alpha.615
+  - @brains/profile@0.2.0-alpha.615
+  - @brains/site-atlas@0.2.0-alpha.615
+  - @brains/ui-library@0.2.0-alpha.615
+  - @brains/content-formatters@0.2.0-alpha.615
+  - @brains/contracts@0.2.0-alpha.615
+  - @brains/site-composition@0.2.0-alpha.615
+  - @brains/utils@0.2.0-alpha.615
+  - @brains/templates@0.2.0-alpha.615
+
+## 0.2.0-alpha.614
+
+### Patch Changes
+
+- Updated dependencies [[`e32ef03`](https://github.com/rizom-ai/brains/commit/e32ef03b11da06ded05a1a039be2ad64dd715706)]:
+  - @brains/plugins@0.2.0-alpha.614
+  - @brains/blog@0.2.0-alpha.614
+  - @brains/decks@0.2.0-alpha.614
+  - @brains/faq@0.2.0-alpha.614
+  - @brains/site-info@0.2.0-alpha.614
+  - @brains/topics@0.2.0-alpha.614
+  - @brains/profile@0.2.0-alpha.614
+  - @brains/site-atlas@0.2.0-alpha.614
+  - @brains/ui-library@0.2.0-alpha.614
+  - @brains/content-formatters@0.2.0-alpha.614
+  - @brains/contracts@0.2.0-alpha.614
+  - @brains/site-composition@0.2.0-alpha.614
+  - @brains/utils@0.2.0-alpha.614
+  - @brains/templates@0.2.0-alpha.614
+
+## 0.2.0-alpha.613
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.613
+  - @brains/blog@0.2.0-alpha.613
+  - @brains/decks@0.2.0-alpha.613
+  - @brains/faq@0.2.0-alpha.613
+  - @brains/site-info@0.2.0-alpha.613
+  - @brains/topics@0.2.0-alpha.613
+  - @brains/profile@0.2.0-alpha.613
+  - @brains/site-atlas@0.2.0-alpha.613
+  - @brains/ui-library@0.2.0-alpha.613
+  - @brains/content-formatters@0.2.0-alpha.613
+  - @brains/contracts@0.2.0-alpha.613
+  - @brains/site-composition@0.2.0-alpha.613
+  - @brains/utils@0.2.0-alpha.613
+  - @brains/templates@0.2.0-alpha.613
+
+## 0.2.0-alpha.612
+
+### Patch Changes
+
+- Updated dependencies [[`f56e414`](https://github.com/rizom-ai/brains/commit/f56e414707fb949357b90164a89a3b1e2ae3bb2e)]:
+  - @brains/blog@0.2.0-alpha.612
+  - @brains/plugins@0.2.0-alpha.612
+  - @brains/decks@0.2.0-alpha.612
+  - @brains/faq@0.2.0-alpha.612
+  - @brains/site-info@0.2.0-alpha.612
+  - @brains/topics@0.2.0-alpha.612
+  - @brains/profile@0.2.0-alpha.612
+  - @brains/site-atlas@0.2.0-alpha.612
+  - @brains/ui-library@0.2.0-alpha.612
+  - @brains/content-formatters@0.2.0-alpha.612
+  - @brains/contracts@0.2.0-alpha.612
+  - @brains/site-composition@0.2.0-alpha.612
+  - @brains/utils@0.2.0-alpha.612
+  - @brains/templates@0.2.0-alpha.612
+
+## 0.2.0-alpha.611
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.611
+  - @brains/decks@0.2.0-alpha.611
+  - @brains/faq@0.2.0-alpha.611
+  - @brains/site-info@0.2.0-alpha.611
+  - @brains/topics@0.2.0-alpha.611
+  - @brains/profile@0.2.0-alpha.611
+  - @brains/content-formatters@0.2.0-alpha.611
+  - @brains/contracts@0.2.0-alpha.611
+  - @brains/site-atlas@0.2.0-alpha.611
+  - @brains/site-composition@0.2.0-alpha.611
+  - @brains/ui-library@0.2.0-alpha.611
+  - @brains/utils@0.2.0-alpha.611
+  - @brains/plugins@0.2.0-alpha.611
+  - @brains/templates@0.2.0-alpha.611
+
+## 0.2.0-alpha.610
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.610
+  - @brains/decks@0.2.0-alpha.610
+  - @brains/faq@0.2.0-alpha.610
+  - @brains/site-info@0.2.0-alpha.610
+  - @brains/topics@0.2.0-alpha.610
+  - @brains/profile@0.2.0-alpha.610
+  - @brains/content-formatters@0.2.0-alpha.610
+  - @brains/contracts@0.2.0-alpha.610
+  - @brains/site-atlas@0.2.0-alpha.610
+  - @brains/site-composition@0.2.0-alpha.610
+  - @brains/ui-library@0.2.0-alpha.610
+  - @brains/utils@0.2.0-alpha.610
+  - @brains/plugins@0.2.0-alpha.610
+  - @brains/templates@0.2.0-alpha.610
+
+## 0.2.0-alpha.609
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.609
+  - @brains/decks@0.2.0-alpha.609
+  - @brains/faq@0.2.0-alpha.609
+  - @brains/site-info@0.2.0-alpha.609
+  - @brains/topics@0.2.0-alpha.609
+  - @brains/profile@0.2.0-alpha.609
+  - @brains/content-formatters@0.2.0-alpha.609
+  - @brains/contracts@0.2.0-alpha.609
+  - @brains/site-atlas@0.2.0-alpha.609
+  - @brains/site-composition@0.2.0-alpha.609
+  - @brains/ui-library@0.2.0-alpha.609
+  - @brains/utils@0.2.0-alpha.609
+  - @brains/plugins@0.2.0-alpha.609
+  - @brains/templates@0.2.0-alpha.609
+
+## 0.2.0-alpha.608
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.608
+  - @brains/decks@0.2.0-alpha.608
+  - @brains/faq@0.2.0-alpha.608
+  - @brains/site-info@0.2.0-alpha.608
+  - @brains/topics@0.2.0-alpha.608
+  - @brains/profile@0.2.0-alpha.608
+  - @brains/content-formatters@0.2.0-alpha.608
+  - @brains/contracts@0.2.0-alpha.608
+  - @brains/site-atlas@0.2.0-alpha.608
+  - @brains/site-composition@0.2.0-alpha.608
+  - @brains/ui-library@0.2.0-alpha.608
+  - @brains/utils@0.2.0-alpha.608
+  - @brains/plugins@0.2.0-alpha.608
+  - @brains/templates@0.2.0-alpha.608
+
+## 0.2.0-alpha.607
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.607
+  - @brains/decks@0.2.0-alpha.607
+  - @brains/faq@0.2.0-alpha.607
+  - @brains/site-info@0.2.0-alpha.607
+  - @brains/topics@0.2.0-alpha.607
+  - @brains/profile@0.2.0-alpha.607
+  - @brains/content-formatters@0.2.0-alpha.607
+  - @brains/contracts@0.2.0-alpha.607
+  - @brains/site-atlas@0.2.0-alpha.607
+  - @brains/site-composition@0.2.0-alpha.607
+  - @brains/ui-library@0.2.0-alpha.607
+  - @brains/utils@0.2.0-alpha.607
+  - @brains/plugins@0.2.0-alpha.607
+  - @brains/templates@0.2.0-alpha.607
+
+## 0.2.0-alpha.606
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.606
+  - @brains/decks@0.2.0-alpha.606
+  - @brains/faq@0.2.0-alpha.606
+  - @brains/site-info@0.2.0-alpha.606
+  - @brains/topics@0.2.0-alpha.606
+  - @brains/profile@0.2.0-alpha.606
+  - @brains/content-formatters@0.2.0-alpha.606
+  - @brains/contracts@0.2.0-alpha.606
+  - @brains/site-atlas@0.2.0-alpha.606
+  - @brains/site-composition@0.2.0-alpha.606
+  - @brains/ui-library@0.2.0-alpha.606
+  - @brains/utils@0.2.0-alpha.606
+  - @brains/plugins@0.2.0-alpha.606
+  - @brains/templates@0.2.0-alpha.606
+
+## 0.2.0-alpha.605
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.605
+  - @brains/decks@0.2.0-alpha.605
+  - @brains/faq@0.2.0-alpha.605
+  - @brains/site-info@0.2.0-alpha.605
+  - @brains/topics@0.2.0-alpha.605
+  - @brains/profile@0.2.0-alpha.605
+  - @brains/content-formatters@0.2.0-alpha.605
+  - @brains/contracts@0.2.0-alpha.605
+  - @brains/site-atlas@0.2.0-alpha.605
+  - @brains/site-composition@0.2.0-alpha.605
+  - @brains/ui-library@0.2.0-alpha.605
+  - @brains/utils@0.2.0-alpha.605
+  - @brains/plugins@0.2.0-alpha.605
+  - @brains/templates@0.2.0-alpha.605
+
+## 0.2.0-alpha.604
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.604
+  - @brains/decks@0.2.0-alpha.604
+  - @brains/faq@0.2.0-alpha.604
+  - @brains/site-info@0.2.0-alpha.604
+  - @brains/topics@0.2.0-alpha.604
+  - @brains/profile@0.2.0-alpha.604
+  - @brains/content-formatters@0.2.0-alpha.604
+  - @brains/contracts@0.2.0-alpha.604
+  - @brains/site-atlas@0.2.0-alpha.604
+  - @brains/site-composition@0.2.0-alpha.604
+  - @brains/ui-library@0.2.0-alpha.604
+  - @brains/utils@0.2.0-alpha.604
+  - @brains/plugins@0.2.0-alpha.604
+  - @brains/templates@0.2.0-alpha.604
+
+## 0.2.0-alpha.603
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.603
+  - @brains/decks@0.2.0-alpha.603
+  - @brains/faq@0.2.0-alpha.603
+  - @brains/site-info@0.2.0-alpha.603
+  - @brains/topics@0.2.0-alpha.603
+  - @brains/profile@0.2.0-alpha.603
+  - @brains/content-formatters@0.2.0-alpha.603
+  - @brains/contracts@0.2.0-alpha.603
+  - @brains/site-atlas@0.2.0-alpha.603
+  - @brains/site-composition@0.2.0-alpha.603
+  - @brains/ui-library@0.2.0-alpha.603
+  - @brains/utils@0.2.0-alpha.603
+  - @brains/plugins@0.2.0-alpha.603
+  - @brains/templates@0.2.0-alpha.603
+
+## 0.2.0-alpha.602
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.602
+  - @brains/decks@0.2.0-alpha.602
+  - @brains/faq@0.2.0-alpha.602
+  - @brains/site-info@0.2.0-alpha.602
+  - @brains/topics@0.2.0-alpha.602
+  - @brains/profile@0.2.0-alpha.602
+  - @brains/content-formatters@0.2.0-alpha.602
+  - @brains/contracts@0.2.0-alpha.602
+  - @brains/site-atlas@0.2.0-alpha.602
+  - @brains/site-composition@0.2.0-alpha.602
+  - @brains/ui-library@0.2.0-alpha.602
+  - @brains/utils@0.2.0-alpha.602
+  - @brains/plugins@0.2.0-alpha.602
+  - @brains/templates@0.2.0-alpha.602
+
+## 0.2.0-alpha.601
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.601
+  - @brains/decks@0.2.0-alpha.601
+  - @brains/faq@0.2.0-alpha.601
+  - @brains/site-info@0.2.0-alpha.601
+  - @brains/topics@0.2.0-alpha.601
+  - @brains/profile@0.2.0-alpha.601
+  - @brains/content-formatters@0.2.0-alpha.601
+  - @brains/contracts@0.2.0-alpha.601
+  - @brains/site-atlas@0.2.0-alpha.601
+  - @brains/site-composition@0.2.0-alpha.601
+  - @brains/ui-library@0.2.0-alpha.601
+  - @brains/utils@0.2.0-alpha.601
+  - @brains/plugins@0.2.0-alpha.601
+  - @brains/templates@0.2.0-alpha.601
+
+## 0.2.0-alpha.600
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.600
+  - @brains/decks@0.2.0-alpha.600
+  - @brains/faq@0.2.0-alpha.600
+  - @brains/site-info@0.2.0-alpha.600
+  - @brains/topics@0.2.0-alpha.600
+  - @brains/profile@0.2.0-alpha.600
+  - @brains/content-formatters@0.2.0-alpha.600
+  - @brains/contracts@0.2.0-alpha.600
+  - @brains/site-atlas@0.2.0-alpha.600
+  - @brains/site-composition@0.2.0-alpha.600
+  - @brains/ui-library@0.2.0-alpha.600
+  - @brains/utils@0.2.0-alpha.600
+  - @brains/plugins@0.2.0-alpha.600
+  - @brains/templates@0.2.0-alpha.600
+
+## 0.2.0-alpha.599
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.599
+  - @brains/decks@0.2.0-alpha.599
+  - @brains/faq@0.2.0-alpha.599
+  - @brains/site-info@0.2.0-alpha.599
+  - @brains/topics@0.2.0-alpha.599
+  - @brains/profile@0.2.0-alpha.599
+  - @brains/content-formatters@0.2.0-alpha.599
+  - @brains/contracts@0.2.0-alpha.599
+  - @brains/site-atlas@0.2.0-alpha.599
+  - @brains/site-composition@0.2.0-alpha.599
+  - @brains/ui-library@0.2.0-alpha.599
+  - @brains/utils@0.2.0-alpha.599
+  - @brains/plugins@0.2.0-alpha.599
+  - @brains/templates@0.2.0-alpha.599
+
+## 0.2.0-alpha.598
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.598
+  - @brains/decks@0.2.0-alpha.598
+  - @brains/faq@0.2.0-alpha.598
+  - @brains/site-info@0.2.0-alpha.598
+  - @brains/topics@0.2.0-alpha.598
+  - @brains/profile@0.2.0-alpha.598
+  - @brains/content-formatters@0.2.0-alpha.598
+  - @brains/contracts@0.2.0-alpha.598
+  - @brains/site-atlas@0.2.0-alpha.598
+  - @brains/site-composition@0.2.0-alpha.598
+  - @brains/ui-library@0.2.0-alpha.598
+  - @brains/utils@0.2.0-alpha.598
+  - @brains/plugins@0.2.0-alpha.598
+  - @brains/templates@0.2.0-alpha.598
+
+## 0.2.0-alpha.597
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.597
+  - @brains/decks@0.2.0-alpha.597
+  - @brains/faq@0.2.0-alpha.597
+  - @brains/site-info@0.2.0-alpha.597
+  - @brains/topics@0.2.0-alpha.597
+  - @brains/profile@0.2.0-alpha.597
+  - @brains/content-formatters@0.2.0-alpha.597
+  - @brains/contracts@0.2.0-alpha.597
+  - @brains/site-atlas@0.2.0-alpha.597
+  - @brains/site-composition@0.2.0-alpha.597
+  - @brains/ui-library@0.2.0-alpha.597
+  - @brains/utils@0.2.0-alpha.597
+  - @brains/plugins@0.2.0-alpha.597
+  - @brains/templates@0.2.0-alpha.597
+
+## 0.2.0-alpha.596
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.596
+  - @brains/decks@0.2.0-alpha.596
+  - @brains/faq@0.2.0-alpha.596
+  - @brains/site-info@0.2.0-alpha.596
+  - @brains/topics@0.2.0-alpha.596
+  - @brains/profile@0.2.0-alpha.596
+  - @brains/content-formatters@0.2.0-alpha.596
+  - @brains/contracts@0.2.0-alpha.596
+  - @brains/site-atlas@0.2.0-alpha.596
+  - @brains/site-composition@0.2.0-alpha.596
+  - @brains/ui-library@0.2.0-alpha.596
+  - @brains/utils@0.2.0-alpha.596
+  - @brains/plugins@0.2.0-alpha.596
+  - @brains/templates@0.2.0-alpha.596
+
+## 0.2.0-alpha.595
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.595
+  - @brains/decks@0.2.0-alpha.595
+  - @brains/faq@0.2.0-alpha.595
+  - @brains/site-info@0.2.0-alpha.595
+  - @brains/topics@0.2.0-alpha.595
+  - @brains/profile@0.2.0-alpha.595
+  - @brains/content-formatters@0.2.0-alpha.595
+  - @brains/contracts@0.2.0-alpha.595
+  - @brains/site-atlas@0.2.0-alpha.595
+  - @brains/site-composition@0.2.0-alpha.595
+  - @brains/ui-library@0.2.0-alpha.595
+  - @brains/utils@0.2.0-alpha.595
+  - @brains/plugins@0.2.0-alpha.595
+  - @brains/templates@0.2.0-alpha.595
+
+## 0.2.0-alpha.594
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.594
+  - @brains/decks@0.2.0-alpha.594
+  - @brains/faq@0.2.0-alpha.594
+  - @brains/site-info@0.2.0-alpha.594
+  - @brains/topics@0.2.0-alpha.594
+  - @brains/profile@0.2.0-alpha.594
+  - @brains/content-formatters@0.2.0-alpha.594
+  - @brains/contracts@0.2.0-alpha.594
+  - @brains/site-atlas@0.2.0-alpha.594
+  - @brains/site-composition@0.2.0-alpha.594
+  - @brains/ui-library@0.2.0-alpha.594
+  - @brains/utils@0.2.0-alpha.594
+  - @brains/plugins@0.2.0-alpha.594
+  - @brains/templates@0.2.0-alpha.594
+
+## 0.2.0-alpha.593
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.593
+  - @brains/decks@0.2.0-alpha.593
+  - @brains/faq@0.2.0-alpha.593
+  - @brains/site-info@0.2.0-alpha.593
+  - @brains/topics@0.2.0-alpha.593
+  - @brains/profile@0.2.0-alpha.593
+  - @brains/content-formatters@0.2.0-alpha.593
+  - @brains/contracts@0.2.0-alpha.593
+  - @brains/site-atlas@0.2.0-alpha.593
+  - @brains/site-composition@0.2.0-alpha.593
+  - @brains/ui-library@0.2.0-alpha.593
+  - @brains/utils@0.2.0-alpha.593
+  - @brains/plugins@0.2.0-alpha.593
+  - @brains/templates@0.2.0-alpha.593
+
+## 0.2.0-alpha.592
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.592
+  - @brains/decks@0.2.0-alpha.592
+  - @brains/faq@0.2.0-alpha.592
+  - @brains/site-info@0.2.0-alpha.592
+  - @brains/topics@0.2.0-alpha.592
+  - @brains/profile@0.2.0-alpha.592
+  - @brains/content-formatters@0.2.0-alpha.592
+  - @brains/contracts@0.2.0-alpha.592
+  - @brains/site-atlas@0.2.0-alpha.592
+  - @brains/site-composition@0.2.0-alpha.592
+  - @brains/ui-library@0.2.0-alpha.592
+  - @brains/utils@0.2.0-alpha.592
+  - @brains/plugins@0.2.0-alpha.592
+  - @brains/templates@0.2.0-alpha.592
+
+## 0.2.0-alpha.591
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.591
+  - @brains/decks@0.2.0-alpha.591
+  - @brains/faq@0.2.0-alpha.591
+  - @brains/site-info@0.2.0-alpha.591
+  - @brains/topics@0.2.0-alpha.591
+  - @brains/profile@0.2.0-alpha.591
+  - @brains/content-formatters@0.2.0-alpha.591
+  - @brains/contracts@0.2.0-alpha.591
+  - @brains/site-atlas@0.2.0-alpha.591
+  - @brains/site-composition@0.2.0-alpha.591
+  - @brains/ui-library@0.2.0-alpha.591
+  - @brains/utils@0.2.0-alpha.591
+  - @brains/plugins@0.2.0-alpha.591
+  - @brains/templates@0.2.0-alpha.591
+
+## 0.2.0-alpha.590
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.590
+  - @brains/decks@0.2.0-alpha.590
+  - @brains/faq@0.2.0-alpha.590
+  - @brains/site-info@0.2.0-alpha.590
+  - @brains/topics@0.2.0-alpha.590
+  - @brains/profile@0.2.0-alpha.590
+  - @brains/content-formatters@0.2.0-alpha.590
+  - @brains/contracts@0.2.0-alpha.590
+  - @brains/site-atlas@0.2.0-alpha.590
+  - @brains/site-composition@0.2.0-alpha.590
+  - @brains/ui-library@0.2.0-alpha.590
+  - @brains/utils@0.2.0-alpha.590
+  - @brains/plugins@0.2.0-alpha.590
+  - @brains/templates@0.2.0-alpha.590
+
+## 0.2.0-alpha.589
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.589
+  - @brains/decks@0.2.0-alpha.589
+  - @brains/faq@0.2.0-alpha.589
+  - @brains/site-info@0.2.0-alpha.589
+  - @brains/topics@0.2.0-alpha.589
+  - @brains/profile@0.2.0-alpha.589
+  - @brains/content-formatters@0.2.0-alpha.589
+  - @brains/contracts@0.2.0-alpha.589
+  - @brains/site-atlas@0.2.0-alpha.589
+  - @brains/site-composition@0.2.0-alpha.589
+  - @brains/ui-library@0.2.0-alpha.589
+  - @brains/utils@0.2.0-alpha.589
+  - @brains/plugins@0.2.0-alpha.589
+  - @brains/templates@0.2.0-alpha.589
+
+## 0.2.0-alpha.588
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.588
+  - @brains/decks@0.2.0-alpha.588
+  - @brains/faq@0.2.0-alpha.588
+  - @brains/site-info@0.2.0-alpha.588
+  - @brains/topics@0.2.0-alpha.588
+  - @brains/profile@0.2.0-alpha.588
+  - @brains/content-formatters@0.2.0-alpha.588
+  - @brains/contracts@0.2.0-alpha.588
+  - @brains/site-atlas@0.2.0-alpha.588
+  - @brains/site-composition@0.2.0-alpha.588
+  - @brains/ui-library@0.2.0-alpha.588
+  - @brains/utils@0.2.0-alpha.588
+  - @brains/plugins@0.2.0-alpha.588
+  - @brains/templates@0.2.0-alpha.588
+
+## 0.2.0-alpha.587
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.587
+  - @brains/decks@0.2.0-alpha.587
+  - @brains/faq@0.2.0-alpha.587
+  - @brains/site-info@0.2.0-alpha.587
+  - @brains/topics@0.2.0-alpha.587
+  - @brains/profile@0.2.0-alpha.587
+  - @brains/content-formatters@0.2.0-alpha.587
+  - @brains/contracts@0.2.0-alpha.587
+  - @brains/site-atlas@0.2.0-alpha.587
+  - @brains/site-composition@0.2.0-alpha.587
+  - @brains/ui-library@0.2.0-alpha.587
+  - @brains/utils@0.2.0-alpha.587
+  - @brains/plugins@0.2.0-alpha.587
+  - @brains/templates@0.2.0-alpha.587
+
+## 0.2.0-alpha.586
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.586
+  - @brains/decks@0.2.0-alpha.586
+  - @brains/faq@0.2.0-alpha.586
+  - @brains/site-info@0.2.0-alpha.586
+  - @brains/topics@0.2.0-alpha.586
+  - @brains/profile@0.2.0-alpha.586
+  - @brains/content-formatters@0.2.0-alpha.586
+  - @brains/contracts@0.2.0-alpha.586
+  - @brains/site-atlas@0.2.0-alpha.586
+  - @brains/site-composition@0.2.0-alpha.586
+  - @brains/ui-library@0.2.0-alpha.586
+  - @brains/utils@0.2.0-alpha.586
+  - @brains/plugins@0.2.0-alpha.586
+  - @brains/templates@0.2.0-alpha.586
+
+## 0.2.0-alpha.585
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.585
+  - @brains/decks@0.2.0-alpha.585
+  - @brains/faq@0.2.0-alpha.585
+  - @brains/site-info@0.2.0-alpha.585
+  - @brains/topics@0.2.0-alpha.585
+  - @brains/profile@0.2.0-alpha.585
+  - @brains/content-formatters@0.2.0-alpha.585
+  - @brains/contracts@0.2.0-alpha.585
+  - @brains/site-atlas@0.2.0-alpha.585
+  - @brains/site-composition@0.2.0-alpha.585
+  - @brains/ui-library@0.2.0-alpha.585
+  - @brains/utils@0.2.0-alpha.585
+  - @brains/plugins@0.2.0-alpha.585
+  - @brains/templates@0.2.0-alpha.585
+
+## 0.2.0-alpha.584
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.584
+  - @brains/decks@0.2.0-alpha.584
+  - @brains/faq@0.2.0-alpha.584
+  - @brains/site-info@0.2.0-alpha.584
+  - @brains/topics@0.2.0-alpha.584
+  - @brains/profile@0.2.0-alpha.584
+  - @brains/content-formatters@0.2.0-alpha.584
+  - @brains/contracts@0.2.0-alpha.584
+  - @brains/site-atlas@0.2.0-alpha.584
+  - @brains/site-composition@0.2.0-alpha.584
+  - @brains/ui-library@0.2.0-alpha.584
+  - @brains/utils@0.2.0-alpha.584
+  - @brains/plugins@0.2.0-alpha.584
+  - @brains/templates@0.2.0-alpha.584
+
+## 0.2.0-alpha.583
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.583
+  - @brains/decks@0.2.0-alpha.583
+  - @brains/faq@0.2.0-alpha.583
+  - @brains/site-info@0.2.0-alpha.583
+  - @brains/topics@0.2.0-alpha.583
+  - @brains/profile@0.2.0-alpha.583
+  - @brains/content-formatters@0.2.0-alpha.583
+  - @brains/contracts@0.2.0-alpha.583
+  - @brains/site-atlas@0.2.0-alpha.583
+  - @brains/site-composition@0.2.0-alpha.583
+  - @brains/ui-library@0.2.0-alpha.583
+  - @brains/utils@0.2.0-alpha.583
+  - @brains/plugins@0.2.0-alpha.583
+  - @brains/templates@0.2.0-alpha.583
+
+## 0.2.0-alpha.582
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.582
+  - @brains/decks@0.2.0-alpha.582
+  - @brains/faq@0.2.0-alpha.582
+  - @brains/site-info@0.2.0-alpha.582
+  - @brains/topics@0.2.0-alpha.582
+  - @brains/profile@0.2.0-alpha.582
+  - @brains/content-formatters@0.2.0-alpha.582
+  - @brains/contracts@0.2.0-alpha.582
+  - @brains/site-atlas@0.2.0-alpha.582
+  - @brains/site-composition@0.2.0-alpha.582
+  - @brains/ui-library@0.2.0-alpha.582
+  - @brains/utils@0.2.0-alpha.582
+  - @brains/plugins@0.2.0-alpha.582
+  - @brains/templates@0.2.0-alpha.582
+
+## 0.2.0-alpha.581
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.581
+  - @brains/decks@0.2.0-alpha.581
+  - @brains/faq@0.2.0-alpha.581
+  - @brains/site-info@0.2.0-alpha.581
+  - @brains/topics@0.2.0-alpha.581
+  - @brains/profile@0.2.0-alpha.581
+  - @brains/content-formatters@0.2.0-alpha.581
+  - @brains/contracts@0.2.0-alpha.581
+  - @brains/site-atlas@0.2.0-alpha.581
+  - @brains/site-composition@0.2.0-alpha.581
+  - @brains/ui-library@0.2.0-alpha.581
+  - @brains/utils@0.2.0-alpha.581
+  - @brains/plugins@0.2.0-alpha.581
+  - @brains/templates@0.2.0-alpha.581
+
+## 0.2.0-alpha.580
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.580
+  - @brains/decks@0.2.0-alpha.580
+  - @brains/faq@0.2.0-alpha.580
+  - @brains/site-info@0.2.0-alpha.580
+  - @brains/topics@0.2.0-alpha.580
+  - @brains/profile@0.2.0-alpha.580
+  - @brains/content-formatters@0.2.0-alpha.580
+  - @brains/contracts@0.2.0-alpha.580
+  - @brains/site-atlas@0.2.0-alpha.580
+  - @brains/site-composition@0.2.0-alpha.580
+  - @brains/ui-library@0.2.0-alpha.580
+  - @brains/utils@0.2.0-alpha.580
+  - @brains/plugins@0.2.0-alpha.580
+  - @brains/templates@0.2.0-alpha.580
+
+## 0.2.0-alpha.579
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.579
+  - @brains/decks@0.2.0-alpha.579
+  - @brains/faq@0.2.0-alpha.579
+  - @brains/site-info@0.2.0-alpha.579
+  - @brains/topics@0.2.0-alpha.579
+  - @brains/profile@0.2.0-alpha.579
+  - @brains/content-formatters@0.2.0-alpha.579
+  - @brains/contracts@0.2.0-alpha.579
+  - @brains/site-atlas@0.2.0-alpha.579
+  - @brains/site-composition@0.2.0-alpha.579
+  - @brains/ui-library@0.2.0-alpha.579
+  - @brains/utils@0.2.0-alpha.579
+  - @brains/plugins@0.2.0-alpha.579
+  - @brains/templates@0.2.0-alpha.579
+
+## 0.2.0-alpha.578
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.578
+  - @brains/decks@0.2.0-alpha.578
+  - @brains/faq@0.2.0-alpha.578
+  - @brains/site-info@0.2.0-alpha.578
+  - @brains/topics@0.2.0-alpha.578
+  - @brains/profile@0.2.0-alpha.578
+  - @brains/content-formatters@0.2.0-alpha.578
+  - @brains/contracts@0.2.0-alpha.578
+  - @brains/site-atlas@0.2.0-alpha.578
+  - @brains/site-composition@0.2.0-alpha.578
+  - @brains/ui-library@0.2.0-alpha.578
+  - @brains/utils@0.2.0-alpha.578
+  - @brains/plugins@0.2.0-alpha.578
+  - @brains/templates@0.2.0-alpha.578
+
+## 0.2.0-alpha.577
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.577
+  - @brains/decks@0.2.0-alpha.577
+  - @brains/faq@0.2.0-alpha.577
+  - @brains/site-info@0.2.0-alpha.577
+  - @brains/topics@0.2.0-alpha.577
+  - @brains/profile@0.2.0-alpha.577
+  - @brains/content-formatters@0.2.0-alpha.577
+  - @brains/contracts@0.2.0-alpha.577
+  - @brains/site-atlas@0.2.0-alpha.577
+  - @brains/site-composition@0.2.0-alpha.577
+  - @brains/ui-library@0.2.0-alpha.577
+  - @brains/utils@0.2.0-alpha.577
+  - @brains/plugins@0.2.0-alpha.577
+  - @brains/templates@0.2.0-alpha.577
+
+## 0.2.0-alpha.576
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.576
+  - @brains/decks@0.2.0-alpha.576
+  - @brains/faq@0.2.0-alpha.576
+  - @brains/site-info@0.2.0-alpha.576
+  - @brains/topics@0.2.0-alpha.576
+  - @brains/profile@0.2.0-alpha.576
+  - @brains/content-formatters@0.2.0-alpha.576
+  - @brains/contracts@0.2.0-alpha.576
+  - @brains/site-atlas@0.2.0-alpha.576
+  - @brains/site-composition@0.2.0-alpha.576
+  - @brains/ui-library@0.2.0-alpha.576
+  - @brains/utils@0.2.0-alpha.576
+  - @brains/plugins@0.2.0-alpha.576
+  - @brains/templates@0.2.0-alpha.576
+
+## 0.2.0-alpha.575
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.575
+  - @brains/decks@0.2.0-alpha.575
+  - @brains/faq@0.2.0-alpha.575
+  - @brains/site-info@0.2.0-alpha.575
+  - @brains/topics@0.2.0-alpha.575
+  - @brains/profile@0.2.0-alpha.575
+  - @brains/content-formatters@0.2.0-alpha.575
+  - @brains/contracts@0.2.0-alpha.575
+  - @brains/site-atlas@0.2.0-alpha.575
+  - @brains/site-composition@0.2.0-alpha.575
+  - @brains/ui-library@0.2.0-alpha.575
+  - @brains/utils@0.2.0-alpha.575
+  - @brains/plugins@0.2.0-alpha.575
+  - @brains/templates@0.2.0-alpha.575
+
+## 0.2.0-alpha.574
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.574
+  - @brains/decks@0.2.0-alpha.574
+  - @brains/faq@0.2.0-alpha.574
+  - @brains/site-info@0.2.0-alpha.574
+  - @brains/topics@0.2.0-alpha.574
+  - @brains/profile@0.2.0-alpha.574
+  - @brains/content-formatters@0.2.0-alpha.574
+  - @brains/contracts@0.2.0-alpha.574
+  - @brains/site-atlas@0.2.0-alpha.574
+  - @brains/site-composition@0.2.0-alpha.574
+  - @brains/ui-library@0.2.0-alpha.574
+  - @brains/utils@0.2.0-alpha.574
+  - @brains/plugins@0.2.0-alpha.574
+  - @brains/templates@0.2.0-alpha.574
+
+## 0.2.0-alpha.573
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.573
+  - @brains/decks@0.2.0-alpha.573
+  - @brains/faq@0.2.0-alpha.573
+  - @brains/site-info@0.2.0-alpha.573
+  - @brains/topics@0.2.0-alpha.573
+  - @brains/profile@0.2.0-alpha.573
+  - @brains/content-formatters@0.2.0-alpha.573
+  - @brains/contracts@0.2.0-alpha.573
+  - @brains/site-atlas@0.2.0-alpha.573
+  - @brains/site-composition@0.2.0-alpha.573
+  - @brains/ui-library@0.2.0-alpha.573
+  - @brains/utils@0.2.0-alpha.573
+  - @brains/plugins@0.2.0-alpha.573
+  - @brains/templates@0.2.0-alpha.573
+
+## 0.2.0-alpha.572
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.572
+  - @brains/decks@0.2.0-alpha.572
+  - @brains/faq@0.2.0-alpha.572
+  - @brains/site-info@0.2.0-alpha.572
+  - @brains/topics@0.2.0-alpha.572
+  - @brains/profile@0.2.0-alpha.572
+  - @brains/content-formatters@0.2.0-alpha.572
+  - @brains/contracts@0.2.0-alpha.572
+  - @brains/site-atlas@0.2.0-alpha.572
+  - @brains/site-composition@0.2.0-alpha.572
+  - @brains/ui-library@0.2.0-alpha.572
+  - @brains/utils@0.2.0-alpha.572
+  - @brains/plugins@0.2.0-alpha.572
+  - @brains/templates@0.2.0-alpha.572
+
+## 0.2.0-alpha.571
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.571
+  - @brains/decks@0.2.0-alpha.571
+  - @brains/faq@0.2.0-alpha.571
+  - @brains/site-info@0.2.0-alpha.571
+  - @brains/topics@0.2.0-alpha.571
+  - @brains/profile@0.2.0-alpha.571
+  - @brains/content-formatters@0.2.0-alpha.571
+  - @brains/contracts@0.2.0-alpha.571
+  - @brains/site-atlas@0.2.0-alpha.571
+  - @brains/site-composition@0.2.0-alpha.571
+  - @brains/ui-library@0.2.0-alpha.571
+  - @brains/utils@0.2.0-alpha.571
+  - @brains/plugins@0.2.0-alpha.571
+  - @brains/templates@0.2.0-alpha.571
+
+## 0.2.0-alpha.570
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.570
+  - @brains/decks@0.2.0-alpha.570
+  - @brains/faq@0.2.0-alpha.570
+  - @brains/site-info@0.2.0-alpha.570
+  - @brains/topics@0.2.0-alpha.570
+  - @brains/profile@0.2.0-alpha.570
+  - @brains/content-formatters@0.2.0-alpha.570
+  - @brains/contracts@0.2.0-alpha.570
+  - @brains/site-atlas@0.2.0-alpha.570
+  - @brains/site-composition@0.2.0-alpha.570
+  - @brains/ui-library@0.2.0-alpha.570
+  - @brains/utils@0.2.0-alpha.570
+  - @brains/plugins@0.2.0-alpha.570
+  - @brains/templates@0.2.0-alpha.570
+
+## 0.2.0-alpha.569
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.569
+  - @brains/decks@0.2.0-alpha.569
+  - @brains/faq@0.2.0-alpha.569
+  - @brains/site-info@0.2.0-alpha.569
+  - @brains/topics@0.2.0-alpha.569
+  - @brains/profile@0.2.0-alpha.569
+  - @brains/content-formatters@0.2.0-alpha.569
+  - @brains/contracts@0.2.0-alpha.569
+  - @brains/site-atlas@0.2.0-alpha.569
+  - @brains/site-composition@0.2.0-alpha.569
+  - @brains/ui-library@0.2.0-alpha.569
+  - @brains/utils@0.2.0-alpha.569
+  - @brains/plugins@0.2.0-alpha.569
+  - @brains/templates@0.2.0-alpha.569
+
 ## 0.2.0-alpha.568
 
 ### Patch Changes

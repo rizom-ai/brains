@@ -351,4 +351,54 @@ describe("SiteBuildStatusService", () => {
       (await service.getSnapshot()).recentBuilds.map((build) => build.jobId),
     ).toEqual(["job-6", "job-5", "job-4", "job-3", "job-2"]);
   });
+
+  /**
+   * A brain's web process queues builds and its worker runs them, each with a
+   * status service of its own over the same runtime state.
+   */
+  describe("across the web and worker processes", () => {
+    const noJobs: StatusServiceJobs = {
+      getStatus: async (): Promise<null> => null,
+      getRecentJobs: async (): Promise<[]> => [],
+    };
+
+    function processPair(): {
+      web: SiteBuildStatusService;
+      worker: SiteBuildStatusService;
+      reader: () => SiteBuildStatusService;
+    } {
+      const context = createServicePluginContext(
+        createMockShell(),
+        "site-builder",
+      );
+      const service = (): SiteBuildStatusService =>
+        new SiteBuildStatusService(context.runtimeState, noJobs);
+      return { web: service(), worker: service(), reader: service };
+    }
+
+    it("keeps the worker's success when the web process writes afterwards", async () => {
+      const { web, worker, reader } = processPair();
+      await web.initialize();
+      await worker.initialize();
+
+      await worker.markBuilding("preview", "preview-job");
+      await worker.markSuccess("preview", "preview-job", 3487, []);
+      await web.markRequested("production");
+
+      const [preview] = (await reader().getSnapshot()).environments;
+      expect(preview?.lastSuccess?.jobId).toBe("preview-job");
+    });
+
+    it("reports a failure as unresolved until a build succeeds", async () => {
+      const { web, worker } = processPair();
+
+      expect(await worker.hasUnresolvedFailure("preview")).toBe(false);
+      await web.markFailure("preview", "failed-job", "Attempt lease expired");
+      expect(await worker.hasUnresolvedFailure("preview")).toBe(true);
+      expect(await worker.hasUnresolvedFailure("production")).toBe(false);
+
+      await worker.markSuccess("preview", "rendered-job", 3487, []);
+      expect(await web.hasUnresolvedFailure("preview")).toBe(false);
+    });
+  });
 });

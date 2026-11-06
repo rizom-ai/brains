@@ -5,7 +5,7 @@ import { createChatClient } from "@brains/contracts/chat";
 import { ChatTurn } from "./studio-chat-thread";
 
 describe("a turn's sources", () => {
-  test("name and link each source, without its raw record", () => {
+  test("name and link each source, without its raw record or excerpt", () => {
     const html = renderToStaticMarkup(
       <ChatTurn
         disabled={false}
@@ -47,5 +47,49 @@ describe("a turn's sources", () => {
     expect(html).toContain("book-section");
     expect(html).not.toContain("Source details");
     expect(html).not.toContain("provenance");
+    expect(html).not.toContain("der tiefste Einwand");
+  });
+});
+
+describe("an approval card", () => {
+  function renderApproval(
+    state: "approval-requested" | "output-available",
+  ): string {
+    return renderToStaticMarkup(
+      <ChatTurn
+        disabled={false}
+        client={createChatClient()}
+        onAction={async () => {}}
+        onApproval={async () => {}}
+        message={{
+          id: "m2",
+          role: "assistant",
+          content: "Confirmation required.",
+          timestamp: "2026-10-31T00:00:00.000Z",
+          cards: [
+            {
+              kind: "tool-approval",
+              id: "approval:call-1",
+              toolName: "system_create",
+              summary: "Save 2 uploaded files?",
+              completionSummary: 'Saved 2 uploaded files: note "Harbor Log".',
+              state,
+            },
+          ],
+        }}
+      />,
+    );
+  }
+
+  test("does not say what was saved while it waits for approval", () => {
+    const html = renderApproval("approval-requested");
+    expect(html).toContain("Save 2 uploaded files?");
+    expect(html).not.toContain("Saved 2 uploaded files");
+  });
+
+  test("says what was saved once the action completed", () => {
+    expect(renderApproval("output-available")).toContain(
+      "Saved 2 uploaded files",
+    );
   });
 });

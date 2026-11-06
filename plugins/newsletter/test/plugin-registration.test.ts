@@ -22,6 +22,8 @@ describe("NewsletterPlugin registration", () => {
     ).toMatchObject({
       projectionSourceRole: "secondary",
       publish: { publishStatuses: ["queued", "published", "failed"] },
+      // Provider delivery ids were written after sending and never read.
+      retiredFields: ["buttondownId", "resendBroadcastId"],
     });
     expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toBeUndefined();

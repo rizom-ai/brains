@@ -33,7 +33,7 @@ export const bookFrontmatterSchema: z.ZodObject<{
   shortTitle: NullableStringSchema;
 }> = z.object({
   title: z.string(),
-  source: z.url(),
+  source: z.url().meta({ studioWidget: "provenance" }),
   author: z.string().nullable().default(null),
   year: z.number().int().nullable().default(null),
   kind: bookKindSchema.nullable().default(null),
@@ -43,14 +43,29 @@ export const bookFrontmatterSchema: z.ZodObject<{
   /** Published in the author's lifetime, including private prints. */
   published: z.boolean().nullable().default(null),
   /** Bytes of the book's text, summed over its sections. */
-  length: z.number().int().min(0).nullable().default(null),
+  length: z
+    .number()
+    .int()
+    .min(0)
+    .nullable()
+    .default(null)
+    .meta({ studioWidget: "provenance" }),
   /** The sections the edition prints, however many entries they take. */
-  sections: z.number().int().min(0).nullable().default(null),
+  sections: z
+    .number()
+    .int()
+    .min(0)
+    .nullable()
+    .default(null)
+    .meta({ studioWidget: "provenance" }),
   /**
    * Reading orders of entries that continue the entry before: a section too
    * long for one entry spans several, which read and count as one.
    */
-  continuations: z.array(z.number().int().min(2)).default([]),
+  continuations: z
+    .array(z.number().int().min(2))
+    .default([])
+    .meta({ studioWidget: "hidden" }),
   /** A title short enough for a book's spine. */
   shortTitle: z.string().nullable().default(null),
 });

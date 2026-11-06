@@ -1,14 +1,9 @@
 import { readFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { corpusReader } from "./corpus-source";
-import {
-  ekgwbReader,
-  importBooks,
-  parseManifest,
-  type BookReader,
-} from "./import-books";
-import { createPoliteFetch } from "./polite-fetch";
+import { readCorrectionsBeside } from "./corrections-file";
+import { importBooks, parseManifest } from "./import-books";
+import { importerPageOcr } from "./page-ocr";
+import { createImporterFetch } from "./polite-fetch";
 
 const USAGE =
   "Usage: bun packages/book-import/src/cli.ts <manifest.yaml> <brain-data> [--from-corpus <brain-data>]";
@@ -24,21 +19,14 @@ if (
 }
 
 const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-// A corpus the importer already rendered is a source too: restructuring a
-// book needs no second fetch.
-const reader: BookReader = corpus
-  ? await corpusReader(corpus)
-  : ekgwbReader(
-      createPoliteFetch({
-        cacheDir:
-          process.env["BOOK_IMPORT_CACHE"] ??
-          join(homedir(), ".cache", "book-import"),
-        userAgent: "rizom-brains-book-import (yeehaa@rizom.ai)",
-        minIntervalMs: 1000,
-      }),
-    );
-
-const results = await importBooks(manifest, brainData, reader);
+const fetchText = createImporterFetch();
+const results = await importBooks(manifest, brainData, fetchText, {
+  corrections: await readCorrectionsBeside(manifestPath),
+  pageOcr: importerPageOcr(fetchText),
+  // A corpus the importer already rendered is a source too: restructuring
+  // an eKGWB book needs no second fetch.
+  ...(corpus ? { ekgwb: await corpusReader(corpus) } : {}),
+});
 results.forEach(({ slug, entries }) =>
   console.log(`${slug}: ${entries} entries`),
 );

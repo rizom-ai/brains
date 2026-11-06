@@ -66,7 +66,7 @@ const requirementVerdictSchema = z.object({
   ),
 });
 
-const REQUIREMENT_JUDGE_INSTRUCTION = `You check one assistant reply against a numbered list of requirements. For each requirement, decide whether the reply meets it. Judge meaning, not wording: a requirement is met when the reply conveys it in any phrasing, and not met when the reply omits it or contradicts it. Use the tool calls only to understand what the assistant did; do not credit the reply with content it does not contain. Return exactly one result per requirement, by index.`;
+const REQUIREMENT_JUDGE_INSTRUCTION = `You check one assistant reply against a numbered list of requirements. For each requirement, decide whether the reply meets it. Judge meaning, not wording: a requirement is met when the reply conveys it in any phrasing, and not met when the reply omits it or contradicts it. A requirement that the reply does not do something is met when the reply does not do it; it needs no sentence saying so. Do not demand more than a requirement asks. Use the tool calls only to understand what the assistant did; do not credit the reply with content it does not contain. Return exactly one result per requirement, by index.`;
 
 const MAX_TOOL_RESULT_STRING_LENGTH = 2000;
 const MAX_TOOL_RESULT_LENGTH = 6000;

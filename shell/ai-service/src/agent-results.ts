@@ -126,6 +126,19 @@ export function buildToolResultPromptFallback(
   return undefined;
 }
 
+/**
+ * The reply for a turn whose model text is empty after a failed tool call:
+ * the latest tool error, so the caller is not left with a blank answer.
+ */
+export function buildToolErrorFallback(
+  toolResults: ToolResultData[],
+): string | undefined {
+  const failed = [...toolResults].reverse().find((result) => result.error);
+  return failed?.error
+    ? `I couldn't complete that: ${failed.error.message}`
+    : undefined;
+}
+
 export function buildAttachmentCardFromToolData(
   data: unknown,
 ): StructuredChatCard | undefined {
@@ -167,10 +180,18 @@ export function buildAttachmentCardFromToolData(
 const MAX_SOURCE_EXCERPT_LENGTH = 500;
 const MAX_SEARCH_SOURCES = 3;
 
-function truncateSourceExcerpt(content: string): string {
+/** None when there is no text to quote, such as an all-frontmatter entity. */
+function truncateSourceExcerpt(content: string): string | undefined {
   const trimmed = content.trim();
+  if (trimmed.length === 0) return undefined;
   if (trimmed.length <= MAX_SOURCE_EXCERPT_LENGTH) return trimmed;
   return `${trimmed.slice(0, MAX_SOURCE_EXCERPT_LENGTH - 1).trimEnd()}…`;
+}
+
+/** A citation that breaks the contract is left out, not sent to fail the answer. */
+function validCitation(citation: unknown): SourceCitation[] {
+  const parsed = SourceCitationSchema.safeParse(citation);
+  return parsed.success ? [parsed.data] : [];
 }
 
 function getStringProvenanceValue(
@@ -184,24 +205,27 @@ function getStringProvenanceValue(
 export function buildSourcesCardFromContextItems(
   contextItems: AgentContextItem[] | undefined,
 ): StructuredChatCard | undefined {
-  if (!contextItems || contextItems.length === 0) return undefined;
-
-  return {
-    kind: "sources",
-    id: "sources:agent-context",
-    title: "Retrieved context",
-    sources: contextItems.map((item) => ({
+  const sources = (contextItems ?? []).flatMap((item) =>
+    validCitation({
       id: item.id,
       source: item.source,
-      excerpt: truncateSourceExcerpt(item.content),
       ...definedFields({
+        excerpt: truncateSourceExcerpt(item.content),
         title: item.title,
         url: getStringProvenanceValue(item.provenance, "url"),
         entityType: getStringProvenanceValue(item.provenance, "entityType"),
         entityId: getStringProvenanceValue(item.provenance, "entityId"),
         provenance: item.provenance,
       }),
-    })),
+    }),
+  );
+  if (sources.length === 0) return undefined;
+
+  return {
+    kind: "sources",
+    id: "sources:agent-context",
+    title: "Retrieved context",
+    sources,
   };
 }
 
@@ -211,7 +235,7 @@ function buildSourceCitationFromEntity(params: {
   excerpt?: string | undefined;
   score?: number | undefined;
   links: EntityLinks | undefined;
-}): SourceCitation {
+}): SourceCitation[] {
   const { entity, toolName, score } = params;
   const excerpt =
     params.excerpt !== undefined
@@ -219,14 +243,14 @@ function buildSourceCitationFromEntity(params: {
       : entity.content !== undefined
         ? truncateSourceExcerpt(markdownBody(entity.content))
         : undefined;
-  return {
+  return validCitation({
     ...entitySourceCitation(entity, params.links),
     ...definedFields({ excerpt }),
     provenance: {
       toolName,
       ...definedFields({ score }),
     },
-  };
+  });
 }
 
 /** A source the turn saw; a search result keeps its rank within its search. */
@@ -249,39 +273,33 @@ function buildToolSourceCitations(params: {
           (b.score ?? Number.NEGATIVE_INFINITY) -
           (a.score ?? Number.NEGATIVE_INFINITY),
       )
-      .map((result, rank) => ({
-        rank,
-        citation: buildSourceCitationFromEntity({
+      .flatMap((result, rank) =>
+        buildSourceCitationFromEntity({
           toolName: params.toolName,
           entity: result.entity,
           excerpt: result.excerpt,
           score: result.score,
           links: params.links,
-        }),
-      }));
+        }).map((citation) => ({ rank, citation })),
+      );
   }
 
   if (params.toolName === "system_get") {
     const parsed = getToolDataSchema.safeParse(params.data);
     if (!parsed.success) return [];
-    return [
-      {
-        citation: buildSourceCitationFromEntity({
-          toolName: params.toolName,
-          entity: parsed.data.entity,
-          links: params.links,
-        }),
-      },
-    ];
+    return buildSourceCitationFromEntity({
+      toolName: params.toolName,
+      entity: parsed.data.entity,
+      links: params.links,
+    }).map((citation) => ({ citation }));
   }
 
   // A tool's own citations count like a direct read: kept whatever the answer names.
   const own = toolSourcesDataSchema.safeParse(params.data);
   if (own.success) {
-    return own.data.sources.flatMap((source) => {
-      const citation = SourceCitationSchema.safeParse(source);
-      return citation.success ? [{ citation: citation.data }] : [];
-    });
+    return own.data.sources.flatMap((source) =>
+      validCitation(source).map((citation) => ({ citation })),
+    );
   }
 
   return [];
@@ -294,10 +312,21 @@ function comparable(text: string): string {
     .trim()} `;
 }
 
+/** Whether the answer links the page at this address, by path or in full. */
+function linksTo(answer: string, url: string | undefined): boolean {
+  if (url === undefined) return false;
+  const { pathname } = new URL(url);
+  if (pathname.length < 2) return false;
+  const path = pathname
+    .replace(/\/+$/, "")
+    .replace(/[.*+?^${}()|[\]\\]/g, (char) => `\\${char}`);
+  return new RegExp(`${path}(?![\\w-])`).test(answer);
+}
+
 /**
- * What an answer drew on: the search results it names, however they scored,
- * and what it read directly. An answer that names none keeps each search's
- * best results.
+ * What an answer drew on: the search results it names by title or links,
+ * however they scored, and what it read directly. An answer that names none
+ * keeps each search's best results.
  */
 function selectAnswerSources(
   candidates: SourceCandidate[],
@@ -308,6 +337,7 @@ function selectAnswerSources(
     (candidate) => candidate.rank !== undefined,
   );
   const named = searched.filter((candidate) => {
+    if (linksTo(answer ?? "", candidate.citation.url)) return true;
     // Optional where the citation type is read through its public contract.
     const cited: string | undefined = candidate.citation.title;
     if (cited === undefined) return false;
@@ -597,6 +627,24 @@ export function extractToolResults(
   };
 }
 
+/** A save of several files, one entry per saved entity. */
+const savedItemsDataSchema = z.object({
+  items: z.array(
+    z.looseObject({
+      entityId: z.string().min(1),
+      entityType: z.string().min(1),
+      title: z.string().optional(),
+      status: z.string().optional(),
+    }),
+  ),
+});
+
+/** The entities a save of several files created, each as its own tool data. */
+export function savedItems(data: unknown): Array<Record<string, unknown>> {
+  const parsed = savedItemsDataSchema.safeParse(data);
+  return parsed.success ? parsed.data.items : [];
+}
+
 const entityRefDataSchema = z.object({
   entityId: z.string().min(1).optional(),
   updated: z.string().min(1).optional(),
@@ -708,6 +756,23 @@ export function buildEntityMemoryRefs(
   const seen = new Set<string>();
   const refs: EntityMemoryRef[] = [];
   for (const tr of toolResults) {
+    const items = savedItemsDataSchema.safeParse(tr.data);
+    if (items.success) {
+      for (const item of items.data.items) {
+        if (seen.has(item.entityId)) continue;
+        seen.add(item.entityId);
+        refs.push({
+          entityType: item.entityType,
+          entityId: item.entityId,
+          operation: "created",
+          ...definedFields({
+            title: nonEmpty(item.title),
+            status: nonEmpty(item.status),
+          }),
+        });
+      }
+      continue;
+    }
     const data = entityRefDataSchema.safeParse(tr.data);
     const entityId = data.success
       ? (data.data.entityId ?? data.data.updated ?? data.data.deleted)

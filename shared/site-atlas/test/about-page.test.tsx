@@ -42,6 +42,28 @@ describe("about page", () => {
     );
   });
 
+  it("sets the headline between the title and the description", () => {
+    const withHeadline = html({
+      ...page,
+      headline: "Founder at Team Brain | Shared memory",
+    });
+    const title = withHeadline.indexOf(">About Team Brain POC Team</h1>");
+    const headline = withHeadline.indexOf(
+      "Founder at Team Brain | Shared memory",
+    );
+    const description = withHeadline.indexOf(
+      "A small team validating shared knowledge capture.",
+    );
+    expect(title).toBeGreaterThan(-1);
+    expect(headline).toBeGreaterThan(title);
+    expect(description).toBeGreaterThan(headline);
+  });
+
+  it("has no headline line without a headline", () => {
+    expect(html({ ...page, headline: null })).toBe(html());
+    expect(html({ ...page, headline: "" })).toBe(html());
+  });
+
   it("tells the story in prose", () => {
     expect(html()).toContain("<em>one</em>");
   });

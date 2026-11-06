@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { SourcesPart } from "./data-parts";
 
 describe("SourcesPart", () => {
-  it("renders source citations as a compact list", () => {
+  it("renders source citations as a compact list, without excerpts", () => {
     const markup = renderToStaticMarkup(
       createElement(SourcesPart, {
         data: {
@@ -36,7 +36,7 @@ describe("SourcesPart", () => {
     expect(markup).toContain("score 0.91");
     // A host page can point at the source it cites.
     expect(markup).toContain('data-ask-source="post:resilience"');
-    expect(markup).toContain(
+    expect(markup).not.toContain(
       "More replicas alone do not make a system resilient.",
     );
   });

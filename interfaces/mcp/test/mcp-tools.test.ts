@@ -266,7 +266,7 @@ describe("MCP tools", () => {
     const agentService: AgentService = {
       ...createAgentService(),
       chat: mock(async () => ({
-        text: "Confirmation required.",
+        text: "Here is the note.\n\nConfirmation required.",
         pendingConfirmations: [
           {
             id: "approval-1",
@@ -295,10 +295,12 @@ describe("MCP tools", () => {
       externalToolContext("operator-1"),
     );
 
+    // The reply the agent wrote reaches the MCP client with the request.
     expect(response).toEqual({
       needsConfirmation: true,
       toolName: "system_create",
       summary: "Create note?",
+      text: "Here is the note.\n\nConfirmation required.",
       args: {
         approvalId: "approval-1",
         conversationId: expect.stringMatching(/^conversation-/),

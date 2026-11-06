@@ -7,7 +7,6 @@ import type {
   ProjectionRule,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
@@ -40,7 +39,6 @@ export class SocialMediaPlugin extends EntityPlugin<
   readonly adapter: typeof socialPostAdapter = socialPostAdapter;
 
   private providers = new Map<string, PublishProvider>();
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   private deps: LinkedInClientDeps;
 
@@ -101,17 +99,9 @@ export class SocialMediaPlugin extends EntityPlugin<
 
     subscribeToGenerateExecute(context, this.logger, this.retries);
     registerEvalHandlers(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createSocialPostAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createSocialPostAtprotoProjection());
 
     this.logger.info("Social media plugin registered successfully");
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 
   private initializeProviders(): void {

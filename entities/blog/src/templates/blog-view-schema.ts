@@ -1,5 +1,9 @@
-import { contentVisibilitySchema } from "@brains/plugins";
-import { renderedLinkFields } from "@brains/templates";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { blogPostStatusSchema } from "../schemas/blog-post";
 
@@ -42,17 +46,7 @@ const frontmatterSchema: z.ZodObject<{
   seriesName: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   seriesIndex: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
   ogImage: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  ogDescription: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  twitterCard: z.ZodDefault<
-    z.ZodNullable<
-      z.ZodEnum<{
-        summary: "summary";
-        summary_large_image: "summary_large_image";
-      }>
-    >
-  >;
   canonicalUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  atprotoUri: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   title: z.string(),
   slug: nullableString,
@@ -65,52 +59,25 @@ const frontmatterSchema: z.ZodObject<{
   seriesName: nullableString,
   seriesIndex: nullableNumber,
   ogImage: nullableString,
-  ogDescription: nullableString,
-  twitterCard: z
-    .enum(["summary", "summary_large_image"])
-    .nullable()
-    .default(null),
   canonicalUrl: nullableString,
-  atprotoUri: nullableString,
 });
 
-export const blogViewSchema: z.ZodObject<{
-  id: z.ZodString;
-  entityType: z.ZodLiteral<"post">;
-  content: z.ZodString;
-  created: z.ZodString;
-  updated: z.ZodString;
-  visibility: typeof contentVisibilitySchema;
-  metadata: typeof metadataSchema;
-  contentHash: z.ZodString;
-  frontmatter: typeof frontmatterSchema;
-  body: z.ZodString;
-  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  listUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  listLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  seriesUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
-  coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
-  coverImageSrcset: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-  coverImageSizes: z.ZodDefault<z.ZodNullable<z.ZodString>>;
-}> = z.object({
-  id: z.string(),
-  entityType: z.literal("post"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: metadataSchema,
-  contentHash: z.string(),
-  frontmatter: frontmatterSchema,
+export const blogViewSchema: z.ZodObject<
+  EntityViewFields<"post", typeof metadataSchema, typeof frontmatterSchema> & {
+    body: z.ZodString;
+  } & typeof viewLinkFields & {
+      seriesUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+      coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+      ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+      coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+      coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+      coverImageSrcset: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+      coverImageSizes: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    }
+> = z.object({
+  ...entityViewFields("post", metadataSchema, frontmatterSchema),
   body: z.string(),
-  url: nullableString,
-  typeLabel: nullableString,
-  listUrl: nullableString,
-  listLabel: nullableString,
+  ...viewLinkFields,
   seriesUrl: nullableString,
   coverImageUrl: nullableString,
   ogImageUrl: nullableString,

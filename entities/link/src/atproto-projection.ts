@@ -21,7 +21,7 @@ export async function buildLinkAtprotoRecord({
     url: frontmatter.url,
     ...(frontmatter.description && { description: frontmatter.description }),
     ...(summary && { summary }),
-    domain: frontmatter.domain,
+    domain: new URL(frontmatter.url).hostname,
     capturedAt: frontmatter.capturedAt,
     source: frontmatter.source,
     ...(config.brainDid && { brainDid: config.brainDid }),

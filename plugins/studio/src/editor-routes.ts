@@ -1,23 +1,20 @@
-import { join } from "node:path";
-import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
   issuerFromRequest,
   requireSameOriginJson,
   requireSameOriginRequest,
-} from "@brains/auth-service";
-import type {
-  ServicePluginContext,
-  UserPermissionLevel,
-  WebRouteDefinition,
-} from "@brains/plugins";
-import {
   PermissionService,
   canWriteVisibility,
   entityTypeClassificationSchema,
   permissionToVisibilityScope,
 } from "@brains/plugins";
+import { join } from "node:path";
+import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
+import type {
+  ServicePluginContext,
+  UserPermissionLevel,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
-import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
@@ -76,29 +73,10 @@ export type {
 
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
-function resolveStudioChatApiPath(
+export function resolveStudioChatApiPath(
   context: ServicePluginContext,
 ): string | undefined {
-  if (!context.plugins.has("web-chat")) return undefined;
-  const routes = context.webRoutes
-    .getRoutes()
-    .filter((route) => route.pluginId === "web-chat");
-  const actionsRoute = routes.find(
-    (route) =>
-      route.fullPath.endsWith("/actions") &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  );
-  if (!actionsRoute) return DEFAULT_CHAT_API_PATH;
-  const apiPath = actionsRoute.fullPath.slice(0, -"/actions".length);
-  return routes.some(
-    (route) =>
-      route.fullPath === apiPath &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  )
-    ? apiPath
-    : DEFAULT_CHAT_API_PATH;
+  return context.webRoutes.findByRole("chat-api")?.fullPath;
 }
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
@@ -277,11 +255,7 @@ export function createEditorRoutes(
       return new Response("Chat is not configured", { status: 404 });
     }
     const context = getContext();
-    const dashboardHref = context.webRoutes
-      .getRoutes()
-      .filter((route) => route.pluginId === "dashboard")
-      .map((route) => route.fullPath)
-      .sort((left, right) => left.length - right.length)[0];
+    const dashboardHref = context.webRoutes.findByRole("dashboard")?.fullPath;
     const profileName = context.identity.getProfile().name.trim();
     const mcpUrl = await resolveMcpUrl(
       context,
@@ -327,12 +301,14 @@ export function createEditorRoutes(
       path: STUDIO_CHAT_ROUTE_PATH,
       method: "GET",
       public: true,
+      role: "studio-chat",
       handler: serveShell,
     },
     {
       path: shellPath,
       method: "GET",
       public: true,
+      role: "studio",
       handler: serveShell,
     },
     {
@@ -354,6 +330,7 @@ export function createEditorRoutes(
       match: "prefix",
       method: "GET",
       public: true,
+      role: "studio-workspaces",
       handler: serveShell,
     },
     {
@@ -400,6 +377,16 @@ export function createEditorRoutes(
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
         return handleWorkspaceAction(workspaceRegistry, request, access);
+      },
+    },
+    {
+      path: apiPath("members"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return jsonResponse({ members: (await options.listMembers?.()) ?? [] });
       },
     },
     {
@@ -659,13 +646,14 @@ async function handleListTypes(
       const adapter = context.entities.getAdapter(entityType);
       const containedIn =
         context.entityService.getEntityTypeConfig(entityType).containedIn;
+      const labels = entityTypeLabels(entityType, entityDisplay?.[entityType]);
       types.push({
         entityType,
         classification: entityTypeClassificationSchema.parse(
           context.entityService.getEntityTypeConfig(entityType).classification,
         ),
-        label: entityTypeLabels(entityType, entityDisplay?.[entityType])
-          .pluralLabel,
+        label: labels.pluralLabel,
+        singularLabel: labels.label,
         isSingleton: adapter?.isSingleton === true,
         hasBody: adapter?.hasBody !== false,
         count,
@@ -844,10 +832,11 @@ async function handleGetSchema(
   );
   const domainFields = raw
     ? []
-    : Object.keys(schema.shape).map((name) => {
+    : Object.keys(schema.shape).flatMap((name) => {
         const field = zodFieldToStudioWidget(name, schema.shape[name]);
+        if (field.widget === "hidden") return [];
         const label = labels.get(name);
-        return label === undefined ? field : { ...field, label };
+        return [label === undefined ? field : { ...field, label }];
       });
   const visibilityField = {
     name: "visibility",

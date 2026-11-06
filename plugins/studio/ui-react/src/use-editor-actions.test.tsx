@@ -148,7 +148,7 @@ async function renderActions(
       if (url.pathname.endsWith("/assist")) {
         harness.assistRequests += 1;
         return Response.json({
-          variant: "summarise",
+          variant: "summarize",
           targetField: "summary",
           suggestion: "A short summary.",
         });
@@ -441,7 +441,7 @@ describe("useEditorActions", () => {
     const harness = await renderActions();
 
     await act(async () =>
-      harness.actions().runFieldAssist("summarise", "summary"),
+      harness.actions().runFieldAssist("summarize", "summary"),
     );
     await settle();
 

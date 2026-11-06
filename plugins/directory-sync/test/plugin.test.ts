@@ -1,3 +1,4 @@
+import { type ToolResponse } from "@brains/plugins";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
@@ -5,7 +6,6 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import type { StudioWorkspaceRegistration } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import type { ToolResponse } from "@brains/mcp-service";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdtempSync } from "fs";

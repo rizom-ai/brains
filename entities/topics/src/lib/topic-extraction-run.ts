@@ -56,6 +56,7 @@ import {
   type VoteLedger,
 } from "./topic-extraction-decisions";
 import { TopicAdapter } from "./topic-adapter";
+import { readTopicSourcePages } from "./topic-source-pages";
 import { TopicService } from "./topic-service";
 import { TopicMergeSynthesizer } from "./topic-merge-synthesizer";
 import {
@@ -67,7 +68,6 @@ import { topicVoteTemplate } from "../templates/vote-template";
 
 const MAX_AI_CALLS = 10;
 const MAX_SOURCE_ATTEMPTS = 3;
-const SOURCE_PAGE_SIZE = 100;
 
 export interface TopicExtractionStores {
   votes: IRuntimeStateStore<TopicVote>;
@@ -89,6 +89,46 @@ export interface TopicExtractionDeps {
   synthesizer: TopicMergeSynthesizer;
 }
 
+/** Extraction's working state in runtime state. */
+export function topicExtractionStores(
+  context: Pick<EntityPluginContext, "runtimeState">,
+): TopicExtractionStores {
+  return {
+    votes: context.runtimeState.scoped({
+      namespace: "topics.votes",
+      schema: topicVoteSchema,
+    }),
+    failures: context.runtimeState.scoped({
+      namespace: "topics.failures",
+      schema: sourceFailureSchema,
+    }),
+    aliases: context.runtimeState.scoped({
+      namespace: "topics.aliases",
+      schema: z.string(),
+    }),
+    distinctPairs: context.runtimeState.scoped({
+      namespace: "topics.distinct",
+      schema: z.literal(true),
+    }),
+    selections: context.runtimeState.scoped({
+      namespace: "topics.selection",
+      schema: topicSelectionSchema,
+    }),
+  };
+}
+
+/** Votes are cast under the votes prompt; an edited prompt re-reads all. */
+export async function topicVotePromptVersion(
+  context: Pick<EntityPluginContext, "prompts">,
+): Promise<string> {
+  return computeContentHash(
+    await context.prompts.resolve(
+      topicVoteTemplate.name,
+      topicVoteTemplate.basePrompt ?? "",
+    ),
+  );
+}
+
 export function topicExtractionDeps(
   context: EntityPluginContext,
   config: TopicsPluginConfig,
@@ -98,70 +138,11 @@ export function topicExtractionDeps(
     context,
     config,
     logger,
-    stores: {
-      votes: context.runtimeState.scoped({
-        namespace: "topics.votes",
-        schema: topicVoteSchema,
-      }),
-      failures: context.runtimeState.scoped({
-        namespace: "topics.failures",
-        schema: sourceFailureSchema,
-      }),
-      aliases: context.runtimeState.scoped({
-        namespace: "topics.aliases",
-        schema: z.string(),
-      }),
-      distinctPairs: context.runtimeState.scoped({
-        namespace: "topics.distinct",
-        schema: z.literal(true),
-      }),
-      selections: context.runtimeState.scoped({
-        namespace: "topics.selection",
-        schema: topicSelectionSchema,
-      }),
-    },
+    stores: topicExtractionStores(context),
     topics: new TopicService(context.entityService, logger),
     adapter: new TopicAdapter(),
     synthesizer: new TopicMergeSynthesizer(context, logger),
   };
-}
-
-async function readSourcePages(
-  context: EntityPluginContext,
-  config: TopicsPluginConfig,
-  entityType: string,
-  signal: AbortSignal,
-  offset = 0,
-): Promise<SourceRef[]> {
-  const page = await context.entityService.listEntities({
-    entityType,
-    options: {
-      limit: SOURCE_PAGE_SIZE,
-      offset,
-      sortFields: [{ field: "id", direction: "asc" }],
-      filter: { visibilityScope: config.extractionVisibility },
-      signal,
-    },
-  });
-  const refs = page
-    .filter((source) => isTopicSourceEligible(source, config))
-    .map((source) => ({
-      key: sourceKey(source),
-      entityType: source.entityType,
-      id: source.id,
-      contentHash: source.contentHash,
-    }));
-  if (page.length < SOURCE_PAGE_SIZE) return refs;
-  return [
-    ...refs,
-    ...(await readSourcePages(
-      context,
-      config,
-      entityType,
-      signal,
-      offset + SOURCE_PAGE_SIZE,
-    )),
-  ];
 }
 
 /** Eligible sources by key, paged so a large corpus is never held in memory. */
@@ -174,7 +155,27 @@ async function readSources(
   const types = topicSourceTypes(context.entityService, config);
   const refs: SourceRef[] = [];
   for (const entityType of types) {
-    refs.push(...(await readSourcePages(context, config, entityType, signal)));
+    refs.push(
+      ...(await readTopicSourcePages(
+        context.entityService,
+        {
+          entityType,
+          filter: { visibilityScope: config.extractionVisibility },
+          signal,
+        },
+        (source) =>
+          isTopicSourceEligible(source, config)
+            ? [
+                {
+                  key: sourceKey(source),
+                  entityType: source.entityType,
+                  id: source.id,
+                  contentHash: source.contentHash,
+                },
+              ]
+            : [],
+      )),
+    );
   }
   signal.throwIfAborted();
   return refs.sort((left, right) => left.key.localeCompare(right.key));
@@ -201,7 +202,8 @@ async function loadSources(
   );
 }
 
-async function entries<T>(
+/** A runtime-state store's records by key. */
+export async function storeEntries<T>(
   store: IRuntimeStateStore<T>,
 ): Promise<Map<string, T>> {
   return new Map((await store.list()).map(({ key, value }) => [key, value]));
@@ -247,13 +249,7 @@ export class TopicExtractionRun {
     deps: TopicExtractionDeps,
     signal: AbortSignal,
   ): Promise<TopicExtractionRun> {
-    // Votes are cast under the votes prompt; an edited prompt re-reads all.
-    const promptVersion = computeContentHash(
-      await deps.context.prompts.resolve(
-        topicVoteTemplate.name,
-        topicVoteTemplate.basePrompt ?? "",
-      ),
-    );
+    const promptVersion = await topicVotePromptVersion(deps.context);
     const run = new TopicExtractionRun(deps, signal, promptVersion);
     await run.loadState();
     return run;
@@ -262,10 +258,10 @@ export class TopicExtractionRun {
   private async loadState(): Promise<void> {
     const { stores } = this.deps;
     this.sources = await this.readSources();
-    this.saved = await entries(stores.votes);
-    this.failed = await entries(stores.failures);
+    this.saved = await storeEntries(stores.votes);
+    this.failed = await storeEntries(stores.failures);
     await this.prune();
-    this.merged = await entries(stores.aliases);
+    this.merged = await storeEntries(stores.aliases);
     this.distinct = new Set(
       (await stores.distinctPairs.list()).map(({ key }) => key),
     );

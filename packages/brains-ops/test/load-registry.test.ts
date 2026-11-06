@@ -49,6 +49,8 @@ discord:
 discord:
   enabled: true
   anchorUserId: "123456789"
+spaces:
+  - discord:1466324999475429386
 aiApiKeyOverride: BOB_AI_API_KEY
 gitSyncTokenOverride: BOB_GIT_SYNC_TOKEN
 `,
@@ -110,6 +112,7 @@ members:
         deployStatus: "unknown",
         discordEnabled: true,
         discordAnchorUserId: "123456789",
+        spaces: ["discord:1466324999475429386"],
         dnsStatus: "unknown",
         domain: "bob.rizom.ai",
         effectiveAiApiKey: "BOB_AI_API_KEY",
@@ -527,7 +530,7 @@ describe("anchor kind validation", () => {
 
   it("stays in lockstep with the auth service's anchor config kinds", async () => {
     const { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } =
-      await import("@brains/auth-service/admin-contracts");
+      await import("@brains/contracts");
     const { ANCHOR_KINDS } = await import("../src/schema");
     expect([...ANCHOR_KINDS].sort()).toEqual(
       [...AUTH_BRAIN_ANCHOR_CONFIG_KINDS].sort(),

@@ -40,19 +40,16 @@ export const trafficDaySchema: TrafficDaySchema = z.object({
 export type TrafficDay = z.output<typeof trafficDaySchema>;
 
 type TrafficSnapshotFrontmatterSchema = z.ZodObject<{
-  week: z.ZodString;
-  start: z.ZodString;
-  end: z.ZodString;
   days: z.ZodArray<TrafficDaySchema>;
 }>;
 
-/** A week of traffic, Monday to Sunday, keyed by its ISO week. */
+/**
+ * A week of traffic, Monday to Sunday. Its days fix the week: the ISO week,
+ * its Monday and its Sunday all follow from any one of them.
+ */
 export const trafficSnapshotFrontmatterSchema: TrafficSnapshotFrontmatterSchema =
   z.object({
-    week: z.string().regex(/^\d{4}-W\d{2}$/),
-    start: isoDate,
-    end: isoDate,
-    days: z.array(trafficDaySchema),
+    days: z.array(trafficDaySchema).min(1),
   });
 export type TrafficSnapshotFrontmatter = z.output<
   typeof trafficSnapshotFrontmatterSchema
@@ -60,9 +57,6 @@ export type TrafficSnapshotFrontmatter = z.output<
 
 type TrafficSnapshotMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  week: z.ZodString;
-  start: z.ZodString;
-  end: z.ZodString;
   pageviews: z.ZodNumber;
   visits: z.ZodNumber;
 }>;
@@ -70,9 +64,6 @@ type TrafficSnapshotMetadataSchema = z.ZodObject<{
 export const trafficSnapshotMetadataSchema: TrafficSnapshotMetadataSchema =
   z.object({
     title: z.string(),
-    week: z.string(),
-    start: isoDate,
-    end: isoDate,
     pageviews: count,
     visits: count,
   });

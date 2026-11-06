@@ -1,0 +1,692 @@
+/* The designed guide page, over guide-base.css. */
+
+/* Opening: the material scattered around the title. With the page script and
+   motion allowed, the section grows a scroll track and the fragments settle
+   into one light as the reader scrolls (--settle and --progress, 0 to 1). */
+
+.guide-opening {
+  --settle: 0;
+  --progress: 0;
+  position: relative;
+  height: 100vh;
+  min-height: 560px;
+}
+
+.guide-page.is-animated .guide-opening {
+  height: 190vh;
+}
+
+.guide-opening__stage {
+  position: sticky;
+  top: 0;
+  display: grid;
+  place-items: center;
+  height: 100vh;
+  min-height: 560px;
+  overflow: hidden;
+}
+
+.guide-fragments {
+  position: absolute;
+  inset: 0;
+  --ring-x: min(44vw, 640px);
+  --ring-y: min(40vh, 360px);
+}
+
+.guide-fragment {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 10px 14px;
+  border: 1px solid var(--guide-line);
+  border-radius: 8px;
+  background: var(--guide-frag);
+  color: var(--guide-muted);
+  font: 13px/1.35 var(--docs-font-label);
+  white-space: nowrap;
+  opacity: calc(1 - var(--settle) * 1.25);
+  transform: translate(-50%, -50%)
+    translate(
+      calc(var(--x) * var(--ring-x) * (1 - var(--settle))),
+      calc(var(--y) * var(--ring-y) * (1 - var(--settle)))
+    )
+    rotate(calc(var(--r) * (1 - var(--settle)) * 1deg))
+    scale(calc(1 - var(--settle) * 0.7));
+  will-change: transform, opacity;
+}
+
+.guide-fragment b {
+  display: block;
+  font: 500 11px/1.4 var(--docs-font-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--guide-faint);
+}
+
+.guide-seed {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--guide-light);
+  box-shadow:
+    0 0 30px 8px var(--guide-glow),
+    0 0 120px 40px var(--guide-glow);
+  opacity: clamp(0, (var(--progress) - 0.45) * 3, 1);
+  transform: scale(calc(0.2 + min(1, var(--progress) * 1.2) * 0.8));
+}
+
+.guide-opening__copy {
+  position: relative;
+  z-index: 2;
+  max-width: 860px;
+  padding: 0 16px;
+  text-align: center;
+  opacity: calc(1 - var(--progress) * 2.2);
+  transform: translateY(calc(var(--progress) * -60px));
+}
+
+.guide-opening__copy h1 {
+  margin: 22px 0 26px;
+  font-size: clamp(48px, 9vw, 120px);
+  line-height: 0.95;
+}
+
+.guide-opening__for {
+  margin: 0 auto;
+  max-width: 34ch;
+  font: 300 clamp(20px, 2.4vw, 27px) / 1.45 var(--docs-font-display);
+  color: var(--guide-muted);
+}
+
+.guide-settled {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 46px);
+  display: none;
+  width: min(560px, calc(100% - 32px));
+  margin: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  font: 300 clamp(20px, 2.6vw, 28px) / 1.4 var(--docs-font-display);
+  color: var(--docs-text);
+  opacity: clamp(0, (var(--progress) - 0.6) * 3, 1);
+}
+
+.guide-cue {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  display: none;
+  transform: translateX(-50%);
+  color: var(--guide-faint);
+  font: 12px/1 var(--docs-font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: calc(1 - var(--progress) * 4);
+}
+
+.guide-page.is-animated .guide-settled,
+.guide-page.is-animated .guide-cue {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .guide-fragment {
+    display: none;
+    font-size: 11.5px;
+    transform: translate(-50%, -50%)
+      translate(
+        calc(var(--x) * var(--ring-x) * (1 - var(--settle))),
+        calc(var(--ny) * var(--ring-y) * (1 - var(--settle)))
+      )
+      rotate(calc(var(--r) * (1 - var(--settle)) * 1deg))
+      scale(calc(1 - var(--settle) * 0.7));
+  }
+
+  .guide-fragment:nth-child(3n + 1) {
+    display: block;
+  }
+}
+
+/* Material map: sources on the left, the types they become on the right,
+   in the same rows. The page script draws the curves between them. */
+
+.guide-map {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.7fr) minmax(0, 0.6fr);
+  align-items: center;
+  row-gap: 18px;
+}
+
+.guide-map__lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.guide-map__lines path {
+  fill: none;
+  stroke: var(--guide-light);
+  stroke-width: 1.25;
+  stroke-opacity: 0.45;
+  stroke-dasharray: 3 5;
+  transition: stroke-opacity 0.3s;
+  animation: guide-flow 2.6s linear infinite;
+}
+
+.guide-map__lines path.is-hot {
+  stroke-opacity: 1;
+}
+
+@keyframes guide-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.guide-source {
+  position: relative;
+  z-index: 1;
+  grid-column: 1;
+  grid-row: var(--row);
+  padding: 20px 22px;
+  border: 1px solid var(--guide-line);
+  border-radius: 14px;
+  background: var(--guide-surface);
+  transition:
+    border-color 0.3s,
+    translate 0.3s;
+}
+
+.guide-source.is-hot {
+  border-color: var(--guide-light);
+  translate: 6px 0;
+}
+
+.guide-source h3 {
+  margin: 0 0 4px;
+  font: 500 21px/1.25 var(--docs-font-display);
+  color: var(--docs-heading);
+}
+
+.guide-source__where {
+  margin: 0 0 12px;
+  color: var(--guide-muted);
+  font-size: 15px;
+}
+
+.guide-platform {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px solid var(--guide-line);
+  border-radius: 5px;
+  font: 12.5px/1.6 var(--docs-font-label);
+  color: var(--docs-text);
+}
+
+.guide-source__how {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--guide-line-soft);
+  color: var(--guide-faint);
+  font: 13px/1.5 var(--docs-font-label);
+}
+
+.guide-source__becomes {
+  display: none;
+}
+
+.guide-type {
+  position: relative;
+  z-index: 1;
+  grid-column: 3;
+  grid-row: var(--row);
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px 12px 14px;
+  border: 1px solid var(--guide-line);
+  border-radius: 999px;
+  background: var(--guide-surface-2);
+  font: 500 15px/1 var(--docs-font-label);
+  color: var(--docs-text);
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+
+.guide-type small {
+  color: var(--guide-faint);
+  font-size: 12px;
+}
+
+.guide-type.is-hot {
+  border-color: var(--guide-light);
+  box-shadow: 0 0 40px var(--guide-glow);
+}
+
+.guide-bulb {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--guide-light);
+  box-shadow: 0 0 12px 3px var(--guide-glow);
+}
+
+@media (max-width: 860px) {
+  .guide-map {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .guide-map__lines,
+  .guide-type {
+    display: none;
+  }
+
+  .guide-source {
+    grid-row: auto;
+  }
+
+  .guide-source__becomes {
+    display: flex;
+    align-items: center;
+    margin: 0 0 12px;
+    color: var(--guide-light);
+    font: 500 13px/1 var(--docs-font-label);
+  }
+}
+
+/* Start: the recipe and the welcome email's three doors. */
+
+.guide-start {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: center;
+}
+
+.guide-start ul {
+  display: grid;
+  gap: 12px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-start li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  color: var(--guide-muted);
+}
+
+.guide-start li::before {
+  content: "●";
+  color: var(--guide-light);
+  font-size: 11px;
+  line-height: 2.4;
+}
+
+.guide-aside {
+  display: block;
+  margin-top: 28px;
+  padding: 14px 16px;
+  border-left: 2px solid var(--guide-line);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--guide-surface) 70%, transparent);
+  color: var(--guide-muted);
+  font-size: 15px;
+  transition: border-color 0.2s;
+}
+
+.guide-aside b {
+  color: var(--docs-text);
+  font-weight: 500;
+}
+
+.guide-aside:hover {
+  border-color: var(--guide-light);
+}
+
+.guide-invite {
+  padding: 26px 28px;
+  border: 1px solid var(--guide-line);
+  border-radius: 14px;
+  background: var(--guide-surface);
+  box-shadow: 0 40px 120px rgb(0 0 0 / 0.25);
+}
+
+.guide-invite__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--guide-line-soft);
+  color: var(--guide-faint);
+  font: 12px/1.3 var(--docs-font-label);
+}
+
+.guide-invite h3 {
+  margin: 0 0 10px;
+  font: 400 28px/1.15 var(--docs-font-display);
+  color: var(--docs-heading);
+}
+
+.guide-invite__intro {
+  margin: 0 0 22px;
+  color: var(--guide-muted);
+}
+
+.guide-invite__doors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.guide-door {
+  padding: 12px 14px;
+  border: 1px solid var(--guide-line);
+  border-radius: 10px;
+  color: var(--guide-faint);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.guide-door b {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--guide-light);
+  font: 500 15px/1.4 var(--docs-font-body);
+}
+
+@media (max-width: 860px) {
+  .guide-start {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Stages: numbered chapters beside a sticky rail that lights up. */
+
+.guide-stages {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+}
+
+.guide-rail {
+  position: sticky;
+  top: 110px;
+  align-self: start;
+}
+
+.guide-rail ol {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 22px;
+  list-style: none;
+}
+
+.guide-rail ol::before,
+.guide-rail__fill {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--guide-line);
+}
+
+.guide-rail__fill {
+  bottom: auto;
+  height: 0;
+  background: var(--guide-light);
+  box-shadow: 0 0 10px var(--guide-glow);
+  transition: height 0.25s ease-out;
+}
+
+.guide-rail li {
+  position: relative;
+  padding: 7px 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.guide-rail a {
+  color: var(--guide-faint);
+  transition: color 0.3s;
+}
+
+.guide-rail a:hover,
+.guide-rail li.is-lit a {
+  color: var(--docs-text);
+}
+
+.guide-rail li::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 12px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--guide-faint);
+  background: var(--docs-bg);
+  transition: all 0.4s;
+}
+
+.guide-rail li.is-lit::before {
+  border-color: var(--guide-light);
+  background: var(--guide-light);
+  box-shadow: 0 0 12px 3px var(--guide-glow);
+}
+
+.guide-rail__num {
+  margin-right: 8px;
+  color: var(--guide-faint);
+  font: 12px/1 var(--docs-font-label);
+}
+
+.guide-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+  padding: 0 0 clamp(96px, 14vw, 180px);
+  scroll-margin-top: 96px;
+}
+
+.guide-stage:last-child {
+  padding-bottom: 0;
+}
+
+.guide-stage--points {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.guide-stage__text {
+  max-width: 62ch;
+}
+
+.guide-stage__num {
+  font: italic 300 clamp(64px, 8vw, 104px) / 0.9 var(--docs-font-display);
+  color: var(--guide-light);
+  opacity: 0.85;
+}
+
+.guide-stage h3 {
+  margin: 14px 0 16px;
+  font: 400 clamp(28px, 3.4vw, 40px) / 1.1 var(--docs-font-display);
+  letter-spacing: -0.015em;
+  color: var(--docs-heading);
+}
+
+.guide-prose p,
+.guide-prose ul,
+.guide-prose ol {
+  margin: 0 0 16px;
+  color: var(--guide-muted);
+}
+
+.guide-prose strong {
+  color: var(--docs-text);
+  font-weight: 500;
+}
+
+.guide-prose a {
+  color: var(--guide-light);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--guide-light) 45%, transparent);
+}
+
+.guide-prose code {
+  padding: 1px 6px;
+  border: 1px solid var(--guide-line);
+  border-radius: 5px;
+  font: 0.85em/1.6 var(--docs-font-label);
+  color: var(--docs-text);
+}
+
+.guide-prose pre {
+  overflow-x: auto;
+  padding: 16px 18px;
+  border: 1px solid var(--guide-line-soft);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--guide-surface) 78%, #000 22%);
+}
+
+.guide-prose pre code {
+  padding: 0;
+  border: 0;
+}
+
+.guide-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.guide-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--guide-line);
+  border-radius: 8px;
+  color: var(--guide-muted);
+  font: 13px/1.2 var(--docs-font-label);
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.guide-chip:hover {
+  border-color: var(--guide-light);
+  color: var(--docs-text);
+}
+
+.guide-chip__kicker {
+  color: var(--guide-light);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.guide-points {
+  position: sticky;
+  top: 120px;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 22px;
+  border: 1px solid var(--guide-line);
+  border-radius: 16px;
+  background: var(--guide-surface);
+  list-style: none;
+}
+
+.guide-points li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--guide-line);
+  border-radius: 12px;
+  color: var(--guide-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.guide-points li::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--guide-light);
+  box-shadow: 0 0 14px 4px var(--guide-glow);
+}
+
+.guide-points strong {
+  color: var(--docs-text);
+  font-weight: 500;
+}
+
+@media (max-width: 1060px) {
+  .guide-stage--points {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .guide-points {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .guide-stages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .guide-rail {
+    display: none;
+  }
+}
+
+/* Lights come on: with the page script, blocks reveal as they are reached. */
+
+.guide-page.is-enhanced .guide-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.9s ease,
+    transform 0.9s ease;
+}
+
+.guide-page.is-enhanced .guide-reveal.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-map__lines path {
+    animation: none;
+  }
+
+  .guide-page.is-enhanced .guide-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

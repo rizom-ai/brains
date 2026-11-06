@@ -49,7 +49,18 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { classification: "system", projectionSourceRole: "supporting" };
+    return {
+      classification: "system",
+      projectionSourceRole: "supporting",
+      // Nothing reads these; did and a2aEndpoint duplicate brainDid and url.
+      retiredFields: [
+        "cardObservedAt",
+        "cardLastCheckedAt",
+        "a2aEndpoint",
+        "did",
+        "anchorDid",
+      ],
+    };
   }
 
   protected override createGenerationHandler(

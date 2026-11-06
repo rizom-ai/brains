@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
@@ -91,7 +91,7 @@ describe("BookThemeDataSource", () => {
 
   beforeEach(() => {
     shell = createMockShell();
-    shell.addEntities([
+    const entries = [
       topic,
       bookOf("frueh", "Ein frühes Buch", details(1872, true)),
       sectionOf("frueh", 1, "Eins"),
@@ -100,21 +100,42 @@ describe("BookThemeDataSource", () => {
       sectionOf("spaet", 2, "Zwei"),
       bookOf("nach", "Ein Nachlass", details(1880, false)),
       sectionOf("nach", 3, "Drei"),
-    ]);
+    ];
+    shell.addEntities(entries);
     context = {
       entityService: {
         ...shell.getEntityService(),
-        nearestToEntity: nearestStore([
-          near("spaet:00002", 0.2),
-          near("frueh:00001", 0.25),
-          near("spaet:00001", 0.3),
-          near("nach:00003", 0.45),
-          // A book is its details and contents, never a passage.
-          { entityId: "frueh", entityType: "book", distance: 0.5 },
-          near("weit:00001", 0.9),
-        ]),
+        nearestToEntity: nearestStore(
+          [
+            near("spaet:00002", 0.2),
+            near("frueh:00001", 0.25),
+            near("spaet:00001", 0.3),
+            near("nach:00003", 0.45),
+            // A book is its details and contents, never a passage.
+            { entityId: "frueh", entityType: "book", distance: 0.5 },
+            near("weit:00001", 0.9),
+          ],
+          entries,
+        ),
       },
     };
+  });
+
+  it("traces the theme from its neighbours' fields, loading no section", async () => {
+    const getEntity = spyOn(context.entityService, "getEntity");
+    const listEntities = spyOn(context.entityService, "listEntities");
+
+    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+      { entityType: "topic", query: { id: "mitleid" } },
+      outputSchema,
+      context,
+    );
+
+    expect(result.passages).toHaveLength(4);
+    expect(
+      getEntity.mock.calls.map(([request]) => request.entityType).sort(),
+    ).toEqual(["book", "book", "book", "topic"]);
+    expect(listEntities).not.toHaveBeenCalled();
   });
 
   it("names the theme from its own page", async () => {
@@ -190,21 +211,25 @@ describe("BookThemeDataSource", () => {
 describe("BookThemeDataSource with long sections", () => {
   it("counts and offers a section split across entries once", async () => {
     const shell = createMockShell();
-    shell.addEntities([
+    const entries = [
       topic,
       bookOf("spaet", "Ein spätes Buch", details(1888, true)),
       sectionOf("spaet", 1, "Eins"),
       sectionOf("spaet", 2, "Eins", "SPAET-1"),
       sectionOf("spaet", 3, "Drei"),
-    ]);
+    ];
+    shell.addEntities(entries);
     const context: BaseDataSourceContext = {
       entityService: {
         ...shell.getEntityService(),
-        nearestToEntity: nearestStore([
-          near("spaet:00002", 0.2),
-          near("spaet:00001", 0.25),
-          near("spaet:00003", 0.3),
-        ]),
+        nearestToEntity: nearestStore(
+          [
+            near("spaet:00002", 0.2),
+            near("spaet:00001", 0.25),
+            near("spaet:00003", 0.3),
+          ],
+          entries,
+        ),
       },
     };
 

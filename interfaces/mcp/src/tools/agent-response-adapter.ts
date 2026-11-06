@@ -1,5 +1,5 @@
+import { type ToolResponse } from "@brains/plugins";
 import type { AgentResponse, ToolResultData } from "@brains/contracts";
-import type { ToolResponse } from "@brains/mcp-service";
 import { isRecord } from "@brains/utils/is-record";
 
 interface ReadYourWritesHandle {
@@ -66,6 +66,8 @@ export function agentResponseToToolResponse(
         ? { completionSummary: confirmation.completionSummary }
         : {}),
       ...(confirmation.preview ? { preview: confirmation.preview } : {}),
+      // The reply keeps what the agent wrote above the confirmation request.
+      ...(response.text ? { text: response.text } : {}),
       args: {
         approvalId: confirmation.id,
         ...(options.conversationId

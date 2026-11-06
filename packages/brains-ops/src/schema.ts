@@ -58,7 +58,7 @@ export const profileKindSchema: z.ZodEnum<{
  * Who owns the brain in its auth service. "person" (the runtime default) makes
  * the first passkey holder a permanent owner; "team" and "organization" make
  * the brain collectively owned, so admins can be replaced. Kept in lockstep
- * with @brains/auth-service AUTH_BRAIN_ANCHOR_CONFIG_KINDS by a test.
+ * with @brains/contracts AUTH_BRAIN_ANCHOR_CONFIG_KINDS by a test.
  */
 export const ANCHOR_KINDS = ["person", "team", "organization"] as const;
 export const anchorKindSchema: z.ZodEnum<{
@@ -335,6 +335,7 @@ export const userSchema: z.ZodObject<{
   profileKind: z.ZodOptional<typeof profileKindSchema>;
   anchorKind: z.ZodOptional<typeof anchorKindSchema>;
   plugins: z.ZodOptional<typeof userPluginsSchema>;
+  spaces: z.ZodOptional<z.ZodArray<z.ZodString>>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
   skillDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -360,6 +361,8 @@ export const userSchema: z.ZodObject<{
   profileKind: profileKindSchema.optional(),
   anchorKind: anchorKindSchema.optional(),
   plugins: userPluginsSchema.optional(),
+  /** Shared conversation spaces, e.g. "discord:<channel id>": their members are trusted. */
+  spaces: z.array(z.string().min(1)).optional(),
   embeddingEnabled: z.boolean().optional(),
   topicExtractionEnabled: z.boolean().optional(),
   skillDerivationEnabled: z.boolean().optional(),

@@ -161,6 +161,16 @@ describe("the Traffic workspace", () => {
     expect(view).not.toContain('"title":"/studio"');
   });
 
+  it("says plainly which days have no traffic collected yet", async () => {
+    const registration = await registered(await brain());
+    const view = JSON.stringify(await registration.dataProvider(adminActor));
+
+    expect(view).toMatch(
+      /\d+ days in this period have no traffic collected yet\./,
+    );
+    expect(view).not.toContain("snapshot");
+  });
+
   it("covers the range the owner picks", async () => {
     const registration = await registered(await brain());
     const week = JSON.stringify(

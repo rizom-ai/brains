@@ -18,7 +18,6 @@ function buildSummary(params: {
     id: params.id,
     content,
     metadata: {
-      conversationId: params.id,
       channelId: params.channelId,
       ...(params.channelName !== undefined
         ? { channelName: params.channelName }
@@ -28,9 +27,7 @@ function buildSummary(params: {
         (sum, entry) => sum + entry.sourceMessageCount,
         0,
       ),
-      entryCount: params.entries.length,
       sourceHash: "h",
-      projectionVersion: 1,
     },
   });
 }

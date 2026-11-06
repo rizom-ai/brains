@@ -68,3 +68,11 @@ for (const density of ["comfortable", "compact"] as const) {
     }
   });
 }
+
+test("a selected row reads as the current choice, not as a warning", () => {
+  // A tinted accent wash turns maroon on the dark climate; Studio marks the
+  // current item with its card surface and an accent edge instead.
+  expect(operatorViewStylexCSS).toContain(
+    "box-shadow:inset 2px 0 0 var(--console-accent)",
+  );
+});

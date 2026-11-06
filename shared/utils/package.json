@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.568",
+  "version": "0.2.0-alpha.633",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
@@ -56,6 +56,7 @@
     "./query": "./src/query.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",
     "./serial-queue": "./src/serial-queue.ts",
+    "./single-use-store": "./src/single-use-store.ts",
     "./sort": "./src/sort.ts",
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",
@@ -64,7 +65,8 @@
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",
     "./expect-defined": "./src/expect-defined.ts",
-    "./is-record": "./src/is-record.ts"
+    "./is-record": "./src/is-record.ts",
+    "./yield-to-event-loop": "./src/yield-to-event-loop.ts"
   },
   "private": true,
   "scripts": {

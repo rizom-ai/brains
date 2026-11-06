@@ -1,0 +1,5 @@
+---
+"@rizom/brain": patch
+---
+
+The `topic-distribution` report is now a distribution. Each topic carries `sources`: the visible source entities whose current extraction votes support it, merged topics folded in, so a source may count for several topics. Topics are sorted by that count. A new `coverage` counts the visible source entities that extraction reads, how many it has read in their current version (`attributed`), and how many are pending extraction (`unattributed`), so a partly extracted brain does not read as a settled one. With no topics, `unextracted` now counts only the sources extraction reads; when a caller sees source content but extraction reads none of it, the report returns `outsideExtraction` instead, pointing to `system_search` without saying topics are on their way. Content extraction never reads, such as entities outside its visibility or drafts it skips, is left out of `coverage`. Previously the report listed topic ids and titles only, and the agent could not say which topics were most common.

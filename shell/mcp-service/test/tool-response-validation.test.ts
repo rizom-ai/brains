@@ -4,6 +4,7 @@ import {
   normalizeToolExecutionMessageResponse,
   normalizeToolResponse,
 } from "../src/tool-response-validation";
+import type { ToolConfirmation } from "../src/types";
 
 function context(): {
   pluginId: string;
@@ -44,6 +45,21 @@ describe("tool response validation", () => {
       summary: "Confirm?",
       args: { id: "123" },
     });
+  });
+
+  // A chat turn that proposes an action also carries the reply it wrote.
+  it("passes the reply written alongside a confirmation request", () => {
+    const confirmation: ToolConfirmation = {
+      needsConfirmation: true,
+      toolName: "system_create",
+      summary: "Create note?",
+      text: "Here is the note.\n\nConfirmation required.",
+      args: { approvalId: "approval-1" },
+    };
+
+    expect(normalizeToolResponse(confirmation, context())).toEqual(
+      confirmation,
+    );
   });
 
   it("coerces missing success data and extra response keys to tool errors", () => {

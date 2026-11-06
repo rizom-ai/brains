@@ -61,6 +61,8 @@ export async function checkLayout(
       studioTypeRoles,
       hostedCardHeadings,
       tagPlaceholdersFit,
+      wordsStayWhole,
+      selectedMarkersClear,
     ]);
   if (surface === "studio-overview") await checkOverviewNavigation(page);
   if (surface.startsWith("studio-chat"))
@@ -127,8 +129,8 @@ async function checkStudioPhoneDocument(
     const records = await elementBounds(
       page,
       STUDY_STATE === "empty"
-        ? ".declarative-detail-master"
-        : ".declarative-detail-master .operator-record-list",
+        ? "[data-detail-master]"
+        : "[data-detail-master] [data-record-list]",
     );
     if (!records || records.width > width)
       throw new Error(
@@ -314,7 +316,7 @@ function pageHeadingInsets(): void {
   if (
     !title ||
     getComputedStyle(title).fontSize !==
-      (innerWidth <= 640 ? "29px" : "36px") ||
+      (innerWidth <= 640 ? "26px" : "36px") ||
     getComputedStyle(title).fontWeight !== "600"
   )
     throw new Error("Page heading display scale diverged");
@@ -388,9 +390,7 @@ function hostedCardHeadings(): void {
     // Attention disclosures retain the shared control's separate callout role.
     "18px": "500",
   };
-  for (const title of document.querySelectorAll(
-    ".declarative-card > header > h2",
-  )) {
+  for (const title of document.querySelectorAll("[data-card] > header > h2")) {
     if (!title.parentElement) throw new Error("Missing card heading owner");
     const font = getComputedStyle(title);
     const owner = getComputedStyle(title.parentElement);
@@ -432,6 +432,62 @@ function tagPlaceholdersFit(): void {
       context.measureText(input.placeholder).width + 2
     )
       throw new Error("Tag placeholder clips its label or caret");
+  }
+}
+
+/**
+ * Prose words never break across lines: a narrow column that splits "Review"
+ * into "Revie / w" is squeezed, not wrapped. Identifiers and URLs may break.
+ */
+function wordsStayWhole(): void {
+  const root = document.querySelector("main") ?? document.body;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? "";
+    for (const match of text.matchAll(
+      /(?<=^|\s)[A-Za-z]{2,}(?=[.,:;!?)]*(?:\s|$))/g,
+    )) {
+      const range = document.createRange();
+      range.setStart(node, match.index);
+      range.setEnd(node, match.index + match[0].length);
+      const tops = new Set(
+        Array.from(range.getClientRects())
+          .filter((rect) => rect.width > 0)
+          .map((rect) => Math.round(rect.top)),
+      );
+      if (tops.size > 1)
+        throw new Error(`The word "${match[0]}" breaks across lines`);
+    }
+  }
+}
+
+/**
+ * An open row's accent edge keeps clear of its text: a marker drawn on a
+ * flush row sits on the first letter of every line it spans.
+ */
+function selectedMarkersClear(): void {
+  for (const row of document.querySelectorAll<HTMLElement>(
+    'main [aria-current="true"]',
+  )) {
+    // A master hidden beside its open detail draws no marker.
+    if (row.getClientRects().length === 0) continue;
+    if (!getComputedStyle(row).boxShadow.includes("inset")) continue;
+    const text = document.evaluate(
+      ".//text()[normalize-space()]",
+      row,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null,
+    ).singleNodeValue;
+    if (!text) continue;
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const gap =
+      range.getBoundingClientRect().left - row.getBoundingClientRect().left;
+    if (gap < 8)
+      throw new Error(
+        `An open row's marker sits ${Math.round(gap)}px from its text`,
+      );
   }
 }
 

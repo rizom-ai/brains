@@ -90,6 +90,31 @@ describe("Web chat UI contract", () => {
     expect(bottom?.body).toContain("padding-top: 0");
     expect(bottom?.selector).toContain(":not(.is-sheet)");
   });
+  it("draws every scrollbar in the box in its rule color, thin", () => {
+    const source = readFileSync(
+      join(packageRoot, "ui-react", "src", "guest-box.css"),
+      "utf-8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = Array.from(
+      source.matchAll(/([^{};]+)\{([^{}]*)\}/g),
+      (match) => ({
+        selector: (match[1] ?? "").replace(/\s+/g, ""),
+        body: match[2] ?? "",
+      }),
+    );
+    const body = (selector: string): string | undefined =>
+      rules.find((rule) => rule.selector === selector)?.body;
+    // scrollbar-color inherits: set once on the box, it reaches every scroller.
+    expect(body(":where([data-ask-styled])")).toContain(
+      "scrollbar-color: var(--ask-rule) transparent",
+    );
+    expect(body(":where([data-ask-styled].brain-box-scroll)")).toContain(
+      "scrollbar-width: thin",
+    );
+    expect(body(":where([data-ask-styled].prompt-rowtextarea)")).toContain(
+      "scrollbar-width: thin",
+    );
+  });
 
   it("publishes the built UI asset directory", () => {
     const packageJson = webChatPackageJsonSchema.parse(

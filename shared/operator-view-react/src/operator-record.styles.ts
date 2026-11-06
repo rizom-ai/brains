@@ -29,7 +29,7 @@ export const recordStyles: Record<
     lineHeight: 1.4,
     letterSpacing: 0,
     color: "var(--console-text)",
-    overflowWrap: "anywhere",
+    overflowWrap: "break-word",
   },
   compactTitle: {
     fontFamily: "var(--console-display)",
@@ -100,13 +100,16 @@ export const recordStyles: Record<
     textDecorationColor: "var(--console-rule-accent)",
     cursor: "pointer",
     overflowWrap: "anywhere",
-    outlineOffset: 4,
+    outlineOffset: 2,
     outlineStyle: { default: "none", ":focus-visible": "solid" },
     outlineWidth: 2,
     outlineColor: "var(--console-accent)",
   },
+  // The title opens its whole row, so the row draws the focus ring; the
+  // title's own ring would be clipped by its two-line clamp.
   stretchedLink: {
     position: "static",
+    outlineStyle: "none",
     "::after": {
       content: '""',
       position: "absolute",

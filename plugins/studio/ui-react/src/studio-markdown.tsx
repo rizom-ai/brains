@@ -3,7 +3,10 @@ import * as stylex from "@stylexjs/stylex";
 import {
   cloneElement,
   isValidElement,
+  useId,
   useMemo,
+  useState,
+  type MouseEvent,
   type ComponentProps,
   type ReactElement,
   type ReactNode,
@@ -14,6 +17,7 @@ import {
   defaultRemarkPlugins,
   type Components,
 } from "streamdown";
+import { ConfirmDialog } from "@brains/app-ui-react";
 import { StudioEntityImage } from "./studio-entity-image";
 import { isRecord } from "@brains/utils/is-record";
 import { editorClassName as classes } from "./studio-editor.styles";
@@ -171,7 +175,64 @@ function MarkdownImage({
   );
 }
 
+const EXTERNAL_LINK = /^https?:\/\//i;
+
+/** A native link; leaving Studio for another site asks first. */
+function MarkdownLink({
+  node: _node,
+  className,
+  href,
+  children,
+  ...props
+}: MarkdownElementProps<"a">): ReactElement {
+  const [pending, setPending] = useState<string | null>(null);
+  const titleId = useId();
+  const external = typeof href === "string" && EXTERNAL_LINK.test(href);
+  const confirmFirst = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (!external || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
+    event.preventDefault();
+    setPending(href);
+  };
+  return (
+    <>
+      <a
+        {...props}
+        href={href}
+        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className={classes(className ?? "", s.link)}
+        data-streamdown="link"
+        onClick={confirmFirst}
+      >
+        {children}
+      </a>
+      {pending && (
+        <ConfirmDialog
+          mark="↗"
+          title="Open this link?"
+          titleId={titleId}
+          cancelLabel="Stay here"
+          confirmLabel="Open link"
+          dismissOnOutside
+          onCancel={() => setPending(null)}
+          onConfirm={() => {
+            window.open(pending, "_blank", "noopener,noreferrer");
+            setPending(null);
+          }}
+        >
+          <p>It opens in a new tab:</p>
+          <p>
+            <code>{pending}</code>
+          </p>
+        </ConfirmDialog>
+      )}
+    </>
+  );
+}
+
 const structuralComponents: Components = {
+  a: MarkdownLink,
   inlineCode: ({ node: _node, className, ...props }) => (
     <code
       {...props}
@@ -244,6 +305,7 @@ const documentComponents: Components = {
   ),
 };
 const chatComponents: Components = structuralComponents;
+const chatProseComponents: Components = { a: MarkdownLink };
 const assistComponents: Components = {
   ...structuralComponents,
   p: ({ node: _node, className, ...props }) => (
@@ -266,13 +328,14 @@ export function StudioMarkdown(props: {
       : props.presentation === "chat"
         ? CHAT_STRUCTURE_PATTERN.test(props.children)
           ? chatComponents
-          : undefined
+          : chatProseComponents
         : assistComponents;
   return (
     <Streamdown
       {...(props.className ? { className: props.className } : {})}
-      {...(components ? { components } : {})}
+      components={components}
       controls={false}
+      linkSafety={{ enabled: false }}
       remarkPlugins={previewRemarkPlugins}
     >
       {props.children}

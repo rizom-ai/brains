@@ -22,9 +22,19 @@ function createMockDeps(
   return {
     entityService: {
       getEntityTypes: () => Object.keys(entities),
-      listEntities: mock(async (request: { entityType: string }) => {
-        return entities[request.entityType] ?? [];
-      }),
+      listEntities: mock(
+        async (request: {
+          entityType: string;
+          options?: { limit?: number; offset?: number };
+        }) => {
+          const offset = request.options?.offset ?? 0;
+          const limit = request.options?.limit ?? Number.POSITIVE_INFINITY;
+          return (entities[request.entityType] ?? []).slice(
+            offset,
+            offset + limit,
+          );
+        },
+      ),
       deleteEntity: mock(async () => true),
     },
     logger: createSilentLogger(),
@@ -40,6 +50,29 @@ function createMockDeps(
 }
 
 describe("removeOrphanedEntities", () => {
+  it("checks every entity of a type, past the first page", async () => {
+    const sections = Array.from({ length: 1_005 }, (_, index) =>
+      createTestEntity("book-section", { id: `section-${index}` }),
+    );
+    const orphan = sections[1_003];
+    if (!orphan) throw new Error("Expected the orphan fixture");
+    const deps = createMockDeps({
+      entities: { "book-section": sections },
+      existingFiles: new Set(
+        sections
+          .filter((section) => section !== orphan)
+          .map((section) => `/data/book-section/${section.id}.md`),
+      ),
+    });
+
+    const result = await removeOrphanedEntities(deps);
+
+    expect(result.deleted).toBe(1);
+    expect(deps.entityService.deleteEntity).toHaveBeenCalledWith(
+      expect.objectContaining({ entityType: "book-section", id: orphan.id }),
+    );
+  });
+
   it("keeps a refused entity even when its diagnostic file is missing", async () => {
     const entity = createTestEntity("note", { id: "book:intro" });
     const deps = createMockDeps({ entities: { note: [entity] } });

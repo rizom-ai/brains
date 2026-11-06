@@ -11,7 +11,6 @@ import {
 
 export interface NewsletterProviderRegistration {
   pluginId: string;
-  publishResultIdField: string;
   signupAction: string;
   signupSuccessMessage: string;
   autoSendOnPublish: boolean;
@@ -30,10 +29,7 @@ export function registerNewsletterProvider(
       payload: {
         entityType: "newsletter",
         provider,
-        config: {
-          publishResultIdField: options.publishResultIdField,
-          publishTimestampField: "sentAt",
-        },
+        config: { publishTimestampField: "sentAt" },
       },
     });
 

@@ -1,5 +1,25 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.281
+
+### Patch Changes
+
+- Updated dependencies [[`86b4c58`](https://github.com/rizom-ai/brains/commit/86b4c582c2cb4982aef3995f38f054e6cea34d70)]:
+  - @rizom/site@0.2.0-alpha.241
+
+## 0.2.0-alpha.280
+
+### Patch Changes
+
+- Updated dependencies [[`66de6ee`](https://github.com/rizom-ai/brains/commit/66de6ee6c8c1a29d5b4d9220dcc7375dd5e679b0)]:
+  - @rizom/site@0.2.0-alpha.240
+
+## 0.2.0-alpha.279
+
+### Patch Changes
+
+- [#710](https://github.com/rizom-ai/brains/pull/710) [`8ea6226`](https://github.com/rizom-ai/brains/commit/8ea62265d48981a2f25c5c21909ded6fdc4245fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Asked chapter lists each kept source by brain and title, with no quoted excerpt; FAQ sources no longer carry one. Deploy together with the brain release that drops FAQ excerpts.
+
 ## 0.2.0-alpha.278
 
 ### Patch Changes

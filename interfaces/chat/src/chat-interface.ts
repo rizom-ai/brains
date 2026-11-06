@@ -40,7 +40,9 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
-import { getActiveAuthService } from "@brains/auth-service";
+import { CHAT_CHANNELS, spaceNoticeRequestSchema } from "@brains/contracts";
+import { postSpaceNotice } from "./space-notice";
+import { ChannelNames } from "./channel-names";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
@@ -150,18 +152,20 @@ export class ChatInterface extends MessageInterfacePlugin<
 
   /**
    * @param identityAccess Overridable so tests can supply a linked principal
-   * directly. Production leaves it alone and reads the auth service mounted at
-   * boot, resolved per call because mounting happens after construction.
+   * directly. Production leaves it alone and reads the context's auth backend,
+   * resolved per call because auth-service binds it after construction.
    */
   constructor(
     config: ChatConfigInput = {},
-    identityAccess: () => ChatIdentityAccess | undefined = getActiveAuthService,
+    identityAccess?: () => ChatIdentityAccess | undefined,
     deps: ChatInterfaceDeps = {},
   ) {
     super("chat", packageJson, config, chatConfigSchema);
     this.deps = deps;
     this.turnController = new ChatTurnController({
-      identityAccess,
+      identityAccess:
+        identityAccess ??
+        ((): ChatIdentityAccess | undefined => this.context?.auth.get()),
       config: this.config,
       host: {
         getContext: (): InterfacePluginContext | undefined => this.context,
@@ -191,6 +195,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       chatInputBuilder: this.chatInputBuilder,
       uploadCoordinator: this.uploadCoordinator,
       responseCoordinator: this.responseCoordinator,
+      channelNames: new ChannelNames(),
       logger: {
         debug: (message, context): void => this.logger.debug(message, context),
         error: (message, context): void => this.logger.error(message, context),
@@ -261,6 +266,26 @@ export class ChatInterface extends MessageInterfacePlugin<
     this.turnController.registerHandlers(
       this.chatApp.build(context.runtimeState),
     );
+    // Another plugin's note for a configured space, e.g. the cards a channel
+    // pickup added; posted where the chat app runs.
+    context.messaging.subscribe(CHAT_CHANNELS.spaceNotice, async (message) => {
+      const request = spaceNoticeRequestSchema.safeParse(message.payload);
+      if (!request.success) {
+        return { success: false, error: "Not a space notice" };
+      }
+      return {
+        success: true,
+        data: await postSpaceNotice(
+          {
+            app: this.chatApp.instance,
+            discordBotToken: this.config.adapters.discord?.botToken,
+            logger: this.logger,
+            fetchFn: this.deps.fetch,
+          },
+          request.data,
+        ),
+      };
+    });
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

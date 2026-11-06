@@ -12,29 +12,37 @@ type DecisionMetadataSchema = z.ZodObject<{
   channelId: z.ZodString;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
-  spaceId: z.ZodString;
   timeRange: typeof summaryTimeRangeSchema;
-  sourceSummaryId: z.ZodString;
-  sourceMessageCount: z.ZodNumber;
-  projectionVersion: z.ZodNumber;
   status: z.ZodEnum<{ active: "active"; superseded: "superseded" }>;
   decidedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
   mentionedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
 }>;
 
+/** Decision fields the projector wrote before the trim; stored decisions may still carry them. */
+export const DECISION_RETIRED_FIELDS: readonly string[] = [
+  "spaceId",
+  "sourceSummaryId",
+  "sourceMessageCount",
+  "projectionVersion",
+];
+
+/** Studio shows where a decision came from as facts, and its people by name. */
 export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
-  conversationId: z.string(),
-  channelId: z.string(),
-  channelName: z.string().optional(),
-  interfaceType: z.string(),
-  spaceId: z.string(),
-  timeRange: summaryTimeRangeSchema,
-  sourceSummaryId: z.string(),
-  sourceMessageCount: z.number().int().min(0),
-  projectionVersion: z.number().int().min(1),
+  // Routing ids, unreadable chat-app ids: never shown; channelName is.
+  conversationId: z.string().meta({ studioWidget: "hidden" }),
+  channelId: z.string().meta({ studioWidget: "hidden" }),
+  channelName: z.string().optional().meta({ studioWidget: "provenance" }),
+  interfaceType: z.string().meta({ studioWidget: "provenance" }),
+  timeRange: summaryTimeRangeSchema.meta({ studioWidget: "provenance" }),
   status: z.enum(["active", "superseded"]),
-  decidedBy: z.array(memoryActorReferenceSchema).optional(),
-  mentionedBy: z.array(memoryActorReferenceSchema).optional(),
+  decidedBy: z
+    .array(memoryActorReferenceSchema)
+    .optional()
+    .meta({ studioWidget: "people" }),
+  mentionedBy: z
+    .array(memoryActorReferenceSchema)
+    .optional()
+    .meta({ studioWidget: "people" }),
 });
 
 const decisionEntityMetadataParserSchema: z.ZodObject<
@@ -51,11 +59,7 @@ const decisionEntityMetadataParserSchema: z.ZodObject<
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
-  spaceId: z.string(),
   timeRange: summaryTimeRangeSchema,
-  sourceSummaryId: z.string(),
-  sourceMessageCount: z.number().int().min(0),
-  projectionVersion: z.number().int().min(1),
   status: z.enum(["active", "superseded"]),
   decidedBy: z.array(memoryActorReferenceParserSchema).optional(),
   mentionedBy: z.array(memoryActorReferenceParserSchema).optional(),

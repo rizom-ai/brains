@@ -59,7 +59,7 @@ turns:
     confirmPendingAction: true
     successCriteria:
       responseContains:
-        - "Completed: Create"
+        - "Completed: Saved note"
 
   - userMessage: >-
       Actually, change the launch day to Friday, set the owner to Mira, replace

@@ -119,6 +119,24 @@ export class TargetedSetupService {
   }
 }
 
+/** Why a targeted setup link cannot register a passkey. */
+export type TargetedSetupFailure =
+  | "token-invalid"
+  | "user-unavailable"
+  | "delivery-identity-unavailable"
+  | "delivery-unconfirmed";
+
+/** A targeted setup link that cannot register a passkey, and why. */
+export class TargetedSetupError extends Error {
+  readonly reason: TargetedSetupFailure;
+
+  constructor(reason: TargetedSetupFailure, message: string) {
+    super(message);
+    this.name = "TargetedSetupError";
+    this.reason = reason;
+  }
+}
+
 async function requireTargetedSetupContext(
   db: Pick<AuthRuntimeDB, "select">,
   input: CompleteTargetedSetupInput,
@@ -137,7 +155,12 @@ async function requireTargetedSetupContext(
       ),
     )
     .limit(1);
-  if (!setup) throw new Error("Invalid or consumed setup token");
+  if (!setup) {
+    throw new TargetedSetupError(
+      "token-invalid",
+      "Invalid or consumed setup token",
+    );
+  }
 
   const [user] = await db
     .select()
@@ -145,7 +168,10 @@ async function requireTargetedSetupContext(
     .where(eq(authUsers.id, input.userId))
     .limit(1);
   if (!user || user.status === "suspended") {
-    throw new Error("Passkey registration user is unavailable");
+    throw new TargetedSetupError(
+      "user-unavailable",
+      "Passkey registration user is unavailable",
+    );
   }
   if (!setup.deliveryClaimId) return { user };
 
@@ -159,15 +185,25 @@ async function requireTargetedSetupContext(
       ),
     )
     .limit(1);
-  if (!claim) throw new Error("Setup delivery identity is unavailable");
+  if (!claim)
+    throw new TargetedSetupError(
+      "delivery-identity-unavailable",
+      "Setup delivery identity is unavailable",
+    );
   if (claim.personId !== user.personId) {
-    throw new Error("Setup delivery identity does not belong to target user");
+    throw new TargetedSetupError(
+      "delivery-identity-unavailable",
+      "Setup delivery identity does not belong to target user",
+    );
   }
   if (
     (claim.type !== "email" && claim.type !== "discord") ||
     !claim.deliverySubject
   ) {
-    throw new Error("Setup delivery identity is unavailable");
+    throw new TargetedSetupError(
+      "delivery-identity-unavailable",
+      "Setup delivery identity is unavailable",
+    );
   }
 
   const [delivery] = await db
@@ -183,6 +219,11 @@ async function requireTargetedSetupContext(
       ),
     )
     .limit(1);
-  if (!delivery) throw new Error("Setup delivery was not confirmed");
+  if (!delivery) {
+    throw new TargetedSetupError(
+      "delivery-unconfirmed",
+      "Setup delivery was not confirmed",
+    );
+  }
   return { user, deliveryClaim: claim };
 }

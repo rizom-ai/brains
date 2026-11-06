@@ -1,10 +1,12 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import { headStyles as s } from "./studio-page-head.styles";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import type {
   RuntimeOperatorActionControl,
   RuntimeStudioOperatorView,
+  RuntimeStudioOperatorViewFact,
   RuntimeStudioOperatorViewStatus,
   UserPermissionLevel,
 } from "@brains/plugins";
@@ -34,6 +36,7 @@ export interface StudioPageHeadModel {
   readonly metadata?: readonly string[] | undefined;
   readonly description?: string | undefined;
   readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly facts?: readonly RuntimeStudioOperatorViewFact[] | undefined;
   readonly totals: readonly StudioHeadTotal[];
   readonly primaryAction?: RuntimeOperatorActionControl | undefined;
 }
@@ -140,9 +143,7 @@ export function StudioPageHead(props: {
               className={editorClass(
                 "studio-head-status",
                 editorStyles.status,
-                props.model.status.tone === "good" && s.good,
-                props.model.status.tone === "warn" && s.warn,
-                props.model.status.tone === "error" && s.error,
+                toneText(props.model.status.tone),
                 totals.length > 0 && s.phoneHidden,
               )}
               data-tone={props.model.status.tone ?? "neutral"}
@@ -170,14 +171,7 @@ export function StudioPageHead(props: {
                   )}
                 >
                   <dt {...stylex.props(s.totalLabel)}>{item.label}</dt>
-                  <dd
-                    {...stylex.props(
-                      s.totalValue,
-                      item.tone === "good" && s.good,
-                      item.tone === "warn" && s.warn,
-                      item.tone === "error" && s.error,
-                    )}
-                  >
+                  <dd {...stylex.props(s.totalValue, toneText(item.tone))}>
                     {item.value}
                   </dd>
                 </div>
@@ -195,6 +189,23 @@ export function StudioPageHead(props: {
           </div>
         )}
       </div>
+      {props.model.facts && props.model.facts.length > 0 && (
+        <ul aria-label="Status" {...stylex.props(s.facts)}>
+          {props.model.facts.map((fact, index) => (
+            <li
+              key={`${fact.label}:${index}`}
+              data-tone={fact.tone ?? "neutral"}
+              {...stylex.props(s.fact)}
+            >
+              <span
+                aria-hidden="true"
+                {...stylex.props(s.factMark, toneText(fact.tone))}
+              />
+              {fact.label}
+            </li>
+          ))}
+        </ul>
+      )}
     </header>
   );
 }
@@ -210,6 +221,7 @@ export function declarativeStudioPageHead(
     title: view.title ?? workspace.label,
     ...(view.description ? { description: view.description } : {}),
     ...(view.status ? { status: view.status } : {}),
+    ...(view.facts?.length ? { facts: view.facts } : {}),
     // Stats already appear in the workspace body; do not repeat them above it.
     totals: [],
     ...(view.primaryAction ? { primaryAction: view.primaryAction } : {}),

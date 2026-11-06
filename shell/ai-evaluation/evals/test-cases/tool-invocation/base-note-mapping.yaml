@@ -48,7 +48,7 @@ turns:
       - align on rover pilot docs
     successCriteria:
       responseContainsAny:
-        - ["Confirmation required", "Completed: Create note"]
+        - ["Confirmation required", "Completed: Saved note"]
 
 successCriteria: {}
 

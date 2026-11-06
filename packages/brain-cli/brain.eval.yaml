@@ -56,6 +56,21 @@ suites:
         seedContentPath: eval-content/publishing
       site-builder:
         autoRebuild: false
+  # Professional plus the optional Buttondown and stock-photo providers, to
+  # prove their conditional tool exposure. The keys are placeholders: provider
+  # calls fail, so cases assert routing and refusal to invent results.
+  providers:
+    extends: professional
+    inheritTags: false
+    tags:
+      - recipe-providers
+    plugins:
+      newsletter:
+        provider:
+          type: buttondown
+          apiKey: eval-placeholder-buttondown-key
+      stock-photo:
+        apiKey: eval-placeholder-stock-photo-key
   team:
     extends: personal
     inheritTags: false
@@ -71,6 +86,7 @@ suites:
       - team
     add:
       - docs
+      - action-board
     tags:
       - recipe-team
     plugins:
@@ -80,6 +96,40 @@ suites:
         requestTimeoutMs: 1000
         streamIdleTimeoutMs: 1000
         maxNetworkAttempts: 1
+      site-builder:
+        autoRebuild: false
+  # The doc-brain at docs.rizom.ai: reference docs and moving-in guides on
+  # the docs site, so answers cite each at its page.
+  # Its seeded docs and guides are what the docs sync writes for them:
+  # `bun run docs:seed` rewrites them, and `bun run docs:seed:check` (part of
+  # docs:check) fails when they drift from their sources.
+  docs:
+    extends: headless
+    inheritTags: false
+    bundles:
+      - core
+      - web
+      - chat
+      - site
+      - publishing
+    add:
+      - docs
+      - guides
+    remove:
+      - series
+      - portfolio
+      - content-pipeline
+      - social-media
+      - newsletter
+      - stock-photo
+    site:
+      package: "@rizom/site-docs"
+    domain: docs.rizom.ai
+    tags:
+      - recipe-docs
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/recipes/docs
       site-builder:
         autoRebuild: false
 models:

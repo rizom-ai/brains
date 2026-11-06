@@ -170,6 +170,54 @@ describe("network_ask", () => {
     expect(tool.sideEffects).toBe("none");
   });
 
+  it("is offered while the brain has an approved peer to ask", async () => {
+    const tool = networkAsk(await setup());
+    expect(await tool.isAvailable?.()).toBe(true);
+  });
+
+  it("is not offered while no peer is approved", async () => {
+    const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin());
+    const tool = networkAsk(harness);
+    expect(await tool.isAvailable?.()).toBe(false);
+
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "lee.example",
+        name: "Lee",
+        url: "https://lee.example/a2a",
+        status: "discovered",
+        skills: gardener.skills,
+      }),
+    });
+    expect(await tool.isAvailable?.()).toBe(false);
+
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "jo.example",
+        name: "Jo",
+        url: "https://jo.example/a2a",
+        status: "approved",
+        skills: gardener.skills,
+      }),
+    });
+    expect(await tool.isAvailable?.()).toBe(true);
+  });
+
+  it("is not offered on a brain without an agent directory", async () => {
+    const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
+    await harness.installPlugin(new AgentToolsPlugin());
+    expect(await networkAsk(harness).isAvailable?.()).toBe(false);
+  });
+
+  it("asks the network only after this brain's own search found little", async () => {
+    const tool = networkAsk(await setup());
+    expect(tool.description).toContain(
+      "Search this brain first; use it when that search holds little on the question",
+    );
+  });
+
   it("asks the matching approved peers in parallel and attributes what they say", async () => {
     const harness = await setup();
     const asked: Array<{ agent: string; question: string }> = [];

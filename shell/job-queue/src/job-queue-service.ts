@@ -36,6 +36,7 @@ import {
 } from "@brains/contracts";
 import { OperationContext } from "@brains/operation-context";
 import type { ProgressNotification } from "@brains/utils/progress";
+import { BrainVersionSchema, type BrainVersion } from "./brain-version";
 
 export interface ProjectionJobAdmissionReservation {
   commit(): void;
@@ -76,6 +77,7 @@ export class JobQueueService implements IJobQueueService {
   private readonly directWorkerSessionId = createId();
   private readonly directLeaseDurationMs: number;
   private directSessionStart: Promise<void> | null = null;
+  private readonly brainVersion: BrainVersion | undefined;
 
   /**
    * Close the underlying database connection.
@@ -102,6 +104,10 @@ export class JobQueueService implements IJobQueueService {
     logger: Logger,
     runtimeOptions?: JobQueueServiceRuntimeOptions,
   ) {
+    this.brainVersion =
+      config.brainVersion === undefined
+        ? undefined
+        : BrainVersionSchema.parse(config.brainVersion);
     const { db, client, url } = createJobQueueDatabase(config);
     this.client = client;
     this.databaseUrl = url;
@@ -240,7 +246,9 @@ export class JobQueueService implements IJobQueueService {
     const id = createId();
     const rootJobId =
       options?.rootJobId ??
-      this.operationContext.current()?.provenance.rootJobId ??
+      (options?.detached
+        ? id
+        : this.operationContext.current()?.provenance.rootJobId) ??
       id;
     const provenance = this.createJobProvenance(id, rootJobId, options);
     const metadataInput: JobContextInput = options?.metadata ?? {
@@ -272,6 +280,7 @@ export class JobQueueService implements IJobQueueService {
       lastError: null,
       startedAt: null,
       completedAt: null,
+      brainVersion: this.brainVersion,
     };
 
     let admissionReservation: ProjectionJobAdmissionReservation | undefined;
@@ -380,6 +389,11 @@ export class JobQueueService implements IJobQueueService {
     const now = Date.now();
     const job = await this.repository.claimNextReady({
       ...ownership,
+      workerSlotId: this.sessionSlotId(
+        ownership.workerSlotId,
+        ownership.workerSessionId,
+      ),
+      brainVersion: this.brainVersion,
       now,
       attemptId: createId(),
       executableTypes,
@@ -415,10 +429,12 @@ export class JobQueueService implements IJobQueueService {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<void> {
     await this.repository.startWorkerSession(
-      workerSlotId,
+      this.sessionSlotId(workerSlotId, workerSessionId),
       workerSessionId,
       Date.now(),
       workerSessionTimeoutMs,
+      this.brainVersion,
+      this.versionedSlotId(workerSlotId),
     );
   }
 
@@ -428,7 +444,7 @@ export class JobQueueService implements IJobQueueService {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
     return this.repository.heartbeatWorkerSession(
-      workerSlotId,
+      this.sessionSlotId(workerSlotId, workerSessionId),
       workerSessionId,
       Date.now(),
       workerSessionTimeoutMs,
@@ -439,7 +455,29 @@ export class JobQueueService implements IJobQueueService {
     workerSlotId: string,
     workerSessionId: string,
   ): Promise<boolean> {
-    return this.repository.endWorkerSession(workerSlotId, workerSessionId);
+    return this.repository.endWorkerSession(
+      this.sessionSlotId(workerSlotId, workerSessionId),
+      workerSessionId,
+    );
+  }
+
+  /**
+   * The stable worker a slot name runs as on this brain version.
+   */
+  private versionedSlotId(workerSlotId: string): string {
+    return this.brainVersion
+      ? `${workerSlotId}@${this.brainVersion}`
+      : workerSlotId;
+  }
+
+  /**
+   * Every worker session holds its own slot, `<slot>@<version>#<session>`. A
+   * deploy overlaps two containers on one slot name, of two versions or the
+   * same one; a shared slot would let the newer worker's session supersede the
+   * older one and take its in-flight jobs away instead of letting them finish.
+   */
+  private sessionSlotId(workerSlotId: string, workerSessionId: string): string {
+    return `${this.versionedSlotId(workerSlotId)}#${workerSessionId}`;
   }
 
   public renewAttemptLease(
@@ -499,10 +537,11 @@ export class JobQueueService implements IJobQueueService {
 
   private async getDirectClaimOptions(): Promise<JobClaimOptions> {
     this.directSessionStart ??= this.repository.startWorkerSession(
-      this.directWorkerSlotId,
+      this.sessionSlotId(this.directWorkerSlotId, this.directWorkerSessionId),
       this.directWorkerSessionId,
       Date.now(),
       this.directLeaseDurationMs,
+      this.brainVersion,
     );
     await this.directSessionStart;
     return {

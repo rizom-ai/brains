@@ -1,4 +1,5 @@
 import {
+  internalFullScope,
   EntityPlugin,
   type EntityPluginContext,
   type EntityTypeConfig,
@@ -7,7 +8,6 @@ import {
   type BaseEntity,
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   ENTITY_CHANNELS,
   TOPIC_SOURCE_TYPES_MESSAGE,
@@ -39,7 +39,17 @@ import {
   createRankedTopicJobHandler,
   enqueueTopicExtraction,
 } from "./lib/ranked-topic-extraction";
-import { isTopicSourceType, topicSourceTypes } from "./lib/topic-source-policy";
+import {
+  isTopicSourceEligible,
+  isTopicSourceType,
+  topicSourceTypes,
+} from "./lib/topic-source-policy";
+import {
+  storeEntries,
+  topicExtractionStores,
+  topicVotePromptVersion,
+} from "./lib/topic-extraction-run";
+import { countTopicSources } from "./lib/topic-source-counts";
 import { topicVoteTemplate } from "./templates/vote-template";
 import { topicDescriptionTemplate } from "./templates/description-template";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
@@ -65,7 +75,6 @@ export class TopicsPlugin extends EntityPlugin<
   readonly entityType: typeof TOPIC_ENTITY_TYPE = TOPIC_ENTITY_TYPE;
   readonly schema: typeof topicEntitySchema = topicEntitySchema;
   readonly adapter: TopicAdapter = topicAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
 
@@ -114,7 +123,13 @@ export class TopicsPlugin extends EntityPlugin<
     if (!(await migrations.get(PROJECTION_OWNERSHIP_RELEASED))) {
       for (const topic of await context.entityService.listEntities({
         entityType: TOPIC_ENTITY_TYPE,
-        options: { filter: { visibilityScope: "restricted" } },
+        options: {
+          filter: {
+            visibilityScope: internalFullScope(
+              "one-shot projection ownership migration",
+            ),
+          },
+        },
       })) {
         await context.entityService.releaseProjectionOwnership({
           entityType: TOPIC_ENTITY_TYPE,
@@ -201,11 +216,29 @@ export class TopicsPlugin extends EntityPlugin<
         data: { types: topicSourceTypes(context.entityService, this.config) },
       }),
     );
+    const extractionStores = topicExtractionStores(context);
     context.analytics.register(
       createTopicDistributionReport({
         isSourceType: (type, entityService) =>
           this.shouldProcessEntityType(type, entityService),
+        isEligibleSource: (entity) =>
+          isTopicSourceEligible(entity, this.config),
         autoExtraction: this.config.enableAutoExtraction,
+        // Counted from extraction's votes, read as extraction reads them.
+        countSources: async (sources) => {
+          const [votes, aliases, promptVersion] = await Promise.all([
+            storeEntries(extractionStores.votes),
+            storeEntries(extractionStores.aliases),
+            topicVotePromptVersion(context),
+          ]);
+          return countTopicSources({
+            sources,
+            votes,
+            aliases,
+            promptVersion,
+            config: this.config,
+          });
+        },
       }),
     );
 
@@ -223,15 +256,7 @@ export class TopicsPlugin extends EntityPlugin<
       config: this.config,
     });
 
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createTopicAtprotoProjection(),
-      );
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
+    context.atprotoProjections.register(createTopicAtprotoProjection());
   }
 
   // ── Public helpers (used by tests) ──

@@ -67,6 +67,37 @@ describe("publishing_manage tool", () => {
     expect(tool.sideEffects).toBe("external");
   });
 
+  it("describes every publishing action", () => {
+    const undescribed = [
+      "queue-list",
+      "queue-add",
+      "queue-remove",
+      "queue-reorder",
+      "publish",
+    ].filter((action) => !tool.description.includes(`action=${action}`));
+    expect(undescribed).toEqual([]);
+  });
+
+  it("declares an output schema covering every result branch", () => {
+    // Asserting the schema merely exists would hold for one that accepts
+    // nothing, and the tool answers in three shapes.
+    expect(tool.outputSchema?.safeParse({ success: true }).success).toBe(true);
+    expect(
+      tool.outputSchema?.safeParse({ success: false, error: "nope" }).success,
+    ).toBe(true);
+    expect(
+      tool.outputSchema?.safeParse({
+        needsConfirmation: true,
+        toolName: "publishing_manage",
+        summary: 'Publish "draft-post"?',
+        args: { action: "publish" },
+      }).success,
+    ).toBe(true);
+    expect(tool.outputSchema?.safeParse({ success: false }).success).toBe(
+      false,
+    );
+  });
+
   it("accepts strict publishing lifecycle actions", () => {
     expect(
       publishingManageInputSchema.safeParse({ action: "queue-list" }).success,

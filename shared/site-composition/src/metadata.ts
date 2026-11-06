@@ -4,14 +4,16 @@ import type {
   SiteMetadata,
   SiteMetadataCTA,
   SiteMetadataSection,
+  SiteMetadataTranslation,
 } from "@rizom/site";
-import { NavigationItemSchema } from "./routes";
+import { languageTagSchema, NavigationItemSchema } from "./routes";
 
 export type {
   SiteLayoutInfo,
   SiteMetadata,
   SiteMetadataCTA,
   SiteMetadataSection,
+  SiteMetadataTranslation,
 } from "@rizom/site";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
@@ -25,6 +27,19 @@ export const siteMetadataCTASchema: z.ZodObject<{
   heading: z.string().describe("Main CTA heading text"),
   buttonText: z.string().describe("Call-to-action button text"),
   buttonLink: z.string().describe("URL or anchor for the CTA button"),
+});
+
+/** The site's title, description, copyright and call to action in another language. */
+export const siteMetadataTranslationSchema: z.ZodObject<{
+  title: z.ZodOptional<z.ZodString>;
+  description: z.ZodOptional<z.ZodString>;
+  copyright: z.ZodOptional<z.ZodString>;
+  cta: z.ZodOptional<typeof siteMetadataCTASchema>;
+}> = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  copyright: z.string().optional(),
+  cta: siteMetadataCTASchema.optional(),
 });
 
 /** Per-section homepage descriptors — short editorial blurbs displayed
@@ -52,6 +67,9 @@ type SiteMetadataSchema = z.ZodObject<{
   cta: z.ZodOptional<typeof siteMetadataCTASchema>;
   sections: z.ZodOptional<
     z.ZodRecord<z.ZodString, typeof siteMetadataSectionSchema>
+  >;
+  translations: z.ZodOptional<
+    z.ZodRecord<typeof languageTagSchema, typeof siteMetadataTranslationSchema>
   >;
 }>;
 
@@ -82,6 +100,12 @@ export const siteMetadataSchema: SiteMetadataSchema = z.object({
     .optional()
     .describe(
       "Optional per-section blurbs, keyed by section id (e.g. 'essays', 'presentations', 'about'). Used by homepage templates that render editorial section headers.",
+    ),
+  translations: z
+    .record(languageTagSchema, siteMetadataTranslationSchema)
+    .optional()
+    .describe(
+      "The site's title, description, copyright and call to action in its other languages, keyed by language tag. A site is built in a language only once it has one.",
     ),
 });
 
@@ -117,6 +141,13 @@ function expectSiteMetadataSection(
 
 void expectSiteMetadata;
 void expectSiteMetadataCTA;
+
+function expectSiteMetadataTranslation(
+  value: z.infer<typeof siteMetadataTranslationSchema>,
+): SiteMetadataTranslation {
+  return value;
+}
+void expectSiteMetadataTranslation;
 void expectSiteMetadataSection;
 
 const socialLinkSchema: z.ZodObject<{

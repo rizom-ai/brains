@@ -6,6 +6,7 @@ import {
   isGuestToolAllowed,
   requireGuestExecutionPolicy,
 } from "./guest-execution";
+import { aiProviderDeclinedMessage } from "./errors";
 import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
 import type { IMCPService, Tool } from "@brains/mcp-service";
@@ -35,6 +36,11 @@ import {
 } from "./confirmation-coordinator";
 import { TurnProcessor } from "./turn-processor";
 import { ActiveTurnSupervisor } from "./active-turn-supervisor";
+import {
+  buildAgentInstructions,
+  type AgentInstructionSources,
+} from "./brain-instructions";
+import type { UserPermissionLevel } from "@brains/templates";
 
 /**
  * Default step limit if not specified
@@ -216,19 +222,12 @@ export class AgentService implements IAgentService {
     const agent =
       (guest ? this.guestAgent : this.agent) ??
       this.agentFactory({
-        identity: this.identityService.getCharacter(),
-        profile: guest
-          ? publicProfile(this.profileService.getProfile())
-          : this.profileService.getProfile(),
+        ...this.instructionSources(guest),
         tools: guest
           ? guestTools()
           : this.mcpService
               .listAgentToolsForPermissionLevel("admin")
               .map((t) => t.tool),
-        pluginInstructions: this.mcpService.getInstructions(),
-        ...(this.agentInstructions && {
-          agentInstructions: this.agentInstructions,
-        }),
         stepLimit: this.stepLimit,
         getToolsForPermission: guest
           ? guestTools
@@ -240,6 +239,34 @@ export class AgentService implements IAgentService {
     if (guest) this.guestAgent = agent;
     else this.agent = agent;
     return agent;
+  }
+
+  /** What the agent's instructions are built from; guests see no email. */
+  private instructionSources(guest: boolean): AgentInstructionSources {
+    const profile = this.profileService.getProfile();
+    return {
+      identity: this.identityService.getCharacter(),
+      profile: guest ? publicProfile(profile) : profile,
+      pluginInstructions: this.mcpService.getInstructions(),
+      ...(this.agentInstructions && {
+        agentInstructions: this.agentInstructions,
+      }),
+    };
+  }
+
+  /**
+   * The instructions a non-guest turn at this permission level sends the
+   * model, before any retrieved conversation memory. Builds no agent, so a
+   * report can measure the prompt without changing what the agent does.
+   */
+  public instructionsFor(
+    userPermissionLevel: UserPermissionLevel,
+    { isAnchor }: { isAnchor: boolean },
+  ): string {
+    return buildAgentInstructions(this.instructionSources(false), {
+      userPermissionLevel,
+      isAnchor,
+    });
   }
 
   /**
@@ -416,13 +443,20 @@ export class AgentService implements IAgentService {
         );
         operationSignal.throwIfAborted();
         if (guestExecution && snapshot.context.error) {
-          // The visitor is told only that the answer failed; the owner's log
-          // keeps the reason.
+          // The visitor is told only that the answer failed, or that the
+          // provider declined it and they can rephrase; the owner's log keeps
+          // the reason.
           this.logger.error("Guest turn failed", {
             conversationId,
             error: snapshot.context.error,
           });
-          throw new Error("Guest execution unavailable");
+          if (!snapshot.context.providerDeclined)
+            throw new Error("Guest execution unavailable");
+          return {
+            text: aiProviderDeclinedMessage,
+            error: aiProviderDeclinedMessage,
+            usage: emptyUsage,
+          };
         }
         if (guestExecution && !snapshot.context.response?.text.trim())
           this.logger.warn("Guest turn produced no answer", { conversationId });

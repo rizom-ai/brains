@@ -45,6 +45,7 @@ export const panelStyles: Record<
     alignItems: {
       default: "baseline",
       "@media (max-width: 640px)": "flex-start",
+      "@container operator (max-width: 640px)": "flex-start",
     },
     justifyContent: "space-between",
     gap: 10,
@@ -71,6 +72,7 @@ export const panelStyles: Record<
     gridTemplateColumns: {
       default: "repeat(2,minmax(0,1fr))",
       "@media (max-width: 900px)": "minmax(0,1fr)",
+      "@container operator (max-width: 900px)": "minmax(0,1fr)",
     },
     gap: { default: 14, "@media (max-width: 640px)": 9 },
     alignItems: "start",

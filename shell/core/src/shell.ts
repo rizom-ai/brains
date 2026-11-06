@@ -1,3 +1,4 @@
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 // Plugin framework types
 import type {
   RuntimeAppInfo,
@@ -36,6 +37,7 @@ import {
   type IInboxRegistry,
   type IOperationalHealthRegistry,
   type AccountSettingsRegistry,
+  type AuthRegistry,
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
@@ -697,6 +699,14 @@ export class Shell implements IShell {
 
   public getAccountSettingsRegistry(): AccountSettingsRegistry {
     return this.services.accountSettingsRegistry;
+  }
+
+  public getAuthRegistry(): AuthRegistry {
+    return this.services.authRegistry;
+  }
+
+  public getAtprotoProjectionRegistry(): AtprotoProjectionRegistry {
+    return this.services.atprotoProjectionRegistry;
   }
 
   public getDomain(): string | undefined {

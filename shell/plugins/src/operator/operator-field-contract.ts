@@ -7,7 +7,8 @@ export const operatorFieldControlSchema: z.ZodEnum<{
   number: "number";
   checkbox: "checkbox";
   select: "select";
-}> = z.enum(["text", "url", "number", "checkbox", "select"]);
+  textarea: "textarea";
+}> = z.enum(["text", "url", "number", "checkbox", "select", "textarea"]);
 
 export type OperatorFieldControl = z.output<typeof operatorFieldControlSchema>;
 
@@ -16,7 +17,7 @@ export const accountSettingsControlSchema: z.ZodEnum<{
   url: "url";
   number: "number";
   checkbox: "checkbox";
-}> = operatorFieldControlSchema.exclude(["select"]);
+}> = operatorFieldControlSchema.exclude(["select", "textarea"]);
 
 export type AccountSettingsControl = z.output<
   typeof accountSettingsControlSchema

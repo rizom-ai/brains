@@ -83,8 +83,12 @@ function reconciled(batch: BatchResult | null): GitReconciliationResult {
 
 function createReconciliation(batch: BatchResult | null): {
   pullAndQueue: ReturnType<typeof mock>;
+  requireFullScan: ReturnType<typeof mock>;
 } {
-  return { pullAndQueue: mock(async () => reconciled(batch)) };
+  return {
+    pullAndQueue: mock(async () => reconciled(batch)),
+    requireFullScan: mock(async () => {}),
+  };
 }
 
 function createOperationStatus(activeBatchId?: string): {
@@ -311,6 +315,56 @@ describe("setupInitialSync", () => {
     );
   });
 
+  it("settles its startup run with the outcome of its batch", async () => {
+    // Left to lazy reconciliation, the run stayed active, and the next boot
+    // (which cannot see the previous process's batch) recorded it as failed.
+    const context = createMockContext();
+    const operationStatus = createOperationStatus();
+
+    setupInitialSync({
+      context,
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: createMockGitSync(),
+      reconciliation: createReconciliation(batchResult("initial-batch")),
+      operationStatus,
+    });
+    await registerPlugins(context);
+    await settleBatch(context, "initial-batch", "completed");
+    await Bun.sleep(0);
+
+    expect(operationStatus.completeRun).toHaveBeenCalledWith(
+      "startup-run",
+      "Startup import completed",
+    );
+    expect(operationStatus.failRun).not.toHaveBeenCalled();
+  });
+
+  it("fails its startup run with the errors of its batch", async () => {
+    const context = createMockContext();
+    const operationStatus = createOperationStatus();
+
+    setupInitialSync({
+      context,
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: createMockGitSync(),
+      reconciliation: createReconciliation(batchResult("initial-batch")),
+      operationStatus,
+    });
+    await registerPlugins(context);
+    await settleBatch(context, "initial-batch", "failed", ["DB locked"]);
+    await Bun.sleep(0);
+
+    expect(operationStatus.failRun).toHaveBeenCalledWith(
+      "startup-run",
+      "DB locked",
+      "import",
+    );
+  });
+
   it("queues the sync directory when Git is not configured", async () => {
     const context = createMockContext();
     const ds = createMockDirectorySync({
@@ -363,6 +417,7 @@ describe("setupInitialSync", () => {
   it("keeps defaults waiting and completes with success:false when the pull fails", async () => {
     const context = createMockContext();
     const onGitRecoveryFailed = mock(async () => {});
+    const requireFullScan = mock(async () => {});
 
     setupInitialSync({
       context,
@@ -374,6 +429,7 @@ describe("setupInitialSync", () => {
         pullAndQueue: mock(async () => {
           throw new Error("Network timeout");
         }),
+        requireFullScan,
       },
       recovery: {
         onGitProgress: mock(() => {}),
@@ -389,5 +445,49 @@ describe("setupInitialSync", () => {
     expect(completions(context)).toEqual([
       { success: false, error: "Network timeout" },
     ]);
+    // Startup's full scan never ran, so the next sync has to be one.
+    expect(requireFullScan).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires the next sync to rescan everything when its batch fails", async () => {
+    // The checkpoint advanced when the batch was queued. A failed import
+    // would otherwise leave its files out until something changes them.
+    const context = createMockContext();
+    const reconciliation = createReconciliation(batchResult("initial-batch"));
+
+    setupInitialSync({
+      context,
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: createMockGitSync(),
+      reconciliation,
+    });
+    await registerPlugins(context);
+    await settleBatch(context, "initial-batch", "failed", [
+      "guide not registered",
+    ]);
+    await Bun.sleep(0);
+
+    expect(reconciliation.requireFullScan).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the next sync incremental when its batch completes", async () => {
+    const context = createMockContext();
+    const reconciliation = createReconciliation(batchResult("initial-batch"));
+
+    setupInitialSync({
+      context,
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: createMockGitSync(),
+      reconciliation,
+    });
+    await registerPlugins(context);
+    await settleBatch(context, "initial-batch", "completed");
+    await Bun.sleep(0);
+
+    expect(reconciliation.requireFullScan).not.toHaveBeenCalled();
   });
 });

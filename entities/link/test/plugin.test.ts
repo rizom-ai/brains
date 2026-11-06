@@ -64,7 +64,6 @@ describe("LinkPlugin", () => {
         url: "https://example.com/test",
         description: "A test article",
         summary: "This is a test article summary.",
-        domain: "example.com",
         capturedAt: "2025-01-30T10:00:00.000Z",
         source: {
           ref: "cli:local",
@@ -80,7 +79,8 @@ describe("LinkPlugin", () => {
         /url: ['"]?https:\/\/example\.com\/test['"]?/,
       );
       expect(linkContent).toContain("description: A test article");
-      expect(linkContent).toContain("domain: example.com");
+      // The hostname is read from url, not stored beside it.
+      expect(linkContent).not.toContain("domain:");
       expect(linkContent).toMatch(/ref: ['"]?cli:local['"]?/);
       expect(linkContent).toContain("label: CLI");
       // Check body (summary)
@@ -108,7 +108,8 @@ This is a test article summary.`;
       expect(parsed.frontmatter.url).toBe("https://example.com/test");
       expect(parsed.frontmatter.status).toBe("draft");
       expect(parsed.frontmatter.description).toBe("A test article");
-      expect(parsed.frontmatter.domain).toBe("example.com");
+      // A link stored with a domain still parses; the copy is not kept.
+      expect(parsed.frontmatter).not.toHaveProperty("domain");
       expect(parsed.frontmatter.capturedAt).toBe("2025-01-30T10:00:00.000Z");
       expect(parsed.frontmatter.source).toEqual({
         ref: "cli:local",
@@ -193,13 +194,19 @@ describe("LinkPlugin with Harness", () => {
       expect(plugin.version).toBeDefined();
     });
 
+    it("retires domain, which readers take from the URL", () => {
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("link").retiredFields,
+      ).toEqual(["domain"]);
+    });
+
     it("should not expose link_capture tool (moved to system_create)", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).not.toContain("link_capture");
       expect(capabilities.tools).toHaveLength(0);
     });
 
-    it("should register both link:generation and link-capture job handlers", async () => {
+    it("should register link:generation and link:capture job handlers", async () => {
       const registeredHandlers: string[] = [];
       const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
       const origJobQueue = mockShell.getJobQueueService();
@@ -218,7 +225,7 @@ describe("LinkPlugin with Harness", () => {
       await plugin.register(mockShell);
 
       expect(registeredHandlers).toContain("link:generation");
-      expect(registeredHandlers).toContain("link-capture");
+      expect(registeredHandlers).toContain("link:capture");
     });
 
     it("should register a create interceptor for link", () => {
@@ -228,7 +235,7 @@ describe("LinkPlugin with Harness", () => {
       expect(interceptor).toBeDefined();
     });
 
-    it("should enqueue link-capture from the registered interceptor", async () => {
+    it("should enqueue link:capture from the registered interceptor", async () => {
       const enqueued: Array<{
         type: string;
         data: unknown;
@@ -297,7 +304,7 @@ describe("LinkPlugin with Harness", () => {
       );
       expect(pendingEntity?.visibility).toBe("shared");
       expect(enqueued).toHaveLength(1);
-      expect(enqueued[0]?.type).toBe("link-capture");
+      expect(enqueued[0]?.type).toBe("link:capture");
       expect(enqueued[0]?.data).toEqual({
         url: "https://anthropic.com/research",
         metadata: expect.objectContaining({
@@ -363,7 +370,7 @@ describe("LinkPlugin with Harness", () => {
         },
       });
       expect(enqueued).toHaveLength(1);
-      expect(enqueued[0]?.type).toBe("link-capture");
+      expect(enqueued[0]?.type).toBe("link:capture");
       expect(enqueued[0]?.data).toEqual({
         url: "https://anthropic.com/research",
         metadata: expect.objectContaining({

@@ -71,6 +71,43 @@ describe("DirectorySyncOperationStatusService", () => {
     expect(JSON.stringify(snapshot)).not.toContain("/srv/brain-data");
   });
 
+  it("leaves the serving process's run alone when a worker process starts", async () => {
+    // The worker boots while the web process follows its startup batch. Its
+    // batch metadata lives in the web process, so the worker used to find no
+    // batch and record the startup sync as failed, every boot.
+    const context = createContext();
+    const serving = createService(context);
+    await serving.initialize();
+    const runId = await serving.startRun("startup", "pulling");
+    if (!runId) throw new Error("Expected a tracked run");
+    await serving.attachBatch(runId, "startup-batch");
+    context.jobs.getBatchStatus = mock(async () => null);
+
+    const worker = createService(context);
+    expect(await worker.initialize({ executionOnly: true })).toBeUndefined();
+
+    // Read back through a process that can still see the batch.
+    const stored = await createService({
+      ...context,
+      jobs: {
+        ...context.jobs,
+        getBatchStatus: mock(async (): Promise<BatchJobStatus> => ({
+          batchId: "startup-batch",
+          totalOperations: 1,
+          completedOperations: 0,
+          failedOperations: 0,
+          errors: [],
+          status: "processing",
+        })),
+      },
+    }).getSnapshot();
+    expect(stored.activeRun).toMatchObject({
+      id: runId,
+      batchId: "startup-batch",
+    });
+    expect(stored.recentRuns).toEqual([]);
+  });
+
   it("records skipped import issues without counting them as failures", async () => {
     const context = createContext();
     const service = createService(context);

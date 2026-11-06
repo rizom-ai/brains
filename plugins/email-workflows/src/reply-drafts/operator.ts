@@ -1,5 +1,5 @@
-import type { EmailSourceMessage } from "@brains/contracts";
 import {
+  permissionToVisibilityScope,
   assertStudioWorkspaceAdmin,
   inboxItemIdSchema,
   type ChannelDeliveryProvider,
@@ -7,6 +7,7 @@ import {
   type InboxActor,
   type ServicePluginContext,
 } from "@brains/plugins";
+import type { EmailSourceMessage } from "@brains/contracts";
 import { sha256Hex } from "@brains/utils/hash";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -75,7 +76,7 @@ export class EmailReplyDraftOperator {
   ): Promise<EmailReplyDraftWorkspaceSnapshot> {
     assertDraftAdmin(actor);
     const mailItemId = inboxItemIdSchema.parse(rawItemId);
-    const draft = await this.load(mailItemId);
+    const draft = await this.load(mailItemId, actor);
     return emailReplyDraftWorkspaceSnapshotSchema.parse({
       mailItemId,
       draft: draft ? toDraftView(draft) : null,
@@ -135,7 +136,7 @@ export class EmailReplyDraftOperator {
       if (operationSignal.aborted) throw operationSignal.reason;
       const generated = generatedReplySchema.parse(object);
       assertGeneratedReplyIsAuthored(generated.replyText, source.message);
-      const current = await this.load(mailItemId);
+      const current = await this.load(mailItemId, actor);
       return this.persist(
         mailItemId,
         generated.replyText,
@@ -155,7 +156,7 @@ export class EmailReplyDraftOperator {
     const mailItemId = inboxItemIdSchema.parse(rawItemId);
     const replyText = emailReplyTextSchema.parse(text);
     return this.operations.run(mailItemId, async () => {
-      const current = await this.load(mailItemId);
+      const current = await this.load(mailItemId, actor);
       if ((current?.metadata.revision ?? 0) !== baseRevision) {
         throw new DraftRevisionConflictError();
       }
@@ -178,7 +179,7 @@ export class EmailReplyDraftOperator {
     const mailItemId = inboxItemIdSchema.parse(rawItemId);
     const expectedRevision = z.number().int().positive().parse(revision);
     return this.operations.run(mailItemId, async () => {
-      const current = await this.load(mailItemId);
+      const current = await this.load(mailItemId, actor);
       if (current?.metadata.revision !== expectedRevision) {
         throw new DraftSendRevisionConflictError();
       }
@@ -235,7 +236,6 @@ export class EmailReplyDraftOperator {
       const frontmatter = {
         ...parsed.frontmatter,
         status: "sent" as const,
-        updatedAt: sentAt,
         sentAt,
         ...(result.providerDeliveryId
           ? { providerDeliveryId: result.providerDeliveryId }
@@ -275,12 +275,13 @@ export class EmailReplyDraftOperator {
 
   private async load(
     mailItemId: string,
+    actor: InboxActor,
   ): Promise<EmailReplyDraftEntity | undefined> {
     const entity = await this.context.entityService.getEntity(
       {
         entityType: "email-reply-draft",
         id: draftId(mailItemId),
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
       },
       emailReplyDraftSchema,
     );
@@ -299,7 +300,6 @@ export class EmailReplyDraftOperator {
       mailItemId,
       revision,
       status: "draft" as const,
-      updatedAt,
     };
     const content = emailReplyDraftAdapter.createContent(
       frontmatter,
@@ -475,7 +475,7 @@ function toDraftView(entity: EmailReplyDraftEntity): DraftView {
     text: parsed.replyText,
     revision: parsed.frontmatter.revision,
     status: parsed.frontmatter.status,
-    updatedAt: parsed.frontmatter.updatedAt,
+    updatedAt: entity.updated,
     ...(parsed.frontmatter.sentAt ? { sentAt: parsed.frontmatter.sentAt } : {}),
   });
 }

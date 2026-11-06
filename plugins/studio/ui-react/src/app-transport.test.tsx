@@ -414,7 +414,7 @@ describe("Studio App transport", () => {
             entityType: "section",
             format: "frontmatter",
             isSingleton: false,
-            hasBody: false,
+            hasBody: true,
             fields: [],
           });
         if (url.pathname.endsWith("/hierarchy"))
@@ -519,6 +519,21 @@ describe("Studio App transport", () => {
     );
     if (!segment) throw new Error("Missing Segment");
     expect(segment.closest("[data-studio-creation-layout]")).not.toBeNull();
+    // A new entry starts where it is written, says it does not exist yet, and
+    // says why it cannot be created before it has a file name.
+    expect(
+      document.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
+    ).toBe("Source");
+    expect(document.body.textContent).toContain("Not created yet");
+    expect(document.body.textContent).not.toContain("Unsaved changes");
+    expect(document.body.textContent).toContain(
+      "Name the file to create this entry.",
+    );
+    expect(
+      [...document.querySelectorAll("button")].some(
+        (button) => button.textContent === "Create",
+      ),
+    ).toBe(true);
     await act(async () => {
       Object.getOwnPropertyDescriptor(
         windowInstance.HTMLInputElement.prototype,
@@ -542,6 +557,7 @@ describe("Studio App transport", () => {
       entityType: "section",
       idPath: ["book-1", "intro"],
       frontmatter: {},
+      body: "",
     });
     await waitFor(() =>
       document.body.textContent.includes("Choose a different segment."),

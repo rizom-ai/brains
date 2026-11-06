@@ -1,4 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
+import { isoWeekOf, type IsoWeek } from "../lib/iso-week";
 import {
   trafficSnapshotFrontmatterSchema,
   trafficSnapshotSchema,
@@ -9,17 +10,25 @@ import {
 
 const formatCount = (n: number): string => n.toLocaleString("en");
 
+/** The ISO week a snapshot covers, from its first day. */
+function weekOf(frontmatter: TrafficSnapshotFrontmatter): IsoWeek {
+  const first = frontmatter.days[0];
+  if (!first) throw new Error("A traffic snapshot holds at least one day");
+  return isoWeekOf(first.date);
+}
+
 /** The body: the week's totals in a sentence, then a row per day. */
 function summarize(frontmatter: TrafficSnapshotFrontmatter): string {
   const totals = weekTotals(frontmatter);
+  const week = weekOf(frontmatter);
   const rows = frontmatter.days.map(
     (day) =>
       `| ${day.date} | ${formatCount(day.pageviews)}${day.estimated ? " (estimate)" : ""} | ${formatCount(day.visits)} |`,
   );
   return [
-    `# Traffic ${frontmatter.week}`,
+    `# Traffic ${week.id}`,
     "",
-    `${formatCount(totals.pageviews)} pageviews and ${formatCount(totals.visits)} visits from ${frontmatter.start} to ${frontmatter.end}.`,
+    `${formatCount(totals.pageviews)} pageviews and ${formatCount(totals.visits)} visits from ${week.start} to ${week.end}.`,
     "",
     "| Date | Pageviews | Visits |",
     "| --- | --- | --- |",
@@ -70,10 +79,7 @@ export class TrafficSnapshotAdapter extends BaseEntityAdapter<
     frontmatter: TrafficSnapshotFrontmatter,
   ): TrafficSnapshotMetadata {
     return {
-      title: `Traffic ${frontmatter.week}`,
-      week: frontmatter.week,
-      start: frontmatter.start,
-      end: frontmatter.end,
+      title: `Traffic ${weekOf(frontmatter).id}`,
       ...weekTotals(frontmatter),
     };
   }

@@ -7,7 +7,7 @@ import {
   type HomepageOpeningContent,
 } from "@brains/site-atlas";
 import type { ProfessionalProfile } from "../schemas";
-import type { BlogPostView } from "@brains/blog";
+import { blogPostToContentItem, type BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-info";
 import {
@@ -99,26 +99,12 @@ export const HomepageListLayout = ({
   homepageOpening = false,
   faqs = [],
 }: HomepageListData): JSX.Element => {
-  // Use tagline if non-empty (empty string counts as absent), fall back to
-  // description
-  const tagline = profile.tagline?.length
-    ? profile.tagline
-    : profile.description;
+  // First non-empty wins: tagline, then headline, then description.
+  const tagline = [profile.tagline, profile.headline, profile.description].find(
+    (value) => value,
+  );
 
-  const postItems: ContentItem[] = posts.map((post) => ({
-    id: post.id,
-    url: post.url,
-    title: post.metadata.title,
-    date: post.metadata.publishedAt ?? post.created,
-    description: post.frontmatter.excerpt,
-    series:
-      post.frontmatter.seriesName && post.frontmatter.seriesIndex
-        ? {
-            name: post.frontmatter.seriesName,
-            index: post.frontmatter.seriesIndex,
-          }
-        : undefined,
-  }));
+  const postItems = posts.map(blogPostToContentItem);
 
   const deckItems: ContentItem[] = decks.map((deck) => ({
     id: deck.id,

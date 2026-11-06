@@ -288,7 +288,7 @@ export interface IJobQueueService {
   /** Dequeue and attach explicit attempt ownership. */
   dequeue(claim?: JobClaimOptions): Promise<JobInfo | null>;
 
-  /** Register or supersede the live session for a stable worker slot. */
+  /** Register a worker session in its own slot within a stable worker slot. */
   startWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
@@ -418,6 +418,12 @@ export type JobQueueServiceConfig = DbConfig & {
    * Worker-owned claims pass explicit lease and liveness settings.
    */
   claimTimeoutMs?: number;
+  /**
+   * The running brain's semver version. Every job this service queues records
+   * it, and its workers claim no job a newer brain queued and nothing while a
+   * newer brain's worker is live. Omitted, nothing is version-gated.
+   */
+  brainVersion?: string | undefined;
 };
 
 export const DEFAULT_WORKER_SESSION_TIMEOUT_MS = 15_000;
@@ -434,7 +440,7 @@ export interface JobQueueWorkerConfig {
   maxJobs?: number;
   /** Whether to start the worker automatically */
   autoStart?: boolean;
-  /** Stable identity for this worker process across restarts. */
+  /** The stable worker this process's sessions run as. */
   workerSlotId?: string;
   /** Default deadline when a handler has no per-type override. */
   defaultExecutionTimeoutMs?: number;

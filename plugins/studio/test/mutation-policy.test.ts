@@ -1,6 +1,6 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import type { AuthPrincipal } from "@brains/auth-service";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
 import {
   BaseEntityAdapter,

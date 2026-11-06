@@ -83,6 +83,21 @@ Selection sums role weight × relevance for each slug. Below the cap, the best q
 
 There is no manual extract/rebuild tool.
 
+## Topic distribution report
+
+The plugin registers the `topic-distribution` report in `system_analytics`. It takes no params and returns:
+
+- `topics`: each visible topic's `topic` id, `title` and `sources`, sorted by `sources` descending, then title.
+- `coverage`: `sourceEntities` (visible sources that extraction reads), `attributed` (those with a fresh vote) and `unattributed` (those pending extraction: no fresh vote yet). A source with a fresh vote that supports no listed topic is attributed.
+
+A visible source counts for a topic when its fresh vote supports the topic's slug at or above `minRelevanceScore`, with merged slugs folded into the topic that absorbed them. A fresh vote is one that extraction itself would use: cast for the source's current content hash, under the current votes prompt, at the current `extractionVisibility`. A source counts at most once per topic and may support several topics. A topic matches by the slug of its title.
+
+Sources are those both visible to the caller and read by extraction: a topic source type, eligible under the rule extraction applies to its own source scan (`isTopicSourceEligible`: within `extractionVisibility`, with an extractable status), and published only for a public caller. A wider caller does not see content outside `extractionVisibility`, or drafts extraction skips, as unattributed. When no topic is visible, the report returns an empty `topics` list and:
+
+- `unextracted`, when extraction reads some of the visible sources: the number it reads, and a hint that topics are not extracted yet (or that automatic extraction is off) and to answer from `system_search`.
+- `outsideExtraction`, when sources are visible but extraction reads none of them: the number visible, and a hint that topics are not drawn from this content and to answer from `system_search`.
+- nothing else, when no source is visible.
+
 ## Shared system tool surface
 
 The topics package does **not** expose its own CRUD or extraction tools.
@@ -131,6 +146,9 @@ The package is split by responsibility so `src/index.ts` only wires plugin lifec
 - `src/lib/ranked-topic-extraction.ts` — bounded extraction jobs and durable checkpoints
 - `src/lib/topic-selection.ts` — role-weighted tally and replacement policy
 - `src/lib/topic-source-policy.ts` — shared source eligibility and role policy
+- `src/lib/topic-source-pages.ts` — paged source reads shared by extraction and the report
+- `src/lib/topic-source-counts.ts` — per-topic source counts from fresh votes
+- `src/reports/topic-distribution.ts` — the `topic-distribution` analytics report
 - `src/schemas/votes.ts` — persisted votes and validated AI responses
 - `src/lib/topic-presenter.ts` — shared topic presentation/projection helpers
 - `src/lib/dashboard-widget.ts` — dashboard widget registration

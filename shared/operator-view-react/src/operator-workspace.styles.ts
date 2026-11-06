@@ -17,7 +17,11 @@ export const workspaceStyles: Record<
     overflowY: "auto",
     "@media (max-width: 900px)": { padding: "20px 18px 28px" },
   },
+  // An embedding host may set the frame beside its own navigation, so its
+  // blocks also lay out by the width the frame gets, not only the window.
   embedded: {
+    containerName: "operator",
+    containerType: "inline-size",
     minHeight: "auto",
     padding: 0,
     overflowX: "visible",
@@ -35,11 +39,20 @@ export const workspaceStyles: Record<
       gap: "var(--operator-sections-gap, 26px 40px)",
       paddingTop: "var(--operator-sections-padding-top, 24px)",
     },
+    "@container operator (max-width: 640px)": {
+      gridTemplateColumns: "minmax(0,1fr)",
+      gap: "var(--operator-sections-gap, 26px 40px)",
+      paddingTop: "var(--operator-sections-padding-top, 24px)",
+    },
   },
   comfortableSections: {
     gap: 26,
     paddingTop: 28,
     "@media (max-width: 640px)": {
+      gap: "var(--operator-sections-gap, 28px)",
+      paddingTop: "var(--operator-sections-padding-top, 24px)",
+    },
+    "@container operator (max-width: 640px)": {
       gap: "var(--operator-sections-gap, 28px)",
       paddingTop: "var(--operator-sections-padding-top, 24px)",
     },

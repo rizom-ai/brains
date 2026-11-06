@@ -69,7 +69,7 @@ describe("Studio folder presentation", () => {
     expect(html).toContain("data-studio-folder");
     expect(html).toContain("Book 1");
     expect(html).toContain("24 entries");
-    expect(html).toContain("complete");
+    expect(html).not.toContain("not paged");
     expect(html).not.toContain("data-studio-record");
   });
   test("a container's folder and crumb read as the container's title", () => {
@@ -121,10 +121,9 @@ describe("Studio folder presentation", () => {
         error={null}
       />,
     );
-    expect(html).toContain("Segment");
-    expect(html).toContain("opaque-returned-id");
+    expect(html).toContain("File name");
     expect(html).toContain("owner-returned-path.md");
-    expect(html).toContain("<strong>&quot;chapter-2&quot;</strong>");
+    expect(html).not.toContain("opaque-returned-id");
     expect(html).not.toContain("book-1:chapter-2");
     const unavailable = renderToStaticMarkup(
       <StudioDestination
@@ -141,7 +140,8 @@ describe("Studio folder presentation", () => {
         error={null}
       />,
     );
-    expect(unavailable).toContain("File preview unavailable");
+    // Without a file path the owner-returned id is still the truthful answer.
+    expect(unavailable).toMatch(/Saves as <span[^>]*><strong>intro<\/strong>/);
   });
   test("emphasizes the new segment in each destination using owner-supplied text ranges", () => {
     const html = renderToStaticMarkup(
@@ -159,9 +159,8 @@ describe("Studio folder presentation", () => {
         error={null}
       />,
     );
-    expect(html.match(/<strong>/g)).toHaveLength(3);
+    expect(html.match(/<strong>/g)).toHaveLength(1);
     expect(html).toContain("book/<strong>.md</strong>.md");
-    expect(html).toContain("book:<strong>.md</strong>");
   });
 
   test("does not blame Segment for an unrelated frontmatter validation error", () => {

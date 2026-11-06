@@ -154,11 +154,6 @@ function MessageCard(props: {
               <span className={chatClass("", chatLayout.sourceType)}>
                 {source.entityType ?? source.source}
               </span>
-              {source.excerpt && (
-                <p className={chatClass("", chatLayout.paragraph)}>
-                  {source.excerpt}
-                </p>
-              )}
             </li>
           ))}
         </ul>
@@ -190,7 +185,9 @@ function MessageCard(props: {
                 : "Action failed"}
       </span>
       <strong>{card.summary}</strong>
-      {card.completionSummary && <p>{card.completionSummary}</p>}
+      {card.state === "output-available" && card.completionSummary && (
+        <p>{card.completionSummary}</p>
+      )}
       {card.error !== undefined && <p role="alert">{card.error}</p>}
       {(card.preview !== undefined || card.input !== undefined) && (
         <details>

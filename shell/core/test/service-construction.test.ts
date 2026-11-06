@@ -13,6 +13,7 @@ import { BunSchedulerBackend } from "@brains/scheduler";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { deferred } from "@brains/utils/deferred";
 import { DaemonRegistry } from "../src/daemon-registry";
+import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { PeerChannel, PeerEvent } from "../src/peer-event-relay";
 
@@ -287,6 +288,40 @@ describe("Shell service construction", () => {
       inboxRegistry.finalize();
       expect(inboxRegistry.listSources()).toEqual([]);
     } finally {
+      await testDir.cleanup();
+    }
+  });
+});
+
+describe("Shell job queue versioning", () => {
+  it("records the brain version on every job it queues", async () => {
+    const testDir = await createTestDirectory();
+    const config = createTestConfig(testDir.dir);
+    await migrateJobQueue({ url: `file:${testDir.dir}/jobs.db` });
+    const shell = Shell.createFresh(
+      { ...config, version: "0.2.0-alpha.613" },
+      { logger: createSilentLogger() },
+    );
+    try {
+      const queue = shell.getJobQueueService();
+      queue.registerHandler("test:versioned", {
+        validateAndParse: (data) => data,
+        process: async () => undefined,
+      });
+      const jobId = await queue.enqueue({
+        type: "test:versioned",
+        data: {},
+        options: {
+          source: "test",
+          metadata: { operationType: "data_processing" },
+        },
+      });
+
+      expect(await queue.getStatus(jobId)).toMatchObject({
+        brainVersion: "0.2.0-alpha.613",
+      });
+    } finally {
+      await shell.shutdown();
       await testDir.cleanup();
     }
   });

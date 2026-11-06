@@ -1,3 +1,4 @@
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   AIService,
   EmbeddingUsageMeter,
@@ -26,6 +27,7 @@ import { MessageBus } from "@brains/messaging-service";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -154,6 +156,8 @@ export function createShellServices(options: {
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
   const accountSettingsRegistry =
     dependencies?.accountSettingsRegistry ?? new AccountSettingsRegistry();
+  const authRegistry = new AuthRegistry();
+  const atprotoProjectionRegistry = new AtprotoProjectionRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -196,7 +200,11 @@ export function createShellServices(options: {
 
   const jobServices = initializeJobServices({
     dependencies,
-    jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
+    jobQueueConfig: {
+      ...createDatabaseConfig(config.jobQueueDatabase),
+      // Gates claims across a rolling deploy's overlapping brain versions.
+      brainVersion: config.version,
+    },
     workerConcurrency: config.jobQueue.workerConcurrency,
     messageBus,
     operationContext,
@@ -377,6 +385,8 @@ export function createShellServices(options: {
     inboxFollowUpRegistry,
     operationalHealthRegistry,
     accountSettingsRegistry,
+    authRegistry,
+    atprotoProjectionRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,

@@ -158,6 +158,8 @@ A good PR has:
 - updated docs when public behavior changes
 - a changeset when users will notice the change
 
+Name the branch `work/<topic>`, with a short kebab-case topic (for example `work/per-provider-ai-keys`). The commit type goes in the commit and PR title, not the branch name.
+
 Use conventional commits when possible:
 
 - `feat:`

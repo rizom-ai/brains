@@ -2,6 +2,9 @@ export type { SiteCompositionPlugin } from "./plugin";
 export {
   entityDisplaySchema,
   GetRoutePayloadSchema,
+  languagePath,
+  languageTagSchema,
+  routeTranslationSchema,
   ListRoutesPayloadSchema,
   NavigationItemSchema,
   NavigationMetadataSchema,
@@ -25,6 +28,8 @@ export type {
   RouteDefinitionInput,
   RouteOperationResponse,
   SectionDefinition,
+  RouteTranslation,
+  SiteAlternate,
   UnregisterRoutesPayload,
 } from "./routes";
 export {
@@ -34,12 +39,14 @@ export {
   siteMetadataCTASchema,
   siteMetadataSchema,
   siteMetadataSectionSchema,
+  siteMetadataTranslationSchema,
 } from "./metadata";
 export type {
   SiteLayoutInfo,
   SiteMetadata,
   SiteMetadataCTA,
   SiteMetadataInput,
+  SiteMetadataTranslation,
 } from "./metadata";
 export {
   createSiteContentTemplate,
@@ -77,4 +84,5 @@ export { derivePreviewDomain, type PreviewDomainOptions } from "./domain";
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityDisplayMap } from "./entity-url-generator";
 export { extendSite, sitePackageSchema, themeCssSchema } from "./package";
+export { PageLanguageContext } from "./page-language";
 export type { SitePackage, SitePackageOverrides } from "./package";

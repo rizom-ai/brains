@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/entity-service";
 import { IMAGE_CHANNELS } from "@brains/contracts";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
@@ -400,7 +401,9 @@ export abstract class BaseGenerationJobHandler<
     const existing = await this.context.entityService.getEntity({
       entityType: this.entityType,
       id: entityId,
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope(
+        "pre-allocated generation stub update",
+      ),
     });
     if (!existing) {
       throw new Error(
@@ -478,7 +481,7 @@ export abstract class BaseGenerationJobHandler<
       const existing = await this.context.entityService.getEntity({
         entityType: this.entityType,
         id: entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mark generation stub failed"),
       });
       if (!existing) return;
       if (

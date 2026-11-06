@@ -1,5 +1,5 @@
-import { createElement, type ReactElement } from "react";
 import {
+  internalFullScope,
   createTemplate,
   ServicePlugin,
   SITE_SLOT_ATTRIBUTE,
@@ -8,6 +8,7 @@ import {
   type WebRouteDefinition,
   type RuntimeHealthCheck,
 } from "@brains/plugins";
+import { createElement, type ReactElement } from "react";
 import {
   NOTIFICATIONS_SEND,
   SITE_BUILDER_CHANNELS,
@@ -294,15 +295,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
    * mounts no such route. */
   private inboxUrl(context: ServicePluginContext): string | undefined {
     const origin = this.policy?.http.origin;
-    const workspaces = context.webRoutes
-      .getRoutes()
-      .find(
-        (route) =>
-          route.pluginId === "studio" &&
-          (route.definition.method ?? "GET") === "GET" &&
-          route.definition.match === "prefix" &&
-          route.fullPath.endsWith("/workspaces"),
-      );
+    const workspaces = context.webRoutes.findByRole("studio-workspaces");
     return origin && workspaces
       ? `${origin}${workspaces.fullPath}/unified-inbox%3Ainbox`
       : undefined;
@@ -449,7 +442,13 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     const waiting = await Promise.all(
       failed.map(async (id) => {
         const request = await entities.getEntity(
-          { entityType: "contact-request", id, visibilityScope: "restricted" },
+          {
+            entityType: "contact-request",
+            id,
+            visibilityScope: internalFullScope(
+              "contact health check counts only",
+            ),
+          },
           contactRequestSchema,
         );
         return request?.metadata.status === "new";

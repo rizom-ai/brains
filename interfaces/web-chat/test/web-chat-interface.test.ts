@@ -1,8 +1,8 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   createExternalActorId,
 } from "@brains/contracts";
-import type { AuthPrincipal } from "@brains/auth-service";
 import { coerceConversationMetadata } from "@brains/plugins";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
@@ -1464,6 +1464,7 @@ describe("WebChatInterface", () => {
             definition: {
               path: "/chat",
               method: "GET",
+              ...(studio ? { role: "studio-chat" as const } : {}),
               handler: async (): Promise<Response> => new Response("Studio"),
             },
           },

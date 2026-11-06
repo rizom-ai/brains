@@ -376,7 +376,6 @@ async function runDiagnostics(
 ): Promise<void> {
   const { ConsoleLogger, LogLevel } = await import("@brains/utils/logger");
   // Suppress plugin registration noise — only show warnings and errors
-  ConsoleLogger.resetInstance();
   ConsoleLogger.getInstance({ level: LogLevel.WARN, useStderr: true });
 
   const subcommand = args[0] ?? "";

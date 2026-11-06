@@ -1,0 +1,46 @@
+id: multi-turn-link-save-reply-says-saved
+name: A confirmed link save says it saved
+description: Verifies that the reply to a confirmed link save says the link was saved and is still being processed, not that a draft is generating.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-personal
+  - link
+  - confirmation
+  - multi-turn
+
+turns:
+  - userMessage: "Save https://example.com/field-guide as a link."
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: link
+            source.kind: url
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Saved link"
+        - "It is saved"
+      responseNotContains:
+        - "draft is generating"
+        - "draft"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: link
+    - toolName: system_generate
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 20000

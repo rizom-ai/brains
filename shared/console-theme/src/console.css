@@ -26,6 +26,11 @@
     0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
     0 24px 58px -30px
       color-mix(in srgb, var(--console-bg-deep) 72%, transparent);
+  --console-shadow-ink: color-mix(
+    in srgb,
+    var(--console-bg-deep) 72%,
+    transparent
+  );
   color-scheme: dark;
 }
 
@@ -49,6 +54,13 @@
     0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
     0 22px 44px -30px
       color-mix(in srgb, var(--console-bg-deep) 30%, transparent);
+  /* Paper's deep tint is lighter than its dimmed backdrop: a shadow mixed
+     from it reads as a pale halo, so overlays cast an ink shadow. */
+  --console-shadow-ink: color-mix(
+    in srgb,
+    var(--console-text) 26%,
+    transparent
+  );
   color-scheme: light;
 }
 

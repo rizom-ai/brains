@@ -1,0 +1,144 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import {
+  pageLeaf,
+  pageText,
+  scanPageUrl,
+  workPages,
+} from "./adapters/archive-ocr";
+import {
+  firstOfEachVolume,
+  volumeKey,
+  parseManifest,
+  scannedBooks,
+  volumeHocr,
+} from "./import-books";
+import { importerPageOcr } from "./page-ocr";
+import { createImporterFetch } from "./polite-fetch";
+
+/** A seed from the volume's name, so a volume is always sampled alike. */
+function seedOf(item: string): number {
+  return [...item].reduce(
+    (hash, character) => Math.imul(hash ^ character.charCodeAt(0), 16777619),
+    2166136261,
+  );
+}
+
+/** Mulberry32: a small, fixed sequence of numbers between 0 and 1. */
+function random(seed: number): () => number {
+  const state = { value: seed };
+  return () => {
+    state.value = (state.value + 0x6d2b79f5) | 0;
+    const mixed = Math.imul(
+      state.value ^ (state.value >>> 15),
+      1 | state.value,
+    );
+    const more = mixed ^ (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed));
+    return ((more ^ (more >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * A volume's pages to check against the scan: the same draw every time,
+ * from the pages its works span, the front matter's included, in the
+ * volume's order.
+ */
+export function samplePages(
+  item: string,
+  pages: Array<number | string>,
+  count: number,
+): Array<number | string> {
+  const listed = [...new Set(pages)];
+  if (listed.length <= count) return listed;
+  const next = random(seedOf(item));
+  return listed
+    .map((page, order) => ({ page, order, key: next() }))
+    .sort((a, b) => a.key - b.key)
+    .slice(0, count)
+    .sort((a, b) => a.order - b.order)
+    .map(({ page }) => page);
+}
+
+/** One request at a time to archive.org for the scans, as for the text. */
+const SCAN_INTERVAL_MS = 1000;
+
+async function downloadScan(url: string, path: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, SCAN_INTERVAL_MS));
+  const response = await fetch(url, {
+    headers: { "user-agent": "rizom-brains-book-import (yeehaa@rizom.ai)" },
+  });
+  if (!response.ok) throw new Error(`${response.status} ${url}`);
+  await writeFile(path, new Uint8Array(await response.arrayBuffer()));
+}
+
+/** Pages checked per volume, as the books plan sets the OCR gate. */
+const PAGES_PER_VOLUME = 20;
+
+function words(text: string): number {
+  return text.split(/\s+/u).filter((token) => /\p{L}/u.test(token)).length;
+}
+
+const USAGE =
+  "Usage: bun packages/book-import/src/ocr-gate.ts <manifest.yaml> <out-dir>";
+
+/**
+ * Write each scanned volume's gate sheet: its sampled pages' scans beside
+ * the text the importer reads from them, and a table for the wrong words a
+ * reviewer counts.
+ */
+async function main(): Promise<void> {
+  const [manifestPath, outDir] = process.argv.slice(2);
+  if (!manifestPath || !outDir) {
+    console.error(USAGE);
+    process.exit(1);
+  }
+  const manifest = parseManifest(await readFile(manifestPath, "utf8"));
+  const books = scannedBooks(manifest);
+  const fetchText = createImporterFetch();
+  await firstOfEachVolume(books).reduce(async (done, first) => {
+    await done;
+    const item = first.item;
+    const hocr = await volumeHocr(first, fetchText, importerPageOcr(fetchText));
+    const pages = samplePages(
+      item,
+      books
+        .filter((book) => volumeKey(book) === volumeKey(first))
+        .flatMap((book) => workPages(hocr, book)),
+      PAGES_PER_VOLUME,
+    );
+    // A scan read anew with another model is a volume of its own.
+    const dir = join(outDir, first.ocr ? `${item}-${first.ocr}` : item);
+    await mkdir(dir, { recursive: true });
+    const rows = await pages.reduce<Promise<string[]>>(async (sheet, page) => {
+      const rows = await sheet;
+      const text = pageText(hocr, page);
+      const leaf = pageLeaf(hocr, page);
+      const scanned = first.scan?.pages[leaf];
+      await writeFile(join(dir, `${page}.txt`), `${text}\n`);
+      await downloadScan(
+        scanned
+          ? scanPageUrl(scanned)
+          : `https://archive.org/download/${item}/page/n${leaf}_w1200.jpg`,
+        join(dir, `${page}.jpg`),
+      );
+      return [...rows, `| ${page} | ${leaf} | ${words(text)} | |`];
+    }, Promise.resolve([]));
+    await writeFile(
+      join(dir, "gate.md"),
+      [
+        `# OCR gate: ${item}`,
+        "",
+        `Each page's scan is <page>.jpg (${first.scan?.url ?? `archive.org/details/${item}/page/n<leaf>`}) and its text as imported <page>.txt.`,
+        "Count the words the text gets wrong against the scan.",
+        "",
+        "| page | leaf | words | wrong |",
+        "| ---- | ---- | ----- | ----- |",
+        ...rows,
+        "",
+      ].join("\n"),
+    );
+    console.log(`${item}: ${pages.join(", ")}`);
+  }, Promise.resolve());
+}
+
+if (import.meta.main) await main();

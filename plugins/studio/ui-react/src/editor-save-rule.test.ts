@@ -7,7 +7,11 @@ import {
   initialEditorWorkflowState,
   type EditorWorkflowState,
 } from "./editor-workflow";
-import { isEditorSaveBlocked, type EditorSaveModel } from "./editor-save-rule";
+import {
+  editorSaveBlockReason,
+  isEditorSaveBlocked,
+  type EditorSaveModel,
+} from "./editor-save-rule";
 
 const schema: TypeSchema = {
   entityType: "post",
@@ -41,6 +45,38 @@ function model(overrides: Partial<EditorSaveModel> = {}): EditorSaveModel {
     ...overrides,
   };
 }
+
+describe("editorSaveBlockReason", () => {
+  const creating = editorWorkflowReducer(initialEditorWorkflowState, {
+    type: "creationStarted",
+    draft: {},
+    prefix: null,
+  });
+
+  it("asks for a file name while a new entry has none", () => {
+    expect(
+      editorSaveBlockReason(
+        creating,
+        model({ destinationBlocked: true }),
+        false,
+      ),
+    ).toBe("Name the file to create this entry.");
+  });
+
+  it("points at invalid fields", () => {
+    const state: EditorWorkflowState = {
+      ...editing(),
+      compoundFields: { groupings: { pendingChanges: false, invalid: true } },
+    };
+    expect(editorSaveBlockReason(state, model(), true)).toBe(
+      "Fix the highlighted fields first.",
+    );
+  });
+
+  it("has nothing to say when saving is allowed", () => {
+    expect(editorSaveBlockReason(editing(), model(), true)).toBeUndefined();
+  });
+});
 
 describe("isEditorSaveBlocked", () => {
   it("allows saving an editable document", () => {

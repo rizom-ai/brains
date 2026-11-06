@@ -2,7 +2,7 @@ export {
   handleQueueAction,
   queueOutputSchema,
   queueItemSchema,
-  type QueueInput,
+  type QueueActionInput,
   type QueueOutput,
   type QueueItem,
   type QueueMutationService,

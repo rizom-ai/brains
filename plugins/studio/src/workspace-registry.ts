@@ -172,6 +172,21 @@ export class StudioWorkspaceRegistry {
     return workspace;
   }
 
+  /** Every registered workspace, for offering by floor; access is checked on open. */
+  listOffered(): Pick<
+    StoredStudioWorkspace,
+    "id" | "label" | "permission" | "priority"
+  >[] {
+    return Array.from(this.workspaces.values()).map(
+      ({ id, label, permission, priority }) => ({
+        id,
+        label,
+        permission,
+        priority,
+      }),
+    );
+  }
+
   get(id: string): StoredStudioWorkspace | undefined {
     return this.workspaces.get(id);
   }

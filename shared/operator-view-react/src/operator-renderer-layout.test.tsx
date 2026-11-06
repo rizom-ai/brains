@@ -107,6 +107,10 @@ for (const width of [1440, 768, 390])
       expect(window.getComputedStyle(title).overflowWrap).toBe("anywhere");
       expect(window.getComputedStyle(cellTitle).overflowWrap).toBe("anywhere");
       expect(cellTitle.textContent).toBe("Long".repeat(30));
+      // An empty column says so close under its heading, not list-spaced.
+      const cellEmpty = grid.querySelector("p");
+      expect(cellEmpty?.textContent).toBe("Exact empty");
+      expect(window.getComputedStyle(cellEmpty ?? grid).paddingTop).toBe("4px");
       expect(empty.textContent).toBe("No records");
       expect(window.getComputedStyle(empty).paddingTop).toBe("18px");
       expect(links.querySelector("a")?.getAttribute("href")).toBe(
@@ -114,6 +118,13 @@ for (const width of [1440, 768, 390])
       );
       const standalone = doc.querySelector("main");
       if (!standalone) throw Error("Missing frame");
+      // The matrix and each of its cells lay out by the width they get, not
+      // the window, in any host.
+      for (const container of [grid, cellTitle.parentElement ?? cellTitle])
+        expect(window.getComputedStyle(container).containerType).toBe(
+          "inline-size",
+        );
+      expect(window.getComputedStyle(standalone).containerType).toBe("");
       expect(window.getComputedStyle(standalone).paddingLeft).toBe(
         width <= 900 ? "18px" : "34px",
       );
@@ -127,6 +138,12 @@ for (const width of [1440, 768, 390])
       );
       const embedded = doc.querySelector("main");
       if (!embedded) throw Error("Missing embedded frame");
+      // An embedding host may set the frame beside its navigation; its
+      // blocks answer to the frame as well as the window.
+      expect(window.getComputedStyle(embedded).containerType).toBe(
+        "inline-size",
+      );
+      expect(window.getComputedStyle(embedded).containerName).toBe("operator");
       const inset = window.getComputedStyle(embedded);
       for (const side of [
         inset.paddingTop,

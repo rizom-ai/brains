@@ -1,0 +1,81 @@
+id: multi-turn-web-chat-multi-essay-upload-posts
+name: Web chat keeps several uploaded published essays as posts under one confirmation
+description: Verifies that several essays uploaded in one message, which the user says were published elsewhere, are kept with one system_create call listing every file, and that one confirmation saves each as a published post titled by its heading, with that file's date and canonical address.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-web-chat-multi-essay-upload-posts
+  channelName: Web Chat Eval
+tags:
+  - recipe-professional
+  - web-chat
+  - upload
+  - blog
+  - multi-turn
+
+turns:
+  - userMessage: |
+      These two essays were published on my Substack. Make them published posts with their original dates, and keep the Substack addresses as the canonical ones:
+      - on-slowness.md: published 12 March 2025 at https://janhein.substack.com/p/on-slowness
+      - quiet-tools.md: published 4 June 2025 at https://janhein.substack.com/p/quiet-tools
+    attachments:
+      - kind: text
+        filename: on-slowness.md
+        mediaType: text/markdown
+        content: |
+          # On Slowness
+
+          I write slowly, and I have stopped apologizing for it.
+
+          Speed is a habit of the platform, not of the work.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001321
+      - kind: text
+        filename: quiet-tools.md
+        mediaType: text/markdown
+        content: |
+          # Quiet Tools
+
+          The best tools disappear while you use them.
+
+          They ask for nothing and keep what you made.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000001322
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: post
+            source.kind: uploads
+      toolCountRange:
+        max: 1
+      responseContains:
+        - "Confirmation required"
+
+  - userMessage: "yes"
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed: Saved 2 uploaded files"
+        - 'post "On Slowness"'
+        - 'post "Quiet Tools"'
+      responseNotContains:
+        - "draft is generating"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+        source.kind: uploads
+    - toolName: system_generate
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 31000

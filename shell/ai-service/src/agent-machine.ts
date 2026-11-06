@@ -26,6 +26,7 @@ import type {
   PendingConfirmation,
 } from "./agent-types";
 import { getErrorMessage } from "@brains/utils/error";
+import { AIProviderDeclinedError } from "./errors";
 
 export interface PendingConfirmationRequester {
   actorKey?: string;
@@ -58,6 +59,8 @@ export interface AgentMachineContext {
   pendingConfirmations: RuntimePendingConfirmation[];
   activeConfirmation: RuntimePendingConfirmation | null;
   error: string | null;
+  /** The last turn failed because the AI provider declined it on content policy. */
+  providerDeclined: boolean;
 }
 
 /**
@@ -296,6 +299,7 @@ export const agentMachine: AgentMachine = setup({
     pendingConfirmations: [],
     activeConfirmation: null,
     error: null,
+    providerDeclined: false,
   },
   states: {
     idle: {
@@ -320,6 +324,7 @@ export const agentMachine: AgentMachine = setup({
             pendingConfirmations: [],
             activeConfirmation: null,
             error: null,
+            providerDeclined: false,
           })),
         },
       },
@@ -372,12 +377,15 @@ export const agentMachine: AgentMachine = setup({
           target: "idle",
           actions: assign(({ event }) => ({
             error: getErrorMessage(event.error, "Unknown error"),
+            providerDeclined: event.error instanceof AIProviderDeclinedError,
             response: {
               error: getErrorMessage(event.error, "Unknown error"),
               text:
-                event.error instanceof Error
-                  ? `Error: ${event.error.message}`
-                  : "An unexpected error occurred.",
+                event.error instanceof AIProviderDeclinedError
+                  ? event.error.message
+                  : event.error instanceof Error
+                    ? `Error: ${event.error.message}`
+                    : "An unexpected error occurred.",
               usage: emptyUsage,
             },
             attachments: [],

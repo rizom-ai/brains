@@ -10,6 +10,7 @@ export {
   type MockShellOptions,
 } from "./src/test/mock-shell";
 export { createMockAppInfo } from "./src/test/mock-app-info";
+export { createMockAuthBackend } from "./src/test/mock-auth-backend";
 export {
   createMockServicePluginContext,
   type MockServicePluginContext,
@@ -51,7 +52,6 @@ export type {
   ToolContext,
   IEntityService,
   IMessageBus,
-  ConversationDigestPayload,
   BatchOperation,
 } from "./src/index";
 // Logger comes from @brains/utils

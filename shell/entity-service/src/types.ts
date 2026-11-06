@@ -266,8 +266,6 @@ export const emptyFrontmatterSchema: z.ZodObject<Record<string, never>> =
   z.object({});
 
 export type EntitySchema<T> = z.ZodType<T, unknown>;
-/** @deprecated Use EntitySchema<T>. */
-export type EntitySchemaParser<T> = EntitySchema<T>;
 
 export type UnknownEntitySchema = EntitySchema<unknown>;
 export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;
@@ -359,6 +357,11 @@ export interface CreateInput {
   targetEntityType?: string;
   targetEntityId?: string;
   coverImage?: boolean | CreateCoverImageInput;
+  /**
+   * Frontmatter fields the caller states for the new entity that are not part
+   * of its source text, such as the original publication date of an essay.
+   */
+  fields?: Record<string, unknown>;
 }
 
 /**
@@ -367,6 +370,8 @@ export interface CreateInput {
 export interface CreateExecutionContext {
   interfaceType: string;
   actor: ActorRef;
+  /** The caller's permission level; absent reads as public, failing closed. */
+  userPermissionLevel?: "admin" | "trusted" | "public";
   channelId?: string;
   channelName?: string;
 }
@@ -418,7 +423,47 @@ export type CreateResult =
         attachment?: CreateResultAttachment;
       };
     }
-  | { success: false; error: string };
+  | {
+      success: false;
+      error: string;
+    };
+
+/**
+ * What a create asks the user for before it is confirmed: a title or field
+ * (`fields`), or where a deck's slides break (`slide-breaks`).
+ */
+export type CreateQuestion = "fields" | "slide-breaks";
+
+/**
+ * A type's check of a system_create before the user is asked to confirm it.
+ * A save that needs an answer asks before the confirmation, so the user
+ * answers once and approves once, seeing the complete save.
+ */
+export type CreateCheckResult =
+  /** Ready to confirm, with what the type fills in: the title and fields it derived. */
+  | { kind: "ready"; title?: string; fields?: Record<string, unknown> }
+  /**
+   * Ask the user first. `question` is put to the user as written;
+   * `answerWith` tells the agent how to pass the answer, and stays with it.
+   * The source text is pinned for the retry, so the answer cannot change it.
+   */
+  | {
+      kind: "question";
+      asks: CreateQuestion;
+      question: string;
+      answerWith: string;
+    }
+  /** The create cannot go ahead as given. */
+  | { kind: "error"; error: string };
+
+/**
+ * Runs before system_create asks the user to confirm a create. It reads
+ * and never writes: the confirmed create runs the type's interceptor.
+ */
+export type CreateCheck = (
+  input: CreateInput,
+  executionContext: CreateExecutionContext,
+) => Promise<CreateCheckResult>;
 
 /**
  * Plugin create interceptors can either fully handle creation,
@@ -508,6 +553,12 @@ export interface EntityAdapter<
 
   // Extract metadata from entity for search/filtering - now strongly typed
   extractMetadata(entity: TEntity): TMetadata;
+
+  /**
+   * What the entity is called where it is shown, when its title lives
+   * somewhere other than a metadata title (a body heading, say).
+   */
+  displayTitle?(entity: TEntity): string | undefined;
 
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
@@ -607,6 +658,8 @@ export interface ListOptions<
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** String metadata fields that start with a prefix, e.g. `{ slug: "book/" }`: an index range on an indexed field. */
+    metadataPrefix?: Record<string, string> | undefined;
     /** Literal substring search through serialized content, including frontmatter. */
     contentContains?: string | undefined;
     /** Exact visibility, intersected with visibilityScope rather than widening it. */
@@ -666,6 +719,18 @@ export interface EntityTypeConfig {
   defaultSort?: SortField[];
   /** Accepts upload text extraction through system_create extract-markdown. */
   markdownImport?: boolean;
+  /**
+   * Frontmatter keys this type no longer owns. Stored entities may still
+   * carry them: they are read past, never written back, and removed from
+   * stored content by `rewriteRetiredFields`.
+   */
+  retiredFields?: readonly string[];
+  /**
+   * Retired keys whose stored value the type still reads, moving it to its
+   * new field when it parses. Unlike `retiredFields` they reach the parser;
+   * like them they are never written back and are rewritten on start.
+   */
+  translatedFields?: readonly string[];
   /**
    * The type's own minimum action policy, from whoever registers it. It
    * tightens wildcard defaults without relaxing stricter rules, including
@@ -848,6 +913,22 @@ export interface NearestToEntityRequest {
   limit?: number | undefined;
   /** Undefined fails closed to public-only visibility, origin included. */
   visibilityScope?: ContentVisibility | undefined;
+  /** Only entries their type counts as published, as for published-only listings. */
+  publishedOnly?: boolean | undefined;
+  /**
+   * Carry each entry's metadata, so a caller that needs only its fields
+   * loads no entry: a theme page reads up to thousands of neighbours.
+   */
+  includeMetadata?: boolean | undefined;
+}
+
+/** An entity near another, closest first. */
+export interface NearestEntity {
+  entityId: string;
+  entityType: string;
+  distance: number;
+  /** Present when the request asked for it. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProjectSemanticSpaceRequest {
@@ -1064,9 +1145,7 @@ export interface ICoreEntityService {
    * closest first, by raw cosine distance. It reads one vector and asks the
    * store for the rest, so it costs no API call and stays linear.
    */
-  nearestToEntity(
-    request: NearestToEntityRequest,
-  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+  nearestToEntity(request: NearestToEntityRequest): Promise<NearestEntity[]>;
 
   /** Project visible entities into a provider-independent semantic space. */
   projectSemanticSpace(
@@ -1173,6 +1252,9 @@ export interface IEntitiesNamespace {
     entityType: string,
     interceptor: CreateInterceptor,
   ): void;
+
+  /** Register the check a create of this plugin's entity type passes before it is confirmed */
+  registerCreateCheck(entityType: string, check: CreateCheck): void;
 
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
@@ -1293,6 +1375,8 @@ export interface EntityServiceClient extends ICoreEntityService {
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void>;
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
+  /** Rewrite stored entities whose content still carries a retired frontmatter field. */
+  rewriteRetiredFields(): Promise<{ rewritten: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,
@@ -1396,6 +1480,10 @@ export interface EntityRegistry {
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 
   getCreateInterceptor(type: string): CreateInterceptor | undefined;
+
+  registerCreateCheck(type: string, check: CreateCheck): void;
+
+  getCreateCheck(type: string): CreateCheck | undefined;
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 

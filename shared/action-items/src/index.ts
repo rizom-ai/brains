@@ -23,13 +23,18 @@ export {
   type ActionItemStatus,
   type MemoryActorReference,
 } from "./schema";
-export { ACTION_ITEM_RETIRED_FIELDS } from "./stored-shape";
+export {
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
+} from "./stored-shape";
 export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
 export {
+  actionItemAssigneeHash,
   actionItemBody,
   actionItemBodyHash,
   actionItemCapturedAt,
   actionItemSource,
+  actionItemText,
   actionItemTitle,
   applyMove,
   applyNote,
@@ -41,16 +46,30 @@ export {
 } from "./board";
 export {
   addActionItemNote,
+  createActionItem,
+  type ActionItemAssigneeMember,
+  boardCardId,
+  flatId,
   inboxCardId,
   moveActionItem,
+  reviseActionItem,
   trackInboxItem,
   type ActionItemMoveDeps,
   type ActionItemMoveRequest,
   type ActionItemMoveResult,
   type ActionItemNoteRequest,
   type ActionItemNoteResult,
+  type CreateActionItemOrigin,
+  type CreateActionItemRequest,
+  type CreateActionItemResult,
+  type ReviseActionItemDeps,
+  type ReviseActionItemRequest,
+  type ReviseActionItemResult,
   type TrackInboxItemDeps,
   type TrackInboxItemRequest,
   type TrackInboxItemResult,
+  withdrawActionItem,
+  type WithdrawActionItemDeps,
+  type WithdrawActionItemResult,
 } from "./write";
 export { channelLabel, formatAge, formatShortDate } from "./format";

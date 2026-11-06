@@ -29,6 +29,7 @@ for (const density of ["compact", "comfortable"] as const) {
           Button: () => null,
           Input: () => null,
           Select: () => null,
+          Textarea: () => null,
           ConfirmDialog: () => null,
           Disclosure: () => null,
           Tabs: () => null,

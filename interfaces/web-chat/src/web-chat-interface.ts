@@ -1,3 +1,24 @@
+import {
+  requireSameOriginJson,
+  MessageInterfacePlugin,
+  SitePageResponse,
+  createScheduledMaintenanceDaemon,
+  type AgentResponse,
+  type EditMessageRequest,
+  type MessageInterfacePluginContext,
+  type JobContext,
+  type JobProgressEvent,
+  type MessageArtifactEntity,
+  type MessageInterfaceOutput,
+  type SendMessageToChannelRequest,
+  type SendMessageWithIdRequest,
+  type WebRouteDefinition,
+  type ToolStatusUpdate,
+  type UserPermissionLevel,
+  type ChatAttachment,
+  coerceConversationMetadata,
+} from "@brains/plugins";
+import type { AuthPrincipal } from "@brains/contracts";
 import { join } from "path";
 import {
   ASK_BOX_SCRIPT_PATH,
@@ -21,30 +42,6 @@ import {
   chatActionRequestSchema,
   chatContextHandoffRequestSchema,
 } from "@brains/contracts/chat";
-import {
-  getActiveAuthService,
-  requireSameOriginJson,
-  type AuthPrincipal,
-} from "@brains/auth-service";
-import {
-  MessageInterfacePlugin,
-  SitePageResponse,
-  createScheduledMaintenanceDaemon,
-  type AgentResponse,
-  type EditMessageRequest,
-  type MessageInterfacePluginContext,
-  type JobContext,
-  type JobProgressEvent,
-  type MessageArtifactEntity,
-  type MessageInterfaceOutput,
-  type SendMessageToChannelRequest,
-  type SendMessageWithIdRequest,
-  type WebRouteDefinition,
-  type ToolStatusUpdate,
-  type UserPermissionLevel,
-  type ChatAttachment,
-  coerceConversationMetadata,
-} from "@brains/plugins";
 import {
   handleRemoteAgentChatRequest as handleRemoteAgentChatRoute,
   handleRemoteAgentConfirmRequest as handleRemoteAgentConfirmRoute,
@@ -145,9 +142,6 @@ export interface WebChatDeps {
   guestPolicy?: GuestPolicy;
 }
 
-const defaultResolveAuthPrincipal: BrowserPrincipalResolver = async (request) =>
-  getActiveAuthService()?.resolveSession(request);
-
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
   WebChatConfigInput
@@ -182,7 +176,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.guestConfigured =
       this.injectedGuestPolicy?.enabled ?? this.config.guest !== false;
     this.resolveAuthPrincipal =
-      deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
+      deps.resolveAuthPrincipal ??
+      (async (request): Promise<AuthPrincipal | undefined> =>
+        this.context?.auth.get()?.resolveSession(request));
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
     this.resolveAuthSession =
       deps.resolveAuthSession ??
@@ -657,11 +653,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleAuthenticatedChatPage(): Promise<Response> {
-    const studioHref = this.getContext()
-      .webRoutes.getRoutes()
-      .find(
-        (route) => route.pluginId === "studio" && route.fullPath === "/chat",
-      )?.fullPath;
+    const studioHref =
+      this.getContext().webRoutes.findByRole("studio-chat")?.fullPath;
     // Studio owns authentication; this retired page never renders operator UI.
     return studioHref
       ? new Response(null, {
@@ -1278,7 +1271,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private createAuthLoginRequiredResponse(request: Request): Response {
-    const authService = getActiveAuthService();
+    const authService = this.context?.auth.get();
     if (authService) return authService.createAuthLoginResponse(request);
 
     return new Response("Authentication required", {

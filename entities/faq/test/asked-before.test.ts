@@ -30,7 +30,6 @@ describe("answering a question asked before", () => {
       id: "post:handoffs",
       title: "Handoffs between teams",
       url: "https://becca.rizom.ai/essays/handoffs",
-      excerpt: "Before anyone leaves a task we write three things down.",
       brain: { name: "Becca", url: "https://becca.rizom.ai/" },
     },
   ];
@@ -65,7 +64,6 @@ describe("answering a question asked before", () => {
       question: "How does Rizom keep memory?",
       status,
       asked: 3,
-      sources,
     };
     await context.entityService.createEntity({
       entity: {
@@ -74,6 +72,8 @@ describe("answering a question asked before", () => {
         content: faqAdapter.createFaqContent(
           frontmatter,
           "In the brains of the people who hold it.",
+          [],
+          sources,
         ),
         visibility,
         metadata: faqMetadata(frontmatter),
@@ -122,7 +122,6 @@ describe("answering a question asked before", () => {
             entityId: "handoffs",
             title: "Handoffs between teams",
             url: "https://becca.rizom.ai/essays/handoffs",
-            excerpt: "Before anyone leaves a task we write three things down.",
             brain: { name: "Becca", url: "https://becca.rizom.ai/" },
           },
         ],

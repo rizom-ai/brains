@@ -1,0 +1,13 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "composite": true,
+    "esModuleInterop": true,
+    "types": ["bun-types"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules"]
+}

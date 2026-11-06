@@ -1,0 +1,30 @@
+id: team-tool-action-item-create-due-date
+name: Team Brain adds an action item with the due date asked for
+description: >-
+  Verifies that a request naming a date gives the card that due date, as
+  YYYY-MM-DD, through action_item_create.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - recipe-team
+  - team
+  - action-board
+
+turns:
+  - userMessage: "Please add an action item: send INC the proposal by 30 October 2026."
+
+successCriteria:
+  expectedTools:
+    - toolName: action_item_create
+      shouldBeCalled: true
+      argsContain:
+        due: "2026-10-30"
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "capturedAt"
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 31000

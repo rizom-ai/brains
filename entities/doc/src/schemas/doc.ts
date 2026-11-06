@@ -7,14 +7,12 @@ export const docFrontmatterSchema: z.ZodObject<{
   title: z.ZodString;
   section: z.ZodString;
   order: z.ZodNumber;
-  sourcePath: z.ZodString;
   description: NullableStringSchema;
   slug: NullableStringSchema;
 }> = z.object({
   title: z.string(),
   section: z.string(),
   order: z.number().int(),
-  sourcePath: z.string(),
   description: z.string().nullable().default(null),
   slug: z.string().nullable().default(null),
 });

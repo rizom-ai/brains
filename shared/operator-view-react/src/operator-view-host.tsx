@@ -11,7 +11,8 @@ import {
 import { OperatorDisclosure } from "./operator-disclosure";
 import { Button as AppButton } from "@brains/app-ui-react";
 import { actionLayoutStyles as actionLayout } from "./operator-action-layout.styles";
-import * as stylex from "@stylexjs/stylex";
+import type * as stylex from "@stylexjs/stylex";
+import { styledProps } from "./styled-props";
 import type {
   RuntimeStudioOperatorView,
   RuntimeOperatorActionControl,
@@ -26,6 +27,7 @@ import {
   type ReactElement,
   type ReactNode,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 import {
   ConfirmDialog as CssConfirmDialog,
@@ -85,6 +87,10 @@ export interface OperatorViewComponents {
   readonly Select: ComponentType<
     SelectHTMLAttributes<HTMLSelectElement> & OperatorControlPresentationProps
   >;
+  readonly Textarea: ComponentType<
+    TextareaHTMLAttributes<HTMLTextAreaElement> &
+      OperatorControlPresentationProps
+  >;
   readonly ConfirmDialog: ComponentType<ConfirmDialogProps>;
   readonly Disclosure: ComponentType<OperatorDisclosureProps>;
   readonly Tabs: ComponentType<OperatorTabsProps>;
@@ -92,63 +98,36 @@ export interface OperatorViewComponents {
 
 function CssButton({
   variant = "primary",
-  className,
   xstyle,
-  style,
   ...props
 }: OperatorControlButtonProps): ReactElement {
   if (variant !== "link")
-    return (
-      <AppButton
-        variant={variant}
-        xstyle={xstyle}
-        className={className}
-        style={style}
-        {...props}
-      />
-    );
-  const styleProps = stylex.props(actionLayout.link, xstyle);
-  return (
-    <button
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+    return <AppButton variant={variant} xstyle={xstyle} {...props} />;
+  return <button {...styledProps(props, actionLayout.link, xstyle)} />;
 }
 
 function CssInput({
   xstyle,
-  className,
-  style,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> &
   OperatorControlPresentationProps): ReactElement {
-  const styleProps = stylex.props(xstyle);
-  return (
-    <input
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+  return <input {...styledProps(props, xstyle)} />;
 }
 
 function CssSelect({
   xstyle,
-  className,
-  style,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> &
   OperatorControlPresentationProps): ReactElement {
-  const styleProps = stylex.props(xstyle);
-  return (
-    <select
-      className={[styleProps.className, className].filter(Boolean).join(" ")}
-      style={{ ...styleProps.style, ...style }}
-      {...props}
-    />
-  );
+  return <select {...styledProps(props, xstyle)} />;
+}
+
+function CssTextarea({
+  xstyle,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> &
+  OperatorControlPresentationProps): ReactElement {
+  return <textarea {...styledProps(props, xstyle)} />;
 }
 
 function CssDisclosure(props: OperatorDisclosureProps): ReactElement {
@@ -167,7 +146,7 @@ function CssDisclosure(props: OperatorDisclosureProps): ReactElement {
 function CssTabs(props: OperatorTabsProps): ReactElement {
   const active = props.tabs.find((tab) => tab.value === props.value);
   return (
-    <div className="declarative-tabs">
+    <div data-tabs="">
       <OperatorSegmentedGroup role="tablist" aria-label={props.label}>
         {props.tabs.map((tab) => (
           <OperatorSegmentedButton
@@ -195,14 +174,13 @@ export function StaticAllTabs(props: {
 }): ReactElement {
   return (
     <div data-ui-tabs data-ui-tabs-default={props.defaultValue}>
-      <OperatorTabStrip className="widget-tabs" aria-label={props.label}>
+      <OperatorTabStrip aria-label={props.label}>
         {props.tabs.map((tab) => {
           const active = tab.value === props.defaultValue;
           return (
             <OperatorTabButton
               key={tab.value}
               id={`${props.id}-tab-${tab.value}`}
-              className="widget-tab"
               type="button"
               role="tab"
               data-ui-tab={tab.value}
@@ -211,9 +189,7 @@ export function StaticAllTabs(props: {
             >
               {tab.label}
               {tab.count !== undefined && (
-                <OperatorTabCount className="widget-tab-count">
-                  {tab.count}
-                </OperatorTabCount>
+                <OperatorTabCount>{tab.count}</OperatorTabCount>
               )}
             </OperatorTabButton>
           );
@@ -245,6 +221,7 @@ export const CSS_COMPONENTS: OperatorViewComponents = {
   Button: CssButton,
   Input: CssInput,
   Select: CssSelect,
+  Textarea: CssTextarea,
   ConfirmDialog: CssConfirmDialog,
   Disclosure: CssDisclosure,
   Tabs: CssTabs,

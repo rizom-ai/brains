@@ -30,6 +30,8 @@ export class SiteContentPlugin extends ServicePlugin<
       "site-content",
       siteContentSchema,
       siteContentAdapter,
+      // The id is route:section; the resolver reads it, never these copies.
+      { retiredFields: ["routeId", "sectionId"] },
     );
 
     for (const definition of ensureArray(this.config.definitions)) {

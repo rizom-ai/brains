@@ -1,32 +1,32 @@
-import type {
-  RouteDefinition,
-  SectionDefinition,
-  SiteMetadata,
-} from "@brains/site-composition";
+import type { SectionDefinition, SiteMetadata } from "@brains/site-composition";
 import {
   collectRouteAssets,
   collectRouteScripts,
-  createPreparedSiteBuildSnapshot,
+  createPreparedSiteEnvelope,
+  freezePreparedRoute,
   jsonObjectSchema,
   normalizeJsonValue,
+  visitEach,
   type PreparedRoute,
+  type PreparedRouteSource,
+  type PreparedRouteSummary,
   type PreparedSection,
-  type PreparedSiteBuild,
+  type PreparedSiteEnvelope,
   type SiteImageLookup,
   type SiteImageMap,
   withDefaultIcon,
 } from "@brains/site-engine";
 import { getErrorMessage } from "@brains/utils/error";
-import type { ProgressNotification } from "@brains/utils/progress";
-import { pLimit } from "@brains/utils/p-limit";
 import { z } from "@brains/utils/zod";
 import type {
   SiteBuildDiagnostic,
   SiteBuilderOptions,
 } from "../types/site-builder-types";
 import { buildSiteLayoutInfo } from "./build-site-layout-info";
+import type { BuildRoute } from "./collect-build-routes";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { resolveSiteSectionContent } from "./content-resolver";
+import { fingerprintPreparedRoute } from "./site-input-fingerprint";
 import type { SiteViewTemplate } from "./site-view-template";
 import { snapshotPublicAssets } from "./snapshot-public-assets";
 
@@ -35,7 +35,7 @@ const sectionContentSchema = z.record(z.string(), z.unknown());
 export interface PrepareSiteBuildOptions {
   buildId: string;
   preparedAt: string;
-  routes: RouteDefinition[];
+  routes: BuildRoute[];
   parsedOptions: Pick<
     SiteBuilderOptions,
     "environment" | "siteConfig" | "themeCSS"
@@ -44,15 +44,10 @@ export interface PrepareSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
   siteMetadata: SiteMetadata;
+  /** The environment's public URL, for absolute links between languages. */
+  siteUrl?: string | undefined;
   publicDir: string;
   signal: AbortSignal;
-  /** Called as each route is prepared; a build job's deadline follows it. */
-  onProgress?: ((notification: ProgressNotification) => void) | undefined;
-}
-
-export interface PrepareSiteBuildResult {
-  preparedBuild: PreparedSiteBuild;
-  diagnostics: SiteBuildDiagnostic[];
 }
 
 interface PreparedRouteResult {
@@ -60,7 +55,37 @@ interface PreparedRouteResult {
   diagnostics: SiteBuildDiagnostic[];
 }
 
-/** Resolve and validate every route section before renderer execution begins. */
+/** What a build's pages leave behind once they are rendered. */
+export interface PreparedPages {
+  /** Each rendered page's summary, in route order. */
+  routes: PreparedRouteSummary[];
+  /** Each rendered page's renderer input as a hash, in route order. */
+  digests: string[];
+  /** The templates the rendered pages' sections use, sorted. */
+  templates: string[];
+  /** What preparing the pages reported, in route order. */
+  diagnostics: SiteBuildDiagnostic[];
+}
+
+export interface PrepareSiteBuildResult {
+  /** The build's fields besides its pages. */
+  envelope: PreparedSiteEnvelope;
+  /** What preparing the build's own fields reported: its assets. */
+  diagnostics: SiteBuildDiagnostic[];
+  /**
+   * The pages, each prepared as it is visited and dropped once its visit
+   * ends. A page whose preparation reported an error is not visited.
+   */
+  routes: PreparedRouteSource;
+  /** What the pages left behind, once `routes.each` has run. */
+  pages(): PreparedPages;
+}
+
+/**
+ * Prepare a build's own fields, and its pages as a source that resolves and
+ * validates each page's sections only as the renderer asks for it: a build
+ * of tens of thousands of pages holds a few of them at a time.
+ */
 export async function prepareSiteBuild(
   options: PrepareSiteBuildOptions,
 ): Promise<PrepareSiteBuildResult> {
@@ -95,45 +120,6 @@ export async function prepareSiteBuild(
     },
     Object.keys(publicAssets),
   );
-  const limit = pLimit(4);
-  const total = options.routes.length;
-  let prepared = 0;
-  const settledRouteResults = await Promise.allSettled(
-    options.routes.map((route) =>
-      limit(async () => {
-        options.signal.throwIfAborted();
-        const result = await prepareRoute({
-          route,
-          siteTitle: options.siteMetadata.title,
-          publishedOnly,
-          getViewTemplate,
-          staticAssets,
-          pipelineContext: options.pipelineContext,
-          imageBuildService: options.imageBuildService,
-          siteUrl: options.siteMetadata.url,
-          signal: options.signal,
-        });
-        prepared++;
-        options.onProgress?.({
-          message: `Prepared ${prepared} of ${total} routes`,
-          progress: prepared,
-          total,
-        });
-        return result;
-      }),
-    ),
-  );
-  options.signal.throwIfAborted();
-  const rejectedRoute = settledRouteResults.find(
-    (result): result is PromiseRejectedResult => result.status === "rejected",
-  );
-  if (rejectedRoute) throw rejectedRoute.reason;
-  const routeResults = settledRouteResults
-    .filter(
-      (result): result is PromiseFulfilledResult<PreparedRouteResult> =>
-        result.status === "fulfilled",
-    )
-    .map((result) => result.value);
 
   const site = buildSiteLayoutInfo(
     options.siteMetadata,
@@ -154,12 +140,11 @@ export async function prepareSiteBuild(
     });
   }
   options.signal.throwIfAborted();
-  const preparedBuild = createPreparedSiteBuildSnapshot({
+  const envelope = createPreparedSiteEnvelope({
     buildId: options.buildId,
     preparedAt: options.preparedAt,
     environment: options.parsedOptions.environment,
     site,
-    routes: routeResults.map((result) => result.route),
     ...(options.parsedOptions.themeCSS !== undefined && {
       themeCSS: options.parsedOptions.themeCSS,
     }),
@@ -167,19 +152,69 @@ export async function prepareSiteBuild(
     staticAssets,
     publicAssets,
     globalHeadScripts: options.buildOptions.headScripts ?? [],
+    ...(options.siteUrl !== undefined && { siteUrl: options.siteUrl }),
   });
 
+  // Each page leaves only its summary, digest and diagnostics, kept in its
+  // route's place so the build's order does not depend on which page a
+  // renderer finished first.
+  const summaries: Array<PreparedRouteSummary | undefined> = [];
+  const digests: Array<string | undefined> = [];
+  const pageDiagnostics: SiteBuildDiagnostic[][] = [];
+  const templates = new Set<string>();
+
+  const routes: PreparedRouteSource = {
+    count: options.routes.length,
+    each: (visit, signal) =>
+      visitEach(
+        options.routes.map((route, index) => ({ route, index })),
+        async ({ route, index }) => {
+          const result = await prepareRoute({
+            route,
+            siteTitle: options.siteMetadata.title,
+            publishedOnly,
+            getViewTemplate,
+            staticAssets,
+            pipelineContext: options.pipelineContext,
+            imageBuildService: options.imageBuildService,
+            siteUrl: options.siteMetadata.url,
+            signal,
+          });
+          pageDiagnostics[index] = result.diagnostics;
+          if (result.diagnostics.some(({ severity }) => severity === "error")) {
+            return;
+          }
+          // Each section's data was validated as JSON when it was prepared;
+          // the page keeps it rather than copying it.
+          const page = freezePreparedRoute(result.route);
+          summaries[index] = {
+            id: page.id,
+            path: page.path,
+            headScripts: page.headScripts,
+          };
+          digests[index] = fingerprintPreparedRoute(page);
+          for (const section of page.sections) templates.add(section.template);
+          await visit(page);
+        },
+        signal,
+      ),
+  };
+
   return {
-    preparedBuild,
-    diagnostics: [
-      ...diagnostics,
-      ...routeResults.flatMap((result) => result.diagnostics),
-    ],
+    envelope,
+    diagnostics,
+    routes,
+    pages: () => ({
+      routes: summaries.filter((summary) => summary !== undefined),
+      digests: digests.filter((digest) => digest !== undefined),
+      templates: [...templates].sort(),
+      diagnostics: pageDiagnostics.flat(),
+    }),
   };
 }
 
 interface PrepareRouteOptions {
-  route: RouteDefinition;
+  route: BuildRoute;
   siteTitle: string;
   publishedOnly: boolean;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
@@ -201,9 +236,6 @@ async function prepareRoute(
     options.signal.throwIfAborted();
     if (section.template === "footer") continue;
 
-    // Local libSQL answers queries synchronously, so resolving sections is one
-    // unbroken chain of microtasks; yield so requests are served between them.
-    await new Promise<void>((resolve) => setImmediate(resolve));
     const result = await prepareSection(options, section);
     if (result.section) sections.push(result.section);
     if (result.diagnostic) diagnostics.push(result.diagnostic);
@@ -213,6 +245,14 @@ async function prepareRoute(
     route: {
       id: options.route.id,
       path: options.route.path,
+      language: options.route.language,
+      alternates: options.route.alternates,
+      ...(options.route.siteNavigation !== undefined && {
+        siteNavigation: options.route.siteNavigation,
+      }),
+      ...(options.route.siteTranslation !== undefined && {
+        siteTranslation: options.route.siteTranslation,
+      }),
       title: options.route.title,
       ...(options.route.pageLabel !== undefined && {
         pageLabel: options.route.pageLabel,

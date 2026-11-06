@@ -28,16 +28,16 @@ export async function verifyAdministrationRecords(
         : "Details";
   await waitForSelector(
     page,
-    '.declarative-detail-master [data-record-trailing="true"]',
+    '[data-detail-master] [data-record-trailing="true"]',
   );
   await clickText(
     page,
-    '.declarative-detail-master [data-record-trailing="true"] button',
+    '[data-detail-master] [data-record-trailing="true"] button',
     label,
   );
-  await waitForSelector(page, ".declarative-detail-pane h2");
+  await waitForSelector(page, "[data-operator-detail-pane] h2");
   const inspection = await evaluatePage(page, () => {
-    const pane = document.querySelector(".declarative-detail-pane");
+    const pane = document.querySelector("[data-operator-detail-pane]");
     return {
       selected: new URL(location.href).searchParams.has("selected"),
       text: pane?.textContent ?? "",
@@ -66,8 +66,8 @@ export async function verifyAdministrationRecords(
     !inspection.text.includes("Confirm delivered")
   )
     throw new Error("Invitation review lost its manual delivery control");
-  if ((await elementDisplay(page, ".declarative-detail-back")) !== "none") {
-    await clickText(page, ".declarative-detail-back", "Back");
+  if ((await elementDisplay(page, "[data-detail-back]")) !== "none") {
+    await clickText(page, "[data-detail-back]", "Back");
   } else {
     // Query edits replace the current URL; desktop inspection returns through
     // the local tabs rather than pretending browser Back closes the pane.
@@ -80,7 +80,7 @@ export async function verifyAdministrationRecords(
           document
             .querySelector('[role="tab"][aria-selected="true"]')
             ?.textContent.trim() === label &&
-          !document.querySelector(".declarative-detail-pane"),
+          !document.querySelector("[data-operator-detail-pane]"),
         next,
       ),
     );
@@ -97,8 +97,8 @@ export async function verifyAdministrationRecords(
     evaluatePage(
       page,
       () =>
-        !!document.querySelector(".declarative-detail-master") &&
-        !document.querySelector(".declarative-detail-pane"),
+        !!document.querySelector("[data-detail-master]") &&
+        !document.querySelector("[data-operator-detail-pane]"),
     ),
   );
 }

@@ -2,6 +2,7 @@ import type { Template } from "@brains/plugins";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
+  languageTagSchema,
   RouteDefinitionSchema,
   siteMetadataSchema,
   type EntityDisplayEntry,
@@ -38,6 +39,7 @@ type SiteBuilderConfigSchema = z.ZodObject<{
   autoRebuild: z.ZodDefault<z.ZodBoolean>;
   rebuildDebounce: z.ZodDefault<z.ZodNumber>;
   staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+  languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
 }>;
 
 export const siteBuilderConfigSchema: SiteBuilderConfigSchema = z.object({
@@ -110,6 +112,13 @@ export const siteBuilderConfigSchema: SiteBuilderConfigSchema = z.object({
     .optional()
     .describe(
       "Static files to write to the output directory at build time. Keys are output paths (e.g. '/canvases/tree.js'), values are file contents as strings. Typically supplied by a SitePackage via text imports.",
+    ),
+  languages: z
+    .array(languageTagSchema)
+    .min(1)
+    .optional()
+    .describe(
+      "The site's languages, the first its default. Every other language is built under its lowercased tag from copy saved for it.",
     ),
 });
 

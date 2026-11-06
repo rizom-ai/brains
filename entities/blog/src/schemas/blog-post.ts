@@ -18,10 +18,6 @@ export type BlogPostStatus = z.output<typeof blogPostStatusSchema>;
  * Blog post frontmatter schema (stored in content as YAML frontmatter)
  * Contains all blog post data for human editing
  */
-type TwitterCardSchema = z.ZodOptional<
-  z.ZodEnum<{ summary: "summary"; summary_large_image: "summary_large_image" }>
->;
-
 type BlogPostFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodOptional<z.ZodString>;
@@ -34,10 +30,7 @@ type BlogPostFrontmatterSchema = z.ZodObject<{
   seriesName: z.ZodOptional<z.ZodString>;
   seriesIndex: z.ZodOptional<z.ZodNumber>;
   ogImage: z.ZodOptional<z.ZodString>;
-  ogDescription: z.ZodOptional<z.ZodString>;
-  twitterCard: TwitterCardSchema;
   canonicalUrl: z.ZodOptional<z.ZodString>;
-  atprotoUri: z.ZodOptional<z.ZodString>;
 }>;
 
 export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
@@ -53,10 +46,7 @@ export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
   seriesIndex: z.number().optional(),
   // SEO metadata (optional, with smart fallbacks)
   ogImage: z.string().url().optional(),
-  ogDescription: z.string().optional(),
-  twitterCard: z.enum(["summary", "summary_large_image"]).optional(),
   canonicalUrl: z.string().url().optional(),
-  atprotoUri: z.string().optional(),
 });
 
 export type BlogPostFrontmatter = z.output<typeof blogPostFrontmatterSchema>;

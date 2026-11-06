@@ -1,0 +1,70 @@
+id: multi-turn-inline-then-durable-generation
+name: Inline transformation stays in chat; durable generation uses system_generate
+description: >-
+  Verifies the split between inline and durable generation outside a playbook.
+  A chat-only transformation of an existing post is answered in the response
+  without system_generate or system_create. A follow-up asking for a new
+  newsletter draft from the same post is durable generation and must request
+  confirmation through system_generate prompt-from-source.
+type: multi_turn
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - core
+  - generation
+  - multi-turn
+  - tool-invocation
+
+turns:
+  - userMessage: >-
+      Summarize my blog post "Resilience Is Not Redundancy" as three bullet
+      points here in chat. Don't save or generate anything.
+    successCriteria:
+      expectedAnyTool:
+        - toolNames:
+            - system_get
+            - system_search
+            - system_list
+          shouldBeCalled: true
+      expectedTools:
+        - toolName: system_generate
+          shouldBeCalled: false
+        - toolName: system_create
+          shouldBeCalled: false
+      responseNotContains:
+        - "Confirmation required"
+        - "I cannot"
+        - "I don't have access"
+      responseCriteria:
+        - "Gives a three-bullet summary of the resilience post directly in the response."
+
+  - userMessage: >-
+      Now generate a newsletter draft from that post.
+    successCriteria:
+      expectedTools:
+        - toolName: system_generate
+          shouldBeCalled: true
+          argsContain:
+            operation.kind: prompt-from-source
+            operation.entityType: newsletter
+            operation.source.entityType: post
+            operation.source.entityId: resilience-in-distributed-systems
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "Confirmation required"
+      responseNotContains:
+        - "I cannot"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_generate
+      shouldBeCalled: true
+    - toolName: system_create
+      shouldBeCalled: false
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 75000

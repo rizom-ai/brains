@@ -67,7 +67,6 @@ export class ResendPlugin extends ServicePlugin<
       provider,
       {
         pluginId: this.id,
-        publishResultIdField: "resendBroadcastId",
         signupAction: "/api/resend/subscribe",
         signupSuccessMessage: "You are subscribed.",
         autoSendOnPublish: this.config.autoSendOnPublish,

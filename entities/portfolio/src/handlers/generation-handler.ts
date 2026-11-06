@@ -136,7 +136,13 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
     return {
       id: slug,
       content: projectAdapter.createProjectContent(frontmatter, bodyContent),
-      metadata: { title, slug, status: "draft", year },
+      metadata: {
+        title,
+        slug,
+        status: "draft",
+        year,
+        description: generated.description,
+      },
       title,
       resultExtras: { title },
     };

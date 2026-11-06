@@ -5,6 +5,7 @@ import {
   type ContentVisibility,
   type SearchResult,
   type SearchOptions,
+  type NearestEntity,
   type NearestToEntityRequest,
   type ProjectSemanticSpaceRequest,
   type SemanticSpaceProjection,
@@ -90,6 +91,11 @@ export class EntitySearch {
   private readonly embeddingsEnabled: boolean;
   /** Published statuses by entity type, for the types that declare them. */
   private readonly publishGates: () => Record<string, string[]>;
+  /**
+   * The types this brain loads. Rows of any other type, left by a plugin the
+   * brain no longer runs, cannot be read back, so search never returns them.
+   */
+  private readonly registeredTypes: (() => readonly string[]) | undefined;
 
   constructor(
     db: EntitySearchDB,
@@ -98,6 +104,7 @@ export class EntitySearch {
     logger: Logger,
     embeddingsEnabled = true,
     publishGates: () => Record<string, string[]> = () => ({}),
+    registeredTypes?: () => readonly string[],
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
@@ -105,6 +112,15 @@ export class EntitySearch {
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
     this.publishGates = publishGates;
+    this.registeredTypes = registeredTypes;
+  }
+
+  /** The requested types, or every type, narrowed to those the brain loads. */
+  private searchableTypes(requested: string[]): string[] {
+    const registered = this.registeredTypes?.();
+    if (!registered) return requested;
+    const candidates = requested.length > 0 ? requested : registered;
+    return candidates.filter((type) => registered.includes(type));
   }
 
   /**
@@ -117,7 +133,7 @@ export class EntitySearch {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
     const {
       offset,
-      types,
+      types: requestedTypes,
       excludeTypes,
       weight,
       visibilityScope,
@@ -128,6 +144,8 @@ export class EntitySearch {
       limit,
     } = validatedOptions;
     signal?.throwIfAborted();
+    const types = this.searchableTypes(requestedTypes);
+    if (this.registeredTypes && types.length === 0) return [];
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
@@ -342,13 +360,14 @@ export class EntitySearch {
     const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
-    // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not.
+    // FTS5 keyword boost: 1.0 when matched, 0.0 when not. The matches are a
+    // list SQLite builds once per statement; a subquery correlated with the
+    // candidate reruns the match for every entity, seconds on a book corpus.
     // Wrap in double quotes for phrase matching — prevents special characters
     // (?, *, OR, AND, etc.) from being parsed as FTS5 operators.
     const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
-    const ftsBoost = sql<number>`CASE WHEN EXISTS (
-      SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
-        AND entity_id = ${entities.id} AND entity_type = ${entities.entityType}
+    const ftsBoost = sql<number>`CASE WHEN (${entities.entityType}, ${entities.id}) IN (
+      SELECT entity_type, entity_id FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
     ) THEN 1.0 ELSE 0.0 END`;
 
     // Combined score: (1-α)*vector + α*keyword_match
@@ -530,9 +549,7 @@ export class EntitySearch {
    */
   public async nearestToEntity(
     request: NearestToEntityRequest,
-  ): Promise<
-    Array<{ entityId: string; entityType: string; distance: number }>
-  > {
+  ): Promise<NearestEntity[]> {
     if (!this.embeddingsEnabled) {
       throw new SemanticIndexingDisabledError();
     }
@@ -550,6 +567,7 @@ export class EntitySearch {
         entityId: entities.id,
         entityType: entities.entityType,
         distance: distanceExpr,
+        metadata: entities.metadata,
       })
       .from(entities)
       .innerJoin(
@@ -560,6 +578,9 @@ export class EntitySearch {
         and(
           ...this.buildVisibilityConditions(request.visibilityScope),
           inArray(entities.entityType, request.types),
+          request.publishedOnly
+            ? publishedAcrossTypesCondition(this.publishGates())
+            : undefined,
           sql`NOT (${entities.id} = ${request.origin.entityId} AND ${entities.entityType} = ${request.origin.entityType})`,
           request.maxDistance !== undefined
             ? sql`${distanceExpr} <= ${request.maxDistance}`
@@ -567,7 +588,13 @@ export class EntitySearch {
         ),
       )
       .orderBy(sql`${distanceExpr} ASC`);
-    return request.limit !== undefined ? query.limit(request.limit) : query;
+    const rows =
+      request.limit !== undefined
+        ? await query.limit(request.limit)
+        : await query;
+    return rows.map(({ metadata, ...nearest }) =>
+      request.includeMetadata ? { ...nearest, metadata } : nearest,
+    );
   }
 
   /**

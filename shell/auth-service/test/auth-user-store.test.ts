@@ -397,6 +397,13 @@ describe("AuthUserStore", () => {
         }),
         "Setup delivery was not confirmed",
       );
+      const refusal = await targetedSetup
+        .validate({ userId: owner.id, setupTokenId: undeliveredTokenHash })
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+      expect(refusal).toMatchObject({ reason: "delivery-unconfirmed" });
       expect(await store.getUser(owner.id)).toMatchObject({
         status: "invited",
       });

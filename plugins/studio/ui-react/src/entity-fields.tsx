@@ -1,11 +1,14 @@
 /** @jsxImportSource react */
-import { datetimeLocalValue, errorMessage } from "./ui-utils";
+import { datetimeLocalValue, errorMessage, optionLabel } from "./ui-utils";
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
 import { groupingValueLabel } from "./grouping-value";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import { GroupingMembershipField } from "./grouping-membership-field";
 import { StudioStatus } from "./studio-status";
+import { SystemReadOnlyValue } from "./read-only-value";
+import { BrainMembersField, PeopleNames } from "./people-fields";
+import { ProvenanceFact } from "./provenance-field";
 import {
   Button,
   Input,
@@ -295,7 +298,7 @@ function StringListField(props: {
   );
 }
 
-export type FieldAssistVariant = "summarise" | "tag-suggest";
+export type FieldAssistVariant = "summarize" | "tag-suggest";
 
 export type FieldAssistState =
   | { kind: "idle" }
@@ -311,7 +314,7 @@ export type FieldAssistState =
 export function fieldAssistVariant(
   descriptor: FieldDescriptor,
 ): FieldAssistVariant | null {
-  if (descriptor.widget === "text") return "summarise";
+  if (descriptor.widget === "text") return "summarize";
   if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
     return "tag-suggest";
   }
@@ -377,8 +380,8 @@ export function FieldAssistControls(props: {
       >
         {active && state.kind === "loading"
           ? "Thinking…"
-          : variant === "summarise"
-            ? "Summarise body"
+          : variant === "summarize"
+            ? "Summarize body"
             : `Suggest ${descriptor.label.toLowerCase()}`}
       </Button>
       {active && state.kind === "error" && (
@@ -519,7 +522,7 @@ function FieldControl(props: {
           <option value="">—</option>
           {(descriptor.options ?? []).map((option) => (
             <option key={option} value={option}>
-              {option}
+              {optionLabel(option)}
             </option>
           ))}
         </NativeSelect>
@@ -567,23 +570,43 @@ function FieldControl(props: {
     );
   }
 
+  if (descriptor.widget === "provenance") {
+    return (
+      <ProvenanceFact
+        name={descriptor.name}
+        label={descriptor.label}
+        value={value}
+      />
+    );
+  }
+
+  if (descriptor.widget === "people") {
+    return <PeopleNames label={descriptor.label} value={value} />;
+  }
+
+  if (descriptor.widget === "members") {
+    return (
+      <BrainMembersField
+        label={descriptor.label}
+        value={value}
+        onChange={onChange}
+        readOnly={props.readOnly}
+      />
+    );
+  }
+
   if (descriptor.widget === "list" || descriptor.widget === "object") {
     // Nested structured widgets remain read-only; the value round-trips
-    // untouched because saves only send changed draft keys.
+    // untouched because saves only send changed draft keys. It reads as
+    // content, never as JSON.
     return (
-      <label {...stylex.props(f.field)} data-studio-field="structured">
+      <div {...stylex.props(f.field)} data-studio-field="structured">
         <span {...stylex.props(f.label)}>
           {descriptor.label}
           <em {...stylex.props(f.kind)}>read-only</em>
         </span>
-        <Textarea
-          {...validation}
-          xstyle={[f.control, f.readOnly]}
-          value={JSON.stringify(value ?? null, null, 2)}
-          disabled
-          rows={4}
-        />
-      </label>
+        <SystemReadOnlyValue value={value} fields={descriptor.fields} />
+      </div>
     );
   }
 
@@ -592,38 +615,38 @@ function FieldControl(props: {
       {label}
       <Input
         {...validation}
-        xstyle={[f.control, descriptor.widget === "datetime" && f.date]}
+        xstyle={[
+          f.control,
+          (descriptor.widget === "datetime" || descriptor.widget === "date") &&
+            f.date,
+        ]}
         type={
           descriptor.widget === "number"
             ? "number"
             : descriptor.widget === "datetime"
               ? "datetime-local"
-              : "text"
+              : descriptor.widget === "date"
+                ? "date"
+                : "text"
         }
         value={
           descriptor.widget === "datetime" ? datetimeLocalValue(text) : text
         }
         required={required}
-        onChange={(event) =>
+        onChange={(event) => {
+          const next = event.currentTarget.value;
+          // A cleared optional date is no date, not an empty string.
+          if (descriptor.widget === "date" && next === "") {
+            onChange(undefined);
+            return;
+          }
           onChange(
-            descriptor.widget === "datetime" && event.currentTarget.value
-              ? new Date(event.currentTarget.value).toISOString()
-              : event.currentTarget.value,
-          )
-        }
+            descriptor.widget === "datetime" && next
+              ? new Date(next).toISOString()
+              : next,
+          );
+        }}
       />
     </label>
   );
 }
-
-// Navigation and type classification moved to studio-type-navigation.tsx.
-// Re-exported here so the many call sites that reach for them through this
-// module keep working; import from the navigation module in new code.
-export type { StudioEditorPresentation } from "./studio-type-navigation";
-export {
-  StudioBrowseDestinations,
-  TypeSwitcher,
-  studioArea,
-  studioEditorPresentation,
-  studioMobileSelection,
-} from "./studio-type-navigation";

@@ -1,0 +1,82 @@
+---
+title: Moving in as a consultant
+slug: consultant
+order: 30
+section: Use a brain
+persona: The consultant
+for: Your expertise is locked in client work, slide decks and a LinkedIn summary. You want it findable and askable without writing it all again.
+summary: Client work, decks and a profile
+recipe: professional
+brings:
+  - A profile your site and answers start from
+  - Portfolio projects for your past engagements
+  - Decks for your talks and workshops
+  - Your own site with your posts, projects and decks
+  - An agent card, so other brains can find you
+material:
+  - from: What you do
+    where: Your bio, a LinkedIn summary, a pitch
+    becomes: anchor-profile
+    how: Fill it in Studio, or paste it in chat
+  - from: Past engagements
+    where: Case write-ups, proposals, reports
+    becomes: project
+    how: Paste a write-up in chat; your text is kept as written
+  - from: Talks and workshops
+    where: Slide outlines, workshop scripts
+    becomes: deck
+    how: Paste an outline in chat, or write the slides in Studio
+  - from: What you know
+    where: Articles, newsletters, long posts
+    becomes: post
+    how: Upload in chat; the original address stays canonical
+---
+
+## Say who you are
+
+Your profile holds your tagline, a short introduction, your story, who you work for, your expertise and what you are focused on now. Fill it in Studio under **System → Anchor Profile**, or paste your bio in chat and ask the brain to fill in your profile from it, naming the parts you want: tagline, introduction, expertise, current focus. It shows you the change and asks you to confirm.
+
+The site, the brain's answers and its agent card all start from this profile, so it is worth getting right first.
+
+Exact steps: [Customization guide](../customization-guide.md).
+
+## Bring your past work
+
+Each engagement becomes a **portfolio project**. Paste a case write-up in chat and ask the brain to save it as a portfolio project. It keeps your text as written, adds a short description for the project card and saves the project as a draft. If the write-up does not say which year the work began, it asks you.
+
+Leave out what a client would not want public. A project appears on your site only once you publish it.
+
+Exact steps: [Entity types](../entity-types-reference.md).
+
+## Bring your talks
+
+A **deck** is Markdown slides with a line of three dashes between them. Paste a talk outline in chat and ask the brain to keep it as a deck. It keeps your text, starts a new slide at each heading and saves the deck as a draft with a short description. When the outline has no headings or dashes, it asks where the slides break.
+
+You can also create a deck in Studio under **Library → Decks** and edit it there like any other text. A deck publishes to your site.
+
+Exact steps: [Entity types](../entity-types-reference.md).
+
+## Publish what you know
+
+Articles you have already written come in as posts with their original dates, the same way as in the [writer guide](./writer.md). New posts start from your notes and your profile, in your voice.
+
+Exact steps: [Content management](../content-management.md).
+
+## Be findable
+
+Your site shows your profile, projects, decks and posts. Your brain also publishes an **agent card** at `/.well-known/agent-card.json`, a machine-readable description of who you are and what it can answer, so other people's agents can find it and ask it questions within daily limits.
+
+The network of brains that find each other is still small. The card is there so you are on it as it grows.
+
+Exact steps: [Feature overview](../feature-overview.md).
+
+## A week later
+
+Your work is visible in one place, and it answers for you.
+
+- **A site that shows the work**: projects, talks and writing, not just a résumé.
+- **Answers from your experience**: ask what you did for a kind of problem, and it cites the projects.
+- **Proposals start from your record**, drafted from projects you have already described.
+- **An agent card** that represents you to other brains.
+
+Exact steps: [Feature overview](../feature-overview.md).

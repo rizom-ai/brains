@@ -4,7 +4,7 @@ import {
   type AuthAccountMutation,
   type AuthAccountPluginSettingsForm,
   type AuthAccountSnapshot,
-} from "@brains/auth-service/account-contracts";
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { AccountClient } from "./account-api";
 import { settingsFormValues } from "./account-settings";

@@ -6,6 +6,7 @@ import {
   buildEntityMemoryContext,
   buildEntityMemoryRefs,
   buildRetrievedEntityRefs,
+  buildSourcesCardFromContextItems,
   confirmationFrom,
   extractToolResults,
   stepFailures,
@@ -996,6 +997,28 @@ describe("an answer's sources", () => {
     ]);
   });
 
+  it("include a result whose page the answer links, though it names another title", () => {
+    const links = {
+      isCitable: (): boolean => true,
+      urlFor: (entityType: string, slug: string): string =>
+        `/${entityType}s/${slug}`,
+      siteBaseUrl: "example.com",
+    };
+    const linked = (text: string): string[] =>
+      extractToolResults(steps, text, links).cards.flatMap((card) =>
+        card.kind === "sources" ? card.sources.map((source) => source.id) : [],
+      );
+
+    expect(
+      linked(
+        "Read [the piece on heroics](/posts/heroics) or https://example.com/notes/note-c.",
+      ),
+    ).toEqual(["note:note-c", "post:heroics", "post:read-directly"]);
+    expect(linked("See /posts/heroics-revisited and /posts.")).toEqual(
+      linked("A general answer."),
+    );
+  });
+
   it("fall back to the best-scored results when the answer names none", () => {
     expect(sourceIds("A general answer.")).toEqual([
       "note:note-a",
@@ -1411,5 +1434,44 @@ describe("a source's excerpt", () => {
     ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
 
     expect(source?.excerpt).toBe("Der Text des Abschnitts.");
+  });
+
+  it("is absent for a source whose content is all frontmatter", () => {
+    const [source] = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+        toolResults: [
+          {
+            toolCallId: "g",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: {
+                  id: "style-guide",
+                  entityType: "style-guide",
+                  content:
+                    "---\nname: Rizom\nvoice:\n  summary: Direct\n---\n\n",
+                  metadata: {},
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
+
+    expect(source?.id).toBe("style-guide:style-guide");
+    expect(source?.excerpt).toBeUndefined();
+  });
+
+  it("is absent for a retrieved context item with only whitespace", () => {
+    const card = buildSourcesCardFromContextItems([
+      { id: "blank", source: "agent-context", content: "  \n" },
+    ]);
+    const [source] = card?.kind === "sources" ? card.sources : [];
+
+    expect(source?.id).toBe("blank");
+    expect(source?.excerpt).toBeUndefined();
   });
 });

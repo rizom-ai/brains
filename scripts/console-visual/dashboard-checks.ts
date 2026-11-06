@@ -313,7 +313,7 @@ function knowledgeMapFraming(state: DashboardChromeState): void {
   );
   if (!atlas || !atlasCanvas || !atlasGraphic || !atlasSummary)
     throw new Error("Missing shared map framing");
-  const phoneMap = window.innerWidth <= 700;
+  const phoneMap = window.innerWidth <= 720;
   if (
     getComputedStyle(atlas).gridTemplateColumns.split(" ").length !==
       (phoneMap ? 1 : 2) ||
@@ -340,7 +340,7 @@ function knowledgeMapFraming(state: DashboardChromeState): void {
 function knowledgeMapSummary(state: DashboardChromeState): void {
   const { atlasSummary } = state;
   if (!atlasSummary) throw new Error("Missing shared map framing");
-  const phoneMap = window.innerWidth <= 700;
+  const phoneMap = window.innerWidth <= 720;
   const values = atlasSummary.querySelectorAll("dd strong");
   const labels = atlasSummary.querySelectorAll("dt");
   if (
@@ -370,7 +370,7 @@ function knowledgeMapSummary(state: DashboardChromeState): void {
 function territorySelection(state: DashboardChromeState): void {
   const { atlas } = state;
   if (!atlas) throw new Error("Missing shared map framing");
-  const phoneMap = window.innerWidth <= 700;
+  const phoneMap = window.innerWidth <= 720;
   const territoryControls = atlas.querySelectorAll<HTMLButtonElement>(
     "[data-knowledge-zone-ref]",
   );
@@ -433,7 +433,7 @@ function territoryGuidance(state: DashboardChromeState): void {
   const { atlas, knowledge } = state;
   if (!atlas) throw new Error("Missing shared map framing");
   if (!knowledge) throw new Error("Missing Dashboard section links");
-  const phoneMap = window.innerWidth <= 700;
+  const phoneMap = window.innerWidth <= 720;
   knowledge.focus();
   const indexNote = atlas.querySelector("[data-map-index-note]");
   const indexList = atlas.querySelector("ol");
@@ -527,19 +527,19 @@ function systemPanelLayout(state: DashboardChromeState): void {
     !supporting ||
     getComputedStyle(columns).gap !== "14px" ||
     getComputedStyle(columns).gridTemplateColumns.split(" ").length !==
-      (window.innerWidth <= 960 ? 1 : 2) ||
+      (window.innerWidth <= 900 ? 1 : 2) ||
     getComputedStyle(primaryColumns).gridTemplateColumns.split(" ").length !==
-      (window.innerWidth <= 700 ? 1 : 2) ||
+      (window.innerWidth <= 720 ? 1 : 2) ||
     getComputedStyle(supporting).display !==
-      (window.innerWidth <= 960 ? "grid" : "flex")
+      (window.innerWidth <= 900 ? "grid" : "flex")
   )
     throw new Error(
       "System lost its responsive primary/supporting panel layout",
     );
   if (
-    window.innerWidth <= 960 &&
+    window.innerWidth <= 900 &&
     getComputedStyle(supporting).gridTemplateColumns.split(" ").length !==
-      (window.innerWidth <= 700 ? 1 : 3)
+      (window.innerWidth <= 720 ? 1 : 3)
   )
     throw new Error("Supporting panels lost their tablet/phone columns");
   for (const card of systemPanel.querySelectorAll(
@@ -569,7 +569,7 @@ function systemStatus(state: DashboardChromeState): void {
   if (!firstMetric) throw new Error("Missing snapshot metrics");
   if (
     getComputedStyle(band).gridTemplateColumns.split(" ").length !==
-      (window.innerWidth <= 700 ? 1 : 3) ||
+      (window.innerWidth <= 720 ? 1 : 3) ||
     getComputedStyle(firstMetric).borderTopWidth !== "0px" ||
     getComputedStyle(readiness).width !==
       (window.innerWidth <= 420 ? "68px" : "78px")

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { toneText } from "@brains/app-ui-react";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { panelContentStyles as s } from "./operator-panel-content.styles";
 import { styledProps } from "./styled-props";
@@ -36,12 +37,7 @@ export function OperatorPanelStatus(props: {
 }): ReactElement {
   return (
     <span
-      {...stylex.props(
-        s.status,
-        props.tone === "good" && s.good,
-        props.tone === "warn" && s.warn,
-        props.tone === "error" && s.error,
-      )}
+      {...stylex.props(s.status, toneText(props.tone))}
       data-tone={props.tone ?? "neutral"}
     >
       {props.children}

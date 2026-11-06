@@ -9,10 +9,7 @@ import { ResendPlugin } from "../src/provider/resend/plugin";
 interface PublishRegistration {
   entityType: string;
   provider: { name: string };
-  config: {
-    publishResultIdField: string;
-    publishTimestampField: string;
-  };
+  config: Record<string, string>;
 }
 
 interface SlotRegistration {
@@ -38,11 +35,8 @@ describe("newsletter provider registration", () => {
     expect(publishes[0]).toMatchObject({
       entityType: "newsletter",
       provider: { name: "buttondown" },
-      config: {
-        publishResultIdField: "buttondownId",
-        publishTimestampField: "sentAt",
-      },
     });
+    expect(publishes[0]?.config).toEqual({ publishTimestampField: "sentAt" });
     const slots = await slotsInWorker(
       new ButtondownPlugin({ apiKey: "buttondown-key", doubleOptIn: true }),
     );
@@ -80,11 +74,8 @@ describe("newsletter provider registration", () => {
     expect(publishes[0]).toMatchObject({
       entityType: "newsletter",
       provider: { name: "resend" },
-      config: {
-        publishResultIdField: "resendBroadcastId",
-        publishTimestampField: "sentAt",
-      },
     });
+    expect(publishes[0]?.config).toEqual({ publishTimestampField: "sentAt" });
     const slots = await slotsInWorker(
       new ResendPlugin({
         apiKey: "resend-key",

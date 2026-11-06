@@ -6,7 +6,6 @@ import {
   navigationStyles as nav,
 } from "./studio-navigation.styles";
 import { typographyStyles } from "./studio-typography.styles";
-import { singularLabel } from "./ui-utils";
 import { StudioSearchField } from "./studio-search-field";
 
 const DIRECT_MOBILE_AREAS = ["overview", "chat", "administration"];
@@ -22,7 +21,7 @@ export function workspaceBadge(
 export function navigationTypeLabel(info: EntityTypeInfo): string {
   if (info.entityType === "grouping-definitions") return "Groupings";
   return info.isSingleton && info.entityType !== "settings"
-    ? singularLabel(info.label)
+    ? info.singularLabel
     : info.label;
 }
 

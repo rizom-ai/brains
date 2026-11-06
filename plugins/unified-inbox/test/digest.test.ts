@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { ServicePluginContext } from "@brains/plugins";
+import { findRouteByRole, type ServicePluginContext } from "@brains/plugins";
 
 import {
   createUnifiedInboxDigest,
@@ -110,17 +110,22 @@ describe("unified inbox digest", () => {
           },
         },
         webRoutes: {
-          getRoutes: () => [
-            {
-              pluginId: "dashboard",
-              fullPath: "/ops",
-              definition: {
-                path: "/ops",
-                method: "GET",
-                handler: (): Response => new Response(),
-              },
-            },
-          ],
+          findByRole: (role) =>
+            findRouteByRole(
+              [
+                {
+                  pluginId: "dashboard",
+                  fullPath: "/ops",
+                  definition: {
+                    path: "/ops",
+                    method: "GET",
+                    role: "dashboard",
+                    handler: (): Response => new Response(),
+                  },
+                },
+              ],
+              role,
+            ),
         },
       },
       { getInboxData: async () => projection },
@@ -152,17 +157,22 @@ describe("unified inbox digest", () => {
           },
         },
         webRoutes: {
-          getRoutes: () => [
-            {
-              pluginId: "dashboard",
-              fullPath: "/ops",
-              definition: {
-                path: "/ops",
-                method: "GET",
-                handler: (): Response => new Response(),
-              },
-            },
-          ],
+          findByRole: (role) =>
+            findRouteByRole(
+              [
+                {
+                  pluginId: "dashboard",
+                  fullPath: "/ops",
+                  definition: {
+                    path: "/ops",
+                    method: "GET",
+                    role: "dashboard",
+                    handler: (): Response => new Response(),
+                  },
+                },
+              ],
+              role,
+            ),
         },
       },
       { getInboxData: async () => projection },

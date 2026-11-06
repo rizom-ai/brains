@@ -229,7 +229,10 @@ export class ContentService implements IContentService {
         );
       } else {
         try {
-          const entity = await scopedEntityService.getEntity({
+          // Raw: the template parses the stored markdown itself, and the site
+          // maps image references to the images it builds. The resolving
+          // lookup would inline every image as a data URL.
+          const entity = await scopedEntityService.getEntityRaw({
             entityType: options.savedContent.entityType,
             id: options.savedContent.entityId,
           });
@@ -288,7 +291,8 @@ export class ContentService implements IContentService {
     scopedEntityService: IEntityService,
   ): Promise<unknown> {
     try {
-      const entity = await scopedEntityService.getEntity({
+      // Raw for the same reason as saved content: references stay references.
+      const entity = await scopedEntityService.getEntityRaw({
         entityType: savedContent.entityType,
         id: savedContent.entityId,
       });

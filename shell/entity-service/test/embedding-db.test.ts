@@ -12,6 +12,9 @@ import {
 } from "../src/db/embedding-db";
 import type { EntityDbConfig } from "../src/types";
 import { setupEntityService } from "./helpers/setup-entity-service";
+import { mockEmbeddingService } from "./helpers/mock-services";
+import { EntityService } from "../src/entityService";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("Embedding Database", () => {
   let tempDir: string;
@@ -172,13 +175,25 @@ describe("Embedding Database", () => {
 
     test("does not recreate the index during actual EntityService initialization", async () => {
       const context = await setupEntityService([]);
+      await context.entityService.initialize();
+      context.entityService.close();
       const { client } = createEmbeddingDatabase(context.embeddingDbConfig);
+      // An existing installation may still have the former vector index when
+      // a service starts: it is there before construction begins the
+      // initialization, not raced against it.
+      await client.execute(
+        "CREATE INDEX IF NOT EXISTS embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
+      );
+      const restarted = EntityService.createFresh({
+        embeddingService: mockEmbeddingService,
+        entityRegistry: context.entityRegistry,
+        logger: createSilentLogger(),
+        jobQueueService: context.jobQueueService,
+        dbConfig: context.dbConfig,
+        embeddingDbConfig: context.embeddingDbConfig,
+      });
       try {
-        // An existing installation may still have the former vector index.
-        await client.execute(
-          "CREATE INDEX IF NOT EXISTS embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
-        );
-        await context.entityService.initialize();
+        await restarted.initialize();
         expect(
           (
             await client.execute(
@@ -188,7 +203,7 @@ describe("Embedding Database", () => {
         ).toHaveLength(0);
       } finally {
         client.close();
-        context.entityService.close();
+        restarted.close();
         await context.cleanup();
       }
     });

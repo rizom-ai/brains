@@ -3,9 +3,6 @@ export const publicationStyles: Record<
   | "root"
   | "head"
   | "state"
-  | "warning"
-  | "error"
-  | "good"
   | "copy"
   | "actions"
   | "button"
@@ -30,9 +27,6 @@ export const publicationStyles: Record<
     color: "var(--console-text-muted)",
   },
   state: { color: "var(--console-text-dim)", fontWeight: "inherit" },
-  warning: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
-  good: { color: "var(--console-ok)" },
   copy: {
     margin: "10px 0 0",
     color: "var(--console-text-muted)",

@@ -45,7 +45,7 @@ describe("Deserialize error quarantine behavior", () => {
   });
 
   it("should NOT quarantine files when adapter is not registered (transient error)", async () => {
-    // Simulate "No adapter registered for entity type" — a transient error
+    // Simulate "no adapter registered" — a transient error
     // that happens when directory-sync imports before shell registers adapters
     mkdirSync(join(testDir, "brain-character"), { recursive: true });
     const filePath = join(testDir, "brain-character", "brain-character.md");
@@ -56,7 +56,7 @@ describe("Deserialize error quarantine behavior", () => {
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(() => {
       throw new Error(
-        "Entity type registration failed for brain-character: No adapter registered for entity type",
+        "Unknown entity type brain-character: no adapter registered",
       );
     });
 
@@ -145,7 +145,7 @@ describe("Deserialize error quarantine behavior", () => {
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(() => {
       throw new Error(
-        "Entity type registration failed for anchor-profile: No adapter registered for entity type",
+        "Unknown entity type anchor-profile: no adapter registered",
       );
     });
 

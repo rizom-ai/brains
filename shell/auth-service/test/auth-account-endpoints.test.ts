@@ -586,7 +586,7 @@ describe("auth account API", () => {
     );
     expect(forgedVerification.status).toBe(400);
     expect(await forgedVerification.json()).toEqual({
-      error: "Invalid passkey response",
+      error: "Passkey registration failed",
     });
 
     const invalidVerification = await service.handleRequest(
@@ -615,6 +615,92 @@ describe("auth account API", () => {
         action: "auth.account.passkey_registration_failed",
         targetId: member.userId,
       }),
+    );
+    await service.close();
+  });
+
+  it("checks the passkey response shape before verifying it", async () => {
+    const { service } = await createService();
+    const member = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    const session = await service.createAuthSession(member.userId);
+    const verify = async (body: unknown): Promise<unknown> => {
+      const response = await service.handleRequest(
+        new Request(`${ISSUER}/auth/account/passkeys/verify`, {
+          method: "POST",
+          headers: {
+            cookie: cookieHeader(session.cookie),
+            "content-type": "application/json",
+            origin: ISSUER,
+          },
+          body: JSON.stringify(body),
+        }),
+      );
+      expect(response.status).toBe(400);
+      return response.json();
+    };
+    const attestation = {
+      clientDataJSON: "client-data",
+      attestationObject: "attestation",
+    };
+    const valid = {
+      id: "credential",
+      rawId: "credential",
+      type: "public-key",
+      clientExtensionResults: {},
+      response: attestation,
+    };
+
+    // A well-formed body reaches verification, which fails on its contents.
+    const verificationFailed = { error: "Passkey registration failed" };
+    expect(await verify(valid)).toEqual(verificationFailed);
+    expect(
+      await verify({
+        ...valid,
+        authenticatorAttachment: "cross-platform",
+        response: {
+          ...attestation,
+          authenticatorData: "authenticator-data",
+          transports: ["usb", "hybrid"],
+          publicKeyAlgorithm: -7,
+          publicKey: "public-key",
+        },
+      }),
+    ).toEqual(verificationFailed);
+    // Unknown fields are dropped, not forwarded: the session account is
+    // still the only one a registration can target.
+    expect(
+      await verify({
+        ...valid,
+        userId: "someone-else",
+        response: { ...attestation, extra: true },
+      }),
+    ).toEqual(verificationFailed);
+
+    const malformed: unknown[] = [
+      null,
+      "credential",
+      [],
+      { ...valid, id: undefined },
+      { ...valid, rawId: 1 },
+      { ...valid, type: "password" },
+      { ...valid, clientExtensionResults: undefined },
+      { ...valid, clientExtensionResults: null },
+      { ...valid, authenticatorAttachment: "roaming" },
+      { ...valid, response: undefined },
+      { ...valid, response: null },
+      { ...valid, response: { ...attestation, clientDataJSON: undefined } },
+      { ...valid, response: { ...attestation, attestationObject: 1 } },
+      { ...valid, response: { ...attestation, transports: "usb" } },
+      { ...valid, response: { ...attestation, transports: ["bluetooth"] } },
+      { ...valid, response: { ...attestation, authenticatorData: 1 } },
+      { ...valid, response: { ...attestation, publicKey: 1 } },
+      { ...valid, response: { ...attestation, publicKeyAlgorithm: "-7" } },
+    ];
+    expect(await Promise.all(malformed.map(verify))).toEqual(
+      malformed.map(() => ({ error: "Invalid passkey response" })),
     );
     await service.close();
   });

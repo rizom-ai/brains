@@ -7,7 +7,10 @@ import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
 import { runSiteBuild } from "../../src/lib/run-site-build";
-import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
+import type {
+  BuildContext,
+  StaticSiteBuilderFactory,
+} from "../../src/lib/static-site-builder";
 import {
   createTestSiteBuildOutputLifecycle,
   TestLayout,
@@ -126,17 +129,20 @@ describe("runSiteBuild preflight", () => {
     });
   });
 
-  it("resolves all section content before renderer creation and cleanup", async () => {
+  it("prepares each page's sections as the renderer asks for it, once the output is staged", async () => {
     const events: string[] = [];
     const clean = mock(async () => {
       events.push("clean");
     });
-    const build = mock(async (context) => {
+    const build = mock(async (context: BuildContext, _progress, signal) => {
       events.push("build");
       expect(context).not.toHaveProperty("getContent");
-      expect(context.preparedBuild.routes[0]?.sections[0]?.data).toMatchObject({
-        heading: "Prepared heading",
-      });
+      await context.routes.each(async (route) => {
+        events.push("render");
+        expect(route.sections[0]?.data).toMatchObject({
+          heading: "Prepared heading",
+        });
+      }, signal);
     });
     const staticSiteBuilderFactory = mock<StaticSiteBuilderFactory>(() => ({
       clean,
@@ -177,13 +183,18 @@ describe("runSiteBuild preflight", () => {
     );
 
     expect(result.success).toBe(true);
-    expect(events).toEqual(["resolve", "clean", "staging", "build"]);
+    expect(events).toEqual(["clean", "staging", "build", "resolve", "render"]);
   });
 
-  it("does not create or clean the renderer when content preparation fails", async () => {
+  it("renders no page whose content failed to prepare, and fails the build", async () => {
+    const rendered: string[] = [];
     const staticSiteBuilderFactory = mock<StaticSiteBuilderFactory>(() => ({
       clean: mock(async () => undefined),
-      build: mock(async () => undefined),
+      build: mock(async (context: BuildContext, _progress, signal) => {
+        await context.routes.each(async (route) => {
+          rendered.push(route.id);
+        }, signal);
+      }),
     }));
     const template: SiteViewTemplate = {
       name: "fixture:hero",
@@ -214,7 +225,7 @@ describe("runSiteBuild preflight", () => {
       },
     );
 
-    expect(staticSiteBuilderFactory).not.toHaveBeenCalled();
+    expect(rendered).toEqual([]);
     expect(result).toMatchObject({
       success: false,
       diagnostics: [

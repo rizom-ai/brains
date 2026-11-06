@@ -95,10 +95,16 @@ export function SaveStateNotice(props: {
   return null;
 }
 
-export function editorSaveLabel(state: SaveState, dirty: boolean): string {
+export function editorSaveLabel(
+  state: SaveState,
+  dirty: boolean,
+  mode: "create" | "first-save" | "edit" = "edit",
+): string {
   if (state.kind === "saving") return "Saving…";
   if (state.kind === "conflict") return "Conflict — your changes are not saved";
   if (state.kind === "error") return "Save failed — your changes are not saved";
+  if (mode === "create") return "Not created yet";
+  if (mode === "first-save") return "Not saved yet";
   return dirty ? "Unsaved changes" : "Saved";
 }
 
@@ -219,7 +225,8 @@ export function PipelineStations(props: {
 }
 
 export function DeleteDialog(props: {
-  entityId: string;
+  /** What the entry is called, as its heading shows it. */
+  title: string;
   deleting?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -237,8 +244,8 @@ export function DeleteDialog(props: {
       onConfirm={props.onConfirm}
     >
       <p>
-        The exported file for <code>{props.entityId}</code> will be removed. Its
-        history remains recoverable in git.
+        This removes “{props.title}” and its file. Earlier versions stay in the
+        content history.
       </p>
     </ConfirmDialog>
   );

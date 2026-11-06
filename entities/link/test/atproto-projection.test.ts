@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createLinkAtprotoProjection } from "../src/atproto-projection";
 import { LinkPlugin } from "../src/plugin";
 import { linkAdapter } from "../src/adapters/link-adapter";
@@ -12,7 +11,6 @@ const content = linkAdapter.createLinkContent({
   url: "https://atproto.com",
   description: "Protocol docs",
   summary: "AT Protocol documentation summary.",
-  domain: "atproto.com",
   capturedAt: "2026-05-28T09:00:00.000Z",
   source: { ref: "cli:local", label: "CLI" },
 });
@@ -33,10 +31,6 @@ const link: LinkEntity = {
 };
 
 describe("link ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps links to ai.rizom.brain.link records", async () => {
     const projection = createLinkAtprotoProjection();
 
@@ -87,7 +81,10 @@ describe("link ATProto projection", () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-link-atproto" });
     await harness.installPlugin(new LinkPlugin({}));
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("link");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("link");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.link");

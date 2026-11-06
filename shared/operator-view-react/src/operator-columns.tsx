@@ -34,19 +34,13 @@ export function OperatorColumns(props: {
   return (
     <div
       {...root}
-      className={`declarative-columns ${root.className ?? ""}`}
+      data-columns=""
       data-columns-presentation={props.presentation}
     >
-      <div
-        {...primary}
-        className={`declarative-column ${primary.className ?? ""}`}
-      >
+      <div {...primary} data-column="primary">
         {props.primary}
       </div>
-      <Aside
-        {...aside}
-        className={`declarative-column declarative-aside ${aside.className ?? ""}`}
-      >
+      <Aside {...aside} data-column="aside">
         {props.aside}
       </Aside>
     </div>

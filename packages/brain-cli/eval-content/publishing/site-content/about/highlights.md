@@ -1,8 +1,3 @@
----
-routeId: about
-sectionId: highlights
----
-
 # About highlights
 
 ## Headline

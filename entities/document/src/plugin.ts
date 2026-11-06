@@ -8,7 +8,12 @@ import type {
   ServicePluginContext,
   Tool,
 } from "@brains/plugins";
-import { createPendingEntity, ServicePlugin } from "@brains/plugins";
+import {
+  createPendingEntity,
+  createUploadSaveHandler,
+  uploadTitle,
+  ServicePlugin,
+} from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
@@ -63,13 +68,6 @@ const webChatUploadsScope: RuntimeUploadScopeOptions & {
   refKind: "upload",
   routePath: "/api/chat/uploads",
 };
-
-function getUploadTitle(input: CreateInput, filename: string): string {
-  const title = input.title?.trim();
-  if (title) return title;
-  const withoutExt = filename.replace(/\.[^.]+$/, "").trim();
-  return withoutExt || filename;
-}
 
 function toDataUrl(mediaType: string, content: Buffer): string {
   return `data:${mediaType};base64,${content.toString("base64")}`;
@@ -135,23 +133,12 @@ export class DocumentPlugin extends ServicePlugin<
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
       mediaTypes: ["application/pdf"],
-      handler: async (input, executionContext) => {
-        const interception = await this.promoteUpload(
-          {
-            entityType: this.entityType,
-            ...(input.title !== undefined ? { title: input.title } : {}),
-            ...(input.visibility !== undefined
-              ? { visibility: input.visibility }
-              : {}),
-            from: input.upload,
-          },
-          context,
-          executionContext,
-        );
-        return interception.kind === "handled"
-          ? interception.result
-          : { success: false, error: "Document upload save was not handled" };
-      },
+      handler: createUploadSaveHandler(
+        this.entityType,
+        (input, executionContext) =>
+          this.promoteUpload(input, context, executionContext),
+        "Document upload save was not handled",
+      ),
     });
     context.jobs.registerHandler(
       "generate",
@@ -286,7 +273,10 @@ export class DocumentPlugin extends ServicePlugin<
       };
     }
 
-    const title = getUploadTitle(input, upload.record.filename);
+    const title = uploadTitle({
+      title: input.title,
+      filename: upload.record.filename,
+    });
     const id = slugify(title);
     if (!id) {
       return {
@@ -420,7 +410,7 @@ export class DocumentPlugin extends ServicePlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks. Source-derived document artifacts are durable documents backed by registered attachment providers such as carousel or printable. Generate saved PDF artifacts through system_generate with source.kind attachment; preserve raw uploaded PDFs with system_create source.kind upload and transform preserve.";
+    return "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks: preserve them with system_create upload transform preserve. Render PDF artifacts such as carousel or printable with system_generate operation.kind attachment.";
   }
 
   protected override async getTools(): Promise<Tool[]> {

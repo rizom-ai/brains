@@ -14,6 +14,25 @@ export interface BlogListProps {
 const BLOG_DISPLAY_LABEL = "Essays";
 
 /**
+ * Maps a post to the list item both the essay archive and site homepages
+ * render.
+ */
+export const blogPostToContentItem = (post: BlogPostView): ContentItem => ({
+  id: post.id,
+  url: post.url,
+  title: post.metadata.title,
+  date: post.metadata.publishedAt ?? post.created,
+  description: post.frontmatter.excerpt,
+  series:
+    post.frontmatter.seriesName && post.frontmatter.seriesIndex
+      ? {
+          name: post.frontmatter.seriesName,
+          index: post.frontmatter.seriesIndex,
+        }
+      : undefined,
+});
+
+/**
  * Blog list template - clean, minimal design for reading-focused content
  */
 export const BlogListTemplate = ({
@@ -23,21 +42,7 @@ export const BlogListTemplate = ({
   pagination,
   baseUrl,
 }: BlogListProps): JSX.Element => {
-  // Map posts to ContentItem format
-  const postItems: ContentItem[] = posts.map((post) => ({
-    id: post.id,
-    url: post.url,
-    title: post.metadata.title,
-    date: post.metadata.publishedAt ?? post.created,
-    description: post.frontmatter.excerpt,
-    series:
-      post.frontmatter.seriesName && post.frontmatter.seriesIndex
-        ? {
-            name: post.frontmatter.seriesName,
-            index: post.frontmatter.seriesIndex,
-          }
-        : undefined,
-  }));
+  const postItems = posts.map(blogPostToContentItem);
 
   const label =
     pageLabel && pageLabel !== "Posts" ? pageLabel : BLOG_DISPLAY_LABEL;

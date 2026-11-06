@@ -5,7 +5,12 @@ import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
-import { ActionItemAdapter } from "../src";
+import { preserveSourceFrontmatter } from "@brains/entity-service";
+import {
+  ACTION_ITEM_RETIRED_FIELDS,
+  ACTION_ITEM_TRANSLATED_FIELDS,
+  ActionItemAdapter,
+} from "../src";
 import { actionItemBody, applyMove, applyNote, isBoardOwned } from "../src";
 import {
   actionItemSchema,
@@ -50,7 +55,7 @@ function storedItem(frontmatter: Record<string, unknown>): ActionItemEntity {
   };
   const content = generateMarkdown(stored, body);
   return actionItemSchema.parse({
-    id: "conv-1:action-item:1:abc123abc123",
+    id: "conv-1-action-item-1-abc123abc123",
     entityType: "action-item",
     content,
     contentHash: computeContentHash(content),
@@ -80,7 +85,7 @@ function projected(
     full,
   );
   return actionItemSchema.parse({
-    id: "conv-1:action-item:1:abc123abc123",
+    id: "conv-1-action-item-1-abc123abc123",
     entityType: "action-item",
     content,
     contentHash: computeContentHash(content),
@@ -218,6 +223,61 @@ describe("moving a card", () => {
     });
     expect(actionItemBody(moved.content)).toBe(
       "# Action item: Book the venue\n\nBook the venue.\n",
+    );
+  });
+
+  it("is written by the adapter in the trimmed shape, so any save migrates it", () => {
+    const item = storedItem({
+      ...storedBeforeTrim,
+      projects: ["Spring gathering"],
+    });
+
+    const { projectedBodyHash, ...frontmatter } = frontmatterOf(
+      adapter.toMarkdown(item),
+    );
+    expect(typeof projectedBodyHash).toBe("string");
+    expect(frontmatter).toEqual({
+      conversationId: "conv-1",
+      channelId: "cli-terminal",
+      interfaceType: "cli",
+      capturedAt: "2026-01-01T00:01:00.000Z",
+      status: "open",
+      assignedTo: [{ name: "Sam Rivera", id: "user:u-sam" }],
+      projects: ["Spring gathering"],
+    });
+    expect(actionItemBody(adapter.toMarkdown(item))).toBe(
+      actionItemBody(item.content),
+    );
+  });
+
+  it("is stored without any pre-trim field, timeRange included", () => {
+    const item = storedItem(storedBeforeTrim);
+    // As the entity service stores it: the adapter's markdown, plus any
+    // stored field the type does not claim and has not retired.
+    const markdown = preserveSourceFrontmatter(
+      item.content,
+      adapter.toMarkdown(item),
+      adapter.frontmatterSchema,
+      [],
+      [],
+      [...ACTION_ITEM_RETIRED_FIELDS, ...ACTION_ITEM_TRANSLATED_FIELDS],
+    );
+
+    const stored = frontmatterOf(markdown);
+    for (const field of [
+      "timeRange",
+      "spaceId",
+      "sourceSummaryId",
+      "sourceMessageCount",
+      "projectionVersion",
+    ])
+      expect(stored).not.toHaveProperty(field);
+    expect(stored["capturedAt"]).toBe("2026-01-01T00:01:00.000Z");
+  });
+
+  it("names a card in Studio by its text, not its id", () => {
+    expect(adapter.displayTitle(storedItem(storedBeforeTrim))).toBe(
+      "Book the venue",
     );
   });
 

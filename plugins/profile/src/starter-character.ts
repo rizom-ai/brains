@@ -1,10 +1,13 @@
+import {
+  internalFullScope,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import type {
   BaseEntity,
   ProfileCategory,
   IEntityAINamespace,
   ServiceEntityService,
 } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 const MAX_CAPABILITIES = 50;
@@ -229,7 +232,11 @@ async function collectContentSignals(
       options: {
         limit: MAX_CONTENT_SIGNALS,
         sortFields: [{ field: "updated", direction: "desc" }],
-        filter: { visibilityScope: "restricted" },
+        filter: {
+          visibilityScope: internalFullScope(
+            "starter character brief reads the owner's notes",
+          ),
+        },
       },
     });
 
@@ -258,7 +265,9 @@ export async function buildStarterCharacterBrief(options: {
     anchorEntity,
     includeAnchor,
   } = options;
-  const entityCounts = await entityService.getEntityCounts("restricted");
+  const entityCounts = await entityService.getEntityCounts(
+    internalFullScope("starter character brief reads the owner's notes"),
+  );
   const counts = new Map(
     entityCounts.map(({ entityType, count }) => [entityType, count]),
   );
@@ -280,7 +289,9 @@ export async function buildStarterCharacterBrief(options: {
   const styleEntity = await entityService.getEntity({
     entityType: "style-guide",
     id: "style-guide",
-    visibilityScope: "restricted",
+    visibilityScope: internalFullScope(
+      "starter character brief reads the owner's notes",
+    ),
   });
   const styleMetadata = styleEntity
     ? parseFrontmatter(styleEntity.content)

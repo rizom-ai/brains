@@ -54,11 +54,9 @@ interface MailItemFrontmatter {
 
   source: {
     ref: string;
-    senderKey: string;
     threadKey?: string;
     threadOrdinal?: number;
     personId?: string;
-    domain?: string;
   };
 
   organization?: string;

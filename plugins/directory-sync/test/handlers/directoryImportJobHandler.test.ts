@@ -124,6 +124,66 @@ describe("DirectoryImportJobHandler", () => {
       );
     });
 
+    it("refuses a job naming entity types this process does not register", async () => {
+      // An old worker sharing the job queue during a rolling deploy used to
+      // skip guide/*.md as unregistered and complete the startup batch, so
+      // the new brain reported a successful sync without any guides.
+      const entityService = createMockEntityService({ entityTypes: ["doc"] });
+      const context = createMockServicePluginContext({ entityService });
+      const directory = createMockDirectorySync();
+      const imported = spyOn(directory, "importEntitiesWithProgress");
+      const requireFullScan = mock(async () => {});
+      const testHandler = new DirectoryImportJobHandler(
+        createSilentLogger("test"),
+        context,
+        directory,
+        undefined,
+        { requireFullScan },
+      );
+
+      const failure = await testHandler
+        .process(
+          {
+            paths: ["doc/a.md", "guide/writer.md"],
+            entityTypes: ["doc", "guide"],
+          },
+          "job-1",
+          createMockProgressReporter(),
+        )
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(Error);
+      expect(String(failure)).toContain("guide");
+      expect(imported).not.toHaveBeenCalled();
+      expect(requireFullScan).toHaveBeenCalledTimes(1);
+    });
+
+    it("imports a job whose entity types are all registered here", async () => {
+      const entityService = createMockEntityService({
+        entityTypes: ["doc", "guide"],
+      });
+      const context = createMockServicePluginContext({ entityService });
+      const directory = createMockDirectorySync();
+      const imported = spyOn(directory, "importEntitiesWithProgress");
+      const requireFullScan = mock(async () => {});
+      const testHandler = new DirectoryImportJobHandler(
+        createSilentLogger("test"),
+        context,
+        directory,
+        undefined,
+        { requireFullScan },
+      );
+
+      await testHandler.process(
+        { paths: ["guide/writer.md"], entityTypes: ["guide"] },
+        "job-1",
+        createMockProgressReporter(),
+      );
+
+      expect(imported).toHaveBeenCalledTimes(1);
+      expect(requireFullScan).not.toHaveBeenCalled();
+    });
+
     it("holds and settles a shared durable projection batch child", async () => {
       const entityService = createMockEntityService();
       const runChild = mock(

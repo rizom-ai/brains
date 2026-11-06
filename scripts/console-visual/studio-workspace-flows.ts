@@ -79,7 +79,8 @@ export async function exerciseStudioLibrary({
   await waitForText(page, "1–25 of 54");
   await clickText(page, ".listing-pagination button", "Next");
   await fillLabel(page, "Search title or content", "Archive note 22");
-  await waitForText(page, "1–1 of 1");
+  // One page of results has no pager; the filter bar states the match.
+  await waitForText(page, "1 match");
   await evaluatePage(page, () => {
     if (new URLSearchParams(location.search).has("offset"))
       throw new Error("Searching must reset collection offset");
@@ -242,7 +243,7 @@ export async function exerciseStudioSite(page: Bun.WebView): Promise<void> {
     '[role="dialog"] button, [role="alertdialog"] button',
     "Cancel",
   );
-  await waitForText(page, "Published generation");
+  await waitForText(page, "Published at");
   await activateWorkspaceTab(page, "Preview");
   await waitForText(page, "Build preview");
 }

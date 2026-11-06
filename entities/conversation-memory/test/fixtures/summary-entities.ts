@@ -3,7 +3,6 @@ import type { SummaryEntity, SummaryMetadata } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
 export const defaultSummaryMetadata: SummaryMetadata = {
-  conversationId: "test-conv",
   channelName: "Test Channel",
   channelId: "test-channel",
   interfaceType: "cli",
@@ -11,10 +10,8 @@ export const defaultSummaryMetadata: SummaryMetadata = {
     start: "2026-01-01T00:00:00.000Z",
     end: "2026-01-01T00:10:00.000Z",
   },
-  entryCount: 1,
   messageCount: 2,
   sourceHash: "hash-123",
-  projectionVersion: 1,
 };
 
 export function createMockSummaryEntity(

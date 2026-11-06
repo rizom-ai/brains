@@ -27,15 +27,16 @@ export const CONSOLE_PALETTE_SCRIPT = `(function () {
     var inputRow = el("div", "cp-input-row");
     input = el("input", "cp-input");
     input.type = "text";
-    input.placeholder = "Search entities, tabs, surfaces\\u2026";
+    input.placeholder = "Search pages and entries\\u2026";
     input.setAttribute("aria-label", "Search the console");
+    input.setAttribute("spellcheck", "false");
+    input.setAttribute("autocomplete", "off");
     inputRow.appendChild(input);
     inputRow.appendChild(el("kbd", "cp-esc", "esc"));
     groupsEl = el("div", "cp-groups");
     var foot = el("div", "cp-foot");
     foot.appendChild(el("span", null, "\\u2191\\u2193 navigate"));
     foot.appendChild(el("span", null, "\\u21B5 open"));
-    foot.appendChild(el("span", null, "one index across the console"));
     palette.appendChild(inputRow);
     palette.appendChild(groupsEl);
     palette.appendChild(foot);

@@ -1,0 +1,31 @@
+id: team-tool-action-item-create-due-weekday
+name: Team Brain dates "by Friday" forward from today
+description: >-
+  Verifies that a request due "by Friday" gives the card the next Friday on or
+  after today, never a past one, through action_item_create. A run cannot pin
+  its date, so the due date is checked against the run's own today.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - recipe-team
+  - team
+  - action-board
+
+turns:
+  - userMessage: "Please add an action item: send INC the proposal by Friday."
+
+successCriteria:
+  expectedTools:
+    - toolName: action_item_create
+      shouldBeCalled: true
+      argsNotBeforeToday:
+        - due
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "capturedAt"
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 31000

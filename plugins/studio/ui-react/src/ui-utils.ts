@@ -64,6 +64,21 @@ export function entityPublicationState(
   return entity.frontmatter["published"] === true ? "published" : "draft";
 }
 
+/** A label as it reads mid-sentence: "New social post", "New FAQ". */
+export function sentenceLabel(label: string): string {
+  return label
+    .split(" ")
+    .map((word) => (/[A-Z].*[A-Z]/.test(word) ? word : word.toLowerCase()))
+    .join(" ");
+}
+
+/** A stored option value as people read it; the value itself is unchanged. */
+export function optionLabel(value: string): string {
+  if (/[A-Z]/.test(value)) return value;
+  const words = value.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function singularLabel(label: string): string {
   return label.endsWith("s") ? label.slice(0, -1) : label;
 }

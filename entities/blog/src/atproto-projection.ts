@@ -11,7 +11,6 @@ import type {
   AtprotoProjectionBuildInput,
   AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
-import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 
 type BlogAtprotoCoverImage = NonNullable<AtprotoBrainPostRecord["coverImage"]>;
@@ -144,29 +143,5 @@ export function createBlogAtprotoProjection(): AtprotoProjection<AtprotoBrainPos
     isPublishable: (entity): boolean =>
       entity.metadata["status"] === "published",
     buildRecord: buildBlogAtprotoPostRecord,
-    onPublished: async ({ entity, context, uri }): Promise<void> => {
-      if (entity.entityType !== "post") {
-        throw new Error(`Expected entityType post, got ${entity.entityType}`);
-      }
-
-      const parsed = parseMarkdownWithFrontmatter(
-        entity.content,
-        blogPostFrontmatterSchema,
-      );
-      const content = blogPostAdapter.createPostContent(
-        {
-          ...parsed.metadata,
-          atprotoUri: uri,
-        },
-        parsed.content,
-      );
-
-      await context.entityService.updateEntity({
-        entity: {
-          ...entity,
-          content,
-        },
-      });
-    },
   };
 }

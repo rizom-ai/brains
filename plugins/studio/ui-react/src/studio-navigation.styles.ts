@@ -246,7 +246,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       ":disabled": { cursor: "default", opacity: 0.38 },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
-        outlineOffset: "-3px",
+        outlineOffset: "-2px",
       },
     },
     areaActive: {
@@ -322,7 +322,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
-        outlineOffset: "-3px",
+        outlineOffset: "-2px",
       },
     },
     leafActive: {
@@ -345,7 +345,9 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       minWidth: 0,
       "@media (max-width: 900px)": { display: "block" },
     },
-    areaFoot: { marginTop: "auto" },
+    // A grid, like the area list, so the Commands control spans the rail and
+    // its glyph centers with the area marks when collapsed.
+    areaFoot: { display: "grid", marginTop: "auto" },
     areaLabel: {
       display: "flex",
       minWidth: 0,

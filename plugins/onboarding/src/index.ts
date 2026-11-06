@@ -1,3 +1,8 @@
+import {
+  internalFullScope,
+  ServicePlugin,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -5,7 +10,6 @@ import {
   type LifecycleStarterRegistration,
 } from "@brains/contracts";
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
@@ -97,7 +101,9 @@ export class OnboardingPlugin extends ServicePlugin<
     const existing = await context.entityService.getEntity({
       entityType: "playbook",
       id: playbook.id,
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope(
+        "bootstrap playbook seed existence check",
+      ),
     });
     if (existing) return;
 

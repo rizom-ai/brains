@@ -753,7 +753,7 @@ export class GuestUsageRecord {
         };
       return {
         status: "healthy",
-        message: "Guest usage record is recording.",
+        message: "Recording guest questions.",
         details,
       };
     } catch {

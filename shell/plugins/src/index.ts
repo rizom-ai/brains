@@ -63,9 +63,12 @@ export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   readPromptOverride,
-  resetPromptMaterialization,
   materializePrompts,
 } from "./entity/prompt-resolver";
+export {
+  entityDisplayTitle,
+  type DisplayTitleAdapters,
+} from "./entity/display-title";
 export {
   createPendingEntity,
   failPendingEntity,
@@ -80,6 +83,13 @@ export {
   type SaveProcessedEntityRequest,
   type SaveProcessedEntityResult,
 } from "./entity/pending-ingestion";
+export { entityViewFields, type EntityViewFields } from "./entity/entity-view";
+export { createUploadSaveHandler } from "./entity/upload-save";
+export {
+  isTextUploadMediaType,
+  repeatsUploadFileName,
+  uploadTitle,
+} from "./entity/upload-title";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 export {
@@ -104,6 +114,8 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export { AuthRegistry } from "./auth-registry";
+export type { AuthBackend, IAuthNamespace } from "./contracts/auth";
 export {
   InboxFollowUpRegistry,
   resolvedInboxFollowUpSchema,
@@ -373,7 +385,6 @@ export type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  DefaultQueryResponse,
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
@@ -394,7 +405,6 @@ export {
   interactionInfoSchema,
   interactionKindSchema,
   interactionStatusSchema,
-  defaultQueryResponseSchema,
   pluginMetadataSchema,
   toolResponseSchema,
 } from "./interfaces";
@@ -413,6 +423,9 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateQuestion,
+  CreateCheck,
+  CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,
@@ -422,7 +435,6 @@ export type {
   EntityAdapter,
   EntityInput,
   EntitySchema,
-  EntitySchemaParser,
   EntitySearchRequest,
   GetEntityRequest,
   ListEntitiesRequest,
@@ -444,6 +456,7 @@ export type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
+  NearestEntity,
   NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
@@ -473,6 +486,7 @@ export {
   canWriteVisibility,
   contentVisibilitySchema,
   emptyFrontmatterSchema,
+  ENTITY_SYSTEM_FIELDS,
   internalFullScope,
   isVisibleWithinScope,
   permissionToVisibilityScope,
@@ -663,7 +677,6 @@ export {
   type MessageWithPayload,
 } from "./contracts/messaging";
 export type {
-  ConversationDigestPayload,
   GetMessagesOptions,
   IConversationService,
 } from "@brains/conversation-service";
@@ -672,7 +685,6 @@ export {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,
-  conversationDigestPayloadSchema,
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
@@ -836,6 +848,17 @@ export {
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export {
+  checkEntityText,
+  continueWithEntityText,
+  entityTextError,
+  readEntityText,
+  statedDateSchema,
+  type EntityText,
+  type EntityTextQuestion,
+  type EntityTextResult,
+  type ReadEntityTextOptions,
+} from "./entity/create-from-text";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
@@ -869,6 +892,7 @@ export {
   jsonError,
   SitePageResponse,
   SITE_SLOT_ATTRIBUTE,
+  findRouteByRole,
   type SitePageSlot,
 } from "./types/web-routes";
 export {
@@ -909,6 +933,7 @@ export {
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioOperatorViewStatus,
+  type RuntimeStudioOperatorViewFact,
   type RuntimeStudioOperatorDetailBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorView,
@@ -1029,3 +1054,24 @@ export type {
   AnalyticsReportContext,
   AnalyticsReportDefinition,
 } from "./contracts/analytics";
+
+// ============================================================================
+// HTTP: the brain's origin and same-origin guards for browser routes
+// ============================================================================
+export {
+  isLoopbackIssuer,
+  isSameOriginRequest,
+  issuerFromRequest,
+  normalizeIssuer,
+  requireSameOriginJson,
+  requireSameOriginRequest,
+} from "./http/same-origin";
+export { normalizeSameOriginPath } from "./http/same-origin-path";
+
+// Entity id paths, link fields and tool confirmations plugins build with.
+export { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
+export { renderedLinkFields, viewLinkFields } from "@brains/templates";
+export {
+  ConfirmationArgsStore,
+  ToolVisibilitySchema,
+} from "@brains/mcp-service";

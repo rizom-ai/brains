@@ -7,7 +7,6 @@ describe("DocAdapter", () => {
 title: Getting Started
 section: Start here
 order: 10
-sourcePath: packages/brain-cli/docs/getting-started.md
 description: First steps
 ---
 
@@ -31,7 +30,6 @@ Hello.
 title: brain.yaml Reference
 section: Start here
 order: 20
-sourcePath: packages/brain-cli/docs/brain-yaml-reference.md
 slug: brain-yaml-reference
 ---
 

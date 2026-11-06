@@ -9,7 +9,11 @@ import {
   PermissionService,
   ServicePlugin,
 } from "@brains/plugins";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import {
+  CONSOLE_CHANNELS,
+  DASHBOARD_CHANNELS,
+  consoleJumpDestinationSchema,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { DashboardWidgetRegistry } from "./widget-registry";
@@ -25,13 +29,13 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "./dashboard-page";
-import { deriveConsoleSurfaces } from "@brains/plugins";
+import { deriveConsoleSurfaces, entityDisplayTitle } from "@brains/plugins";
 import {
   buildConsoleJumpGroups,
+  jumpEntityHit,
   type ConsoleJumpEntityHit,
 } from "./console-jump";
 import type { DashboardAssetUrls } from "./render/types";
-import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
 const dashboardConfigSchema: z.ZodObject<{
@@ -222,6 +226,7 @@ export class DashboardPlugin extends ServicePlugin<
         path: this.config.routePath,
         method: "GET",
         public: true,
+        role: "dashboard",
         handler: async (request: Request): Promise<Response> => {
           if (!this.datasource || !this.ctx) {
             return new Response("Dashboard unavailable", {
@@ -231,17 +236,9 @@ export class DashboardPlugin extends ServicePlugin<
           }
 
           const ctx = this.ctx;
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
+          const principal = await ctx.auth.get()?.resolveSession(request);
           const requestUrl = new URL(request.url);
-          const registeredRoutes = ctx.webRoutes.getRoutes();
-          const studioPath = registeredRoutes
-            .filter(
-              (route) =>
-                route.pluginId === "studio" && route.fullPath !== "/chat",
-            )
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
+          const studioPath = ctx.webRoutes.findByRole("studio")?.fullPath;
           if (
             principal &&
             studioPath &&
@@ -255,10 +252,7 @@ export class DashboardPlugin extends ServicePlugin<
               },
             });
           }
-          const askHref = registeredRoutes
-            .filter((route) => route.pluginId === "web-chat")
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
+          const askHref = ctx.webRoutes.findByRole("ask")?.fullPath;
           // The card is invariant across sessions. Public providers always see
           // an anonymous Public caller, and non-public providers never run.
           const visibleWidgets =
@@ -331,12 +325,7 @@ export class DashboardPlugin extends ServicePlugin<
             widgetScripts: resolved.widgetScripts,
             assetUrls: this.assetUrls,
             dashboardPath: this.config.routePath,
-            askEnabled:
-              this.config.ask &&
-              registeredRoutes.some(
-                (route) =>
-                  route.pluginId === "web-chat" && route.fullPath === "/ask",
-              ),
+            askEnabled: this.config.ask && askHref !== undefined,
             ...(askHref ? { askHref } : {}),
             character,
             profile,
@@ -363,8 +352,7 @@ export class DashboardPlugin extends ServicePlugin<
         method: "GET",
         public: true,
         handler: async (request: Request): Promise<Response> => {
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
+          const principal = await this.ctx?.auth.get()?.resolveSession(request);
           if (!principal) {
             return Response.json(
               { error: "Authentication required" },
@@ -401,14 +389,12 @@ export class DashboardPlugin extends ServicePlugin<
             }
 
             if (results) {
-              entities = results.map((result) => {
-                const title = Reflect.get(result.entity, "title");
-                return {
-                  entityType: result.entity.entityType,
-                  id: result.entity.id,
-                  title: typeof title === "string" ? title : result.entity.id,
-                };
-              });
+              entities = results.map((result) =>
+                jumpEntityHit(
+                  result.entity,
+                  entityDisplayTitle(ctx.entities, result.entity),
+                ),
+              );
             }
           }
 
@@ -420,12 +406,24 @@ export class DashboardPlugin extends ServicePlugin<
           const studioPath = surfaces.find(
             (surface) => surface.id === "studio",
           )?.href;
+          const answers = await ctx.messaging.collect({
+            type: CONSOLE_CHANNELS.jumpDestinations,
+            payload: { permissionLevel: principal.permissionLevel },
+          });
+          const destinations = answers.flatMap((answer) => {
+            const parsed =
+              "data" in answer
+                ? z.array(consoleJumpDestinationSchema).safeParse(answer.data)
+                : null;
+            return parsed?.success ? parsed.data : [];
+          });
           return Response.json({
             groups: buildConsoleJumpGroups({
               query,
               dashboardPath: this.config.routePath,
               studioPath,
               entities,
+              destinations,
             }),
           });
         },

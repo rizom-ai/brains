@@ -1,4 +1,6 @@
+import type { ConsoleJumpDestination } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { displayTitleFrom, formatLabel } from "@brains/utils/string-utils";
 
 export interface ConsoleJumpItem {
   id: string;
@@ -53,6 +55,25 @@ export interface ConsoleJumpEntityHit {
 }
 
 /**
+ * A search result as the palette names it: the title its type's adapter
+ * reads, else the one in its metadata, else its id.
+ */
+export function jumpEntityHit(
+  entity: {
+    entityType: string;
+    id: string;
+    metadata: Record<string, unknown>;
+  },
+  title?: string,
+): ConsoleJumpEntityHit {
+  return {
+    entityType: entity.entityType,
+    id: entity.id,
+    title: title ?? displayTitleFrom(entity.metadata) ?? entity.id,
+  };
+}
+
+/**
  * Grouped doors for the cross-surface ⌘K palette. Entities open at canonical
  * Studio detail paths, so the group exists only when a Studio is registered; tabs
  * land on this dashboard's in-document group anchors.
@@ -62,29 +83,46 @@ export function buildConsoleJumpGroups(options: {
   dashboardPath: string;
   studioPath: string | undefined;
   entities: ConsoleJumpEntityHit[];
+  /** The pages Studio offers this caller, as it answered the palette. */
+  destinations: ConsoleJumpDestination[];
 }): ConsoleJumpGroup[] {
   const query = options.query.trim().toLowerCase();
   const result: ConsoleJumpGroup[] = [];
 
-  if (
-    options.studioPath !== undefined &&
-    (query === "" || "people access identity".includes(query))
-  ) {
+  if (options.studioPath !== undefined) {
     const studioPath =
       options.studioPath === "/" ? "" : options.studioPath.replace(/\/+$/, "");
-    result.push({
-      id: "surfaces",
-      label: "Console",
-      items: [
-        {
-          id: "surface/people",
-          title: "People",
-          sub: "Access and identity",
-          href: `${studioPath}/workspaces/${encodeURIComponent("admin:administration")}?tab=people`,
-          tag: "studio",
-        },
-      ],
-    });
+    const matches = (destination: ConsoleJumpDestination): boolean =>
+      query === ""
+        ? destination.primary === true
+        : [
+            destination.title,
+            destination.sub ?? "",
+            ...(destination.keywords ?? []),
+          ].some((text) => text.toLowerCase().includes(query));
+    const people =
+      query !== "" && "people access identity".includes(query)
+        ? [
+            {
+              id: "surface/people",
+              title: "People",
+              sub: "Access and identity",
+              href: `${studioPath}/workspaces/${encodeURIComponent("admin:administration")}?tab=people`,
+              tag: "studio",
+            },
+          ]
+        : [];
+    const items = [
+      ...options.destinations.filter(matches).map((destination) => ({
+        id: destination.id,
+        title: destination.title,
+        ...(destination.sub ? { sub: destination.sub } : {}),
+        href: destination.href,
+        tag: "studio",
+      })),
+      ...people,
+    ];
+    if (items.length > 0) result.push({ id: "studio", label: "Studio", items });
   }
 
   if (options.studioPath !== undefined && options.entities.length > 0) {
@@ -95,9 +133,9 @@ export function buildConsoleJumpGroups(options: {
       items: options.entities.map((hit) => ({
         id: `${hit.entityType}/${hit.id}`,
         title: hit.title,
-        sub: hit.entityType,
+        sub: formatLabel(hit.entityType),
         href: `${studioPath === "/" ? "" : studioPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
-        tag: "edit in studio",
+        tag: "studio",
       })),
     });
   }

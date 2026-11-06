@@ -26,7 +26,12 @@ export class EmailReplyDraftEntityPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
-    return { projectionSource: false, projectionSourceRole: "excluded" };
+    // updatedAt repeated the entity's own update time.
+    return {
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+      retiredFields: ["updatedAt"],
+    };
   }
 
   protected override async onRegister(

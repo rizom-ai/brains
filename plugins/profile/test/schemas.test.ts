@@ -71,6 +71,34 @@ describe("profile variants", () => {
     ).toThrow();
   });
 
+  test("accepts a headline, industry and location on professional profiles only", () => {
+    const content = `---\nname: Ada\nheadline: Advisor on resilient systems\nindustry: Software\nlocation: Amsterdam, Netherlands\n---\n`;
+    expect(() =>
+      validateProfileContent(content, {
+        category: "person",
+        fields: professionalProfileFields,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validateProfileContent(content, {
+        category: "team",
+        fields: teamProfileFields,
+      }),
+    ).toThrow();
+    expect(
+      professionalProfileSchema.parse({
+        name: "Ada",
+        headline: "Advisor on resilient systems",
+        industry: "Software",
+        location: "Amsterdam, Netherlands",
+      }),
+    ).toMatchObject({
+      headline: "Advisor on resilient systems",
+      industry: "Software",
+      location: "Amsterdam, Netherlands",
+    });
+  });
+
   test("fails clearly rather than pruning fields outside the selected schema", () => {
     expect(() =>
       validateProfileContent(`---\nname: Ada\nmediums:\n  - sculpture\n---\n`, {

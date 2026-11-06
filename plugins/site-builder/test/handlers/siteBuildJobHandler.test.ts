@@ -174,12 +174,55 @@ describe("SiteBuildJobHandler", () => {
     });
   });
 
+  it("builds in the site's languages", async () => {
+    let capturedLanguages: string[] | undefined;
+    const siteBuilder: ISiteBuilder = {
+      build: async (options) => {
+        capturedLanguages = options.languages;
+        return {
+          success: true,
+          outputDir: "/tmp/output",
+          filesGenerated: 2,
+          routesBuilt: 2,
+        };
+      },
+    };
+    const { sendMessage } = createMockMessageSender();
+    const bilingualHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+        languages: ["en", "zh-TW"],
+      },
+    );
+    const progressReporter = expectDefined(
+      CallbackProgressReporter.from(async () => {}),
+    );
+
+    await bilingualHandler.process(
+      { outputDir: "/tmp/output" },
+      "job-languages",
+      progressReporter,
+    );
+
+    expect(capturedLanguages).toEqual(["en", "zh-TW"]);
+  });
+
   it("records a cancelled build without emitting completion", async () => {
     const markCancelled = mock(async () => undefined);
     // All four transitions, because the handler optional-chains the service
     // rather than each method. Only markCancelled is asserted; the rest are
     // present so the recorder is a whole one, checked rather than asserted.
     const statusService: BuildStatusRecorder = {
+      hasUnresolvedFailure: mock(async () => false),
       markBuilding: mock(async () => undefined),
       markSuccess: mock(async () => undefined),
       markSkipped: mock(async () => undefined),
@@ -285,10 +328,51 @@ describe("SiteBuildJobHandler", () => {
     });
   }
 
+  it("tells the queue why a build failed, not that a handler failed", async () => {
+    const builder: ISiteBuilder = {
+      build: mock(async () => ({
+        success: false,
+        outputDir: "/tmp/output",
+        filesGenerated: 0,
+        routesBuilt: 0,
+        errors: ["tailwindcss: Can't resolve 'tailwindcss'", "Second problem"],
+      })),
+    };
+    const { sendMessage } = createMockMessageSender();
+    const handler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder: builder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+      },
+    );
+    const progressReporter = CallbackProgressReporter.from(async () => {});
+    if (!progressReporter) throw new Error("Expected progress reporter");
+
+    const result = await handler.process(
+      { outputDir: "/tmp/output", environment: "preview" },
+      "job-failed",
+      progressReporter,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(
+      "tailwindcss: Can't resolve 'tailwindcss'; Second problem",
+    );
+  });
+
   it("records unchanged inputs as skipped instead of successful", async () => {
     const markSuccess = mock(async () => undefined);
     const markSkipped = mock(async () => undefined);
     const statusService: BuildStatusRecorder = {
+      hasUnresolvedFailure: mock(async () => false),
       markBuilding: mock(async () => undefined),
       markSuccess,
       markSkipped,
@@ -337,8 +421,56 @@ describe("SiteBuildJobHandler", () => {
     ).toBe(false);
   });
 
+  for (const lastBuildFailed of [true, false]) {
+    it(`publishes unchanged inputs again only after a failed build (failed=${lastBuildFailed})`, async () => {
+      const statusService: BuildStatusRecorder = {
+        hasUnresolvedFailure: mock(async () => lastBuildFailed),
+        markBuilding: mock(async () => undefined),
+        markSuccess: mock(async () => undefined),
+        markSkipped: mock(async () => undefined),
+        markFailure: mock(async () => undefined),
+        markCancelled: mock(async () => undefined),
+      };
+      const build = mock(async () => ({
+        success: true,
+        outputDir: "/tmp/output",
+        filesGenerated: 10,
+        routesBuilt: 10,
+      }));
+      const retryHandler = new SiteBuildJobHandler(
+        createSilentLogger("test"),
+        createMockMessageSender().sendMessage,
+        {
+          siteBuilder: { build },
+          layouts: {},
+          defaultSiteConfig: {
+            represents: "anchor",
+            title: "Test Site",
+            description: "Test Description",
+          },
+          sharedImagesDir: "./dist/images",
+          statusService,
+        },
+      );
+      const progressReporter = CallbackProgressReporter.from(async () => {});
+      if (!progressReporter) throw new Error("Expected progress reporter");
+
+      await retryHandler.process(
+        { outputDir: "/tmp/output", environment: "preview" },
+        "job-after",
+        progressReporter,
+      );
+
+      expect(build).toHaveBeenCalledWith(
+        expect.objectContaining({ publishUnchanged: lastBuildFailed }),
+        expect.anything(),
+      );
+    });
+  }
+
   it("does not fail the build when a status write fails", async () => {
     const statusService: BuildStatusRecorder = {
+      hasUnresolvedFailure: mock(async () => false),
       markBuilding: mock(async () => undefined),
       markSuccess: mock(async () => {
         throw new Error("runtime-state write failed");

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import { EntityRegistry } from "@brains/entity-service";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { TrafficSnapshotPlugin } from "../src/entity/plugin";
 import { trafficSnapshotAdapter } from "../src/entity/adapter";
+import { trafficSnapshotSchema } from "../src/entity/schema";
 
 describe("TrafficSnapshotPlugin", () => {
   it("registers a restricted, non-indexed, non-projection entity", async () => {
@@ -22,8 +25,19 @@ describe("TrafficSnapshotPlugin", () => {
       fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
+      // A snapshot's days fix its week; the stored copies are retired.
+      retiredFields: ["week", "start", "end"],
     });
     expect(capabilities.tools).toEqual([]);
+    // A brain's registry refuses to retire a field the metadata still needs.
+    expect(() =>
+      EntityRegistry.createFresh(createSilentLogger()).registerEntityType(
+        "traffic-snapshot",
+        trafficSnapshotSchema,
+        trafficSnapshotAdapter,
+        registry.getEntityTypeConfig("traffic-snapshot"),
+      ),
+    ).not.toThrow();
 
     // A snapshot is the capture's record of what Cloudflare counted: it sits
     // with the system's records, and no one creates, edits or deletes it.
@@ -44,10 +58,18 @@ describe("TrafficSnapshotPlugin", () => {
       entityType: "traffic-snapshot",
       visibility: "restricted" as const,
       content: trafficSnapshotAdapter.createContent({
-        week: "2026-W41",
-        start: "2026-10-05",
-        end: "2026-10-11",
-        days: [],
+        days: [
+          {
+            date: "2026-10-05",
+            pageviews: 1,
+            visits: 1,
+            estimated: false,
+            paths: [],
+            referrers: [],
+            pathReferrers: [],
+            countries: [],
+          },
+        ],
       }),
       metadata: {},
       contentHash: "hash",

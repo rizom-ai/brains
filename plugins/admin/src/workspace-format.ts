@@ -1,9 +1,9 @@
-import type { StudioWorkspaceRegistration } from "@brains/plugins";
-import {
-  getActiveAuthService,
-  type AuthAdminUserSummary,
-  type AuthService,
-} from "@brains/auth-service";
+import type { AuthAdminUserSummary } from "@brains/contracts";
+import type {
+  AuthBackend,
+  BasePluginContext,
+  StudioWorkspaceRegistration,
+} from "@brains/plugins";
 
 export type AdminWorkspaceRegistration = Omit<
   StudioWorkspaceRegistration,
@@ -33,8 +33,10 @@ export function formatWorkspaceDate(timestamp: number): string {
   return workspaceDateFormatter.format(new Date(timestamp));
 }
 
-export function requireAuthService(): AuthService {
-  const authService = getActiveAuthService();
+export function requireAuthBackend(
+  context: Pick<BasePluginContext, "auth">,
+): AuthBackend {
+  const authService = context.auth.get();
   if (!authService) {
     throw new Error("Administration workspace requires auth-service");
   }

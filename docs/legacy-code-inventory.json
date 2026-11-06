@@ -19,6 +19,18 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "memory-colon-ids",
+      "paths": ["entities/conversation-memory/src/lib/flat-memory-ids.ts"],
+      "symbol": "Startup move of action items and decisions to flat ids",
+      "owner": "@brains/conversation-memory",
+      "class": "durable-data-compatibility",
+      "behavior": "Once startup content settles, moves every stored action item and decision whose id has a colon (\"board:<id>\", \"inbox:<source>:<entity>\", \"<conversation>:<type>:<n>:<hash>\"), which directory sync stores as nested folders, to its flat id, keeping content, visibility and timestamps. A hand-added card is named after its title. A move that stopped after writing the flat id is finished on the next start.",
+      "currentConsumers": "Action items and decisions stored in deployed brains and their synced content repos before flat ids.",
+      "removalPrerequisite": "Observe zero stored action items or decisions with a colon in their id across supported upgrade sources.",
+      "rollbackDependency": "A brain rolled back to a release before flat ids derives colon ids again, so it can take an Inbox item onto the board twice or re-add a conversation card the board already owns.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "action-item-retired-fields",
       "paths": ["shared/action-items/src/stored-shape.ts"],
       "symbol": "action-item stored metadata read path",
@@ -335,6 +347,18 @@
       "removalPrerequisite": "Approve a durable-frontmatter format migration, verify equivalent values across supported content sources and rollback targets, and observe zero dependence on the previous scalar grammar.",
       "rollbackDependency": "Removing the schema without that migration reinterprets bare values such as 012, 0o12, and 12:34 in existing documents.",
       "targetRelease": "after-approved-frontmatter-format-migration"
+    },
+    {
+      "id": "faq-stored-body",
+      "paths": ["entities/faq/src/adapters/stored-body.ts"],
+      "symbol": "FAQ body read path from before the structured content formatter",
+      "owner": "@brains/faq",
+      "class": "durable-data-compatibility",
+      "behavior": "Reads FAQ bodies stored with the answer at the top and alternatives as ### sections under \"## Alternative answers\", FAQ sources stored in frontmatter, and source excerpts kept as \"> \" quote lines under each source. The next write stores the formatter layout with sources in the body and no quotes.",
+      "currentConsumers": "FAQs captured in deployed brains before the formatter layout, and their synced files.",
+      "removalPrerequisite": "Observe zero stored FAQs without an \"## Answer\" section, with frontmatter sources or with quoted sources across supported upgrade sources, or rewrite them in place.",
+      "rollbackDependency": "A brain rolled back to a release before the formatter layout cannot read FAQs rewritten in it; they need the forward release.",
+      "targetRelease": "0.3.0-or-later"
     }
   ],
   "exemptions": [

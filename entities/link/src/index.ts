@@ -25,6 +25,3 @@ export type { LinkConfig, LinkConfigInput } from "./schemas/link-config";
 
 // Adapter exports
 export { LinkAdapter, linkAdapter } from "./adapters/link-adapter";
-
-// Service exports
-export { LinkService } from "./lib/link-service";

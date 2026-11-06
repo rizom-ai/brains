@@ -22,6 +22,7 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import { docsPlugin } from "@brains/doc";
+import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
 import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
@@ -32,6 +33,12 @@ import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import { notePlugin } from "@brains/note";
 import { notificationsPlugin } from "@brains/notifications";
+import { linkedInImportPlugin } from "@brains/linkedin-import";
+import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
+import {
+  oauthBrokerPlugin,
+  type OAuthBrokerPlugin,
+} from "@brains/oauth-broker";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
@@ -165,14 +172,30 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["action-board", actionBoardPlugin, undefined],
     ["faq", faqPlugin, undefined],
     ["docs", docsPlugin, undefined],
+    ["guides", guidesPlugin, undefined],
     ["book", bookPlugin, undefined],
 
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["email-workflows", emailWorkflows, undefined],
     ["unified-inbox", unifiedInboxPlugin, undefined],
+    ["linkedin-import", linkedInImportPlugin, undefined],
+    [
+      "oauth-broker",
+      (config): OAuthBrokerPlugin =>
+        oauthBrokerPlugin(config, {
+          providers: { linkedin: createLinkedInBrokerProvider },
+        }),
+      undefined,
+    ],
   ],
   interfaces: [
-    ["mcp", MCPInterface, (): PluginConfig => ({})],
+    [
+      "mcp",
+      MCPInterface,
+      (env): PluginConfig => ({
+        ...(env["MCP_AUTH_TOKEN"] ? { authToken: env["MCP_AUTH_TOKEN"] } : {}),
+      }),
+    ],
     ["email", EmailInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],

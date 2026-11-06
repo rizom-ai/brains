@@ -5,6 +5,7 @@ import {
   index,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createId } from "@brains/utils/id";
 import type {
   SqliteIntegerColumn,
@@ -79,6 +80,21 @@ type JobWorkerSessionsTable = SQLiteTableWithColumns<{
       true,
       true
     >;
+    brainVersion: SqliteTextColumn<
+      "job_worker_sessions",
+      "brainVersion",
+      false
+    >;
+    brainVersionSortKey: SqliteTextColumn<
+      "job_worker_sessions",
+      "brainVersionSortKey",
+      false
+    >;
+    stableSlotId: SqliteTextColumn<
+      "job_worker_sessions",
+      "stableSlotId",
+      false
+    >;
   };
   dialect: "sqlite";
 }>;
@@ -127,6 +143,8 @@ type JobQueueTable = SQLiteTableWithColumns<{
     leaseExpiresAt: JobQueueIntegerColumn<"leaseExpiresAt", false>;
     attemptHeartbeatAt: JobQueueIntegerColumn<"attemptHeartbeatAt", false>;
     runtimeUpdatedAt: JobQueueIntegerColumn<"runtimeUpdatedAt", false>;
+    brainVersion: JobQueueTextColumn<"brainVersion", false>;
+    brainVersionSortKey: JobQueueTextColumn<"brainVersionSortKey", false>;
   };
   dialect: "sqlite";
 }>;
@@ -191,6 +209,12 @@ export const jobQueue: JobQueueTable = sqliteTable(
     leaseExpiresAt: integer("leaseExpiresAt"),
     attemptHeartbeatAt: integer("attemptHeartbeatAt"),
     runtimeUpdatedAt: integer("runtimeUpdatedAt"),
+
+    // The brain version that queued the job: no older worker claims it. Null
+    // for a job queued before versions were recorded, which any worker runs.
+    brainVersion: text("brainVersion"),
+    // brainVersionSortKey(brainVersion): its binary order is semver precedence.
+    brainVersionSortKey: text("brainVersionSortKey"),
   },
   (table) => ({
     // Index for efficient queue operations (ready to process)
@@ -208,10 +232,26 @@ export const jobQueue: JobQueueTable = sqliteTable(
     ),
     // Index for source filtering
     jobSourceIdx: index("idx_job_queue_source").on(table.source),
+    // A batch finds its jobs without reading the queue: recovering the
+    // batches a crashed start left open read every job once per batch.
+    rootJobIdx: index("idx_job_queue_root_job").on(
+      sql`json_extract(${table.metadata}, '$.rootJobId')`,
+      table.createdAt,
+      table.id,
+    ),
+    // An enqueue that deduplicates by key reads only that key's active jobs.
+    deduplicationIdx: index("idx_job_queue_deduplication").on(
+      table.type,
+      sql`json_extract(${table.metadata}, '$.deduplicationKey')`,
+      table.status,
+    ),
   }),
 );
 
-/** One live session per stable worker slot. */
+/**
+ * One row per worker session. Each session holds its own slot, so a worker
+ * starting beside another one supersedes nothing.
+ */
 export const jobWorkerSessions: JobWorkerSessionsTable = sqliteTable(
   "job_worker_sessions",
   {
@@ -220,6 +260,14 @@ export const jobWorkerSessions: JobWorkerSessionsTable = sqliteTable(
     startedAt: integer("startedAt").notNull(),
     heartbeatAt: integer("heartbeatAt").notNull(),
     expiresAt: integer("expiresAt").notNull().default(0),
+    // The worker's brain version: a live newer session stops older workers
+    // claiming. Null for a worker that predates versions, which stops nobody.
+    brainVersion: text("brainVersion"),
+    brainVersionSortKey: text("brainVersionSortKey"),
+    // The stable worker this session runs as (`<slot>@<version>`): of the live
+    // sessions sharing it, only the newest claims, the others drain. Null for a
+    // session outside any stable worker, which holds back nobody.
+    stableSlotId: text("stableSlotId"),
   },
   (table) => ({
     heartbeatIdx: index("idx_job_worker_sessions_heartbeat").on(

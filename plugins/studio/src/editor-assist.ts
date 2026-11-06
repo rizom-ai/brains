@@ -21,7 +21,7 @@ const assistPayloadSchema = z.union([
   }),
   z.object({
     ...assistContextShape,
-    variant: z.literal("summarise"),
+    variant: z.literal("summarize"),
     targetField: z.string().trim().min(1),
   }),
   z.object({
@@ -134,7 +134,7 @@ export async function handleAssist(
     );
   }
 
-  if (payload.variant === "summarise" || payload.variant === "tag-suggest") {
+  if (payload.variant === "summarize" || payload.variant === "tag-suggest") {
     const fieldSchema = frontmatterSchema.shape[payload.targetField];
     if (!fieldSchema) {
       return jsonResponse(
@@ -144,7 +144,7 @@ export async function handleAssist(
     }
     const descriptor = zodFieldToStudioWidget(payload.targetField, fieldSchema);
     const compatible =
-      payload.variant === "summarise"
+      payload.variant === "summarize"
         ? descriptor.widget === "string" || descriptor.widget === "text"
         : descriptor.widget === "list" && descriptor.field?.widget === "string";
     if (!compatible) {
@@ -166,10 +166,10 @@ export async function handleAssist(
       entityContext.body,
     ];
 
-    if (payload.variant === "summarise") {
+    if (payload.variant === "summarize") {
       const { object } = await context.ai.generateObject(
         [
-          "Summarise the body for the target frontmatter field.",
+          "Summarize the body for the target frontmatter field.",
           "Return only the field value in the suggestion field.",
           ...contextLines,
         ].join("\n"),

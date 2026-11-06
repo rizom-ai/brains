@@ -54,6 +54,36 @@ describe("SiteInfoAdapter", () => {
       expect(body.copyright).toBe("© 2026");
       expect(body.themeMode).toBe("dark");
     });
+
+    it("parses the site's chrome in its other languages", () => {
+      const content = [
+        "---",
+        "title: The Fourth",
+        "description: Brand consultancy",
+        "copyright: ©2026 The Fourth",
+        "translations:",
+        "  zh-TW:",
+        "    title: 第四",
+        "    copyright: ©2026 第四",
+        "    cta:",
+        "      heading: 開始你的第四幕",
+        "      buttonText: 聊聊吧",
+        "      buttonLink: mailto:nihao.fourth@gmail.com",
+        "---",
+        "",
+      ].join("\n");
+      const body = adapter.parseSiteInfoBody(content);
+
+      expect(body.translations?.["zh-TW"]).toEqual({
+        title: "第四",
+        copyright: "©2026 第四",
+        cta: {
+          heading: "開始你的第四幕",
+          buttonText: "聊聊吧",
+          buttonLink: "mailto:nihao.fourth@gmail.com",
+        },
+      });
+    });
   });
 
   describe("toMarkdown", () => {

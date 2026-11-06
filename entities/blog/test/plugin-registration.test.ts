@@ -48,6 +48,13 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       ).toEqual([{ field: "publishedAt", direction: "desc" }]);
     });
 
+    it("retires frontmatter fields posts no longer use", async () => {
+      await harness.installPlugin(new BlogPlugin({}));
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("post").retiredFields,
+      ).toEqual(["ogDescription", "twitterCard", "atprotoUri"]);
+    });
+
     it("declares post publish statuses", async () => {
       await harness.installPlugin(new BlogPlugin({}));
 

@@ -721,9 +721,7 @@ describe("EntityService", (): void => {
     const markdown = "# Test Note\n\nTest content";
     expect(() =>
       entityService.deserializeEntity(markdown, "unknownType"),
-    ).toThrow(
-      "Entity type registration failed for unknownType: No adapter registered for entity type",
-    );
+    ).toThrow("Unknown entity type unknownType: no adapter registered");
   });
 });
 

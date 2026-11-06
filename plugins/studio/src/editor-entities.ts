@@ -1,22 +1,23 @@
-import type {
-  BaseEntity,
-  EntityIdPath,
-  GetEntityRequest,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { encodeEntityIdPath } from "@brains/entity-service";
 import {
-  DIRECTORY_SYNC_CHANNELS,
-  directorySyncPathResponseSchema,
-} from "@brains/contracts";
-import {
+  encodeEntityIdPath,
   canWriteVisibility,
   createArtifactResponse,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
   getPublishBoundaryState,
   entityIdPathSchema,
+  entityDisplayTitle as sharedEntityDisplayTitle,
 } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntityIdPath,
+  GetEntityRequest,
+  ServicePluginContext,
+} from "@brains/plugins";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
 import {
@@ -51,15 +52,12 @@ import {
 } from "./collection-query";
 
 /** Entity adapters own title derivation; Studio must not reinterpret source. */
+/** How Studio names an entry; the same rule the ⌘K palette uses. */
 export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
-  const title =
-    context.entities.getAdapter(entity.entityType)?.extractMetadata(entity)[
-      "title"
-    ] ?? entity.metadata["title"];
-  return typeof title === "string" && title.trim() ? title.trim() : undefined;
+  return sharedEntityDisplayTitle(context.entities, entity);
 }
 
 /** Authoring reads preserve source; rendering must never change a save draft. */

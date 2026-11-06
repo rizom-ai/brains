@@ -51,7 +51,11 @@ export const summaryListStyles: Record<
     fontWeight: 500,
     lineHeight: 1.35,
     color: "var(--console-text)",
-    whiteSpace: { default: "nowrap", "@media (max-width: 640px)": "normal" },
+    whiteSpace: {
+      default: "nowrap",
+      "@media (max-width: 640px)": "normal",
+      "@container operator (max-width: 640px)": "normal",
+    },
     overflow: "hidden",
     textOverflow: "ellipsis",
     overflowWrap: "anywhere",
@@ -106,6 +110,10 @@ export const summaryListStyles: Record<
     gap: 6,
     minWidth: 0,
     overflowWrap: "anywhere",
-    alignSelf: { default: "auto", "@media (max-width: 640px)": "start" },
+    alignSelf: {
+      default: "auto",
+      "@media (max-width: 640px)": "start",
+      "@container operator (max-width: 640px)": "start",
+    },
   },
 });

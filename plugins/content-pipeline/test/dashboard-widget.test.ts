@@ -202,7 +202,7 @@ describe("dashboard widget registration", () => {
       type: "links",
       items: [
         {
-          label: "Open in Studio",
+          label: "Open Publishing",
           target: {
             kind: "launch",
             launch: { target: "publishing" },

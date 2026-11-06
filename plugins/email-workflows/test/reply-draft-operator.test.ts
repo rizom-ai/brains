@@ -164,6 +164,28 @@ describe("EmailReplyDraftOperator", () => {
     }
   });
 
+  it("reports a draft's update time from the entity, not its file", async () => {
+    const fixture = await createFixture();
+    const actor = { permissionLevel: "admin" as const };
+    await fixture.operator.generate(fixture.itemId, actor);
+
+    const [stored] = await fixture.harness.getEntityService().listEntities({
+      entityType: "email-reply-draft",
+      options: { filter: { visibilityScope: "restricted" } },
+    });
+    if (!stored) throw new Error("Missing persisted draft");
+    expect(stored.content).not.toContain("updatedAt");
+    expect(stored.metadata).not.toHaveProperty("updatedAt");
+    expect(
+      (await fixture.operator.snapshot(fixture.itemId, actor)).draft,
+    ).toMatchObject({ updatedAt: stored.updated });
+    expect(
+      fixture.harness
+        .getEntityRegistry()
+        .getEntityTypeConfig("email-reply-draft").retiredFields,
+    ).toEqual(["updatedAt"]);
+  });
+
   it("saves edits with optimistic revisions and keeps stale writes recoverable", async () => {
     const fixture = await createFixture();
     const actor = { permissionLevel: "admin" as const };
@@ -384,7 +406,6 @@ it("rejects incoherent persisted reply delivery state", () => {
   const common = {
     mailItemId: `mail-${"a".repeat(64)}`,
     revision: 1,
-    updatedAt: "2026-08-05T10:00:00.000Z",
   };
 
   expect(() =>

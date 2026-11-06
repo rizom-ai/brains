@@ -845,6 +845,8 @@ describe("resolve with instance overrides", () => {
     const webserver = config.plugins?.find((p) => p.id === "webserver");
     expect(webserver).toBeDefined();
     expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
+    // Local links and the dev sign-in issuer follow the port actually served.
+    expect(config.deployment.ports.production).toBe(9090);
   });
 
   test("should apply targeted override after construction", () => {
@@ -1690,6 +1692,27 @@ describe("resolve with site package", () => {
     expect(getConfig(siteBuilder)["headScripts"]).toEqual([
       '<script src="/site.js"></script>',
     ]);
+  });
+
+  test("should inject the site package's languages into site-builder", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("bilingual-site", {
+      languages: ["en", "zh-TW"],
+    });
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find(
+      (plugin) => plugin.id === "site-builder",
+    );
+
+    expect(getConfig(siteBuilder)["languages"]).toEqual(["en", "zh-TW"]);
   });
 
   test("should inject staticAssets from site package into site-builder", () => {

@@ -22,6 +22,8 @@ import {
   sitePublicationStatusSchema,
 } from "./site-publication-status";
 import { resolveSiteMetadata } from "./site-metadata";
+import { publicationFacts, renderDetailFacts } from "./site-workspace-facts";
+import { recentBuildItems } from "./recent-build-items";
 
 export const siteWorkspaceActionSchema: z.ZodDiscriminatedUnion<
   [
@@ -175,25 +177,6 @@ function environmentCard(
 ): SiteCardBlock {
   const isPreview = environment.environment === "preview";
   const publication = environment.publication;
-  const publicationFacts =
-    publication.state === "published"
-      ? [
-          { label: "Published generation", value: publication.buildId },
-          { label: "Published at", value: publication.publishedAt },
-          {
-            label: "Published result",
-            value: `${publication.routesBuilt} routes`,
-          },
-        ]
-      : [
-          {
-            label: "Published generation",
-            value:
-              publication.state === "unreadable"
-                ? publication.message
-                : "not published",
-          },
-        ];
   return {
     type: "card",
     id: `site-${environment.environment}-card`,
@@ -210,7 +193,7 @@ function environmentCard(
       {
         type: "key-values",
         id: `${environment.environment}-facts`,
-        items: [...publicationFacts],
+        items: publicationFacts(publication),
       },
       ...(href
         ? [
@@ -258,27 +241,7 @@ function renderDetailsCard(
     blocks: [
       {
         type: "key-values",
-        items: [
-          {
-            label: "Last successful render",
-            value: environment.lastSuccess?.completedAt ?? "—",
-          },
-          {
-            label: "Rendered result",
-            value: environment.lastSuccess
-              ? `${environment.lastSuccess.routesBuilt} routes · ${environment.lastSuccess.jobId}`
-              : "no successful render",
-          },
-          ...(environment.lastFailure
-            ? [
-                {
-                  label: "Last failed attempt",
-                  value: environment.lastFailure.completedAt,
-                },
-                { label: "Failed job", value: environment.lastFailure.jobId },
-              ]
-            : []),
-        ],
+        items: renderDetailFacts(environment),
       },
     ],
   };
@@ -388,31 +351,10 @@ const siteWorkspace = defineStudioWorkspace({
                         id: "recent-builds",
                         presentation: "activity",
                         empty: "No site builds have completed yet.",
-                        items: data.recentBuilds
-                          .filter(
-                            (build) =>
-                              build.environment === environment.environment,
-                          )
-                          .map((build) => ({
-                            id: build.jobId,
-                            title: `${build.environment} · ${build.outcome}`,
-                            description: build.message,
-                            tone:
-                              build.outcome === "succeeded"
-                                ? "good"
-                                : build.outcome === "failed"
-                                  ? "error"
-                                  : "neutral",
-                            metadata: [
-                              `Completed: ${build.completedAt}`,
-                              ...(build.routesBuilt === undefined
-                                ? []
-                                : [`Routes: ${build.routesBuilt}`]),
-                              ...(build.warnings?.length
-                                ? [`Warnings: ${build.warnings.length}`]
-                                : []),
-                            ],
-                          })),
+                        items: recentBuildItems(
+                          data.recentBuilds,
+                          environment.environment,
+                        ),
                       },
                     ],
                   },

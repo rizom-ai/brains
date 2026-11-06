@@ -10,8 +10,8 @@ import type { PublicationQueueService } from "../publication-queue-service";
 import type { QueueManager } from "../queue-manager";
 import {
   handleQueueAction,
+  queueActionSchema,
   queueOutputSchema,
-  type QueueInput,
   type QueueMutationService,
 } from "./queue";
 import {
@@ -79,73 +79,36 @@ export type PublishingManageSchemaInput = z.output<
 >;
 export type PublishingManageActionName = PublishingManageSchemaInput["action"];
 
+type PublishActionSchema = z.ZodObject<{
+  action: z.ZodLiteral<"publish">;
+  entityType: z.ZodString;
+  id: z.ZodOptional<z.ZodString>;
+  slug: z.ZodOptional<z.ZodString>;
+  confirmed: z.ZodOptional<z.ZodBoolean>;
+  confirmationToken: z.ZodOptional<z.ZodString>;
+  contentHash: z.ZodOptional<z.ZodString>;
+  expiresAt: z.ZodOptional<z.ZodString>;
+}>;
+
 type PublishingManageActionSchema = z.ZodDiscriminatedUnion<
-  [
-    z.ZodObject<{
-      action: z.ZodLiteral<"queue-list">;
-      entityType: z.ZodOptional<z.ZodString>;
-    }>,
-    z.ZodObject<{
-      action: z.ZodLiteral<"queue-add">;
-      entityType: z.ZodString;
-      entityId: z.ZodString;
-    }>,
-    z.ZodObject<{
-      action: z.ZodLiteral<"queue-remove">;
-      entityType: z.ZodString;
-      entityId: z.ZodString;
-    }>,
-    z.ZodObject<{
-      action: z.ZodLiteral<"queue-reorder">;
-      entityType: z.ZodString;
-      entityId: z.ZodString;
-      position: z.ZodNumber;
-    }>,
-    z.ZodObject<{
-      action: z.ZodLiteral<"publish">;
-      entityType: z.ZodString;
-      id: z.ZodOptional<z.ZodString>;
-      slug: z.ZodOptional<z.ZodString>;
-      confirmed: z.ZodOptional<z.ZodBoolean>;
-      confirmationToken: z.ZodOptional<z.ZodString>;
-      contentHash: z.ZodOptional<z.ZodString>;
-      expiresAt: z.ZodOptional<z.ZodString>;
-    }>,
-  ]
+  [...(typeof queueActionSchema)["options"], PublishActionSchema]
 >;
+
+const publishActionSchema: PublishActionSchema = z.object({
+  action: z.literal("publish"),
+  entityType: z.string().min(1),
+  id: z.string().optional(),
+  slug: z.string().optional(),
+  confirmed: z.boolean().optional(),
+  confirmationToken: z.string().optional(),
+  contentHash: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
+});
 
 const publishingManageActionSchema: PublishingManageActionSchema =
   z.discriminatedUnion("action", [
-    z.object({
-      action: z.literal("queue-list"),
-      entityType: z.string().optional(),
-    }),
-    z.object({
-      action: z.literal("queue-add"),
-      entityType: z.string().min(1),
-      entityId: z.string().min(1),
-    }),
-    z.object({
-      action: z.literal("queue-remove"),
-      entityType: z.string().min(1),
-      entityId: z.string().min(1),
-    }),
-    z.object({
-      action: z.literal("queue-reorder"),
-      entityType: z.string().min(1),
-      entityId: z.string().min(1),
-      position: z.number().int().positive(),
-    }),
-    z.object({
-      action: z.literal("publish"),
-      entityType: z.string().min(1),
-      id: z.string().optional(),
-      slug: z.string().optional(),
-      confirmed: z.boolean().optional(),
-      confirmationToken: z.string().optional(),
-      contentHash: z.string().optional(),
-      expiresAt: z.string().datetime().optional(),
-    }),
+    ...queueActionSchema.options,
+    publishActionSchema,
   ]);
 
 export type PublishingManageInput = z.output<
@@ -183,7 +146,7 @@ export function createPublishingManageTool(
   return {
     name: "publishing_manage",
     description:
-      "Manage publishing with an action discriminator. Use action=queue-list to inspect the publish queue; action=queue-add to queue an entity for publication; action=queue-remove to remove a queued entity; action=queue-reorder to change queue order; action=publish to publish one entity directly. Direct publish requests confirmation inside this tool; call action=publish without confirmed first, then retry with the returned confirmation args.",
+      "Manage publishing with an action discriminator. Use action=queue-list to inspect the publish queue; action=queue-add to queue an entity for publication; action=queue-remove to remove a queued entity; action=queue-reorder to change queue order; action=publish to publish one entity directly to its platform (e.g. LinkedIn, Buttondown). Direct publish requests confirmation inside this tool: when the user asks to publish, call action=publish without confirmed instead of asking for plain-text confirmation. Follow-ups like 'publish it now' target the entity just read, generated, or updated in the conversation, including a post just changed to draft. Missing publish assets such as generated OG images are reconciled during publishing; there is no separate reconciliation tool to call.",
     inputSchema: publishingManageInputSchema.shape,
     outputSchema: publishingManageOutputSchema,
     visibility: "admin",
@@ -219,59 +182,24 @@ async function handlePublishingManageAction(input: {
   input: PublishingManageInput;
   toolContext: ToolContext;
 }): Promise<ToolResponse> {
-  switch (input.input.action) {
-    case "queue-list":
-      return handleQueue(input, {
-        action: "list",
-        entityType: input.input.entityType,
-      });
-    case "queue-add":
-      return handleQueue(input, {
-        action: "add",
-        entityType: input.input.entityType,
-        entityId: input.input.entityId,
-      });
-    case "queue-remove":
-      return handleQueue(input, {
-        action: "remove",
-        entityType: input.input.entityType,
-        entityId: input.input.entityId,
-      });
-    case "queue-reorder":
-      return handleQueue(input, {
-        action: "reorder",
-        entityType: input.input.entityType,
-        entityId: input.input.entityId,
-        position: input.input.position,
-      });
-    case "publish":
-      return addCanonicalPublishAction(
-        await handlePublishAction({
-          context: input.context,
-          executor: input.publishExecutor,
-          toolName: "publishing_manage",
-          rawInput: buildPublishInput(input.input),
-          toolContext: input.toolContext,
-        }),
-      );
+  if (input.input.action !== "publish") {
+    return handleQueueAction(
+      input.context,
+      input.queueManager,
+      input.queueMutations,
+      input.input,
+      input.toolContext,
+    );
   }
-}
 
-function handleQueue(
-  input: {
-    context: ServicePluginContext;
-    queueManager: QueueManager;
-    queueMutations: QueueMutationService;
-    toolContext: ToolContext;
-  },
-  queueInput: QueueInput,
-): Promise<ToolResponse> {
-  return handleQueueAction(
-    input.context,
-    input.queueManager,
-    input.queueMutations,
-    queueInput,
-    input.toolContext,
+  return addCanonicalPublishAction(
+    await handlePublishAction({
+      context: input.context,
+      executor: input.publishExecutor,
+      toolName: "publishing_manage",
+      rawInput: buildPublishInput(input.input),
+      toolContext: input.toolContext,
+    }),
   );
 }
 

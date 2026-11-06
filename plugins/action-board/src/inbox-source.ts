@@ -1,3 +1,7 @@
+import {
+  permissionToVisibilityScope,
+  internalFullScope,
+} from "@brains/plugins";
 import type {
   ServicePluginContext,
   InboxActor,
@@ -51,7 +55,9 @@ export class ActionItemInboxSource implements InboxSource {
         options: {
           filter: {
             metadata: { status: "blocked" },
-            visibilityScope: "restricted",
+            visibilityScope: internalFullScope(
+              "action items inbox is admin-only",
+            ),
           },
           sortFields: [{ field: "updated", direction: "desc" }],
           limit: LIST_LIMIT,
@@ -92,7 +98,7 @@ export class ActionItemInboxSource implements InboxSource {
       {
         entityType: ACTION_ITEM_ENTITY_TYPE,
         id: itemId,
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
       },
       actionItemSchema,
     );
@@ -116,7 +122,7 @@ export class ActionItemInboxSource implements InboxSource {
     const result = await moveActionItem(
       {
         entityService: this.context.entityService,
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
       },
       { id: itemId, from: "blocked", to },
     );

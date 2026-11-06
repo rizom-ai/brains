@@ -35,6 +35,7 @@ describe("studioWorkspaces", () => {
       "web-chat:chat",
       "unified-inbox:inbox",
       "content-pipeline:publishing",
+      "action-board:board",
       "site-builder:site",
       "directory-sync:sync",
       "admin:administration",

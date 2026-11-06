@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { createPublishTool, publishInputSchema } from "../../src/tools/publish";
+import {
+  createPublishingManageTool,
+  publishingManageInputSchema,
+} from "../../src/tools";
+import { QueueManager } from "../../src/queue-manager";
 import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";
 import type { PublishResult } from "@brains/contracts";
@@ -35,7 +39,7 @@ function createMockProvider(name: string): PublishProvider {
 }
 
 async function runConfirmedPublish(
-  tool: ReturnType<typeof createPublishTool>,
+  tool: ReturnType<typeof createPublishingManageTool>,
   input: Record<string, unknown>,
   context: ToolContext = createMockToolContext(),
 ): Promise<Awaited<ReturnType<typeof tool.handler>>> {
@@ -47,12 +51,18 @@ async function runConfirmedPublish(
   return tool.handler(confirmation.args, context);
 }
 
-describe("Publish Pipeline - Publish Tool", () => {
+describe("publishing_manage publish action", () => {
   let context: ServicePluginContext;
   let logger: Logger;
   let mockShell: MockShell;
   let providerRegistry: ProviderRegistry;
-  const pluginId = "publish-pipeline";
+  const pluginId = "content-pipeline";
+
+  const createTool = (): ReturnType<typeof createPublishingManageTool> =>
+    createPublishingManageTool(context, {
+      queueManager: QueueManager.createFresh(),
+      providerRegistry,
+    });
 
   beforeEach(() => {
     logger = createSilentLogger();
@@ -70,25 +80,6 @@ describe("Publish Pipeline - Publish Tool", () => {
       );
   });
 
-  describe("createPublishTool", () => {
-    it("should create a publish tool with correct name", () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
-      expect(tool.name).toBe("publish-pipeline_publish");
-      expect(tool.handler).toBeDefined();
-    });
-
-    it("should have admin visibility and external side effects", () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
-      expect(tool.visibility).toBe("admin");
-      expect(tool.sideEffects).toBe("external");
-    });
-
-    it("should have description explaining direct publishing", () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
-      expect(tool.description.toLowerCase()).toContain("publish");
-    });
-  });
-
   describe("publish policy", () => {
     it("requires publish permission before direct publish", async () => {
       mockShell.getPermissionService = (): PermissionService =>
@@ -96,10 +87,10 @@ describe("Publish Pipeline - Publish Tool", () => {
           entityActions: { "social-post": { publish: "admin" } },
         });
       context = createServicePluginContext(mockShell, pluginId);
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
 
       const result = await tool.handler(
-        { entityType: "social-post", id: "post-123" },
+        { action: "publish", entityType: "social-post", id: "post-123" },
         { ...createMockToolContext(), userPermissionLevel: "trusted" },
       );
 
@@ -111,66 +102,41 @@ describe("Publish Pipeline - Publish Tool", () => {
     });
   });
 
-  describe("publishInputSchema", () => {
-    it("should require entityType", () => {
-      const result = publishInputSchema.safeParse({
-        id: "post-123",
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("should accept entityType and id", () => {
-      const result = publishInputSchema.safeParse({
-        entityType: "social-post",
-        id: "post-123",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("should accept entityType and slug", () => {
-      const result = publishInputSchema.safeParse({
-        entityType: "social-post",
-        slug: "my-post",
-      });
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe("handler validation", () => {
     it("should require entityType", async () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { id: "post-123" },
+        { action: "publish", id: "post-123" },
         createMockToolContext(),
       );
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("entityType");
-      }
+      expect(result).toMatchObject({
+        success: false,
+        error: expect.stringContaining("entityType"),
+      });
     });
 
     it("should require id or slug", async () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { entityType: "social-post" },
+        { action: "publish", entityType: "social-post" },
         createMockToolContext(),
       );
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("id");
-      }
+      expect(result).toMatchObject({
+        success: false,
+        error: expect.stringContaining("id"),
+      });
     });
 
     it("should return error when entity not found", async () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { entityType: "social-post", id: "nonexistent" },
+        { action: "publish", entityType: "social-post", id: "nonexistent" },
         createMockToolContext(),
       );
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("not found");
-      }
+      expect(result).toMatchObject({
+        success: false,
+        error: expect.stringContaining("not found"),
+      });
     });
   });
 
@@ -239,9 +205,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const confirmation = await tool.handler(
-        { entityType: "social-post", id: "draft-post" },
+        { action: "publish", entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
@@ -256,10 +222,10 @@ describe("Publish Pipeline - Publish Tool", () => {
         confirmation.args,
         createMockToolContext(),
       );
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("platformId", "linkedin-post-123");
-      }
+      expect(result).toMatchObject({
+        success: true,
+        data: { platformId: "linkedin-post-123" },
+      });
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
@@ -267,13 +233,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const initialTool = createPublishTool(
-        context,
-        pluginId,
-        providerRegistry,
-      );
+      const initialTool = createTool();
       const confirmation = await initialTool.handler(
-        { entityType: "social-post", slug: "draft-post" },
+        { action: "publish", entityType: "social-post", slug: "draft-post" },
         createMockToolContext(),
       );
 
@@ -284,17 +246,13 @@ describe("Publish Pipeline - Publish Tool", () => {
       }
       expect(confirmation.args).toHaveProperty("expiresAt");
 
-      const recreatedTool = createPublishTool(
-        context,
-        pluginId,
-        providerRegistry,
-      );
+      const recreatedTool = createTool();
       const result = await recreatedTool.handler(
         confirmation.args,
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(true);
+      expect(result).toMatchObject({ success: true });
       expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
     });
 
@@ -302,9 +260,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const confirmation = await tool.handler(
-        { entityType: "social-post", id: "draft-post" },
+        { action: "publish", entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
@@ -315,17 +273,17 @@ describe("Publish Pipeline - Publish Tool", () => {
 
       const result = await tool.handler(
         {
-          ...confirmation.args,
+          ...publishingManageInputSchema.parse(confirmation.args),
           confirmationToken: "invalid-token",
         },
         createMockToolContext(),
       );
 
       expect(result).not.toHaveProperty("needsConfirmation");
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("Invalid publish confirmation token");
-      }
+      expect(result).toMatchObject({
+        success: false,
+        error: expect.stringContaining("Invalid publish confirmation token"),
+      });
       expect(linkedinProvider.publish).not.toHaveBeenCalled();
     });
 
@@ -333,9 +291,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const confirmation = await tool.handler(
-        { entityType: "social-post", id: "draft-post" },
+        { action: "publish", entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
@@ -353,10 +311,10 @@ describe("Publish Pipeline - Publish Tool", () => {
         );
 
         expect(result).not.toHaveProperty("needsConfirmation");
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error).toContain("Publish confirmation expired");
-        }
+        expect(result).toMatchObject({
+          success: false,
+          error: expect.stringContaining("Publish confirmation expired"),
+        });
         expect(linkedinProvider.publish).not.toHaveBeenCalled();
       } finally {
         Date.now = originalDateNow;
@@ -367,9 +325,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const confirmation = await tool.handler(
-        { entityType: "social-post", id: "draft-post" },
+        { action: "publish", entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
@@ -395,54 +353,58 @@ describe("Publish Pipeline - Publish Tool", () => {
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("changed after confirmation");
-      }
+      expect(result).toMatchObject({
+        success: false,
+
+        error: expect.stringContaining("changed after confirmation"),
+      });
       expect(linkedinProvider.publish).not.toHaveBeenCalled();
     });
 
     it("should return error when no provider registered", async () => {
       // No provider registered - should return error
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { entityType: "social-post", id: "draft-post" },
+        { action: "publish", entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("No publish provider registered");
-      }
+      expect(result).toMatchObject({
+        success: false,
+
+        error: expect.stringContaining("No publish provider registered"),
+      });
     });
 
     it("should reject already published entities", async () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { entityType: "social-post", id: "published-post" },
+        { action: "publish", entityType: "social-post", id: "published-post" },
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("already published");
-      }
+      expect(result).toMatchObject({
+        success: false,
+
+        error: expect.stringContaining("already published"),
+      });
     });
 
     it("should reject shared entities before publishing publicly", async () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { entityType: "social-post", id: "shared-post" },
+        { action: "publish", entityType: "social-post", id: "shared-post" },
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("visibility is shared");
-      }
+      expect(result).toMatchObject({
+        success: false,
+
+        error: expect.stringContaining("visibility is shared"),
+      });
       expect(linkedinProvider.publish).not.toHaveBeenCalled();
     });
 
@@ -450,16 +412,21 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await tool.handler(
-        { entityType: "social-post", slug: "restricted-post" },
+        {
+          action: "publish",
+          entityType: "social-post",
+          slug: "restricted-post",
+        },
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("visibility is restricted");
-      }
+      expect(result).toMatchObject({
+        success: false,
+
+        error: expect.stringContaining("visibility is restricted"),
+      });
       expect(linkedinProvider.publish).not.toHaveBeenCalled();
     });
 
@@ -467,13 +434,14 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await runConfirmedPublish(tool, {
+        action: "publish",
         entityType: "social-post",
         slug: "draft-post",
       });
 
-      expect(result.success).toBe(true);
+      expect(result).toMatchObject({ success: true });
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
@@ -481,8 +449,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       await runConfirmedPublish(tool, {
+        action: "publish",
         entityType: "social-post",
         id: "draft-post",
       });
@@ -521,8 +490,9 @@ This is the actual post content.`,
         },
       });
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       await runConfirmedPublish(tool, {
+        action: "publish",
         entityType: "social-post",
         id: "frontmatter-post",
       });
@@ -573,8 +543,9 @@ Post content with an image.`,
         },
       });
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       await runConfirmedPublish(tool, {
+        action: "publish",
         entityType: "social-post",
         id: "post-with-image",
       });
@@ -615,14 +586,15 @@ Post content without image.`,
         },
       });
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await runConfirmedPublish(tool, {
+        action: "publish",
         entityType: "social-post",
         id: "post-missing-image",
       });
 
       // Should still succeed, just without image
-      expect(result.success).toBe(true);
+      expect(result).toMatchObject({ success: true });
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "Post content without image.",
         expect.anything(),
@@ -652,16 +624,18 @@ Post content without image.`,
         },
       });
 
-      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const tool = createTool();
       const result = await runConfirmedPublish(tool, {
+        action: "publish",
         entityType: "social-post",
         id: "test-post",
       });
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("API rate limit");
-      }
+      expect(result).toMatchObject({
+        success: false,
+
+        error: expect.stringContaining("API rate limit"),
+      });
     });
   });
 });

@@ -258,6 +258,11 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
     0 24px 58px -30px
       color-mix(in srgb, var(--console-bg-deep) 72%, transparent);
+  --console-shadow-ink: color-mix(
+    in srgb,
+    var(--console-bg-deep) 72%,
+    transparent
+  );
   color-scheme: dark;
 }
 
@@ -281,6 +286,13 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
     0 22px 44px -30px
       color-mix(in srgb, var(--console-bg-deep) 30%, transparent);
+  /* Paper's deep tint is lighter than its dimmed backdrop: a shadow mixed
+     from it reads as a pale halo, so overlays cast an ink shadow. */
+  --console-shadow-ink: color-mix(
+    in srgb,
+    var(--console-text) 26%,
+    transparent
+  );
   color-scheme: light;
 }
 
@@ -540,11 +552,11 @@ html {
 }
 
 
-@property --x-1pds3uo { syntax: "*"; inherits: false;}
 @keyframes xij6lzg-B{50%{opacity:.58;transform:scale(1.2);}}
 @keyframes xukdt12-B{50%{opacity:.85;}}
 @keyframes xvnk6pr-B{0%{opacity:0;transform:translateY(12px);}20%{opacity:.34;}82%{opacity:.24;}100%{opacity:0;transform:translateY(-24px);}}
 @keyframes x1ixh1oh-B{from{opacity:0;transform:scale(0);}to{opacity:1;transform:scale(1);}}
+@keyframes xqestwo-B{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:scale(1);}}
 @keyframes x5ou7kv-B{to{stroke-dashoffset:0;}}
 .x10a8y8t:not(#\\#){inset:0}
 .xg4khjk:not(#\\#){inset:15px 18px auto}
@@ -554,6 +566,7 @@ html {
 .x8o5f6s:not(#\\#){margin:0 0 11px}
 .xjgi5au:not(#\\#){margin:0 0 12px}
 .x1qe5pcq:not(#\\#){margin:0 0 20px}
+.xwd23ue:not(#\\#){margin:0 0 4px}
 .xzmzwx2:not(#\\#){margin:0 18px}
 .x19bbpc0:not(#\\#){margin:0 auto}
 .x1ghz6dp:not(#\\#){margin:0}
@@ -607,9 +620,11 @@ html {
 .x9ms5i6:not(#\\#){padding:3px}
 .x1o8uwn5:not(#\\#){padding:48px}
 .x11onut9:not(#\\#){padding:4px 0 17px}
+.x1toko95:not(#\\#){padding:4px 0 2px}
 .x14odnwx:not(#\\#){padding:5px}
 .xokocfn:not(#\\#){padding:6px 0}
 .x1jmcyos:not(#\\#){padding:6px 9px}
+.x1ruevkc:not(#\\#){padding:6px}
 .x2lkgqm:not(#\\#){padding:7px 10px}
 .x1sbvpl4:not(#\\#){padding:7px 11px}
 .x1160tuk:not(#\\#){padding:8px 10px}
@@ -618,9 +633,11 @@ html {
 .x1b28kx2:not(#\\#){padding:9px 16px 11px}
 .x1jlzkty:not(#\\#){padding:9px 5px}
 .x1sjuclm:not(#\\#){padding:clamp(24px,4vw,48px) 0 60px}
-@media (max-width: 700px){.x1fxr43a.x1fxr43a:not(#\\#){margin:0}}
+.x10e8r38:is([data-matrix-cell] li:last-child):not(#\\#){padding:14px 0 4px}
+.x1xukwvs:is([data-matrix-cell] li):not(#\\#){padding:14px 0}
+@media (max-width: 720px){.x1yemgb7.x1yemgb7:not(#\\#){margin:0}}
 @media (max-width: 640px){.x1xnq73d.x1xnq73d:not(#\\#){padding:0 10px}}
-@media (max-width: 700px){.xc6f5x5.xc6f5x5:not(#\\#){padding:0 10px}}
+@media (max-width: 720px){.xe3jge6.xe3jge6:not(#\\#){padding:0 10px}}
 @media (max-width: 900px){.xb1114b.xb1114b:not(#\\#){padding:0}}
 @media (max-width: 640px){.xfc0hut.xfc0hut:not(#\\#){padding:12px 0 40px}}
 @media (max-width: 640px){.xg8tid0.xg8tid0:not(#\\#){padding:12px 14px 0}}
@@ -674,6 +691,7 @@ html {
 .x3psx0u:not(#\\#):not(#\\#){flex:0 0 auto}
 .xkz0k9k:not(#\\#):not(#\\#){flex:0 1 auto}
 .x845mor:not(#\\#):not(#\\#){flex:1 1 0%}
+.x12lumcd:not(#\\#):not(#\\#){flex:1 1 auto}
 .x98rzlu:not(#\\#):not(#\\#){flex:1}
 .xxhr3t:not(#\\#):not(#\\#){gap:0}
 .x883omv:not(#\\#):not(#\\#){gap:10px}
@@ -699,9 +717,11 @@ html {
 .xv5gsod:not(#\\#):not(#\\#){gap:36px}
 .x1ed6fcf:not(#\\#):not(#\\#){gap:3px}
 .x1kxjhzz:not(#\\#):not(#\\#){gap:42px}
+.xx06bmz:not(#\\#):not(#\\#){gap:4px 18px}
 .x1jnr06f:not(#\\#):not(#\\#){gap:4px}
 .x1nejdyq:not(#\\#):not(#\\#){gap:5px}
 .x1u7gxyo:not(#\\#):not(#\\#){gap:6px 12px}
+.x3phc52:not(#\\#):not(#\\#){gap:6px 14px}
 .x1vtxxvk:not(#\\#):not(#\\#){gap:6px 16px}
 .x17d4w8g:not(#\\#):not(#\\#){gap:6px}
 .x1j9xkj6:not(#\\#):not(#\\#){gap:7px}
@@ -779,25 +799,33 @@ html {
 @media (max-width: 640px){.xjgfjw9.xjgfjw9:not(#\\#):not(#\\#){gap:24px}}
 @media (max-width: 900px){.x1mlu5rb.x1mlu5rb:not(#\\#):not(#\\#){gap:32px}}
 @media (max-width: 640px){.x1kis1tw.x1kis1tw:not(#\\#):not(#\\#){gap:3px}}
-@media (max-width: 700px){.x1t31nvy.x1t31nvy:not(#\\#):not(#\\#){gap:4px 12px}}
+@media (max-width: 720px){.x66wd9j.x66wd9j:not(#\\#):not(#\\#){gap:4px 12px}}
 @media (max-width: 640px){.x15j3ira.x15j3ira:not(#\\#):not(#\\#){gap:4px}}
-@media (max-width: 700px){.x1ky9xo3.x1ky9xo3:not(#\\#):not(#\\#){gap:7px 14px}}
+@media (max-width: 720px){.x1hsl0lv.x1hsl0lv:not(#\\#):not(#\\#){gap:7px 14px}}
 @media (max-width: 640px){.x1dbyxhg.x1dbyxhg:not(#\\#):not(#\\#){gap:8px 12px}}
 @media (max-width: 640px){.x1otypdl.x1otypdl:not(#\\#):not(#\\#){gap:8px}}
 @media (max-width: 640px){.xdueovt.xdueovt:not(#\\#):not(#\\#){gap:9px}}
 @media (max-width: 640px){.x62c7l.x62c7l:not(#\\#):not(#\\#){gap:var(--operator-sections-gap,26px 40px)}}
 @media (max-width: 640px){.xqca30q.xqca30q:not(#\\#):not(#\\#){gap:var(--operator-sections-gap,28px)}}
-@media (max-width: 700px){.xdq8kt8.xdq8kt8:not(#\\#):not(#\\#){grid-column:1 / -1}}
+@media (max-width: 720px){.x1mny9qk.x1mny9qk:not(#\\#):not(#\\#){grid-column:1 / -1}}
 @media (max-width: 420px){.x16ohsbj.x16ohsbj:not(#\\#):not(#\\#){grid-column:1}}
-@media (max-width: 700px){.xjpies9.xjpies9:not(#\\#):not(#\\#){grid-column:1}}
-@media (max-width: 700px){.x1h2ge3d.x1h2ge3d:not(#\\#):not(#\\#){grid-column:2}}
-@media (min-width: 420.01px) and (max-width: 700px){.x4mvmlk.x4mvmlk:not(#\\#):not(#\\#){grid-column:2}}
-@media (max-width: 700px){.x1xelu8c.x1xelu8c:not(#\\#):not(#\\#){grid-row:2}}
+@media (max-width: 720px){.xy0nd2e.xy0nd2e:not(#\\#):not(#\\#){grid-column:1}}
+@media (max-width: 720px){.x1yfacwp.x1yfacwp:not(#\\#):not(#\\#){grid-column:2}}
+@media (min-width: 420.01px) and (max-width: 720px){.xbzj6x0.xbzj6x0:not(#\\#):not(#\\#){grid-column:2}}
+@media (max-width: 720px){.x9zojqa.x9zojqa:not(#\\#):not(#\\#){grid-row:2}}
 @media (max-width: 640px){.x1qa1qnr.x1qa1qnr:not(#\\#):not(#\\#){padding-inline:18px}}
 @media (prefers-reduced-motion: reduce){.x9kvfbb.x9kvfbb:not(#\\#):not(#\\#){transition:none}}
 @media (min-width: 641px){.x8wqbq1.x8wqbq1:is([data-operator-action-popover] *):not(#\\#):not(#\\#){border-color:var(--console-rule-strong)}}
 @media (min-width: 641px){.x1ga0ivm.x1ga0ivm:is([data-operator-action-popover] *):not(#\\#):not(#\\#){border-radius:9px}}
 @media (prefers-reduced-motion: reduce){.x7iwzyl.x7iwzyl:hover:not(:disabled):not(#\\#):not(#\\#){outline:2px solid var(--console-on-accent)}}
+@container operator (max-width: 640px){.x16qsdag.x16qsdag:not(#\\#):not(#\\#){gap:10px}}
+@container operator (max-width: 720px){.x1k72cru.x1k72cru:not(#\\#):not(#\\#){gap:10px}}
+@container operator (max-width: 640px){.x1unfst4.x1unfst4:not(#\\#):not(#\\#){gap:12px}}
+@container operator-cell (max-width: 420px){.x5cqck7.x5cqck7:not(#\\#):not(#\\#){gap:12px}}
+@container operator (max-width: 900px){.xpodh61.xpodh61:not(#\\#):not(#\\#){gap:32px}}
+@container operator (max-width: 640px){.xv2j0n9.xv2j0n9:not(#\\#):not(#\\#){gap:3px}}
+@container operator (max-width: 640px){.xyedrc3.xyedrc3:not(#\\#):not(#\\#){gap:var(--operator-sections-gap,26px 40px)}}
+@container operator (max-width: 640px){.x1wlbpn8.x1wlbpn8:not(#\\#):not(#\\#){gap:var(--operator-sections-gap,28px)}}
 .x1ua5tub:not(#\\#):not(#\\#):not(#\\#){-webkit-box-orient:vertical}
 .xvmahel:not(#\\#):not(#\\#):not(#\\#){-webkit-font-smoothing:antialiased}
 .x1h7i4cw:not(#\\#):not(#\\#):not(#\\#){-webkit-line-clamp:2}
@@ -812,21 +840,25 @@ html {
 .x1oa3qoh:not(#\\#):not(#\\#):not(#\\#){align-self:auto}
 .x7fd4wk:not(#\\#):not(#\\#):not(#\\#){align-self:end}
 .xl8t4ro:not(#\\#):not(#\\#):not(#\\#){animation-duration:.55s}
+.xxkxylk:not(#\\#):not(#\\#):not(#\\#){animation-duration:.5s}
 .x10dgwld:not(#\\#):not(#\\#):not(#\\#){animation-duration:1.15s}
 .x1q41ro2:not(#\\#):not(#\\#):not(#\\#){animation-duration:11s}
 .xhzpukf:not(#\\#):not(#\\#):not(#\\#){animation-duration:4.6s}
 .x16zzmm9:not(#\\#):not(#\\#):not(#\\#){animation-duration:5.2s}
+.xskzprw:not(#\\#):not(#\\#):not(#\\#){animation-fill-mode:backwards}
 .x1u6ievf:not(#\\#):not(#\\#):not(#\\#){animation-fill-mode:both}
 .x10e4vud:not(#\\#):not(#\\#):not(#\\#){animation-fill-mode:forwards}
 .xa4qsjk:not(#\\#):not(#\\#):not(#\\#){animation-iteration-count:infinite}
 .x181y1b3:not(#\\#):not(#\\#):not(#\\#){animation-name:x1ixh1oh-B}
 .xk7vdms:not(#\\#):not(#\\#):not(#\\#){animation-name:x5ou7kv-B}
 .x1sris66:not(#\\#):not(#\\#):not(#\\#){animation-name:xij6lzg-B}
+.x1ugrwat:not(#\\#):not(#\\#):not(#\\#){animation-name:xqestwo-B}
 .xpoaoud:not(#\\#):not(#\\#):not(#\\#){animation-name:xukdt12-B}
 .x1bjh57s:not(#\\#):not(#\\#):not(#\\#){animation-name:xvnk6pr-B}
 .xwk33p5:not(#\\#):not(#\\#):not(#\\#){animation-timing-function:cubic-bezier(.2,.9,.3,1.4)}
 .x1qvsx5j:not(#\\#):not(#\\#):not(#\\#){animation-timing-function:cubic-bezier(.3,.6,.3,1)}
 .x4hg4is:not(#\\#):not(#\\#):not(#\\#){animation-timing-function:ease-in-out}
+.xa3vuyk:not(#\\#):not(#\\#):not(#\\#){animation-timing-function:ease-out}
 .x1esw782:not(#\\#):not(#\\#):not(#\\#){animation-timing-function:linear}
 .xjyslct:not(#\\#):not(#\\#):not(#\\#){appearance:none}
 .xpivpjv:not(#\\#):not(#\\#):not(#\\#){backdrop-filter:blur(4px)}
@@ -842,6 +874,7 @@ html {
 .xdo6va6:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-err) 7%,transparent)}
 .x1xlsm2u:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-frame) 94%,transparent)}
 .x382npu:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 4%,transparent)}
+.x18jj7c1:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 5%,transparent)}
 .x1ghvq8m:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-text) 7%,transparent)}
 .x1mh3lbe:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-warn) 15%,transparent)}
 .xc1c755:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-warn) 7%,transparent)}
@@ -870,15 +903,19 @@ html {
 .xopnk0n:not(#\\#):not(#\\#):not(#\\#){background-size:48px 48px}
 .x6khlng:not(#\\#):not(#\\#):not(#\\#){background-size:5px 5px,5px 5px}
 .x1mwwwfo:not(#\\#):not(#\\#):not(#\\#){border-collapse:collapse}
+.xzvbwyp:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 3px var(--console-bg-deep),0 0 0 4.5px color-mix(in srgb,currentColor 50%,transparent),0 0 16px 4px color-mix(in srgb,currentColor 55%,transparent)}
 .xh2qvui:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 5px color-mix(in srgb,currentColor 9%,transparent)}
+.xohzo4b:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 10px 1px color-mix(in srgb,currentColor 45%,transparent)}
 .x11svnkv:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 14px currentColor}
 .xkeuntj:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 28px color-mix(in srgb,var(--console-ok) 9%,transparent)}
 .x17y309f:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 7px color-mix(in srgb,currentColor 60%,transparent)}
 .x1b33ckz:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 7px color-mix(in srgb,currentColor 70%,transparent)}
-.x11niwyr:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 18px 48px -22px color-mix(in srgb,var(--console-bg-deep) 76%,transparent)}
+.x1qk4p91:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 18px 48px -22px var(--console-shadow-ink,color-mix(in srgb,var(--console-bg-deep) 76%,transparent))}
 .xkv9d8c:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
-.xqz5wv3:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 32px 80px -28px color-mix(in srgb,var(--console-bg-deep) 72%,transparent)}
+.x1b3fvf2:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 32px 80px -28px var(--console-shadow-ink,color-mix(in srgb,var(--console-bg-deep) 72%,transparent))}
+.x1mpwnwh:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 0 0 1px var(--console-rule)}
 .x1yrie1r:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 2px 24px rgba(0,0,0,.5)}
+.xfv7mty:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 2px 0 0 var(--console-accent)}
 .x1gnnqk1:not(#\\#):not(#\\#):not(#\\#){box-shadow:none}
 .x9f619:not(#\\#):not(#\\#):not(#\\#){box-sizing:border-box}
 .x1gj8qfm:not(#\\#):not(#\\#):not(#\\#){clip-path:none}
@@ -894,8 +931,12 @@ html {
 .x1ar3pfp:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text-muted)}
 .xqvuw85:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text)}
 .x1ra7g20:not(#\\#):not(#\\#):not(#\\#){color:var(--console-warn)}
+.x1wh94ac:not(#\\#):not(#\\#):not(#\\#){column-gap:40px}
 .xmzwrfy:not(#\\#):not(#\\#):not(#\\#){container-name:operator-aside}
+.x17il9kl:not(#\\#):not(#\\#):not(#\\#){container-name:operator-cell}
+.xzxxqnc:not(#\\#):not(#\\#):not(#\\#){container-name:operator-matrix}
 .xdy16ns:not(#\\#):not(#\\#):not(#\\#){container-name:operator-panel}
+.x1foj65r:not(#\\#):not(#\\#):not(#\\#){container-name:operator}
 .x12h1iku:not(#\\#):not(#\\#):not(#\\#){container-type:inline-size}
 .xt0e3qv:not(#\\#):not(#\\#):not(#\\#){cursor:default}
 .x1ypdohk:not(#\\#):not(#\\#):not(#\\#){cursor:pointer}
@@ -932,7 +973,9 @@ html {
 .xdt5ytf:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}
 .x1q0g3np:not(#\\#):not(#\\#):not(#\\#){flex-direction:row}
 .x2lah0s:not(#\\#):not(#\\#):not(#\\#){flex-shrink:0}
+.xozqiw3:not(#\\#):not(#\\#):not(#\\#){flex-wrap:nowrap}
 .x1a02dak:not(#\\#):not(#\\#):not(#\\#){flex-wrap:wrap}
+.x18mqm2i:not(#\\#):not(#\\#):not(#\\#){float:right}
 .xjb2p0i:not(#\\#):not(#\\#):not(#\\#){font-family:inherit}
 .xssy22x:not(#\\#):not(#\\#):not(#\\#){font-family:var(--console-display)}
 .xa9opjo:not(#\\#):not(#\\#):not(#\\#){font-family:var(--console-mono)}
@@ -952,6 +995,7 @@ html {
 .x1j61zf2:not(#\\#):not(#\\#):not(#\\#){font-size:16px}
 .x19d36u7:not(#\\#):not(#\\#):not(#\\#){font-size:17px}
 .xosj86m:not(#\\#):not(#\\#):not(#\\#){font-size:18px}
+.x1q7jzdg:not(#\\#):not(#\\#):not(#\\#){font-size:19px}
 .xwsyq91:not(#\\#):not(#\\#):not(#\\#){font-size:20px}
 .x1i1m3gp:not(#\\#):not(#\\#):not(#\\#){font-size:22px}
 .x5heo1l:not(#\\#):not(#\\#):not(#\\#){font-size:23px}
@@ -1006,6 +1050,7 @@ html {
 .x17l7a04:not(#\\#):not(#\\#):not(#\\#){font-weight:var(--operator-section-weight,700)}
 .xw1czmm:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:130px minmax(0,1fr)}
 .x1pjqied:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:18px minmax(0,1fr) fit-content(30%)}
+.x9ztcg1:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:52px 14px minmax(0,1fr)}
 .xx9t13c:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:auto minmax(0,1fr) auto}
 .x175yr4d:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:auto minmax(0,auto)}
 .x1bu5on4:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)}
@@ -1019,14 +1064,14 @@ html {
 .x1mkdm3x:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}
 .xar548p:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,2.25fr) minmax(250px,.75fr)}
 .xpr710q:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,2fr) minmax(270px,.86fr)}
-.x1nob1kv:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(80px,1fr) minmax(0,1.5fr)}
 .xnby9oq:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}
 .x185a7wo:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}
 .x1sipb5g:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(4,minmax(0,1fr))}
+.x1g9xdvi:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.x27jn57:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fill,minmax(min(100%,24rem),1fr))}
 .x1jsv65m:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))}
 .xp2hupy:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fit,minmax(min(128px,100%),1fr))}
 .x1lelaru:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))}
-.x39pwss:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:var(--x-1pds3uo)}
 .xc8icb0:not(#\\#):not(#\\#):not(#\\#){isolation:isolate}
 .xl56j7k:not(#\\#):not(#\\#):not(#\\#){justify-content:center}
 .x13a6bvl:not(#\\#):not(#\\#):not(#\\#){justify-content:flex-end}
@@ -1076,6 +1121,7 @@ html {
 .xggjnk3:not(#\\#):not(#\\#):not(#\\#){line-height:normal}
 .xd0avp8:not(#\\#):not(#\\#):not(#\\#){line-height:var(--operator-secondary-leading,1.3)}
 .x3ct3a4:not(#\\#):not(#\\#):not(#\\#){list-style-type:none}
+.xyqm7xq:not(#\\#):not(#\\#):not(#\\#){margin-inline-start:16px}
 .xvc5jky:not(#\\#):not(#\\#):not(#\\#){margin-inline-start:auto}
 .xao0n3f:not(#\\#):not(#\\#):not(#\\#){opacity:.13}
 .x19pb5yz:not(#\\#):not(#\\#):not(#\\#){opacity:.24}
@@ -1084,18 +1130,20 @@ html {
 .xf9vgkq:not(#\\#):not(#\\#):not(#\\#){opacity:.72}
 .xg01cxk:not(#\\#):not(#\\#):not(#\\#){opacity:0}
 .x1hc1fzr:not(#\\#):not(#\\#):not(#\\#){opacity:1}
+.x9ek82g:not(#\\#):not(#\\#):not(#\\#){order:1}
+.x14yy4lh:not(#\\#):not(#\\#):not(#\\#){order:2}
 .x1itw484:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-accent)}
 .x100b2on:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-rule-accent)}
 .x2ssjo2:not(#\\#):not(#\\#):not(#\\#){outline-offset:-2px}
 .xr2mjdv:not(#\\#):not(#\\#):not(#\\#){outline-offset:-4px}
 .x1hl8ikr:not(#\\#):not(#\\#):not(#\\#){outline-offset:2px}
-.x1ewu8gn:not(#\\#):not(#\\#):not(#\\#){outline-offset:3px}
-.x2wh2y9:not(#\\#):not(#\\#):not(#\\#){outline-offset:4px}
+.x8wkva7:not(#\\#):not(#\\#):not(#\\#){outline-offset:6px}
 .x1t137rt:not(#\\#):not(#\\#):not(#\\#){outline-style:none}
 .xaatb59:not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .x1k57tk5:not(#\\#):not(#\\#):not(#\\#){outline-width:0}
 .x1de99jn:not(#\\#):not(#\\#):not(#\\#){outline-width:2px}
 .xj0a0fe:not(#\\#):not(#\\#):not(#\\#){overflow-wrap:anywhere}
+.x1mzt3pk:not(#\\#):not(#\\#):not(#\\#){overflow-wrap:break-word}
 .xsjhqdm:not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:auto}
 .x1pqk8vl:not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:contain}
 .x5zjp28:not(#\\#):not(#\\#):not(#\\#){padding-inline-end:30px}
@@ -1155,13 +1203,17 @@ html {
 .x1764fhq:not(#\\#):not(#\\#):not(#\\#){transform-box:fill-box}
 .x1g0ag68:not(#\\#):not(#\\#):not(#\\#){transform-origin:center}
 .x1c071of:not(#\\#):not(#\\#):not(#\\#){transform:none}
+.x1omdec3:not(#\\#):not(#\\#):not(#\\#){transform:scale(1.5)}
+.x3oybdh:not(#\\#):not(#\\#):not(#\\#){transform:scale(1)}
 .x11lhmoz:not(#\\#):not(#\\#):not(#\\#){transform:translate(-50%,-50%)}
 .xbryuvx:not(#\\#):not(#\\#):not(#\\#){transform:translateX(0)}
+.x1uqg51p:not(#\\#):not(#\\#):not(#\\#){transform:translateY(-1px)}
 .xavs3du:not(#\\#):not(#\\#):not(#\\#){transform:translateY(1px)}
 .xgdialr:not(#\\#):not(#\\#):not(#\\#){transition-duration:.12s}
 .xx6bhzk:not(#\\#):not(#\\#):not(#\\#){transition-duration:.15s}
 .x13dflua:not(#\\#):not(#\\#):not(#\\#){transition-duration:.2s}
 .x1eaenvl:not(#\\#):not(#\\#):not(#\\#){transition-property:background-color,border-color,color}
+.x106061f:not(#\\#):not(#\\#):not(#\\#){transition-property:background-color,box-shadow}
 .x15406qy:not(#\\#):not(#\\#):not(#\\#){transition-property:background-color}
 .x163lptb:not(#\\#):not(#\\#):not(#\\#){transition-property:border-color,background-color,color}
 .xrf8owv:not(#\\#):not(#\\#):not(#\\#){transition-property:color,border-color}
@@ -1187,16 +1239,17 @@ html {
 .xat1s67.xat1s67:where(.x-default-marker:hover *):not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .xozkggm.xozkggm:where(.x-default-marker:hover *):not(#\\#):not(#\\#):not(#\\#){transform:translate(2px,-1px)}
 .x156vuz7:is([aria-selected="true"],[aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-card-soft) 55%,transparent)}
+.xpalnk2:is([data-timeline-active]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent-soft)}
 .x1n1caiv:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .xn4j7m4:is([data-status=active] > *, [data-status=complete] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .xvs6z26:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
-.x1b32d6n:is([aria-current="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-card)}
 .x1amwds0:is([data-status=failed] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-err)}
 .x1bguay0:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-on-accent)}
 .x1foxddj:focus-visible:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-secondary-soft)}
 .x7u1vw9:is([aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-secondary-soft)}
 .xxhr8im:is([aria-selected="true"],[aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-text)}
 .x1uqgcet:focus-visible:not(#\\#):not(#\\#):not(#\\#){box-shadow:-10px 0 0 var(--console-accent)}
+.x1xyv72o:is([data-timeline-active]):not(#\\#):not(#\\#):not(#\\#){box-shadow:-8px 0 0 var(--console-accent-soft),8px 0 0 var(--console-accent-soft)}
 .x1o00wks:focus-visible:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 3px color-mix(in srgb,var(--console-accent) 18%,transparent)}
 .x1x9skyz:focus-visible:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 3px color-mix(in srgb,var(--console-accent) 20%,transparent)}
 .x8a9xbt:focus-visible:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 3px color-mix(in srgb,var(--console-accent) 24%,transparent)}
@@ -1206,7 +1259,6 @@ html {
 .x13hqkim:is([data-climate="paper"] *):not(#\\#):not(#\\#):not(#\\#){box-shadow:0 22px 40px -28px rgba(90,60,20,.28)}
 .x18rpbmq:focus-visible:not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--console-accent) 35%,transparent)}
 .x1m85y3v:is([data-climate="paper"] *):not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 0 2px 18px rgba(90,60,20,.22)}
-.x1v17x4h:is([aria-current="true"]):not(#\\#):not(#\\#):not(#\\#){box-shadow:inset 2px 0 0 var(--console-accent)}
 .x1r2bfix:focus-visible:not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .x1s1kr4f:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .x1mvgbya:is([data-tone="error"]):not(#\\#):not(#\\#):not(#\\#){color:var(--console-err)}
@@ -1230,12 +1282,14 @@ html {
 .x126iy1i.x126iy1i:where(.x-default-marker[data-map-active="true"] *):not(#\\#):not(#\\#):not(#\\#){fill:color-mix(in srgb,var(--console-secondary) 6.5%,transparent)}
 .xs9z77v:is([data-operator-blocks] > [data-block=links] *):not(#\\#):not(#\\#):not(#\\#){font-size:12.5px}
 .xxdvuf2:is([aria-selected="true"],[aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#){font-weight:500}
+.x1q3wkif:is([data-columns="2"]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}
 .x1w43bmf:is([data-operator-card-body] *):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}
+.x1gbo546:is([data-columns="3"]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}
+.xkyyx2n:is([data-columns="4"]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(4,minmax(0,1fr))}
 .x64nxkd:is([data-ui-spatial-active] *):not([aria-pressed="true"]):not([data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){opacity:.3}
 .x1k4xm7o:is([data-disabled]):not(#\\#):not(#\\#):not(#\\#){opacity:.45}
 .xxh1od1:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-color:var(--console-accent)}
-.xj3ae5l:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-offset:3px}
-.x12ijfkc:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-offset:4px}
+.x7s97pk:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-offset:2px}
 .x9v5kkp:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .x4xl6zf:focus-visible:not(#\\#):not(#\\#):not(#\\#){outline-width:1px}
 .xiaifju:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){outline-width:1px}
@@ -1246,11 +1300,13 @@ html {
 .xgcfudb:is([data-tone="warn"]):not(#\\#):not(#\\#):not(#\\#){stroke:var(--console-warn)}
 .x1ffr0y8:is([data-align="center"]):not(#\\#):not(#\\#):not(#\\#){text-align:center}
 .xpebyx1:is([data-align="end"]):not(#\\#):not(#\\#):not(#\\#){text-align:right}
+.x1kobeir:is(:hover > *):not(#\\#):not(#\\#):not(#\\#){transform:scale(1.35)}
 .xu021ln:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){transform:translateX(18px)}
 .x1nlf60j:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){transform:translateY(-1px)}
 .x110e2yq:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){z-index:4}
 .x1qm06za:focus-visible:not(#\\#):not(#\\#):not(#\\#){z-index:4}
 .x79gikr:has(> details[open]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}
+.xokuw57:has([data-row-link]:focus-visible):not(#\\#):not(#\\#):not(#\\#){outline-style:solid}
 .xbd3v37:first-child:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text)}
 .xq648tx:first-child:not(#\\#):not(#\\#):not(#\\#){font-size:14px}
 .xsnqk1y:first-child:not(#\\#):not(#\\#):not(#\\#){font-weight:500}
@@ -1290,7 +1346,7 @@ html {
 @media (max-width: 640px){.xp7j7s0.xp7j7s0:not(#\\#):not(#\\#):not(#\\#){align-items:center}}
 @media (max-width: 420px){.x6ssbkw.x6ssbkw:not(#\\#):not(#\\#):not(#\\#){align-items:flex-start}}
 @media (max-width: 640px){.xelgs58.xelgs58:not(#\\#):not(#\\#):not(#\\#){align-items:flex-start}}
-@media (max-width: 700px){.x12kvzbs.x12kvzbs:not(#\\#):not(#\\#):not(#\\#){align-items:flex-start}}
+@media (max-width: 720px){.x1pftkvw.x1pftkvw:not(#\\#):not(#\\#):not(#\\#){align-items:flex-start}}
 @media (max-width: 640px){.x1fpodaz.x1fpodaz:not(#\\#):not(#\\#):not(#\\#){align-items:start}}
 @media (max-width: 640px){.x1o3peri.x1o3peri:not(#\\#):not(#\\#):not(#\\#){align-items:stretch}}
 @media (max-width: 720px){.x1943nhg.x1943nhg:not(#\\#):not(#\\#):not(#\\#){align-items:stretch}}
@@ -1298,71 +1354,69 @@ html {
 @media (prefers-reduced-motion: reduce){.x1aquc0h.x1aquc0h:not(#\\#):not(#\\#):not(#\\#){animation-name:none}}
 @media (min-width: 641px){.xkktd5z.xkktd5z:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent-soft)}}
 @media (max-width: 640px){.xlc8tcj.xlc8tcj:not(#\\#):not(#\\#):not(#\\#){box-shadow:none}}
-@media (max-width: 700px){.xvxd79e.xvxd79e:not(#\\#):not(#\\#):not(#\\#){clip-path:inset(50%)}}
+@media (max-width: 720px){.x1uno8h5.x1uno8h5:not(#\\#):not(#\\#):not(#\\#){clip-path:inset(50%)}}
 @media (max-width: 640px){.xfsj286.xfsj286:not(#\\#):not(#\\#):not(#\\#){display:block}}
 @media (max-width: 640px){.x10acg2q.x10acg2q:not(#\\#):not(#\\#):not(#\\#){display:grid}}
-@media (max-width: 700px){.x1tkldnv.x1tkldnv:not(#\\#):not(#\\#):not(#\\#){display:grid}}
-@media (max-width: 960px){.x1mreouh.x1mreouh:not(#\\#):not(#\\#):not(#\\#){display:grid}}
+@media (max-width: 720px){.x6i8fqm.x6i8fqm:not(#\\#):not(#\\#):not(#\\#){display:grid}}
+@media (max-width: 900px){.x1dtk984.x1dtk984:not(#\\#):not(#\\#):not(#\\#){display:grid}}
 @media (max-width: 640px){.x13v5x0x.x13v5x0x:not(#\\#):not(#\\#):not(#\\#){display:inline-flex}}
-@media (max-width: 860px){.x19y3i14.x19y3i14:not(#\\#):not(#\\#):not(#\\#){display:inline-flex}}
+@media (max-width: 900px){.x168i3sl.x168i3sl:not(#\\#):not(#\\#):not(#\\#){display:inline-flex}}
 @media (max-width: 640px){.xkaaz9w.xkaaz9w:not(#\\#):not(#\\#):not(#\\#){display:none}}
-@media (max-width: 700px){.x1gz44f.x1gz44f:not(#\\#):not(#\\#):not(#\\#){display:none}}
-@media (max-width: 860px){.xubcuz8.xubcuz8:not(#\\#):not(#\\#):not(#\\#){display:none}}
+@media (max-width: 720px){.x49x15t.x49x15t:not(#\\#):not(#\\#):not(#\\#){display:none}}
+@media (max-width: 900px){.xzd29fr.xzd29fr:not(#\\#):not(#\\#):not(#\\#){display:none}}
 @media (max-width: 640px){.x1fdxwjo.x1fdxwjo:not(#\\#):not(#\\#):not(#\\#){display:table-row}}
-@media (max-width: 700px){.xk3fpul.xk3fpul:not(#\\#):not(#\\#):not(#\\#){flex-basis:100%}}
+@media (max-width: 720px){.x1gue55y.x1gue55y:not(#\\#):not(#\\#):not(#\\#){flex-basis:100%}}
 @media (max-width: 640px){.x17cst73.x17cst73:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}}
-@media (max-width: 700px){.xwlf911.xwlf911:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}}
 @media (max-width: 720px){.x1g3ag0e.x1g3ag0e:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}}
 @media (max-width: 900px){.xxsmavh.xxsmavh:not(#\\#):not(#\\#):not(#\\#){flex-wrap:nowrap}}
 @media (max-width: 640px){.xzbubq.xzbubq:not(#\\#):not(#\\#):not(#\\#){flex-wrap:wrap}}
 @media (max-width: 900px){.xvabu7y.xvabu7y:not(#\\#):not(#\\#):not(#\\#){flex-wrap:wrap}}
 @media (max-width: 640px){.xxgfmko.xxgfmko:not(#\\#):not(#\\#):not(#\\#){font-size:10.5px}}
-@media (max-width: 700px){.xx6x5xb.xx6x5xb:not(#\\#):not(#\\#):not(#\\#){font-size:10px}}
+@media (max-width: 720px){.x1vq3b3y.x1vq3b3y:not(#\\#):not(#\\#):not(#\\#){font-size:10px}}
 @media (max-width: 640px){.xqjcjlm.xqjcjlm:not(#\\#):not(#\\#):not(#\\#){font-size:12.5px}}
-@media (max-width: 700px){.x1myrtjv.x1myrtjv:not(#\\#):not(#\\#):not(#\\#){font-size:12px}}
+@media (max-width: 720px){.xo9lxqq.xo9lxqq:not(#\\#):not(#\\#):not(#\\#){font-size:12px}}
 @media (max-width: 640px){.x1yzm3l3.x1yzm3l3:not(#\\#):not(#\\#):not(#\\#){font-size:13px}}
 @media (max-width: 640px){.x1sgj8az.x1sgj8az:not(#\\#):not(#\\#):not(#\\#){font-size:15px}}
+@media (max-width: 640px) and (not (pointer: coarse)){.xhhd8f.xhhd8f:not(#\\#):not(#\\#):not(#\\#){font-size:16px}}
 @media (max-width: 640px){.xf2x79s.xf2x79s:not(#\\#):not(#\\#):not(#\\#){font-size:16px}}
-@media (max-width: 700px){.x1h8vfmw.x1h8vfmw:not(#\\#):not(#\\#):not(#\\#){font-size:16px}}
-@media (max-width: 700px){.x1ma7c9k.x1ma7c9k:not(#\\#):not(#\\#):not(#\\#){font-size:20px}}
+@media (max-width: 720px){.xxae97u.xxae97u:not(#\\#):not(#\\#):not(#\\#){font-size:16px}}
+@media (pointer: coarse){.x1yr6pw4.x1yr6pw4:not(#\\#):not(#\\#):not(#\\#){font-size:16px}}
+@media (max-width: 720px){.xn29b5y.xn29b5y:not(#\\#):not(#\\#):not(#\\#){font-size:20px}}
 @media (max-width: 640px){.x1kth5g4.x1kth5g4:not(#\\#):not(#\\#):not(#\\#){font-size:25px}}
 @media (max-width: 900px){.x1mg0i68.x1mg0i68:not(#\\#):not(#\\#):not(#\\#){font-size:27px}}
-@media (max-width: 700px){.x1co8zsc.x1co8zsc:not(#\\#):not(#\\#):not(#\\#){font-size:6.5px}}
+@media (max-width: 720px){.x1ogbdcq.x1ogbdcq:not(#\\#):not(#\\#):not(#\\#){font-size:6.5px}}
 @media (max-width: 640px){.xbewnxd.xbewnxd:not(#\\#):not(#\\#):not(#\\#){font-size:8.5px}}
 @media (max-width: 640px){.x155ir8z.x155ir8z:not(#\\#):not(#\\#):not(#\\#){font-size:9px}}
 @media (max-width: 640px){.x1i2bv8g.x1i2bv8g:not(#\\#):not(#\\#):not(#\\#){font-size:clamp(27px,8.5vw,36px)}}
 @media (max-width: 640px){.x5z33oq.x5z33oq:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:1fr 1fr}}
-@media (min-width: 420.01px) and (max-width: 700px){.x1f4sfy1.x1f4sfy1:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:auto minmax(0,1fr)}}
-@media (max-width: 700px){.xnijijm.xnijijm:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr) fit-content(40%)}}
+@media (min-width: 420.01px) and (max-width: 720px){.xxljim5.xxljim5:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:auto minmax(0,1fr)}}
+@media (max-width: 720px){.x159c1az.x159c1az:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr) fit-content(40%)}}
 @media (max-width: 420px){.x1gc00kl.x1gc00kl:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
 @media (max-width: 640px){.x4jmfmw.x4jmfmw:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
-@media (max-width: 700px){.x16p75mz.x16p75mz:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
 @media (max-width: 720px){.x57k0db.x57k0db:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
-@media (max-width: 860px){.xf4kbi9.xf4kbi9:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
 @media (max-width: 900px){.xirox3h.xirox3h:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
-@media (max-width: 960px){.x19dxrgd.x19dxrgd:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
 @media (max-width: 640px){.xou8obv.xou8obv:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width: 700px){.xnu5m2z.xnu5m2z:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (min-width: 700.01px) and (max-width: 960px){.xqu07bb.xqu07bb:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width: 720px){.x1otivht.x1otivht:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width: 720.01px) and (max-width: 900px){.x11pl5mh.x11pl5mh:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width: 640px){.xmn758v.xmn758v:not(#\\#):not(#\\#):not(#\\#){justify-content:flex-start}}
-@media (max-width: 700px){.x88anuq.x88anuq:not(#\\#):not(#\\#):not(#\\#){justify-content:flex-start}}
+@media (max-width: 720px){.xx5kb6y.xx5kb6y:not(#\\#):not(#\\#):not(#\\#){justify-content:flex-start}}
 @media (max-width: 640px){.x1s9bmkn.x1s9bmkn:not(#\\#):not(#\\#):not(#\\#){justify-content:space-between}}
 @media (max-width: 640px){.x13bdqmg.x13bdqmg:not(#\\#):not(#\\#):not(#\\#){line-height:1.03}}
-@media (max-width: 700px){.x16slewp.x16slewp:not(#\\#):not(#\\#):not(#\\#){line-height:1.4}}
+@media (max-width: 720px){.x1u6zlfl.x1u6zlfl:not(#\\#):not(#\\#):not(#\\#){line-height:1.4}}
 @media (prefers-reduced-motion: reduce){.x16dpw5u.x16dpw5u:not(#\\#):not(#\\#):not(#\\#){opacity:1}}
 @media (max-width: 640px){.x1iqbltf.x1iqbltf:not(#\\#):not(#\\#):not(#\\#){order:3}}
 @media (max-width: 640px){.x3y8eqj.x3y8eqj:not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:auto}}
 @media (max-width: 900px){.xbfx0k3.xbfx0k3:not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:contain}}
 @media (max-width: 640px){.x1s77nak.x1s77nak:not(#\\#):not(#\\#):not(#\\#){padding-inline-end:44px}}
 @media (max-width: 640px){.x1nck5sx.x1nck5sx:not(#\\#):not(#\\#):not(#\\#){position:absolute}}
-@media (max-width: 700px){.x18on85o.x18on85o:not(#\\#):not(#\\#):not(#\\#){position:absolute}}
+@media (max-width: 720px){.xget08e.xget08e:not(#\\#):not(#\\#):not(#\\#){position:absolute}}
 @media (min-width: 641px){.x14c6fbn.x14c6fbn:not(#\\#):not(#\\#):not(#\\#){position:static}}
 @media (max-width: 640px){.x1668a04.x1668a04:not(#\\#):not(#\\#):not(#\\#){scrollbar-width:auto}}
 @media (max-width: 900px){.xsbd0l1.xsbd0l1:not(#\\#):not(#\\#):not(#\\#){scrollbar-width:none}}
 @media (prefers-reduced-motion: reduce){.x1nwy2jz.x1nwy2jz:not(#\\#):not(#\\#):not(#\\#){stroke-dashoffset:0}}
 @media (max-width: 640px){.x1mji7za.x1mji7za:not(#\\#):not(#\\#):not(#\\#){transform:none}}
-@media (max-width: 700px){.x1exahbn.x1exahbn:not(#\\#):not(#\\#):not(#\\#){transform:translateX(-15%)}}
-@media (max-width: 700px){.xejwcb0.xejwcb0:not(#\\#):not(#\\#):not(#\\#){transform:translateX(-18%)}}
+@media (max-width: 720px){.x1d7nh58.x1d7nh58:not(#\\#):not(#\\#):not(#\\#){transform:translateX(-15%)}}
+@media (max-width: 720px){.x22pbl2.x22pbl2:not(#\\#):not(#\\#):not(#\\#){transform:translateX(-18%)}}
 @media (prefers-reduced-motion: reduce){.x12w9bfk.x12w9bfk:not(#\\#):not(#\\#):not(#\\#){transition-duration:0s}}
 @media (prefers-reduced-motion: reduce){.x4wkmsb.x4wkmsb:not(#\\#):not(#\\#):not(#\\#){transition-property:none}}
 @media (max-width: 640px){.x1i1s3md.x1i1s3md:not(#\\#):not(#\\#):not(#\\#){white-space:normal}}
@@ -1376,7 +1430,40 @@ html {
 @media (max-width: 640px){.x1defwea.x1defwea:is([data-has-unannotated="true"]):not(#\\#):not(#\\#):not(#\\#){scrollbar-width:thin}}
 @media (prefers-reduced-motion: reduce){.x6wgdar.x6wgdar:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){transform:none}}
 @media (min-width: 641px){.x1q652j.x1q652j:is([data-operator-action-popover] *):not(#\\#):not(#\\#):not(#\\#){z-index:10}}
+@container operator (max-width: 640px){.x14p79m1.x14p79m1:not(#\\#):not(#\\#):not(#\\#){align-items:flex-start}}
+@container operator (max-width: 640px){.x1xy9y68.x1xy9y68:not(#\\#):not(#\\#):not(#\\#){align-items:start}}
+@container operator (max-width: 640px){.xmrrqfi.xmrrqfi:not(#\\#):not(#\\#):not(#\\#){align-items:stretch}}
+@container operator (max-width: 720px){.x9awmtd.x9awmtd:not(#\\#):not(#\\#):not(#\\#){align-items:stretch}}
+@container operator-cell (max-width: 420px){.x1ovenir.x1ovenir:not(#\\#):not(#\\#):not(#\\#){align-items:stretch}}
+@container operator (max-width: 640px){.x1uk5d4i.x1uk5d4i:not(#\\#):not(#\\#):not(#\\#){align-self:start}}
+@container operator (max-width: 640px){.xplwmzv.xplwmzv:not(#\\#):not(#\\#):not(#\\#){display:block}}
+@container operator (max-width: 640px){.x1w305zg.x1w305zg:not(#\\#):not(#\\#):not(#\\#){display:grid}}
+@container operator (max-width: 900px){.x1yu2ybr.x1yu2ybr:not(#\\#):not(#\\#):not(#\\#){display:inline-flex}}
+@container operator (max-width: 900px){.xsu5lmx.xsu5lmx:not(#\\#):not(#\\#):not(#\\#){display:none}}
+@container operator (max-width: 640px){.x1lu4wmf.x1lu4wmf:not(#\\#):not(#\\#):not(#\\#){display:table-row}}
+@container operator (max-width: 640px){.xlrawni.xlrawni:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}}
+@container operator (max-width: 720px){.xlw4hyx.xlw4hyx:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}}
+@container operator-cell (max-width: 420px){.xyil5ud.xyil5ud:not(#\\#):not(#\\#):not(#\\#){flex-direction:column}}
+@container operator (max-width: 640px){.x1i03alp.x1i03alp:not(#\\#):not(#\\#):not(#\\#){flex-wrap:wrap}}
+@container operator (max-width: 640px){.x1c2rghm.x1c2rghm:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
+@container operator (max-width: 900px){.xtpkkxw.xtpkkxw:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
 @container operator-aside (min-width: 0px){.x1ram2ln.x1ram2ln:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
+@container operator-matrix (max-width: 480px){.x16lgxdz.x16lgxdz:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
+@container operator-matrix (min-width: 481px) and (max-width: 900px){.xchmvhn.xchmvhn:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
+@container operator (max-width: 640px){.x1nae48y.x1nae48y:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container operator (max-width: 640px){.x1aoecvx.x1aoecvx:not(#\\#):not(#\\#):not(#\\#){justify-content:flex-start}}
+@container operator-cell (max-width: 420px){.x6z9i88.x6z9i88:not(#\\#):not(#\\#):not(#\\#){justify-content:flex-start}}
+@container operator (max-width: 640px){.xq86nrr.xq86nrr:not(#\\#):not(#\\#):not(#\\#){justify-content:space-between}}
+@container operator (max-width: 640px){.x5zp4vj.x5zp4vj:not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:auto}}
+@container operator (max-width: 640px){.x18of6z9.x18of6z9:not(#\\#):not(#\\#):not(#\\#){position:absolute}}
+@container operator (max-width: 640px){.xvwifah.xvwifah:not(#\\#):not(#\\#):not(#\\#){scrollbar-width:auto}}
+@container operator (max-width: 640px){.x1uv6r69.x1uv6r69:not(#\\#):not(#\\#):not(#\\#){white-space:normal}}
+@container operator (max-width: 640px){.x15zwrp0.x15zwrp0:is([data-compact-row="true"]):not(#\\#):not(#\\#):not(#\\#){display:none}}
+@container operator (max-width: 640px){.x22zvs4.x22zvs4:is([data-has-unannotated="false"]):not(#\\#):not(#\\#):not(#\\#){display:none}}
+@container operator-matrix (max-width: 480px){.x1gjrsil.x1gjrsil:is([data-columns="2"], [data-columns="3"], [data-columns="4"]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
+@container operator-matrix (min-width: 481px) and (max-width: 900px){.x1mqdp8p.x1mqdp8p:is([data-columns="2"], [data-columns="3"], [data-columns="4"]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container operator (max-width: 640px){.x1douzxv.x1douzxv:is([data-has-unannotated="true"]):not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:contain}}
+@container operator (max-width: 640px){.x1rfhg52.x1rfhg52:is([data-has-unannotated="true"]):not(#\\#):not(#\\#):not(#\\#){scrollbar-width:thin}}
 .x16stqrj:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:transparent}
 .xna4lh4:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:var(--console-rule-strong)}
 .xpqg30t:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:var(--console-rule)}
@@ -1392,10 +1479,12 @@ html {
 .xz6lizu:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-rule)}
 .xs4majh:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-text-muted)}
 .xzxeg27:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-warn)}
+.xsxj2vf:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-style:dashed}
 .x19ypqd9:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-style:solid}
 .xyj58a3:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:0}
 .xe0pwq:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:1px}
 .x19sr0n1:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:2px}
+.x1vo0akb:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:3px}
 .x3a9l4s:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-right-color:var(--console-rule)}
 .x32b0ac:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-right-style:solid}
 .xgfja2r:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-right-width:0}
@@ -1407,8 +1496,13 @@ html {
 .x972fbf:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:0}
 .x178xt8z:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:1px}
 .xamhcws:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:2px}
+.x1ey2m1c:not(#\\#):not(#\\#):not(#\\#):not(#\\#){bottom:0}
+.xrb244j:not(#\\#):not(#\\#):not(#\\#):not(#\\#){bottom:6px}
 .x5yr21d:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:100%}
+.x1dr9wh:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:108px}
+.x1kpxq89:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:12px}
 .xhjk10j:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:140px}
+.xlup9mm:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:16px}
 .xmix8c7:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:18px}
 .xjm9jq1:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:1px}
 .xxk0z11:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:24px}
@@ -1426,7 +1520,9 @@ html {
 .xegnrdp:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:9px}
 .xt7dq6l:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:auto}
 .x1nrll8i:not(#\\#):not(#\\#):not(#\\#):not(#\\#){left:50%}
+.xxwu3sf:not(#\\#):not(#\\#):not(#\\#):not(#\\#){left:6px}
 .x1rgg377:not(#\\#):not(#\\#):not(#\\#):not(#\\#){left:9px}
+.x1aqb8qb:not(#\\#):not(#\\#):not(#\\#):not(#\\#){left:calc(100% - 19px)}
 .x1jyxor1:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-bottom:-1px}
 .xat24cr:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-bottom:0}
 .xyorhqc:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-bottom:10px}
@@ -1496,7 +1592,7 @@ html {
 .x5w4yej:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:160px}
 .xfb3i0g:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:180px}
 .xg3ba1e:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:25px}
-.x1j9oiuk:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:min(100%,520px)}
+.x1fns5xo:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:40px}
 .x113rx6s:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-width:var(--radix-select-trigger-width,180px)}
 .xw2csxc:not(#\\#):not(#\\#):not(#\\#):not(#\\#){overflow-x:auto}
 .x101abm8:not(#\\#):not(#\\#):not(#\\#):not(#\\#){overflow-x:clip}
@@ -1534,12 +1630,16 @@ html {
 .x123j3cw:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-top:5px}
 .x1y1aw1k:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-top:8px}
 .x44moml:not(#\\#):not(#\\#):not(#\\#):not(#\\#){right:14px}
+.x13vifvy:not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:0}
 .xuivejd:not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:14px}
 .xwa60dl:not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:50%}
 .xh8yej3:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:100%}
+.xsmyaan:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:12px}
 .x6jxa94:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:14px}
+.x1kky2od:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:16px}
 .x1xp8n7a:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:18px}
 .xgd8bvy:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:28px}
+.xfo62xy:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:2px}
 .x1td3qas:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:32px}
 .x14qfxbe:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:36px}
 .x10h3iyq:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:42px}
@@ -1559,6 +1659,8 @@ html {
 .x9redfm:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:min(720px,100%)}
 .x1xiyr0g:is([aria-selected="true"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:var(--console-accent)}
 .xtobj18:is([data-state='active']):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:var(--console-accent)}
+.x1z10cro:is([data-matrix-cell] li:last-child):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-width:0}
+.xkzz1zq:is([data-tone=error]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-err)}
 .x178oq3p:focus-visible:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-secondary)}
 .x1qdoa1:is([aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-color:var(--console-secondary)}
 .xoy5xpq:is([data-tone="error"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-color:var(--console-err)}
@@ -1575,33 +1677,34 @@ html {
 @media (max-width: 640px){.x1lclwwd.x1lclwwd:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-left-radius:0}}
 @media (max-width: 640px){.xgrp7ii.xgrp7ii:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-right-radius:0}}
 @media (max-width: 640px){.x171z6dy.x171z6dy:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:0}}
-@media (max-width: 700px){.xpp82rp.xpp82rp:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:0}}
+@media (max-width: 720px){.x1n97idq.x1n97idq:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-left-width:0}}
 @media (max-width: 640px){.x13ymtvt.x13ymtvt:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-right-width:0}}
-@media (max-width: 700px){.x1240y2e.x1240y2e:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:1px}}
+@media (max-width: 720px){.xnc2tav.xnc2tav:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:1px}}
 @media (max-width: 640px){.x1imafyg.x1imafyg:not(#\\#):not(#\\#):not(#\\#):not(#\\#){bottom:0}}
-@media (max-width: 700px){.x16psae1.x16psae1:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:1px}}
+@media (max-width: 720px){.xwj557x.xwj557x:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:1px}}
 @media (max-width: 640px){.x1iwbelc.x1iwbelc:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:26px}}
 @media (max-width: 640px){.x1fkvin3.x1fkvin3:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:44px}}
 @media (max-width: 420px){.x1li4m8q.x1li4m8q:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:54px}}
 @media (max-width: 420px){.x14vkcg0.x14vkcg0:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:68px}}
+@media (max-width: 640px){.x1b4kqk5.x1b4kqk5:not(#\\#):not(#\\#):not(#\\#):not(#\\#){height:96px}}
 @media (max-width: 640px){.x172uiah.x172uiah:not(#\\#):not(#\\#):not(#\\#):not(#\\#){left:0}}
 @media (max-width: 640px){.xzzd6q.xzzd6q:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-bottom:10px}}
 @media (max-width: 640px){.x703316.x703316:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-left:0}}
-@media (max-width: 700px){.x1qcvvgs.x1qcvvgs:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-left:0}}
+@media (max-width: 720px){.xzbafmd.xzbafmd:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-left:0}}
 @media (max-width: 640px){.xtwf3lw.xtwf3lw:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-right:18px}}
 @media (max-width: 640px){.xxnk3sr.xxnk3sr:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-height:min(88dvh,760px)}}
 @media (max-width: 720px){.xjjsibu.xjjsibu:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:100%}}
 @media (max-width: 640px){.xb4vn5r.xb4vn5r:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:145px}}
 @media (max-width: 640px){.xyv2k2f.xyv2k2f:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:50ch}}
 @media (max-width: 640px){.xeyi6kz.xeyi6kz:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:none}}
-@media (max-width: 700px){.x1mtocob.x1mtocob:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:none}}
-@media (max-width: 700px){.x17jk13s.x17jk13s:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:0}}
-@media (max-width: 700px){.x1sl8kco.x1sl8kco:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:260px}}
-@media (max-width: 700px){.xk28gw9.xk28gw9:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:270px}}
-@media (max-width: 700px){.xli3pgb.xli3pgb:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:320px}}
-@media (max-width: 700px){.xn0l7p9.xn0l7p9:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:36px}}
+@media (max-width: 720px){.x15a9oh8.x15a9oh8:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:none}}
+@media (max-width: 720px){.xxt49dy.xxt49dy:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:0}}
+@media (max-width: 720px){.x1en03wu.x1en03wu:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:260px}}
+@media (max-width: 720px){.xql4057.xql4057:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:270px}}
+@media (max-width: 720px){.xa6uzjl.xa6uzjl:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:320px}}
+@media (max-width: 720px){.xsz8nvi.xsz8nvi:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:36px}}
 @media (max-width: 640px){.x1c4ya5t.x1c4ya5t:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:44px}}
-@media (max-width: 700px){.xdudkpw.xdudkpw:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:44px}}
+@media (max-width: 720px){.x1xb6689.x1xb6689:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:44px}}
 @media (max-width: 640px){.xn3zsfb.xn3zsfb:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:auto}}
 @media (max-width: 640px){.xdnb5l2.xdnb5l2:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:calc(58px + env(safe-area-inset-top))}}
 @media (max-width: 640px){.x126n28w.x126n28w:not(#\\#):not(#\\#):not(#\\#):not(#\\#){min-height:var(--console-touch)}}
@@ -1613,19 +1716,19 @@ html {
 @media (max-width: 640px){.xu4eg61.xu4eg61:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-bottom:10px}}
 @media (max-width: 640px){.x1ckun3f.x1ckun3f:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-bottom:8px}}
 @media (max-width: 640px){.x1lak8av.x1lak8av:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
-@media (max-width: 700px){.x1yyyhw4.x1yyyhw4:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-left:11px}}
+@media (max-width: 720px){.xj0nzd3.xj0nzd3:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-left:11px}}
 @media (max-width: 640px){.x1tkp2ng.x1tkp2ng:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-left:14px}}
 @media (max-width: 640px){.x1316j.x1316j:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-left:24px}}
 @media (max-width: 640px){.x33yvzk.x33yvzk:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-right:0}}
-@media (max-width: 700px){.xbmoodo.xbmoodo:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-right:11px}}
+@media (max-width: 720px){.x1jt3kna.x1jt3kna:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-right:11px}}
 @media (max-width: 640px){.x2egep.x2egep:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-top:10px}}
 @media (max-width: 640px){.xugsc6q.xugsc6q:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-top:var(--operator-sections-padding-top,24px)}}
 @media (max-width: 640px){.xz59zry.xz59zry:not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:4px}}
 @media (max-width: 640px){.xl7365u.xl7365u:not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:auto}}
 @media (max-width: 640px){.x1dbdljh.x1dbdljh:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:100%}}
-@media (max-width: 700px){.xbpesgu.xbpesgu:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:140%}}
-@media (max-width: 700px){.x1fo1atk.x1fo1atk:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:155%}}
-@media (max-width: 700px){.xseebtw.xseebtw:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:1px}}
+@media (max-width: 720px){.x1w3b8m9.x1w3b8m9:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:140%}}
+@media (max-width: 720px){.xn7okfr.xn7okfr:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:155%}}
+@media (max-width: 720px){.x1dtpofi.x1dtpofi:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:1px}}
 @media (max-width: 640px){.xjjy2jw.xjjy2jw:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:26px}}
 @media (max-width: 640px){.xzy26m8.xzy26m8:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:44px}}
 @media (max-width: 420px){.xbfdvwu.xbfdvwu:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:54px}}
@@ -1636,8 +1739,23 @@ html {
 @media (min-width: 641px){.x10spfxb.x10spfxb:is([data-operator-action-popover] *):not(#\\#):not(#\\#):not(#\\#):not(#\\#){right:0}}
 @media (min-width: 641px){.x126usnh.x126usnh:is([data-operator-action-popover] *):not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:calc(100% + 10px)}}
 @media (min-width: 641px){.xq4oo3n.xq4oo3n:is([data-operator-action-popover] *):not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:min(720px,calc(100vw - 80px))}}
-@media (max-width: 700px){.xkcstdt.xkcstdt:first-child:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:0}}
+@media (max-width: 720px){.x6gzigo.x6gzigo:first-child:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-top-width:0}}
+@container operator (max-width: 640px){.xxdgi2x.xxdgi2x:not(#\\#):not(#\\#):not(#\\#):not(#\\#){left:0}}
+@container operator (max-width: 640px){.x1m2ds42.x1m2ds42:not(#\\#):not(#\\#):not(#\\#):not(#\\#){margin-left:0}}
+@container operator (max-width: 720px){.x1uikkot.x1uikkot:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:100%}}
+@container operator-cell (max-width: 420px){.xdq2x6k.xdq2x6k:not(#\\#):not(#\\#):not(#\\#):not(#\\#){max-width:100%}}
+@container operator (max-width: 640px){.x10774h0.x10774h0:not(#\\#):not(#\\#):not(#\\#):not(#\\#){overflow-x:visible}}
+@container operator (max-width: 640px){.x1aciil0.x1aciil0:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-bottom:0}}
+@container operator (max-width: 640px){.xm1vsfr.xm1vsfr:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-bottom:8px}}
+@container operator (max-width: 640px){.xcxuj3u.xcxuj3u:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-left:14px}}
+@container operator (max-width: 640px){.x1h1edae.x1h1edae:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-left:24px}}
+@container operator (max-width: 640px){.x11uxfgx.x11uxfgx:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-right:0}}
+@container operator (max-width: 640px){.x1tkkb8.x1tkkb8:not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-top:var(--operator-sections-padding-top,24px)}}
+@container operator (max-width: 640px){.x190b9kf.x190b9kf:not(#\\#):not(#\\#):not(#\\#):not(#\\#){top:4px}}
+@container operator (max-width: 640px){.x1amo615.x1amo615:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:100%}}
 @container operator-aside (min-width: 0px){.x10x3x5a.x10x3x5a:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:100%}}
+@container operator (max-width: 640px){.xe0affe.xe0affe:not(#\\#):not(#\\#):not(#\\#):not(#\\#){width:auto}}
+@container operator (max-width: 640px){.xs4y3db.xs4y3db:is([data-has-unannotated="true"]):not(#\\#):not(#\\#):not(#\\#):not(#\\#){padding-bottom:5px}}
 .xarstr8:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{inset:0}
 .xxx281p:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::before{inset:0}
 .x1x6ksa7:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::before{border-color:currentColor}
@@ -1708,7 +1826,13 @@ html {
 @media (max-width: 640px){.x1e70te5.x1e70te5:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{left:4px}}
 @media (max-width: 640px){.x194c2x1.x194c2x1:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{right:auto}}
 @media (max-width: 640px){.x1wdcn98.x1wdcn98:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{top:14px}}
-@media (max-width: 640px){.x1prkmhq.x1prkmhq:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{width:1px}}"
+@media (max-width: 640px){.x1prkmhq.x1prkmhq:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{width:1px}}
+@container operator (max-width: 640px){.xxw6uw7.xxw6uw7:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{bottom:-5px}}
+@container operator (max-width: 640px){.xpldujj.xpldujj:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{height:auto}}
+@container operator (max-width: 640px){.x44p448.x44p448:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{left:4px}}
+@container operator (max-width: 640px){.x2e6dpv.x2e6dpv:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{right:auto}}
+@container operator (max-width: 640px){.x7hj2ou.x7hj2ou:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{top:14px}}
+@container operator (max-width: 640px){.x1ll1jh2.x1ll1jh2:not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#):not(#\\#)::after{width:1px}}"
 ,
                 },
               ],
@@ -1745,7 +1869,7 @@ html {
                   "attributes": [
                     [
                       "class",
-                      "x3nfvp2 xeuugli x2lwn1j x1c4ya5t x6s0dn4 x15gj94b x1otypdl xqvuw85 xkrqix3 x1ewu8gn x16dl9wz xj3ae5l",
+                      "x3nfvp2 xeuugli x2lwn1j x1c4ya5t x6s0dn4 x15gj94b x1otypdl xqvuw85 xkrqix3 x1hl8ikr x16dl9wz x7s97pk",
                     ],
                     [
                       "href",
@@ -1829,7 +1953,7 @@ html {
                       "attributes": [
                         [
                           "class",
-                          "public-header-sign-in x3nfvp2 xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x1csxjeb x1xnq73d xmkeg23 x1y0btm7 x8tuc8h xqvuw85 x8bwlc1 xz2iokx x1ewu8gn x16dl9wz xj3ae5l",
+                          "public-header-sign-in x3nfvp2 xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x1csxjeb x1xnq73d xmkeg23 x1y0btm7 x8tuc8h xqvuw85 x8bwlc1 xz2iokx x1hl8ikr x16dl9wz x7s97pk",
                         ],
                         [
                           "href",
@@ -1854,7 +1978,7 @@ html {
                         ],
                         [
                           "class",
-                          "public-header-climate xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x14qfxbe xzy26m8 x1717udv xmkeg23 x1y0btm7 x8tuc8h xjbqb8w xgi1xjn x1ypdohk x8bwlc1 xz2iokx x3nfvp2 xkaaz9w x1ewu8gn x16dl9wz xj3ae5l",
+                          "public-header-climate xu0aao5 x1c4ya5t x6s0dn4 xl56j7k xu4hgxq xa9opjo x1k6wstc x155ir8z x1s688f xwhmn0f xkrqix3 xtvhhri x14ow2ja x14qfxbe xzy26m8 x1717udv xmkeg23 x1y0btm7 x8tuc8h xjbqb8w xgi1xjn x1ypdohk x8bwlc1 xz2iokx x3nfvp2 xkaaz9w x1hl8ikr x16dl9wz x7s97pk",
                         ],
                         [
                           "id",
@@ -1992,7 +2116,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2045,7 +2169,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2098,7 +2222,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2151,7 +2275,7 @@ html {
                             ],
                             [
                               "class",
-                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1ewu8gn x16dl9wz xj3ae5l",
+                              "dashboard-tab x3nfvp2 x6s0dn4 x2lah0s x167g77z xa9opjo xfifm61 x2ujxvm x1ar3pfp x1b28kx2 xlxy82 x1q0q8m5 x16stqrj xavs3du xkrqix3 xuxw1ft xhwcb5i xivsve2 x1xiyr0g x126n28w xtwf3lw x1ab9136 xxgfmko x1hl8ikr x16dl9wz x7s97pk",
                             ],
                             [
                               "data-dashboard-tab-link",
@@ -2245,7 +2369,7 @@ html {
                                   "attributes": [
                                     [
                                       "class",
-                                      "public-card-grid xrvj5dj xnby9oq xirox3h x1af02g3 xdueovt x7a106z",
+                                      "public-card-grid xrvj5dj xnby9oq xtpkkxw xirox3h x1af02g3 xdueovt x7a106z",
                                     ],
                                   ],
                                   "children": [
@@ -2261,7 +2385,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                              "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                             ],
                                           ],
                                           "children": [
@@ -2393,7 +2517,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                              "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                             ],
                                           ],
                                           "children": [
@@ -2453,7 +2577,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                              "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                             ],
                                           ],
                                           "children": [
@@ -2530,7 +2654,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                              "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                             ],
                                           ],
                                           "children": [
@@ -2679,7 +2803,7 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                          "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                         ],
                                       ],
                                       "children": [
@@ -2730,7 +2854,7 @@ html {
                                         ],
                                         [
                                           "class",
-                                          "knowledge-atlas-summary xrvj5dj x1bf0hkk xnu5m2z x6s0dn4 xeuugli x8nclml xyorhqc xb3r6kr xmkeg23 x1y0btm7 x8tuc8h x2s36sz xxvg2ug",
+                                          "knowledge-atlas-summary xrvj5dj x1bf0hkk x1otivht x6s0dn4 xeuugli x8nclml xyorhqc xb3r6kr xmkeg23 x1y0btm7 x8tuc8h x2s36sz xxvg2ug",
                                         ],
                                         [
                                           "role",
@@ -2742,7 +2866,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x3ieub6 xeuugli x1ghz6dp x5b5r1n xc6f5x5 xs1s249 x32b0ac x3a9l4s xj0a0fe",
+                                              "x78zum5 x3ieub6 xeuugli x1ghz6dp x5b5r1n xe3jge6 xs1s249 x32b0ac x3a9l4s xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -2750,7 +2874,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x1k70j0n x1ar3pfp xa9opjo xdzlmae x1co8zsc x1evy7pa x16slewp x2hcs4w xtvhhri",
+                                                  "x1k70j0n x1ar3pfp xa9opjo xdzlmae x1ogbdcq x1evy7pa x1u6zlfl x2hcs4w xtvhhri",
                                                 ],
                                               ],
                                               "children": [
@@ -2775,7 +2899,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1ghz6dp xqvuw85 xssy22x x5heo1l x1ma7c9k xo5mvrd x17xjjk xo5v014",
+                                                      "x1ghz6dp xqvuw85 xssy22x x5heo1l xn29b5y xo5mvrd x17xjjk xo5v014",
                                                     ],
                                                   ],
                                                   "children": [
@@ -2802,7 +2926,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x3ieub6 xeuugli x1ghz6dp x5b5r1n xc6f5x5 xs1s249 x32b0ac x3a9l4s xj0a0fe",
+                                              "x78zum5 x3ieub6 xeuugli x1ghz6dp x5b5r1n xe3jge6 xs1s249 x32b0ac x3a9l4s xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -2810,7 +2934,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x1k70j0n x1ar3pfp xa9opjo xdzlmae x1co8zsc x1evy7pa x16slewp x2hcs4w xtvhhri",
+                                                  "x1k70j0n x1ar3pfp xa9opjo xdzlmae x1ogbdcq x1evy7pa x1u6zlfl x2hcs4w xtvhhri",
                                                 ],
                                               ],
                                               "children": [
@@ -2835,7 +2959,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1ghz6dp xqvuw85 xssy22x x5heo1l x1ma7c9k xo5mvrd x17xjjk xo5v014",
+                                                      "x1ghz6dp xqvuw85 xssy22x x5heo1l xn29b5y xo5mvrd x17xjjk xo5v014",
                                                     ],
                                                   ],
                                                   "children": [
@@ -2862,7 +2986,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x3ieub6 xeuugli x1ghz6dp x5b5r1n xc6f5x5 xs1s249 x32b0ac x3a9l4s xj0a0fe",
+                                              "x78zum5 x3ieub6 xeuugli x1ghz6dp x5b5r1n xe3jge6 xs1s249 x32b0ac x3a9l4s xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -2870,7 +2994,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x1k70j0n x1ar3pfp xa9opjo xdzlmae x1co8zsc x1evy7pa x16slewp x2hcs4w xtvhhri",
+                                                  "x1k70j0n x1ar3pfp xa9opjo xdzlmae x1ogbdcq x1evy7pa x1u6zlfl x2hcs4w xtvhhri",
                                                 ],
                                               ],
                                               "children": [
@@ -2895,7 +3019,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1ghz6dp xqvuw85 xssy22x x5heo1l x1ma7c9k xo5mvrd x17xjjk xo5v014",
+                                                      "x1ghz6dp xqvuw85 xssy22x x5heo1l xn29b5y xo5mvrd x17xjjk xo5v014",
                                                     ],
                                                   ],
                                                   "children": [
@@ -2922,7 +3046,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "x78zum5 x6s0dn4 xmmi0ta xzmzwx2 x1fxr43a x1717udv xc6f5x5 xeuugli x2lwn1j xn0l7p9 xm5moh1 xdq8kt8 x972fbf x1240y2e x13fuv20 xvg7k2t xa9opjo xvwhms9 x7447wj xtvhhri xj0a0fe x1ra7g20",
+                                              "x78zum5 x6s0dn4 xmmi0ta xzmzwx2 x1yemgb7 x1717udv xe3jge6 xeuugli x2lwn1j xsz8nvi xm5moh1 x1mny9qk x972fbf xnc2tav x13fuv20 xvg7k2t xa9opjo xvwhms9 x7447wj xtvhhri xj0a0fe x1ra7g20",
                                             ],
                                             [
                                               "data-tone",
@@ -2964,7 +3088,7 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "knowledge-map-field map-field x1n2onr6 xeuugli xb3r6kr xc8icb0 xmkeg23 x1y0btm7 x8tuc8h xlt2929 x1yrie1r x1m85y3v xrvj5dj xar548p x16p75mz x5mc7k8 x17jk13s x120k5d4",
+                                          "knowledge-map-field map-field x1n2onr6 xeuugli xb3r6kr xc8icb0 xmkeg23 x1y0btm7 x8tuc8h xlt2929 x1yrie1r x1m85y3v xrvj5dj xar548p x57k0db x5mc7k8 xxt49dy x120k5d4",
                                         ],
                                         [
                                           "data-knowledge-atlas",
@@ -2976,7 +3100,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "map-empty xrvj5dj x1osaytk xeuugli x1dby22o x1sl8kco x1ku5rj1 x10xs6qf x1ar3pfp xssy22x x19d36u7 x1k4tb9n x2b8uid xj0a0fe",
+                                              "map-empty xrvj5dj x1osaytk xeuugli x1dby22o x1en03wu x1ku5rj1 x10xs6qf x1ar3pfp xssy22x x19d36u7 x1k4tb9n x2b8uid xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -3002,7 +3126,7 @@ html {
                                         ],
                                         [
                                           "class",
-                                          "map-legend x78zum5 x1a02dak x6s0dn4 xyqssrz x1ky9xo3 x14vqqas xeuugli x1ar3pfp xa9opjo xvwhms9 x1g5djsm xtvhhri",
+                                          "map-legend x78zum5 x1a02dak x6s0dn4 xyqssrz x1hsl0lv x14vqqas xeuugli x1ar3pfp xa9opjo xvwhms9 x1g5djsm xtvhhri",
                                         ],
                                         [
                                           "role",
@@ -3178,7 +3302,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "map-live x8x9d4c x1qcvvgs xdl72j9 xk3fpul xeuugli xgi1xjn xssy22x xfifm61 x1k4tb9n x12oo3zp x6mezaz xj0a0fe",
+                                              "map-live x8x9d4c xzbafmd xdl72j9 x1gue55y xeuugli xgi1xjn xssy22x xfifm61 x1k4tb9n x12oo3zp x6mezaz xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -3280,7 +3404,7 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                          "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                         ],
                                       ],
                                       "children": [
@@ -3327,7 +3451,7 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "proximity-map-field map-field x1n2onr6 xeuugli x1dby22o x1sl8kco xb3r6kr xc8icb0 xmkeg23 x1y0btm7 x8tuc8h xur7f20 xlt2929 x1yrie1r x1m85y3v x1fk7bw7",
+                                          "proximity-map-field map-field x1n2onr6 xeuugli x1dby22o x1en03wu xb3r6kr xc8icb0 xmkeg23 x1y0btm7 x8tuc8h xur7f20 xlt2929 x1yrie1r x1m85y3v x1fk7bw7",
                                         ],
                                       ],
                                       "children": [
@@ -3335,7 +3459,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "map-empty xrvj5dj x1osaytk xeuugli x1dby22o x1sl8kco x1ku5rj1 x10xs6qf x1ar3pfp xssy22x x19d36u7 x1k4tb9n x2b8uid xj0a0fe",
+                                              "map-empty xrvj5dj x1osaytk xeuugli x1dby22o x1en03wu x1ku5rj1 x10xs6qf x1ar3pfp xssy22x x19d36u7 x1k4tb9n x2b8uid xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -3361,7 +3485,7 @@ html {
                                         ],
                                         [
                                           "class",
-                                          "map-legend x78zum5 x1a02dak x6s0dn4 xyqssrz x1ky9xo3 x14vqqas xeuugli x1ar3pfp xa9opjo xvwhms9 x1g5djsm xtvhhri",
+                                          "map-legend x78zum5 x1a02dak x6s0dn4 xyqssrz x1hsl0lv x14vqqas xeuugli x1ar3pfp xa9opjo xvwhms9 x1g5djsm xtvhhri",
                                         ],
                                         [
                                           "role",
@@ -3455,7 +3579,7 @@ html {
                                           "attributes": [
                                             [
                                               "class",
-                                              "map-live x8x9d4c x1qcvvgs xdl72j9 xk3fpul xeuugli xgi1xjn xssy22x xfifm61 x1k4tb9n x12oo3zp x6mezaz xj0a0fe",
+                                              "map-live x8x9d4c xzbafmd xdl72j9 x1gue55y xeuugli xgi1xjn xssy22x xfifm61 x1k4tb9n x12oo3zp x6mezaz xj0a0fe",
                                             ],
                                           ],
                                           "children": [
@@ -3549,7 +3673,11 @@ html {
                                   "attributes": [
                                     [
                                       "class",
-                                      "declarative-columns xrvj5dj x7a106z xpr710q x19dxrgd x1af02g3 xeuugli",
+                                      "xrvj5dj x7a106z xpr710q xirox3h x1af02g3 xeuugli",
+                                    ],
+                                    [
+                                      "data-columns",
+                                      "",
                                     ],
                                     [
                                       "data-columns-presentation",
@@ -3561,7 +3689,11 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "declarative-column xrvj5dj x10ukxgv xnby9oq x16p75mz x1af02g3 xeuugli",
+                                          "xrvj5dj x10ukxgv xnby9oq x57k0db x1af02g3 xeuugli",
+                                        ],
+                                        [
+                                          "data-column",
+                                          "primary",
                                         ],
                                       ],
                                       "children": [
@@ -3577,7 +3709,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -3624,7 +3756,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "xrvj5dj xx9t13c x1f4sfy1 x1gc00kl x1af02g3 x6s0dn4 x11onut9 x19k5i5u",
+                                                  "xrvj5dj xx9t13c xxljim5 x1gc00kl x1af02g3 x6s0dn4 x11onut9 x19k5i5u",
                                                 ],
                                                 [
                                                   "data-status-summary",
@@ -3724,7 +3856,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x78zum5 x4mvmlk x16ohsbj x1lqcxt8 xeuugli",
+                                                      "x78zum5 xbzj6x0 x16ohsbj x1lqcxt8 xeuugli",
                                                     ],
                                                   ],
                                                   "children": [
@@ -3759,7 +3891,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "xrvj5dj x185a7wo x16p75mz x17y8zlc x178xt8z x13fuv20 xvg7k2t xe04znv",
+                                                  "xrvj5dj x185a7wo x57k0db x17y8zlc x178xt8z x13fuv20 xvg7k2t xe04znv",
                                                 ],
                                                 [
                                                   "data-stats-placement",
@@ -3775,7 +3907,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "xeuugli x16euas4 xe0pwq x1e5dqpa xpp82rp x19ypqd9 xz6lizu x972fbf x1240y2e xkcstdt x13fuv20 xvg7k2t xj0a0fe",
+                                                      "xeuugli x16euas4 xe0pwq x1e5dqpa x1n97idq x19ypqd9 xz6lizu x972fbf xnc2tav x6gzigo x13fuv20 xvg7k2t xj0a0fe",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -3843,7 +3975,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "xeuugli x16euas4 xe0pwq x1e5dqpa xpp82rp x19ypqd9 xz6lizu x972fbf x1240y2e xkcstdt x13fuv20 xvg7k2t xj0a0fe",
+                                                      "xeuugli x16euas4 xe0pwq x1e5dqpa x1n97idq x19ypqd9 xz6lizu x972fbf xnc2tav x6gzigo x13fuv20 xvg7k2t xj0a0fe",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -3911,7 +4043,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "xeuugli x16euas4 xe0pwq x1e5dqpa xpp82rp x19ypqd9 xz6lizu x972fbf x1240y2e xkcstdt x13fuv20 xvg7k2t xj0a0fe",
+                                                      "xeuugli x16euas4 xe0pwq x1e5dqpa x1n97idq x19ypqd9 xz6lizu x972fbf xnc2tav x6gzigo x13fuv20 xvg7k2t xj0a0fe",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -3997,7 +4129,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -4223,7 +4355,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -4270,7 +4402,11 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "operator-key-values x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                  "x27jn57 x1wh94ac x7a106z x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                ],
+                                                [
+                                                  "data-facts",
+                                                  "",
                                                 ],
                                                 [
                                                   "data-facts-presentation",
@@ -4282,7 +4418,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -4294,7 +4430,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4311,7 +4447,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4349,7 +4485,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -4361,7 +4497,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4378,7 +4514,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4416,7 +4552,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -4428,7 +4564,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4445,7 +4581,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4652,7 +4788,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -4711,7 +4847,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1lliihq x1uhb9sk x18on85o x1gj8qfm xvxd79e x14atkfc xseebtw xt7dq6l x16psae1 xb3r6kr",
+                                                      "x1lliihq x1uhb9sk xget08e x1gj8qfm x1uno8h5 x14atkfc x1dtpofi xt7dq6l xwj557x xb3r6kr",
                                                     ],
                                                   ],
                                                   "children": [
@@ -4719,7 +4855,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xrvj5dj x1ibodrf xnijijm x1v2ro7d x1t31nvy x6s0dn4 x13fuv20 xvg7k2t xu19mh5 x972fbf x1v3krkk xa9opjo xdzlmae x7447wj xtvhhri",
+                                                          "xrvj5dj x1ibodrf x159c1az x1v2ro7d x66wd9j x6s0dn4 x13fuv20 xvg7k2t xu19mh5 x972fbf x1v3krkk xa9opjo xdzlmae x7447wj xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -4808,7 +4944,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xrvj5dj x1ibodrf xnijijm x1v2ro7d x1t31nvy x6s0dn4 x1jlzkty x178xt8z x13fuv20 xvg7k2t",
+                                                          "xrvj5dj x1ibodrf x159c1az x1v2ro7d x66wd9j x6s0dn4 x1jlzkty x178xt8z x13fuv20 xvg7k2t",
                                                         ],
                                                         [
                                                           "data-tone",
@@ -4871,7 +5007,7 @@ html {
                                                           "attributes": [
                                                             [
                                                               "class",
-                                                              "x1717udv xo1l8bm xeuugli x1ar3pfp xa9opjo xfmn3hh x1npkx4u xjpies9 x1ms6mhf x1xelu8c xj0a0fe",
+                                                              "x1717udv xo1l8bm xeuugli x1ar3pfp xa9opjo xfmn3hh x1npkx4u xy0nd2e x1ms6mhf x9zojqa xj0a0fe",
                                                             ],
                                                           ],
                                                           "children": [
@@ -4888,7 +5024,7 @@ html {
                                                           "attributes": [
                                                             [
                                                               "class",
-                                                              "x1717udv xo1l8bm xeuugli x1lqcxt8 x1k3v4rp x1h2ge3d x1ms6mhf",
+                                                              "x1717udv xo1l8bm xeuugli x1lqcxt8 x1k3v4rp x1yfacwp x1ms6mhf",
                                                             ],
                                                           ],
                                                           "children": [
@@ -4923,7 +5059,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xrvj5dj x1ibodrf xnijijm x1v2ro7d x1t31nvy x6s0dn4 x1jlzkty x178xt8z x13fuv20 xvg7k2t",
+                                                          "xrvj5dj x1ibodrf x159c1az x1v2ro7d x66wd9j x6s0dn4 x1jlzkty x178xt8z x13fuv20 xvg7k2t",
                                                         ],
                                                         [
                                                           "data-tone",
@@ -4986,7 +5122,7 @@ html {
                                                           "attributes": [
                                                             [
                                                               "class",
-                                                              "x1717udv xo1l8bm xeuugli x1ar3pfp xa9opjo xfmn3hh x1npkx4u xjpies9 x1ms6mhf x1xelu8c xj0a0fe",
+                                                              "x1717udv xo1l8bm xeuugli x1ar3pfp xa9opjo xfmn3hh x1npkx4u xy0nd2e x1ms6mhf x9zojqa xj0a0fe",
                                                             ],
                                                           ],
                                                           "children": [
@@ -5003,7 +5139,7 @@ html {
                                                           "attributes": [
                                                             [
                                                               "class",
-                                                              "x1717udv xo1l8bm xeuugli x1lqcxt8 x1k3v4rp x1h2ge3d x1ms6mhf",
+                                                              "x1717udv xo1l8bm xeuugli x1lqcxt8 x1k3v4rp x1yfacwp x1ms6mhf",
                                                             ],
                                                           ],
                                                           "children": [
@@ -5038,7 +5174,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xrvj5dj x1ibodrf xnijijm x1v2ro7d x1t31nvy x6s0dn4 x1jlzkty x178xt8z x13fuv20 xvg7k2t",
+                                                          "xrvj5dj x1ibodrf x159c1az x1v2ro7d x66wd9j x6s0dn4 x1jlzkty x178xt8z x13fuv20 xvg7k2t",
                                                         ],
                                                         [
                                                           "data-tone",
@@ -5101,7 +5237,7 @@ html {
                                                           "attributes": [
                                                             [
                                                               "class",
-                                                              "x1717udv xo1l8bm xeuugli x1ar3pfp xa9opjo xfmn3hh x1npkx4u xjpies9 x1ms6mhf x1xelu8c xj0a0fe",
+                                                              "x1717udv xo1l8bm xeuugli x1ar3pfp xa9opjo xfmn3hh x1npkx4u xy0nd2e x1ms6mhf x9zojqa xj0a0fe",
                                                             ],
                                                           ],
                                                           "children": [
@@ -5118,7 +5254,7 @@ html {
                                                           "attributes": [
                                                             [
                                                               "class",
-                                                              "x1717udv xo1l8bm xeuugli x1lqcxt8 x1k3v4rp x1h2ge3d x1ms6mhf",
+                                                              "x1717udv xo1l8bm xeuugli x1lqcxt8 x1k3v4rp x1yfacwp x1ms6mhf",
                                                             ],
                                                           ],
                                                           "children": [
@@ -5173,7 +5309,11 @@ html {
                                       "attributes": [
                                         [
                                           "class",
-                                          "declarative-column declarative-aside xmzwrfy x12h1iku x10ukxgv x78zum5 x1mreouh xdt5ytf x1af02g3 xeuugli xqu07bb x16p75mz",
+                                          "xmzwrfy x12h1iku x10ukxgv x78zum5 x1dtk984 xdt5ytf x1af02g3 xeuugli x11pl5mh x57k0db",
+                                        ],
+                                        [
+                                          "data-column",
+                                          "aside",
                                         ],
                                       ],
                                       "children": [
@@ -5189,7 +5329,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -5236,7 +5376,11 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "operator-key-values x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                  "x27jn57 x1wh94ac x7a106z x1ghz6dp xeuugli x13fuv20 xltl5i9 x78zum5 xdt5ytf x972fbf",
+                                                ],
+                                                [
+                                                  "data-facts",
+                                                  "",
                                                 ],
                                                 [
                                                   "data-facts-presentation",
@@ -5248,7 +5392,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -5260,7 +5404,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5277,7 +5421,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5299,7 +5443,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -5311,7 +5455,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5328,7 +5472,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5350,7 +5494,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -5362,7 +5506,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5379,7 +5523,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5401,7 +5545,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -5413,7 +5557,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5430,7 +5574,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5452,7 +5596,7 @@ html {
                                                   "attributes": [
                                                     [
                                                       "class",
-                                                      "x1pha0wt x1q0q8m5 xpqg30t x1a02dak x1qughib xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
+                                                      "x1a02dak x1qughib x1pha0wt x1q0q8m5 xpqg30t xrvj5dj x8tdwv4 x1v2ro7d x1vvogim xnjsko4 x1qhh985 x178xt8z x1g31smg x13fuv20 xvg7k2t",
                                                     ],
                                                     [
                                                       "data-tone",
@@ -5464,7 +5608,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
+                                                          "xkz0k9k xeuugli x1ar3pfp xj0a0fe xa9opjo xfmn3hh x1evy7pa xwhmn0f xtvhhri",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5481,7 +5625,7 @@ html {
                                                       "attributes": [
                                                         [
                                                           "class",
-                                                          "xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
+                                                          "x12lumcd xeuugli x1ghz6dp xa9opjo xj0a0fe x1s31vzs x1evy7pa xj8fevo x1hr2gdg xgi1xjn",
                                                         ],
                                                       ],
                                                       "children": [
@@ -5537,7 +5681,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -5690,7 +5834,7 @@ html {
                                               "attributes": [
                                                 [
                                                   "class",
-                                                  "x78zum5 x1pha0wt xelgs58 x1qughib x883omv xod5an3 xzzd6q",
+                                                  "x78zum5 x1pha0wt x14p79m1 xelgs58 x1qughib x883omv xod5an3 xzzd6q",
                                                 ],
                                               ],
                                               "children": [
@@ -5779,7 +5923,7 @@ html {
                           "attributes": [
                             [
                               "class",
-                              "colophon xeuugli xg87l8a x1glq3gq x1pnj9ld x178xt8z x13fuv20 xvg7k2t xbslqsl x78zum5 x1qughib x1pha0wt x12kvzbs x1q0g3np xwlf911 xaobbuh xa9opjo x1k6wstc x11fj6oh xtvhhri x1v3krkk",
+                              "colophon xeuugli xg87l8a x1glq3gq x1pnj9ld x178xt8z x13fuv20 xvg7k2t xbslqsl x78zum5 x1qughib x1pha0wt x1pftkvw x1q0g3np x1g3ag0e xaobbuh xa9opjo x1k6wstc x11fj6oh xtvhhri x1v3krkk",
                             ],
                           ],
                           "children": [
@@ -5804,7 +5948,7 @@ html {
                               "attributes": [
                                 [
                                   "class",
-                                  "x3nfvp2 x1a02dak xeuugli x193iq5w xj0a0fe xou54vl x13a6bvl x88anuq",
+                                  "x3nfvp2 x1a02dak xeuugli x193iq5w xj0a0fe xou54vl x13a6bvl xx5kb6y",
                                 ],
                               ],
                               "children": [
@@ -5873,15 +6017,16 @@ html {
     var inputRow = el("div", "cp-input-row");
     input = el("input", "cp-input");
     input.type = "text";
-    input.placeholder = "Search entities, tabs, surfaces\\u2026";
+    input.placeholder = "Search pages and entries\\u2026";
     input.setAttribute("aria-label", "Search the console");
+    input.setAttribute("spellcheck", "false");
+    input.setAttribute("autocomplete", "off");
     inputRow.appendChild(input);
     inputRow.appendChild(el("kbd", "cp-esc", "esc"));
     groupsEl = el("div", "cp-groups");
     var foot = el("div", "cp-foot");
     foot.appendChild(el("span", null, "\\u2191\\u2193 navigate"));
     foot.appendChild(el("span", null, "\\u21B5 open"));
-    foot.appendChild(el("span", null, "one index across the console"));
     palette.appendChild(inputRow);
     palette.appendChild(groupsEl);
     palette.appendChild(foot);

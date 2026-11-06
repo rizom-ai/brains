@@ -180,24 +180,61 @@ describe("resolveChatIdentity", () => {
     expect(resolution.isAnchor).toBe(true);
   });
 
-  it("never consults auth identities for Slack, which has no bindable claim type", async () => {
+  it("resolves an attached Slack member to its principal", async () => {
     resolveIdentityAccess = mock(async () => ({
       state: "resolved" as const,
-      principal: principal(),
+      principal: principal({ permissionLevel: "admin", role: "admin" }),
     }));
     const permissions = createPermissions("public");
 
     const resolution = await resolveChatIdentity(
       permissions,
       "slack",
-      "U123",
+      "U123ABC",
       { channelId: "C123" },
       identityAccess(),
     );
 
-    expect(resolveIdentityAccess).not.toHaveBeenCalled();
+    expect(resolveIdentityAccess).toHaveBeenCalledWith({
+      type: "slack",
+      subject: "U123ABC",
+    });
+    expect(resolution.permissionLevel).toBe("admin");
+    expect(resolution.principal?.userId).toBe("usr_mira");
+    expect(permissions.getUserLevel).not.toHaveBeenCalled();
+  });
+
+  it("drops a revoked Slack binding to public before the permission rules", async () => {
+    resolveIdentityAccess = mock(async () => ({ state: "denied" as const }));
+    const permissions = createPermissions("trusted");
+
+    const resolution = await resolveChatIdentity(
+      permissions,
+      "slack",
+      "U123ABC",
+      { channelId: "C123" },
+      identityAccess(),
+    );
+
     expect(resolution.permissionLevel).toBe("public");
-    expect(permissions.getUserLevel).toHaveBeenCalledWith("slack", "U123", {
+    expect(resolution.isAnchor).toBe(false);
+    expect(permissions.getUserLevel).not.toHaveBeenCalled();
+  });
+
+  it("falls back to permission rules for an unbound Slack member", async () => {
+    resolveIdentityAccess = mock(async () => ({ state: "unbound" as const }));
+    const permissions = createPermissions("trusted");
+
+    const resolution = await resolveChatIdentity(
+      permissions,
+      "slack",
+      "U123ABC",
+      { channelId: "C123" },
+      identityAccess(),
+    );
+
+    expect(resolution.permissionLevel).toBe("trusted");
+    expect(permissions.getUserLevel).toHaveBeenCalledWith("slack", "U123ABC", {
       channelId: "C123",
     });
   });

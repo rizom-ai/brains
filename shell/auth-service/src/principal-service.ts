@@ -1,9 +1,19 @@
-import type { ActorRef } from "@brains/contracts";
+import {
+  issuerFromRequest,
+  isLoopbackIssuer,
+  normalizeIssuer,
+} from "@brains/plugins";
 import type {
-  AuthIdentityStore,
   ResolveAuthIdentityInput,
-} from "./identity-store";
-import { issuerFromRequest, isLoopbackIssuer, normalizeIssuer } from "./issuer";
+  VerifiedAccessToken,
+} from "@brains/contracts";
+import type {
+  AuthPrincipal,
+  AuthIdentityAccessResolution,
+  AuthBearerGrant,
+} from "@brains/contracts";
+import type { ActorRef } from "@brains/contracts";
+import type { AuthIdentityStore } from "./identity-store";
 import type { AuthBrainAnchor, AuthUser } from "./runtime-schema";
 import type {
   AuthSessionPersistence,
@@ -11,30 +21,8 @@ import type {
   CreateAuthSessionResult,
 } from "./session-store";
 import { getBearerToken, verifyAccessToken } from "./token-verifier";
-import type { VerifiedAccessToken } from "./token-verifier";
 import type { JwksResponse } from "./types";
 import type { AuthUserStore } from "./user-store";
-
-export interface AuthPrincipal {
-  userId: string;
-  personId: string;
-  displayName: string;
-  role: "admin" | "trusted" | "public";
-  status: "active" | "invited" | "suspended";
-  permissionLevel: "admin" | "trusted" | "public";
-  isAnchor: boolean;
-  canonicalId?: string;
-}
-
-export type AuthIdentityAccessResolution =
-  | { state: "resolved"; principal: AuthPrincipal }
-  | { state: "denied" }
-  | { state: "unbound" };
-
-export interface AuthBearerGrant {
-  principal: AuthPrincipal;
-  token: VerifiedAccessToken;
-}
 
 export interface AuthPrincipalServiceOptions {
   issuer: string;

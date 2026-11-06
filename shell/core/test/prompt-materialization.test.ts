@@ -1,8 +1,5 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import {
-  materializePrompts,
-  resetPromptMaterialization,
-} from "@brains/plugins";
+import { describe, it, expect, spyOn } from "bun:test";
+import { materializePrompts } from "@brains/plugins";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
@@ -116,10 +113,6 @@ function editBody(
 }
 
 describe("materializePrompts", () => {
-  beforeEach(() => {
-    resetPromptMaterialization();
-  });
-
   it("creates a missing prompt with the hash of the default it was written from", async () => {
     const { service, prompts } = createPromptStore();
 
@@ -178,6 +171,7 @@ describe("materializePrompts", () => {
       created: [],
       refreshed: [],
       stamped: [],
+      retitled: [],
       staleOverrides: [],
       unverifiedOverrides: [],
       removedLegacy: [],
@@ -248,6 +242,51 @@ describe("materializePrompts", () => {
 
     expect(stored(prompts, "blog-generation").frontmatter["title"]).toBe(
       "My Blog Voice",
+    );
+  });
+
+  it("corrects a title still in its old generated form, keeping an edited body", async () => {
+    const { service, prompts } = createPromptStore();
+    const templates = registry([
+      ["social-media:linkedin", template("social-media:linkedin", "Post.")],
+    ]);
+    await materializePrompts(templates, service);
+    const { frontmatter } = stored(prompts, "social-media-linkedin");
+    seed(
+      prompts,
+      "social-media-linkedin",
+      { ...frontmatter, title: "Social Media Linkedin" },
+      "My own post rules.",
+    );
+
+    const report = await materializePrompts(templates, service);
+
+    expect(report.retitled).toEqual(["social-media:linkedin"]);
+    const after = stored(prompts, "social-media-linkedin");
+    expect(after.frontmatter["title"]).toBe("Social Media LinkedIn");
+    expect(after.entity.metadata["title"]).toBe("Social Media LinkedIn");
+    expect(after.body).toBe("My own post rules.");
+  });
+
+  it("leaves a title edited by hand alone", async () => {
+    const { service, prompts } = createPromptStore();
+    const templates = registry([
+      ["social-media:linkedin", template("social-media:linkedin", "Post.")],
+    ]);
+    await materializePrompts(templates, service);
+    const { frontmatter } = stored(prompts, "social-media-linkedin");
+    seed(
+      prompts,
+      "social-media-linkedin",
+      { ...frontmatter, title: "My Linkedin voice" },
+      "Post.",
+    );
+
+    const report = await materializePrompts(templates, service);
+
+    expect(report.retitled).toEqual([]);
+    expect(stored(prompts, "social-media-linkedin").frontmatter["title"]).toBe(
+      "My Linkedin voice",
     );
   });
 

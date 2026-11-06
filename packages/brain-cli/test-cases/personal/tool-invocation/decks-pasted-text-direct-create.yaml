@@ -1,0 +1,50 @@
+id: tool-invocation-decks-pasted-text-direct-create
+name: Pasted Talk Becomes a Deck via Direct Create
+description: Verifies talk notes pasted as plain markdown without slide separators are saved as a deck from the user's message, not regenerated or rewritten into slides by the model.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - decks
+  - finalized-content
+  - regression
+  - recipe-professional
+
+turns:
+  - userMessage: |
+      Save this as a deck. Keep my text.
+
+      # Slow Software
+
+      Why we ship less, on purpose.
+
+      ## The cost of speed
+
+      Every release has a tail of support work.
+
+      ## What we do instead
+
+      We wait a week before we merge.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: deck
+        source.kind: user-message
+      argsAbsent:
+        - prompt
+        - source.content
+    - toolName: system_generate
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 31000

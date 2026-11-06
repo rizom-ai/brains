@@ -84,18 +84,23 @@ export const socialPostFrontmatterSchema: SocialPostFrontmatterSchema =
       .array(socialPostDocumentAttachmentSchema)
       .optional()
       .describe("Document attachments for publishing"),
-    publishedAt: z.string().datetime().optional(),
-    platformPostId: z
+    publishedAt: z
       .string()
+      .datetime()
       .optional()
-      .describe("ID from platform after publishing"),
-    sourceEntityId: z
-      .string()
-      .optional()
-      .describe("Source entity ID if auto-generated"),
-    sourceEntityType: sourceEntityTypeSchema
-      .optional()
-      .describe("Source entity type (post, deck)"),
+      .meta({ studioWidget: "provenance" }),
+    platformPostId: z.string().optional().meta({
+      description: "ID from platform after publishing",
+      studioWidget: "provenance",
+    }),
+    sourceEntityId: z.string().optional().meta({
+      description: "Source entity ID if auto-generated",
+      studioWidget: "provenance",
+    }),
+    sourceEntityType: sourceEntityTypeSchema.optional().meta({
+      description: "Source entity type (post, deck)",
+      studioWidget: "provenance",
+    }),
   });
 
 export type SocialPostFrontmatter = z.output<

@@ -62,6 +62,32 @@ describe("hasUnsavedEditorChanges", () => {
     ).toBe(true);
   });
 
+  it("opens a blank new entry clean and counts a name, body or prefill as a change", () => {
+    const blank = editorWorkflowReducer(initialEditorWorkflowState, {
+      type: "creationStarted",
+      draft: {},
+      prefix: null,
+    });
+    expect(hasUnsavedEditorChanges(blank)).toBe(false);
+    expect(
+      hasUnsavedEditorChanges(
+        editorWorkflowReducer(blank, { type: "segmentChanged", segment: "a" }),
+      ),
+    ).toBe(true);
+    expect(
+      hasUnsavedEditorChanges(
+        editorWorkflowReducer(blank, { type: "bodyChanged", body: "Text" }),
+      ),
+    ).toBe(true);
+    const prefilled = editorWorkflowReducer(initialEditorWorkflowState, {
+      type: "creationStarted",
+      draft: { title: "From chat" },
+      body: "Handed over",
+      prefilled: true,
+    });
+    expect(hasUnsavedEditorChanges(prefilled)).toBe(true);
+  });
+
   it("snapshots singleton defaults instead of retaining a mutable baseline", () => {
     const draft = { groupings: { areas: { label: "Areas" } } };
     const state = editorWorkflowReducer(initialEditorWorkflowState, {
@@ -89,6 +115,7 @@ describe("hasUnsavedEditorChanges", () => {
         editorWorkflowReducer(initialEditorWorkflowState, {
           type: "creationStarted",
           draft: {},
+          prefilled: true,
         }),
       ),
     ).toBe(true);
@@ -103,7 +130,10 @@ describe("editorWorkflowReducer", () => {
     });
 
     expect(next).toEqual({
-      mode: { kind: "create" },
+      mode: {
+        kind: "create",
+        initial: { draft: JSON.stringify({ status: "draft" }), body: "" },
+      },
       draft: { status: "draft" },
       body: "",
       save: { kind: "idle" },
@@ -197,6 +227,7 @@ describe("editorWorkflowReducer", () => {
       type: "creationStarted",
       draft: { title: "Review the proposal" },
       body: "Source: entity://mail-item/mail-1",
+      prefilled: true,
     });
 
     expect(created).toMatchObject({

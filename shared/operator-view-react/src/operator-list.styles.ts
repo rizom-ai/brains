@@ -3,9 +3,9 @@ export const listStyles: Record<
   | "list"
   | "compactList"
   | "row"
+  | "railed"
   | "compactRow"
   | "master"
-  | "selected"
   | "interactive"
   | "trailing"
   | "stacked"
@@ -16,9 +16,6 @@ export const listStyles: Record<
   | "tags"
   | "badge"
   | "compactBadge"
-  | "good"
-  | "warn"
-  | "error"
   | "compactGood"
   | "compactWarn"
   | "compactError"
@@ -31,18 +28,75 @@ export const listStyles: Record<
     borderTopStyle: "solid",
     borderTopColor: "var(--console-rule-strong)",
   },
+  // Beside its actions while the row has room; in a narrow board column the
+  // title takes the full width and the actions follow.
   row: {
     display: "flex",
-    alignItems: "center",
+    flexDirection: {
+      default: "row",
+      "@container operator-cell (max-width: 420px)": "column",
+    },
+    flexWrap: {
+      default: "nowrap",
+      "@media (max-width: 640px)": "wrap",
+      "@container operator (max-width: 640px)": "wrap",
+    },
+    alignItems: {
+      default: "center",
+      "@container operator-cell (max-width: 420px)": "stretch",
+    },
     justifyContent: "space-between",
-    gap: 20,
-    padding: "22px 0",
-    borderBottomWidth: 1,
+    gap: {
+      default: 20,
+      "@media (max-width: 640px)": 12,
+      "@container operator (max-width: 640px)": 12,
+      "@container operator-cell (max-width: 420px)": 12,
+    },
+    // A board card sits tighter in its column, which pads the last one.
+    padding: {
+      default: "22px 0",
+      ":is([data-matrix-cell] li)": "14px 0",
+      ":is([data-matrix-cell] li:last-child)": "14px 0 4px",
+    },
+    borderBottomWidth: {
+      default: 1,
+      ":is([data-matrix-cell] li:last-child)": 0,
+    },
+    // A keyboard-focused row title rings the row it opens, 6px out: a row
+    // has no side padding, so a 2px ring would crowd its text. The board
+    // column's 16px padding holds the ring.
+    outlineStyle: {
+      default: "none",
+      ":has([data-row-link]:focus-visible)": "solid",
+    },
+    outlineWidth: 2,
+    outlineColor: "var(--console-accent)",
+    outlineOffset: 6,
     borderBottomStyle: "solid",
     borderBottomColor: "var(--console-rule)",
     minWidth: 0,
     position: "relative",
-    "@media (max-width: 640px)": { flexWrap: "wrap", gap: 12 },
+    // The row a timeline light points at, after the light is chosen.
+    backgroundColor: {
+      default: null,
+      ":is([data-timeline-active])": "var(--console-accent-soft)",
+    },
+    boxShadow: {
+      default: null,
+      ":is([data-timeline-active])":
+        "-8px 0 0 var(--console-accent-soft), 8px 0 0 var(--console-accent-soft)",
+    },
+    transitionProperty: "background-color, box-shadow",
+    transitionDuration: "200ms",
+  },
+  railed: {
+    paddingLeft: 16,
+    borderLeftWidth: 3,
+    borderLeftStyle: "solid",
+    borderLeftColor: {
+      default: "var(--console-warn)",
+      ":is([data-tone=error])": "var(--console-err)",
+    },
   },
   compactRow: {
     padding: "13px 6px 13px 0",
@@ -52,11 +106,17 @@ export const listStyles: Record<
       alignItems: "stretch",
       gap: 10,
     },
+    "@container operator (max-width: 720px)": {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 10,
+    },
   },
-  master: { alignItems: "start" },
+  // Beside an open detail every row keeps a gutter, so the open row's
+  // marker never touches its text and titles stay aligned.
+  master: { alignItems: "start", paddingLeft: 14, paddingRight: 14 },
   stacked: { flexDirection: "column", alignItems: "stretch", gap: 12 },
   stackedTrailing: { maxWidth: "100%", justifyContent: "flex-start" },
-  selected: { backgroundColor: "var(--console-accent-soft)" },
   interactive: {
     backgroundColor: {
       default: "transparent",
@@ -67,14 +127,23 @@ export const listStyles: Record<
     display: "flex",
     flexWrap: "wrap",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: {
+      default: "flex-end",
+      "@media (max-width: 640px)": "flex-start",
+      "@container operator (max-width: 640px)": "flex-start",
+      "@container operator-cell (max-width: 420px)": "flex-start",
+    },
     gap: 8,
     minWidth: 0,
-    maxWidth: { default: "40%", "@media (max-width: 720px)": "100%" },
+    maxWidth: {
+      default: "40%",
+      "@media (max-width: 720px)": "100%",
+      "@container operator (max-width: 720px)": "100%",
+      "@container operator-cell (max-width: 420px)": "100%",
+    },
     flexShrink: 0,
     position: "relative",
     zIndex: 1,
-    "@media (max-width: 640px)": { justifyContent: "flex-start" },
   },
   controls: { position: "relative", zIndex: 1, minWidth: 0 },
   count: {
@@ -87,7 +156,7 @@ export const listStyles: Record<
   links: {
     display: "flex",
     flexWrap: "wrap",
-    gap: 14,
+    gap: "6px 14px",
     fontSize: 12,
     position: "relative",
     zIndex: 1,
@@ -117,9 +186,6 @@ export const listStyles: Record<
     letterSpacing: "0.08em",
     textTransform: "uppercase",
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
   compactGood: { backgroundColor: "var(--console-ok-soft)" },
   compactWarn: {
     backgroundColor: "color-mix(in srgb,var(--console-warn) 15%,transparent)",

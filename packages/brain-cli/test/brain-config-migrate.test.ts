@@ -132,7 +132,7 @@ const recipeExpectations: Record<
     anchor: "team",
     kind: "team",
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
-    add: ["docs"],
+    add: ["docs", "action-board"],
     site: {
       package: "@brains/site-organization",
       theme: "@brains/theme-rizom",
@@ -249,19 +249,19 @@ describe("brain config migration preview", () => {
     });
     expectMigrationSelection("relay", "core", {
       bundles: ["core", "media", "automation", "web", "chat", "team"],
-      add: ["docs"],
+      add: ["docs", "action-board"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("relay", "default", {
       bundles: teamBundles,
-      add: ["docs"],
+      add: ["docs", "action-board"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("relay", "full", {
       bundles: teamBundles,
-      add: ["docs"],
+      add: ["docs", "action-board"],
       anchor: "team",
       kind: "team",
     });
@@ -329,7 +329,7 @@ describe("brain config migration preview", () => {
           "obsidian-vault",
         ],
         added: [
-          "action-board",
+          "ask-content",
           "conversation-memory",
           "faq",
           "studio",
@@ -345,7 +345,13 @@ describe("brain config migration preview", () => {
           ...(preset === "core" ? [] : legacySiteMembers),
           ...legacyTeamMembers,
         ],
-        added: ["action-board", "faq", "studio", "unified-inbox"],
+        added: [
+          "action-board",
+          "ask-content",
+          "faq",
+          "studio",
+          "unified-inbox",
+        ],
         removed: [
           "account",
           "assessment",
@@ -375,7 +381,7 @@ describe("brain config migration preview", () => {
       expect(
         members.filter((member) => !legacyMembers.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} additions`,
-      ).toEqual(["ask-content", ...migrationCase.added].sort());
+      ).toEqual([...migrationCase.added].sort());
       expect(
         legacyMembers.filter((member) => !members.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} removals`,
@@ -475,7 +481,7 @@ plugins:
 `);
     const parsed = parseInstanceOverrides(result.output);
 
-    expect(parsed.add).toEqual(["assessment", "docs"]);
+    expect(parsed.add).toEqual(["assessment", "docs", "action-board"]);
     expect(parsed.remove).toEqual(["analytics"]);
     expect(parsed.site).toEqual({
       package: "@custom/team-site",

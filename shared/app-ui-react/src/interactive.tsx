@@ -37,7 +37,7 @@ const styles = stylex.create({
     borderStyle: "solid",
     borderWidth: "1px",
     boxShadow:
-      "0 32px 80px -28px color-mix(in srgb, var(--console-bg-deep) 72%, transparent)",
+      "0 32px 80px -28px var(--console-shadow-ink, color-mix(in srgb, var(--console-bg-deep) 72%, transparent))",
     color: "var(--console-text)",
     overflowWrap: "anywhere",
     display: "grid",
@@ -183,7 +183,7 @@ const styles = stylex.create({
     borderStyle: "solid",
     borderWidth: "1px",
     boxShadow:
-      "0 18px 48px -22px color-mix(in srgb, var(--console-bg-deep) 76%, transparent)",
+      "0 18px 48px -22px var(--console-shadow-ink, color-mix(in srgb, var(--console-bg-deep) 76%, transparent))",
     color: "var(--console-text)",
     maxHeight: "var(--radix-dropdown-menu-content-available-height, 320px)",
     minWidth: "180px",

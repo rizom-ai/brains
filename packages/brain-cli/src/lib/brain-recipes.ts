@@ -59,7 +59,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     anchor: "team",
     kind: "team",
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
-    add: ["docs"],
+    add: ["docs", "action-board"],
     site: {
       package: "@brains/site-organization",
       theme: "@brains/theme-rizom",

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/ops",
-  "version": "0.2.0-alpha.568",
+  "version": "0.2.0-alpha.633",
   "description": "Operator CLI for managing private brain fleet registry repos",
   "keywords": [
     "brains",
@@ -22,7 +22,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@brains/auth-service": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/deploy-support": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/job-queue": "workspace:*",
@@ -67,7 +67,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "prepublishOnly": "bun scripts/build.ts",
-    "test": "bun run build && bun test --timeout 20000",
+    "test": "bun test --timeout 20000",
     "test:smoke": "bun run build && RUN_SMOKE_TESTS=1 bun test --timeout 60000",
     "typecheck": "tsc --noEmit"
   },

@@ -13,14 +13,6 @@ import { stageImageEntity } from "@brains/image";
 import { coverImageConversionJobSchema } from "../types";
 import type { CoverImageConversionJobData } from "../types";
 
-/**
- * Schema for cover image conversion job data.
- * Alias the canonical schema from types.ts for backward-compatible imports.
- */
-export const coverImageConversionJobDataSchema: typeof coverImageConversionJobSchema =
-  coverImageConversionJobSchema;
-export type { CoverImageConversionJobData };
-
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 export interface ImageConversionResult {
@@ -59,7 +51,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
     super(logger, {
-      schema: coverImageConversionJobDataSchema,
+      schema: coverImageConversionJobSchema,
       jobTypeName: "cover-image-convert",
     });
     this.context = context;

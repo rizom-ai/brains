@@ -12,8 +12,15 @@ const recordSchema = z.record(z.string(), z.unknown());
 
 export type CriteriaEvaluationResult = FailureDetail & { passed: boolean };
 
+/** A source the reply shows beside its answer. */
+export interface ResponseSource {
+  id: string;
+  url?: string | undefined;
+}
+
 interface ResponseForCriteria {
   text: string;
+  sources?: ResponseSource[];
 }
 
 type EfficiencyMetrics = Pick<
@@ -33,11 +40,13 @@ export function evaluateCriteria(
   criteria: SuccessCriteria,
   response: ResponseForCriteria,
   toolCalls: ToolCallRecord[],
+  now: Date = new Date(),
 ): CriteriaEvaluationResult[] {
   return [
-    ...evaluateExpectedTools(criteria, toolCalls),
+    ...evaluateExpectedTools(criteria, toolCalls, now),
     ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
+    ...evaluateExpectedSources(criteria, response.sources ?? []),
     ...evaluateResponseEquals(criteria, response.text),
     ...evaluateResponseContains(criteria, response.text),
     ...evaluateResponseContainsAny(criteria, response.text),
@@ -147,6 +156,7 @@ export function evaluateQualityThresholds(
 function evaluateExpectedTools(
   criteria: SuccessCriteria,
   toolCalls: ToolCallRecord[],
+  now: Date,
 ): CriteriaEvaluationResult[] {
   const results: CriteriaEvaluationResult[] = [];
 
@@ -191,6 +201,17 @@ function evaluateExpectedTools(
           expected.toolName,
           expected.argsAbsent,
           matchingCalls,
+        ),
+      );
+    }
+
+    if (expected.argsNotBeforeToday) {
+      results.push(
+        ...evaluateArgsNotBeforeToday(
+          expected.toolName,
+          expected.argsNotBeforeToday,
+          matchingCalls,
+          now.toISOString().slice(0, 10),
         ),
       );
     }
@@ -494,6 +515,37 @@ function evaluateArgsAbsent(
   return results;
 }
 
+function evaluateArgsNotBeforeToday(
+  toolName: string,
+  paths: string[],
+  matchingCalls: ToolCallRecord[],
+  today: string,
+): CriteriaEvaluationResult[] {
+  return paths.flatMap((key) => {
+    const values = matchingCalls.map(
+      (toolCall) => toolCall.args && resolveDottedPath(toolCall.args, key),
+    );
+    // ISO dates compare as strings; anything else is not a date at all.
+    const passed = values.every(
+      (value) =>
+        typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+        value >= today,
+    );
+    return passed
+      ? []
+      : [
+          {
+            criterion: "toolArgsNotBeforeToday",
+            expected: `${toolName}.${key} on or after ${today}`,
+            actual: `${JSON.stringify(values)} (across ${matchingCalls.length} calls)`,
+            message: `${toolName}.${key} is not a date on or after today (${today})`,
+            passed: false,
+          },
+        ];
+  });
+}
+
 function evaluateToolCountRange(
   criteria: SuccessCriteria,
   toolCalls: ToolCallRecord[],
@@ -636,6 +688,55 @@ function evaluateResponseNotContains(
   }
 
   return results;
+}
+
+function evaluateExpectedSources(
+  criteria: SuccessCriteria,
+  sources: ResponseSource[],
+): CriteriaEvaluationResult[] {
+  return (criteria.expectedSources ?? []).map(
+    (expected): CriteriaEvaluationResult => {
+      const cited = sources.find((source) => source.id === expected.id);
+      const base = { criterion: "expectedSources", expected };
+      if (!expected.cited) {
+        return cited
+          ? {
+              ...base,
+              actual: cited,
+              message: `Source ${expected.id} should not be cited`,
+              passed: false,
+            }
+          : {
+              ...base,
+              actual: sources.map((source) => source.id),
+              message: `Source ${expected.id} not cited`,
+              passed: true,
+            };
+      }
+      if (!cited) {
+        return {
+          ...base,
+          actual: sources.map((source) => source.id),
+          message: `Expected source ${expected.id} was not cited`,
+          passed: false,
+        };
+      }
+      if (expected.url !== undefined && cited.url !== expected.url) {
+        return {
+          ...base,
+          actual: cited.url,
+          message: `Source ${expected.id} was cited without ${expected.url}`,
+          passed: false,
+        };
+      }
+      return {
+        ...base,
+        actual: cited,
+        message: `Source ${expected.id} cited`,
+        passed: true,
+      };
+    },
+  );
 }
 
 function collectActualValues(

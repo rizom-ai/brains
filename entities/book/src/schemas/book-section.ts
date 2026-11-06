@@ -28,7 +28,7 @@ export const bookSectionFrontmatterSchema: z.ZodObject<{
    * the division within it. Empty for a section directly under the book.
    */
   headings: z.array(z.string()).default([]),
-  source: z.url(),
+  source: z.url().meta({ studioWidget: "provenance" }),
 });
 
 export type BookSectionFrontmatter = z.output<

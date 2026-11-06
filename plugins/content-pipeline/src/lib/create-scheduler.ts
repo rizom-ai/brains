@@ -6,7 +6,7 @@ import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import { ContentScheduler } from "../scheduler";
 import type { PublishEntityExecutor } from "../publish-executor";
-import { BunSchedulerBackend } from "../scheduler-backend";
+import { BunSchedulerBackend } from "@brains/scheduler";
 import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
 

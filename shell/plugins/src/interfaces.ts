@@ -3,16 +3,7 @@ import type {
   EntityActionPolicyConfig,
   UserPermissionLevel,
 } from "@brains/templates";
-import {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-} from "@brains/contracts";
+import type { DefaultQueryResponse } from "@brains/contracts";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
@@ -53,6 +44,8 @@ import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
+import type { AuthRegistry } from "./auth-registry";
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type {
   AnchorProfile,
   BrainCharacter,
@@ -229,6 +222,8 @@ export interface IShell {
   getInboxFollowUpRegistry(): IInboxFollowUpRegistry;
   getOperationalHealthRegistry(): IOperationalHealthRegistry;
   getAccountSettingsRegistry(): AccountSettingsRegistry;
+  getAuthRegistry(): AuthRegistry;
+  getAtprotoProjectionRegistry(): AtprotoProjectionRegistry;
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;
@@ -331,18 +326,6 @@ export interface IShell {
   // Web routes from plugins
   getPluginWebRoutes(): RegisteredWebRoute[];
 }
-
-// Re-export response schemas for backward compatibility
-export {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-};
 
 // Re-export MCP transport interface
 export type { IMCPTransport } from "@brains/mcp-service";

@@ -1,4 +1,4 @@
-import { dirname, resolve } from "path";
+import { dirname } from "path";
 import { canonicalCheckoutPath } from "./checkout-identity";
 import type { CheckoutExecutorOptions } from "./checkout-executor";
 import type { GitOperation } from "./operations";
@@ -10,11 +10,10 @@ import {
   resolveGitCredential,
   resolveGitRemoteUrl,
 } from "../git-options";
-import {
-  BrokerStartupError,
-  GitBrokerServer,
-  gitBrokerSocketPath,
-} from "./server";
+import { BrokerStartupError, GitBrokerServer } from "./server";
+import { gitBrokerSocketPath, resolveCheckoutPath } from "./paths";
+
+export { resolveCheckoutPath };
 
 /**
  * What the broker child process runs.
@@ -43,15 +42,6 @@ export interface GitBrokerHostOptions {
   logger: Logger;
   /** Internal real-process fault: withhold after Git itself has returned. */
   testWithholdCompletionAfter?: string | undefined;
-}
-
-/** The checkout this Brain's directory-sync configuration points at. */
-export function resolveCheckoutPath(options: {
-  cwd: string;
-  dataDir: string;
-  syncPath?: string | undefined;
-}): string {
-  return resolve(options.cwd, options.syncPath ?? options.dataDir);
 }
 
 export async function startGitBrokerHost(

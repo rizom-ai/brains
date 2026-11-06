@@ -95,7 +95,7 @@ export class WebserverInterface extends InterfacePlugin<
         context.readiness(),
       getRoutes: (): ReturnType<typeof context.httpRoutes.getRoutes> =>
         context.httpRoutes.getRoutes(),
-      messageBus: context.apiRoutes.getMessageBus(),
+      executeTool: context.apiRoutes.executeTool,
     });
   }
 

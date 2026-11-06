@@ -63,3 +63,4 @@ export {
   type FollowTail,
   type FollowTailInput,
 } from "./follow-tail";
+export { toneFill, toneText, type ConsoleTone } from "./tone.styles";

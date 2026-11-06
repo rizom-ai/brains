@@ -595,6 +595,66 @@ not-a-number
     });
   });
 
+  describe("markdown inside a section", () => {
+    const schema = z.object({
+      answer: z.string(),
+      steps: z.array(z.string()),
+      sources: z.array(z.string()),
+    });
+    let received = "";
+    const formatter = new StructuredContentFormatter(schema, {
+      title: "Answer",
+      mappings: [
+        { key: "answer", label: "Answer", type: "string" },
+        { key: "steps", label: "Steps", type: "array", itemType: "string" },
+        {
+          key: "sources",
+          label: "Sources",
+          type: "custom",
+          formatter: (value: unknown): string =>
+            z.array(z.string()).parse(value).join("\n"),
+          parser: (text: string): unknown => {
+            received = text;
+            return text.split("\n- ").map((line) => line.replace(/^- /, ""));
+          },
+        },
+      ],
+    });
+
+    const data = {
+      answer: [
+        "See [the guide](https://example.com/guide) and run `bun test`.",
+        "",
+        "### Before you start",
+        "",
+        "```sh",
+        "# install first",
+        "bun install",
+        "```",
+        "",
+        "> A quoted line with **strong** and _emphasis_.",
+      ].join("\n"),
+      steps: ["Open [Studio](https://example.com/studio)", "Run `bun test`"],
+      sources: [
+        '[Handoffs](https://becca.rizom.ai/essays/handoffs "post:handoffs")\n  > Before anyone leaves a task we write three things down.',
+        "[Publishing](post:publishing)",
+      ].map((line) => `- ${line}`),
+    };
+
+    it("keeps a string field's markdown exactly: links, code, quotes and its own headings", () => {
+      expect(formatter.parse(formatter.format(data)).answer).toBe(data.answer);
+    });
+
+    it("keeps links and code in list items", () => {
+      expect(formatter.parse(formatter.format(data)).steps).toEqual(data.steps);
+    });
+
+    it("hands a custom parser the section's markdown, links and quotes included", () => {
+      formatter.parse(formatter.format(data));
+      expect(received).toBe(data.sources.join("\n"));
+    });
+  });
+
   describe("markdown-significant string values", () => {
     const schema = z.object({
       lines: z.array(z.object({ kind: z.string(), text: z.string() })),

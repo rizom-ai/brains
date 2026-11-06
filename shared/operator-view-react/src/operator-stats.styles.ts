@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 export const statsStyles: Record<
   | "root"
+  | "captioned"
   | "item"
   | "label"
   | "value"
@@ -15,10 +16,7 @@ export const statsStyles: Record<
   | "ledger"
   | "ledgerItem"
   | "ledgerLabel"
-  | "ledgerValue"
-  | "good"
-  | "warn"
-  | "error",
+  | "ledgerValue",
   stylex.StyleXStyles
 > = stylex.create({
   root: {
@@ -27,6 +25,13 @@ export const statsStyles: Record<
     gap: "12px 24px",
     margin: 0,
     minWidth: 0,
+  },
+  // A set of captioned figures lines up in even columns, not wherever
+  // a wrapping row happens to place them.
+  captioned: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
+    alignItems: "start",
   },
   item: {
     display: "flex",
@@ -95,6 +100,7 @@ export const statsStyles: Record<
     gridTemplateColumns: {
       default: "repeat(4,minmax(0,1fr))",
       "@media (max-width: 640px)": "repeat(2,minmax(0,1fr))",
+      "@container operator (max-width: 640px)": "repeat(2,minmax(0,1fr))",
     },
     gap: 0,
     alignItems: "stretch",
@@ -135,7 +141,4 @@ export const statsStyles: Record<
     fontWeight: 470,
     lineHeight: 1,
   },
-  good: { color: "var(--console-ok)" },
-  warn: { color: "var(--console-warn)" },
-  error: { color: "var(--console-err)" },
 });

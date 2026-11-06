@@ -1,5 +1,5 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { describe, expect, it, mock, type Mock } from "bun:test";
-import type { AuthPrincipal } from "@brains/auth-service";
 import type { AgentResponse } from "@brains/plugins";
 import {
   createRemoteAgentChatContext,

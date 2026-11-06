@@ -31,6 +31,7 @@ describe("nearestToEntity", () => {
     id: string;
     entityType?: "test" | "image";
     visibility?: "public" | "shared" | "restricted";
+    metadata?: Record<string, unknown>;
     values: number[];
   }): Promise<void> {
     const entityType = options.entityType ?? "test";
@@ -38,6 +39,7 @@ describe("nearestToEntity", () => {
       id: options.id,
       content: `Content for ${options.id}`,
       visibility: options.visibility ?? "public",
+      ...(options.metadata && { metadata: options.metadata }),
     });
     const embedding = new Float32Array(MOCK_DIMENSIONS);
     embedding.set(options.values);
@@ -119,5 +121,58 @@ describe("nearestToEntity", () => {
     expect(publicOnly.map(({ entityId }) => entityId)).toEqual(["public"]);
     expect(fromHidden).toEqual([]);
     expect(widened.map(({ entityId }) => entityId)).toContain("restricted");
+  });
+
+  test("carries each neighbour's metadata when asked, so no entry is loaded", async () => {
+    await seedEmbedding({ id: "origin", values: [1, 0] });
+    await seedEmbedding({
+      id: "close",
+      metadata: { title: "Nah", slug: "nah" },
+      values: [1, 0.2],
+    });
+
+    const [withMetadata] = await ctx.entityService.nearestToEntity({
+      origin: { entityType: "test", entityId: "origin" },
+      types: ["test"],
+      includeMetadata: true,
+    });
+    const [without] = await ctx.entityService.nearestToEntity({
+      origin: { entityType: "test", entityId: "origin" },
+      types: ["test"],
+    });
+
+    expect(withMetadata?.metadata).toEqual({ title: "Nah", slug: "nah" });
+    expect(without).not.toHaveProperty("metadata");
+  });
+
+  test("keeps to entries their type counts as published, when asked", async () => {
+    await seedEmbedding({ id: "origin", values: [1, 0] });
+    await seedEmbedding({
+      id: "draft",
+      metadata: { status: "draft" },
+      values: [1, 0],
+    });
+    await seedEmbedding({
+      id: "published",
+      metadata: { status: "published" },
+      values: [1, 0.1],
+    });
+    await seedEmbedding({ id: "unstated", values: [1, 0.2] });
+
+    const all = await ctx.entityService.nearestToEntity({
+      origin: { entityType: "test", entityId: "origin" },
+      types: ["test"],
+    });
+    const published = await ctx.entityService.nearestToEntity({
+      origin: { entityType: "test", entityId: "origin" },
+      types: ["test"],
+      publishedOnly: true,
+    });
+
+    expect(all.map(({ entityId }) => entityId)).toContain("draft");
+    expect(published.map(({ entityId }) => entityId)).toEqual([
+      "published",
+      "unstated",
+    ]);
   });
 });

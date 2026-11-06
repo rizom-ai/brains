@@ -65,6 +65,16 @@ async function click(text: string): Promise<void> {
 it("describes save state without confusing dirty edits with a previous successful save", () => {
   expect(editorSaveLabel({ kind: "saved" }, true)).toBe("Unsaved changes");
   expect(editorSaveLabel({ kind: "idle" }, false)).toBe("Saved");
+  expect(editorSaveLabel({ kind: "idle" }, false, "create")).toBe(
+    "Not created yet",
+  );
+  expect(editorSaveLabel({ kind: "idle" }, true, "create")).toBe(
+    "Not created yet",
+  );
+  // A singleton is one settings document: it is saved, not created.
+  expect(editorSaveLabel({ kind: "idle" }, false, "first-save")).toBe(
+    "Not saved yet",
+  );
   expect(editorSaveLabel({ kind: "saving" }, true)).toBe("Saving…");
   expect(editorSaveLabel({ kind: "error", message: "Failed" }, true)).toContain(
     "Save failed",

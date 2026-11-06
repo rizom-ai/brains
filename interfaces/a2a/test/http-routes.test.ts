@@ -3,11 +3,7 @@ import type { FetchFn } from "../src/client";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  AuthService,
-  authServicePlugin,
-  getActiveAuthService,
-} from "@brains/auth-service";
+import { AuthService, authServicePlugin } from "@brains/auth-service";
 import type { AgentResponse } from "@brains/plugins";
 import { keyFingerprint, signRequest } from "@brains/http-signatures";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -396,8 +392,8 @@ describe("A2A HTTP routes", () => {
     if (!remotePublicKey) {
       throw new Error("Expected remote A2A public key");
     }
-    const localAuth = getActiveAuthService();
-    if (!localAuth) {
+    const localAuth = harness.getMockShell().getAuthRegistry().get();
+    if (!(localAuth instanceof AuthService)) {
       throw new Error("Expected active auth service");
     }
     await localAuth.grantA2APeerTrust({

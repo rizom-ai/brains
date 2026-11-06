@@ -2,11 +2,26 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { OperatorViewRenderer } from "@brains/operator-view-react";
+import {
+  OperatorViewRenderer,
+  operatorViewStylexCSS,
+} from "@brains/operator-view-react";
 
 type HappyDocument = Window["document"];
 
-function render(): HappyDocument {
+const DAYS = [
+  { id: "2026-10-08", label: "8 Oct", value: 4 },
+  {
+    id: "2026-10-09",
+    label: "9 Oct",
+    value: 55,
+    marker: "Published: Infrastructure, Not Platforms",
+  },
+  { id: "2026-10-10", label: "10 Oct", value: null },
+  { id: "2026-10-11", label: "11 Oct", value: 0, tone: "warn" as const },
+];
+
+function render(points: typeof DAYS = DAYS): HappyDocument {
   const html = renderToStaticMarkup(
     <OperatorViewRenderer
       data={{
@@ -17,17 +32,7 @@ function render(): HappyDocument {
               id: "daily",
               label: "Pageviews per day",
               unit: "pageviews",
-              points: [
-                { id: "2026-10-08", label: "8 Oct", value: 4 },
-                {
-                  id: "2026-10-09",
-                  label: "9 Oct",
-                  value: 55,
-                  marker: "Published: Infrastructure, Not Platforms",
-                },
-                { id: "2026-10-10", label: "10 Oct", value: null },
-                { id: "2026-10-11", label: "11 Oct", value: 0, tone: "warn" },
-              ],
+              points,
             },
           ],
         },
@@ -37,6 +42,7 @@ function render(): HappyDocument {
     />,
   );
   const window = new Window();
+  window.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
   window.document.body.innerHTML = html;
   return window.document;
 }
@@ -80,4 +86,18 @@ test("shows the peak and the first and last labels as the axis", () => {
   expect(axis).toContain("55");
   expect(axis).toContain("8 Oct");
   expect(axis).toContain("11 Oct");
+});
+
+test("a period with nothing to plot collapses to its timeline and says so", () => {
+  const doc = render([
+    { id: "2026-10-08", label: "8 Oct", value: 0 },
+    { id: "2026-10-09", label: "9 Oct", value: null },
+    { id: "2026-10-10", label: "10 Oct", value: 0 },
+  ]);
+  const chart = doc.querySelector('svg[role="img"]');
+  if (!chart) throw new Error("Missing chart");
+  expect(doc.defaultView?.getComputedStyle(chart).height).toBe("24px");
+  const axis = doc.querySelector("[data-series-axis]")?.textContent ?? "";
+  expect(axis).toContain("no pageviews");
+  expect(axis).not.toContain("peak");
 });

@@ -7,6 +7,7 @@ import {
   InstanceOverridesParseError,
   type InstanceOverrides,
   resolveBrainPackageName,
+  registerOverridePackages,
 } from "@brains/app";
 import { fromYaml, toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
@@ -118,6 +119,9 @@ async function loadBrainEvalConfigIfPresent(
 
   console.log(`Loaded eval config from brain.eval.yaml (${brainPackage})`);
 
+  // A suite's site package resolves like brain.yaml's: imported by name.
+  await registerOverridePackages(overrides);
+
   const brainModulePath = import.meta
     .resolve(brainPackage)
     .replace("file://", "")
@@ -210,9 +214,21 @@ function providesProtocolPlugin(
   );
 }
 
+/** The site a suite renders with, as brain.yaml names it. */
+const suiteSiteSchema: z.ZodObject<{
+  package: z.ZodString;
+  theme: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  package: z.string().min(1),
+  theme: z.string().min(1).optional(),
+});
+
 export interface EvalSelection {
   anchor?: InstanceOverrides["anchor"];
   kind?: string;
+  site?: z.output<typeof suiteSiteSchema>;
+  /** The domain the suite's site is published at; sources link to it. */
+  domain?: string;
   bundles?: string[];
   add?: string[];
   remove?: string[];
@@ -233,6 +249,8 @@ export function resolveEvalSelection(
   return {
     ...(suiteSelection?.anchor ? { anchor: suiteSelection.anchor } : {}),
     ...(suiteSelection?.kind ? { kind: suiteSelection.kind } : {}),
+    ...(suiteSelection?.site ? { site: suiteSelection.site } : {}),
+    ...(suiteSelection?.domain ? { domain: suiteSelection.domain } : {}),
     ...(bundles ? { bundles } : {}),
     ...(suiteSelection?.add ? { add: suiteSelection.add } : {}),
     ...(suiteSelection?.remove ? { remove: suiteSelection.remove } : {}),
@@ -274,6 +292,8 @@ function resolveEvalSuite(
 
     const ownAnchor = parseSuiteAnchor(rawSuite["anchor"], name);
     const ownKind = parseSuiteKind(rawSuite["kind"], name);
+    const ownSite = parseSuiteSite(rawSuite["site"], name);
+    const ownDomain = parseSuiteDomain(rawSuite["domain"], name);
     const ownBundles = parseSuiteBundles(rawSuite["bundles"], name);
     const ownAdd = parseSuiteMemberIds(rawSuite["add"], name, "add");
     const ownRemove = parseSuiteMemberIds(rawSuite["remove"], name, "remove");
@@ -291,6 +311,13 @@ function resolveEvalSuite(
       .reverse()
       .find((selection) => selection.kind)?.kind;
     const kind = ownKind ?? inheritedKind;
+    const site =
+      ownSite ??
+      [...parentSelections].reverse().find((selection) => selection.site)?.site;
+    const domain =
+      ownDomain ??
+      [...parentSelections].reverse().find((selection) => selection.domain)
+        ?.domain;
     const inheritedBundles = [...parentSelections]
       .reverse()
       .find((selection) => selection.bundles)?.bundles;
@@ -315,6 +342,8 @@ function resolveEvalSuite(
     const selection: EvalSelection = {
       ...(anchor ? { anchor } : {}),
       ...(kind ? { kind } : {}),
+      ...(site ? { site } : {}),
+      ...(domain ? { domain } : {}),
       ...(bundles ? { bundles } : {}),
       ...(add ? { add } : {}),
       ...(remove ? { remove } : {}),
@@ -332,12 +361,21 @@ function applyCliOverrides(
   overrides: InstanceOverrides,
   options: Pick<
     EvalSelection,
-    "anchor" | "kind" | "bundles" | "add" | "remove" | "plugins"
+    | "anchor"
+    | "kind"
+    | "site"
+    | "domain"
+    | "bundles"
+    | "add"
+    | "remove"
+    | "plugins"
   >,
 ): InstanceOverrides {
   if (
     !options.anchor &&
     !options.kind &&
+    !options.site &&
+    !options.domain &&
     !options.bundles &&
     !options.add &&
     !options.remove &&
@@ -349,6 +387,8 @@ function applyCliOverrides(
     ...overrides,
     ...(options.anchor ? { anchor: options.anchor } : {}),
     ...(options.kind ? { kind: options.kind } : {}),
+    ...(options.site ? { site: options.site } : {}),
+    ...(options.domain ? { domain: options.domain } : {}),
     ...(options.bundles ? { bundles: options.bundles } : {}),
     ...(options.add ? { add: options.add } : {}),
     ...(options.remove ? { remove: options.remove } : {}),
@@ -399,6 +439,31 @@ function parseSuiteKind(value: unknown, suiteName: string): string | undefined {
   }
   throw new Error(
     `Eval suite "${suiteName}" has invalid kind; expected a non-empty string.`,
+  );
+}
+
+function parseSuiteSite(
+  value: unknown,
+  suiteName: string,
+): EvalSelection["site"] {
+  if (value === undefined) return undefined;
+  const parsed = suiteSiteSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid site; expected an object with a package.`,
+  );
+}
+
+function parseSuiteDomain(
+  value: unknown,
+  suiteName: string,
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid domain; expected a non-empty string.`,
   );
 }
 

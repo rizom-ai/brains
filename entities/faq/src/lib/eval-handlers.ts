@@ -1,5 +1,5 @@
+import { internalFullScope, waitForEmbeddingsToDrain } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
-import { waitForEmbeddingsToDrain } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import { classifyExchange } from "../handlers/faq-capture-handler";
@@ -37,7 +37,11 @@ function faqMarkdown(exchange: z.output<typeof exchangeSchema>): {
 async function clearFaqs(context: EntityPluginContext): Promise<void> {
   const faqs = await context.entityService.listEntities({
     entityType: "faq",
-    options: { filter: { visibilityScope: "restricted" } },
+    options: {
+      filter: {
+        visibilityScope: internalFullScope("eval harness clears faqs"),
+      },
+    },
   });
   await Promise.all(
     faqs.map((faq) =>

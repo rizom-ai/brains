@@ -107,6 +107,7 @@ function applyPluginDefaults(
         routes: site.routes,
         layouts: site.layouts,
         ...(site.headScripts && { headScripts: site.headScripts }),
+        ...(site.languages && { languages: site.languages }),
       }),
       ...(site?.staticAssets && { staticAssets: site.staticAssets }),
     };
@@ -228,6 +229,8 @@ function buildIdentity(
 function buildDeployment(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
+  /** The port the webserver will actually listen on, once overrides apply. */
+  servedPort?: number,
 ): DeploymentConfigInput {
   const deployment: DeploymentConfigInput = {
     ...(definition.deployment ?? {}),
@@ -236,10 +239,11 @@ function buildDeployment(
   if (overrides?.domain) {
     deployment.domain = overrides.domain;
   }
-  if (overrides?.port) {
+  const port = overrides?.port ?? servedPort;
+  if (port) {
     deployment.ports = {
       ...(deployment.ports ?? {}),
-      production: overrides.port,
+      production: port,
     };
   }
 
@@ -419,7 +423,12 @@ function resolveRuntimeDefinition(
   );
 
   const identity = buildIdentity(definition);
-  const deployment = buildDeployment(definition, overrides);
+  const servedPort = pluginOverrides["webserver"]?.["productionPort"];
+  const deployment = buildDeployment(
+    definition,
+    overrides,
+    typeof servedPort === "number" ? servedPort : undefined,
+  );
   const agentInstructions = [
     ...(definition.agentInstructions ?? []),
     ...selection.resolution.agentInstructions,

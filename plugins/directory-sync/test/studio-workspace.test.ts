@@ -170,7 +170,14 @@ describe("directory-sync Studio workspace", () => {
     expect(JSON.stringify(rendered)).toContain('"label":"Connection"');
     expect(JSON.stringify(rendered)).toContain('"label":"Recent runs"');
     expect(JSON.stringify(rendered)).toContain('"presentation":"disclosure"');
-    expect(JSON.stringify(rendered)).toContain('"presentation":"editorial"');
+    // Run history reads like Site's build history, and the page's other
+    // list matches it: compact activity entries.
+    expect(JSON.stringify(rendered)).toContain(
+      '"id":"recent-runs","empty":"No directory sync runs have completed yet.","presentation":"activity"',
+    );
+    expect(JSON.stringify(rendered)).toContain(
+      '"id":"changed-files","empty":"No changed files.","presentation":"activity"',
+    );
     expect(JSON.stringify(rendered)).toContain('"details":[');
     expect(JSON.stringify(rendered)).toContain('"id":"sync-repository-facts"');
     expect(

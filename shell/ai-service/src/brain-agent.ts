@@ -36,9 +36,10 @@ import {
 } from "./agent-types";
 import { resolveTextModelCapabilities } from "./provider-selection";
 import type { ReasoningEffort } from "./types";
-import { buildInstructions } from "./brain-instructions";
+import { buildAgentInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
+import { retryDeclinedTurnOnce } from "./provider-declined";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
@@ -52,6 +53,16 @@ export function filterToolsForCallOptions(
   return callOptions.interfaceType === guestInterfaceType
     ? tools.filter(isGuestToolAllowed)
     : tools;
+}
+
+/** The tools that can serve a call now; a tool whose check fails cannot. */
+async function availableTools(tools: Tool[]): Promise<Tool[]> {
+  const available = await Promise.all(
+    tools.map(async (tool) =>
+      tool.isAvailable ? tool.isAvailable().catch(() => false) : true,
+    ),
+  );
+  return tools.filter((_, index) => available[index]);
 }
 
 function isPlaybookStartInput(input: unknown): boolean {
@@ -146,7 +157,7 @@ export function createBrainAgentFactory(
       callOptionsSchema: brainCallOptionsSchema,
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-      prepareCall: ({ options: callOptions, ...settings }) => {
+      prepareCall: async ({ options: callOptions, ...settings }) => {
         assertGuestPermission(callOptions);
         assertGuestCallOptions(callOptions);
         const guest = callOptions.interfaceType === guestInterfaceType;
@@ -155,9 +166,11 @@ export function createBrainAgentFactory(
         // an already-confirmed action).
         const allowedTools = callOptions.disableTools
           ? []
-          : filterToolsForCallOptions(
-              config.getToolsForPermission(callOptions.userPermissionLevel),
-              callOptions,
+          : await availableTools(
+              filterToolsForCallOptions(
+                config.getToolsForPermission(callOptions.userPermissionLevel),
+                callOptions,
+              ),
             );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
@@ -190,15 +203,8 @@ export function createBrainAgentFactory(
             providerOptions: {},
           }),
           instructions:
-            buildInstructions(
-              config.identity,
-              callOptions.userPermissionLevel,
-              config.pluginInstructions,
-              config.profile,
-              config.agentInstructions,
-              callOptions.agentContextInstructions,
-              callOptions.isAnchor,
-            ) + (guest ? `\n\n${guestVisitorInstructions}` : ""),
+            buildAgentInstructions(config, callOptions) +
+            (guest ? `\n\n${guestVisitorInstructions}` : ""),
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
@@ -236,11 +242,16 @@ export function createBrainAgentFactory(
         assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
-          const result = await agent.generate(params);
+          const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
+            (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+          );
           return {
-            text: result.text,
+            text,
             steps: result.steps,
-            usage: turnUsage([result.totalUsage]),
+            usage: turnUsage([
+              ...(retriedAfter ? [retriedAfter.totalUsage] : []),
+              result.totalUsage,
+            ]),
           };
         }
         const last = guestModelMessages(params.messages).at(-1);
@@ -272,16 +283,19 @@ export function createBrainAgentFactory(
             guestSettlement: guestTurnSettlement(judged, options.guestPricing),
             guestScreening: { outcome: "refused", category: judgment.category },
           };
-        const result = await agent.generate(params);
+        const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
+          (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+        );
         return {
-          text: result.text,
+          text,
           steps: result.steps,
           usage: turnUsage([
             ...judged.map((call) => call.usage),
+            ...(retriedAfter ? [retriedAfter.totalUsage] : []),
             result.totalUsage,
           ]),
           guestSettlement: guestTurnSettlement(
-            [...judged, ...result.steps],
+            [...judged, ...(retriedAfter?.steps ?? []), ...result.steps],
             options.guestPricing,
           ),
           guestScreening:

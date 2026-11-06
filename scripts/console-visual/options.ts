@@ -37,6 +37,7 @@ export const CLIMATE_FILTER = process.argv
 export const FIXED_NOW = Date.parse("2026-07-11T16:40:00.000Z");
 export const VIEWPORTS = [
   { width: 1440, height: 1000 },
+  { width: 1024, height: 900 },
   { width: 768, height: 1024 },
   { width: 390, height: 844 },
 ] as const;

@@ -1,0 +1,192 @@
+/* What every guide surface shares: the guide page, the guides index and the
+   docs-home band. Colors and fonts come from the docs tokens, so each follows
+   the theme and its light and dark modes. */
+
+.guide-page {
+  --guide-light: var(--docs-accent);
+  --guide-glow: color-mix(in srgb, var(--docs-accent) 35%, transparent);
+  --guide-surface: var(--docs-bg-card);
+  --guide-surface-2: color-mix(
+    in srgb,
+    var(--docs-bg-card),
+    var(--docs-text) 5%
+  );
+  --guide-line: var(--docs-border);
+  --guide-line-soft: var(--docs-border-light);
+  --guide-muted: var(--docs-text-muted);
+  --guide-faint: var(--docs-text-light);
+  --guide-frag: color-mix(in srgb, var(--docs-text) 6%, transparent);
+  overflow-x: clip;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+/* The docs column, so bands line up with the footer. */
+.guide-wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  .guide-wrap {
+    padding: 0 48px;
+  }
+}
+
+.guide-label {
+  margin: 0;
+  font: 500 12px/1.4 var(--docs-font-label);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--guide-light);
+}
+
+.guide-display {
+  font-family: var(--docs-font-display);
+  font-optical-sizing: auto;
+  font-weight: 380;
+  letter-spacing: -0.02em;
+  color: var(--docs-heading);
+}
+
+.guide-accent {
+  font-style: italic;
+  color: var(--guide-light);
+}
+
+/* Bands */
+
+.guide-band {
+  padding: clamp(80px, 12vw, 160px) 0;
+  border-top: 1px solid var(--guide-line-soft);
+}
+
+.guide-band__head {
+  max-width: 720px;
+  margin-bottom: clamp(40px, 6vw, 72px);
+}
+
+.guide-band__head h2,
+.guide-start__copy h2 {
+  margin: 18px 0 14px;
+  font-size: clamp(34px, 5vw, 60px);
+  line-height: 1.02;
+}
+
+.guide-band__head p:not(.guide-label),
+.guide-start__copy > p:not(.guide-label) {
+  margin: 0;
+  max-width: 56ch;
+  color: var(--guide-muted);
+}
+
+/* Guide cards: the guides index, the docs-home band and a guide's closing. */
+
+.guide-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 18px;
+}
+
+/* A column, so the recipe line sits at the foot of every card in a row. */
+.guide-card {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 24px 24px;
+  border: 1px solid var(--guide-line);
+  border-radius: 16px;
+  background: var(--guide-surface);
+  transition:
+    border-color 0.3s,
+    transform 0.3s;
+}
+
+.guide-card:hover {
+  border-color: var(--guide-light);
+  transform: translateY(-4px);
+}
+
+.guide-card h3 {
+  margin: 14px 0 10px;
+  font: 400 28px/1.1 var(--docs-font-display);
+  color: var(--docs-heading);
+}
+
+.guide-card__for {
+  margin: 0 0 20px;
+  color: var(--guide-muted);
+  font-size: 15.5px;
+}
+
+.guide-card__recipe {
+  margin-top: auto;
+  color: var(--guide-faint);
+  font: 12px/1 var(--docs-font-label);
+}
+
+/* The guides index: what the guides are, then every guide as a card. */
+
+.guide-index {
+  padding: clamp(136px, 16vw, 200px) 0 clamp(88px, 10vw, 140px);
+}
+
+.guide-index__head {
+  max-width: 780px;
+  margin-bottom: clamp(48px, 6vw, 80px);
+}
+
+.guide-index__head h1 {
+  margin: 22px 0 22px;
+  font-size: clamp(48px, 8vw, 104px);
+  line-height: 0.98;
+}
+
+.guide-index__head p:not(.guide-label) {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--guide-muted);
+  font-size: 19px;
+}
+
+/* The docs-home band: the guides between the hero and the sections, in the
+   docs column, with cards compact enough to sit in one row. */
+
+.guide-home {
+  padding: clamp(56px, 8vw, 96px) 0;
+  border-bottom: 1px solid var(--guide-line);
+}
+
+.guide-home__head {
+  max-width: 720px;
+  margin-bottom: clamp(32px, 4vw, 48px);
+}
+
+.guide-home__head h2 {
+  margin: 16px 0 12px;
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.04;
+}
+
+.guide-home__head p:not(.guide-label) {
+  margin: 0;
+  max-width: 56ch;
+  color: var(--guide-muted);
+}
+
+.guide-home .guide-cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(184px, 100%), 1fr));
+  gap: 14px;
+}
+
+.guide-home .guide-card {
+  padding: 22px 20px 20px;
+}
+
+.guide-home .guide-card h3 {
+  font-size: 23px;
+}
+
+.guide-home .guide-card__for {
+  font-size: 14.5px;
+}

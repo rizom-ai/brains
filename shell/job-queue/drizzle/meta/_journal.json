@@ -36,6 +36,34 @@
       "when": 1786601363780,
       "tag": "0004_loose_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792583389313,
+      "tag": "0005_noisy_mentor",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792589509512,
+      "tag": "0006_bright_red_ghost",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793544284445,
+      "tag": "0007_job_brain_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793619179456,
+      "tag": "0008_worker_session_slots",
+      "breakpoints": true
     }
   ]
 }

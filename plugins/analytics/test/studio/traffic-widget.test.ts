@@ -117,4 +117,18 @@ describe("the Traffic dashboard widget", () => {
     expect(view).toContain('"type":"series"');
     expect(view).toContain('"target":"traffic"');
   });
+
+  it("captions each total with its change, not the total again", async () => {
+    const payload = await registered(await brain());
+    const data = await payload.dataProvider(owner);
+    const stats = data.view.blocks.find((block) => block.type === "stats");
+    if (stats?.type !== "stats") throw new Error("Missing totals");
+    expect(stats.items).toContainEqual(
+      expect.objectContaining({
+        label: "Pageviews",
+        value: 30,
+        caption: "+50% on the period before",
+      }),
+    );
+  });
 });

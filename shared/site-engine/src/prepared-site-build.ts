@@ -1,8 +1,12 @@
-import { siteLayoutInfoSchema } from "@brains/site-composition";
+import {
+  siteLayoutInfoSchema,
+  siteMetadataTranslationSchema,
+} from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import {
   jsonObjectSchema,
   jsonValueSchema,
+  type JsonObject,
   type JsonValue,
 } from "@brains/contracts";
 import { resolvedSiteImageSchema } from "./site-image-contracts";
@@ -24,10 +28,20 @@ export const preparedSectionSchema: z.ZodObject<{
 
 export type PreparedSection = z.output<typeof preparedSectionSchema>;
 
+/** A page in one of the languages it is built in. */
+export const preparedAlternateSchema: z.ZodObject<{
+  language: z.ZodString;
+  path: z.ZodString;
+}> = z.object({ language: z.string(), path: z.string() });
+
+const preparedNavigationSchema: (typeof siteLayoutInfoSchema)["shape"]["navigation"] =
+  siteLayoutInfoSchema.shape.navigation;
+
 /** Immutable route inventory consumed by a static renderer. */
 export const preparedRouteSchema: z.ZodObject<{
   id: z.ZodString;
   path: z.ZodString;
+  language: z.ZodString;
   title: z.ZodString;
   pageLabel: z.ZodOptional<z.ZodString>;
   description: z.ZodString;
@@ -35,9 +49,14 @@ export const preparedRouteSchema: z.ZodObject<{
   fullscreen: z.ZodBoolean;
   sections: z.ZodArray<typeof preparedSectionSchema>;
   headScripts: z.ZodArray<z.ZodString>;
+  alternates: z.ZodOptional<z.ZodArray<typeof preparedAlternateSchema>>;
+  siteNavigation: z.ZodOptional<typeof preparedNavigationSchema>;
+  siteTranslation: z.ZodOptional<typeof siteMetadataTranslationSchema>;
 }> = z.object({
   id: z.string(),
   path: z.string(),
+  /** The page's language tag, written into `<html lang>`. */
+  language: z.string(),
   title: z.string(),
   pageLabel: z.string().optional(),
   description: z.string(),
@@ -45,37 +64,69 @@ export const preparedRouteSchema: z.ZodObject<{
   fullscreen: z.boolean(),
   sections: z.array(preparedSectionSchema),
   headScripts: z.array(z.string()),
+  /** Every language the page is built in, with its path there. */
+  alternates: z.array(preparedAlternateSchema).optional(),
+  /** A translated page's navigation, in place of the site's. */
+  siteNavigation: preparedNavigationSchema.optional(),
+  /** A translated page's site title, description, copyright and CTA. */
+  siteTranslation: siteMetadataTranslationSchema.optional(),
 });
 
 export type PreparedRoute = z.output<typeof preparedRouteSchema>;
 
 /**
- * Serializable site-build input. Renderer functions, layouts, registries, and
- * service callbacks are intentionally kept out of this model.
+ * A build's fields besides its pages: what every page renders with. Renderer
+ * functions, layouts, registries, and service callbacks are intentionally
+ * kept out of this model.
  */
-export const preparedSiteBuildSchema: z.ZodObject<{
+export const preparedSiteEnvelopeSchema: z.ZodObject<{
   buildId: z.ZodString;
   preparedAt: z.ZodString;
   environment: z.ZodEnum<{ preview: "preview"; production: "production" }>;
   site: typeof siteLayoutInfoSchema;
-  routes: z.ZodArray<typeof preparedRouteSchema>;
   themeCSS: z.ZodOptional<z.ZodString>;
   images: z.ZodRecord<z.ZodString, typeof resolvedSiteImageSchema>;
   staticAssets: z.ZodRecord<z.ZodString, z.ZodString>;
   publicAssets: z.ZodRecord<z.ZodString, z.ZodString>;
   globalHeadScripts: z.ZodArray<z.ZodString>;
+  siteUrl: z.ZodOptional<z.ZodString>;
 }> = z.object({
   buildId: z.string().min(1),
   preparedAt: z.string().datetime(),
   environment: z.enum(["preview", "production"]),
   site: siteLayoutInfoSchema,
-  routes: z.array(preparedRouteSchema),
   themeCSS: z.string().optional(),
   images: z.record(z.string(), resolvedSiteImageSchema),
   staticAssets: z.record(z.string(), z.string()),
   /** App public files keyed by output path with base64-encoded contents. */
   publicAssets: z.record(z.string(), z.string()),
   globalHeadScripts: z.array(z.string()),
+  /** The environment's public URL, for absolute links between languages. */
+  siteUrl: z.string().optional(),
+});
+
+export type PreparedSiteEnvelope = z.output<typeof preparedSiteEnvelopeSchema>;
+
+/** What a build keeps of a page once it is rendered: its address and scripts. */
+export const preparedRouteSummarySchema: z.ZodObject<{
+  id: z.ZodString;
+  path: z.ZodString;
+  headScripts: z.ZodArray<z.ZodString>;
+}> = preparedRouteSchema.pick({ id: true, path: true, headScripts: true });
+
+export type PreparedRouteSummary = z.output<typeof preparedRouteSummarySchema>;
+
+/**
+ * A rendered build as it is published: its fields, and its pages' summaries
+ * for the sitemap and the manifest. The pages themselves were rendered one at
+ * a time and are not kept.
+ */
+export const preparedSiteBuildSchema: z.ZodObject<
+  (typeof preparedSiteEnvelopeSchema)["shape"] & {
+    routes: z.ZodArray<typeof preparedRouteSummarySchema>;
+  }
+> = preparedSiteEnvelopeSchema.extend({
+  routes: z.array(preparedRouteSummarySchema),
 });
 
 export type PreparedSiteBuild = z.output<typeof preparedSiteBuildSchema>;
@@ -132,19 +183,14 @@ function isPlainRecord(value: object): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-/** Validate, JSON-normalize, and freeze renderer input as one snapshot. */
-export function createPreparedSiteBuildSnapshot(
+/** Validate, JSON-normalize, and deep-freeze a build's fields before any of
+ *  its pages is prepared. */
+export function createPreparedSiteEnvelope(
   input: unknown,
-): PreparedSiteBuild {
-  const normalized = normalizeJsonValue(input);
-  return freezePreparedSiteBuild(preparedSiteBuildSchema.parse(normalized));
-}
-
-/** Deep-freeze the serializable snapshot before handing it to a renderer. */
-export function freezePreparedSiteBuild(
-  build: PreparedSiteBuild,
-): PreparedSiteBuild {
-  return deepFreeze(build);
+): PreparedSiteEnvelope {
+  return deepFreeze(
+    preparedSiteEnvelopeSchema.parse(normalizeJsonValue(input)),
+  );
 }
 
 function deepFreeze<T>(value: T): T {
@@ -157,4 +203,32 @@ function deepFreeze<T>(value: T): T {
   }
 
   return Object.freeze(value);
+}
+
+/**
+ * A page whose section data was validated as JSON when it was prepared: its
+ * fields are checked again, its data only for being a plain object, so the
+ * data is kept rather than copied.
+ */
+const preparedRouteFieldsSchema = preparedRouteSchema.extend({
+  sections: z.array(
+    preparedSectionSchema.extend({
+      data: z.custom<JsonObject>(
+        (value) =>
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value) &&
+          isPlainRecord(value),
+      ),
+    }),
+  ),
+});
+
+/**
+ * Check a prepared page's fields and deep-freeze it for its renderer. Its
+ * section data, validated as JSON when the page was prepared, is kept as it
+ * is rather than copied.
+ */
+export function freezePreparedRoute(route: unknown): PreparedRoute {
+  return deepFreeze(preparedRouteFieldsSchema.parse(route));
 }

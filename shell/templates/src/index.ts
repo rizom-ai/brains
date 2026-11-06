@@ -8,7 +8,6 @@ export type {
   MediaFormat,
   RuntimeScript,
   TemplateDataSchema,
-  TemplateSchemaParser,
 } from "./types";
 export {
   TemplateSchema,
@@ -16,6 +15,7 @@ export {
   createTemplate,
   renderedLinkFields,
   templateRenderers,
+  viewLinkFields,
 } from "./types";
 export { InMemoryTemplateRegistry } from "./registry";
 export type { TemplateRegistry } from "./registry";

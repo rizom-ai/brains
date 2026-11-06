@@ -1,0 +1,30 @@
+id: channel-action-items-owner-by-member-name
+name: Gives a card to the member a speaker names themselves by
+description: >-
+  Yeehaa's account belongs to the member Jan Hein. Writing "Jan Hein will work
+  on the Innovation Hub plan", they take it on themselves: the owner is Jan Hein.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-action-items
+plugin: conversation-memory
+handler: extractChannelActionItems
+
+input:
+  members:
+    - Jan Hein
+    - Niels
+  messages:
+    - speaker: yeehaa
+      userId: usr_jan_hein
+      content: Jan Hein will work on the Innovation Hub plan
+    - speaker: Niels
+      userId: usr_niels
+      content: Good, let me know when you want feedback.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: items[0].owner
+      equals: Jan Hein

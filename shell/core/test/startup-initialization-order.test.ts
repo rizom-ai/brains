@@ -106,22 +106,20 @@ describe("Startup Initialization Order", () => {
       expect(prepareCallIndex).toBeLessThan(readyCallIndex);
     });
 
-    it("should backfill embeddings after initial sync and before ready hooks", () => {
+    it("should backfill embeddings in the background, before waiting on the index", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
-      const pluginsRegisteredCallIndex = source.indexOf(
-        "this.emitPluginsRegistered()",
-      );
+      const monitorIndex = source.indexOf("private runIndexReadinessMonitor()");
       const backfillCallIndex = source.indexOf(
         "entityService.backfillMissingEmbeddings()",
       );
-      const readyCallIndex = source.indexOf("pluginManager.readyPlugins()");
+      const awaitIndexCallIndex = source.indexOf(
+        "entityService.awaitIndexReady(",
+      );
 
-      expect(pluginsRegisteredCallIndex).toBeGreaterThan(-1);
-      expect(backfillCallIndex).toBeGreaterThan(-1);
-      expect(readyCallIndex).toBeGreaterThan(-1);
-      expect(pluginsRegisteredCallIndex).toBeLessThan(backfillCallIndex);
-      expect(backfillCallIndex).toBeLessThan(readyCallIndex);
+      expect(monitorIndex).toBeGreaterThan(-1);
+      expect(backfillCallIndex).toBeGreaterThan(monitorIndex);
+      expect(backfillCallIndex).toBeLessThan(awaitIndexCallIndex);
     });
 
     it("should start the background index readiness monitor after runtime services", () => {

@@ -1022,15 +1022,56 @@ describe("DynamicRouteGenerator", () => {
 
       await configuredGenerator.generateEntityRoutes();
 
-      // Should only have single index route with limit instead of pagination
+      // A single index route that lists every entity instead of pages
       expect(routeRegistry.get("/essays")).toBeDefined();
       expect(routeRegistry.get("/essays/page/2")).toBeUndefined();
 
       const indexRoute = routeRegistry.get("/essays");
-      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(100);
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(15);
       expect(
         indexRoute?.sections[0]?.dataQuery?.query?.["page"],
       ).toBeUndefined();
+    });
+
+    test("an unpaginated index lists more than a hundred entities", async () => {
+      entityTypes.push("book");
+      entities.set(
+        "book",
+        Array.from({ length: 117 }, (_, i) =>
+          createMockEntity(`book-${i + 1}`, "book"),
+        ),
+      );
+      templates.push({
+        name: "book:book-list",
+        pluginId: "book",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await new DynamicRouteGenerator(services, routeRegistry, {
+        book: { label: "Book", paginate: false },
+      }).generateEntityRoutes();
+
+      const indexRoute = routeRegistry.get("/books");
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(117);
+    });
+
+    test("an unpaginated index of no entities still asks for a page", async () => {
+      entityTypes.push("book");
+      entities.set("book", []);
+      templates.push({
+        name: "book:book-list",
+        pluginId: "book",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await new DynamicRouteGenerator(services, routeRegistry, {
+        book: { label: "Book", paginate: false },
+      }).generateEntityRoutes();
+
+      const indexRoute = routeRegistry.get("/books");
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(1);
     });
 
     test("should generate single page when entities fit in one page", async () => {
@@ -1134,6 +1175,72 @@ describe("DynamicRouteGenerator", () => {
       expect(socialPostDetailRoute?.sections[0]?.template).toBe(
         "social-media:social-post-detail",
       );
+    });
+  });
+
+  describe("listing a large type", () => {
+    const sections = Array.from({ length: 2500 }, (_, i) =>
+      createMockEntity(`section-${i}`, "book-section", `book/${i + 1}`),
+    );
+    let requests: ListEntitiesRequest[];
+    let registeredWhenLastPageAsked: number | undefined;
+
+    beforeEach(() => {
+      requests = [];
+      registeredWhenLastPageAsked = undefined;
+      entityTypes.push("book-section");
+      templates.push({
+        name: "book:book-section-detail",
+        pluginId: "book",
+        schema: z.object({}),
+        renderers: {},
+      });
+      services.entityService.listEntities = async (
+        request,
+      ): Promise<BaseEntity[]> => {
+        requests.push(request);
+        const offset = request.options?.offset ?? 0;
+        const limit = request.options?.limit ?? sections.length;
+        if (offset + limit >= sections.length) {
+          registeredWhenLastPageAsked ??= routeRegistry.size();
+        }
+        return sections.slice(offset, offset + limit);
+      };
+    });
+
+    test("registers every entity's route, a page of entities at a time", async () => {
+      await generator.generateEntityRoutes();
+
+      expect(routeRegistry.size()).toBe(2500);
+      expect(routeRegistry.get("/book-sections/book/2500")).toBeDefined();
+      expect(requests.length).toBe(3);
+      expect(
+        requests.every((request) => (request.options?.limit ?? 0) <= 1000),
+      ).toBe(true);
+      // Routes of earlier pages exist before the last page is read: no page
+      // is held back until the whole type is listed.
+      expect(registeredWhenLastPageAsked).toBe(2000);
+    });
+
+    test("counts an unpaginated index a page at a time, before its entries", async () => {
+      templates.push({
+        name: "book:book-section-list",
+        pluginId: "book",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await new DynamicRouteGenerator(services, routeRegistry, {
+        "book-section": { label: "Section", paginate: false },
+      }).generateEntityRoutes();
+
+      const [index] = routeRegistry.list();
+      expect(index?.path).toBe("/sections");
+      expect(index?.sections[0]?.dataQuery?.query?.["limit"]).toBe(2500);
+      expect(routeRegistry.size()).toBe(2501);
+      expect(
+        requests.every((request) => (request.options?.limit ?? 0) <= 1000),
+      ).toBe(true);
     });
   });
 });

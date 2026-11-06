@@ -1,3 +1,4 @@
+import { type IMCPTransport } from "@brains/plugins";
 import { MCP_INTERACTION_ID } from "@brains/contracts";
 import type {
   InterfacePluginContext,
@@ -7,8 +8,6 @@ import type {
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
-import type { IMCPTransport } from "@brains/mcp-service";
-import { getActiveAuthService } from "@brains/auth-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { MCPProtocol, MCPProtocolPlugin } from "./mcp-protocol";
 import packageJson from "../package.json";
@@ -35,12 +34,7 @@ export class MCPInterface
   private domain: string | undefined;
 
   constructor(config: MCPConfigInput = {}) {
-    // Default authToken from environment if not provided
-    const configWithDefaults = {
-      ...config,
-      authToken: config.authToken ?? process.env["MCP_AUTH_TOKEN"],
-    };
-    super("mcp", packageJson, configWithDefaults, mcpConfigSchema);
+    super("mcp", packageJson, config, mcpConfigSchema);
   }
 
   /** A fresh registration of this protocol, without its transport host. */
@@ -96,7 +90,7 @@ export class MCPInterface
       return this.httpServer;
     }
 
-    const authService = getActiveAuthService();
+    const authService = this.context?.auth.get();
 
     this.httpServer = StreamableHTTPServer.createFresh({
       port: this.config.httpPort,
@@ -269,10 +263,10 @@ export class MCPInterface
       transportUserId,
     );
 
-    const activeAuthService = getActiveAuthService();
+    const authBackend = context.auth.get();
     const hasHttpAuth =
       this.config.transport === "http" &&
-      (this.config.authToken ? true : activeAuthService !== undefined);
+      (this.config.authToken ? true : authBackend !== undefined);
 
     // Static-token auth uses administrator permissions. OAuth requests replace
     // this fallback with the authenticated principal's level on every call.

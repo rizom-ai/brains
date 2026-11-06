@@ -41,10 +41,17 @@ for (const density of ["compact", "comfortable"] as const) {
       const row = doc.querySelector("dl > div");
       if (!row) throw new Error("Missing fact row");
       expect(row.getAttribute("data-tone")).toBe("error");
-      if (density === "compact")
-        expect(window.getComputedStyle(row).flexWrap).toBe("wrap");
-      expect(window.getComputedStyle(row).display).toBe(
-        density === "compact" ? "flex" : "grid",
+      // A long value takes its own line under the label instead of being
+      // pinched into a fixed value column.
+      expect(window.getComputedStyle(row).display).toBe("flex");
+      expect(window.getComputedStyle(row).flexWrap).toBe("wrap");
+      // On a wide page facts flow into columns, keeping each label near its
+      // value.
+      const list = doc.querySelector("dl");
+      if (!list) throw new Error("Missing facts");
+      expect(window.getComputedStyle(list).display).toBe("grid");
+      expect(window.getComputedStyle(list).gridTemplateColumns).toBe(
+        "repeat(auto-fill,minmax(min(100%,24rem),1fr))",
       );
     } finally {
       await window.happyDOM.abort();
@@ -80,7 +87,7 @@ test("the built server entry renders without a DOM or StyleX loader", () => {
     typeof output.css !== "string"
   )
     throw new Error("Invalid SSR test output");
-  for (const text of ["operator-key-values", ">Yes</dd>", ">—</dd>"]) {
+  for (const text of ["data-facts", ">Yes</dd>", ">—</dd>"]) {
     expect(output.html).toContain(text);
   }
   expect(output.html).not.toContain("<style");

@@ -58,12 +58,11 @@ describe("SummaryAdapter", () => {
     const markdown = adapter.toMarkdown(entity);
     const parsed = adapter.fromMarkdown(markdown);
 
-    expect(markdown).toContain("conversationId: test-conv");
+    expect(markdown).not.toContain("conversationId:");
     expect(markdown).toContain("sourceHash: hash-123");
     expect(markdown).toContain(`visibility: ${entity.visibility}`);
     expect(parsed.entityType).toBe("summary");
     expect(parsed.visibility).toBe(entity.visibility);
-    expect(parsed.metadata?.conversationId).toBe("test-conv");
   });
 });
 

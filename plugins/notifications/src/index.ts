@@ -21,14 +21,18 @@ export {
   type SendNotificationResult,
 } from "@brains/contracts";
 
-// Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; a
+// An unset SETUP_EMAIL_TO drops `address` from brain.yaml during env
+// interpolation, and deploy tooling may pass it as an empty string. A
 // recipient without an address means "no default recipient", not an invalid
 // plugin config — alerts then stay pending on the standard retry path.
 const emptyRecipient: z.ZodPipe<
-  z.ZodObject<{ type: z.ZodLiteral<"email">; address: z.ZodString }>,
-  z.ZodTransform<undefined, { type: "email"; address: string }>
+  z.ZodObject<{
+    type: z.ZodLiteral<"email">;
+    address: z.ZodOptional<z.ZodString>;
+  }>,
+  z.ZodTransform<undefined, { type: "email"; address?: string | undefined }>
 > = z
-  .object({ type: z.literal("email"), address: z.string().max(0) })
+  .object({ type: z.literal("email"), address: z.string().max(0).optional() })
   .transform((): undefined => undefined);
 
 const notificationsConfigSchema: z.ZodObject<
