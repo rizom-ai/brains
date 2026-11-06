@@ -37,13 +37,22 @@ export const siteCSS: string = `
 
 .tf-foot { background: var(--palette-red); color: var(--palette-ink); }
 .tf-foot__inner { padding-top: clamp(40px, 4vw, 56px); padding-bottom: 28px; display: flex; flex-direction: column; gap: clamp(36px, 5vw, 72px); }
-.tf-foot__top, .tf-foot__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px 40px; }
-.tf-foot__top { align-items: flex-end; }
-.tf-foot__brand { max-width: 26rem; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.tf-foot__top { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 40px 32px; align-items: start; }
+.tf-foot__brand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .tf-foot__name { font-weight: 800; font-size: clamp(40px, 4.4vw, 68px); line-height: 0.84; letter-spacing: -0.055em; text-transform: uppercase; }
 .tf-foot__trade { padding-bottom: 4px; font-weight: 600; font-size: clamp(13px, 1.1vw, 16px); text-transform: uppercase; }
+.tf-foot__reach { display: flex; flex-direction: column; justify-content: space-between; gap: 20px; min-height: 100%; }
+.tf-foot__social { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: clamp(15px, 1.2vw, 18px); text-transform: uppercase; }
+.tf-foot__social a, .tf-foot__legal a, .tf-foot__credit { text-decoration: none; }
 .tf-foot__email { font-weight: 700; font-size: clamp(15px, 1.2vw, 18px); text-underline-offset: 4px; }
-.tf-foot__bottom { font-weight: 700; font-size: 13px; text-transform: uppercase; }
+.tf-foot__bottom { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 32px; align-items: end; }
+.tf-foot__photo { margin: 0; max-width: 320px; }
+.tf-foot__frame { aspect-ratio: 16 / 10; filter: drop-shadow(0 10px 12px rgb(35 35 35 / 0.28)) drop-shadow(0 2px 2px rgb(35 35 35 / 0.18)); }
+.tf-foot__frame img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); }
+.tf-foot__legal { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+.tf-foot__end { display: flex; flex-direction: column; gap: 10px; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+.tf-lang--pill { align-self: flex-start; display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border: 2px solid var(--palette-ink); border-radius: 999px; font-weight: 700; font-size: 14px; }
+.tf-site .tf-foot .tf-lang a:not([aria-current]), .tf-foot .tf-lang__sep { color: inherit; }
 .tf-flink { transition: color 0.15s ease; }
 .tf-site .tf-flink:hover { color: var(--palette-card); }
 

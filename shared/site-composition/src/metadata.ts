@@ -196,6 +196,7 @@ export const siteLayoutInfoSchema: ReturnType<
       secondary: z.ZodArray<typeof NavigationItemSchema>;
     }>;
     socialLinks: z.ZodOptional<z.ZodArray<typeof socialLinkSchema>>;
+    photo: z.ZodOptional<z.ZodString>;
   }>
 > = siteMetadataSchema.extend({
   copyright: z.string(),
@@ -207,6 +208,10 @@ export const siteLayoutInfoSchema: ReturnType<
     .array(socialLinkSchema)
     .optional()
     .describe("Social media links from profile metadata"),
+  photo: z
+    .string()
+    .optional()
+    .describe("The anchor's photo, as ![alt](entity://image/<id>)"),
 });
 
 type SiteLayoutInfoSchemaOutput = z.infer<typeof siteLayoutInfoSchema>;

@@ -7,6 +7,7 @@ import {
   type SiteLayoutProps,
 } from "@rizom/site";
 import { Logo } from "./logo";
+import { parsePhoto } from "./portrait";
 
 /** The brain's profiles elsewhere: every social link but the email. */
 function profilesOf(info: SiteLayoutInfo): { href: string; label: string }[] {
@@ -31,16 +32,34 @@ function emailOf(info: SiteLayoutInfo): { href: string; label: string } | null {
 /** How the switch names each language, in that language. */
 const LANGUAGE_NAMES: Record<string, string> = { en: "EN", "zh-tw": "中文" };
 
-/** The footer's two fixed lines, per language; site-info has no field for them. */
-const FOOTER_LINES: Record<string, { trade: string; credit: string }> = {
-  en: { trade: "(Brand consultancy)", credit: "Powered by Rizom" },
-  "zh-tw": { trade: "（品牌顧問）", credit: "由 Rizom 提供技術支援" },
+interface FooterLines {
+  trade: string;
+  credit: string;
+  legal: [string, string, string];
+}
+
+/** The footer's fixed words, per language; site-info has no field for them. */
+const FOOTER_LINES: Record<string, FooterLines> = {
+  en: {
+    trade: "(Brand consultancy)",
+    credit: "Powered by Rizom",
+    legal: ["Privacy policy", "Terms of service", "Cookie policy"],
+  },
+  "zh-tw": {
+    trade: "（品牌顧問）",
+    credit: "由 Rizom 提供技術支援",
+    legal: ["隱私權政策", "服務條款", "Cookie 政策"],
+  },
 };
 
-const DEFAULT_FOOTER_LINES = {
+const DEFAULT_FOOTER_LINES: FooterLines = {
   trade: "(Brand consultancy)",
   credit: "Powered by Rizom",
+  legal: ["Privacy policy", "Terms of service", "Cookie policy"],
 };
+
+/** Where the legal pages will be; until they exist the links hold their places. */
+const LEGAL_PLACEHOLDER_HREF = "#";
 
 /** Where the credit goes: the network the brain runs on. */
 const RIZOM_HREF = "https://rizom.ai";
@@ -49,12 +68,17 @@ const RIZOM_HREF = "https://rizom.ai";
 function LanguageSwitch({
   language,
   alternates,
+  pill = false,
 }: {
   language: string;
   alternates: SiteAlternate[];
+  pill?: boolean;
 }): JSX.Element {
   return (
-    <nav className="tf-lang" aria-label="Language">
+    <nav
+      className={pill ? "tf-lang tf-lang--pill" : "tf-lang"}
+      aria-label="Language"
+    >
       {alternates.map((alternate, index) => {
         const current =
           alternate.language.toLowerCase() === language.toLowerCase();
@@ -92,11 +116,12 @@ function Wordmark({ title }: { title: string }): JSX.Element {
 
 /**
  * The paper frame: the logo, the language switch and the one way to talk
- * above the story; below it, on red, the name as a wordmark, the brain's
- * profiles (each in a new tab), the email, a quiet credit to Rizom and the
- * copyright, in the page's language. The switch shows only on a page that
- * exists in more than one language. There is no menu and no legal links
- * until The Fourth's other pages exist.
+ * above the story; below it, on red, the name as a wordmark beside the
+ * brain's profiles (each in a new tab) and the email, then the anchor's
+ * photo when it has one, the legal pages' places, and the switch again as a
+ * pill over the copyright and a quiet credit to Rizom, in the page's
+ * language. The switch shows only on a page that exists in more than one
+ * language. There is no menu.
  */
 export function TheFourthLayout({
   sections,
@@ -109,6 +134,7 @@ export function TheFourthLayout({
   const defaultLanguage = alternates[0]?.language ?? language;
   const home = languagePath(language, defaultLanguage, "/");
   const lines = FOOTER_LINES[language.toLowerCase()] ?? DEFAULT_FOOTER_LINES;
+  const photo = parsePhoto(siteInfo.photo ?? "");
   return (
     <div className="tf-site" lang={language}>
       <header className="tf-bar">
@@ -162,15 +188,42 @@ export function TheFourthLayout({
             </div>
           </div>
           <div className="tf-foot__bottom">
-            <a
-              className="tf-flink tf-foot__credit"
-              href={RIZOM_HREF}
-              target="_blank"
-              rel="noopener"
-            >
-              {lines.credit}
-            </a>
-            <span>{siteInfo.copyright}</span>
+            {photo && (
+              <figure className="tf-foot__photo">
+                <div className="tf-foot__frame">
+                  <img src={photo.src} alt={photo.alt} loading="lazy" />
+                </div>
+              </figure>
+            )}
+            <div className="tf-foot__legal">
+              {lines.legal.map((page) => (
+                <a
+                  key={page}
+                  className="tf-flink"
+                  href={LEGAL_PLACEHOLDER_HREF}
+                >
+                  {page}
+                </a>
+              ))}
+            </div>
+            <div className="tf-foot__end">
+              {alternates.length > 1 && (
+                <LanguageSwitch
+                  language={language}
+                  alternates={alternates}
+                  pill
+                />
+              )}
+              <span>{siteInfo.copyright}</span>
+              <a
+                className="tf-flink tf-foot__credit"
+                href={RIZOM_HREF}
+                target="_blank"
+                rel="noopener"
+              >
+                {lines.credit}
+              </a>
+            </div>
           </div>
         </div>
       </footer>

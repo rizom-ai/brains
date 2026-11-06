@@ -353,6 +353,8 @@ export interface SiteLayoutInfo extends SiteMetadata {
         label?: string | undefined;
       }>
     | undefined;
+  /** The anchor's photo, as `![alt](entity://image/<id>)`; the build writes the image to /images/<id>.webp. */
+  photo?: string | undefined;
 }
 
 /** A page in one of the languages it is built in. */

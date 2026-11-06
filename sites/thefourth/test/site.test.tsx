@@ -148,9 +148,27 @@ describe("@rizom/site-thefourth", () => {
     expect(renderLayout(withoutLinks)).not.toContain("tf-foot__social");
   });
 
-  test("credits Rizom, quietly, beside the copyright", () => {
+  test("ends on the copyright, with a quiet credit to Rizom under it", () => {
     expect(renderLayout(siteInfo)).toContain(
-      '<div class="tf-foot__bottom"><a class="tf-flink tf-foot__credit" href="https://rizom.ai" target="_blank" rel="noopener">Powered by Rizom</a><span>©2026 The Fourth</span></div>',
+      '<div class="tf-foot__end"><span>©2026 The Fourth</span><a class="tf-flink tf-foot__credit" href="https://rizom.ai" target="_blank" rel="noopener">Powered by Rizom</a></div>',
     );
+  });
+
+  test("keeps the legal pages' places in the footer until they exist", () => {
+    expect(renderLayout(siteInfo)).toContain(
+      '<div class="tf-foot__legal"><a class="tf-flink" href="#">Privacy policy</a><a class="tf-flink" href="#">Terms of service</a><a class="tf-flink" href="#">Cookie policy</a></div>',
+    );
+  });
+
+  test("shows the anchor's photo at the foot, and leaves no frame without one", () => {
+    const html = renderLayout({
+      ...siteInfo,
+      photo:
+        "![Sam and Becca lying among books, laughing](entity://image/sam-x-becca)",
+    });
+    expect(html).toContain(
+      '<div class="tf-foot__bottom"><figure class="tf-foot__photo"><div class="tf-foot__frame"><img src="/images/sam-x-becca.webp" alt="Sam and Becca lying among books, laughing" loading="lazy"/></div></figure>',
+    );
+    expect(renderLayout(siteInfo)).not.toContain("tf-foot__photo");
   });
 });
