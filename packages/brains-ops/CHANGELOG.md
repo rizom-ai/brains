@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- [#838](https://github.com/rizom-ai/brains/pull/838) [`c3a41f5`](https://github.com/rizom-ai/brains/commit/c3a41f5bbb13935e88fd7b3fc2bb4431eac5617e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The predeploy backup waits for the running brain instead of failing on its database lock: every snapshot read opens with a busy timeout, so a writer's lock or a WAL recovery in progress delays the copy rather than aborting the deploy.
+
 ## 0.2.0-alpha.640
 
 No changes in this release.

@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- [#839](https://github.com/rizom-ai/brains/pull/839) [`aee03f0`](https://github.com/rizom-ai/brains/commit/aee03f0ed4b6edccddea787d9f35a4e68aa1a5c2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service package's job now reads entries with the access of the person whose request started it, so a guest's job sees only public entries. Before this, a package job read every entry. A job a package starts on its own, such as from a daemon, reads with that package's configured grant, which is public unless the brain grants more. A job whose requester's account is revoked before it runs is refused, and package jobs queued before the upgrade fail rather than run.
+
+- [#838](https://github.com/rizom-ai/brains/pull/838) [`c3a41f5`](https://github.com/rizom-ai/brains/commit/c3a41f5bbb13935e88fd7b3fc2bb4431eac5617e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The predeploy backup waits for the running brain instead of failing on its database lock: every snapshot read opens with a busy timeout, so a writer's lock or a WAL recovery in progress delays the copy rather than aborting the deploy.
+
+- [#838](https://github.com/rizom-ai/brains/pull/838) [`3dfd44d`](https://github.com/rizom-ai/brains/commit/3dfd44d4defb4abf30c2fa68435adc7f955201f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Identity singletons (the anchor profile, the brain character) are read as stored: an `entity://image/<id>` reference in their frontmatter stays a reference instead of being inlined as image data. An anchor profile's photo now reaches the site's layout, and no image data lands in the identity the brain gives its model.
+
 ## 0.2.0-alpha.640
 
 ### Patch Changes
