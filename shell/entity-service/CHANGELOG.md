@@ -1,5 +1,20 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.642
+
+### Patch Changes
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`fa7dd0e`](https://github.com/rizom-ai/brains/commit/fa7dd0e07df1d9d4fd74c8e9d9255220a5cfb628) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts `create` routing and `attachments`, and `@rizom/brain/entities` exports `EntityCreateRouting`, `EntityCreateRoute`, `EntityCreateResolution`, `EntityCreateContext`, `EntityCreateUploadReader`, `EntityCreateAttachment`, `EntityCreateCheck`, `EntityAttachmentDeclaration`, `MediaAttachmentContext` and `AttachmentProvider`. A declared type decides how `system_create` treats uploads, attachments, content and prompts: it can check a request before the user confirms it, then create, reuse, update or refuse, and the runtime performs the write with the caller's visibility and attribution. A route can also claim upload media types from the upload endpoint. Declared attachment providers are built from a frozen, read-only media context that only reads public records, and `@brains/media-page-composer` providers accept that same context.
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`2e10c13`](https://github.com/rizom-ai/brains/commit/2e10c1388c32a44d301dbf115dd169a4328b5acf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts the basic entity slots and seeds, and `@rizom/brain/entities` exports `EntityDefinitionConfig`, `EntitySeedDefinition` and `EntitySeedTrigger`. A declared entity can set its entity-type settings through `config` (search, projection sourcing, binary storage, default sort, Markdown import, retired and translated fields, containment, its minimum action policy and publish statuses), migrate stored metadata with `metadataFrom`, be a `singleton`, declare `hasBody`, `coverImage` and a `displayTitle`, enforce a persistence invariant with `validatePersist`, set its own action rule with `actions`, and plant a default record with `seed` once startup content settles, never overwriting an existing one. The retired-field registration check now also applies to a type whose metadata schema migrates stored values.
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.642
+  - @brains/content-formatters@0.2.0-alpha.642
+  - @brains/contracts@0.2.0-alpha.642
+  - @brains/db@0.2.0-alpha.642
+  - @brains/utils@0.2.0-alpha.642
+  - @brains/job-queue@0.2.0-alpha.642
+
 ## 0.2.0-alpha.641
 
 ### Patch Changes
