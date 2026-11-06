@@ -1883,6 +1883,7 @@
         "@ai-sdk/openai-compatible": "^2.0.88",
         "@brains/contracts": "workspace:*",
         "@brains/conversation-service": "workspace:*",
+        "@brains/document": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/mcp-service": "workspace:*",

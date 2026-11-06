@@ -100,6 +100,7 @@ describe("the answer model", () => {
   it("answers a tool result in place of the model that chose the tool", async () => {
     const decider = searchingModel();
     const answerer = new MockLanguageModelV3({
+      modelId: "answer",
       doGenerate: async (): Promise<ModelResponse> => ({
         content: [{ type: "text", text: "Found it." }],
         finishReason: { unified: "stop", raw: "stop" },
@@ -134,6 +135,59 @@ describe("the answer model", () => {
     });
 
     expect(decider.doGenerateCalls).toHaveLength(1);
+    expect(answerer.doGenerateCalls).toHaveLength(1);
+    expect(result.text).toBe("Found it.");
+  });
+});
+
+describe("a tool the answer model calls", () => {
+  it("hands the next step back to the model that chooses tools", async () => {
+    const decider = searchingModel();
+    const answerer = new MockLanguageModelV3({
+      modelId: "answer",
+      doGenerate: async (): Promise<ModelResponse> => ({
+        content: [
+          {
+            type: "tool-call",
+            toolCallId: "call-2",
+            toolName: "system_search",
+            input: JSON.stringify({ value: "white paper" }),
+          },
+        ],
+        finishReason: { unified: "tool-calls", raw: "tool_calls" },
+        usage,
+        warnings: [],
+      }),
+    });
+    const agent = createBrainAgentFactory({
+      model: decider,
+      answerModel: answerer,
+      modelId: "local:qwen3:30b-a3b",
+      messageBus: createMockMessageBus(),
+    })({
+      identity: {
+        name: "Brain",
+        role: "Researcher",
+        purpose: "Help",
+        values: [],
+      },
+      tools: [search],
+      getToolsForPermission: () => [search],
+    });
+
+    const result = await agent.generate({
+      messages: [{ role: "user", content: "Find the white paper" }],
+      options: {
+        conversationId: "conv-1",
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+      },
+    });
+
+    // The model searches, the answer model searches again, and the model,
+    // given that result, answers.
+    expect(decider.doGenerateCalls).toHaveLength(2);
     expect(answerer.doGenerateCalls).toHaveLength(1);
     expect(result.text).toBe("Found it.");
   });

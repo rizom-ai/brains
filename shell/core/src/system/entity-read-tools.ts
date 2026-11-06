@@ -194,7 +194,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "get",
-      "Retrieve a specific entity by type and identifier (ID, slug, or title). If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
+      "Retrieve a specific entity by type and identifier (ID, slug, or title). When the user asks to read an entity, call this tool in that turn even if it was read earlier in the conversation: stored content changes. If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
       getInputSchema,
       async (input, context) => {
         assertGuestReader(context);
