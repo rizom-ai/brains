@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.639
+
+### Patch Changes
+
+- [#835](https://github.com/rizom-ai/brains/pull/835) [`77790ec`](https://github.com/rizom-ai/brains/commit/77790eca4ec185d9905d77a58bec3aa1d7b6cb3d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An anchor profile can carry a photo of the people behind it, `photo: ![alt](entity://image/<id>)`. The site build hands it to layouts as `siteInfo.photo` on sites that present the anchor, and writes the image with the rest.
+
 ## 0.2.0-alpha.638
 
 ### Patch Changes
