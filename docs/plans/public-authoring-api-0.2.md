@@ -6,7 +6,7 @@ Last updated: 2026-10-02
 
 **Active stable-release gate. No final alpha is nominated.**
 
-The alpha authoring foundation, external fixtures, declaration checks, packed harnesses, exact-registry harness, and site-first stable release orchestration are implemented. The declarative boundary and DX corrections exist on `work/plugin-api-boundaries` (#301), which forked before about 1,000 `main` commits and will not be merged. They land on `main` slice by slice through [authoring-boundary-reapply.md](./authoring-boundary-reapply.md); nothing of them is published as a candidate or accepted as stable evidence yet.
+The alpha authoring foundation, external fixtures, declaration checks, packed harnesses, exact-registry harness, and site-first stable release orchestration are implemented. The declarative boundary and DX corrections exist on `work/plugin-api-boundaries` (#301), which forked before about 1,000 `main` commits and will not be merged. They land on `main` through [authoring-boundary-reapply.md](./authoring-boundary-reapply.md); nothing of them is published as a candidate or accepted as stable evidence yet.
 
 The latest published core alpha, `@rizom/brain@0.2.0-alpha.474`, predates that integration and is therefore not the final candidate. Historical evidence against Brain `alpha.313` and Site `alpha.233` proves the harness, not the current release.
 
@@ -42,7 +42,7 @@ For the `0.2.x` line, removals, renamed required fields, narrowed author inputs,
 ### 1. Integrate the intended stable source
 
 - Land durable binary asset storage for images and PDFs on `main`, through bridge removal ([durable-binary-assets.md](./durable-binary-assets.md)), so the persisted format is final at `0.2.0`.
-- Land the authoring boundary on `main` through all slices of [authoring-boundary-reapply.md](./authoring-boundary-reapply.md): every package uses only the public surface, without superseded alpha aliases, overloads, constructors, or dual authoring paths. Its authoring guide states that `binaryStorage: "data-url"` no longer serves images or PDFs once they use asset storage.
+- Land the authoring boundary on `main` through both phases of [authoring-boundary-reapply.md](./authoring-boundary-reapply.md): the public API first, then every package on it, without superseded alpha aliases, overloads, constructors, or dual authoring paths. Its authoring guide states that `binaryStorage: "data-url"` no longer serves images or PDFs once they use asset storage.
 - Reconcile every branch selected for the candidate at the declarative boundary; Public Ask and Studio are already integrated on the authoring branch, while generic content generation is included only if separately approved to land before nomination.
 - Require clean generated declarations, export-ledger agreement, architecture checks, and no private workspace types in published output.
 - Ensure no other pre-stable breaking authoring change is queued for the candidate.

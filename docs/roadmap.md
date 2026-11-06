@@ -43,7 +43,7 @@ An existing worktree does not automatically outrank release work.
 
 | Priority | Outcome                              | Current execution                                                                                                                                                                               |
 | -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | Freeze the public authoring boundary | Re-apply the declarative boundary from `work/plugin-api-boundaries` on `main`, slice by slice, until every package uses only the public surface; no superseded alpha APIs.                      |
+| **P0**   | Freeze the public authoring boundary | Land the public authoring API from `work/plugin-api-boundaries` on `main` first, tested by the public-authoring fixtures, then move every package onto it; no superseded alpha APIs.            |
 | **P0**   | Durable binary assets                | Land the staged asset stack (#447–#476), migrate `yeehaa.io`, soak, remove the legacy bridge, then move PDFs. Gates stable `v0.2.0` so its persisted format is final.                           |
 | **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                                  |
 | **P1**   | Make Public Ask observable           | Record guest requests, denials and settled spend durably, then surface them in an admin Studio workspace with a reachable kill switch. Keep production guest admission off on every deployment. |
@@ -141,7 +141,7 @@ Site and theme packages already publish independently with standard peer metadat
 Plans:
 
 - [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 release gate**: the declarative boundary on `main`, final-alpha evidence, release authorization, stable publication, and baseline freezing.
-- [authoring-boundary-reapply.md](./plans/authoring-boundary-reapply.md) — the declarative boundary from #301 re-applied on `main` in eleven slices, until every package uses only the public surface.
+- [authoring-boundary-reapply.md](./plans/authoring-boundary-reapply.md) — the public authoring API from #301 landed on `main` first, then every package converted onto it.
 - [durable-binary-assets.md](./plans/durable-binary-assets.md) — **P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut `yeehaa.io` over, soak, and remove the legacy bridge before stable `0.2.0`.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official package dependencies and prove an official package through public-only imports.
 - [atproto-integration.md](./plans/atproto-integration.md) — finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.
