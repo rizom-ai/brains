@@ -62,6 +62,18 @@ Proof-of-concept chat turns, 2026-11-05, on the separate brain holding the yeeha
 - With derivations on, the brain is ready 50 s after a clean start; the first boot's derivation backlog then runs about 8.5 minutes, during which chat turns take 43–181 s.
 - The proof of concept runs `model: local:qwen3:30b-a3b` and `answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M` (each 30.5B total, 3B active, Q4_K_M, 18.6 GB; both fit the Z13 together) with `embeddingModel: local:embeddinggemma-2:270m`. The largest core model is 30.5B, within the 32B cap. No production brain switches its text model on these numbers.
 
+Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-note edits, verbatim saves), judge `gpt-5.4-mini`, same runtime:
+
+| Model                                                                    | Pass  | Rate | Avg duration |
+| ------------------------------------------------------------------------ | ----- | ---- | ------------ |
+| `gpt-6-luna` (default)                                                   | 33/33 | 100% | 7.6 s        |
+| `qwen3:30b-a3b` deciding, `qwen3:30b-a3b-instruct-2507` as `answerModel` | 8/33  | 24%  | 76.3 s       |
+| the same, uploads as text and tools handed back to the deciding model    | 7/33  | 21%  | 130.5 s      |
+
+- In the first run, 11 failures were the runtime refusing the request: Ollama's chat API takes no PDF parts and the Qwen3 models read no images. Uploads now reach a local model as text: a PDF as its extracted text, any other file as its name and type.
+- After any tool result, the answer model took every later step and made the retries; a tool it calls now hands the next step back to `model`. `system_get` asks for a fresh read whenever the user asks to read.
+- What fails now is argument shape, in both models: 9 upload saves write `source: { kind: "upload", id }` for `source.upload: { kind, id }` and retry against the validation error up to ten times; 7 long-note and verbatim cases omit `operation.kind` or skip a read; 4 image cases need a model that sees images; 2 multi-file saves never call `system_create`; 4 others.
+
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
 
 | Target date | Done                                                                                           |
