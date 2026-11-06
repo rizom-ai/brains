@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.637
+
+### Patch Changes
+
+- [#832](https://github.com/rizom-ai/brains/pull/832) [`8cdcb18`](https://github.com/rizom-ai/brains/commit/8cdcb18e64f300529c56fd5b10e2d738d0b58436) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An anchor profile's social links can name a podcast: `platform: podcast` sits next to GitHub, Instagram, LinkedIn, email and website. The anchor profile, site-info, the site build and the fleet registry read one shared list of platforms, and the shared social icons draw a microphone for a podcast.
+
 ## 0.2.0-alpha.636
 
 ### Patch Changes
