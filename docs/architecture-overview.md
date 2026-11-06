@@ -209,6 +209,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `sites/`              | `default`, `personal`, `professional`, `rizom` and app-specific compositions             |
 | `shared/theme-*`      | `default`, `rizom`, `signal`, and related theme packages                                 |
 | `packages/brain-cli`  | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI |
+| `packages/brain-sdk`  | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                |
 | `packages/brains-ops` | published `@rizom/ops` fleet tooling                                                     |
 
 ## Plugin model

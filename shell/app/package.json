@@ -28,6 +28,7 @@
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/theme-base": "workspace:*",
@@ -43,8 +44,7 @@
     "varlock": "^1.7.0"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./contracts/brain-definition": "./src/contracts/brain-definition.ts"
+    ".": "./src/index.ts"
   },
   "files": [
     "src",

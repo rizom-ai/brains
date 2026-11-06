@@ -3,7 +3,7 @@
   "categories": ["stable", "advanced-with-consumer", "internal/removable"],
   "entries": {
     "@rizom/brain": {
-      "source": "packages/brain-cli/src/entries/index.ts",
+      "source": "packages/brain-sdk/src/index.ts",
       "stable": [
         "BrainAnchorConfigKind",
         "BrainDefinition",
@@ -121,7 +121,7 @@
       "internal/removable": []
     },
     "@rizom/brain/plugins": {
-      "source": "packages/brain-cli/src/entries/plugins.ts",
+      "source": "packages/brain-sdk/src/plugins.ts",
       "stable": ["PluginPackageDefinition"],
       "advanced-with-consumer": [
         "AgentNamespace",
@@ -232,7 +232,7 @@
       ]
     },
     "@rizom/brain/entities": {
-      "source": "packages/brain-cli/src/entries/entities.ts",
+      "source": "packages/brain-sdk/src/entities.ts",
       "stable": [
         "EncodedEntityMarkdown",
         "EntityDefinition",
@@ -282,7 +282,7 @@
       ]
     },
     "@rizom/brain/services": {
-      "source": "packages/brain-cli/src/entries/services.ts",
+      "source": "packages/brain-sdk/src/services.ts",
       "stable": [
         "AccountSettingsDefinition",
         "AccountSettingsFieldDefinition",
@@ -352,7 +352,7 @@
       ]
     },
     "@rizom/brain/interfaces": {
-      "source": "packages/brain-cli/src/entries/interfaces.ts",
+      "source": "packages/brain-sdk/src/interfaces.ts",
       "stable": [
         "AccountSettingsDefinition",
         "AccountSettingsFieldDefinition",
@@ -406,7 +406,7 @@
       ]
     },
     "@rizom/brain/templates": {
-      "source": "packages/brain-cli/src/entries/templates.ts",
+      "source": "packages/brain-sdk/src/templates.ts",
       "stable": [],
       "advanced-with-consumer": [
         "BuildResult",
