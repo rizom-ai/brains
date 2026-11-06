@@ -381,6 +381,23 @@ export {
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "./note-capture";
+export {
+  OAUTH_BROKER_PATHS,
+  oauthBrokerAuthorizationRequestSchema,
+  oauthBrokerAuthorizationResponseSchema,
+  oauthBrokerCallbackPath,
+  oauthBrokerGrantRedemptionRequestSchema,
+  oauthBrokerGrantRedemptionResponseSchema,
+  oauthBrokerProviderIdSchema,
+  oauthBrokerReturnSchema,
+  type OAuthBrokerAuthorizationRequest,
+  type OAuthBrokerAuthorizationResponse,
+  type OAuthBrokerGrantRedemptionRequest,
+  type OAuthBrokerGrantRedemptionResponse,
+  type OAuthBrokerProvider,
+  type OAuthBrokerReturn,
+  type OAuthBrokerReturnError,
+} from "./oauth-broker";
 export type {
   HeadCollectorInterface,
   HeadProps,
