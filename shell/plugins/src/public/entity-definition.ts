@@ -10,6 +10,7 @@ import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
   EntityAgentContextProvider,
+  EntityAnalyticsReportDeclaration,
   EntityEvalDeclaration,
   EntityScheduledGenerationDeclaration,
   AnyEntityJobDeclaration,
@@ -38,6 +39,8 @@ import {
 
 export type {
   AnyEntityDefinition,
+  EntityAnalyticsReportContext,
+  EntityAnalyticsReportDeclaration,
   EntityAtprotoProjection,
   EntityAtprotoPublishConfig,
   EntityAtprotoRecordInput,
@@ -136,6 +139,8 @@ export function defineEntity<
   >["projectionRules"];
   readonly atproto?: EntityDefinition<TType, TMetadataSchema>["atproto"];
   readonly publish?: EntityDefinition<TType, TMetadataSchema>["publish"];
+  readonly analyticsReports?:
+    readonly EntityAnalyticsReportDeclaration[] | undefined;
   readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
@@ -186,6 +191,22 @@ function assertPublishAssets(definition: {
       );
     }
   }
+}
+
+/**
+ * Declare a `system_analytics` report for an entity's `analyticsReports`.
+ * Its params type the report it runs.
+ */
+export function defineEntityAnalyticsReport<TParams extends z.ZodObject>(
+  declaration: Omit<EntityAnalyticsReportDeclaration<TParams>, "kind">,
+): EntityAnalyticsReportDeclaration<TParams> {
+  assertLocalId(declaration.type, "Analytics report type");
+  if (!declaration.description.trim()) {
+    throw new Error(
+      `Analytics report "${declaration.type}" description must not be empty`,
+    );
+  }
+  return Object.freeze({ kind: "rizom-analytics-report", ...declaration });
 }
 
 /**

@@ -797,6 +797,24 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const atproto = this.definition.atproto;
     const publish = this.definition.publish;
     const publishAssets = this.definition.publishAssets ?? [];
+    // Registered through the plugin's scoped analytics, which removes them
+    // when the plugin goes.
+    for (const declared of this.definition.analyticsReports ?? []) {
+      context.analytics.register({
+        type: declared.type,
+        description: declared.description,
+        params: declared.params,
+        ...definedFields({ minVisibility: declared.minVisibility }),
+        handler: (params, { entityService, visibilityScope }) =>
+          declared.report(
+            params,
+            Object.freeze({
+              entities: createEntityReader(entityService, visibilityScope),
+              visibility: visibilityScope,
+            }),
+          ),
+      });
+    }
     const media = this.attachments?.length
       ? mediaAttachmentContext(context)
       : undefined;

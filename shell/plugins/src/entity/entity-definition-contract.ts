@@ -4,6 +4,7 @@ import type { PublishProvider } from "@brains/contracts";
 import type {
   EntityActionPolicyRuleInput,
   Template,
+  UserPermissionLevel,
   ViewTemplate,
 } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
@@ -166,6 +167,39 @@ export interface EntityPublishAssetDeclaration {
         readonly visibility?: EntityVisibility | undefined;
       }
     | undefined;
+}
+
+/** What a report reads with: the caller's view of the brain. */
+export interface EntityAnalyticsReportContext {
+  /**
+   * Definition-typed reads at the caller's visibility. A public caller is a
+   * site's visitor and sees only what is published.
+   */
+  readonly entities: DataSourceEntityReader;
+  readonly visibility: EntityVisibility;
+}
+
+/**
+ * One `system_analytics` report: an aggregate the agent can ask for, with
+ * the params it may pass. The tool shows the report and its params to the
+ * model and validates params before `report` runs.
+ */
+export interface EntityAnalyticsReportDeclaration<
+  TParams extends z.ZodObject = z.ZodObject,
+> {
+  readonly kind: "rizom-analytics-report";
+  /** The id the caller names: kebab-case, durable and brain-wide. */
+  readonly type: string;
+  /** What the report answers, for the model choosing one. */
+  readonly description: string;
+  /** The report's params; `z.object({})` when it takes none. */
+  readonly params: TParams;
+  /** The lowest caller level it answers; omitted, every caller may ask. */
+  readonly minVisibility?: UserPermissionLevel | undefined;
+  report(
+    params: z.output<TParams>,
+    context: EntityAnalyticsReportContext,
+  ): Promise<Record<string, unknown>>;
 }
 
 /** The identities a record may name: this brain's DID and its anchor's. */
@@ -335,6 +369,9 @@ export interface EntityDefinition<
         readonly template: (localName: string) => string;
       }) => readonly ProjectionRule[])
     | undefined;
+  /** Reports this type adds to `system_analytics`. */
+  readonly analyticsReports?:
+    readonly EntityAnalyticsReportDeclaration[] | undefined;
   /** How this type is published through the brain's publish pipeline. */
   readonly publish?: EntityPublishDeclaration<TMetadataSchema> | undefined;
   /** Images the publish pipeline renders before a record goes out. */

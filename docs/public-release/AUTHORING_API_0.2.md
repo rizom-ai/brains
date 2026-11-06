@@ -140,6 +140,7 @@ Definitions and schema vocabulary:
 
 - `defineDataSource`
 - `defineEntity`
+- `defineEntityAnalyticsReport`
 - `defineEntityJob`
 - `defineEntityPackage`
 - `ProjectionJsonObjectSchema`
@@ -157,6 +158,8 @@ Types:
 - `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
 - `EntityAgentContextProvider`
+- `EntityAnalyticsReportContext`
+- `EntityAnalyticsReportDeclaration`
 - `EntityAtprotoProjection`
 - `EntityAtprotoPublishConfig`
 - `EntityAtprotoRecordInput`
@@ -275,6 +278,10 @@ Deriving with projection rules on `defineEntity`:
 - The runtime fingerprints the selected input and derives again only when it changes, so everything a derivation depends on, a voice included, belongs in its input.
 - A rule declared on a type writes that type only; one that names another is refused when the package is instantiated. `selectInput` is given bound entity reads, `resolvePrompt`, `appInfo` and `identityInput`; `derive` is given `ai.generate` and `ai.generateObject` and a logger — never the services behind them.
 - The function form, `projectionRules: ({ template }) => [...]`, hands a rule the registered name of each template the type declares; naming one it does not declare is refused.
+
+Operator slots on `defineEntity`:
+
+- `analyticsReports` adds reports to `system_analytics`, each declared with `defineEntityAnalyticsReport` (`EntityAnalyticsReportDeclaration`): a kebab-case `type` the agent names (durable and brain-wide), a `description`, a `params` object schema that types `report`, and an optional `minVisibility` floor. The tool validates params before `report(params, context)` runs; `EntityAnalyticsReportContext` gives definition-typed `entities` reads at the caller's `visibility`, published records only for a public caller. The runtime removes the reports when the package goes.
 
 Publishing on `defineEntity`:
 

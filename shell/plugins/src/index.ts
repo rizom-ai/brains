@@ -280,6 +280,7 @@ export {
 } from "./package-definition";
 export {
   defineEntity,
+  defineEntityAnalyticsReport,
   defineEntityJob,
   defineEntityPackage,
   defineProjection,
@@ -315,6 +316,8 @@ export {
   type MediaEntityListRequest,
   type MediaEntityReads,
   type MediaEntityRequest,
+  type EntityAnalyticsReportContext,
+  type EntityAnalyticsReportDeclaration,
   type EntityAtprotoProjection,
   type EntityAtprotoPublishConfig,
   type EntityAtprotoRecordInput,
