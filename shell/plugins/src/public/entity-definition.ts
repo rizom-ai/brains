@@ -8,6 +8,8 @@ import type { EntityActionPolicyRuleInput, Template } from "@brains/templates";
 import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
+  EntityAttachmentDeclaration,
+  EntityCreateRouting,
   EntityDefinition,
   EntityDefinitionConfig,
   EntityFeedDeclaration,
@@ -25,6 +27,18 @@ import {
 
 export type {
   AnyEntityDefinition,
+  EntityAttachmentDeclaration,
+  EntityCreateAttachment,
+  EntityCreateCheck,
+  EntityCreateContext,
+  EntityCreateResolution,
+  EntityCreateRoute,
+  EntityCreateRouting,
+  EntityCreateUploadReader,
+  MediaAttachmentContext,
+  MediaEntityListRequest,
+  MediaEntityReads,
+  MediaEntityRequest,
   EncodedEntityMarkdown,
   EntityDefinition,
   EntityDefinitionConfig,
@@ -65,6 +79,8 @@ export function defineEntity<
   readonly coverImage?: boolean | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   readonly templates?: Readonly<Record<string, Template>> | undefined;
+  readonly create?: EntityCreateRouting<TMetadataSchema> | undefined;
+  readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
     | undefined;

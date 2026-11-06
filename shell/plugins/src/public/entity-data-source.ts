@@ -3,9 +3,7 @@ import type {
   BaseDataSourceContext,
   DataSource,
   DataSourceSchema,
-  EntityServiceClient,
   ListOptions,
-  SortField,
 } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -15,14 +13,12 @@ import type {
   AnyEntityDataSourceDefinition,
   AnyEntityDefinition,
   DataSourceDefinition,
-  DataSourceEntityReader,
-  DataSourceListOptions,
-  DataSourceSortField,
   EntityDataSourceDefinition,
   EntityDataSourceInput,
   EntityOf,
 } from "../entity/entity-definition-contract";
-import { entitySchema, parseDefinitionEntity } from "../entity/entity-schema";
+import { createEntityReader, sortFields } from "../entity/entity-reader";
+import { entitySchema } from "../entity/entity-schema";
 import { assertIdentifier as assertLocalId } from "../package-definition";
 import {
   BaseEntityDataSource,
@@ -95,56 +91,9 @@ export function defineDataSource(
       });
 }
 
-function sortFields(sort: readonly DataSourceSortField[]): SortField[] {
-  return sort.map(({ field, direction, nullsFirst, nullsLast }) => ({
-    field,
-    direction,
-    ...definedFields({ nullsFirst, nullsLast }),
-  }));
-}
-
 const dataSourceReadContextSchema = z.object({
   publishedOnly: z.boolean().optional(),
 });
-
-/** The definition-typed reads, over the build's scoped entity service. */
-function dataSourceEntityReader(
-  entityService: Pick<
-    EntityServiceClient,
-    "getEntity" | "listEntities" | "countEntities"
-  >,
-): DataSourceEntityReader {
-  return {
-    async get<TDefinition extends AnyEntityDefinition>(
-      definition: TDefinition,
-      id: string,
-    ): Promise<EntityOf<TDefinition> | null> {
-      const entity = await entityService.getEntity({
-        entityType: definition.type,
-        id,
-      });
-      return entity ? parseDefinitionEntity(definition, entity) : null;
-    },
-    async list<TDefinition extends AnyEntityDefinition>(
-      definition: TDefinition,
-      options?: DataSourceListOptions,
-    ): Promise<readonly EntityOf<TDefinition>[]> {
-      const entities = await entityService.listEntities({
-        entityType: definition.type,
-        options: definedFields({
-          limit: options?.limit,
-          offset: options?.offset,
-          sortFields: options?.sort && sortFields(options.sort),
-        }),
-      });
-      return entities.map((entity) =>
-        parseDefinitionEntity(definition, entity),
-      );
-    },
-    count: (definition) =>
-      entityService.countEntities({ entityType: definition.type }),
-  };
-}
 
 /** Bind a declared fetching data source to the runtime under its scoped id. */
 function createFetchingDataSource(
@@ -168,7 +117,7 @@ function createFetchingDataSource(
       return outputSchema.parse(
         await definition.fetch(
           query,
-          dataSourceEntityReader(context.entityService),
+          createEntityReader(context.entityService),
           readContext,
         ),
       );
@@ -266,7 +215,7 @@ function createEntityDataSource(
           item: resolved.item,
           navigation: resolved.navigation,
           siblings: siblings.items,
-          entities: dataSourceEntityReader(entityService),
+          entities: createEntityReader(entityService),
         }),
       );
     }

@@ -146,9 +146,18 @@ Definitions and schema vocabulary:
 
 Types:
 
+- `AttachmentProvider`
 - `DataSourceDefinition`
 - `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
+- `EntityAttachmentDeclaration`
+- `EntityCreateAttachment`
+- `EntityCreateCheck`
+- `EntityCreateContext`
+- `EntityCreateResolution`
+- `EntityCreateRoute`
+- `EntityCreateRouting`
+- `EntityCreateUploadReader`
 - `EntityDataSourceDefinition`
 - `EntityDefinition`
 - `EntityDefinitionConfig`
@@ -161,6 +170,7 @@ Types:
 - `EntitySeedTrigger`
 - `EntityTypeClassification`
 - `FeedItem`
+- `MediaAttachmentContext`
 - `ProjectionDefinition`
 
 `defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
@@ -200,6 +210,14 @@ Presentation on `defineEntity` and `defineEntityPackage`:
   - Reads see public records, and only published ones in a production build; a fetching source reads `context.publishedOnly` to know which. The runtime validates what either form returns against the caller's schema.
 - `templates` registers templates keyed by local name under the type's scope. A template whose `dataSourceId` names one of its package's data sources follows it to the scoped id; any other id is kept as written.
 - `feed` (`EntityFeedDeclaration`) syndicates the type: `path` (relative to the build output, no parent steps), `routePrefix` for the channel link, and `toItem(entity)`, which returns a `FeedItem` (`title`, `slug`, `description`, `content`, `author`, ISO `publishedAt`, optional `category`) or `null` to leave a record out. Every site build writes the feed into its staged output: a preview carries every record, a production build only those the type counts as published. A malformed item fails the build, which keeps the previous generation.
+
+Creating and deriving on `defineEntity`:
+
+- `create` (`EntityCreateRouting`) decides how `system_create` treats the type, keyed by how the caller expressed the request: `fromUpload` (an upload reference), `fromAttachment` (another entity's attachment), `fromContent` (content, including a conversation message) and `fromPrompt` (a description). Unrouted shapes go on to ordinary creation.
+- A route (`EntityCreateRoute`) is `{ reject }` or `{ check?, resolve }`. `check(context)` answers before the user confirms, with an `EntityCreateCheck`: `ready` (optionally with the title and fields it derived), a `question` to ask first, or an `error`; a rejecting route answers `error` with its message. `resolve(context)` returns an `EntityCreateResolution` — `create`, `existing`, `update` or `refuse` — and the runtime performs it and reports what it did.
+- The runtime validates created and updated metadata against the type's schema, writes with the caller's visibility and attribution, refuses to create an id that already exists at any visibility, and requires an `existing` or `update` id to exist at the caller's visibility. An `EntityCreateAttachment` builds the result's link from the id actually written.
+- `EntityCreateContext` is frozen: a copy of the request, definition-typed reads at the caller's visibility, and an `EntityCreateUploadReader` over the runtime's shared upload store, the one a request's upload reference points into. `fromUpload.mediaTypes` also claims those uploads from the upload endpoint, through the same route.
+- `attachments` declares source-derived artifacts as `EntityAttachmentDeclaration`s: an attachment `type` and a `provider(context)` factory returning an `AttachmentProvider`. The runtime builds each provider once the type is registered, with a frozen `MediaAttachmentContext` — `domain`, `themeCSS`, `identity.getProfile()`, `entityService.getEntity`/`listEntities` and `views.get`, all read-only — registers it, and releases it on shutdown.
 
 ## `@rizom/brain/services`
 

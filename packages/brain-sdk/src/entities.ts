@@ -8,9 +8,18 @@ export {
   defineProjection,
 } from "@brains/plugins";
 export type {
+  AttachmentProvider,
   DataSourceDefinition,
   DataSourceEntityReader,
   EncodedEntityMarkdown,
+  EntityAttachmentDeclaration,
+  EntityCreateAttachment,
+  EntityCreateCheck,
+  EntityCreateContext,
+  EntityCreateResolution,
+  EntityCreateRoute,
+  EntityCreateRouting,
+  EntityCreateUploadReader,
   EntityDataSourceDefinition,
   EntityDefinition,
   EntityDefinitionConfig,
@@ -23,6 +32,7 @@ export type {
   EntitySeedDefinition,
   EntitySeedTrigger,
   FeedItem,
+  MediaAttachmentContext,
   ProjectionDefinition,
 } from "@brains/plugins";
 

@@ -1,11 +1,26 @@
 import type { FeedItem } from "@brains/site-composition";
-import type { EntityActionPolicyRuleInput, Template } from "@brains/templates";
+import type {
+  EntityActionPolicyRuleInput,
+  Template,
+  ViewTemplate,
+} from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
 import type {
+  BaseEntity,
+  CreateCheckResult,
+  CreateInput,
+  CreateResultAttachment,
+  EntitySchema,
   EntityTypeClassification,
   PaginationInfo,
 } from "@brains/entity-service";
+import type { AnchorProfile } from "../contracts/identity";
+import type { AttachmentProvider } from "../service/attachment-registry";
+import type {
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
+} from "../service/upload-registry";
 import type {
   BaseQuery,
   NavigationResult,
@@ -141,6 +156,13 @@ export interface EntityDefinition<
    * package's data sources follows it to the scoped id.
    */
   readonly templates?: Readonly<Record<string, Template>> | undefined;
+  /**
+   * How `system_create` treats this type, routed by the shape of the
+   * request. Unrouted shapes go on to ordinary creation.
+   */
+  readonly create?: EntityCreateRouting<TMetadataSchema> | undefined;
+  /** Source-derived artifacts of this type, such as a printable PDF. */
+  readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
   /** This type's syndication feed, written into every site build. */
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
@@ -350,3 +372,156 @@ export interface AnyEntityDataSourceDefinition {
 /** Either declared form, as a package stores them. */
 export type AnyDataSourceDeclaration =
   AnyEntityDataSourceDefinition | DataSourceDefinition;
+
+/**
+ * What an attachment provider is built with: the media members providers
+ * use, as frozen, bound, read-only handles. `EntityPluginContext` satisfies
+ * it, so a provider factory works for declared and class-based types alike.
+ */
+/** One stored record a media provider reads. */
+export interface MediaEntityRequest {
+  readonly entityType: string;
+  readonly id: string;
+}
+
+/** Records of one type a media provider reads, such as a singleton. */
+export interface MediaEntityListRequest {
+  readonly entityType: string;
+  readonly options?: { readonly limit?: number } | undefined;
+}
+
+/**
+ * The entity reads a media provider uses: a stored record, or one parsed by
+ * the schema that proves its shape. Reads see public records only; a
+ * request cannot name another visibility.
+ */
+export interface MediaEntityReads {
+  getEntity(request: MediaEntityRequest): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: MediaEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  listEntities(request: MediaEntityListRequest): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: MediaEntityListRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+}
+
+export interface MediaAttachmentContext {
+  readonly domain: string | undefined;
+  readonly themeCSS: string;
+  readonly identity: { getProfile(): AnchorProfile };
+  readonly entityService: MediaEntityReads;
+  /** Registered view templates an artifact is rendered from. */
+  readonly views: { get(name: string): ViewTemplate | undefined };
+}
+
+/**
+ * A source-derived artifact of this type. The provider is a factory because
+ * the media context exists only once the type is registered; the runtime
+ * registers it and releases it on shutdown.
+ */
+export interface EntityAttachmentDeclaration {
+  /** Semantic attachment type, e.g. "printable" or "og-image". */
+  readonly type: string;
+  provider(context: MediaAttachmentContext): AttachmentProvider;
+}
+
+/**
+ * A link a create hands back, built from the id the runtime actually wrote.
+ */
+export type EntityCreateAttachment = (written: {
+  readonly entityId: string;
+}) => CreateResultAttachment;
+
+/** The uploads a create request may refer to, read-only. */
+export interface EntityCreateUploadReader {
+  read(uploadId: string): Promise<ResolvedRuntimeUpload>;
+  readRecord(uploadId: string): Promise<RuntimeUploadRecord>;
+}
+
+/**
+ * What a create route decides with: the request, reads at the caller's
+ * visibility, and the uploads the request may refer to. All of it is
+ * frozen; a route returns what should happen and the runtime does it.
+ */
+export interface EntityCreateContext {
+  readonly input: Readonly<CreateInput>;
+  readonly entities: DataSourceEntityReader;
+  readonly uploads: EntityCreateUploadReader;
+}
+
+/**
+ * A route's answer before the user confirms a create: ready (with the title
+ * and fields it derived), a question to ask first, or an error.
+ */
+export type EntityCreateCheck = CreateCheckResult;
+
+/**
+ * What a create route decided. Content rather than a completed write: the
+ * runtime performs it and reports what happened, so a route cannot claim a
+ * create it did not make.
+ */
+export type EntityCreateResolution<
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> =
+  | {
+      readonly create: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: z.input<TMetadataSchema>;
+      };
+      readonly attachment?: EntityCreateAttachment | undefined;
+    }
+  /** The thing asked for already exists; nothing is written. */
+  | {
+      readonly existing: { readonly id: string };
+      readonly attachment?: EntityCreateAttachment | undefined;
+    }
+  | {
+      readonly update: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: z.input<TMetadataSchema>;
+      };
+    }
+  | { readonly refuse: string };
+
+/**
+ * What to do with a create request of one shape: refuse it outright, or
+ * resolve it — optionally checking it first, before the user is asked to
+ * confirm.
+ */
+export type EntityCreateRoute<
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> =
+  | { readonly reject: string }
+  | {
+      check?(context: EntityCreateContext): Promise<EntityCreateCheck>;
+      resolve(
+        context: EntityCreateContext,
+      ): Promise<EntityCreateResolution<TMetadataSchema>>;
+    };
+
+/**
+ * Create routing, keyed by how the caller expressed what they want:
+ *
+ * - `fromPrompt`: described in words.
+ * - `fromUpload`: an uploaded file. `mediaTypes` also claims those uploads
+ *   from the upload endpoint, through the same route.
+ * - `fromAttachment`: another entity's attachment, such as a rendered PDF.
+ * - `fromContent`: the content itself, pasted or taken from a message.
+ */
+export interface EntityCreateRouting<
+  TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
+> {
+  readonly fromPrompt?: EntityCreateRoute<TMetadataSchema> | undefined;
+  readonly fromUpload?:
+    | (EntityCreateRoute<TMetadataSchema> & {
+        readonly mediaTypes?: readonly string[] | undefined;
+      })
+    | undefined;
+  readonly fromAttachment?: EntityCreateRoute<TMetadataSchema> | undefined;
+  readonly fromContent?: EntityCreateRoute<TMetadataSchema> | undefined;
+}

@@ -6,14 +6,25 @@ import {
 } from "@brains/contracts";
 import {
   EntityWriteConflictError,
+  createResultAttachmentSchema,
   internalFullScope,
+  permissionToVisibilityScope,
   ProjectionJsonObjectSchema,
   applyVisibilityToMarkdown,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  type BaseEntity,
+  type ContentVisibility,
+  type CreateCheckResult,
+  type CreateExecutionContext,
+  type CreateInput,
+  type CreateInterceptionResult,
+  type CreateInterceptor,
+  type CreateResult,
   type DataSource,
   type EntityAdapter,
+  type EntitySchema,
   type EntityTypeConfig,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
@@ -21,10 +32,13 @@ import {
 import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
 import { entityActionPolicyRuleSchema, type Template } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
+import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import type { EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
+import { createEntityReader } from "./entity-reader";
+import { createUploadSaveHandler } from "./upload-save";
 import {
   currentMetadata,
   entitySchema,
@@ -37,7 +51,16 @@ import { createDeclaredDataSource } from "../public/entity-data-source";
 import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
+  EntityCreateContext,
+  EntityCreateResolution,
+  EntityCreateRoute,
+  EntityCreateRouting,
+  EntityCreateUploadReader,
   EntityFeedDeclaration,
+  MediaAttachmentContext,
+  MediaEntityListRequest,
+  MediaEntityReads,
+  MediaEntityRequest,
   EntityOf,
   EntitySeedDefinition,
   EntitySeedTrigger,
@@ -55,6 +78,104 @@ const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
 };
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
+
+/**
+ * The runtime's shared upload namespace: every interface that accepts a file
+ * writes into it, and a create request's upload ref points into it.
+ */
+const createUploadScope = {
+  namespace: "upload",
+  refKind: "upload",
+  routePath: "/api/chat/uploads",
+} as const;
+
+/**
+ * Which route a create request takes, by how the caller expressed it: an
+ * upload or attachment reference first, then content, then a prompt. A
+ * conversation message arrives as content.
+ */
+function selectCreateRoute(
+  routing: EntityCreateRouting,
+  input: CreateInput,
+): EntityCreateRoute | undefined {
+  switch (input.from?.kind) {
+    case "entity-attachment":
+      return routing.fromAttachment;
+    case "upload":
+      return routing.fromUpload;
+    default:
+      if (input.content) return routing.fromContent;
+      return input.prompt ? routing.fromPrompt : undefined;
+  }
+}
+
+/** A detached copy no route can change under the runtime. */
+function deepFrozen<T>(value: T): T {
+  if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
+    Object.values(value).forEach(deepFrozen);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+function createFailure(error: string): CreateResult {
+  return { success: false, error };
+}
+
+/**
+ * Public reads for a media provider. Each request is rebuilt from the fields
+ * the contract names, so nothing a provider passes can widen visibility.
+ */
+function mediaEntityReads(
+  entityService: EntityPluginContext["entityService"],
+): MediaEntityReads {
+  function getEntity(request: MediaEntityRequest): Promise<BaseEntity | null>;
+  function getEntity<T extends BaseEntity>(
+    request: MediaEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  function getEntity<T extends BaseEntity>(
+    request: MediaEntityRequest,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const read = { entityType: request.entityType, id: request.id };
+    return schema
+      ? entityService.getEntity(read, schema)
+      : entityService.getEntity(read);
+  }
+  function listEntities(request: MediaEntityListRequest): Promise<BaseEntity[]>;
+  function listEntities<T extends BaseEntity>(
+    request: MediaEntityListRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  function listEntities<T extends BaseEntity>(
+    request: MediaEntityListRequest,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    const read = {
+      entityType: request.entityType,
+      options: definedFields({ limit: request.options?.limit }),
+    };
+    return schema
+      ? entityService.listEntities(read, schema)
+      : entityService.listEntities(read);
+  }
+  return Object.freeze({ getEntity, listEntities });
+}
+
+/** The media members an attachment provider is built with, frozen and bound. */
+function mediaAttachmentContext(
+  context: EntityPluginContext,
+): MediaAttachmentContext {
+  const { identity, views } = context;
+  return Object.freeze({
+    domain: context.domain,
+    themeCSS: context.themeCSS,
+    identity: Object.freeze({ getProfile: () => identity.getProfile() }),
+    entityService: mediaEntityReads(context.entityService),
+    views: Object.freeze({ get: (name: string) => views.get(name) }),
+  });
+}
 
 /** A feed path stays inside the build output: relative, no parent steps. */
 const feedPathSchema = z
@@ -296,6 +417,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly feed:
     EntityFeedDeclaration<EntityOf<AnyEntityDefinition>> | undefined;
   private readonly definition: AnyEntityDefinition;
+  private readonly create: EntityCreateRouting | undefined;
+  private readonly attachments: AnyEntityDefinition["attachments"];
   private releases: readonly (() => void)[] = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
@@ -339,6 +462,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     if (definition.feed) feedPathSchema.parse(definition.feed.path);
     this.feed = definition.feed;
     this.definition = definition;
+    this.create = definition.create;
+    this.attachments = definition.attachments;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
@@ -393,9 +518,27 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       );
     }
 
+    const create = this.create;
+    if (create) this.registerCreateRouting(context, create);
+
     const seed = this.seed;
     const feed = this.feed;
+    const media = this.attachments?.length
+      ? mediaAttachmentContext(context)
+      : undefined;
     this.releases = [
+      // The runtime keeps the unregister handles, so an author never does.
+      ...(this.attachments ?? []).flatMap((attachment) =>
+        media
+          ? [
+              context.attachments.register(
+                this.entityType,
+                attachment.type,
+                attachment.provider(media),
+              ),
+            ]
+          : [],
+      ),
       ...(seed
         ? [
             context.messaging.subscribe(
@@ -418,6 +561,224 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ]
         : []),
     ];
+  }
+
+  private registerCreateRouting(
+    context: EntityPluginContext,
+    routing: EntityCreateRouting,
+  ): void {
+    const interceptCreate: CreateInterceptor = (input, executionContext) =>
+      this.routeCreate(context, routing, input, executionContext);
+    context.entities.registerCreateInterceptor(
+      this.entityType,
+      interceptCreate,
+    );
+    // Checked before the user confirms, through the route the confirmed
+    // create will take; a rejecting route says so before anyone is asked.
+    context.entities.registerCreateCheck(
+      this.entityType,
+      async (input, executionContext): Promise<CreateCheckResult> => {
+        const route = selectCreateRoute(routing, input);
+        if (!route) return { kind: "ready" };
+        if ("reject" in route) return { kind: "error", error: route.reject };
+        return route.check
+          ? route.check(this.createContext(context, input, executionContext))
+          : { kind: "ready" };
+      },
+    );
+    // The upload endpoint routes by media type into the same route, rather
+    // than a second handler re-implementing the create.
+    const mediaTypes = routing.fromUpload?.mediaTypes ?? [];
+    if (mediaTypes.length > 0) {
+      context.entities.registerUploadSaveHandler({
+        entityType: this.entityType,
+        mediaTypes: [...mediaTypes],
+        handler: createUploadSaveHandler(
+          this.entityType,
+          interceptCreate,
+          `Upload was not handled by ${this.entityType}`,
+        ),
+      });
+    }
+  }
+
+  private async routeCreate(
+    context: EntityPluginContext,
+    routing: EntityCreateRouting,
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateInterceptionResult> {
+    const route = selectCreateRoute(routing, input);
+    if (!route) return { kind: "continue", input };
+    if ("reject" in route) {
+      return { kind: "handled", result: createFailure(route.reject) };
+    }
+    const resolution = await route.resolve(
+      this.createContext(context, input, executionContext),
+    );
+    return {
+      kind: "handled",
+      result: await this.applyCreateResolution(
+        context,
+        resolution,
+        input,
+        executionContext,
+      ),
+    };
+  }
+
+  /** What a route decides with: frozen, read-only, at the caller's level. */
+  private createContext(
+    context: EntityPluginContext,
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): EntityCreateContext {
+    const uploads = context.uploads.scoped(createUploadScope);
+    const reader: EntityCreateUploadReader = Object.freeze({
+      read: (uploadId: string) => uploads.read(uploadId),
+      readRecord: (uploadId: string) => uploads.readRecord(uploadId),
+    });
+    return Object.freeze({
+      input: deepFrozen(structuredClone(input)),
+      entities: createEntityReader(
+        context.entityService,
+        this.callerScope(executionContext),
+      ),
+      uploads: reader,
+    });
+  }
+
+  private callerScope(
+    executionContext: CreateExecutionContext,
+  ): ContentVisibility {
+    return permissionToVisibilityScope(executionContext.userPermissionLevel);
+  }
+
+  /**
+   * Perform what a route decided. The runtime writes, so "created" and
+   * "updated" describe what it did rather than what the route claims.
+   */
+  private async applyCreateResolution(
+    context: EntityPluginContext,
+    resolution: EntityCreateResolution,
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateResult> {
+    if ("refuse" in resolution) return createFailure(resolution.refuse);
+    const visibilityScope = this.callerScope(executionContext);
+    const eventContext = {
+      actor: executionContext.actor,
+      interfaceType: executionContext.interfaceType,
+    };
+
+    if ("existing" in resolution) {
+      const found = await context.entityService.getEntity({
+        entityType: this.entityType,
+        id: resolution.existing.id,
+        visibilityScope,
+      });
+      if (!found) {
+        return createFailure(
+          `Cannot reuse ${this.entityType} "${resolution.existing.id}", which does not exist`,
+        );
+      }
+      return this.createSuccess("existing", found.id, resolution.attachment);
+    }
+
+    const target =
+      "update" in resolution ? resolution.update : resolution.create;
+    const metadata = this.definition.metadata.safeParse(target.metadata);
+    if (!metadata.success) {
+      return createFailure(
+        `Invalid ${this.entityType} metadata: ${metadata.error.issues
+          .map(
+            ({ path, message }) =>
+              `${path.join(".") || "metadata"}: ${message}`,
+          )
+          .join("; ")}`,
+      );
+    }
+
+    if ("update" in resolution) {
+      const existing = await context.entityService.getEntity({
+        entityType: this.entityType,
+        id: resolution.update.id,
+        visibilityScope,
+      });
+      if (!existing) {
+        return createFailure(
+          `Cannot update ${this.entityType} "${resolution.update.id}", which does not exist`,
+        );
+      }
+      const written = await context.entityService.updateEntity({
+        entity: {
+          ...existing,
+          content: resolution.update.content,
+          metadata: metadata.data,
+        },
+        options: { eventContext },
+      });
+      return this.createSuccess("updated", written.entityId, undefined);
+    }
+
+    // Create-if-absent: a route that did not see an entity at the caller's
+    // level must not write over one it could not see.
+    const taken = await context.entityService.getEntity({
+      entityType: this.entityType,
+      id: resolution.create.id,
+      visibilityScope: internalFullScope(
+        "create route checks whether its id is taken; no content returned",
+      ),
+    });
+    const alreadyExists = `A ${this.entityType} "${resolution.create.id}" already exists`;
+    if (taken) return createFailure(alreadyExists);
+    try {
+      const written = await context.entityService.createEntity({
+        entity: {
+          id: resolution.create.id,
+          entityType: this.entityType,
+          content: resolution.create.content,
+          metadata: metadata.data,
+          ...(input.visibility !== undefined && {
+            visibility: input.visibility,
+          }),
+        },
+        options: {
+          conditionalWrite: { expectedRevision: null },
+          eventContext,
+        },
+      });
+      return this.createSuccess(
+        "created",
+        written.entityId,
+        resolution.attachment,
+      );
+    } catch (error) {
+      if (error instanceof EntityWriteConflictError) {
+        return createFailure(alreadyExists);
+      }
+      throw error;
+    }
+  }
+
+  private createSuccess(
+    status: "created" | "existing" | "updated",
+    entityId: string,
+    attachment:
+      ((written: { readonly entityId: string }) => unknown) | undefined,
+  ): CreateResult {
+    return {
+      success: true,
+      data: {
+        status,
+        entityId,
+        ...(attachment && {
+          attachment: createResultAttachmentSchema.parse(
+            attachment({ entityId }),
+          ),
+        }),
+      },
+    };
   }
 
   protected override async onShutdown(): Promise<void> {
