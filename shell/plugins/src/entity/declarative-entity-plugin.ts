@@ -306,6 +306,9 @@ function entityAdapter(
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
+    // Metadata is the frontmatter, decoded by fromMarkdown, so a frontmatter
+    // write on an update carries into metadata.
+    metadataFromFrontmatter: true,
     ...(definition.displayTitle && {
       displayTitle: (entity): string | undefined =>
         displayTitle(definition, entity),
