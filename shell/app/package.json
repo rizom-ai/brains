@@ -1,6 +1,6 @@
 {
   "name": "@brains/app",
-  "version": "0.2.0-alpha.639",
+  "version": "0.2.0-alpha.640",
   "description": "High-level factory for creating Brain applications",
   "keywords": [
     "brain",

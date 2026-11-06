@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.640
+
+### Patch Changes
+
+- [#837](https://github.com/rizom-ai/brains/pull/837) [`eaaa666`](https://github.com/rizom-ai/brains/commit/eaaa66604b6fb5defb801630dd37407007496d1b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new brain's starter character is now written from public content only. Its role and purpose are published on the agent card, the Dashboard and in guest chat, and before this the titles and summaries of shared and restricted notes could shape them.
+
 ## 0.2.0-alpha.639
 
 ### Patch Changes
