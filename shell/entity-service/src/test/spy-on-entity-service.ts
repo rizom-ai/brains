@@ -31,6 +31,15 @@ export function spyOnEntityGet(
   >(spyOn(service, "getEntity"));
 }
 
+/** Spy on `getEntityRaw`, for the same reason as {@link spyOnEntityGet}. */
+export function spyOnEntityGetRaw(
+  service: Pick<IEntityService, "getEntityRaw">,
+): Mock<(request: GetEntityRequest) => Promise<BaseEntity | null>> {
+  return genericSpy<
+    Mock<(request: GetEntityRequest) => Promise<BaseEntity | null>>
+  >(spyOn(service, "getEntityRaw"));
+}
+
 /** Spy on `createEntity`, for the same reason as {@link spyOnEntityGet}. */
 export function spyOnEntityCreate(
   service: Pick<IEntityService, "createEntity">,

@@ -2,7 +2,7 @@ import {
   createMockEntityService,
   createTestEntity,
   spyOnEntityCreate,
-  spyOnEntityGet,
+  spyOnEntityGetRaw,
 } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BrainCharacterService } from "../src/brain-character-service";
@@ -20,7 +20,7 @@ describe("BrainCharacterService", () => {
 
   let mockEntityService: IEntityService;
   let characterService: BrainCharacterService;
-  let getEntitySpy: ReturnType<typeof spyOnEntityGet>;
+  let getEntitySpy: ReturnType<typeof spyOnEntityGetRaw>;
   let createEntitySpy: ReturnType<typeof spyOnEntityCreate>;
 
   beforeEach(() => {
@@ -34,7 +34,7 @@ describe("BrainCharacterService", () => {
 
     // Create mock using factory, then override implementations
     mockEntityService = createMockEntityService();
-    getEntitySpy = spyOnEntityGet(mockEntityService);
+    getEntitySpy = spyOnEntityGetRaw(mockEntityService);
     createEntitySpy = spyOnEntityCreate(mockEntityService);
 
     getEntitySpy.mockImplementation(async () => mockGetEntityImpl());
@@ -213,7 +213,7 @@ values:
 
       await characterService.refreshCache();
 
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+      expect(mockEntityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "brain-character",
         id: "brain-character",
         visibilityScope: "restricted",
@@ -232,7 +232,7 @@ values:
 
       // Create fresh mock for this test
       const freshMockEntityService = createMockEntityService();
-      spyOn(freshMockEntityService, "getEntity").mockResolvedValue(null);
+      spyOn(freshMockEntityService, "getEntityRaw").mockResolvedValue(null);
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
         entityId: "brain-character",
         jobId: "job-123",

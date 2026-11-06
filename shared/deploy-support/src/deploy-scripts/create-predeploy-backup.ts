@@ -176,12 +176,26 @@ function gitRemoteEnvironment():
   };
 }
 
+/** How long a snapshot read waits on a runtime that holds the database. */
+const SNAPSHOT_BUSY_TIMEOUT_MS = 10_000;
+
+/**
+ * Open a database for reading a snapshot. The runtime is live while the
+ * backup runs, so a reader can meet a writer's lock or a WAL recovery in
+ * progress; it waits for them instead of failing the backup at once.
+ */
+function openSnapshotReader(path: string): Database {
+  const database = new Database(path, { readonly: true });
+  database.run(`PRAGMA busy_timeout = ${SNAPSHOT_BUSY_TIMEOUT_MS}`);
+  return database;
+}
+
 async function quickCheck(
   path: string,
   driver: QuickCheckDriver,
 ): Promise<string> {
   if (driver === "bun") {
-    const database = new Database(path, { readonly: true });
+    const database = openSnapshotReader(path);
     try {
       const result: unknown = database.query("PRAGMA quick_check").get();
       const row = isPlainRecord(result) ? result : null;
@@ -252,7 +266,7 @@ function vectorDigest(path: string): {
   counts: Record<string, number>;
   sha256: string;
 } {
-  const database = new Database(path, { readonly: true });
+  const database = openSnapshotReader(path);
   try {
     return vectorDigestDatabase(database);
   } finally {
@@ -275,7 +289,7 @@ async function captureDatabases(
     }
 
     const startedAt = new Date().toISOString();
-    const database = new Database(source.source, { readonly: true });
+    const database = openSnapshotReader(source.source);
     let originalVectorDigest:
       { counts: Record<string, number>; sha256: string } | undefined;
     if (source.method === "serialize") {
