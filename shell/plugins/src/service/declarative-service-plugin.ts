@@ -1,4 +1,3 @@
-import { internalFullScope } from "@brains/entity-service";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { JsonObject } from "@brains/contracts";
@@ -71,6 +70,11 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
+import {
+  serviceJobDataSchema,
+  toolCaller,
+  type ServiceJobData,
+} from "./job-authority";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -127,23 +131,28 @@ function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
   templates: ServiceTemplateFormatter,
-): JobHandler<string, unknown, unknown> {
+): JobHandler<string, ServiceJobData, unknown> {
   const definition = binding.definition;
   const handler = getServiceJobHandler(binding);
+  // Queued data names who started the job; data without it is invalid.
+  const dataSchema = serviceJobDataSchema(definition.input);
   return {
     ...(definition.deadline
       ? { executionTimeoutMs: parseServiceDeadline(definition.deadline) }
       : {}),
-    validateAndParse(data): unknown | null {
-      const parsed = definition.input.safeParse(data);
+    validateAndParse(data): ServiceJobData | null {
+      const parsed = dataSchema.safeParse(data);
       return parsed.success ? parsed.data : null;
     },
     async process(
-      input: unknown,
+      { authority, input }: ServiceJobData,
       _jobId: string,
       progress: ProgressReporter,
       signal: AbortSignal,
     ): Promise<unknown> {
+      // The job reads with its requester's current access, never more than
+      // it was admitted at; a revoked requester's job is refused here.
+      const { visibilityScope } = await context.jobAuthority.resolve(authority);
       const output = await handler({
         input,
         signal,
@@ -154,9 +163,7 @@ function runtimeJobHandler(
             const entity = await context.entityService.getEntity({
               entityType: entityDefinition.type,
               id,
-              visibilityScope: internalFullScope(
-                "declarative service jobs read as the service",
-              ),
+              visibilityScope,
             });
             return entity
               ? parseDefinitionEntity(entityDefinition, entity)
@@ -546,6 +553,17 @@ class DeclarativeServicePlugin<
 
   private jobs(): ServiceJobs {
     const context = this.getContext();
+    // Only this service's own job of that name; another job's result, even
+    // one the definition's output schema happens to parse, is not the package's.
+    const ownStatus = async <TDefinition extends AnyServiceJobDefinition>(
+      definition: TDefinition,
+      id: string,
+    ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> => {
+      const job = await context.jobs.getStatus(id);
+      return job?.type === `${this.id}:${definition.name}`
+        ? statusFor(definition, job)
+        : null;
+    };
     return {
       enqueue: async <TDefinition extends AnyServiceJobDefinition>(
         definition: TDefinition,
@@ -556,14 +574,18 @@ class DeclarativeServicePlugin<
             `Service "${this.publicId}" cannot enqueue unregistered job "${definition.name}"`,
           );
         }
-        const data = definition.input.parse(input);
+        const parsed = definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
+        // The tool call's caller starts the job; outside one, this service.
+        const authority = await context.jobAuthority.admit(
+          toolContext ? toolCaller(toolContext) : undefined,
+        );
         const maxRetries = definition.retry
           ? definition.retry.attempts - 1
           : undefined;
         const id = await context.jobs.enqueue({
           type: definition.name,
-          data,
+          data: { authority, input: parsed },
           ...(toolContext ? { toolContext } : {}),
           options: {
             source: this.id,
@@ -576,19 +598,10 @@ class DeclarativeServicePlugin<
         });
         return Object.freeze({
           id,
-          status: async () => {
-            const job = await context.jobs.getStatus(id);
-            return job ? statusFor(definition, job) : null;
-          },
+          status: () => ownStatus(definition, id),
         });
       },
-      async status<TDefinition extends AnyServiceJobDefinition>(
-        definition: TDefinition,
-        id: string,
-      ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> {
-        const job = await context.jobs.getStatus(id);
-        return job ? statusFor(definition, job) : null;
-      },
+      status: ownStatus,
     };
   }
 

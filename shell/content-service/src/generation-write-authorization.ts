@@ -1,8 +1,8 @@
 import type { BaseEntity, IEntityService } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
+import type { CallerAccess } from "./caller-authority";
 import {
   GenerationAuthorizationError,
-  type GenerationAccess,
   type GenerationAuthorizer,
 } from "./generation-authorization";
 import type { ContentGenerationJobData } from "./generation-contracts";
@@ -25,7 +25,7 @@ export async function authorizeGenerationWrite(
   dependencies: GenerationWriteAuthorizationDependencies,
   data: ContentGenerationJobData,
   persisted?: Readonly<BaseEntity>,
-): Promise<GenerationAccess> {
+): Promise<CallerAccess> {
   if (
     persisted &&
     (persisted.id !== data.destination.entityId ||

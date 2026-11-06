@@ -51,6 +51,10 @@ import { createMockMessageBus } from "./mock-message-bus";
 import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockJobQueue } from "./mock-job-queue";
 import { createMockContentServices } from "./mock-content";
+import {
+  CallerAuthorizer,
+  type PrincipalResolver,
+} from "@brains/content-service";
 import { createMockDaemonRegistry } from "./mock-daemon-registry";
 import { createMockAnalyticsRegistry } from "./mock-analytics-registry";
 import { createMockEntityService } from "./mock-entity-service";
@@ -117,6 +121,8 @@ export interface MockShellOptions {
   themeCSS?: string;
   /** Replace the stateful in-memory entity fake with canned reads. */
   entityService?: IEntityService;
+  /** Account lookup for requester authority; default: no auth runtime. */
+  resolvePrincipal?: PrincipalResolver;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -361,6 +367,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     // Core services
     getMessageBus: () => messageBus,
     getContentService: () => contentService,
+    // Built per call over the current permission service, which tests may
+    // reassign after a plugin registered.
+    getCallerAuthorizer: () =>
+      new CallerAuthorizer(
+        shell.getPermissionService(),
+        options.resolvePrincipal ?? (async (): Promise<null> => null),
+      ),
     getLogger: () => logger,
     getEntityService: () => entityService,
     getEntityRegistry: () => entityRegistry,

@@ -13,7 +13,7 @@ import type {
   ContentGenerationBatchResult,
 } from "./generation-contracts";
 import type { GenerationQueueBinding } from "./generation-submission";
-import type { GenerationAccess } from "./generation-authorization";
+import type { CallerAccess } from "./caller-authority";
 
 export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
 
@@ -118,7 +118,7 @@ export interface ContentService {
   authorizeGenerationWrite(
     data: ContentGenerationJobData,
     persisted?: Readonly<BaseEntity>,
-  ): Promise<GenerationAccess>;
+  ): Promise<CallerAccess>;
 
   submitGeneration(
     request: ContentGenerationRequestInput,

@@ -305,6 +305,11 @@ describe("declarative dashboard widget runtime", () => {
     });
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-typed-job"),
+      // The viewer starts the job, so its account must resolve.
+      resolvePrincipal: async () => ({
+        userId: "actor-1",
+        permissionLevel: "trusted",
+      }),
     });
     const registrations: HostRegistration[] = [];
     shell

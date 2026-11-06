@@ -574,7 +574,13 @@ describe("declarative service definitions", () => {
     const handler = handlers.get("@fixture/announcer:announcer:announce");
     if (!handler) throw new Error("Job handler was not registered");
     await handler.process(
-      { bookmarkId: "saved" },
+      {
+        authority: {
+          actor: { kind: "service", serviceId: "test" },
+          permissionCeiling: "public",
+        },
+        input: { bookmarkId: "saved" },
+      },
       "job-1",
       createMockProgressReporter(),
       new AbortController().signal,

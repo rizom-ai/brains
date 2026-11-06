@@ -30,6 +30,7 @@ One `main` SHA where the public authoring API is complete and frozen for `0.2.0`
 - **Main's behavior wins.** Everything `main` changed since the fork is preserved. Where both sides built the same thing differently, `main`'s implementation stays and the declarative form wraps it:
   - auth: `main`'s `AuthBackend` and `context.auth` (#815) supply caller and Anchor identity;
   - ATProto projections: `main`'s `context.atprotoProjections`;
+  - package jobs: `main`'s requester authority (`CallerAuthorizer` in `@brains/content-service`). A job reads with the authority of whoever started it: the tool caller, the route caller or the viewer. A job a daemon starts reads public entries unless the package is granted more;
   - analytics: `main`'s typed analytics reports replace the branch's `insights` slot;
   - console routes: `main`'s `WebRouteDefinition.role`;
   - link capture: `main`'s `link:capture` job and `context.apiRoutes.executeTool`;

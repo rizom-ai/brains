@@ -19,6 +19,10 @@ import type { IAuthNamespace } from "../contracts/auth";
 import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
+  createJobAuthorityNamespace,
+  type IJobAuthorityNamespace,
+} from "../service/job-authority";
+import {
   createAppInfoGetter,
   createChannelsNamespace,
   createConversationsNamespace,
@@ -173,6 +177,9 @@ export interface BasePluginContext extends PublicBasePluginContext {
   /** Job operations — monitoring + plugin-scoped enqueue/registerHandler */
   readonly jobs: JobsNamespace;
 
+  /** Who starts a package job; its reads run with that requester's access. */
+  readonly jobAuthority: IJobAuthorityNamespace;
+
   // ============================================================================
   // Source-derived Attachments
   // ============================================================================
@@ -323,6 +330,7 @@ export function createBasePluginContext(
     ),
 
     jobs: createJobsNamespace(shell, pluginId),
+    jobAuthority: createJobAuthorityNamespace(shell, pluginId),
 
     attachments,
 

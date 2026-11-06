@@ -27,9 +27,9 @@ import type {
 } from "@brains/entity-service";
 import {
   scopeTemplateName,
+  type Caller,
   type ContentGenerationBatchResult,
   type ContentGenerationTargetInput,
-  type GenerationCaller,
   type ResolutionOptions,
 } from "@brains/content-service";
 import {
@@ -37,6 +37,7 @@ import {
   type RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
 import { createEnqueueJobFn } from "@brains/job-queue";
+import { serviceCaller, toolCaller } from "./job-authority";
 import type { ToolContext } from "@brains/mcp-service";
 import { TemplateCapabilities } from "@brains/templates";
 import type { ConfiguredPrincipalSeeds, Template } from "@brains/templates";
@@ -204,18 +205,9 @@ export function createServicePluginContext(
         signal?.throwIfAborted();
         // The tool context is the trusted caller; without one, this plugin's
         // own configured service authority applies.
-        const caller: GenerationCaller = toolContext
-          ? {
-              actor: toolContext.actor,
-              permissionLevel: toolContext.userPermissionLevel ?? "public",
-            }
-          : {
-              actor: { kind: "service", serviceId: pluginId },
-              permissionLevel: permissionService.determineUserLevel(
-                "service",
-                pluginId,
-              ),
-            };
+        const caller: Caller = toolContext
+          ? toolCaller(toolContext)
+          : serviceCaller(pluginId, permissionService);
         const enqueueJob = createEnqueueJobFn(
           shell.getJobQueueService(),
           pluginId,
