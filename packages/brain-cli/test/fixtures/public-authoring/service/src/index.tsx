@@ -1,4 +1,5 @@
 import { bookmark, readingDigest } from "@fixture/reading-entities";
+import { defineEntity } from "@rizom/brain/entities";
 import {
   contentGenerationResultSchema,
   defineJob,
@@ -16,6 +17,17 @@ const digestResult = z.object({
   bookmarkId: z.string(),
   summary: z.string(),
   wordCount: z.number().int().nonnegative(),
+});
+
+// A type this service owns: it is installed with the package, and the service
+// is the one that writes it.
+export const readingRequest = defineEntity({
+  type: "reading-request",
+  purpose: "A digest a reader asked for",
+  metadata: z.object({
+    bookmarkId: z.string(),
+    status: z.enum(["requested", "compiled"]),
+  }),
 });
 
 const digestStatus = z.object({
@@ -57,6 +69,7 @@ const readGeneratedOutputs = defineJob({
 export default defineServicePlugin(
   {
     id: "reading-insights",
+    entities: [readingRequest],
     config: z.object({
       summaryPrefix: z.string().default("Reading digest"),
     }),
@@ -144,8 +157,9 @@ export default defineServicePlugin(
     },
 
     // Binding with .handle() keeps the contract importable without its executor.
-    jobs: ({ state }) => [
-      readGeneratedOutputs.handle(async ({ input, entities }) => {
+    // One `entities` reads and writes as whoever started the running job.
+    jobs: ({ state, entities }) => [
+      readGeneratedOutputs.handle(async ({ input }) => {
         const digest = await entities.get(readingDigest, input.digestId);
         const overview = await entities.get(bookmark, input.overviewId);
         if (!digest || !overview)
@@ -159,7 +173,7 @@ export default defineServicePlugin(
         };
       }),
       compileReadingDigest.handle(
-        async ({ input, entities, messaging, progress, signal, templates }) => {
+        async ({ input, messaging, progress, signal, templates }) => {
           signal.throwIfAborted();
           await progress.report({
             progress: 25,
@@ -194,7 +208,20 @@ export default defineServicePlugin(
     ],
 
     // Tools return plain schema-valid data; durable mechanics stay framework-owned.
-    tools: ({ content, jobs }) => [
+    tools: ({ content, entities, jobs }) => [
+      defineTool({
+        name: "request-reading-digest",
+        description: "Record that a reader asked for a digest.",
+        input: digestRequest,
+        output: z.object({ id: z.string() }),
+        sideEffects: "writes",
+        execute: ({ input }) =>
+          entities.create(readingRequest, {
+            id: input.bookmarkId,
+            content: "Asked for a digest",
+            metadata: { bookmarkId: input.bookmarkId, status: "requested" },
+          }),
+      }),
       defineTool({
         name: "read-generated-outputs",
         description: "Read generated entities through typed readers",

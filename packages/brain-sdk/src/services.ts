@@ -67,3 +67,6 @@ export {
   sdkErrorSchema,
 } from "@brains/contracts";
 export type { SdkErrorCode, SdkErrorData } from "@brains/contracts";
+// What a slot's `entities` reads and writes with, for a handler or helper
+// written outside the slot that is handed it.
+export type { EntityReader, OwnedEntityWriter } from "@brains/plugins";

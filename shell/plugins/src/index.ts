@@ -417,6 +417,7 @@ export {
   type ServiceJobDefinition,
   type ServiceJobReference,
   type ServiceJobStatus,
+  type OwnedEntityWriter,
   type ServicePackageDefinition,
   type ServiceTemplateGenerationDefinition,
   type WorkspaceActionConfirmation,

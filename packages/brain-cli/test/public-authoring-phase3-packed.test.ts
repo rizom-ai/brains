@@ -201,6 +201,20 @@ describe("public authoring Phase 3 packed service contract", () => {
         { confirm: true },
       );
 
+      // The service writes a type its header owns, installed with the package.
+      const requested = await invokeTool(
+        consumerDirectory,
+        "reading-insights_request-reading-digest",
+        { bookmarkId: "durable-services" },
+      );
+      expect(requested).toContain('"id": "durable-services"');
+      const request = await invokeTool(consumerDirectory, "system_get", {
+        entityType: "reading-request",
+        id: "durable-services",
+      });
+      expect(request).toContain("Asked for a digest");
+      expect(request).toContain("requested");
+
       const enqueued = await invokeTool(
         consumerDirectory,
         "reading-insights_compile-reading-digest",

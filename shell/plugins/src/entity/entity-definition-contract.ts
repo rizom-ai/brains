@@ -70,7 +70,7 @@ type ReadonlyInput<T> = T extends Date | ((...args: never[]) => unknown)
  * without parameters. A const context makes arrays read-only, hence the
  * read-only form.
  */
-type EntityMetadataInput<TMetadataSchema extends EntityMetadataSchema> =
+export type EntityMetadataInput<TMetadataSchema extends EntityMetadataSchema> =
   TMetadataSchema["_zod"]["input"] | ReadonlyInput<z.input<TMetadataSchema>>;
 
 export interface EntityMarkdownDocument<TMetadata> {

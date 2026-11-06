@@ -141,8 +141,8 @@ async function installNoteReader(shell: MockShell): Promise<{
       config: z.object({}),
     },
     {
-      jobs: () => [
-        readNotes.handle(async ({ input, entities }) => {
+      jobs: ({ entities }) => [
+        readNotes.handle(async ({ input }) => {
           received.push(input);
           const reads = await Promise.all(
             input.ids.map(async (id) =>

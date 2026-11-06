@@ -46,7 +46,7 @@ interface ExportLedger {
 interface GoldenPackageExpectation {
   directory: string;
   packageName: string;
-  publicEntryPoint: string;
+  publicEntryPoints: string[];
   requiredVocabulary: string[];
 }
 
@@ -59,7 +59,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "entity",
     packageName: "@fixture/reading-entities",
-    publicEntryPoint: "@rizom/brain/entities",
+    publicEntryPoints: ["@rizom/brain/entities"],
     requiredVocabulary: [
       "defineEntity",
       "defineEntityPackage",
@@ -71,19 +71,26 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "service",
     packageName: "@fixture/reading-insights",
-    publicEntryPoint: "@rizom/brain/services",
-    requiredVocabulary: ["defineJob", "defineServicePlugin", "defineTool", "z"],
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineEntity",
+      "defineJob",
+      "defineServicePlugin",
+      "defineTool",
+      "entities: [readingRequest]",
+      "z",
+    ],
   },
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoint: "@rizom/site",
+    publicEntryPoints: ["@rizom/site"],
     requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
   },
   {
     directory: "interface",
     packageName: "@fixture/reading-webhook",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: [
       "defineDaemon",
       "defineInterface",
@@ -95,13 +102,13 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: ["defineMessageInterface", "z"],
   },
   {
     directory: "brain-definition",
     packageName: "@fixture/reader-brain",
-    publicEntryPoint: "@rizom/brain",
+    publicEntryPoints: ["@rizom/brain"],
     requiredVocabulary: ["defineBrain", "defineBundle", "use"],
   },
 ];
@@ -429,7 +436,10 @@ describe("public authoring 0.2 golden packages", () => {
       expect(manifest.dependencies?.zod).toBeUndefined();
       expect(manifest.devDependencies?.zod).toBeUndefined();
       expect(manifest.peerDependencies?.zod).toBeUndefined();
-      expect(publicImports).toEqual([fixture.publicEntryPoint]);
+      // An import inventory, independent of source file traversal order.
+      expect(publicImports.sort()).toEqual(
+        [...fixture.publicEntryPoints].sort(),
+      );
 
       for (const symbol of fixture.requiredVocabulary) {
         expect(source).toContain(symbol);

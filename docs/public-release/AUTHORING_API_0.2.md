@@ -339,6 +339,8 @@ Definitions and schema vocabulary:
 
 Types:
 
+- `EntityReader`
+- `OwnedEntityWriter`
 - `SdkErrorCode`
 - `SdkErrorData`
 - `AccountSettingsDefinition`
@@ -387,9 +389,19 @@ Types:
 - `WorkspaceActionResultFieldMap`
 - `WorkspacePreparedConfirmation`
 
-`defineServicePlugin(header, behavior)` takes two arguments. The header says what the package is: its `id`, its `config` schema, its `accountSettings` when it declares any, and `setup`. The behavior says what it does with that: `instructions`, `resources`, `prompts`, `templates`, `views`, `jobs`, `tools`, `dashboardWidgets` and `studioWorkspaces`. A package with no behavior passes the header alone. `setup` runs once when the package registers, and what it returns is the `state` every behavior slot reads; because the header is checked first, the behavior slots may be written in any order. A behavior slot written into the header is refused.
+`defineServicePlugin(header, behavior)` takes two arguments. The header says what the package is: its `id`, its `config` schema, the `entities` it owns, its `accountSettings` when it declares any, and `setup`. The behavior says what it does with that: `instructions`, `resources`, `prompts`, `templates`, `views`, `jobs`, `tools`, `dashboardWidgets` and `studioWorkspaces`. A package with no behavior passes the header alone. `setup` runs once when the package registers, and what it returns is the `state` every behavior slot reads; because the header is checked first, the behavior slots may be written in any order. A behavior slot written into the header is refused.
 
 `setup` is given the parsed `config`, `lifecycle.onCleanup`, and `runtimeState({ namespace, schema })`: a store for bookkeeping that is not an entity, such as a cursor, a count or a claim. The namespace is local to the package; the runtime qualifies it by the owning package, so two packages naming the same namespace never share a record. Writes take the schema's input and are stored as written, after the value has been checked to survive a JSON round trip; every read parses what is stored, so a transform runs at the read and never twice. The store offers `get`, `has`, `set`, `setIfNotExists`, `compareAndSet` (replacing a value only while it still reads as the expected one), `delete`, `list` (in key order, by literal prefix, at most 1000 records) and `clear`.
+
+`entities` in the header lists the entity types the package owns, each a `defineEntity` definition. Each is installed with the package, exactly as an entity package installs it; a type listed twice, or named like the service, is refused. The `jobs` and `tools` slots are given one `entities`: an `EntityReader` (definition-typed `get`, `list` and `count`) and an `OwnedEntityWriter` for the header's types. It acts as the current caller: inside a tool, the tool's caller; inside a running job, the requester that started it, resolved again when it runs; anywhere else, such as a job the package queued on its own, the package's own grant, which is public unless the brain grants it more. Reads see what that caller may see. A job handler and a tool's `execute` are given no entity access of their own; a handler written outside the slot is handed the slot's `entities`, typed `EntityReader & OwnedEntityWriter<typeof definition>`. The writes:
+
+- `create(definition, { id?, content, metadata, visibility? })` creates a record and returns its `id`, which the runtime picks when none is given. An id that already exists at any visibility is refused, so a create never writes over a record the caller cannot see.
+- `update(definition, record, { content?, metadata? })` changes a record as it was read, and `delete(definition, record)` deletes one. Both refuse a record the caller cannot see, or one that changed after it was read.
+- Metadata is the type's schema input, validated before anything is written; written inline it keeps its literal types without an annotation, so an enum value needs no cast.
+- A definition the header does not own is refused, by the types and at runtime, even one that shares an owned type's name.
+- Every write is attributed to the caller and held to the type's action policy at the caller's permission level. A `never` rule closes a type to system tools, not to the package that owns it.
+
+Refusals are `SdkError`s: `permission_denied` for an unowned type or a policy the caller does not meet, `invalid_input` for metadata the schema refuses, `not_found` for a record the caller cannot see, and `conflict` for a taken id or a changed record.
 
 `SdkError` is a coded failure. Its `code` (`SdkErrorCode`, validated by `sdkErrorCodeSchema`) survives every supported boundary; its message is diagnostic and stays local, and only an explicit, bounded `publicMessage` is ever published. `toJSON()` returns `SdkErrorData` (`{ code, message }`, validated by `sdkErrorSchema`) with the public message alone. Check the code, not the class or the wording: a copy of the SDK bundled into another package, or an error that crossed a process, is not the same class.
 

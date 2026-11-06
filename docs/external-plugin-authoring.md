@@ -271,7 +271,12 @@ handler:
 
 ```ts
 import { bookmark } from "@example/reading-entities";
-import { defineJob, defineServicePlugin, z } from "@rizom/brain/services";
+import {
+  defineJob,
+  defineServicePlugin,
+  z,
+  type EntityReader,
+} from "@rizom/brain/services";
 
 const digestRequest = z.object({ bookmarkId: z.string() });
 const digestResult = z.object({
@@ -284,6 +289,23 @@ const compileReadingDigest = defineJob({
   output: digestResult,
 });
 
+// A handler written outside the `jobs` slot is handed the slot's `entities`.
+function compileDigest(entities: EntityReader) {
+  return compileReadingDigest.handle(
+    async ({ input, messaging, templates }) => {
+      const saved = await entities.get(bookmark, input.bookmarkId);
+      if (!saved) throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+
+      const result = { bookmarkId: saved.id, summary: saved.metadata.title };
+      await messaging.publish({
+        topic: "digest-ready",
+        data: { ...result, markdown: templates.format("digest", result) },
+      });
+      return result;
+    },
+  );
+}
+
 export default defineServicePlugin(
   { id: "reading-insights", config: z.object({}) },
   {
@@ -294,25 +316,7 @@ export default defineServicePlugin(
           `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
       },
     },
-    jobs: () => [
-      compileReadingDigest.handle(
-        async ({ input, entities, messaging, templates }) => {
-          const saved = await entities.get(bookmark, input.bookmarkId);
-          if (!saved)
-            throw new Error(`Bookmark not found: ${input.bookmarkId}`);
-
-          const result = {
-            bookmarkId: saved.id,
-            summary: saved.metadata.title,
-          };
-          await messaging.publish({
-            topic: "digest-ready",
-            data: { ...result, markdown: templates.format("digest", result) },
-          });
-          return result;
-        },
-      ),
-    ],
+    jobs: ({ entities }) => [compileDigest(entities)],
   },
 );
 ```
@@ -355,11 +359,13 @@ tool and call `jobs.enqueue(job, input)`. The runtime owns retries, deadlines,
 worker execution, cancellation, progress storage, restart recovery, and result
 validation.
 
-A job's `entities.get` reads with the access of whoever started it: the tool's
-caller, the Studio or Dashboard viewer, or the caller of an interface route.
-A job enqueued outside a request, such as from a daemon, reads with the
-enqueuing package's own grant, which is public unless the brain grants more.
-If the requester's account is revoked before the job runs, the job fails.
+The `jobs` and `tools` slots are given one `entities`, which reads and writes
+as the current caller. Inside a running job that is whoever started it: the
+tool's caller, the Studio or Dashboard viewer, or the caller of an interface
+route. A job enqueued outside a request, such as from a daemon, reads and
+writes with the enqueuing package's own grant, which is public unless the brain
+grants more. If the requester's account is revoked before the job runs, the job
+fails. A service writes only the entity types its header's `entities` declares.
 
 ### Account settings and operator surfaces
 

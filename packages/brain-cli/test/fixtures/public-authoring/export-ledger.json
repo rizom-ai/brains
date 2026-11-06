@@ -420,7 +420,9 @@
         "SdkErrorCode",
         "SdkErrorData",
         "sdkErrorCodeSchema",
-        "sdkErrorSchema"
+        "sdkErrorSchema",
+        "EntityReader",
+        "OwnedEntityWriter"
       ],
       "advanced-with-consumer": [],
       "internal/removable": [

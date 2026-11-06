@@ -1,6 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
-import type { JsonObject } from "@brains/contracts";
+import { SdkError, type ActorRef, type JsonObject } from "@brains/contracts";
+import type { CallerAccess } from "@brains/content-service";
+import { internalFullScope, type BaseEntity } from "@brains/entity-service";
+import { definedFields } from "@brains/utils/strip-undefined";
 import { createServiceContentTarget } from "./content-generation-target";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -14,6 +17,7 @@ import {
 } from "@brains/mcp-service";
 import {
   createTemplate,
+  PermissionService,
   type ComponentType,
   type Template,
   type TemplateDataSchema,
@@ -41,7 +45,12 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
+import { createEntityReader } from "../entity/entity-reader";
+import type {
+  AnyEntityDefinition,
+  EntityOf,
+  EntityReader,
+} from "../entity/entity-definition-contract";
 import { stateNamespaceFor } from "../internal/state-namespace";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -51,6 +60,7 @@ import type {
   NormalizedServiceDefinitionInput,
   ServiceContentGeneration,
   ServiceContentGenerationResult,
+  ServiceEntityAccess,
   ServiceJobBinding,
   ServiceJobReference,
   ServiceJobStatus,
@@ -78,6 +88,18 @@ import {
 } from "./job-authority";
 
 const confirmationTokenField = "_rizomConfirmationToken";
+
+/**
+ * Who a slot's `entities` acts as right now: the access it reads and writes
+ * at, and whom a write is attributed to.
+ */
+interface ServiceCall {
+  access(): Promise<CallerAccess>;
+  readonly eventContext: {
+    readonly actor: ActorRef;
+    readonly interfaceType?: string;
+  };
+}
 
 /** A template with its schema type erased and `format` bound to that schema. */
 interface ErasedServiceTemplate {
@@ -132,6 +154,7 @@ function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
   templates: ServiceTemplateFormatter,
+  withCall: <T>(call: ServiceCall, run: () => Promise<T>) => Promise<T>,
 ): JobHandler<string, ServiceJobData, unknown> {
   const definition = binding.definition;
   const handler = getServiceJobHandler(binding);
@@ -151,37 +174,31 @@ function runtimeJobHandler(
       progress: ProgressReporter,
       signal: AbortSignal,
     ): Promise<unknown> {
-      // The job reads with its requester's current access, never more than
-      // it was admitted at; a revoked requester's job is refused here.
-      const { visibilityScope } = await context.jobAuthority.resolve(authority);
-      const output = await handler({
-        input,
-        signal,
-        progress,
-        templates,
-        entities: {
-          async get(entityDefinition, id) {
-            const entity = await context.entityService.getEntity({
-              entityType: entityDefinition.type,
-              id,
-              visibilityScope,
-            });
-            return entity
-              ? parseDefinitionEntity(entityDefinition, entity)
-              : null;
+      // The job reads and writes with its requester's current access, never
+      // more than it was admitted at; a revoked requester's job is refused here.
+      const access = await context.jobAuthority.resolve(authority);
+      const call: ServiceCall = {
+        access: () => Promise.resolve(access),
+        eventContext: { actor: authority.actor },
+      };
+      const output = await withCall(call, () =>
+        handler({
+          input,
+          signal,
+          progress,
+          templates,
+          messaging: {
+            async publish(message): Promise<void> {
+              // A published message is an event: every subscriber hears it.
+              await context.messaging.send({
+                type: message.topic,
+                payload: message.data,
+                broadcast: true,
+              });
+            },
           },
-        },
-        messaging: {
-          async publish(message): Promise<void> {
-            // A published message is an event: every subscriber hears it.
-            await context.messaging.send({
-              type: message.topic,
-              payload: message.data,
-              broadcast: true,
-            });
-          },
-        },
-      });
+        }),
+      );
       return definition.output.parse(output);
     },
   };
@@ -195,6 +212,7 @@ class DeclarativeServicePlugin<
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
+  TEntities extends readonly AnyEntityDefinition[],
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
@@ -203,8 +221,12 @@ class DeclarativeServicePlugin<
     TTemplateSchemas,
     TViewSchemas,
     TAccountSettings,
-    TTemplateDefinitions
+    TTemplateDefinitions,
+    TEntities
   >;
+  /** The caller a slot's `entities` acts as inside a tool or a running job. */
+  private readonly calls = new AsyncLocalStorage<ServiceCall>();
+  private entityAccessCache: ServiceEntityAccess<TEntities[number]> | undefined;
   private readonly publicId: string;
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
   private readonly cleanups: Array<() => void | Promise<void>> = [];
@@ -239,7 +261,8 @@ class DeclarativeServicePlugin<
       TTemplateSchemas,
       TViewSchemas,
       TAccountSettings,
-      TTemplateDefinitions
+      TTemplateDefinitions,
+      TEntities
     >,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
@@ -291,7 +314,11 @@ class DeclarativeServicePlugin<
     this.registerPrompts();
 
     const bindings =
-      this.definition.jobs?.({ config: this.config, state: this.state }) ?? [];
+      this.definition.jobs?.({
+        config: this.config,
+        state: this.state,
+        entities: this.entityAccess(),
+      }) ?? [];
     const names = new Set<string>();
     for (const binding of bindings) {
       const job = binding.definition;
@@ -305,7 +332,9 @@ class DeclarativeServicePlugin<
       bindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
       context.jobs.registerHandler(
         job.name,
-        runtimeJobHandler(binding, context, templates),
+        runtimeJobHandler(binding, context, templates, (call, run) =>
+          this.calls.run(call, run),
+        ),
       );
     }
   }
@@ -408,6 +437,7 @@ class DeclarativeServicePlugin<
       this.definition.tools?.({
         config: this.config,
         state,
+        entities: this.entityAccess(),
         jobs: this.jobs(),
         templates: this.templateFormatter(),
         content: this.content(),
@@ -555,6 +585,224 @@ class DeclarativeServicePlugin<
       throw new Error(`Service "${this.publicId}" has not completed setup`);
     }
     return this.state;
+  }
+
+  /** A tool call acts as its caller; access is admitted once, when first used. */
+  private toolCall(toolContext: ToolContext): ServiceCall {
+    const context = this.getContext();
+    let admitted: Promise<CallerAccess> | undefined;
+    return {
+      access: () =>
+        (admitted ??= context.jobAuthority.access(toolCaller(toolContext))),
+      eventContext: {
+        actor: toolContext.actor,
+        interfaceType: toolContext.interfaceType,
+      },
+    };
+  }
+
+  /** Inside a tool or a running job, its caller; anywhere else, this package. */
+  private currentCall(): ServiceCall {
+    const call = this.calls.getStore();
+    if (call) return call;
+    const context = this.getContext();
+    return {
+      access: () => context.jobAuthority.access(undefined),
+      eventContext: { actor: { kind: "service", serviceId: this.id } },
+    };
+  }
+
+  /** The declaration that grants a write, or a refusal. */
+  private ownedDefinition(
+    definition: AnyEntityDefinition,
+  ): AnyEntityDefinition {
+    const declared = this.definition.entities.find(
+      (entity) => entity === definition,
+    );
+    if (!declared) {
+      throw new SdkError("permission_denied", {
+        message: `Service "${this.publicId}" may only write the entity types its header declares, and "${definition.type}" is not one of them`,
+      });
+    }
+    return declared;
+  }
+
+  /**
+   * Held to the type's action policy at the current permission level. A
+   * `never` rule closes the type to system tools, not to the package that
+   * owns it, which is how a type only its package writes is declared.
+   */
+  private assertWriteAllowed(
+    entityType: string,
+    action: "create" | "update" | "delete",
+    access: CallerAccess,
+  ): void {
+    const required = this.requireShell()
+      .getPermissionService()
+      .getEntityActionRequiredLevel(entityType, action);
+    if (
+      required === undefined ||
+      required === "never" ||
+      PermissionService.hasPermission(access.permissionLevel, required)
+    ) {
+      return;
+    }
+    throw new SdkError("permission_denied", {
+      message: `Writing ${entityType} (${action}) requires ${required} permission; the caller has ${access.permissionLevel}`,
+    });
+  }
+
+  private parseOwnedMetadata(
+    definition: AnyEntityDefinition,
+    metadata: unknown,
+  ): Record<string, unknown> {
+    const parsed = definition.metadata.safeParse(metadata);
+    if (!parsed.success) {
+      throw new SdkError("invalid_input", {
+        message: `Invalid ${definition.type} metadata: ${parsed.error.message}`,
+        cause: parsed.error,
+      });
+    }
+    return parsed.data;
+  }
+
+  /** The stored record as the current authority sees it, unchanged since it was read. */
+  private async currentRecord(
+    definition: AnyEntityDefinition,
+    record: EntityOf<AnyEntityDefinition>,
+    access: CallerAccess,
+  ): Promise<BaseEntity> {
+    if (record.entityType !== definition.type) {
+      throw new SdkError("permission_denied", {
+        message: `A ${definition.type} write cannot change a ${record.entityType}`,
+      });
+    }
+    const stored = await this.getContext().entityService.getEntity({
+      entityType: definition.type,
+      id: record.id,
+      visibilityScope: access.visibilityScope,
+    });
+    if (!stored) {
+      throw new SdkError("not_found", {
+        message: `No ${definition.type} "${record.id}" is visible to the caller`,
+      });
+    }
+    if (stored.contentHash !== record.contentHash) {
+      throw new SdkError("conflict", {
+        message: `The ${definition.type} "${record.id}" changed after it was read`,
+        publicMessage: "The record changed after it was read; read it again",
+      });
+    }
+    return stored;
+  }
+
+  /**
+   * The one `entities` a slot is given: definition-typed reads and writes to
+   * the header's types, each as the current caller.
+   */
+  private entityAccess(): ServiceEntityAccess<TEntities[number]> {
+    if (this.entityAccessCache) return this.entityAccessCache;
+    const context = this.getContext();
+    const reader = async (): Promise<EntityReader> =>
+      createEntityReader(
+        context.entityService,
+        (await this.currentCall().access()).visibilityScope,
+      );
+    const access: ServiceEntityAccess<AnyEntityDefinition> = {
+      get: async (definition, id) => (await reader()).get(definition, id),
+      list: async (definition, options) =>
+        (await reader()).list(definition, options),
+      count: async (definition) => (await reader()).count(definition),
+      create: async (definition, input) => {
+        const declared = this.ownedDefinition(definition);
+        const call = this.currentCall();
+        this.assertWriteAllowed(declared.type, "create", await call.access());
+        const metadata = this.parseOwnedMetadata(declared, input.metadata);
+        // Create-if-absent: an id taken at any visibility is not written
+        // over, even one the caller cannot see.
+        if (input.id !== undefined) {
+          const taken = await context.entityService.getEntity({
+            entityType: declared.type,
+            id: input.id,
+            visibilityScope: internalFullScope(
+              "an owned create checks whether its id is taken; no content returned",
+            ),
+          });
+          if (taken) {
+            throw new SdkError("conflict", {
+              message: `A ${declared.type} "${input.id}" already exists`,
+            });
+          }
+        }
+        const written = await context.entityService.createEntity({
+          entity: {
+            ...definedFields({ id: input.id, visibility: input.visibility }),
+            entityType: declared.type,
+            content: input.content,
+            metadata,
+          },
+          options: {
+            ...(input.id !== undefined && {
+              conditionalWrite: { expectedRevision: null },
+            }),
+            eventContext: call.eventContext,
+          },
+        });
+        return { id: written.entityId };
+      },
+      update: async (definition, record, change) => {
+        const declared = this.ownedDefinition(definition);
+        const call = this.currentCall();
+        const current = await call.access();
+        this.assertWriteAllowed(declared.type, "update", current);
+        const stored = await this.currentRecord(declared, record, current);
+        const written = await context.entityService.updateEntity({
+          entity: {
+            ...stored,
+            content: change.content ?? stored.content,
+            metadata: this.parseOwnedMetadata(
+              declared,
+              change.metadata ?? record.metadata,
+            ),
+          },
+          options: {
+            expectedContentHash: record.contentHash,
+            eventContext: call.eventContext,
+          },
+        });
+        if (written.skipReason === "content-conflict") {
+          throw new SdkError("conflict", {
+            message: `The ${declared.type} "${record.id}" changed after it was read`,
+            publicMessage:
+              "The record changed after it was read; read it again",
+          });
+        }
+      },
+      delete: async (definition, record) => {
+        const declared = this.ownedDefinition(definition);
+        const call = this.currentCall();
+        const current = await call.access();
+        this.assertWriteAllowed(declared.type, "delete", current);
+        await this.currentRecord(declared, record, current);
+        const deleted = await context.entityService.deleteEntity({
+          entityType: declared.type,
+          id: record.id,
+          options: {
+            expectedContentHash: record.contentHash,
+            eventContext: call.eventContext,
+          },
+        });
+        if (!deleted) {
+          throw new SdkError("conflict", {
+            message: `The ${declared.type} "${record.id}" changed after it was read`,
+            publicMessage:
+              "The record changed after it was read; read it again",
+          });
+        }
+      },
+    };
+    this.entityAccessCache = Object.freeze(access);
+    return this.entityAccessCache;
   }
 
   private jobs(): ServiceJobs {
@@ -763,9 +1011,14 @@ class DeclarativeServicePlugin<
     return result;
   }
 
-  private registerPrompts(): void {
+  private requireShell(): IShell {
     const shell = this.scopedShell;
     if (!shell) throw new Error(`Service "${this.publicId}" has no shell`);
+    return shell;
+  }
+
+  private registerPrompts(): void {
+    const shell = this.requireShell();
     for (const [name, definition] of Object.entries(
       this.definition.prompts ?? {},
     )) {
@@ -862,10 +1115,14 @@ class DeclarativeServicePlugin<
           }
 
           const output = await this.toolContext.run(toolContext, () =>
-            definition.execute({
-              input,
-              signal: toolContext.signal ?? new AbortController().signal,
-            }),
+            this.calls.run(this.toolCall(toolContext), () =>
+              Promise.resolve(
+                definition.execute({
+                  input,
+                  signal: toolContext.signal ?? new AbortController().signal,
+                }),
+              ),
+            ),
           );
           return {
             success: true,
@@ -887,6 +1144,7 @@ export function createDeclarativeServicePlugin<
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
+  TEntities extends readonly AnyEntityDefinition[],
 >(
   definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
@@ -895,7 +1153,8 @@ export function createDeclarativeServicePlugin<
     TTemplateSchemas,
     TViewSchemas,
     TAccountSettings,
-    TTemplateDefinitions
+    TTemplateDefinitions,
+    TEntities
   >,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
@@ -907,7 +1166,8 @@ export function createDeclarativeServicePlugin<
   TTemplateSchemas,
   TViewSchemas,
   TAccountSettings,
-  TTemplateDefinitions
+  TTemplateDefinitions,
+  TEntities
 > {
   return new DeclarativeServicePlugin(definition, config, metadata, id);
 }
