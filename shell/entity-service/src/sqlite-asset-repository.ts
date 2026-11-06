@@ -76,7 +76,9 @@ export class SqliteAssetRepository implements AssetReader {
       ref: prepared.ref,
       digest: prepared.digest,
       sizeBytes: prepared.sizeBytes,
-      bytes: Uint8Array.from(prepared.bytes),
+      // The typed-array constructor copies in bulk into a buffer of its own,
+      // even from a Buffer, whose slice() would only be a view.
+      bytes: new Uint8Array(prepared.bytes),
     };
   }
 
