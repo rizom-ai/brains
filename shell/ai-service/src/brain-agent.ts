@@ -148,16 +148,14 @@ export function createBrainAgentFactory(
     capabilities.supportsTemperature,
   );
 
-  // A local model's call that fails validation is generated again with the
-  // tool's schema constraining the arguments, by the answer model when one is
-  // set; a cloud model retries from the validation error itself.
+  // A local model's call that fails validation is generated again by the
+  // same model, reasoning as it does when choosing tools, with the tool's
+  // schema constraining the arguments: without reasoning, a constrained model
+  // picks a valid but different operation. A cloud model retries from the
+  // validation error itself.
   const repairToolCall =
     capabilities.provider === "local"
-      ? answerModel
-        ? createToolCallRepair(answerModel)
-        : createToolCallRepair(model, {
-            local: { reasoningEffort: "none" },
-          })
+      ? createToolCallRepair(model, reasoning)
       : undefined;
 
   // Create event emitter backed by message bus
