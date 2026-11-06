@@ -1,33 +1,50 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import {
+  siteBuildStagingContract,
+  type SiteBuildStagingPayload,
+} from "@brains/contracts";
 import {
   EntityWriteConflictError,
   internalFullScope,
   ProjectionJsonObjectSchema,
   applyVisibilityToMarkdown,
-  baseEntitySchema,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  type DataSource,
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
-import { entityActionPolicyRuleSchema } from "@brains/templates";
-import { parseWithSchema } from "@brains/utils/parse-schema";
+import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
+import { entityActionPolicyRuleSchema, type Template } from "@brains/templates";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import type { EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
+import {
+  currentMetadata,
+  entitySchema,
+  parseDefinitionEntity,
+} from "./entity-schema";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import { SYSTEM_CHANNELS } from "../system-channels";
+import { createDeclaredDataSource } from "../public/entity-data-source";
 import type {
+  AnyDataSourceDeclaration,
   AnyEntityDefinition,
+  EntityFeedDeclaration,
   EntityOf,
   EntitySeedDefinition,
   EntitySeedTrigger,
   ProjectionDefinition,
 } from "./entity-definition-contract";
+
+export { parseDefinitionEntity } from "./entity-schema";
 
 /**
  * Named seed triggers map to internal channels here, so the public surface
@@ -39,6 +56,18 @@ const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
+/** A feed path stays inside the build output: relative, no parent steps. */
+const feedPathSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (path) =>
+      !path.startsWith("/") &&
+      !path.includes("\\") &&
+      path.split("/").every((segment) => segment !== "" && segment !== ".."),
+    { message: "A feed path is relative to the build output" },
+  );
+
 const projectionEnvelopeSchema = z.object({
   items: z.array(
     z.object({
@@ -48,70 +77,6 @@ const projectionEnvelopeSchema = z.object({
     }),
   ),
 });
-
-const entitySchemaCache = new WeakMap<
-  AnyEntityDefinition,
-  z.ZodType<EntityOf<AnyEntityDefinition>, unknown>
->();
-
-/** Stored metadata in its current shape, migrated when the type says how. */
-function currentMetadata(
-  definition: AnyEntityDefinition,
-  stored: unknown,
-): unknown {
-  return definition.metadataFrom ? definition.metadataFrom(stored) : stored;
-}
-
-/** A singleton's only record id is its entity type. */
-function recordIdSchema(definition: AnyEntityDefinition): z.ZodString {
-  return definition.singleton === true
-    ? z.string().refine((id) => id === definition.type, {
-        message: `A ${definition.type} singleton's id is "${definition.type}"`,
-      })
-    : baseEntitySchema.shape.id;
-}
-
-function entitySchema(
-  definition: AnyEntityDefinition,
-): z.ZodType<EntityOf<AnyEntityDefinition>, unknown> {
-  let schema = entitySchemaCache.get(definition);
-  if (!schema) {
-    schema = baseEntitySchema.extend({
-      id: recordIdSchema(definition),
-      entityType: z.literal(definition.type),
-      metadata: definition.metadataFrom
-        ? z.preprocess(definition.metadataFrom, definition.metadata)
-        : definition.metadata,
-    });
-    entitySchemaCache.set(definition, schema);
-  }
-  return schema;
-}
-
-const entityEnvelopeSchema = baseEntitySchema.extend({ metadata: z.unknown() });
-
-export function parseDefinitionEntity<TDefinition extends AnyEntityDefinition>(
-  definition: TDefinition,
-  input: unknown,
-): EntityOf<TDefinition> {
-  // The envelope and identity are checked apart from the metadata, so the
-  // metadata is migrated and validated exactly once, by the definition's own
-  // schema — which is also what proves its definition-typed output.
-  const parsed = entityEnvelopeSchema
-    .extend({
-      id: recordIdSchema(definition),
-      entityType: z.literal(definition.type),
-    })
-    .parse(input);
-  return {
-    ...parsed,
-    entityType: definition.type,
-    metadata: parseWithSchema<TDefinition["metadata"]>(
-      definition.metadata,
-      currentMetadata(definition, parsed.metadata),
-    ),
-  };
-}
 
 function encodeParts(
   definition: AnyEntityDefinition,
@@ -325,7 +290,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly validatePersist: AnyEntityDefinition["validatePersist"];
   private readonly seed:
     EntitySeedDefinition<AnyEntityDefinition["metadata"]> | undefined;
-  private releaseSeed: (() => void) | undefined;
+  private readonly templates: AnyEntityDefinition["templates"];
+  private readonly dataSources: readonly AnyDataSourceDeclaration[];
+  private readonly packageDataSourceIds: ReadonlySet<string>;
+  private readonly feed:
+    EntityFeedDeclaration<EntityOf<AnyEntityDefinition>> | undefined;
+  private readonly definition: AnyEntityDefinition;
+  private releases: readonly (() => void)[] = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -338,6 +309,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     projections: readonly ProjectionDefinition[],
     metadata: InstalledPluginPackageMetadata,
     scope: (localId: string) => string,
+    dataSources: readonly AnyDataSourceDeclaration[],
+    packageDataSourceIds: ReadonlySet<string>,
   ) {
     super(
       scope(definition.type),
@@ -360,6 +333,12 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.scope = scope;
     this.validatePersist = definition.validatePersist;
     this.seed = definition.seed;
+    this.templates = definition.templates;
+    this.dataSources = dataSources;
+    this.packageDataSourceIds = packageDataSourceIds;
+    if (definition.feed) feedPathSchema.parse(definition.feed.path);
+    this.feed = definition.feed;
+    this.definition = definition;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
@@ -367,6 +346,33 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return this.entityTypeConfig;
+  }
+
+  protected override getTemplates(): Record<string, Template> | null {
+    const templates = this.templates;
+    if (!templates) return null;
+    // A template naming one of its package's data sources follows it to the
+    // scoped id it registers under; any other id is left as written.
+    const local = this.packageDataSourceIds;
+    return Object.fromEntries(
+      Object.entries(templates).map(([name, template]) => [
+        name,
+        template.dataSourceId && local.has(template.dataSourceId)
+          ? { ...template, dataSourceId: this.scope(template.dataSourceId) }
+          : template,
+      ]),
+    );
+  }
+
+  protected override getDataSources(): DataSource[] {
+    // Scoped to the package, so two packages may each declare "entities".
+    return this.dataSources.map((declaration) =>
+      createDeclaredDataSource(
+        declaration,
+        this.scope(declaration.id),
+        this.logger,
+      ),
+    );
   }
 
   protected override async onRegister(
@@ -388,20 +394,98 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     }
 
     const seed = this.seed;
-    if (seed) {
-      this.releaseSeed = context.messaging.subscribe(
-        SEED_TRIGGER_CHANNELS[seed.on],
-        async (): Promise<{ success: true }> => {
-          await this.plantSeed(context, seed);
-          return { success: true };
-        },
+    const feed = this.feed;
+    this.releases = [
+      ...(seed
+        ? [
+            context.messaging.subscribe(
+              SEED_TRIGGER_CHANNELS[seed.on],
+              async (): Promise<{ success: true }> => {
+                await this.plantSeed(context, seed);
+                return { success: true };
+              },
+            ),
+          ]
+        : []),
+      ...(feed
+        ? [
+            // Builds run in the worker, so every process answers.
+            context.messaging.answer(
+              siteBuildStagingContract,
+              (payload) => this.stageFeed(context, feed, payload),
+              { everyProcess: true },
+            ),
+          ]
+        : []),
+    ];
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.releases.forEach((release) => release());
+    this.releases = [];
+  }
+
+  /**
+   * Write this type's feed into the staged build. A failure is reported
+   * rather than thrown, so the build fails and keeps the previous generation
+   * instead of publishing one without the feed.
+   */
+  private async stageFeed(
+    context: EntityPluginContext,
+    feed: EntityFeedDeclaration<EntityOf<AnyEntityDefinition>>,
+    payload: SiteBuildStagingPayload,
+  ): Promise<void> {
+    try {
+      await this.writeFeed(context, feed, payload);
+    } catch (error) {
+      this.logger.error(`Failed to write the ${this.entityType} feed`, error);
+      payload.reportFailure(
+        `${this.entityType} feed generation failed: ${getErrorMessage(error)}`,
       );
     }
   }
 
-  protected override async onShutdown(): Promise<void> {
-    this.releaseSeed?.();
-    this.releaseSeed = undefined;
+  private async writeFeed(
+    context: EntityPluginContext,
+    feed: EntityFeedDeclaration<EntityOf<AnyEntityDefinition>>,
+    payload: SiteBuildStagingPayload,
+  ): Promise<void> {
+    // A preview carries everything so an author sees unpublished work in
+    // place; a production build carries what the type counts as published.
+    const stored = await context.entityService.listEntities({
+      entityType: this.entityType,
+      options: {
+        limit: 1000,
+        publishedOnly: payload.environment === "production",
+      },
+    });
+    const items = stored.flatMap((entity) => {
+      const item = feed.toItem(parseDefinitionEntity(this.definition, entity));
+      return item ? [feedItemSchema.parse(item)] : [];
+    });
+    if (items.length === 0) return;
+
+    const siteUrl = (payload.siteConfig.url ?? "https://example.com").replace(
+      /\/+$/u,
+      "",
+    );
+    const xml = renderRssFeed(
+      items,
+      {
+        title: payload.siteConfig.title ?? "Feed",
+        description: payload.siteConfig.description ?? "Latest updates",
+        link: `${siteUrl}/${feed.routePrefix.replace(/^\/+/u, "")}`,
+        selfLink: `${siteUrl}/${feed.path}`,
+        copyright: payload.siteConfig.copyright,
+      },
+      (item) =>
+        `${siteUrl}/${payload
+          .generateEntityUrl(this.entityType, item.slug)
+          .replace(/^\/+/u, "")}`,
+    );
+    const target = join(payload.outputDir, feed.path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, xml, "utf8");
   }
 
   /** Create-if-absent: a seed never overwrites authored content. */
@@ -440,12 +524,28 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 }
 
+/**
+ * The plugin that registers a package data source: an entity data source
+ * with the type it reads, a fetching one with the package's first type.
+ */
+function installsDataSource(
+  source: AnyDataSourceDeclaration,
+  definition: AnyEntityDefinition,
+  entities: readonly AnyEntityDefinition[],
+): boolean {
+  return source.kind === "rizom-entity-data-source"
+    ? source.entity === definition
+    : entities[0] === definition;
+}
+
 export function createEntityPackagePlugins(
   entities: readonly AnyEntityDefinition[],
   projections: readonly ProjectionDefinition[],
   metadata: InstalledPluginPackageMetadata,
   scope: (localId: string) => string,
+  dataSources: readonly AnyDataSourceDeclaration[] = [],
 ): DeclarativeEntityPlugin[] {
+  const packageDataSourceIds = new Set(dataSources.map(({ id }) => id));
   return entities.map(
     (definition) =>
       new DeclarativeEntityPlugin(
@@ -453,6 +553,10 @@ export function createEntityPackagePlugins(
         projections.filter(({ source }) => source === definition),
         metadata,
         scope,
+        dataSources.filter((source) =>
+          installsDataSource(source, definition, entities),
+        ),
+        packageDataSourceIds,
       ),
   );
 }

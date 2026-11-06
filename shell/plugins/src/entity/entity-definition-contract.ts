@@ -1,6 +1,15 @@
-import type { EntityTypeClassification } from "@brains/entity-service";
-import type { EntityActionPolicyRuleInput } from "@brains/templates";
+import type { FeedItem } from "@brains/site-composition";
+import type { EntityActionPolicyRuleInput, Template } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
+import type {
+  EntityTypeClassification,
+  PaginationInfo,
+} from "@brains/entity-service";
+import type {
+  BaseQuery,
+  NavigationResult,
+} from "../service/base-entity-datasource";
 import type { EntityDefinitionConfig } from "./entity-definition-config";
 
 export type { EntityDefinitionConfig } from "./entity-definition-config";
@@ -59,6 +68,21 @@ export interface EntitySeedDefinition<
   readonly metadata?: z.input<TMetadataSchema> | undefined;
 }
 
+/**
+ * How a type contributes to a syndication feed. The type says how one of its
+ * records becomes an item; the site build decides which records qualify
+ * (published only, or everything in a preview), where the file goes, and how
+ * a slug becomes a URL.
+ */
+export interface EntityFeedDeclaration<TEntity> {
+  /** Path the feed is written to, relative to the build output. */
+  readonly path: string;
+  /** Route prefix the feed's channel link hangs off, e.g. "posts". */
+  readonly routePrefix: string;
+  /** Null for a record that does not belong in the feed. */
+  toItem(entity: TEntity): FeedItem | null;
+}
+
 export interface EntityDefinition<
   TType extends string = string,
   TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
@@ -111,6 +135,16 @@ export interface EntityDefinition<
   /** Whether this type carries a cover image in `coverImageId`. */
   readonly coverImage?: boolean | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
+  /**
+   * Templates keyed by local name. The runtime registers each under this
+   * type's scope, and a template whose `dataSourceId` names one of its
+   * package's data sources follows it to the scoped id.
+   */
+  readonly templates?: Readonly<Record<string, Template>> | undefined;
+  /** This type's syndication feed, written into every site build. */
+  readonly feed?:
+    | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
+    | undefined;
 }
 
 export type AnyEntityDefinition = EntityDefinition<
@@ -154,3 +188,165 @@ export interface ProjectionDefinition<
     readonly signal: AbortSignal;
   }): Promise<void>;
 }
+
+/** One field a declared list is ordered by. */
+export interface DataSourceSortField {
+  readonly field: string;
+  readonly direction: "asc" | "desc";
+  readonly nullsFirst?: boolean | undefined;
+  readonly nullsLast?: boolean | undefined;
+}
+
+/** How a declared data source asks for a list in order. */
+export interface DataSourceListOptions {
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
+  readonly sort?: readonly DataSourceSortField[] | undefined;
+}
+
+/**
+ * The reads a declared data source is given, typed by the definitions it
+ * names. Reads see what the build may show: public records, and only
+ * published ones when the build asks for that.
+ */
+export interface DataSourceEntityReader {
+  get<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+    id: string,
+  ): Promise<EntityOf<TDefinition> | null>;
+  list<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+    options?: DataSourceListOptions,
+  ): Promise<readonly EntityOf<TDefinition>[]>;
+  count<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+  ): Promise<number>;
+}
+
+/** What the build tells a data source about the read it is serving. */
+export interface DataSourceReadContext {
+  /** True for a production build, which shows only published records. */
+  readonly publishedOnly?: boolean | undefined;
+}
+
+/**
+ * A source of data a template reads from: one `fetch` over definition-typed
+ * reads. The author returns plain data and the runtime validates it against
+ * the caller's schema.
+ */
+export interface DataSourceDefinition {
+  readonly kind: "rizom-data-source";
+  /** Local id. The runtime scopes it to the installed package. */
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch(
+    query: unknown,
+    entities: DataSourceEntityReader,
+    context: DataSourceReadContext,
+  ): Promise<unknown>;
+}
+
+/** The query a template sends a list-and-detail source. */
+export type DataSourceQuery = BaseQuery;
+
+/**
+ * What a detail view is given. `siblings` is the list the runtime already
+ * loads to resolve prev/next, so a view that orders its neighbors
+ * differently computes that itself.
+ */
+export interface EntityDetailContext<TTransformed> {
+  readonly item: TTransformed;
+  readonly navigation: NavigationResult<TTransformed> | null;
+  readonly siblings: readonly TTransformed[];
+  readonly entities: DataSourceEntityReader;
+}
+
+/**
+ * A list-and-detail source over one declared type. The runtime derives the
+ * entity schema from `entity`, as `EntityOf` does, and keeps every read —
+ * listing, counting, paging, lookup and prev/next — on its own side; the
+ * author supplies order and pure functions over loaded entities.
+ */
+export interface EntityDataSourceInput<
+  TDefinition extends AnyEntityDefinition,
+  TTransformed,
+  TListResult extends object,
+> {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly entity: TDefinition;
+  readonly defaultSort: readonly DataSourceSortField[];
+  /** Items per list page when the query names no page size (default 100). */
+  readonly defaultLimit?: number | undefined;
+  /** How a detail query's `id` finds the entity (default: `metadata.slug`). */
+  readonly lookupField?: "slug" | "id" | undefined;
+  /** Resolve prev/next for a detail view (default false). */
+  readonly enableNavigation?: boolean | undefined;
+  /** Most entities read to resolve prev/next (default 1000). */
+  readonly navigationLimit?: number | undefined;
+  /**
+   * Narrow the list by something the query asked for, as an exact match on
+   * the type's own metadata. Applied in the database query, so a filtered
+   * list pages over the filtered set.
+   */
+  filter?(query: DataSourceQuery):
+    | {
+        readonly metadata?:
+          Partial<z.output<TDefinition["metadata"]>> | undefined;
+      }
+    | undefined;
+  transform(entity: EntityOf<TDefinition>): TTransformed;
+  list(
+    items: readonly TTransformed[],
+    pagination: PaginationInfo | null,
+    query: DataSourceQuery,
+  ): TListResult & JsonObjectOutputGuard<TListResult>;
+  detail?(
+    context: EntityDetailContext<TTransformed>,
+  ): unknown | Promise<unknown>;
+}
+
+export interface EntityDataSourceDefinition<
+  TDefinition extends AnyEntityDefinition = AnyEntityDefinition,
+  TTransformed = EntityOf<TDefinition>,
+  TListResult extends object = JsonObject,
+> extends EntityDataSourceInput<TDefinition, TTransformed, TListResult> {
+  readonly kind: "rizom-entity-data-source";
+}
+
+/**
+ * An entity data source with its types erased, as a package stores a
+ * heterogeneous list of them. Method syntax keeps a source that transforms
+ * to a concrete shape assignable here.
+ */
+export interface AnyEntityDataSourceDefinition {
+  readonly kind: "rizom-entity-data-source";
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly entity: AnyEntityDefinition;
+  readonly defaultSort: readonly DataSourceSortField[];
+  readonly defaultLimit?: number | undefined;
+  readonly lookupField?: "slug" | "id" | undefined;
+  readonly enableNavigation?: boolean | undefined;
+  readonly navigationLimit?: number | undefined;
+  filter?(
+    query: DataSourceQuery,
+  ):
+    | { readonly metadata?: Readonly<Record<string, unknown>> | undefined }
+    | undefined;
+  transform(entity: EntityOf<AnyEntityDefinition>): unknown;
+  /** Typed JSON at the declaration; the caller's schema validates it. */
+  list(
+    items: readonly unknown[],
+    pagination: PaginationInfo | null,
+    query: DataSourceQuery,
+  ): object;
+  detail?(context: EntityDetailContext<unknown>): unknown | Promise<unknown>;
+}
+
+/** Either declared form, as a package stores them. */
+export type AnyDataSourceDeclaration =
+  AnyEntityDataSourceDefinition | DataSourceDefinition;

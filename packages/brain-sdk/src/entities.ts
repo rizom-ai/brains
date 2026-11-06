@@ -2,14 +2,19 @@
 
 export { z } from "@brains/utils/zod";
 export {
+  defineDataSource,
   defineEntity,
   defineEntityPackage,
   defineProjection,
 } from "@brains/plugins";
 export type {
+  DataSourceDefinition,
+  DataSourceEntityReader,
   EncodedEntityMarkdown,
+  EntityDataSourceDefinition,
   EntityDefinition,
   EntityDefinitionConfig,
+  EntityFeedDeclaration,
   EntityTypeClassification,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
@@ -17,6 +22,7 @@ export type {
   EntityPackageDefinition,
   EntitySeedDefinition,
   EntitySeedTrigger,
+  FeedItem,
   ProjectionDefinition,
 } from "@brains/plugins";
 

@@ -286,6 +286,7 @@ export {
   type EncodedEntityMarkdown,
   type EntityDefinition,
   type EntityDefinitionConfig,
+  type EntityFeedDeclaration,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
   type EntityOf,
@@ -297,6 +298,20 @@ export {
   type ProjectionDefinition,
   type ProjectionTarget,
 } from "./public/entity-definition";
+export {
+  defineDataSource,
+  type AnyDataSourceDeclaration,
+  type AnyEntityDataSourceDefinition,
+  type DataSourceDefinition,
+  type DataSourceEntityReader,
+  type DataSourceListOptions,
+  type DataSourceQuery,
+  type DataSourceReadContext,
+  type DataSourceSortField,
+  type EntityDataSourceDefinition,
+  type EntityDataSourceInput,
+  type EntityDetailContext,
+} from "./public/entity-data-source";
 export {
   defineAccountSettings,
   defineStudioWorkspace,
@@ -859,6 +874,7 @@ export type {
   NavigationItem,
   NavigationSlot,
   EntityDisplayEntry,
+  FeedItem,
 } from "@brains/site-composition";
 export type {
   WebRouteDefinition,

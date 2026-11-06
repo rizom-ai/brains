@@ -234,9 +234,13 @@
     "@rizom/brain/entities": {
       "source": "packages/brain-sdk/src/entities.ts",
       "stable": [
+        "DataSourceDefinition",
+        "DataSourceEntityReader",
         "EncodedEntityMarkdown",
         "EntityDefinition",
+        "EntityDataSourceDefinition",
         "EntityDefinitionConfig",
+        "EntityFeedDeclaration",
         "EntityMarkdownCodec",
         "EntityMarkdownDocument",
         "EntityOf",
@@ -244,7 +248,9 @@
         "EntitySeedDefinition",
         "EntitySeedTrigger",
         "EntityTypeClassification",
+        "FeedItem",
         "ProjectionDefinition",
+        "defineDataSource",
         "defineEntity",
         "defineEntityPackage",
         "defineProjection",

@@ -4,13 +4,16 @@ import {
 } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
-import type { EntityActionPolicyRuleInput } from "@brains/templates";
+import type { EntityActionPolicyRuleInput, Template } from "@brains/templates";
 import type {
+  AnyDataSourceDeclaration,
   AnyEntityDefinition,
   EntityDefinition,
   EntityDefinitionConfig,
+  EntityFeedDeclaration,
   EntityMarkdownCodec,
   EntityMetadataSchema,
+  EntityOf,
   EntitySeedDefinition,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
@@ -25,6 +28,7 @@ export type {
   EncodedEntityMarkdown,
   EntityDefinition,
   EntityDefinitionConfig,
+  EntityFeedDeclaration,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityMetadataSchema,
@@ -60,6 +64,10 @@ export function defineEntity<
   readonly actions?: EntityActionPolicyRuleInput | undefined;
   readonly coverImage?: boolean | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
+  readonly templates?: Readonly<Record<string, Template>> | undefined;
+  readonly feed?:
+    | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
+    | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {
@@ -94,6 +102,7 @@ export interface EntityPackageDefinition<
 > extends PluginPackageDefinition<typeof entityPackageConfig, "entity"> {
   readonly entities: TEntities;
   readonly projections: TProjections;
+  readonly dataSources: readonly AnyDataSourceDeclaration[];
 }
 
 export function defineEntityPackage<
@@ -103,6 +112,7 @@ export function defineEntityPackage<
   readonly id: string;
   readonly entities: TEntities;
   readonly projections: TProjections;
+  readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
 }): EntityPackageDefinition<TEntities, TProjections>;
 export function defineEntityPackage<
   const TEntities extends readonly AnyEntityDefinition[],
@@ -110,19 +120,45 @@ export function defineEntityPackage<
   readonly id: string;
   readonly entities: TEntities;
   readonly projections?: undefined;
+  readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
 }): EntityPackageDefinition<TEntities, readonly []>;
 export function defineEntityPackage(definition: {
   readonly id: string;
   readonly entities: readonly AnyEntityDefinition[];
   readonly projections?: readonly ProjectionDefinition[] | undefined;
+  readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
 }): EntityPackageDefinition {
   const entities = Object.freeze([...definition.entities]);
   const projections = Object.freeze([...(definition.projections ?? [])]);
+  const dataSources = Object.freeze([...(definition.dataSources ?? [])]);
   const entitySet = new Set<AnyEntityDefinition>(entities);
   const entityTypes = entities.map(({ type }) => type);
   if (new Set(entityTypes).size !== entityTypes.length) {
     throw new Error(
       `Entity package "${definition.id}" contains duplicate entity types`,
+    );
+  }
+  // Data source ids are scoped to the package, so one id twice would
+  // collide when the second registers.
+  const dataSourceIds = dataSources.map(({ id }) => id);
+  if (new Set(dataSourceIds).size !== dataSourceIds.length) {
+    throw new Error(
+      `Entity package "${definition.id}" contains duplicate data source ids`,
+    );
+  }
+  if (dataSources.length > 0 && entities.length === 0) {
+    throw new Error(
+      `Entity package "${definition.id}" declares data sources but no entities to install them`,
+    );
+  }
+  const strayDataSource = dataSources.find(
+    (source) =>
+      source.kind === "rizom-entity-data-source" &&
+      !entitySet.has(source.entity),
+  );
+  if (strayDataSource) {
+    throw new Error(
+      `Entity package "${definition.id}" data source "${strayDataSource.id}" reads an entity outside its package`,
     );
   }
   const projectionIds = projections.map(({ id }) => id);
@@ -143,6 +179,7 @@ export function defineEntityPackage(definition: {
   const publicDefinition = {
     entities,
     projections,
+    dataSources,
   };
   return createPluginPackageDefinition({
     family: "entity",
@@ -150,6 +187,12 @@ export function defineEntityPackage(definition: {
     config: entityPackageConfig,
     public: publicDefinition,
     instantiate: ({ package: metadata, scope }) =>
-      createEntityPackagePlugins(entities, projections, metadata, scope),
+      createEntityPackagePlugins(
+        entities,
+        projections,
+        metadata,
+        scope,
+        dataSources,
+      ),
   });
 }

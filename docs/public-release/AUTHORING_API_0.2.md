@@ -138,6 +138,7 @@ Every other export from this subpath remains an advanced consumer-backed alpha c
 
 Definitions and schema vocabulary:
 
+- `defineDataSource`
 - `defineEntity`
 - `defineEntityPackage`
 - `defineProjection`
@@ -145,9 +146,13 @@ Definitions and schema vocabulary:
 
 Types:
 
+- `DataSourceDefinition`
+- `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
+- `EntityDataSourceDefinition`
 - `EntityDefinition`
 - `EntityDefinitionConfig`
+- `EntityFeedDeclaration`
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
@@ -155,6 +160,7 @@ Types:
 - `EntitySeedDefinition`
 - `EntitySeedTrigger`
 - `EntityTypeClassification`
+- `FeedItem`
 - `ProjectionDefinition`
 
 `defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
@@ -184,6 +190,16 @@ The other basic slots on `defineEntity`:
 - `coverImage: true` declares that the type carries a cover image in `coverImageId`; `system_update` refuses a cover on a type that does not declare one.
 
 `EntitySeedDefinition` is the optional `seed` slot: a default record the brain holds before anyone authors one. `EntitySeedTrigger` names when it is planted; `startup-content-settled` fires once startup content is in place, after a successful initial sync or at boot when none was pending, and never after a failed sync. Seeding is create-if-absent: `content()` is built only when no record with the seed's id exists at any visibility, so a seed never overwrites authored content.
+
+Presentation on `defineEntity` and `defineEntityPackage`:
+
+- `defineEntityPackage({ id, entities, dataSources })` declares the data its templates read. Data sources belong to the package: their ids are scoped to it, so two in one package cannot share an id, and every definition they read already exists when the package is assembled. A source cannot be declared inside the entity it reads, which would read the definition before it exists.
+- `defineDataSource` has two forms, told apart by `fetch` or `entity`; declaring both or neither is refused.
+  - **Fetching** (`DataSourceDefinition`): `fetch(query, entities, context)` reads through a `DataSourceEntityReader` — `get(definition, id)`, `list(definition, { limit?, offset?, sort? })` and `count(definition)`, each typed by the definition it names — and returns plain data.
+  - **Entity** (`EntityDataSourceDefinition`): `entity` names a definition in the same package, and the runtime derives its full schema from it, as `EntityOf` does; authors never declare the runtime-owned base fields. `defaultSort` (`{ field, direction, nullsFirst?, nullsLast? }`), `defaultLimit` (default 100), `lookupField` (`"slug"` by default, or `"id"`), `enableNavigation` and `navigationLimit` (default 1000) configure the reads. `transform(entity)` receives the definition-typed entity; `list(items, pagination, query)` returns a JSON object, with `pagination` set when the query names a `page`; `filter(query)` may narrow the list to an exact match on the type's own metadata, applied before paging; `detail({ item, navigation, siblings, entities })` answers a query naming an `id`, and a source without one refuses such a query.
+  - Reads see public records, and only published ones in a production build; a fetching source reads `context.publishedOnly` to know which. The runtime validates what either form returns against the caller's schema.
+- `templates` registers templates keyed by local name under the type's scope. A template whose `dataSourceId` names one of its package's data sources follows it to the scoped id; any other id is kept as written.
+- `feed` (`EntityFeedDeclaration`) syndicates the type: `path` (relative to the build output, no parent steps), `routePrefix` for the channel link, and `toItem(entity)`, which returns a `FeedItem` (`title`, `slug`, `description`, `content`, `author`, ISO `publishedAt`, optional `category`) or `null` to leave a record out. Every site build writes the feed into its staged output: a preview carries every record, a production build only those the type counts as published. A malformed item fails the build, which keeps the previous generation.
 
 ## `@rizom/brain/services`
 
