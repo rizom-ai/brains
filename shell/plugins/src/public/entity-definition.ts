@@ -37,6 +37,9 @@ import {
 
 export type {
   AnyEntityDefinition,
+  EntityAtprotoProjection,
+  EntityAtprotoPublishConfig,
+  EntityAtprotoRecordInput,
   EntityAgentContextProvider,
   EntityEvalContext,
   EntityEvalDeclaration,
@@ -124,6 +127,7 @@ export function defineEntity<
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
     | undefined;
+  readonly atproto?: EntityDefinition<TType, TMetadataSchema>["atproto"];
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (definition.scheduledGeneration) {

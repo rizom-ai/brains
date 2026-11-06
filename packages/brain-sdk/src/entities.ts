@@ -10,11 +10,16 @@ export {
 } from "@brains/plugins";
 export type {
   AnyEntityJobDeclaration,
+  AtprotoBlobRef,
+  AtprotoLexicon,
   AttachmentProvider,
   DataSourceDefinition,
   DataSourceEntityReader,
   EncodedEntityMarkdown,
   EntityAgentContextProvider,
+  EntityAtprotoProjection,
+  EntityAtprotoPublishConfig,
+  EntityAtprotoRecordInput,
   EntityAttachmentDeclaration,
   EntityCreateAllocation,
   EntityCreateAttachment,

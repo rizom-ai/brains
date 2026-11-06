@@ -32,6 +32,11 @@ import {
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
+import type {
+  AtprotoBlobRef,
+  AtprotoProjection,
+  AtprotoProjectionBuildInput,
+} from "@brains/atproto-contracts";
 import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
 import { entityActionPolicyRuleSchema, type Template } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
@@ -67,6 +72,7 @@ import type {
   EntityCreateResolution,
   EntityCreateRoute,
   EntityCreateRouting,
+  EntityAtprotoProjection,
   EntityCreateUploadReader,
   EntityFeedDeclaration,
   MediaAttachmentContext,
@@ -712,6 +718,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     const seed = this.seed;
     const feed = this.feed;
+    const atproto = this.definition.atproto;
     const media = this.attachments?.length
       ? mediaAttachmentContext(context)
       : undefined;
@@ -780,7 +787,95 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             ),
           ]
         : []),
+      ...(atproto
+        ? [
+            context.atprotoProjections.register(
+              this.atprotoProjection(context, atproto),
+            ),
+          ]
+        : []),
     ];
+  }
+
+  /**
+   * The declared projection in the shape the AT Protocol service reads. It
+   * reads as this package rather than through the context the service
+   * passes, and it is given the validated record.
+   */
+  private atprotoProjection(
+    context: EntityPluginContext,
+    declared: EntityAtprotoProjection<EntityOf<AnyEntityDefinition>>,
+  ): AtprotoProjection {
+    const definition = this.definition;
+    const entities = createEntityReader(
+      context.entityService,
+      internalFullScope(
+        "declared AT Protocol projections read as their package",
+      ),
+    );
+    const isPublishable = declared.isPublishable?.bind(declared);
+    return {
+      entityType: this.entityType,
+      collection: declared.lexicon.id,
+      lexicon: declared.lexicon,
+      ...definedFields({ validate: declared.validate }),
+      ...(isPublishable && {
+        // An invalid record stays publishable so its build fails and is
+        // reported, instead of the published record being withdrawn.
+        isPublishable: (entity: BaseEntity): boolean => {
+          const parsed = entitySchema(definition).safeParse(entity);
+          return parsed.success ? isPublishable(parsed.data) : true;
+        },
+      }),
+      // Async, so a record that does not validate rejects rather than throws.
+      buildRecord: async ({
+        entity,
+        config,
+        client,
+        pageUrl,
+        topics,
+        dryRun,
+      }: AtprotoProjectionBuildInput): Promise<Record<string, unknown>> =>
+        declared.buildRecord(
+          Object.freeze({
+            entity: parseDefinitionEntity(definition, entity),
+            config: Object.freeze(
+              definedFields({
+                brainDid: config.brainDid,
+                anchorDid: config.anchorDid,
+              }),
+            ),
+            ...definedFields({
+              pageUrl,
+              topics: topics && Object.freeze([...topics]),
+            }),
+            dryRun: dryRun === true,
+            entities,
+            uploadBlob: async ({
+              data,
+              mimeType,
+            }: {
+              readonly data: Uint8Array;
+              readonly mimeType: string;
+            }): Promise<AtprotoBlobRef> => {
+              if (dryRun) {
+                return {
+                  $type: "blob",
+                  ref: { $link: "dry-run" },
+                  mimeType,
+                  size: data.byteLength,
+                };
+              }
+              if (!client?.uploadBlob) {
+                throw new Error(
+                  "AT Protocol PDS client does not support blob uploads",
+                );
+              }
+              return (await client.uploadBlob({ data, mimeType })).blob;
+            },
+          }),
+        ),
+    };
   }
 
   private registerCreateRouting(

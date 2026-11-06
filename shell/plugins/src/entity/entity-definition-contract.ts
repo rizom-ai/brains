@@ -1,3 +1,4 @@
+import type { AtprotoBlobRef, AtprotoLexicon } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
 import type {
   EntityActionPolicyRuleInput,
@@ -124,6 +125,57 @@ export interface EntityFeedDeclaration<TEntity> {
   toItem(entity: TEntity): FeedItem | null;
 }
 
+/** The identities a record may name: this brain's DID and its anchor's. */
+export interface EntityAtprotoPublishConfig {
+  readonly brainDid?: string | undefined;
+  readonly anchorDid?: string | undefined;
+}
+
+/** What a projection builds one record from. */
+export interface EntityAtprotoRecordInput<TEntity> {
+  readonly entity: TEntity;
+  readonly config: EntityAtprotoPublishConfig;
+  /** The record's page on this brain's site, when the site gives it one. */
+  readonly pageUrl?: string | undefined;
+  readonly topics?: readonly string[] | undefined;
+  /** True when the record is previewed rather than published. */
+  readonly dryRun: boolean;
+  /**
+   * Definition-typed reads as the package, at every visibility, so a
+   * projection can refuse to publish something that is not public.
+   */
+  readonly entities: DataSourceEntityReader;
+  /**
+   * Store bytes on the PDS and return the blob naming them. A preview stores
+   * nothing and returns a placeholder of the same type and size.
+   */
+  uploadBlob(input: {
+    readonly data: Uint8Array;
+    readonly mimeType: string;
+  }): Promise<AtprotoBlobRef>;
+}
+
+/**
+ * How a type's public records become AT Protocol records. The lexicon names
+ * the collection; the runtime registers the projection for the type and
+ * validates each record against the lexicon before it is written.
+ */
+export interface EntityAtprotoProjection<TEntity> {
+  readonly lexicon: AtprotoLexicon;
+  /** Whether the PDS also validates records against the lexicon. */
+  readonly validate?: boolean | undefined;
+  /**
+   * Whether a public record is ready to publish, such as a post that is no
+   * longer a draft. Without it, every public record is. It sees validated
+   * records only: one that does not validate fails to build and is reported,
+   * rather than withdrawn from the PDS as unpublishable.
+   */
+  isPublishable?(entity: TEntity): boolean;
+  buildRecord(
+    input: EntityAtprotoRecordInput<TEntity>,
+  ): Promise<Record<string, unknown>>;
+}
+
 export interface EntityDefinition<
   TType extends string = string,
   TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
@@ -226,6 +278,12 @@ export interface EntityDefinition<
   /** This type's syndication feed, written into every site build. */
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
+    | undefined;
+  /** How this type's public records are published as AT Protocol records. */
+  readonly atproto?:
+    | EntityAtprotoProjection<
+        EntityOf<EntityDefinition<TType, TMetadataSchema>>
+      >
     | undefined;
 }
 

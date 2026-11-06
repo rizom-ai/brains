@@ -148,11 +148,16 @@ Definitions and schema vocabulary:
 Types:
 
 - `AnyEntityJobDeclaration`
+- `AtprotoBlobRef`
+- `AtprotoLexicon`
 - `AttachmentProvider`
 - `DataSourceDefinition`
 - `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
 - `EntityAgentContextProvider`
+- `EntityAtprotoProjection`
+- `EntityAtprotoPublishConfig`
+- `EntityAtprotoRecordInput`
 - `EntityAttachmentDeclaration`
 - `EntityCreateAllocation`
 - `EntityCreateAttachment`
@@ -251,6 +256,12 @@ The agent, the schedule and evals on `defineEntity`:
 - `agentContext` (`EntityAgentContextProvider`) grounds the agent's next turn: given the `request` and definition-typed `entities` reads scoped to the asker's permission, it returns context items (`id`, `source`, optional `title`, `content`). An item that fails validation is dropped rather than costing the turn.
 - `scheduledGeneration` (`EntityScheduledGenerationDeclaration`) answers the content pipeline's schedule for the type, and requires `generation`. `from` names the source type, an optional metadata `status` and a `limit` (1–100). `mode: "each"` writes from the first source no entity of this type already names in its `sourceEntityType`/`sourceEntityId` metadata; `"batch"` writes from all of them (`sourceEntityIds`). The runtime queues the type's `{type}:generation` job, reports back to the pipeline when nothing qualifies, and reports each generation's success or failure.
 - `evals` (`EntityEvalDeclaration`) registers eval handlers keyed by id. Each receives the eval input and a frozen `EntityEvalContext`: `ai.generate` (as a generation has it), `entities` reads as the package, and `EntityEvalFixtures` — `seed` an entity of any type, `settleEmbeddings` (60-second bound), and `reset`, which removes this type's records up to a visibility (public by default) plus everything seeded. Reset deletes, so evals use isolated evaluation data.
+
+Publishing to AT Protocol on `defineEntity`:
+
+- `atproto` (`EntityAtprotoProjection`) publishes the type's public records as AT Protocol records. Its `lexicon` (`AtprotoLexicon`) names the collection and must define a record key; `validate` asks the PDS to validate records too. The runtime registers the projection for the type and releases it on shutdown.
+- `isPublishable(entity)` says whether a public record is ready, such as a post that is no longer a draft; without it every public record is. It sees validated records only: a record that does not validate fails to build and is reported, rather than withdrawn from the PDS.
+- `buildRecord(input)` returns the record, which the runtime validates against the lexicon before writing. `EntityAtprotoRecordInput` is frozen: the validated `entity`, the brain's and anchor's DIDs (`EntityAtprotoPublishConfig`), the record's `pageUrl` when the site gives it one, `topics`, `dryRun` for a preview, definition-typed `entities` reads as the package at every visibility (so a projection can refuse to publish something that is not public), and `uploadBlob({ data, mimeType })`, which stores bytes on the PDS and returns an `AtprotoBlobRef` — in a preview, a placeholder of the same type and size.
 
 ## `@rizom/brain/services`
 

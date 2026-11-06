@@ -315,6 +315,9 @@ export {
   type MediaEntityListRequest,
   type MediaEntityReads,
   type MediaEntityRequest,
+  type EntityAtprotoProjection,
+  type EntityAtprotoPublishConfig,
+  type EntityAtprotoRecordInput,
   type EntityDefinition,
   type EntityDefinitionConfig,
   type EntityFeedDeclaration,
@@ -907,6 +910,7 @@ export type {
   EntityDisplayEntry,
   FeedItem,
 } from "@brains/site-composition";
+export type { AtprotoBlobRef, AtprotoLexicon } from "@brains/atproto-contracts";
 export type {
   WebRouteDefinition,
   RegisteredWebRoute,
