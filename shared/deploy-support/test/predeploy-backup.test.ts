@@ -275,6 +275,96 @@ describe("predeploy backup capture program", () => {
   });
 
   it.skipIf(!LINUX)(
+    "waits out a writer that holds the database instead of failing the snapshot",
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), "predeploy-backup-busy-"));
+      temporaryDirectories.push(root);
+      const sourceDatabase = join(root, "source.db");
+      const backupDir = join(root, "backup");
+      const contentDir = join(root, "content");
+      const remoteDir = join(root, "remote.git");
+      const lockerPath = join(root, "locker.ts");
+      const readyPath = join(root, "locker-ready");
+      await Bun.$`mkdir -p ${backupDir} ${contentDir}`.quiet();
+
+      const database = new Database(sourceDatabase, { create: true });
+      database.run("PRAGMA journal_mode=WAL");
+      database.run("CREATE TABLE entries(id INTEGER PRIMARY KEY, value TEXT)");
+      database.run("INSERT INTO entries(value) VALUES ('before')");
+      database.close(false);
+
+      await git(contentDir, ["init", "-b", "main"]);
+      await git(contentDir, ["config", "user.name", "Backup Test"]);
+      await git(contentDir, ["config", "user.email", "backup@example.com"]);
+      await writeFile(join(contentDir, "tracked.txt"), "base\n");
+      await git(contentDir, ["add", "tracked.txt"]);
+      await git(contentDir, ["commit", "-m", "base"]);
+      await git(root, ["init", "--bare", remoteDir]);
+      await git(contentDir, ["remote", "add", "origin", remoteDir]);
+      await git(contentDir, ["push", "--set-upstream", "origin", "main"]);
+
+      await writeFile(
+        lockerPath,
+        `import { Database } from "bun:sqlite";
+const [sourcePath, readyPath] = process.argv.slice(2);
+const db = new Database(sourcePath);
+db.run("PRAGMA locking_mode=EXCLUSIVE");
+db.run("BEGIN EXCLUSIVE");
+db.run("INSERT INTO entries(value) VALUES ('held')");
+await Bun.write(readyPath, "ready");
+await Bun.sleep(400);
+db.run("COMMIT");
+db.close(false);
+`,
+      );
+      const locker = Bun.spawn(
+        [process.execPath, lockerPath, sourceDatabase, readyPath],
+        { stdout: "ignore", stderr: "pipe" },
+      );
+      for (let attempt = 0; attempt < 200; attempt += 1) {
+        if (await Bun.file(readyPath).exists()) break;
+        await Bun.sleep(5);
+      }
+      expect(await Bun.file(readyPath).exists()).toBe(true);
+
+      await capturePredeployBackup({
+        backupDir,
+        contentRoot: contentDir,
+        databases: [
+          {
+            source: sourceDatabase,
+            name: "source.db",
+            method: "vacuum",
+            quickCheck: "bun",
+            logicalVector: false,
+          },
+        ],
+        metadata: {
+          snapshotId: "predeploy-test-busy",
+          targetHandle: "test",
+          host: "test-host",
+          startedAt: new Date().toISOString(),
+          sourceVersion: "source",
+          targetVersion: "target",
+          toolVersion: "test",
+          containerId: "container",
+          imageId: "image",
+          imageDigest: "digest",
+        },
+      });
+
+      expect(await locker.exited).toBe(0);
+      const snapshot = new Database(join(backupDir, "source.db"), {
+        readonly: true,
+      });
+      expect(snapshot.query("PRAGMA quick_check").get()).toEqual({
+        quick_check: "ok",
+      });
+      snapshot.close(false);
+    },
+  );
+
+  it.skipIf(!LINUX)(
     "snapshots WAL writes and round-trips exact dirty Git state without mutation",
     async () => {
       const root = await mkdtemp(join(tmpdir(), "predeploy-backup-"));
