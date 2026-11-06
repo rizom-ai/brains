@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { socialLinkSchema, type SocialLink } from "@brains/contracts";
 import {
   siteInfoBodySchema,
   type ResolvedSiteInfoBody,
@@ -10,11 +11,7 @@ export interface SiteInfoNavigationItem {
   priority: number;
 }
 
-export interface SiteInfoSocialLink {
-  platform: "github" | "instagram" | "linkedin" | "email" | "website";
-  url: string;
-  label?: string | undefined;
-}
+export type SiteInfoSocialLink = SocialLink;
 
 export interface SiteInfo extends ResolvedSiteInfoBody {
   navigation: {
@@ -47,25 +44,8 @@ const siteInfoNavigationSchema: SiteInfoNavigationSchema = z.object({
   secondary: z.array(siteInfoNavigationItemSchema),
 });
 
-type SiteInfoSocialLinkSchema = z.ZodObject<{
-  platform: z.ZodEnum<{
-    github: "github";
-    instagram: "instagram";
-    linkedin: "linkedin";
-    email: "email";
-    website: "website";
-  }>;
-  url: z.ZodString;
-  label: z.ZodOptional<z.ZodString>;
-}>;
-
-const siteInfoSocialLinkSchema: SiteInfoSocialLinkSchema = z.object({
-  platform: z
-    .enum(["github", "instagram", "linkedin", "email", "website"])
-    .describe("Social media platform"),
-  url: z.string().describe("Profile or contact URL"),
-  label: z.string().optional().describe("Optional display label"),
-});
+type SiteInfoSocialLinkSchema = typeof socialLinkSchema;
+const siteInfoSocialLinkSchema: SiteInfoSocialLinkSchema = socialLinkSchema;
 
 /**
  * Schema for site information

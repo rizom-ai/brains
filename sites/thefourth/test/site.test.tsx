@@ -17,7 +17,21 @@ const siteInfo: SiteLayoutInfo = {
     buttonText: "Let’s talk",
     buttonLink: "mailto:nihao.fourth@gmail.com",
   },
-  socialLinks: [{ platform: "email", url: "mailto:nihao.fourth@gmail.com" }],
+  socialLinks: [
+    { platform: "email", url: "mailto:nihao.fourth@gmail.com" },
+    {
+      platform: "instagram",
+      url: "https://www.instagram.com/notaboutyou_bs/",
+    },
+    {
+      platform: "linkedin",
+      url: "https://www.linkedin.com/company/hello-the-fourth",
+    },
+    {
+      platform: "podcast",
+      url: "https://podcasts.apple.com/tw/podcast/id1674146827",
+    },
+  ],
 };
 
 function renderLayout(info: SiteLayoutInfo): string {
@@ -110,7 +124,7 @@ describe("@rizom/site-thefourth", () => {
     expect(renderLayout(withoutCta)).not.toContain("Let’s talk");
   });
 
-  test("signs off on red: the name, the email the brain gives, the city and the copyright", () => {
+  test("signs off on red: the name, the email the brain gives and the copyright", () => {
     const html = renderLayout(siteInfo);
     expect(html).toContain('<footer class="tf-foot">');
     expect(html).toContain("The<br/>Fourth");
@@ -118,9 +132,25 @@ describe("@rizom/site-thefourth", () => {
     expect(html).toContain(
       'href="mailto:nihao.fourth@gmail.com">↳ nihao.fourth@gmail.com</a>',
     );
-    expect(html).toContain("Made in Taipei");
     expect(html).toContain("©2026 The Fourth");
+    expect(html).not.toContain("Made in Taipei");
     const { socialLinks: _links, ...withoutLinks } = siteInfo;
     expect(renderLayout(withoutLinks)).not.toContain("↳");
+  });
+
+  test("lists the brain's profiles in the footer, each opening in a new tab", () => {
+    const html = renderLayout(siteInfo);
+    expect(html).toMatch(
+      /<div class="tf-foot__social"><a class="tf-flink" href="https:\/\/www\.instagram\.com\/notaboutyou_bs\/" target="_blank" rel="noopener">Instagram<\/a><a class="tf-flink" href="https:\/\/www\.linkedin\.com\/company\/hello-the-fourth" target="_blank" rel="noopener">LinkedIn<\/a><a class="tf-flink" href="https:\/\/podcasts\.apple\.com\/tw\/podcast\/id1674146827" target="_blank" rel="noopener">Podcast<\/a><\/div>/,
+    );
+    expect(html.match(/nihao\.fourth@gmail\.com<\/a>/g)?.length).toBe(1);
+    const { socialLinks: _links, ...withoutLinks } = siteInfo;
+    expect(renderLayout(withoutLinks)).not.toContain("tf-foot__social");
+  });
+
+  test("credits Rizom, quietly, beside the copyright", () => {
+    expect(renderLayout(siteInfo)).toContain(
+      '<div class="tf-foot__bottom"><a class="tf-flink tf-foot__credit" href="https://rizom.ai" target="_blank" rel="noopener">Powered by Rizom</a><span>©2026 The Fourth</span></div>',
+    );
   });
 });

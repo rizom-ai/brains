@@ -1,3 +1,4 @@
+import { socialLinkPlatformSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 const exactVersionPattern: RegExp =
@@ -161,17 +162,11 @@ export const cohortSchema: z.ZodObject<
 export type CohortConfig = z.output<typeof cohortSchema>;
 
 const anchorProfileSocialLinkSchema: z.ZodObject<{
-  platform: z.ZodEnum<{
-    github: "github";
-    instagram: "instagram";
-    linkedin: "linkedin";
-    email: "email";
-    website: "website";
-  }>;
+  platform: typeof socialLinkPlatformSchema;
   url: z.ZodString;
   label: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
-  platform: z.enum(["github", "instagram", "linkedin", "email", "website"]),
+  platform: socialLinkPlatformSchema,
   url: z.string().min(1),
   label: z.string().min(1).optional(),
 });

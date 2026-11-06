@@ -1,4 +1,8 @@
-import { defineBusContract, type BusContract } from "@brains/contracts";
+import {
+  defineBusContract,
+  socialLinkSchema,
+  type BusContract,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
   SiteLayoutInfo,
@@ -174,24 +178,6 @@ function expectSiteMetadataTranslation(
 }
 void expectSiteMetadataTranslation;
 void expectSiteMetadataSection;
-
-const socialLinkSchema: z.ZodObject<{
-  platform: z.ZodEnum<{
-    github: "github";
-    instagram: "instagram";
-    linkedin: "linkedin";
-    email: "email";
-    website: "website";
-  }>;
-  url: z.ZodString;
-  label: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  platform: z
-    .enum(["github", "instagram", "linkedin", "email", "website"])
-    .describe("Social media platform"),
-  url: z.string().describe("Profile or contact URL"),
-  label: z.string().optional().describe("Optional display label"),
-});
 
 /**
  * Complete site information passed to layout components.

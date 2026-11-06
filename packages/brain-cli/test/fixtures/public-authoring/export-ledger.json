@@ -487,7 +487,9 @@
         "routeTranslationSchema",
         "SiteAlternate",
         "siteDefinitionOverridesSchema",
-        "SiteMetadataTranslation"
+        "SiteMetadataTranslation",
+        "SOCIAL_LINK_PLATFORM_LABELS",
+        "SocialLinkPlatform"
       ],
       "internal/removable": [
         "RizomBrandSuffix",
