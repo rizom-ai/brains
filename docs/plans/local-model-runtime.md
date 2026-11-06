@@ -37,6 +37,7 @@ Agent evals, 2026-10-31 to 2026-11-05, headless suite (27 runs), judge `gpt-5.4-
 | `local:qwen3:30b-a3b` (Thinking-2507)                                              | 25/27 | 93%  | 18.4 s         |
 | `local:qwen3:30b-a3b-instruct-2507`, two runs                                      | 24/27 | 89%  | 4.6 s, 3.3 s   |
 | `qwen3:30b-a3b` deciding, `qwen3:30b-a3b-instruct-2507` as `answerModel`, two runs | 27/27 | 100% | 15.1 s, 12.2 s |
+| `local:gpt-oss:120b` (116.8B, 5.1B active, MXFP4, 65.4 GB), alone                  | 26/27 | 96%  | 13.9 s         |
 
 - The schema-constrained run is what is built. Before the fix, every object generation on the local model (topic votes) failed validation on invented keys; with constrained output those failures are gone.
 - `qwen3:8b` fails in both runs: the write–confirm–read-back case, the exact-note direct create, and the private note at admin and trusted (wrong `system_create` `source.kind`). Agent recommendation without a match and skill derivation fail in one run each.
@@ -71,12 +72,14 @@ Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-no
 | the same, uploads as text and tools handed back to the deciding model    | 7/33  | 21%  | 130.5 s      |
 | + invalid tool calls repaired by the answer model, output constrained    | 17/33 | 52%  | 56.4 s       |
 | + repaired by the deciding model instead                                 | 17/33 | 52%  | 60.8 s       |
+| `local:gpt-oss:120b` alone, with the repair                              | 14/33 | 42%  | 56.5 s       |
 
 - In the first run, 11 failures were the runtime refusing the request: Ollama's chat API takes no PDF parts and the Qwen3 models read no images. Uploads now reach a local model as text: a PDF as its extracted text, any other file as its name and type.
 - After any tool result, the answer model took every later step and made the retries; a tool it calls now hands the next step back to `model`. `system_get` asks for a fresh read whenever the user asks to read.
 - Both models misshape nested arguments: upload saves write `source: { kind: "upload", id }` for `source.upload: { kind, id }`, and edits omit `operation.kind`; retrying against the validation error, they looped up to ten times. A local model's call that fails validation is now generated again with the tool's input schema constraining the output, and the loops are gone.
 - Constrained, the answer model repaired an exact edit as a source replacement with an invented message id in every probe (3 of 3) and in the eval; the deciding model, reasoning as when it chooses tools, kept the edit (3 of 3, 11–15 s). The repair runs on `model`.
 - What fails now is the models' own choices: 4 long-note edits patch without the read the user asked for; 3 verbatim and long-note updates pick a different operation; 4 image cases need a model that sees images; 2 multi-file saves never call `system_create`; 3 others choose the wrong entity type or save when they should only answer.
+- `gpt-oss:120b`, four times the size, makes the same first attempts: upload saves write `source: { kind: "upload", id }` and edits omit `operation.kind`. Its repairs return no output inside an agent conversation ("the model did not return a response") while the same repair outside one returns the right arguments (4 of 4, 8–23 s); the cause is not found, and no request reached the 32,768-token context. On the headless suite it matches the cloud model alone, at 37 tokens/s and 64.4 GB resident.
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
 
