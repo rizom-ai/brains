@@ -2,87 +2,76 @@
 
 ## Status
 
-Proposed. `@brains/chat` runs Discord and Slack on the Chat SDK (`chat` 4.41.1). WhatsApp is not wired.
+Proposed. `@brains/chat` runs Discord and Slack on the Chat SDK. WhatsApp is not wired.
 
-- `@chat-adapter/whatsapp` 4.44.0 is the official Chat SDK adapter for the WhatsApp Business Cloud API. Its peer dependency pins `chat` at exactly 4.44.0.
-- The adapter handles direct messages only: every thread is `whatsapp:{phoneNumberId}:{userWaId}`, `isDM()` always returns true, and every send sets `recipient_type: "individual"`. Upstream group support ([vercel/chat#271](https://github.com/vercel/chat/issues/271)) was closed as not planned.
-- The adapter cannot edit or delete messages; both throw. Streaming is buffered into one message.
-- Meta's Groups API requires an Official Business Account (OBA), caps a group at 8 participants including the business, and does not allow interactive messages in groups.
+The brain reaches WhatsApp through Baileys 7 (`baileys` 7.0.0-rc14), which links the brain as a device of an ordinary WhatsApp account, the way WhatsApp Web does. This route is unofficial: WhatsApp's terms do not allow it, and a number using it can be banned. Meta's Cloud API is not used, because its groups need an Official Business Account, hold at most 8 members, can only be created by the business, and cannot carry buttons.
 
-Two PRs: direct messages first, then groups once the business number holds OBA status.
+The community Chat SDK adapters do not fit:
+
+- `chat-adapter-baileys` has no mention detection, no phone-number mapping for group senders, and renders cards as plain text.
+- `chat-adapter-zaileys` covers those, but installs 282 MB, about 200 MB of it ffmpeg, ffprobe and audio and image decoders.
+
+Baileys alone installs about 77 MB, including its required `sharp` peer (37 MB), which no workspace uses today.
 
 ## Goal
 
-A brain answers WhatsApp direct messages through `@brains/chat` with the same turn routing, approvals, uploads and permissions as Discord and Slack. WhatsApp groups then work as channels.
+A brain answers WhatsApp direct messages and takes part in WhatsApp groups through `@brains/chat`, with the same turn routing, mention gating, approvals, uploads and permissions as Discord and Slack.
 
 ## Decisions
 
-- **One more platform in `@brains/chat`**, not a new interface package. `ChatPlatform` gains `whatsapp`; the config gains `adapters.whatsapp`.
-- **The Chat SDK moves to 4.44.0 as a whole.** `chat` and every `@chat-adapter/*` dependency move in one step, because the WhatsApp adapter pins `chat` exactly. `interfaces/chat` is the only workspace that depends on them.
-- **Webhook only.** Meta offers no socket or gateway mode. `GET` (the verification handshake) and `POST` (signed events) are served on `/api/webhooks/chat/whatsapp`, both public. There is no listener loop; the daemon is healthy while the Chat SDK app runs.
-- **Credentials come from four env vars, all or none:** `WHATSAPP_ACCESS_TOKEN` (a permanent System User token), `WHATSAPP_APP_SECRET`, `WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_VERIFY_TOKEN`. A partial set yields no adapter, the rule `chatConfigFromEnv` already applies to Discord.
-- **Message editing is decided per channel.** The public `supportsMessageEditing` hook receives the target `channelId`, and `ChatInterface` answers false for WhatsApp channels. Where editing is off:
-  - a job's completion posts a new message instead of editing the agent response that started it (today a failed edit drops the completion);
-  - no tool-status cards are posted, and the reply carries the outcome;
-  - a resolved approval posts its resolution as a new message.
-- **Identity.** The subject is the adapter's canonical user ID: the phone number (country code, digits only) when Meta sends one, otherwise the business-scoped user ID (BSUID). Permission rules read `whatsapp:31612345678`. The channel descriptor's subject pattern accepts both forms.
-- **Identity links persist.** The adapter links a user's phone number, BSUID and parent ID under `whatsapp:identity:*` Chat SDK state keys. The chat state adapter persists only thread subscriptions today; it also persists these keys in runtime state, so a restart keeps each user's identity and reply route.
-- **Messages outside the 24-hour window are dropped.** Meta rejects a free-form message to a user who has not written in 24 hours (`WhatsAppApiError.errorCode` 131047). The interface logs a warning and drops the message. No template messages are sent.
-- **Formatting.** WhatsApp posts go out as `{ markdown }`, which the adapter converts to WhatsApp's syntax. The per-message limit is 4096 characters.
-- **Approvals use the existing card.** Confirm and Cancel become WhatsApp reply buttons (up to 3, titles up to 20 characters). Typed yes/no keeps working; the confirmation coordinator already limits resolution to the requester or an administrator.
-- **Uploads follow Slack.** Inbound media is saved to a `whatsapp` upload store and served on `/api/webhooks/chat/whatsapp/uploads`; generated artifacts go out as native WhatsApp media.
-- **Local testing** uses Meta's test number (up to 5 verified recipients) against the `whatsapp` test app behind a Cloudflare quick tunnel (`cloudflared tunnel --url http://localhost:<port>`). The tunnel URL is the webhook callback for that session.
-- **Groups extend the adapter by subclass** in `@brains/chat` (`WhatsAppGroupAdapter`). The adapter keeps inbound handling, thread-ID encoding, `isDM()`, `channelIdFromThreadId()` and `recipient()` overridable, and its own type test guards that. Every send spreads `recipient()` after `recipient_type: "individual"`, so returning `{ recipient_type: "group", to: groupId }` turns all sends into group sends.
-- **Groups require a mention by default.** Meta bills each delivered group message per member, and a brain answering every message in a group is noise.
-- **Groups are created by the operator** through a script, not a brain tool: groups are few, the operator shares the invite link, and a group holds at most 8 people.
+- **Our own adapter in `@brains/chat`.** `WhatsAppAdapter` implements the Chat SDK `Adapter` directly on Baileys. `ChatPlatform` gains `whatsapp`; the config gains `adapters.whatsapp`. Its button messages port the native-flow construction from zaileys (MIT), credited in the file.
+- **Baileys loads only when configured.** It is imported dynamically when `adapters.whatsapp` is set, so other brains never load it.
+- **A dedicated number.** The brain's WhatsApp account uses a number that serves nothing else. Operators keep their own numbers and reach the brain through permission rules.
+- **Pairing-code login.** The config holds `phoneNumber` (country code, digits only), set from `WHATSAPP_PHONE_NUMBER`. While the session is unregistered, the adapter calls `requestPairingCode` and writes the code to the brain's log; the operator enters it under Linked devices → Link with phone number.
+- **The session lives in runtime state.** Baileys' `AuthenticationState` (credentials and signal keys) is stored in the interface's runtime state, not on disk, so restarts and redeploys keep the link.
+- **Connection.** A `WhatsAppConnectionLoop` on `RestartingListenerSupervisor`, like the Discord and Slack loops. A dropped connection reconnects. A logged-out close (`DisconnectReason.loggedOut`, 401) stops the loop and clears the session, and the daemon reports unhealthy until the number is paired again. There are no webhook routes.
+- **Threads.** A thread ID is `whatsapp:<jid>` with the normalized JID: `<phone>@s.whatsapp.net` or `<lid>@lid` for a direct message, `<id>@g.us` for a group. WhatsApp has no threads inside a chat, so a chat's channel ID is its thread ID. `isDM()` is false for group JIDs.
+- **Mentions.** A message mentions the brain when `contextInfo.mentionedJid` holds the account's phone JID or LID. Groups default to `requireMention: true`.
+- **Who can add the brain to groups.** On connect, the adapter sets the account's group-add privacy to `contacts` (`updateGroupsAddPrivacy`), so only the account's contacts can add it to a group. `allowedChannels` takes group JIDs; empty allows every group, as it does for Slack channels.
+- **Identity.** The sender resolves to a phone number: `participantAlt` or `remoteJidAlt` when present, otherwise Baileys' LID mapping (`getPNForLID`), otherwise the LID itself. The subject is the phone number in digits (`whatsapp:31612345678`), or the full LID (`whatsapp:123456789@lid`) when WhatsApp hides the number. The channel descriptor's subject pattern accepts both.
+- **Formatting.** Posts go out as `{ markdown }` and are converted to WhatsApp's syntax (`*bold*`, `_italic_`, `~strike~`, monospace) by a converter on the Chat SDK's `BaseFormatConverter`.
+- **Cards.**
+  - A card with buttons is sent as an interactive native-flow message with `quick_reply` buttons, relayed with the `biz` node WhatsApp expects.
+  - A tap arrives as `interactiveResponseMessage.nativeFlowResponseMessage` and goes to `processAction`.
+  - A card without buttons is sent as its fallback text.
+  - Typed yes/no keeps working; the confirmation coordinator already limits resolution to the requester or an administrator.
+- **Editing.** Edits and deletes use Baileys' `edit` and `delete` message keys. WhatsApp accepts an edit for 15 minutes; after that the edit fails. A failed completion edit posts the completion as a new message. This is a shared fix in the progress coordinator, because today a failed edit drops the completion on every platform.
+- **Media.** Inbound images, documents, audio and video are downloaded into a `whatsapp` upload store, as Slack's are. Generated artifacts go out as image or document messages.
+- **Typing.** The adapter sends `composing` presence while a turn runs, when `showTypingIndicator` is on.
+- **Tests drive a fake socket.** The adapter receives its Baileys socket factory as a dependency. Tests inject a fake that emits `messages.upsert` and `connection.update` events and records `sendMessage` and `relayMessage` calls.
 
-## Phase 1 — Direct messages
+## Steps
 
 One PR. Each step is one commit, with its tests written first.
 
-1. **Text in, text out.** The Chat SDK bump; `adapters.whatsapp` config, env vars and the regenerated canonical env schema; `whatsapp` in `CHAT_PLATFORMS`, the 4096 limit and `toPlatformText`; the webhook routes; the channel descriptor; the daemon and "at least one adapter" gates; the `whatsapp` test app in `packages/brain-cli/test-apps/` and the `AGENTS.md` test-app list.
-   - Tests: a signed `POST` fixture routes a turn and the reply reaches the Graph API.
-   - Tests: the `GET` handshake echoes the challenge for the right verify token and rejects a wrong one.
-   - Tests: the Discord and Slack suites pass on 4.44.0.
-2. **Post-only replies.** Per-channel `supportsMessageEditing`; completion posts a new message when the channel cannot edit; no tool-status cards on WhatsApp; approval resolution posts a new message.
-   - Tests: a job completion in a WhatsApp DM posts once and never calls edit.
-   - Tests: Slack still edits the agent response on completion.
-3. **Identity and permissions.** `whatsapp:identity:*` keys persisted in runtime state; the descriptor's subject pattern.
-   - Tests: a `whatsapp:<phone>` rule grants its level.
-   - Tests: a BSUID-only message after a restart resolves to the same user.
-4. **Approvals.** Confirm and Cancel as reply buttons.
-   - Tests: a `button_reply` for Confirm resolves the pending confirmation, and a typed "yes" does too.
-5. **Media.** The `whatsapp` upload store and uploads route; artifacts sent as media.
+1. **Direct messages, text in and out.** `WhatsAppAdapter` with DM threads, text parsing and `{ markdown }` posts; `adapters.whatsapp` config, `WHATSAPP_PHONE_NUMBER` and the regenerated canonical env schema; the session store; pairing-code login; the connection loop and daemon health; the channel descriptor; the `baileys` and `sharp` dependencies; the `whatsapp` test app and the `AGENTS.md` test-app list.
+   - Tests: an inbound DM routes a turn, and the reply is sent to the sender's JID as WhatsApp-formatted text.
+   - Tests: an unregistered session requests a pairing code and logs it; saved credentials are read back after a restart.
+   - Tests: a dropped connection reconnects; a logged-out close stops the loop and the daemon reports unhealthy.
+   - Live: the test app pairs with the number and answers a DM under Bun.
+2. **Groups.** Group threads, `allowedChannels`, mention detection, `requireMention` and the group-add privacy.
+   - Tests: a mention in an allowed group routes a turn, a plain message does not, and a message in an unlisted group is ignored.
+   - Tests: connecting sets group-add privacy to `contacts`.
+3. **Identity.** Sender resolution and the subject pattern.
+   - Tests: a group sender with only a LID resolves to the phone number through the LID mapping.
+   - Tests: a `whatsapp:<phone>` rule grants its level; an unmapped LID stays its own subject.
+4. **Completions after the edit window.** The shared fallback in the progress coordinator.
+   - Tests: a completion whose edit fails posts once as a new message, on WhatsApp and on Slack.
+5. **Buttons.** Native-flow cards and tap routing.
+   - Tests: the approval card is relayed as an interactive message with Confirm and Cancel `quick_reply` buttons, and a native-flow tap resolves the confirmation.
+   - Tests: a card without buttons goes out as text.
+   - Live: the buttons render and work on iPhone, Android and WhatsApp desktop.
+6. **Media.**
    - Tests: an inbound image is stored and its upload ref reaches the turn.
-   - Tests: a generated artifact goes out as a media message.
-6. **The 24-hour window.** Rejections with 131047 are logged and dropped.
-   - Tests: a send rejected with 131047 logs a warning and does not throw.
-7. **Docs and release.** A WhatsApp section in `docs/interface-setup.md`: the Meta app, the System User token, the webhook callback and verify token, env vars, the local tunnel and permission rules. A changeset for `@rizom/brain`.
+   - Tests: a generated artifact is sent as a document message.
+7. **Docs and release.** A WhatsApp section in `docs/interface-setup.md`: the unofficial status and ban risk, the dedicated number, pairing, permission rules and groups. A changeset for `@rizom/brain`.
 
-Exit: a message from a verified phone to the test number gets an answer from the running test app, an approval completes with a button, and a job's completion arrives as its own message.
-
-## Phase 2 — Groups
-
-A second PR, started once the business number holds OBA status.
-
-1. **Payload capture.** Create a test group through `POST /<phone-number-id>/groups` and record webhook payloads for a plain message, an @-mention, media, a join and a leave as fixtures. They settle what Meta's docs leave open: whether every group message is delivered and how a mention is marked.
-2. **Group messages.** `WhatsAppGroupAdapter`: an inbound `group_id` maps to the thread `whatsapp:{phoneNumberId}:group:{groupId}` with its own channel ID, `isDM()` is false for it, the sender is identified by `from_user_id`, and sends use `recipient_type: "group"`.
-   - Tests: a captured group message routes a turn in the group thread.
-   - Tests: the reply body carries `recipient_type: "group"` and the group ID.
-3. **Mention gating.** Mentions are detected from the captured mention data, falling back to the bot's name at the start of a message.
-   - Tests: with `requireMention`, a mention routes and a plain message does not.
-4. **Approvals in groups.** Interactive messages are not allowed in groups, so cards render as text with the existing yes/no instruction.
-   - Tests: the prompt goes out as text, the requester's "yes" resolves it, and another member's "yes" does not.
-5. **Group management.** `interfaces/chat/scripts/whatsapp-group.ts create|invite-link|list|delete`. The `group_lifecycle_update`, `group_participants_update` and `group_settings_update` webhooks keep channel names current. Groups are allowlisted through `allowedChannels`.
-   - Tests: each script command against a fake Graph API.
-   - Tests: a subject change renames the channel.
-6. **Groups as spaces.** A group can be selected as a space for passive capture; an answered space notice posts its new content as a new message. The setup docs cover OBA, the 8-member cap and per-member billing.
-   - Tests: a passive group message lands in the space conversation.
-   - Tests: an answered notice posts once and never calls edit.
+Exit: the test app, paired with a dedicated number, answers DMs and mentions in an allowed group, completes an approval with a button, and keeps its session across a restart.
 
 ## Risks
 
-- **OBA may not be granted.** Phase 2 waits on Meta; Phase 1 does not depend on it.
-- **The authoring boundary re-apply** ([authoring-boundary-reapply.md](./authoring-boundary-reapply.md)) changes the public message-interface contract and converts `@brains/chat`. Whichever lands second re-reads the other, and the `supportsMessageEditing` change updates the public-authoring golden.
-- **WhatsApp usernames.** A user who hides their number arrives with a BSUID only, and a phone-number rule does not match them until the operator adds a rule for the BSUID.
-- **Tunnel URLs change per run**, so the Meta webhook callback is re-entered for each local session.
+- **Bans.** WhatsApp can ban the number at any time. The number is dedicated, so a ban costs only the brain's WhatsApp access; the setup docs say so.
+- **Protocol changes.** Baileys follows WhatsApp Web, so a WhatsApp change can break the connection or the buttons until Baileys catches up. Baileys 7 is still a release candidate.
+- **Bun.** Baileys targets Node.js; step 1's live check is its first run under Bun.
+- **Buttons from a linked device** depend on each WhatsApp client rendering them. Step 5's live check covers the three clients, and typed yes/no stays as the fallback.
+- **The authoring boundary re-apply** ([authoring-boundary-reapply.md](./authoring-boundary-reapply.md)) converts `@brains/chat`. Whichever lands second re-reads the other.
