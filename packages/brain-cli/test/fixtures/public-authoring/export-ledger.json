@@ -415,7 +415,12 @@
         "defineServicePlugin",
         "defineTool",
         "defineWorkspaceAction",
-        "z"
+        "z",
+        "SdkError",
+        "SdkErrorCode",
+        "SdkErrorData",
+        "sdkErrorCodeSchema",
+        "sdkErrorSchema"
       ],
       "advanced-with-consumer": [],
       "internal/removable": [

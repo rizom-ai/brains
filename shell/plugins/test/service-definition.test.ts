@@ -49,45 +49,49 @@ describe("declarative service definitions", () => {
         }),
       }),
     });
-    const definition = defineServicePlugin({
-      id: "bounded-content",
-      config: z.object({}),
-      templates: {
-        chapter: {
-          schema: z.string(),
-          generation: { prompt: "Write" },
-          format: ({ value }) => value,
-        },
+    const definition = defineServicePlugin(
+      {
+        id: "bounded-content",
+        config: z.object({}),
       },
-      tools: ({ content }) => [
-        defineTool({
-          name: "generate",
-          description: "Generate bounded sections",
-          sideEffects: "writes",
-          input: z.object({
-            count: z.number(),
-            text: z.string(),
-            dryRun: z.boolean(),
-          }),
-          output: z.object({ queuedTargets: z.number() }),
-          async execute({ input }) {
-            const target = content.target({
-              template: "chapter",
-              destination: {
-                entity: section,
-                idPath: ["section"],
-                metadata: { title: input.text },
-              },
-            });
-            const result = await content.generate({
-              dryRun: input.dryRun,
-              targets: Array.from({ length: input.count }, () => target),
-            });
-            return { queuedTargets: result.queuedTargets };
+      {
+        templates: {
+          chapter: {
+            schema: z.string(),
+            generation: { prompt: "Write" },
+            format: ({ value }) => value,
           },
-        }),
-      ],
-    });
+        },
+        tools: ({ content }) => [
+          defineTool({
+            name: "generate",
+            description: "Generate bounded sections",
+            sideEffects: "writes",
+            input: z.object({
+              count: z.number(),
+              text: z.string(),
+              dryRun: z.boolean(),
+            }),
+            output: z.object({ queuedTargets: z.number() }),
+            async execute({ input }) {
+              const target = content.target({
+                template: "chapter",
+                destination: {
+                  entity: section,
+                  idPath: ["section"],
+                  metadata: { title: input.text },
+                },
+              });
+              const result = await content.generate({
+                dryRun: input.dryRun,
+                targets: Array.from({ length: input.count }, () => target),
+              });
+              return { queuedTargets: result.queuedTargets };
+            },
+          }),
+        ],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -135,56 +139,60 @@ describe("declarative service definitions", () => {
         order: z.number().int().nonnegative(),
       }),
     });
-    const definition = defineServicePlugin({
-      id: "book-content",
-      config: z.object({}),
-      templates: {
-        chapter: {
-          schema: z.object({ title: z.string(), body: z.string() }),
-          generation: {
-            prompt: "Write the requested chapter.",
-            useKnowledgeContext: true,
-          },
-          format: ({ value }) => `# ${value.title}\n\n${value.body}`,
-        },
+    const definition = defineServicePlugin(
+      {
+        id: "book-content",
+        config: z.object({}),
       },
-      tools: ({ content }) => [
-        defineTool({
-          name: "generate-chapter",
-          description: "Generate one chapter.",
-          input: z.object({}),
-          output: z.object({
-            batchId: z.string(),
-            queuedTargets: z.number(),
-          }),
-          sideEffects: "writes",
-          async execute() {
-            const result = await content.generate({
-              targets: [
-                content.target({
-                  template: "chapter",
-                  context: { data: { chapterTitle: "Arrival" } },
-                  destination: {
-                    entity: bookSection,
-                    idPath: ["book-1", "part-1", "chapter-2"],
-                    metadata: {
-                      bookId: "book-1",
-                      sectionId: "chapter-2",
-                      order: 2,
-                    },
-                  },
-                }),
-              ],
-            });
-            if (!result.batchId) throw new Error("Generation was not queued");
-            return {
-              batchId: result.batchId,
-              queuedTargets: result.queuedTargets,
-            };
+      {
+        templates: {
+          chapter: {
+            schema: z.object({ title: z.string(), body: z.string() }),
+            generation: {
+              prompt: "Write the requested chapter.",
+              useKnowledgeContext: true,
+            },
+            format: ({ value }) => `# ${value.title}\n\n${value.body}`,
           },
-        }),
-      ],
-    });
+        },
+        tools: ({ content }) => [
+          defineTool({
+            name: "generate-chapter",
+            description: "Generate one chapter.",
+            input: z.object({}),
+            output: z.object({
+              batchId: z.string(),
+              queuedTargets: z.number(),
+            }),
+            sideEffects: "writes",
+            async execute() {
+              const result = await content.generate({
+                targets: [
+                  content.target({
+                    template: "chapter",
+                    context: { data: { chapterTitle: "Arrival" } },
+                    destination: {
+                      entity: bookSection,
+                      idPath: ["book-1", "part-1", "chapter-2"],
+                      metadata: {
+                        bookId: "book-1",
+                        sectionId: "chapter-2",
+                        order: 2,
+                      },
+                    },
+                  }),
+                ],
+              });
+              if (!result.batchId) throw new Error("Generation was not queued");
+              return {
+                batchId: result.batchId,
+                queuedTargets: result.queuedTargets,
+              };
+            },
+          }),
+        ],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -247,56 +255,60 @@ describe("declarative service definitions", () => {
 
   it("infers config, state, jobs, templates, and plain tool output", async () => {
     let cleaned = false;
-    const definition = defineServicePlugin({
-      id: "reading-insights",
-      config: z.object({ prefix: z.string().default("Digest") }),
-      setup({ config, lifecycle }) {
-        expectTypeOf(config.prefix).toEqualTypeOf<string>();
-        lifecycle.onCleanup(() => {
-          cleaned = true;
-        });
-        return {
-          summarize(bookmarkId: string): {
-            bookmarkId: string;
-            words: number;
-          } {
-            return { bookmarkId, words: 3 };
-          },
-        };
-      },
-      templates: {
-        digest: {
-          schema: digestOutput,
-          format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
+    const definition = defineServicePlugin(
+      {
+        id: "reading-insights",
+        config: z.object({ prefix: z.string().default("Digest") }),
+        setup({ config, lifecycle }) {
+          expectTypeOf(config.prefix).toEqualTypeOf<string>();
+          lifecycle.onCleanup(() => {
+            cleaned = true;
+          });
+          return {
+            summarize(bookmarkId: string): {
+              bookmarkId: string;
+              words: number;
+            } {
+              return { bookmarkId, words: 3 };
+            },
+          };
         },
       },
-      jobs: ({ state }) => [
-        digestJob.handle(async ({ input, templates }) => {
-          const output = state.summarize(input.bookmarkId);
-          expect(templates.format("digest", output)).toBe("saved: 3");
-          return output;
-        }),
-      ],
-      resources: ({ config }) => ({
-        guide: {
-          uri: "reading://guide",
-          read: (): string => config.prefix,
+      {
+        templates: {
+          digest: {
+            schema: digestOutput,
+            format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
+          },
         },
-      }),
-      tools: ({ jobs }) => [
-        defineTool({
-          name: "compile-digest",
-          description: "Compile a reading digest.",
-          input: digestInput,
-          output: z.object({ jobId: z.string() }),
-          confirmation: "Compile this digest?",
-          async execute({ input }) {
-            const job = await jobs.enqueue(digestJob, input);
-            return { jobId: job.id };
+        jobs: ({ state }) => [
+          digestJob.handle(async ({ input, templates }) => {
+            const output = state.summarize(input.bookmarkId);
+            expect(templates.format("digest", output)).toBe("saved: 3");
+            return output;
+          }),
+        ],
+        resources: ({ config }) => ({
+          guide: {
+            uri: "reading://guide",
+            read: (): string => config.prefix,
           },
         }),
-      ],
-    });
+        tools: ({ jobs }) => [
+          defineTool({
+            name: "compile-digest",
+            description: "Compile a reading digest.",
+            input: digestInput,
+            output: z.object({ jobId: z.string() }),
+            confirmation: "Compile this digest?",
+            async execute({ input }) {
+              const job = await jobs.enqueue(digestJob, input);
+              return { jobId: job.id };
+            },
+          }),
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
@@ -379,12 +391,16 @@ describe("declarative service definitions", () => {
       bookmarkId: input.bookmarkId,
       words: 1,
     }));
-    const definition = defineServicePlugin({
-      id: "failing-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [binding, binding],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "failing-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [binding, binding],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -423,30 +439,34 @@ describe("declarative service definitions", () => {
       input: digestInput,
       output: digestOutput,
     });
-    const definition = defineServicePlugin({
-      id: "replay-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [
-        attributedJob.handle(async ({ input }) => ({
-          bookmarkId: input.bookmarkId,
-          words: 1,
-        })),
-      ],
-      tools: ({ jobs }) => [
-        defineTool({
-          name: "compile",
-          description: "Compile a digest.",
-          input: digestInput,
-          output: z.object({ jobId: z.string() }),
-          confirmation: "Compile this digest?",
-          async execute({ input }) {
-            const job = await jobs.enqueue(attributedJob, input);
-            return { jobId: job.id };
-          },
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "replay-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          attributedJob.handle(async ({ input }) => ({
+            bookmarkId: input.bookmarkId,
+            words: 1,
+          })),
+        ],
+        tools: ({ jobs }) => [
+          defineTool({
+            name: "compile",
+            description: "Compile a digest.",
+            input: digestInput,
+            output: z.object({ jobId: z.string() }),
+            confirmation: "Compile this digest?",
+            async execute({ input }) {
+              const job = await jobs.enqueue(attributedJob, input);
+              return { jobId: job.id };
+            },
+          }),
+        ],
+      },
+    );
     const makePlugin = (): NonNullable<
       ReturnType<typeof instantiatePluginPackageDefinition>[number]
     > => {
@@ -539,16 +559,20 @@ describe("declarative service definitions", () => {
       output: digestInput,
     });
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "announcer",
-        config: z.object({}),
-        jobs: () => [
-          announceJob.handle(async ({ input, messaging }) => {
-            await messaging.publish({ topic: "digest-ready", data: input });
-            return input;
-          }),
-        ],
-      }),
+      defineServicePlugin(
+        {
+          id: "announcer",
+          config: z.object({}),
+        },
+        {
+          jobs: () => [
+            announceJob.handle(async ({ input, messaging }) => {
+              await messaging.publish({ topic: "digest-ready", data: input });
+              return input;
+            }),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/announcer", version: "0.1.0" },
     );
@@ -621,13 +645,12 @@ describe("declarative service definitions", () => {
     });
 
     const install = async (
-      extra: Partial<Parameters<typeof defineServicePlugin>[0]>,
+      behavior: Parameters<typeof defineServicePlugin>[1],
     ): Promise<void> => {
-      const definition = defineServicePlugin({
-        id: "reading-operator",
-        config: z.object({}),
-        ...extra,
-      });
+      const definition = defineServicePlugin(
+        { id: "reading-operator", config: z.object({}) },
+        behavior,
+      );
       const [plugin] = instantiatePluginPackageDefinition(
         definition,
         {},

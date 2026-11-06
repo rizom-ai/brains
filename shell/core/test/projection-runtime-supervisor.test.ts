@@ -32,9 +32,9 @@ function createMemoryRuntimeState(): IRuntimeStateNamespace {
     { value: unknown; createdAt: Date; updatedAt: Date }
   >();
   return {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => ({
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => ({
       get: async (key): Promise<T | null> => {
         const record = values.get(key);
         return record ? options.schema.parse(record.value) : null;

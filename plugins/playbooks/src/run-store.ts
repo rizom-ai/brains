@@ -109,11 +109,11 @@ export type PlaybookRunInput = z.input<typeof playbookRunSchema>;
 const playbookRunsNamespace = "playbooks.runs";
 
 export class PlaybookRunStore {
-  private readonly store: IRuntimeStateStore<PlaybookRun>;
+  private readonly store: IRuntimeStateStore<PlaybookRun, PlaybookRunInput>;
   private readonly writeQueue = new SerialQueue();
 
   constructor(runtimeState: IRuntimeStateNamespace) {
-    this.store = runtimeState.scoped<PlaybookRun>({
+    this.store = runtimeState.scoped<PlaybookRun, PlaybookRunInput>({
       namespace: playbookRunsNamespace,
       schema: playbookRunSchema,
     });

@@ -7,7 +7,8 @@ import { createDeclarativeServicePlugin } from "../service/declarative-service-p
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   NormalizedServiceDefinitionInput,
-  ServiceDefinitionInput,
+  ServiceDefinitionBehavior,
+  ServiceDefinitionHeaderInput,
   ServiceSchemaMap,
   ServiceViewSchemaMap,
   ServiceTemplateShapeMap,
@@ -75,7 +76,9 @@ export type {
   ServiceContentGenerationTarget,
   ServiceContentGenerationTargetInput,
   ServiceDeadline,
-  ServiceDefinitionInput,
+  ServiceDefinitionBehavior,
+  ServiceDefinitionHeader,
+  ServiceDefinitionHeaderInput,
   ServiceEntityIdPath,
   ServiceEntityReader,
   ServiceInputSchema,
@@ -91,6 +94,10 @@ export type {
   ServiceMessagePublisher,
   ServiceProgressReporter,
   ServicePromptDefinition,
+  ServiceRuntimeState,
+  ServiceRuntimeStateOptions,
+  ServiceRuntimeStateRecord,
+  ServiceSetupContext,
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
@@ -139,6 +146,20 @@ function createServicePackage<
   });
 }
 
+/** What a service header may declare; everything else is behavior. */
+const serviceHeaderKeys: ReadonlySet<string> = new Set([
+  "id",
+  "config",
+  "setup",
+  "accountSettings",
+]);
+
+/**
+ * A service package, declared in two halves: the header says what the package
+ * is and sets up its state; the behavior says what it does with that state.
+ * Behavior is checked against the state the header already fixed, so its
+ * slots may be written in any order.
+ */
 export function defineServicePlugin<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object = Record<never, never>,
@@ -149,7 +170,8 @@ export function defineServicePlugin<
     AnyAccountSettingsDefinition,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
-  definition: ServiceDefinitionInput<
+  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
     TPromptSchemas,
@@ -168,7 +190,8 @@ export function defineServicePlugin<
   TAccountSettings extends undefined = undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
-  definition: ServiceDefinitionInput<
+  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
     TPromptSchemas,
@@ -186,46 +209,39 @@ export function defineServicePlugin<
   TViewSchemas extends ServiceViewSchemaMap,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
-  definition:
-    | ServiceDefinitionInput<
+  header:
+    | ServiceDefinitionHeaderInput<
         TConfigSchema,
         TState,
-        TPromptSchemas,
-        TTemplateSchemas,
-        TViewSchemas,
-        AnyAccountSettingsDefinition,
-        TTemplateDefinitions
+        AnyAccountSettingsDefinition
       >
-    | ServiceDefinitionInput<
-        TConfigSchema,
-        TState,
-        TPromptSchemas,
-        TTemplateSchemas,
-        TViewSchemas,
-        undefined,
-        TTemplateDefinitions
-      >,
-): ServicePackageDefinition<TConfigSchema> {
-  if (definition.accountSettings !== undefined) {
-    const normalized: NormalizedServiceDefinitionInput<
-      TConfigSchema,
-      TState,
-      TPromptSchemas,
-      TTemplateSchemas,
-      TViewSchemas,
-      AnyAccountSettingsDefinition,
-      TTemplateDefinitions
-    > = { ...definition, accountSettings: definition.accountSettings };
-    return createServicePackage(normalized);
-  }
-  const normalized: NormalizedServiceDefinitionInput<
+    | ServiceDefinitionHeaderInput<TConfigSchema, TState, undefined>,
+  behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    undefined,
+    AnyAccountSettingsDefinition | undefined,
     TTemplateDefinitions
-  > = { ...definition, accountSettings: undefined };
-  return createServicePackage(normalized);
+  >,
+): ServicePackageDefinition<TConfigSchema> {
+  // The types refuse behavior in the header; an untyped author is told too,
+  // rather than having a misplaced slot work by accident.
+  const misplaced = Object.keys(header).find(
+    (key) => !serviceHeaderKeys.has(key),
+  );
+  if (misplaced !== undefined) {
+    throw new Error(
+      `Service "${header.id}" declares "${misplaced}" in its header; behavior is defineServicePlugin's second argument`,
+    );
+  }
+  // The split exists so the state type is known before behavior is checked;
+  // the runtime reads one declaration. Account settings are the header's,
+  // present or absent.
+  return createServicePackage({
+    ...behavior,
+    ...header,
+    accountSettings: header.accountSettings,
+  });
 }

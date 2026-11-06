@@ -332,10 +332,15 @@ Definitions and schema vocabulary:
 - `defineServicePlugin`
 - `defineTool`
 - `defineWorkspaceAction`
+- `SdkError`
+- `sdkErrorCodeSchema`
+- `sdkErrorSchema`
 - `z`
 
 Types:
 
+- `SdkErrorCode`
+- `SdkErrorData`
 - `AccountSettingsDefinition`
 - `AccountSettingsFieldDefinition`
 - `AccountSettingsValue`
@@ -381,6 +386,12 @@ Types:
 - `WorkspaceActionResultFieldDefinition`
 - `WorkspaceActionResultFieldMap`
 - `WorkspacePreparedConfirmation`
+
+`defineServicePlugin(header, behavior)` takes two arguments. The header says what the package is: its `id`, its `config` schema, its `accountSettings` when it declares any, and `setup`. The behavior says what it does with that: `instructions`, `resources`, `prompts`, `templates`, `views`, `jobs`, `tools`, `dashboardWidgets` and `studioWorkspaces`. A package with no behavior passes the header alone. `setup` runs once when the package registers, and what it returns is the `state` every behavior slot reads; because the header is checked first, the behavior slots may be written in any order. A behavior slot written into the header is refused.
+
+`setup` is given the parsed `config`, `lifecycle.onCleanup`, and `runtimeState({ namespace, schema })`: a store for bookkeeping that is not an entity, such as a cursor, a count or a claim. The namespace is local to the package; the runtime qualifies it by the owning package, so two packages naming the same namespace never share a record. Writes take the schema's input and are stored as written, after the value has been checked to survive a JSON round trip; every read parses what is stored, so a transform runs at the read and never twice. The store offers `get`, `has`, `set`, `setIfNotExists`, `compareAndSet` (replacing a value only while it still reads as the expected one), `delete`, `list` (in key order, by literal prefix, at most 1000 records) and `clear`.
+
+`SdkError` is a coded failure. Its `code` (`SdkErrorCode`, validated by `sdkErrorCodeSchema`) survives every supported boundary; its message is diagnostic and stays local, and only an explicit, bounded `publicMessage` is ever published. `toJSON()` returns `SdkErrorData` (`{ code, message }`, validated by `sdkErrorSchema`) with the public message alone. Check the code, not the class or the wording: a copy of the SDK bundled into another package, or an error that crossed a process, is not the same class.
 
 These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and Studio workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. Studio adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, schema-driven action forms, bounded ephemeral result presentation, bounded `card` and primary/aside `columns` composition, collection-owned query controls, source-declared compact table rows, and one explicit top-level primary action. Studio keeps unannotated tables in a bounded scrolling fallback and positions the single declared action in the desktop head or phone action bar without hoisting in-flow controls. Form fields must cover every non-pre-bound object input field, select controls have explicit options, secret inputs use password controls, and result declarations cover only scalar object outputs. Forms may opt into collapsed disclosure presentation, and a field label may declaratively follow every option of another select field. Sensitive results are held only in renderer-local state and are cleared on workspace refresh or navigation. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and Studio authoring together without browser UI code.
 

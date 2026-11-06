@@ -258,6 +258,60 @@ export interface ServiceLifecycle {
   onCleanup(cleanup: () => void | Promise<void>): void;
 }
 
+/** What a package keeps under one runtime-state namespace, and its schema. */
+export interface ServiceRuntimeStateOptions<TValue, TInput = TValue> {
+  /** Local to the package; the runtime qualifies it by the owning package. */
+  readonly namespace: string;
+  /** Validates every write and parses every read. */
+  readonly schema: z.ZodType<TValue, TInput>;
+}
+
+/** One stored value, as a listing returns it. */
+export interface ServiceRuntimeStateRecord<TValue> {
+  readonly key: string;
+  readonly value: TValue;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+/**
+ * Bookkeeping that is not an entity, kept between runs: a cursor, a count, a
+ * claim. Writes take the schema's input and are stored as written; every read
+ * parses what is stored, so a transform runs at the read, never twice.
+ */
+export interface ServiceRuntimeState<TValue, TInput = TValue> {
+  get(key: string): Promise<TValue | null>;
+  has(key: string): Promise<boolean>;
+  set(key: string, value: TInput): Promise<void>;
+  /** Writes only when the key is absent; true when it wrote. */
+  setIfNotExists(key: string, value: TInput): Promise<boolean>;
+  /** Replaces the value only while it still reads as `expected`. */
+  compareAndSet(key: string, expected: TValue, value: TInput): Promise<boolean>;
+  delete(key: string): Promise<boolean>;
+  /** In key order, `afterKey` exclusive, at most `limit` (1–1000) records. */
+  list(options?: {
+    readonly keyPrefix?: string | undefined;
+    readonly afterKey?: string | undefined;
+    readonly limit?: number | undefined;
+  }): Promise<readonly ServiceRuntimeStateRecord<TValue>[]>;
+  /** Removes every record, or those under a literal key prefix; the count. */
+  clear(options?: { readonly keyPrefix?: string | undefined }): Promise<number>;
+}
+
+/** What `setup` is given once, when the package registers. */
+export interface ServiceSetupContext<TConfig> {
+  readonly config: TConfig;
+  readonly lifecycle: ServiceLifecycle;
+  /**
+   * A runtime-state store for this package. Named `runtimeState` because
+   * `state` is what `setup` returns. Two packages naming the same namespace
+   * never share a record.
+   */
+  readonly runtimeState: <TValue, TInput = TValue>(
+    options: ServiceRuntimeStateOptions<TValue, TInput>,
+  ) => ServiceRuntimeState<TValue, TInput>;
+}
+
 export interface ServiceResourceDefinition {
   readonly uri: string;
   readonly description?: string | undefined;
@@ -322,7 +376,28 @@ export interface ServiceViewDefinition<TSchema extends ServiceViewSchema> {
   };
 }
 
-interface ServiceDefinitionCore<
+/**
+ * What the package is: its identity, its config, and what it sets up before
+ * anything runs. The first of `defineServicePlugin`'s two arguments, so the
+ * state `setup` returns is known before any behavior slot is checked, in
+ * whatever order those are written.
+ */
+export interface ServiceDefinitionHeader<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+> {
+  readonly id: string;
+  readonly config: TConfigSchema;
+  /** Builds the `state` every behavior slot reads, once, at registration. */
+  readonly setup?:
+    | ((
+        context: ServiceSetupContext<z.output<TConfigSchema>>,
+      ) => TState | Promise<TState>)
+    | undefined;
+}
+
+/** What the package does with what it set up: the second argument. */
+export interface ServiceDefinitionBehavior<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
@@ -331,14 +406,6 @@ interface ServiceDefinitionCore<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 > {
-  readonly id: string;
-  readonly config: TConfigSchema;
-  readonly setup?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly lifecycle: ServiceLifecycle;
-      }) => TState | Promise<TState>)
-    | undefined;
   readonly instructions?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -419,6 +486,7 @@ interface ServiceDefinitionCore<
     | undefined;
 }
 
+/** Everything one package declares, as the runtime reads it: both halves joined. */
 export type NormalizedServiceDefinitionInput<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
@@ -427,33 +495,27 @@ export type NormalizedServiceDefinitionInput<
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
-> = ServiceDefinitionCore<
-  TConfigSchema,
-  TState,
-  TPromptSchemas,
-  TTemplateSchemas,
-  TViewSchemas,
-  TAccountSettings,
-  TTemplateDefinitions
-> & { readonly accountSettings: TAccountSettings };
+> = ServiceDefinitionHeader<TConfigSchema, TState> &
+  ServiceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    TAccountSettings,
+    TTemplateDefinitions
+  > & { readonly accountSettings: TAccountSettings };
 
-export type ServiceDefinitionInput<
+/**
+ * The header as an author writes it. Account settings belong with identity
+ * rather than behavior: what a package asks each person to configure is part
+ * of what it is, and the operator slots that read them are checked against it.
+ */
+export type ServiceDefinitionHeaderInput<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
-  TPromptSchemas extends ServiceSchemaMap,
-  TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-  TTemplateDefinitions extends ServiceTemplateShapeMap,
-> = ServiceDefinitionCore<
-  TConfigSchema,
-  TState,
-  TPromptSchemas,
-  TTemplateSchemas,
-  TViewSchemas,
-  TAccountSettings,
-  TTemplateDefinitions
-> &
+> = ServiceDefinitionHeader<TConfigSchema, TState> &
   (TAccountSettings extends AnyAccountSettingsDefinition
     ? { readonly accountSettings: TAccountSettings }
     : { readonly accountSettings?: undefined });

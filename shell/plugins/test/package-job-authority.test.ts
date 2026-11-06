@@ -135,36 +135,40 @@ async function installNoteReader(shell: MockShell): Promise<{
 }> {
   const received: unknown[] = [];
   let captured: ServiceJobs | undefined;
-  const definition = defineServicePlugin({
-    id: "note-reader",
-    config: z.object({}),
-    jobs: () => [
-      readNotes.handle(async ({ input, entities }) => {
-        received.push(input);
-        const reads = await Promise.all(
-          input.ids.map(async (id) =>
-            (await entities.get(note, id)) ? id : null,
-          ),
-        );
-        return { found: reads.flatMap((id) => (id ? [id] : [])) };
-      }),
-    ],
-    tools: ({ jobs }) => {
-      captured = jobs;
-      return [
-        defineTool({
-          name: "read-notes",
-          description: "Read notes in a durable job",
-          input: readNotes.input,
-          output: z.object({ jobId: z.string() }),
-          permission: "public",
-          async execute({ input }) {
-            return { jobId: (await jobs.enqueue(readNotes, input)).id };
-          },
-        }),
-      ];
+  const definition = defineServicePlugin(
+    {
+      id: "note-reader",
+      config: z.object({}),
     },
-  });
+    {
+      jobs: () => [
+        readNotes.handle(async ({ input, entities }) => {
+          received.push(input);
+          const reads = await Promise.all(
+            input.ids.map(async (id) =>
+              (await entities.get(note, id)) ? id : null,
+            ),
+          );
+          return { found: reads.flatMap((id) => (id ? [id] : [])) };
+        }),
+      ],
+      tools: ({ jobs }) => {
+        captured = jobs;
+        return [
+          defineTool({
+            name: "read-notes",
+            description: "Read notes in a durable job",
+            input: readNotes.input,
+            output: z.object({ jobId: z.string() }),
+            permission: "public",
+            async execute({ input }) {
+              return { jobId: (await jobs.enqueue(readNotes, input)).id };
+            },
+          }),
+        ];
+      },
+    },
+  );
   const plugin = instantiate(definition, "@fixture/note-reader");
   const capabilities = await plugin.register(shell);
   const tool = capabilities.tools[0];
@@ -300,11 +304,15 @@ describe("package jobs read as their requester", () => {
 });
 
 describe("interface and operator jobs read as their requester", () => {
-  const readerService = defineServicePlugin({
-    id: "note-service",
-    config: z.object({}),
-    jobs: () => [routedNotes.handle(async () => ({ found: [] }))],
-  });
+  const readerService = defineServicePlugin(
+    {
+      id: "note-service",
+      config: z.object({}),
+    },
+    {
+      jobs: () => [routedNotes.handle(async () => ({ found: [] }))],
+    },
+  );
 
   it("an interface route's job carries its caller; a public route's and a daemon's carry no more than the interface", async () => {
     const resolvePrincipal = mock(
@@ -414,18 +422,22 @@ describe("interface and operator jobs read as their requester", () => {
       }),
     });
     const enqueued: string[] = [];
-    const definition = defineServicePlugin({
-      id: "note-dashboard",
-      config: z.object({}),
-      jobs: () => [viewedNotes.handle(async () => ({ found: [] }))],
-      dashboardWidgets: (context) => [
-        widget.bind(context, async ({ jobs }) => {
-          const { id } = await jobs.enqueue(viewedNotes, { ids: allNotes });
-          enqueued.push(id);
-          return { jobId: id };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "note-dashboard",
+        config: z.object({}),
+      },
+      {
+        jobs: () => [viewedNotes.handle(async () => ({ found: [] }))],
+        dashboardWidgets: (context) => [
+          widget.bind(context, async ({ jobs }) => {
+            const { id } = await jobs.enqueue(viewedNotes, { ids: allNotes });
+            enqueued.push(id);
+            return { jobId: id };
+          }),
+        ],
+      },
+    );
     const registrations: DashboardWidgetRegistration[] = [];
     shell
       .getMessageBus()

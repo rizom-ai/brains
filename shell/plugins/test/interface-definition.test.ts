@@ -55,16 +55,20 @@ describe("declarative generic interfaces", () => {
   });
 
   it("authenticates protocol callers, resolves trust, and enqueues typed jobs", async () => {
-    const service = defineServicePlugin({
-      id: "digest-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [
-        digestJob.handle(async ({ input }) => ({
-          bookmarkId: input.bookmarkId,
-        })),
-      ],
-    });
+    const service = defineServicePlugin(
+      {
+        id: "digest-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          digestJob.handle(async ({ input }) => ({
+            bookmarkId: input.bookmarkId,
+          })),
+        ],
+      },
+    );
     const definition = defineInterface({
       id: "reading-webhook",
       config: z.object({ token: z.string() }),

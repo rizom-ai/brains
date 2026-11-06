@@ -42,7 +42,9 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
     return [...this.values.values()];
   }
 
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput> {
     const prefix = `${options.namespace}:`;
     return {
       get: async (key): Promise<T | null> => {

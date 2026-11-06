@@ -40,25 +40,29 @@ Declare one config schema. `use()` and `brain.yaml` accept its inferred input; d
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 
-export default defineServicePlugin({
-  id: "demo",
-  config: z.object({ greeting: z.string().default("Hello") }),
-  setup: ({ config }) => ({
-    greet: (name: string) => `${config.greeting}, ${name}`,
-  }),
-  tools: ({ state }) => [
-    defineTool({
-      name: "greet",
-      description: "Return a greeting.",
-      input: z.object({ name: z.string() }),
-      output: z.object({ message: z.string() }),
-      execute: ({ input }) => ({ message: state.greet(input.name) }),
+export default defineServicePlugin(
+  {
+    id: "demo",
+    config: z.object({ greeting: z.string().default("Hello") }),
+    setup: ({ config }) => ({
+      greet: (name: string) => `${config.greeting}, ${name}`,
     }),
-  ],
-});
+  },
+  {
+    tools: ({ state }) => [
+      defineTool({
+        name: "greet",
+        description: "Return a greeting.",
+        input: z.object({ name: z.string() }),
+        output: z.object({ message: z.string() }),
+        execute: ({ input }) => ({ message: state.greet(input.name) }),
+      }),
+    ],
+  },
+);
 ```
 
-Package name, version, and runtime capability scoping are loader-owned.
+The first argument says what the package is and sets up the `state` it holds; the second says what it does with that state. Package name, version, and runtime capability scoping are loader-owned.
 
 ## Templates and entity data
 

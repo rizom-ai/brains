@@ -112,21 +112,25 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "reading-operator",
-      config: z.object({}),
-      accountSettings: settings,
-      setup: () => ({ title: "My library" }),
-      dashboardWidgets: (context) => [
-        widget.bind(context, async ({ entities, settings: current }) => ({
-          title: context.state.title,
-          connected:
-            current?.endpoint === "https://reading.example" &&
-            !Object.hasOwn(current, "token"),
-          count: (await entities.list(readingItem)).length,
-        })),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "reading-operator",
+        config: z.object({}),
+        accountSettings: settings,
+        setup: () => ({ title: "My library" }),
+      },
+      {
+        dashboardWidgets: (context) => [
+          widget.bind(context, async ({ entities, settings: current }) => ({
+            title: context.state.title,
+            connected:
+              current?.endpoint === "https://reading.example" &&
+              !Object.hasOwn(current, "token"),
+            count: (await entities.list(readingItem)).length,
+          })),
+        ],
+      },
+    );
 
     const logger = createSilentLogger("declarative-dashboard-runtime");
     const shell = createMockShell({ logger });
@@ -290,19 +294,23 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "job-backed-operator",
-      config: z.object({}),
-      jobs: () => [refreshDigest.handle(async () => ({ refreshed: true }))],
-      dashboardWidgets: (context) => [
-        widget.bind(context, async ({ caller, jobs }) => {
-          const reference = await jobs.enqueue(refreshDigest, {
-            actorId: caller?.actor.id ?? "public",
-          });
-          return { jobId: reference.id };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "job-backed-operator",
+        config: z.object({}),
+      },
+      {
+        jobs: () => [refreshDigest.handle(async () => ({ refreshed: true }))],
+        dashboardWidgets: (context) => [
+          widget.bind(context, async ({ caller, jobs }) => {
+            const reference = await jobs.enqueue(refreshDigest, {
+              actorId: caller?.actor.id ?? "public",
+            });
+            return { jobId: reference.id };
+          }),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-typed-job"),
       // The viewer starts the job, so its account must resolve.
@@ -413,15 +421,19 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "invalid-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        invalidDataWidget.bind(context, () => ({ count: "wrong" })),
-        unsafeViewWidget.bind(context, () => ({ count: 1 })),
-        invalidSpatialWidget.bind(context, () => ({})),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "invalid-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          invalidDataWidget.bind(context, () => ({ count: "wrong" })),
+          unsafeViewWidget.bind(context, () => ({ count: 1 })),
+          invalidSpatialWidget.bind(context, () => ({})),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("invalid-dashboard-runtime"),
     });
@@ -616,14 +628,18 @@ describe("declarative dashboard widget runtime", () => {
       data: z.object({}),
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "duplicate-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        widget.bind(context, () => ({})),
-        widget.bind(context, () => ({})),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "duplicate-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          widget.bind(context, () => ({})),
+          widget.bind(context, () => ({})),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-duplicate"),
     });
@@ -662,14 +678,18 @@ describe("declarative dashboard widget runtime", () => {
       data: z.object({}),
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "rollback-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        first.bind(context, () => ({})),
-        second.bind(context, () => ({})),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "rollback-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          first.bind(context, () => ({})),
+          second.bind(context, () => ({})),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-rollback"),
     });
@@ -720,18 +740,22 @@ describe("declarative dashboard widget runtime", () => {
     });
     let factories = 0;
     let registrations = 0;
-    const definition = defineServicePlugin({
-      id: "worker-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => {
-        factories += 1;
-        return [widget.bind(context, () => ({}))];
+    const definition = defineServicePlugin(
+      {
+        id: "worker-operator",
+        config: z.object({}),
       },
-      studioWorkspaces: () => {
-        factories += 1;
-        return [];
+      {
+        dashboardWidgets: (context) => {
+          factories += 1;
+          return [widget.bind(context, () => ({}))];
+        },
+        studioWorkspaces: () => {
+          factories += 1;
+          return [];
+        },
       },
-    });
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-worker-exclusion"),
     });
@@ -761,21 +785,25 @@ describe("declarative dashboard widget runtime", () => {
       data: z.object({ done: z.boolean() }),
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "slow-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        widget.bind(
-          context,
-          ({ signal }) =>
-            new Promise<{ done: boolean }>((resolve, reject) => {
-              const onAbort = (): void => reject(signal.reason);
-              signal.addEventListener("abort", onAbort, { once: true });
-              void resolve;
-            }),
-        ),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "slow-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          widget.bind(
+            context,
+            ({ signal }) =>
+              new Promise<{ done: boolean }>((resolve, reject) => {
+                const onAbort = (): void => reject(signal.reason);
+                signal.addEventListener("abort", onAbort, { once: true });
+                void resolve;
+              }),
+          ),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-shutdown"),
     });

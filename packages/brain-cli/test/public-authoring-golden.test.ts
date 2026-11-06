@@ -253,7 +253,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the entity canaries and the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity and service canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "entity",
@@ -264,8 +264,25 @@ describe("public authoring 0.2 golden packages", () => {
         },
       },
       {
+        directory: "service",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+        },
+      },
+      {
         directory: "operator-surface",
         paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
           ],
@@ -309,6 +326,7 @@ describe("public authoring 0.2 golden packages", () => {
             },
             include: [
               `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
             ],
           }),
         );

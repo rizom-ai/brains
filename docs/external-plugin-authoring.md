@@ -133,27 +133,33 @@ use `>=0.2.0 <0.3.0` for the stable patch line.
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 
-export default defineServicePlugin({
-  id: "calendar",
-  config: z.object({
-    timezone: z.string().default("UTC"),
-  }),
-  tools: ({ config }) => [
-    defineTool({
-      name: "calendar-timezone",
-      description: "Return the configured calendar timezone.",
-      input: z.object({}),
-      output: z.object({ timezone: z.string() }),
-      sideEffects: "none",
-      execute: () => ({ timezone: config.timezone }),
+export default defineServicePlugin(
+  {
+    id: "calendar",
+    config: z.object({
+      timezone: z.string().default("UTC"),
     }),
-  ],
-});
+  },
+  {
+    tools: ({ config }) => [
+      defineTool({
+        name: "calendar-timezone",
+        description: "Return the configured calendar timezone.",
+        input: z.object({}),
+        output: z.object({ timezone: z.string() }),
+        sideEffects: "none",
+        execute: () => ({ timezone: config.timezone }),
+      }),
+    ],
+  },
+);
 ```
 
 Important details:
 
 - import the blessed `z` from the family entry point—do not add direct `zod`;
+- the first argument says what the package is (`id`, `config`, and a `setup`
+  when it holds state); the second says what it does;
 - `config` is authored once and inferred in every callback;
 - the callback returns plain schema-valid data, not a framework wrapper;
 - `calendar` and `calendar-timezone` are local domain names; the runtime scopes
@@ -278,35 +284,37 @@ const compileReadingDigest = defineJob({
   output: digestResult,
 });
 
-export default defineServicePlugin({
-  id: "reading-insights",
-  config: z.object({}),
-  templates: {
-    digest: {
-      schema: digestResult,
-      format: ({ value }) =>
-        `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
-    },
-  },
-  jobs: () => [
-    compileReadingDigest.handle(
-      async ({ input, entities, messaging, templates }) => {
-        const saved = await entities.get(bookmark, input.bookmarkId);
-        if (!saved) throw new Error(`Bookmark not found: ${input.bookmarkId}`);
-
-        const result = {
-          bookmarkId: saved.id,
-          summary: saved.metadata.title,
-        };
-        await messaging.publish({
-          topic: "digest-ready",
-          data: { ...result, markdown: templates.format("digest", result) },
-        });
-        return result;
+export default defineServicePlugin(
+  { id: "reading-insights", config: z.object({}) },
+  {
+    templates: {
+      digest: {
+        schema: digestResult,
+        format: ({ value }) =>
+          `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
       },
-    ),
-  ],
-});
+    },
+    jobs: () => [
+      compileReadingDigest.handle(
+        async ({ input, entities, messaging, templates }) => {
+          const saved = await entities.get(bookmark, input.bookmarkId);
+          if (!saved)
+            throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+
+          const result = {
+            bookmarkId: saved.id,
+            summary: saved.metadata.title,
+          };
+          await messaging.publish({
+            topic: "digest-ready",
+            data: { ...result, markdown: templates.format("digest", result) },
+          });
+          return result;
+        },
+      ),
+    ],
+  },
+);
 ```
 
 The complete checked flow is in the [reading-insights service](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx).

@@ -331,9 +331,9 @@ describe("guest visitor ownership foundation", () => {
     const state = createMemoryRuntimeStateNamespace();
     const visitors = new GuestVisitorStore(
       {
-        scoped: <T>(
-          options: RuntimeStateScopeOptions<T>,
-        ): IRuntimeStateStore<T> => ({
+        scoped: <T, TInput = T>(
+          options: RuntimeStateScopeOptions<T, TInput>,
+        ): IRuntimeStateStore<T, TInput> => ({
           ...state.scoped(options),
           get: async (): Promise<never> => {
             throw new Error("Storage unavailable");

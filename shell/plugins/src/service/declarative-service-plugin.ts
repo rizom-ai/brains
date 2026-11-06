@@ -42,6 +42,7 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
+import { stateNamespaceFor } from "../internal/state-namespace";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -277,6 +278,11 @@ class DeclarativeServicePlugin<
               this.cleanups.push(cleanup);
             },
           },
+          runtimeState: (options) =>
+            context.runtimeState.scoped({
+              namespace: stateNamespaceFor(this.packageName, options.namespace),
+              schema: options.schema,
+            }),
         })
       : emptyPluginState<TState>();
 

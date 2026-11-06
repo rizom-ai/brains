@@ -59,3 +59,11 @@ export type {
   WorkspacePreparedConfirmation,
 } from "@brains/plugins";
 export { z } from "@brains/utils/zod";
+// A coded failure. Codes survive every supported boundary; the message beside
+// one may be reworded, so check the code, not the wording or the class.
+export {
+  SdkError,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+} from "@brains/contracts";
+export type { SdkErrorCode, SdkErrorData } from "@brains/contracts";
