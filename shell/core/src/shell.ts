@@ -52,7 +52,10 @@ import type {
 } from "@brains/entity-service";
 
 // Content service
-import type { IContentService } from "@brains/content-service";
+import type {
+  CallerAuthorizer,
+  IContentService,
+} from "@brains/content-service";
 
 // Messaging
 import type { IMessageBus } from "@brains/messaging-service";
@@ -481,6 +484,10 @@ export class Shell implements IShell {
 
   public getContentService(): IContentService {
     return this.services.contentService;
+  }
+
+  public getCallerAuthorizer(): CallerAuthorizer {
+    return this.services.callerAuthorizer;
   }
 
   public getRenderService(): RenderService {

@@ -347,6 +347,12 @@ tool and call `jobs.enqueue(job, input)`. The runtime owns retries, deadlines,
 worker execution, cancellation, progress storage, restart recovery, and result
 validation.
 
+A job's `entities.get` reads with the access of whoever started it: the tool's
+caller, the Studio or Dashboard viewer, or the caller of an interface route.
+A job enqueued outside a request, such as from a daemon, reads with the
+enqueuing package's own grant, which is public unless the brain grants more.
+If the requester's account is revoked before the job runs, the job fails.
+
 ### Account settings and operator surfaces
 
 A service or interface can declare `defineAccountSettings()`. Secret fields are

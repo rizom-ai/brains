@@ -10,7 +10,9 @@ import type {
   EntityOf,
 } from "../entity/entity-definition-contract";
 import type { BasePluginContext } from "../base/context";
+import type { Caller } from "@brains/content-service";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import { anonymousCaller } from "../service/job-authority";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
@@ -68,16 +70,36 @@ function operatorJobStatus<TDefinition extends OperatorJobDefinition>(
   });
 }
 
-function createOperatorJobs(context: BasePluginContext): OperatorJobs {
+/** The viewer who starts a job: their account, or an anonymous viewer held to public. */
+function operatorJobCaller(
+  caller: OperatorCaller | null,
+  pluginId: string,
+): Caller {
+  return caller
+    ? {
+        actor: { kind: "user", userId: caller.actor.id },
+        permissionLevel: caller.permission,
+      }
+    : anonymousCaller(pluginId);
+}
+
+function createOperatorJobs(
+  context: BasePluginContext,
+  caller: OperatorCaller | null,
+): OperatorJobs {
   return {
     async enqueue<TDefinition extends OperatorJobDefinition>(
       definition: TDefinition,
       input: z.input<TDefinition["input"]>,
     ): Promise<OperatorJobReference<TDefinition>> {
       const runtimeType = getServiceJobRuntimeType(definition);
+      const parsed = definition.input.parse(input);
+      const authority = await context.jobAuthority.admit(
+        operatorJobCaller(caller, context.pluginId),
+      );
       const id = await context.jobs.enqueue({
         type: runtimeType,
-        data: definition.input.parse(input),
+        data: { authority, input: parsed },
         options: {
           source: context.pluginId,
           metadata: {
@@ -201,7 +223,7 @@ export async function createOperatorContext<
         );
       },
     },
-    jobs: createOperatorJobs(input.context),
+    jobs: createOperatorJobs(input.context, caller),
     permissions: {
       allows(definition, action): boolean {
         try {

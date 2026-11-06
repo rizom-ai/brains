@@ -1,4 +1,5 @@
 import {
+  CallerAuthorizer,
   GenerationAuthorizer,
   authorizeGenerationWrite,
   planContentGeneration,
@@ -67,8 +68,13 @@ export function createMockContentServices(
     return contentTemplate;
   };
 
-  const generationAuthorizer = (): GenerationAuthorizer =>
-    new GenerationAuthorizer(deps.getPermissionService(), async () => null);
+  const generationAuthorizer = (): GenerationAuthorizer => {
+    const permissions = deps.getPermissionService();
+    return new GenerationAuthorizer(
+      permissions,
+      new CallerAuthorizer(permissions, async (): Promise<null> => null),
+    );
+  };
   const contentService: IContentService = {
     submitGeneration: (request, binding, signal) =>
       submitContentGeneration(contentService, request, binding, signal),

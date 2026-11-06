@@ -29,6 +29,7 @@ import { createMockJobQueueService } from "@brains/job-queue/test";
 import { createMockAIService } from "@brains/ai-service/test";
 import { PermissionService, InMemoryTemplateRegistry } from "@brains/templates";
 import {
+  CallerAuthorizer,
   ContentService,
   ContentGenerationJobHandler,
   GenerationAuthorizer,
@@ -126,7 +127,7 @@ describe("scoped durable content generation", () => {
       dataSourceRegistry: sources,
       generationAuthorizer: new GenerationAuthorizer(
         permissions,
-        async () => null,
+        new CallerAuthorizer(permissions, async () => null),
       ),
     });
     for (const [id, content, visibility] of [

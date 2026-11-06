@@ -1,3 +1,6 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import type { Caller } from "@brains/content-service";
+import { createExternalActorId } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
@@ -15,6 +18,7 @@ import type {
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import { anonymousCaller } from "../service/job-authority";
 import {
   jsonError,
   jsonResponse,
@@ -35,6 +39,8 @@ class DeclarativeInterfacePlugin<
   private accountSettingsRegistration: AccountSettingsRegistration | undefined;
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
+  /** The caller of the route being handled; unset outside a route (daemons). */
+  private readonly routeCaller = new AsyncLocalStorage<Caller>();
 
   constructor(
     definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
@@ -132,10 +138,15 @@ class DeclarativeInterfacePlugin<
         definition: TDefinition,
         input: z.input<TDefinition["input"]>,
       ): Promise<{ readonly id: string }> => {
-        const data = definition.input.parse(input);
+        const type = getServiceJobRuntimeType(definition);
+        const parsed = definition.input.parse(input);
+        // A route's caller starts the job; outside a route, this interface.
+        const authority = await context.jobAuthority.admit(
+          this.routeCaller.getStore(),
+        );
         const id = await context.jobs.enqueue({
-          type: getServiceJobRuntimeType(definition),
-          data,
+          type,
+          data: { authority, input: parsed },
         });
         return Object.freeze({ id });
       },
@@ -171,14 +182,28 @@ class DeclarativeInterfacePlugin<
           body = parsed.data;
         }
 
-        const output = await definition.handle({
-          request,
-          body,
-          caller,
-        });
+        const output = await this.routeCaller.run(this.jobCaller(caller), () =>
+          definition.handle({ request, body, caller }),
+        );
         return jsonResponse(definition.response.parse(output));
       },
     };
+  }
+
+  /** An authenticated caller at the level the brain grants it; else anonymous. */
+  private jobCaller(caller: InterfaceCaller | null): Caller {
+    return caller
+      ? {
+          actor: {
+            kind: "external",
+            externalActorId: createExternalActorId(
+              this.definition.id,
+              caller.actor.id,
+            ),
+          },
+          permissionLevel: caller.permission,
+        }
+      : anonymousCaller(this.id);
   }
 
   private async resolveCaller(

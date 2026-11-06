@@ -18,12 +18,10 @@ import {
   PermissionService,
   type Template,
 } from "@brains/templates";
-import {
-  GenerationAuthorizer,
-  type GenerationCaller,
-} from "../src/generation-authorization";
+import { GenerationAuthorizer } from "../src/generation-authorization";
+import { CallerAuthorizer, type Caller } from "../src/caller-authority";
 
-const caller: GenerationCaller = {
+const caller: Caller = {
   actor: { kind: "service", serviceId: "books" },
   permissionLevel: "trusted",
 };
@@ -70,6 +68,7 @@ function createFixture(): {
   });
   const templateRegistry = InMemoryTemplateRegistry.createFresh(logger);
   const dataSourceRegistry = createMockDataSourceRegistry();
+  const permissions = new PermissionService({ trusted: ["service:books"] });
   const service = new ContentService({
     logger,
     entityService,
@@ -77,8 +76,8 @@ function createFixture(): {
     templateRegistry,
     dataSourceRegistry,
     generationAuthorizer: new GenerationAuthorizer(
-      new PermissionService({ trusted: ["service:books"] }),
-      async () => null,
+      permissions,
+      new CallerAuthorizer(permissions, async () => null),
     ),
   });
   templateRegistry.register("books:chapter", generationTemplate());

@@ -24,14 +24,23 @@ export {
   GenerationLimitError,
 } from "./generation-limits";
 export {
+  CallerAuthorizer,
+  CallerAuthorizationError,
+  callerAuthoritySchema,
+  callerSchema,
+  type Caller,
+  type CallerAccess,
+  type CallerAccountRule,
+  type CallerAdmission,
+  type CallerAuthority,
+  type CallerPrincipal,
+  type PrincipalResolver,
+} from "./caller-authority";
+export {
   GenerationAuthorizer,
   GenerationAuthorizationError,
   generationAuthoritySchema,
-  type GenerationAdmission,
-  type GenerationCaller,
   type GenerationAuthority,
-  type GenerationAccess,
-  type GenerationPrincipal,
 } from "./generation-authorization";
 export {
   authorizeGenerationWrite,
