@@ -41,6 +41,7 @@ import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 import { retryDeclinedTurnOnce } from "./provider-declined";
 import { textOnlyMessages } from "./text-only-messages";
+import { createToolCallRepair } from "./tool-call-repair";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
@@ -146,6 +147,18 @@ export function createBrainAgentFactory(
     reasoningEffort,
     capabilities.supportsTemperature,
   );
+
+  // A local model's call that fails validation is generated again with the
+  // tool's schema constraining the arguments, by the answer model when one is
+  // set; a cloud model retries from the validation error itself.
+  const repairToolCall =
+    capabilities.provider === "local"
+      ? answerModel
+        ? createToolCallRepair(answerModel)
+        : createToolCallRepair(model, {
+            local: { reasoningEffort: "none" },
+          })
+      : undefined;
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -262,6 +275,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
+      ...(repairToolCall && { experimental_repairToolCall: repairToolCall }),
       stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
     });
     return {
