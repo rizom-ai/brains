@@ -33,6 +33,12 @@ const oauth = {
 const ownerProfile =
   "---\nname: Ada M.\nemail: ada@example.com\n---\n\nMy own story.\n";
 const future = "2099-01-01T00:00:00.000Z";
+const broker = {
+  url: "https://connect.test",
+  instanceId: "ada",
+  secret: "s".repeat(40),
+  returnUri: "https://brain.test/linkedin/oauth/broker/return",
+};
 
 type Session = Awaited<ReturnType<AuthBackend["resolveSession"]>>;
 
@@ -108,11 +114,31 @@ class MemoryBackend implements AccountSettingsBackend {
 interface LinkedInCalls {
   authorizations: string[];
   exchanges: number;
+  brokerStates: string[];
+  redemptions: number;
 }
 
 function linkedIn(calls: LinkedInCalls, status = 200): LinkedInFetch {
   return async (input, init): Promise<Response> => {
     const url = new URL(String(input));
+    if (url.pathname === "/oauth-broker/authorizations") {
+      calls.brokerStates.push(
+        z
+          .object({ brainState: z.string() })
+          .parse(JSON.parse(String(init?.body))).brainState,
+      );
+      return Response.json({
+        authorizationUrl:
+          "https://www.linkedin.com/oauth/v2/authorization?state=broker-state",
+      });
+    }
+    if (url.pathname === "/oauth-broker/grants/redeem") {
+      calls.redemptions++;
+      return Response.json({
+        provider: "linkedin",
+        credential: { accessToken: "member-token", expiresAt: future },
+      });
+    }
     if (url.pathname === "/oauth/v2/accessToken") {
       calls.exchanges++;
       return Response.json({ access_token: "member-token", expires_in: 3600 });
@@ -155,6 +181,7 @@ interface Fixture {
 async function fixture(
   options: {
     oauth?: boolean;
+    mode?: "direct" | "broker" | "both";
     token?: { accessToken: string; expiresAt?: string };
     linkedInStatus?: number;
   } = {},
@@ -197,11 +224,23 @@ async function fixture(
         return { success: true, data: { workspaceUrl: "/studio/linkedin" } };
       },
     );
-  const calls: LinkedInCalls = { authorizations: [], exchanges: 0 };
-  const plugin = new LinkedInImportPlugin(
-    options.oauth === false ? {} : { oauth },
-    { fetch: linkedIn(calls, options.linkedInStatus) },
-  );
+  const calls: LinkedInCalls = {
+    authorizations: [],
+    exchanges: 0,
+    brokerStates: [],
+    redemptions: 0,
+  };
+  const connection =
+    options.oauth === false
+      ? {}
+      : options.mode === "broker"
+        ? { broker }
+        : options.mode === "both"
+          ? { oauth, broker }
+          : { oauth };
+  const plugin = new LinkedInImportPlugin(connection, {
+    fetch: linkedIn(calls, options.linkedInStatus),
+  });
   await harness.installPlugin(plugin);
   await plugin.finalizeRegistration();
   if (options.token) {
@@ -528,5 +567,72 @@ describe("LinkedIn workspace", () => {
     expect(shown).not.toContain("import-profile");
     expect(importProfile(state)).rejects.toThrow();
     expect(await state.profile()).toBe(ownerProfile);
+  });
+
+  describe("through the managed broker", () => {
+    const grant = "g".repeat(43);
+
+    async function started(state: Fixture): Promise<string> {
+      const start = await state.get("/linkedin/oauth/start");
+      expect(start.status).toBe(302);
+      expect(start.headers.get("Location")).toBe(
+        "https://www.linkedin.com/oauth/v2/authorization?state=broker-state",
+      );
+      return state.calls.brokerStates.at(-1) ?? "";
+    }
+
+    it("connects with the grant the broker returns", async () => {
+      const state = await fixture({ mode: "broker" });
+      const brainState = await started(state);
+
+      const back = await state.get(
+        `/linkedin/oauth/broker/return?provider=linkedin&state=${brainState}&grant=${grant}`,
+      );
+
+      expect(back.status).toBe(303);
+      expect(back.headers.get("Location")).toBe(
+        "/studio/linkedin?connection=connected",
+      );
+      expect(state.calls.redemptions).toBe(1);
+      expect(state.calls.exchanges).toBe(0);
+      expect(await state.view()).toContain("import-profile");
+      expect(new Set(state.calls.authorizations)).toEqual(
+        new Set(["Bearer member-token"]),
+      );
+    });
+
+    it("reports a declined consent without redeeming", async () => {
+      const state = await fixture({ mode: "broker" });
+      const brainState = await started(state);
+
+      const back = await state.get(
+        `/linkedin/oauth/broker/return?provider=linkedin&state=${brainState}&error=provider_denied`,
+      );
+
+      expect(back.headers.get("Location")).toBe(
+        "/studio/linkedin?connection=declined",
+      );
+      expect(state.calls.redemptions).toBe(0);
+    });
+
+    it("redeems nothing for a state from another session", async () => {
+      const state = await fixture({ mode: "broker" });
+      const brainState = await started(state);
+      state.setSession(session({ userId: "someone-else" }));
+
+      const back = await state.get(
+        `/linkedin/oauth/broker/return?provider=linkedin&state=${brainState}&grant=${grant}`,
+      );
+
+      expect(back.headers.get("Location")).toBe(
+        "/studio/linkedin?connection=failed",
+      );
+      expect(state.calls.redemptions).toBe(0);
+      expect(state.backend.records.size).toBe(0);
+    });
+
+    it("refuses both a direct app and a broker", () => {
+      expect(fixture({ mode: "both" })).rejects.toThrow("either");
+    });
   });
 });

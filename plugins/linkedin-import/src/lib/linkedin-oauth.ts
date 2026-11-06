@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { SingleUseStore } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import type { LinkedInFetch } from "./linkedin-client";
 
@@ -103,45 +103,14 @@ export class LinkedInOAuthClient {
 const STATE_TTL_MS = 10 * 60 * 1000;
 const MAX_PENDING = 20;
 
-interface PendingState {
-  userId: string;
-  expiresAt: number;
-}
-
 /**
- * Process-local, single-use OAuth state bound to the account that started the
- * connection. A restart drops a connection in flight; the owner starts again.
+ * Single-use OAuth state, each bound to the account that started the
+ * connection and valid for ten minutes.
  */
-export class OAuthStateStore {
-  private readonly pending = new Map<string, PendingState>();
-  private readonly now: () => number;
-
-  constructor(options: { now?: () => number } = {}) {
-    this.now = options.now ?? Date.now;
-  }
-
-  issue(userId: string): string {
-    this.prune();
-    [...this.pending.keys()]
-      .slice(0, Math.max(0, this.pending.size - MAX_PENDING + 1))
-      .forEach((oldest) => this.pending.delete(oldest));
-    const state = randomBytes(32).toString("base64url");
-    this.pending.set(state, { userId, expiresAt: this.now() + STATE_TTL_MS });
-    return state;
-  }
-
-  /** The account the state was issued for, once; null for anything else. */
-  consume(state: string): string | null {
-    this.prune();
-    const pending = this.pending.get(state);
-    this.pending.delete(state);
-    return pending?.userId ?? null;
-  }
-
-  private prune(): void {
-    const now = this.now();
-    [...this.pending]
-      .filter(([, pending]) => pending.expiresAt <= now)
-      .forEach(([state]) => this.pending.delete(state));
-  }
+export function createOAuthStates(now?: () => number): SingleUseStore<string> {
+  return new SingleUseStore<string>({
+    ttlMs: STATE_TTL_MS,
+    maxPending: MAX_PENDING,
+    now,
+  });
 }

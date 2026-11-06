@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.632",
   "description": "Import the owner's LinkedIn profile into the anchor profile from Studio",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
@@ -19,6 +20,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./broker-provider": "./src/broker-provider.ts",
     "./env-schema": "./src/env-schema.ts"
   },
   "private": true,

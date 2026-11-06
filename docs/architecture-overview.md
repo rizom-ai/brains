@@ -180,6 +180,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`                    |
 | `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                           |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
+| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains       |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
 | `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |

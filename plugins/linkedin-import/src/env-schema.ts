@@ -11,4 +11,9 @@ export const linkedInImportEnvSchema: EnvVarDecl[] = [
     sensitive: true,
     description: "LinkedIn import",
   },
+  {
+    name: "LINKEDIN_IMPORT_BROKER_SECRET",
+    sensitive: true,
+    description: "LinkedIn import through the managed broker",
+  },
 ];
