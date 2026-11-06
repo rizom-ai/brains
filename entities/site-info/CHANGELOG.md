@@ -1,5 +1,15 @@
 # @brains/site-info
 
+## 0.2.0-alpha.638
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.638
+  - @brains/site-composition@0.2.0-alpha.638
+  - @brains/utils@0.2.0-alpha.638
+  - @brains/plugins@0.2.0-alpha.638
+
 ## 0.2.0-alpha.637
 
 ### Patch Changes

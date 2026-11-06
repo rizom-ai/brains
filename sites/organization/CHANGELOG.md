@@ -1,5 +1,20 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.638
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.638
+  - @brains/faq@0.2.0-alpha.638
+  - @brains/profile@0.2.0-alpha.638
+  - @brains/site-atlas@0.2.0-alpha.638
+  - @brains/site-composition@0.2.0-alpha.638
+  - @brains/ui-library@0.2.0-alpha.638
+  - @brains/utils@0.2.0-alpha.638
+  - @brains/plugins@0.2.0-alpha.638
+  - @brains/templates@0.2.0-alpha.638
+
 ## 0.2.0-alpha.637
 
 ### Patch Changes
