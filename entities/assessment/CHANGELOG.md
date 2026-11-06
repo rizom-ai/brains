@@ -1,5 +1,15 @@
 # @brains/assessment
 
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/dashboard@0.2.0-alpha.633
+  - @brains/plugins@0.2.0-alpha.633
+
 ## 0.2.0-alpha.632
 
 ### Patch Changes
