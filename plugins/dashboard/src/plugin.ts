@@ -10,9 +10,8 @@ import {
   ServicePlugin,
 } from "@brains/plugins";
 import {
-  CONSOLE_CHANNELS,
   DASHBOARD_CHANNELS,
-  consoleJumpDestinationSchema,
+  consoleJumpDestinationsContract,
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -406,17 +405,12 @@ export class DashboardPlugin extends ServicePlugin<
           const studioPath = surfaces.find(
             (surface) => surface.id === "studio",
           )?.href;
-          const answers = await ctx.messaging.collect({
-            type: CONSOLE_CHANNELS.jumpDestinations,
-            payload: { permissionLevel: principal.permissionLevel },
-          });
-          const destinations = answers.flatMap((answer) => {
-            const parsed =
-              "data" in answer
-                ? z.array(consoleJumpDestinationSchema).safeParse(answer.data)
-                : null;
-            return parsed?.success ? parsed.data : [];
-          });
+          const offered = await ctx.messaging.gather(
+            consoleJumpDestinationsContract,
+            { permissionLevel: principal.permissionLevel },
+          );
+          const destinations =
+            offered.status === "answered" ? offered.answers.flat() : [];
           return Response.json({
             groups: buildConsoleJumpGroups({
               query,

@@ -1,8 +1,8 @@
 import {
   authPrincipalResolveContract,
-  EMAIL_SOURCE_READ,
   createExternalActorId,
-  emailSourceReadRequestSchema,
+  emailSourceReadContract,
+  inboundEmailContract,
   type EmailSourceReadRequest,
   type EmailSourceReadResponse,
   type InboundEmailSender,
@@ -36,7 +36,6 @@ import {
 import { readEmailSource } from "./source-reader";
 
 export {
-  EMAIL_INBOUND,
   inboundEmailSchema,
   type InboundEmail,
   type InboundEmailAddress,
@@ -193,7 +192,8 @@ export class EmailInterface extends MessageInterfacePlugin<
       intake: async (client, selection): Promise<number> =>
         intakeInboundEmail(client, selection, {
           cursor: this.getInboundCursor(),
-          publish: this.getContext().messaging.send,
+          publish: async (email) =>
+            this.getContext().messaging.request(inboundEmailContract, email),
           resolveSender: async (
             address,
           ): Promise<InboundEmailSender | undefined> =>
@@ -259,12 +259,8 @@ export class EmailInterface extends MessageInterfacePlugin<
           schema: emailSourceLocatorSchema,
         }),
       );
-      context.messaging.subscribe<EmailSourceReadRequest>(
-        EMAIL_SOURCE_READ,
-        async (message) => ({
-          success: true,
-          data: await this.readSource(message.payload),
-        }),
+      context.messaging.answer(emailSourceReadContract, async (request) =>
+        this.readSource(request),
       );
     }
   }
@@ -344,22 +340,21 @@ export class EmailInterface extends MessageInterfacePlugin<
     return this.sourceLocators;
   }
 
-  private async readSource(input: unknown): Promise<EmailSourceReadResponse> {
-    const request = emailSourceReadRequestSchema.safeParse(input);
-    if (!request.success || request.data.actor.permissionLevel !== "admin") {
+  private async readSource(
+    request: EmailSourceReadRequest,
+  ): Promise<EmailSourceReadResponse> {
+    if (request.actor.permissionLevel !== "admin") {
       return { kind: "unavailable" };
     }
     const config = this.config.imap;
     if (!config) return { kind: "unavailable" };
 
     try {
-      const locator = await this.getSourceLocators().resolve(
-        request.data.sourceRef,
-      );
+      const locator = await this.getSourceLocators().resolve(request.sourceRef);
       if (!locator) return { kind: "unavailable" };
       const timeout = AbortSignal.timeout(10_000);
-      const signal = request.data.signal
-        ? AbortSignal.any([request.data.signal, timeout])
+      const signal = request.signal
+        ? AbortSignal.any([request.signal, timeout])
         : timeout;
       // readEmailSource parses its own success path and returns
       // EmailSourceReadResponse, which is z.output of this same schema — so

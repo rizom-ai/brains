@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { EMAIL_INBOUND, type InboundEmail } from "@brains/contracts";
+import { inboundEmailContract, type InboundEmail } from "@brains/contracts";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioWorkspaceRegistration,
@@ -81,7 +81,7 @@ describe("email workflow plugin", () => {
     ).toBe(false);
   });
 
-  it("subscribes to EMAIL_INBOUND and persists before acknowledging", async () => {
+  it("answers email:inbound and persists before acknowledging", async () => {
     const logger = createMockLogger();
     const harness = createPluginHarness({ logger });
     const prompts: string[] = [];
@@ -115,17 +115,15 @@ Prioritize collaboration connected to Project Aurora.`,
     await harness.installPlugin(new MailItemPlugin());
     await harness.installPlugin(new EmailWorkflowsPlugin());
 
-    const response = await harness.getMockShell().getMessageBus().send({
-      type: EMAIL_INBOUND,
-      payload: inbound,
-      sender: "email",
-    });
+    const response = await harness
+      .getServiceContext("email")
+      .messaging.request(inboundEmailContract, inbound);
     const items = await harness.getEntityService().listEntities({
       entityType: "mail-item",
       options: { filter: { visibilityScope: "restricted" } },
     });
 
-    expect(response).toEqual({ success: true });
+    expect(response).toEqual({ status: "answered", data: {} });
     expect(prompts).toHaveLength(1);
     expect(prompts[0]).toContain(
       "Prioritize collaboration connected to Project Aurora.",

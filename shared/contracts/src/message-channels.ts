@@ -10,22 +10,6 @@ export const BUTTONDOWN_CHANNELS = {
   send: "buttondown:send",
 } as const;
 
-export const CHAT_CHANNELS = {
-  /** Post a space notice; the payload is `SpaceNoticeRequest`. */
-  spaceNotice: "chat:space-notice",
-  /** A click on a space notice; the payload is `SpaceNoticeAction`. */
-  spaceNoticeAction: "chat:space-notice-action",
-} as const;
-
-export const CONSOLE_CHANNELS = {
-  /**
-   * Collected by the ⌘K palette: each surface answers with the destinations
-   * it offers the caller, as `ConsoleJumpDestination[]`. The payload is
-   * `ConsoleJumpDestinationsRequest`.
-   */
-  jumpDestinations: "console:jump-destinations",
-} as const;
-
 export const DASHBOARD_CHANNELS = {
   registerWidget: "dashboard:register-widget",
   unregisterWidget: "dashboard:unregister-widget",
@@ -34,7 +18,6 @@ export const DASHBOARD_CHANNELS = {
 export const DIRECTORY_SYNC_CHANNELS = {
   getRepoInfo: "git-sync:get-repo-info",
   statusRequest: "sync:status:request",
-  pathRequest: "sync:path:request",
   configureRequest: "sync:configure:request",
   initialCompleted: "sync:initial:completed",
   entityExportRequest: "entity:export:request",

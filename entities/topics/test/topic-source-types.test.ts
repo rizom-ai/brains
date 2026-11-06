@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { TOPIC_SOURCE_TYPES_MESSAGE } from "@brains/contracts";
+import { topicSourceTypesContract } from "@brains/contracts";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -44,7 +44,7 @@ describe("topic source types", () => {
     const response = await harness.sendMessage<
       Record<string, never>,
       { types: string[] }
-    >(TOPIC_SOURCE_TYPES_MESSAGE, {});
+    >(topicSourceTypesContract.name, {});
 
     expect(response?.types).toContain("note");
     expect(response?.types).not.toContain("skill");

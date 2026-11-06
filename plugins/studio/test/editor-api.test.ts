@@ -1,4 +1,7 @@
-import { CONSOLE_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
+import {
+  MCP_INTERACTION_ID,
+  consoleJumpDestinationsContract,
+} from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 
 async function readAssetManifest(): Promise<
@@ -1066,7 +1069,7 @@ describe("studio editor api", () => {
     ): Promise<unknown> =>
       (
         await shell.getMessageBus().collect({
-          type: CONSOLE_CHANNELS.jumpDestinations,
+          type: consoleJumpDestinationsContract.name,
           sender: "test",
           payload: { permissionLevel },
         })

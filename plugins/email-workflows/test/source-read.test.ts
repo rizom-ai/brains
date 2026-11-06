@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  EMAIL_SOURCE_READ,
+  emailSourceReadContract,
   emailSourceReadRequestSchema,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -66,7 +66,7 @@ describe("EmailWorkflowsSourceReader", () => {
   it("resolves the restricted mail locator and forwards only an Admin actor", async () => {
     const fixture = await createFixture();
     const requests: unknown[] = [];
-    fixture.harness.subscribe(EMAIL_SOURCE_READ, async (message) => {
+    fixture.harness.subscribe(emailSourceReadContract.name, async (message) => {
       requests.push(message.payload);
       return {
         success: true,
@@ -136,7 +136,7 @@ describe("EmailWorkflowsSourceReader", () => {
   it("fails closed before source access for non-Admins and missing items", async () => {
     const fixture = await createFixture();
     let reads = 0;
-    fixture.harness.subscribe(EMAIL_SOURCE_READ, async () => {
+    fixture.harness.subscribe(emailSourceReadContract.name, async () => {
       reads += 1;
       throw new Error("private provider failure");
     });

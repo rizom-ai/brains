@@ -357,6 +357,18 @@ function withValidCards(value: unknown): unknown {
   };
 }
 
+type AgentResponseAnswerSchema = z.ZodPreprocess<AgentResponseSchema>;
+
+/**
+ * An agent response read the way transports read it: undefined fields are
+ * dropped and a malformed card is left out, never the answer.
+ */
+export const agentResponseAnswerSchema: AgentResponseAnswerSchema =
+  z.preprocess(
+    (value) => withValidCards(stripUndefinedDeep(value)),
+    AgentResponseSchema,
+  );
+
 export function parseAgentResponse(value: unknown): AgentResponse {
-  return AgentResponseSchema.parse(withValidCards(stripUndefinedDeep(value)));
+  return agentResponseAnswerSchema.parse(value);
 }

@@ -1,8 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  agentContextContract,
-} from "@brains/contracts";
+import { agentActionContract, agentContextContract } from "@brains/contracts";
 import {
   playbookAdapter,
   type PlaybookBody,
@@ -1344,7 +1341,7 @@ describe("PlaybooksPlugin", () => {
           totalTokens: number;
         };
       }
-    >(AGENT_ACTION_REQUEST_CHANNEL, {
+    >(agentActionContract.name, {
       conversationId: "web-action-next",
       interfaceType: "web-chat",
       channelName: "Web Chat",
@@ -2293,7 +2290,7 @@ describe("PlaybooksPlugin", () => {
         action: { type: "event"; event: "NEXT"; fromState: string };
       },
       { text: string }
-    >(AGENT_ACTION_REQUEST_CHANNEL, {
+    >(agentActionContract.name, {
       conversationId: "web-stale-action",
       interfaceType: "web-chat",
       channelName: "Web Chat",

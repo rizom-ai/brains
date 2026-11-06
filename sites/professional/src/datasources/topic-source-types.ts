@@ -1,13 +1,8 @@
 import {
-  TOPIC_SOURCE_TYPES_MESSAGE,
-  topicSourceTypesResponseSchema,
+  topicSourceTypesContract,
+  type BusResult,
+  type TopicSourceTypesResponse,
 } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
-
-const answeredSchema = z.object({
-  success: z.literal(true),
-  data: topicSourceTypesResponseSchema,
-});
 
 /**
  * The entity types topics are drawn from, as the topics plugin answers, so
@@ -15,13 +10,14 @@ const answeredSchema = z.object({
  * brain has no topics plugin or it cannot answer: then there are no topics.
  */
 export async function loadTopicSourceTypes(messaging: {
-  send(message: { type: string; payload: unknown }): Promise<unknown>;
+  request(
+    contract: typeof topicSourceTypesContract,
+    payload: Record<string, never>,
+  ): Promise<BusResult<TopicSourceTypesResponse>>;
 }): Promise<string[]> {
   try {
-    const response = answeredSchema.safeParse(
-      await messaging.send({ type: TOPIC_SOURCE_TYPES_MESSAGE, payload: {} }),
-    );
-    return response.success ? response.data.data.types : [];
+    const answer = await messaging.request(topicSourceTypesContract, {});
+    return answer.status === "answered" ? answer.data.types : [];
   } catch {
     // Without topics the map has no territories to measure.
     return [];

@@ -1,8 +1,7 @@
 import {
   CHAT_INTERACTION_ID,
-  CONSOLE_CHANNELS,
   STUDIO_INTERACTION_ID,
-  type ConsoleJumpDestination,
+  consoleJumpDestinationsContract,
 } from "@brains/contracts";
 import type {
   StudioOverviewContributionRegistration,
@@ -38,9 +37,6 @@ import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 
-const jumpDestinationsRequestSchema = z.object({
-  permissionLevel: z.enum(["public", "trusted", "admin"]),
-});
 import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
 import {
@@ -248,27 +244,19 @@ export class StudioPlugin extends ServicePlugin<
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),
     );
-    context.messaging.subscribe<unknown, ConsoleJumpDestination[]>(
-      CONSOLE_CHANNELS.jumpDestinations,
-      (message) => {
-        const request = jumpDestinationsRequestSchema.safeParse(
-          message.payload,
-        );
-        if (!request.success) return { success: false, error: "Bad request" };
-        return {
-          success: true,
-          data: studioJumpDestinations({
-            context,
-            routePath: this.config.routePath,
-            permissionLevel: request.data.permissionLevel,
-            workspaceRegistry: this.workspaceRegistry,
-            hasChat: resolveStudioChatApiPath(context) !== undefined,
-            entityDisplay:
-              this.config.entityDisplay ??
-              parseEntityDisplay(context.entityDisplay),
-          }),
-        };
-      },
+    context.messaging.answer(
+      consoleJumpDestinationsContract,
+      async ({ permissionLevel }) =>
+        studioJumpDestinations({
+          context,
+          routePath: this.config.routePath,
+          permissionLevel,
+          workspaceRegistry: this.workspaceRegistry,
+          hasChat: resolveStudioChatApiPath(context) !== undefined,
+          entityDisplay:
+            this.config.entityDisplay ??
+            parseEntityDisplay(context.entityDisplay),
+        }),
     );
     context.messaging.subscribe<StudioOverviewContributionRegistration>(
       STUDIO_OVERVIEW_REGISTER_MESSAGE,

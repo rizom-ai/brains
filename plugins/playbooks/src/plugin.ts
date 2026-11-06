@@ -1,8 +1,7 @@
 import {
-  AGENT_ACTION_REQUEST_CHANNEL,
   ENTITY_CHANNELS,
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  agentActionRequestSchema,
+  agentActionContract,
   lifecycleStarterRegistrationSchema,
   type AgentActionRequest,
   type AgentContextItem,
@@ -407,15 +406,9 @@ export class PlaybooksPlugin extends ServicePlugin<
       return { items: item ? [item] : [] };
     });
 
-    context.messaging.subscribe<unknown, AgentResponse>(
-      AGENT_ACTION_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentActionRequestSchema.parse(message.payload);
-        const response = await this.handleAgentAction(request);
-        return response
-          ? { success: true, data: response }
-          : { success: false };
-      },
+    context.messaging.answer(
+      agentActionContract,
+      async (request) => (await this.handleAgentAction(request)) ?? null,
     );
 
     context.messaging.subscribe<unknown, { recorded: boolean }>(

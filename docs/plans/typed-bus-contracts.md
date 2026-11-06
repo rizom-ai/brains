@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress; Phases 1 and 2 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather` and `answer`. Contracts so far: `note:capture`, `auth:principal:resolve`, `notifications:send`, `agent:context:request`, `guest:asked-before` and `projection:wave-ready`.
+**In progress; Phases 1–3 shipped.** Inventory taken on main `83a3e0ca61` (2026-11-05). `defineBusContract` lives in `@brains/contracts`; `requestContract`, `collectContract` and `answerContract` in `@brains/messaging-service` serve shell code, and the messaging namespace delegates to them as `request`, `gather` and `answer`. Contracts so far: `note:capture`, `auth:principal:resolve`, `notifications:send`, `agent:context:request`, `guest:asked-before`, `projection:wave-ready`, `agent:action:request`, `sync:path:request`, `email:source-read`, `email:inbound`, `console:jump-destinations`, `chat:space-notice`, `chat:space-notice-action`, `topics:public-titles` and `topics:source-types`.
 
 35 live message-bus channels carry requests or commands across package boundaries. Fourteen run from shell code to a plugin, and 21 run between plugins. Two typed context namespaces wrap a few of them: `context.dashboard` (four channels) and `context.studio` (two). Everything else is a raw `messaging.send({ type, payload })` whose reply the caller casts to the type it expects.
 
@@ -72,10 +72,6 @@ The public `@rizom/brain` authoring SDK does not gain contracts in this plan. Ex
 ## Phases
 
 Phases land as commits on one branch and PR, opened after the walking skeleton. Each phase leaves every channel either fully migrated or untouched.
-
-### Phase 3 — Plugin channels that already share schemas
-
-`agent:action:request`, `sync:path:request`, `email:source-read`, `email:inbound`, `console:jump-destinations`, `chat:space-notice` and `chat:space-notice-action`, `topics:public-titles` and `topics:source-types`.
 
 ### Phase 4 — Plugin channels with local or missing schemas
 

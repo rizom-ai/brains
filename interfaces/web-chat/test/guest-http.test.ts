@@ -14,7 +14,7 @@ import {
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import {
-  TOPIC_TITLES_MESSAGE,
+  topicTitlesContract,
   noteCaptureContract,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
@@ -277,7 +277,7 @@ async function setup(
     harness
       .getMockShell()
       .getMessageBus()
-      .subscribe(TOPIC_TITLES_MESSAGE, () => ({
+      .subscribe(topicTitlesContract.name, () => ({
         success: true,
         data: { titles: topics },
       }));

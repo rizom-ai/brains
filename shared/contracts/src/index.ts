@@ -49,14 +49,17 @@ export {
   type SourceBrain,
 } from "./ask-box";
 export {
-  AGENT_ACTION_REQUEST_CHANNEL,
+  agentActionContract,
   agentActionRequestSchema,
+  agentActionResponseSchema,
+  type AgentActionResponse,
   agentEventActionSchema,
   type AgentActionRequest,
   type AgentEventAction,
 } from "./agent-action";
 export {
   AgentResponseSchema,
+  agentResponseAnswerSchema,
   parseAgentResponse,
   ToolApprovalCardStateSchema,
   ToolApprovalCardSchema,
@@ -213,14 +216,15 @@ export {
   type AuthAccountSnapshot,
 } from "./auth-account";
 export {
-  EMAIL_INBOUND,
+  inboundEmailAckSchema,
+  inboundEmailContract,
   inboundEmailSchema,
   type InboundEmail,
   type InboundEmailAddress,
   type InboundEmailSender,
 } from "./inbound-email";
 export {
-  EMAIL_SOURCE_READ,
+  emailSourceReadContract,
   emailSourceReadRequestSchema,
   emailSourceReadResponseSchema,
   type EmailSourceMessage,
@@ -261,7 +265,10 @@ export {
 export {
   SPACE_NOTICE_ITEM_LIMIT,
   SPACE_NOTICE_VALUE_LIMIT,
+  spaceNoticeActionAnswerSchema,
+  spaceNoticeActionContract,
   spaceNoticeActionSchema,
+  spaceNoticeContract,
   spaceNoticeContentSchema,
   spaceNoticeRequestSchema,
   spaceNoticeResultSchema,
@@ -273,7 +280,6 @@ export {
 export {
   A2A_CHANNELS,
   BUTTONDOWN_CHANNELS,
-  CHAT_CHANNELS,
   DASHBOARD_CHANNELS,
   DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,
@@ -288,11 +294,11 @@ export {
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
   SITE_BUILDER_CHANNELS,
-  CONSOLE_CHANNELS,
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
 export {
+  directorySyncPathContract,
   directorySyncPathRequestSchema,
   directorySyncPathResponseSchema,
   type DirectorySyncPathRequest,
@@ -366,12 +372,14 @@ export {
   type SendNotificationResult,
 } from "./notification";
 export {
-  TOPIC_TITLES_MESSAGE,
+  topicTitlesContract,
+  topicTitlesRequestSchema,
   topicTitlesResponseSchema,
   type TopicTitlesResponse,
 } from "./topic-titles";
 export {
-  TOPIC_SOURCE_TYPES_MESSAGE,
+  topicSourceTypesContract,
+  topicSourceTypesRequestSchema,
   topicSourceTypesResponseSchema,
   type TopicSourceTypesResponse,
 } from "./topic-source-types";
@@ -394,7 +402,12 @@ export type {
   ConsoleSurface,
   SurfacePermissionLevel,
 } from "./console";
-export { consoleJumpDestinationSchema } from "./console";
+export {
+  consoleJumpDestinationSchema,
+  consoleJumpDestinationsContract,
+  consoleJumpDestinationsRequestSchema,
+  consoleJumpDestinationsResponseSchema,
+} from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
 export {
   CHAT_INTERACTION_ID,

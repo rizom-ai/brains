@@ -1,5 +1,8 @@
 import { describe, it, expect } from "bun:test";
-import { directorySyncPathResponseSchema } from "@brains/contracts";
+import {
+  directorySyncPathContract,
+  directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import { registerMessageHandlers } from "../src/lib/message-handlers";
 import type {
   GitStatusSource,
@@ -107,7 +110,7 @@ describe("sync:path:request placement preview", () => {
       const harness = setup({ directorySync: fakeDirectorySync() });
       try {
         expect(
-          await harness.sendMessage("sync:path:request", {
+          await harness.sendMessage(directorySyncPathContract.name, {
             entityType,
             entityId,
             metadata: {},
@@ -122,7 +125,7 @@ describe("sync:path:request placement preview", () => {
   it("identifies the new filename segment without confusing it with the extension", async () => {
     const harness = setup({ directorySync: fakeDirectorySync() });
     try {
-      const result = await harness.sendMessage("sync:path:request", {
+      const result = await harness.sendMessage(directorySyncPathContract.name, {
         entityType: "note",
         entityId: "book:.md",
         metadata: {},
@@ -163,7 +166,12 @@ describe("sync:path:request placement preview", () => {
         const result = await harness.sendMessage<
           unknown,
           { relativePath: string }
-        >("sync:path:request", { entityType, entityId, metadata, content: "" });
+        >(directorySyncPathContract.name, {
+          entityType,
+          entityId,
+          metadata,
+          content: "",
+        });
         expect(result).toMatchObject({ relativePath });
       } finally {
         await harness.reset();

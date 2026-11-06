@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { CONSOLE_CHANNELS } from "@brains/contracts";
+import { consoleJumpDestinationsContract } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
@@ -247,7 +247,7 @@ describe("DashboardPlugin", () => {
       harness
         .getMockShell()
         .getMessageBus()
-        .subscribe(CONSOLE_CHANNELS.jumpDestinations, async (message) => {
+        .subscribe(consoleJumpDestinationsContract.name, async (message) => {
           asked.push(message.payload);
           return {
             success: true,

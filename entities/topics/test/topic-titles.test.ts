@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { TOPIC_TITLES_MESSAGE } from "@brains/contracts";
+import { topicTitlesContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ContentVisibility } from "@brains/plugins";
 import { TopicsPlugin } from "../src";
@@ -34,7 +34,7 @@ describe("public topic titles", () => {
       ["Trust Networks", "public"],
       ["Private Plans", "restricted"],
     ]);
-    const response = await harness.sendMessage(TOPIC_TITLES_MESSAGE, {});
+    const response = await harness.sendMessage(topicTitlesContract.name, {});
     expect(response).toEqual({
       titles: ["Ecosystem Architecture", "Trust Networks"],
     });
@@ -50,7 +50,7 @@ describe("public topic titles", () => {
     const response = await harness.sendMessage<
       Record<string, never>,
       { titles: string[] }
-    >(TOPIC_TITLES_MESSAGE, {});
+    >(topicTitlesContract.name, {});
     expect(response?.titles).toHaveLength(20);
   });
 });
