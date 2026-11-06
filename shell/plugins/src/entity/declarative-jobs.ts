@@ -224,14 +224,13 @@ export async function generationLinkProblem(
  * order, without listing an entity twice.
  */
 function appendToList(
-  content: string,
+  held: unknown,
   link: {
     readonly list: string;
     readonly replaces?: readonly string[] | undefined;
   },
   entityId: string,
 ): { id: string }[] {
-  const held = parseMarkdown(content).frontmatter[link.list];
   const dropped = new Set(link.replaces ?? []);
   const kept = (Array.isArray(held) ? held : []).flatMap((item: unknown) =>
     typeof item === "object" &&
@@ -253,7 +252,9 @@ export async function writeGenerationLink(
   entityId: string,
   link: EntityGenerationLink,
 ): Promise<void> {
-  const target = await context.entityService.getEntity({
+  // As stored, so the target is written back with its own references rather
+  // than their resolved data.
+  const target = await context.entityService.getEntityRaw({
     entityType: link.entityType,
     id: link.entityId,
     visibilityScope: internalFullScope("generation links into its target"),
@@ -263,18 +264,30 @@ export async function writeGenerationLink(
       `Cannot link ${entityId} into ${link.entityType}/${link.entityId}, which does not exist`,
     );
   }
+  // A declared type's metadata is its frontmatter and its content is the
+  // body, so the link is a metadata write. Other types keep the field in the
+  // file, and their content is the file.
+  const declared =
+    context.entities.getAdapter(link.entityType)?.metadataFromFrontmatter ===
+    true;
+  const fields = declared
+    ? target.metadata
+    : parseMarkdown(target.content).frontmatter;
   const [field, value] =
     "field" in link
       ? [link.field, entityId]
-      : [link.list, appendToList(target.content, link, entityId)];
+      : [link.list, appendToList(fields[link.list], link, entityId)];
   await context.entityService.updateEntity({
     entity: {
       ...target,
-      content: updateFrontmatterField(target.content, field, value),
+      content: declared
+        ? target.content
+        : updateFrontmatterField(target.content, field, value),
       // Metadata that already carries the field must agree with the file.
-      metadata: Object.hasOwn(target.metadata, field)
-        ? { ...target.metadata, [field]: value }
-        : target.metadata,
+      metadata:
+        declared || Object.hasOwn(target.metadata, field)
+          ? { ...target.metadata, [field]: value }
+          : target.metadata,
     },
   });
 }

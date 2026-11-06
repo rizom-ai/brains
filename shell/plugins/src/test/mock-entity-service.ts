@@ -28,6 +28,31 @@ import { createMockReceiptMethods } from "./mock-entity-receipts";
 export function createMockEntityService(
   store: MockEntityStore,
 ): IEntityService {
+  // Read the way the real service reconstructs a row: the stored markdown goes
+  // through the type's adapter, whose parsed fields (a declared type's
+  // decoded body among them) replace the stored ones. Metadata and visibility
+  // stay as stored, as the database columns are the source of truth there. A
+  // row the adapter cannot parse is unreadable, as it is to the real service:
+  // a get finds nothing and a list leaves it out.
+  function readEntity(entity: BaseEntity): BaseEntity | null {
+    const adapter = store.adapters.get(entity.entityType);
+    if (typeof adapter?.fromMarkdown !== "function") return entity;
+    let fields: Partial<BaseEntity>;
+    try {
+      fields = adapter.fromMarkdown(entity.content);
+    } catch {
+      // The real service logs such a row and leaves it out of every read;
+      // null is that answer, which a caller tells apart from a record.
+      return null;
+    }
+    const {
+      metadata: _parsedMetadata,
+      visibility: _parsedVisibility,
+      ...parsed
+    } = fields;
+    return { ...entity, ...parsed, metadata: entity.metadata };
+  }
+
   // Overloaded like the real service: without a schema reads return the
   // stored BaseEntity view; with one they parse, so T is proven not asserted.
   async function getEntityFake(
@@ -48,7 +73,9 @@ export function createMockEntityService(
       request.visibilityScope ?? "public",
     ).includes(entity.visibility);
     if (!visible) return null;
-    return schema ? schema.parse(entity) : entity;
+    const read = readEntity(entity);
+    if (!read) return null;
+    return schema ? schema.parse(read) : read;
   }
 
   // Mirrors the real query layer's ORDER BY: system fields come from the
@@ -156,7 +183,8 @@ export function createMockEntityService(
     const limit = request.options?.limit;
     const results = filterEntitiesFake(request)
       .sort((left, right) => compareBySortFields(left, right, sortFields))
-      .slice(offset, limit === undefined ? undefined : offset + limit);
+      .slice(offset, limit === undefined ? undefined : offset + limit)
+      .flatMap((entity) => readEntity(entity) ?? []);
     return schema ? results.map((entity) => schema.parse(entity)) : results;
   }
 

@@ -677,7 +677,8 @@ class DeclarativeServicePlugin<
         message: `A ${definition.type} write cannot change a ${record.entityType}`,
       });
     }
-    const stored = await this.getContext().entityService.getEntity({
+    // As stored, so content written back unchanged is the stored body.
+    const stored = await this.getContext().entityService.getEntityRaw({
       entityType: definition.type,
       id: record.id,
       visibilityScope: access.visibilityScope,

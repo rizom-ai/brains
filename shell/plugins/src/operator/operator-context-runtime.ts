@@ -187,7 +187,9 @@ export async function createOperatorContext<
         id: string,
       ): Promise<EntityOf<TDefinition> | null> {
         signal.throwIfAborted();
-        const entity = await input.context.entityService.getEntity({
+        // As stored, the same record `list` hands back: no read-time
+        // resolution of image references into their data.
+        const entity = await input.context.entityService.getEntityRaw({
           entityType: definition.type,
           id,
           visibilityScope,

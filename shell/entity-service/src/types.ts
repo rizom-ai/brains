@@ -1558,6 +1558,7 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
 export type ReadOnlyEntityService = Pick<
   ICoreEntityService,
   | "getEntity"
+  | "getEntityRaw"
   | "listEntities"
   | "search"
   | "searchWithDistances"

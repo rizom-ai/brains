@@ -248,6 +248,7 @@ export function defineChannel<TPayload, TResponse = unknown>(
 
 type PublicEntityServiceMethods =
   | "getEntity"
+  | "getEntityRaw"
   | "listEntities"
   | "search"
   | "searchWithDistances"

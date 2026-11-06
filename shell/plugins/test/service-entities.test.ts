@@ -102,21 +102,7 @@ function reminderShell(
     async (): Promise<CallerPrincipal | null> => null,
   ),
 ): MockShell {
-  const shell = createMockShell({ resolvePrincipal });
-  const now = new Date().toISOString();
-  shell.addEntities(
-    visibilities.map((visibility) => ({
-      id: `${visibility}-reminder`,
-      entityType: reminder.type,
-      content: `A ${visibility} reminder`,
-      contentHash: visibility,
-      metadata: { status: "open", dueAt: "2000-01-01" },
-      visibility,
-      created: now,
-      updated: now,
-    })),
-  );
-  return shell;
+  return createMockShell({ resolvePrincipal });
 }
 
 async function runQueuedJob(shell: MockShell, jobId: string): Promise<unknown> {
@@ -228,6 +214,20 @@ async function installReminders(shell: MockShell): Promise<Installed> {
     },
   );
   const { plugins, service: capabilities } = await install(shell, definition);
+  // Stored through the entity service, as the files a brain holds are.
+  await Promise.all(
+    visibilities.map((visibility) =>
+      shell.getEntityService().createEntity({
+        entity: {
+          id: `${visibility}-reminder`,
+          entityType: reminder.type,
+          content: `A ${visibility} reminder`,
+          metadata: { status: "open", dueAt: "2000-01-01" },
+          visibility,
+        },
+      }),
+    ),
+  );
   if (!captured) throw new Error("Tools slot was not read");
   const byName = new Map(capabilities.tools.map((tool) => [tool.name, tool]));
   return {
@@ -333,7 +333,10 @@ describe("service entity access reads and writes as the current caller", () => {
     expect(
       await call("add", { id: "call", dueAt: "2001-01-01" }, guest),
     ).toEqual({ success: true, data: { id: "call" } });
-    expect(created.mock.calls[0]?.[0].options?.eventContext).toEqual({
+    const written = created.mock.calls.find(
+      ([request]) => request.entity.id === "call",
+    );
+    expect(written?.[0].options?.eventContext).toEqual({
       actor: guest.actor,
       interfaceType: guest.interfaceType,
     });

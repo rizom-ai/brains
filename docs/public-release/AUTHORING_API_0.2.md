@@ -235,6 +235,8 @@ Types:
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 
+A record read through an `EntityReader`, or handed to any declared slot, is an `EntityOf` the type's definition: its `metadata` parsed by the type's schema and its `content` the body as stored, decoded by the type's `markdown` codec when it has one. The body carries no frontmatter, and an image reference stays the reference (`entity://image/{id}`) that the site's image pipeline renders, rather than the image's data. `get` and `list` hand back the same record, so one written back unchanged is stored byte for byte.
+
 `EntityDefinitionConfig` is the optional `config` slot on `defineEntity`: the entity-type settings a type may declare, validated when the package is installed and copied so later edits to the declaring object have no effect. Omitted keys keep the runtime defaults.
 
 - `weight`, `embeddable`, `fullTextSearchable`, `includeInBroadSearch`, `projectionSource` and `projectionSourceRole` shape search and projection sourcing. System configuration typically opts out of embeddings and projection sourcing; `includeInBroadSearch: false` keeps derived answers out of searches that name no type, while a search naming the type still finds them.

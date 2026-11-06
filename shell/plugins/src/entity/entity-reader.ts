@@ -25,11 +25,15 @@ export function sortFields(sort: readonly DataSourceSortField[]): SortField[] {
  * Definition-typed reads over an entity service. Without a scope they read
  * what the service reads by default — public records, through whatever
  * scoping the service itself applies; with one, they read up to it.
+ *
+ * A record is read as stored: its body decoded by the type's codec, image
+ * references left as references. `get` and `list` hand back the same record,
+ * and one written back unchanged is stored byte for byte.
  */
 export function createEntityReader(
   entityService: Pick<
     EntityServiceClient,
-    "getEntity" | "listEntities" | "countEntities"
+    "getEntityRaw" | "listEntities" | "countEntities"
   >,
   visibilityScope?: ContentVisibility,
 ): EntityReader {
@@ -39,7 +43,7 @@ export function createEntityReader(
       definition: TDefinition,
       id: string,
     ): Promise<EntityOf<TDefinition> | null> {
-      const entity = await entityService.getEntity({
+      const entity = await entityService.getEntityRaw({
         entityType: definition.type,
         id,
         ...scope,
