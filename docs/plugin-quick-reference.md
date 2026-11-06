@@ -75,7 +75,11 @@ and call the service-local formatter:
 ```ts
 const saved = await entities.get(bookmark, input.bookmarkId);
 if (!saved) {
-  throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+  // The code reaches whoever reads the job's status; the message stays
+  // with the brain's diagnostics.
+  throw new SdkError("not_found", {
+    message: `Bookmark not found: ${input.bookmarkId}`,
+  });
 }
 
 const result = state.summarize(saved.id, saved.metadata.title, saved.content);

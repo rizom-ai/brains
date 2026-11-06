@@ -1,10 +1,12 @@
 import { bookmark, readingDigest } from "@fixture/reading-entities";
 import { defineEntity } from "@rizom/brain/entities";
 import {
+  SdkError,
   contentGenerationResultSchema,
   defineJob,
   defineServicePlugin,
   defineTool,
+  sdkErrorCodeSchema,
   z,
 } from "@rizom/brain/services";
 
@@ -41,6 +43,7 @@ const digestStatus = z.object({
     .nullable(),
   result: digestResult.optional(),
   error: z.string().optional(),
+  code: sdkErrorCodeSchema.optional(),
 });
 
 // Export the reusable job contract; execution is bound by the owning service.
@@ -183,7 +186,11 @@ export default defineServicePlugin(
 
           const saved = await entities.get(bookmark, input.bookmarkId);
           if (!saved) {
-            throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+            // The code reaches whoever reads the job's status; the message stays
+            // with the brain's diagnostics.
+            throw new SdkError("not_found", {
+              message: `Bookmark not found: ${input.bookmarkId}`,
+            });
           }
 
           const result = state.summarize(
@@ -315,6 +322,7 @@ export default defineServicePlugin(
             progress: status.progress,
             ...(status.result ? { result: status.result } : {}),
             ...(status.error ? { error: status.error } : {}),
+            ...(status.code ? { code: status.code } : {}),
           };
         },
       }),

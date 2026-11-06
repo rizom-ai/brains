@@ -1,6 +1,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
-import { SdkError, type ActorRef, type JsonObject } from "@brains/contracts";
+import {
+  SdkError,
+  sdkErrorSchema,
+  type ActorRef,
+  type JsonObject,
+  type SdkErrorCode,
+} from "@brains/contracts";
 import type { CallerAccess } from "@brains/content-service";
 import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -133,6 +139,22 @@ function promptInput(value: string | undefined): unknown {
   }
 }
 
+/**
+ * What a caller is told of a failure: its recorded public form, as an
+ * SdkError would publish it. The diagnostic beside it is for operators only,
+ * and a failure recorded without a valid public form reads as a failed
+ * handler.
+ */
+function publicFailure(stored: unknown): {
+  readonly code: SdkErrorCode;
+  readonly error: string;
+} {
+  const failure =
+    sdkErrorSchema.safeParse(stored).data ??
+    new SdkError("handler_failed").toJSON();
+  return { code: failure.code, error: failure.message };
+}
+
 function statusFor<TDefinition extends AnyServiceJobDefinition>(
   definition: TDefinition,
   job: JobInfo,
@@ -146,7 +168,7 @@ function statusFor<TDefinition extends AnyServiceJobDefinition>(
     status: job.status,
     progress: job.progress,
     ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? { error: job.lastError } : {}),
+    ...(job.lastError ? publicFailure(job.lastErrorPublic) : {}),
   };
 }
 
@@ -199,7 +221,14 @@ function runtimeJobHandler(
           },
         }),
       );
-      return definition.output.parse(output);
+      const parsed = definition.output.safeParse(output);
+      if (!parsed.success) {
+        throw new SdkError("invalid_response", {
+          message: `Job "${definition.name}" answered outside its output schema`,
+          cause: parsed.error,
+        });
+      }
+      return parsed.data;
     },
   };
 }

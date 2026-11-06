@@ -350,6 +350,10 @@ describe("getRuntimeReadiness", () => {
         retryCount: 3,
         maxRetries: 3,
         lastError: "No handler registered",
+        lastErrorPublic: {
+          code: "no_handler",
+          message: "No handler is available for this capability",
+        },
         createdAt: 100,
         scheduledFor: 100,
         startedAt: 100,

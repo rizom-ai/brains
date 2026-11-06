@@ -18,6 +18,12 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
+import { SdkError, toSdkError, type SdkErrorCode } from "@brains/contracts";
+
+/** A code's public form, stored as the JSON a raw statement writes. */
+function publicFailure(code: SdkErrorCode): string {
+  return JSON.stringify(new SdkError(code).toJSON());
+}
 import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
@@ -296,12 +302,14 @@ export class JobQueueRepository {
       sql: `UPDATE \`job_queue\`
             SET \`status\` = ?,
                 \`lastError\` = ?,
+                \`lastErrorPublic\` = ?,
                 \`completedAt\` = ?,
                 \`runtimeUpdatedAt\` = max(?, coalesce((SELECT max(\`runtimeUpdatedAt\`) FROM \`job_queue\`), 0) + 1)
             WHERE \`id\` = ? AND \`status\` = ?`,
       args: [
         JOB_STATUS.FAILED,
         "Replaced by newer job",
+        publicFailure("cancelled"),
         now,
         now,
         duplicate.id,
@@ -696,6 +704,7 @@ export class JobQueueRepository {
           status: JOB_STATUS.COMPLETED,
           result,
           lastError: null,
+          lastErrorPublic: null,
           completedAt: now,
           runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
         })
@@ -806,6 +815,9 @@ export class JobQueueRepository {
           status: canRetry ? JOB_STATUS.PENDING : JOB_STATUS.FAILED,
           retryCount: nextRetryCount,
           lastError: error.message,
+          // The public form is what a caller may be told; the message stays
+          // diagnostic.
+          lastErrorPublic: toSdkError(error).toJSON(),
           scheduledFor,
           completedAt: canRetry ? null : now,
           runtimeUpdatedAt: canRetry
@@ -865,6 +877,7 @@ export class JobQueueRepository {
         .set({
           status: JOB_STATUS.FAILED,
           lastError: reason,
+          lastErrorPublic: new SdkError("no_handler").toJSON(),
           completedAt: request.now,
           runtimeUpdatedAt: this.nextRuntimeUpdatedAt(request.now),
         })
@@ -1226,6 +1239,7 @@ export class JobQueueRepository {
           status: sql`CASE WHEN ${terminalReclaim} THEN ${JOB_STATUS.FAILED} ELSE ${JOB_STATUS.PROCESSING} END`,
           retryCount: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN ${jobQueue.retryCount} + 1 ELSE ${jobQueue.retryCount} END`,
           lastError: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN 'Attempt lease expired' ELSE ${jobQueue.lastError} END`,
+          lastErrorPublic: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN ${publicFailure("deadline_exceeded")} ELSE ${jobQueue.lastErrorPublic} END`,
           startedAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.startedAt} ELSE ${now} END`,
           completedAt: sql`CASE WHEN ${terminalReclaim} THEN ${now} ELSE NULL END`,
           attemptId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptId} ELSE ${attemptId} END`,

@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
+import { waitUntil } from "@brains/test-utils";
 import {
   buildAndPackFixturePackage,
   combinedOutput,
@@ -215,6 +216,16 @@ describe("public authoring Phase 3 packed service contract", () => {
       expect(request).toContain("Asked for a digest");
       expect(request).toContain("requested");
 
+      // A job that fails with a code: its status says why, not what it threw.
+      const missing = jobIdFrom(
+        await invokeTool(
+          consumerDirectory,
+          "reading-insights_compile-reading-digest",
+          { bookmarkId: "no-such-bookmark" },
+          { confirm: true },
+        ),
+      );
+
       const enqueued = await invokeTool(
         consumerDirectory,
         "reading-insights_compile-reading-digest",
@@ -260,6 +271,23 @@ describe("public authoring Phase 3 packed service contract", () => {
       expect(completed).toContain('"wordCount": 4');
       expect(completed).toContain('"progress": 100');
       expect(completed).toContain('"message": "Digest ready"');
+
+      let failed = "";
+      await waitUntil(
+        async () => {
+          failed = await invokeTool(
+            consumerDirectory,
+            "reading-insights_reading-digest-status",
+            { jobId: missing },
+          );
+          return failed.includes('"status": "failed"');
+        },
+        "the digest of a missing bookmark to fail",
+        { timeoutMs: 30_000, intervalMs: 250 },
+      );
+      expect(failed).toContain('"code": "not_found"');
+      expect(failed).toContain('"error": "Not found"');
+      expect(failed).not.toContain("no-such-bookmark");
 
       expect(admitted).toContain('"template": "generatedDigest"');
       expect(admitted).toContain('"template": "generatedBookmark"');

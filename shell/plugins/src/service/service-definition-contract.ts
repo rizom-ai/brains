@@ -3,7 +3,7 @@ import type {
   TemplateDataSchema,
   UserPermissionLevel,
 } from "@brains/templates";
-import type { JsonObject } from "@brains/contracts";
+import type { JsonObject, SdkErrorCode } from "@brains/contracts";
 import type { ServiceContentGeneration } from "./content-generation-contract";
 export type {
   ServiceContentGeneration,
@@ -227,7 +227,13 @@ export interface ServiceJobStatus<TOutput> {
   readonly status: "pending" | "processing" | "completed" | "failed";
   readonly progress: ServiceJobProgress | null;
   readonly result?: TOutput | undefined;
+  /**
+   * Why the last attempt failed, as its code's standard message: never the
+   * message the failure was thrown with, which stays in the brain's logs.
+   */
   readonly error?: string | undefined;
+  /** The code of the last attempt's failure, when it failed. */
+  readonly code?: SdkErrorCode | undefined;
 }
 
 export interface ServiceJobReference<
