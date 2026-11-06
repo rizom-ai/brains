@@ -1,6 +1,13 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { fetchVoiceGuidance } from "@brains/contracts";
-import { internalFullScope } from "@brains/entity-service";
+import {
+  fetchVoiceGuidance,
+  generateReportFailureContract,
+  generateReportSuccessContract,
+} from "@brains/contracts";
+import {
+  canonicalContentVisibilitySchema,
+  internalFullScope,
+} from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
 import { parseWithSchema } from "@brains/utils/parse-schema";
@@ -16,6 +23,7 @@ import {
 } from "../service/base-generation-job-handler";
 import type { EntityPluginContext } from "./context";
 import type {
+  EntityEvalFixtures,
   EntityGenerationAI,
   EntityGenerationContext,
   EntityGenerationDeclaration,
@@ -26,6 +34,104 @@ import type {
   EntityJobProgress,
 } from "./entity-definition-contract";
 import { createEntityReader } from "./entity-reader";
+import { waitForEmbeddingsToDrain } from "./embedding-drain";
+
+/**
+ * Template generation through main's AI path: a template this type declares,
+ * named locally, with the style guide governing voice when asked.
+ */
+export function createGenerationAI(
+  context: EntityPluginContext,
+  template: (localName: string) => string,
+  signal?: AbortSignal,
+): EntityGenerationAI {
+  return Object.freeze({
+    async generate<TSchema extends z.ZodType>(
+      request: Parameters<EntityGenerationAI["generate"]>[0],
+      schema: TSchema,
+    ): Promise<z.output<TSchema>> {
+      const templateName = template(request.template);
+      const voice = request.voice
+        ? await fetchVoiceGuidance(context.entityService)
+        : "";
+      const raw = await context.ai.generate(
+        {
+          prompt: request.prompt,
+          templateName,
+          ...(request.data && { data: { ...request.data } }),
+          ...definedFields({
+            representedIdentity: request.representedIdentity,
+          }),
+          ...(voice && { styleGuide: { voice } }),
+        },
+        z.unknown(),
+        signal,
+      );
+      return parseWithSchema<TSchema>(schema, raw);
+    },
+  });
+}
+
+/**
+ * Fixture control for one declaring type: seed what an eval measures, wait
+ * for embeddings, and reset this type's records plus what was seeded.
+ */
+export function createEvalFixtures(
+  context: EntityPluginContext,
+  entityType: string,
+): EntityEvalFixtures {
+  const seeded = new Map<string, { entityType: string; id: string }>();
+  const key = (type: string, id: string): string => `${type}\u0000${id}`;
+  return Object.freeze({
+    async seed(
+      entity: Parameters<EntityEvalFixtures["seed"]>[0],
+    ): Promise<void> {
+      await context.entityService.createEntity({
+        entity: {
+          id: entity.id,
+          entityType: entity.entityType,
+          content: entity.content,
+          visibility: canonicalContentVisibilitySchema.parse(
+            entity.visibility ?? "public",
+          ),
+          metadata: { ...entity.metadata },
+        },
+      });
+      seeded.set(key(entity.entityType, entity.id), {
+        entityType: entity.entityType,
+        id: entity.id,
+      });
+    },
+    async reset(
+      options?: Parameters<EntityEvalFixtures["reset"]>[0],
+    ): Promise<void> {
+      const visibilityScope = canonicalContentVisibilitySchema.parse(
+        options?.visibilityScope ?? "public",
+      );
+      const stored = await context.entityService.listEntities({
+        entityType,
+        options: { filter: { visibilityScope } },
+      });
+      const targets = new Map([
+        ...stored.map(
+          (entity): [string, { entityType: string; id: string }] => [
+            key(entity.entityType, entity.id),
+            { entityType: entity.entityType, id: entity.id },
+          ],
+        ),
+        ...seeded,
+      ]);
+      await Promise.all(
+        [...targets.values()].map((target) =>
+          context.entityService.deleteEntity(target),
+        ),
+      );
+      seeded.clear();
+    },
+    settleEmbeddings: (): Promise<void> =>
+      waitForEmbeddingsToDrain(context.jobs),
+  });
+}
 
 /** The parts of a job's context every declared job shares, frozen. */
 function jobContext<TInput>(
@@ -198,6 +304,8 @@ export interface GenerationTarget {
   /** The registered name of a template this type declares. */
   readonly template: (localName: string) => string;
   readonly retries?: RetryScope | undefined;
+  /** Tell the content pipeline how each run went: the type is scheduled. */
+  readonly reportsToPipeline?: boolean | undefined;
 }
 
 /**
@@ -283,36 +391,27 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     if (isLinked(generated)) {
       await writeGenerationLink(this.context, entityId, generated.linkInto);
     }
+    if (this.target.reportsToPipeline) {
+      await this.context.messaging.command(generateReportSuccessContract, {
+        entityType: this.entityType,
+        entityId,
+      });
+    }
   }
 
-  /** Template generation through main's AI path, the style guide governing voice. */
+  protected override async onGenerationFailure(
+    _data: unknown,
+    error: string,
+  ): Promise<void> {
+    if (this.target.reportsToPipeline) {
+      await this.context.messaging.command(generateReportFailureContract, {
+        entityType: this.entityType,
+        error,
+      });
+    }
+  }
+
   private generationAI(signal: AbortSignal): EntityGenerationAI {
-    const context = this.context;
-    const template = this.target.template;
-    return Object.freeze({
-      async generate<TSchema extends z.ZodType>(
-        request: Parameters<EntityGenerationAI["generate"]>[0],
-        schema: TSchema,
-      ): Promise<z.output<TSchema>> {
-        const templateName = template(request.template);
-        const voice = request.voice
-          ? await fetchVoiceGuidance(context.entityService)
-          : "";
-        const raw = await context.ai.generate(
-          {
-            prompt: request.prompt,
-            templateName,
-            ...(request.data && { data: { ...request.data } }),
-            ...definedFields({
-              representedIdentity: request.representedIdentity,
-            }),
-            ...(voice && { styleGuide: { voice } }),
-          },
-          z.unknown(),
-          signal,
-        );
-        return parseWithSchema<TSchema>(schema, raw);
-      },
-    });
+    return createGenerationAI(this.context, this.target.template, signal);
   }
 }

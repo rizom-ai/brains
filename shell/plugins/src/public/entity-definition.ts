@@ -5,9 +5,13 @@ import {
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type { EntityActionPolicyRuleInput, Template } from "@brains/templates";
+import { entityScheduledGenerationSchema } from "../entity/entity-definition-config";
 import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
+  EntityAgentContextProvider,
+  EntityEvalDeclaration,
+  EntityScheduledGenerationDeclaration,
   AnyEntityJobDeclaration,
   EntityGenerationContext,
   EntityGenerationDeclaration,
@@ -33,6 +37,11 @@ import {
 
 export type {
   AnyEntityDefinition,
+  EntityAgentContextProvider,
+  EntityEvalContext,
+  EntityEvalDeclaration,
+  EntityEvalFixtures,
+  EntityScheduledGenerationDeclaration,
   AnyEntityJobDeclaration,
   EntityCreateAllocation,
   EntityCreateDelegation,
@@ -112,11 +121,24 @@ export function defineEntity<
         readonly metadata: NoInfer<z.input<TMetadataSchema>>;
       })
     | undefined;
+  readonly scheduledGeneration?:
+    EntityScheduledGenerationDeclaration | undefined;
+  readonly instructions?: string | undefined;
+  readonly agentContext?: EntityAgentContextProvider | undefined;
+  readonly evals?: EntityEvalDeclaration | undefined;
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
     | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
+  if (definition.scheduledGeneration) {
+    if (!definition.generation) {
+      throw new Error(
+        `Entity "${definition.type}" declares a scheduled generation but no generation`,
+      );
+    }
+    entityScheduledGenerationSchema.parse(definition.scheduledGeneration);
+  }
   // Local names: the runtime scopes each job to the declaring type.
   Object.keys(definition.jobs ?? {}).forEach((name) =>
     assertLocalId(name, "Job name"),

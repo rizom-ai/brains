@@ -25,9 +25,16 @@ import type {
   BaseQuery,
   NavigationResult,
 } from "../service/base-entity-datasource";
-import type { EntityDefinitionConfig } from "./entity-definition-config";
+import type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
+import type {
+  EntityDefinitionConfig,
+  EntityScheduledGenerationDeclaration,
+} from "./entity-definition-config";
 
-export type { EntityDefinitionConfig } from "./entity-definition-config";
+export type {
+  EntityDefinitionConfig,
+  EntityScheduledGenerationDeclaration,
+} from "./entity-definition-config";
 
 export type EntityVisibility = "public" | "shared" | "restricted";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
@@ -185,6 +192,18 @@ export interface EntityDefinition<
         readonly metadata: z.input<TMetadataSchema>;
       })
     | undefined;
+  /**
+   * What this type writes from when the content pipeline schedules one and
+   * nothing says what about. Requires `generation`.
+   */
+  readonly scheduledGeneration?:
+    EntityScheduledGenerationDeclaration | undefined;
+  /** How and when an agent should reach for this type, in plain text. */
+  readonly instructions?: string | undefined;
+  /** Grounding this type offers the agent before it answers. */
+  readonly agentContext?: EntityAgentContextProvider | undefined;
+  /** Eval handlers, keyed by handler id. */
+  readonly evals?: EntityEvalDeclaration | undefined;
   /** This type's syndication feed, written into every site build. */
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
@@ -707,3 +726,48 @@ export interface EntityCreateRouting<
   readonly fromAttachment?: EntityCreateRoute<TMetadataSchema> | undefined;
   readonly fromContent?: EntityCreateRoute<TMetadataSchema> | undefined;
 }
+
+/**
+ * Grounding for the agent's next turn. The request is what the agent was
+ * asked; reads are scoped to what the asker may see, so a provider cannot
+ * surface restricted records into a public conversation.
+ */
+export type EntityAgentContextProvider = (context: {
+  readonly request: AgentContextRequest;
+  readonly entities: DataSourceEntityReader;
+}) => Promise<readonly AgentContextItem[]>;
+
+/**
+ * Fixture control, for evals only: plant the entities an eval measures
+ * against, wait for their embeddings, and remove what was planted plus what
+ * this type stores, so one run cannot contaminate the next.
+ */
+export interface EntityEvalFixtures {
+  seed(entity: {
+    readonly id: string;
+    readonly entityType: string;
+    readonly content: string;
+    readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+    readonly visibility?: EntityVisibility | undefined;
+  }): Promise<void>;
+  /** Clears this type's records up to `visibilityScope` (default public), and the seeded ones. */
+  reset(options?: {
+    readonly visibilityScope?: EntityVisibility | undefined;
+  }): Promise<void>;
+  /** Wait for queued embeddings before measuring semantic matches (60s bound). */
+  settleEmbeddings(): Promise<void>;
+}
+
+/** What an eval handler is given: generation, reads as the package, fixtures. */
+export interface EntityEvalContext {
+  readonly ai: EntityGenerationAI;
+  readonly entities: DataSourceEntityReader;
+  readonly fixtures: EntityEvalFixtures;
+}
+
+export type EntityEvalDeclaration = Readonly<
+  Record<
+    string,
+    (input: unknown, context: EntityEvalContext) => Promise<unknown>
+  >
+>;

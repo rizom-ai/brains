@@ -1,6 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
+  agentContextContract,
+  generateExecuteContract,
+  generateReportFailureContract,
   siteBuildStagingContract,
   type SiteBuildStagingPayload,
 } from "@brains/contracts";
@@ -41,6 +44,8 @@ import { createEntityReader } from "./entity-reader";
 import { createUploadSaveHandler } from "./upload-save";
 import {
   DeclarativeGenerationHandler,
+  createEvalFixtures,
+  createGenerationAI,
   entityJobHandler,
 } from "./declarative-jobs";
 import type { JobHandler } from "@brains/job-queue";
@@ -510,13 +515,106 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     context: EntityPluginContext,
     declaration: NonNullable<AnyEntityDefinition["generation"]>,
     jobTypeName: string,
+    reportsToPipeline = false,
   ): DeclarativeGenerationHandler {
     return new DeclarativeGenerationHandler(this.logger, context, declaration, {
       entityType: this.entityType,
       jobTypeName,
       template: (localName) => this.templateName(localName),
       retries: this.retries,
+      reportsToPipeline,
     });
+  }
+
+  protected override async getInstructions(): Promise<string | undefined> {
+    return this.definition.instructions;
+  }
+
+  /**
+   * Answer the content pipeline's schedule for this type: list the material
+   * the declaration names, pick from it, and queue this type's generation.
+   * Nothing to write from is reported back rather than thrown.
+   */
+  private async runScheduledGeneration(
+    context: EntityPluginContext,
+    scheduled: NonNullable<AnyEntityDefinition["scheduledGeneration"]>,
+  ): Promise<void> {
+    const reportFailure = (error: string): Promise<void> =>
+      context.messaging.command(generateReportFailureContract, {
+        entityType: this.entityType,
+        error,
+      });
+    try {
+      const sources = await context.entityService.listEntities({
+        entityType: scheduled.from.entityType,
+        options: {
+          limit: scheduled.from.limit,
+          ...(scheduled.from.status !== undefined && {
+            filter: { metadata: { status: scheduled.from.status } },
+          }),
+        },
+      });
+      const data = await this.scheduledInput(
+        context,
+        scheduled,
+        sources.map(({ id }) => id),
+      );
+      if (!data) {
+        await reportFailure(
+          `No ${[scheduled.from.status, scheduled.from.entityType]
+            .filter(Boolean)
+            .join(" ")} available to write a ${this.entityType} from`,
+        );
+        return;
+      }
+      // A refused enqueue is retried until the queue admits it; the
+      // schedule does not come again until its next cycle.
+      await this.retries.run(
+        () =>
+          context.jobs.enqueue({
+            type: `${this.entityType}:generation`,
+            data,
+            toolContext: {
+              interfaceType: "job",
+              actor: { kind: "service", serviceId: this.id },
+            },
+          }),
+        `queue a scheduled ${this.entityType} generation`,
+        `generate:${this.entityType}`,
+      );
+    } catch (error) {
+      await reportFailure(getErrorMessage(error));
+    }
+  }
+
+  /** The generation input for a schedule, or null when nothing qualifies. */
+  private async scheduledInput(
+    context: EntityPluginContext,
+    scheduled: NonNullable<AnyEntityDefinition["scheduledGeneration"]>,
+    sourceIds: readonly string[],
+  ): Promise<Record<string, unknown> | null> {
+    if (sourceIds.length === 0) return null;
+    const sourceEntityType = scheduled.from.entityType;
+    if (scheduled.mode === "batch") {
+      return { sourceEntityType, sourceEntityIds: [...sourceIds] };
+    }
+    // One at a time: a source this type was already written from — named
+    // in its sourceEntityType/sourceEntityId metadata — is skipped.
+    const derived = await Promise.all(
+      sourceIds.map((sourceEntityId) =>
+        context.entityService.listEntities({
+          entityType: this.entityType,
+          options: {
+            filter: { metadata: { sourceEntityType, sourceEntityId } },
+            limit: 1,
+          },
+        }),
+      ),
+    );
+    const sourceEntityId = sourceIds.find(
+      (_id, index) => derived[index]?.length === 0,
+    );
+    return sourceEntityId ? { sourceEntityType, sourceEntityId } : null;
   }
 
   protected override createGenerationHandler(
@@ -527,6 +625,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           context,
           this.generation,
           `${this.entityType}:generation`,
+          this.definition.scheduledGeneration !== undefined,
         )
       : null;
   }
@@ -589,12 +688,65 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const create = this.create;
     if (create) this.registerCreateRouting(context, create);
 
+    // Evals run as the package, with fixtures scoped to this type.
+    Object.entries(this.definition.evals ?? {}).forEach(([id, handler]) => {
+      context.eval.registerHandler(id, (input) =>
+        handler(
+          input,
+          Object.freeze({
+            ai: createGenerationAI(context, (localName) =>
+              this.templateName(localName),
+            ),
+            entities: createEntityReader(
+              context.entityService,
+              internalFullScope("declared evals read as their package"),
+            ),
+            fixtures: createEvalFixtures(context, this.entityType),
+          }),
+        ),
+      );
+    });
+
+    const agentContext = this.definition.agentContext;
+    const scheduled = this.definition.scheduledGeneration;
+
     const seed = this.seed;
     const feed = this.feed;
     const media = this.attachments?.length
       ? mediaAttachmentContext(context)
       : undefined;
     this.releases = [
+      ...(agentContext
+        ? [
+            // Reads are scoped to the asker, so a provider cannot surface
+            // restricted records into a public conversation.
+            context.messaging.answer(agentContextContract, async (request) => ({
+              items: [
+                ...(await agentContext(
+                  Object.freeze({
+                    request: deepFrozen(structuredClone(request)),
+                    entities: createEntityReader(
+                      context.entityService,
+                      permissionToVisibilityScope(request.userPermissionLevel),
+                    ),
+                  }),
+                )),
+              ],
+            })),
+          ]
+        : []),
+      ...(scheduled
+        ? [
+            context.messaging.answer(
+              generateExecuteContract,
+              async ({ entityType }) => {
+                if (entityType === this.entityType) {
+                  await this.runScheduledGeneration(context, scheduled);
+                }
+              },
+            ),
+          ]
+        : []),
       // The runtime keeps the unregister handles, so an author never does.
       ...(this.attachments ?? []).flatMap((attachment) =>
         media

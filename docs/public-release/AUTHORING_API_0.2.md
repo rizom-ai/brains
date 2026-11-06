@@ -152,6 +152,7 @@ Types:
 - `DataSourceDefinition`
 - `DataSourceEntityReader`
 - `EncodedEntityMarkdown`
+- `EntityAgentContextProvider`
 - `EntityAttachmentDeclaration`
 - `EntityCreateAllocation`
 - `EntityCreateAttachment`
@@ -165,6 +166,9 @@ Types:
 - `EntityDataSourceDefinition`
 - `EntityDefinition`
 - `EntityDefinitionConfig`
+- `EntityEvalContext`
+- `EntityEvalDeclaration`
+- `EntityEvalFixtures`
 - `EntityFeedDeclaration`
 - `EntityGenerationContext`
 - `EntityGenerationDeclaration`
@@ -177,6 +181,7 @@ Types:
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntityScheduledGenerationDeclaration`
 - `EntitySeedDefinition`
 - `EntitySeedTrigger`
 - `EntityTypeClassification`
@@ -237,6 +242,13 @@ Jobs and generation on `defineEntity`:
 - A generation returns an `EntityGenerationResult`: content, metadata (the type's schema input), an optional `id` when nothing was allocated (default: the slugified title), `resultExtras` for the job result, and an optional `linkInto` — an `EntityGenerationLink` setting a target's `field` or extending a target's `list` (dropping `replaces`). The runtime checks the link target before saving, refusing a missing target or a cover on a type that declares none. It then fills the allocated entity (keeping edits made while it generated), or creates one, and writes the link; a refusal or an error marks the allocated entity failed.
 - `generation` registers a generation as the type's `{type}:generation` job, which `system_generate` queues after writing the `stub` placeholder. Without a `stub`, `system_generate` refuses the type.
 - A create route may also return an `EntityCreateAllocation`: `create` (a placeholder, deduplicated) or `existing` plus a `delegate` (`EntityCreateDelegation`: a job this type declares and its input), so the runtime writes or finds the entity, queues the job with its id and reports `generating`; or a bare `delegate` that queues any declared job. An allocation must delegate to a job that generates; the job and its input are checked before anything is written, and a placeholder is removed again if the job cannot be queued.
+
+The agent, the schedule and evals on `defineEntity`:
+
+- `instructions` is plain text telling the agent how and when to reach for the type.
+- `agentContext` (`EntityAgentContextProvider`) grounds the agent's next turn: given the `request` and definition-typed `entities` reads scoped to the asker's permission, it returns context items (`id`, `source`, optional `title`, `content`). An item that fails validation is dropped rather than costing the turn.
+- `scheduledGeneration` (`EntityScheduledGenerationDeclaration`) answers the content pipeline's schedule for the type, and requires `generation`. `from` names the source type, an optional metadata `status` and a `limit` (1–100). `mode: "each"` writes from the first source no entity of this type already names in its `sourceEntityType`/`sourceEntityId` metadata; `"batch"` writes from all of them (`sourceEntityIds`). The runtime queues the type's `{type}:generation` job, reports back to the pipeline when nothing qualifies, and reports each generation's success or failure.
+- `evals` (`EntityEvalDeclaration`) registers eval handlers keyed by id. Each receives the eval input and a frozen `EntityEvalContext`: `ai.generate` (as a generation has it), `entities` reads as the package, and `EntityEvalFixtures` — `seed` an entity of any type, `settleEmbeddings` (60-second bound), and `reset`, which removes this type's records up to a visibility (public by default) plus everything seeded. Reset deletes, so evals use isolated evaluation data.
 
 ## `@rizom/brain/services`
 

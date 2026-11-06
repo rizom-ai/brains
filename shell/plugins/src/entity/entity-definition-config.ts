@@ -127,3 +127,39 @@ export function entityTypeConfigFor(
     }),
   };
 }
+
+type ScheduledGenerationSchema = z.ZodObject<
+  {
+    from: z.ZodObject<
+      {
+        entityType: z.ZodString;
+        status: z.ZodOptional<z.ZodString>;
+        limit: z.ZodNumber;
+      },
+      z.core.$strict
+    >;
+    mode: z.ZodEnum<{ each: "each"; batch: "batch" }>;
+  },
+  z.core.$strict
+>;
+
+/**
+ * Where a scheduled generation takes its material from when the content
+ * pipeline asks for one and nothing says what to write about.
+ */
+export const entityScheduledGenerationSchema: ScheduledGenerationSchema =
+  z.strictObject({
+    from: z.strictObject({
+      /** A type, not a package: the material is a fact about the content. */
+      entityType: z.string().min(1),
+      /** The metadata status a source must have. */
+      status: z.string().min(1).optional(),
+      limit: z.number().int().min(1).max(100),
+    }),
+    /** `each` writes from one source not yet written from; `batch` from all. */
+    mode: z.enum(["each", "batch"]),
+  });
+
+export type EntityScheduledGenerationDeclaration = z.input<
+  typeof entityScheduledGenerationSchema
+>;
