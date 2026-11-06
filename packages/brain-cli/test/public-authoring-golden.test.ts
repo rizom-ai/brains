@@ -253,8 +253,16 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
+      {
+        directory: "entity",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+        },
+      },
       {
         directory: "operator-surface",
         paths: {
@@ -319,7 +327,7 @@ describe("public authoring 0.2 golden packages", () => {
         rmSync(tsconfigPath, { force: true });
       }
     }
-  }, 15_000);
+  }, 30_000);
 
   it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");

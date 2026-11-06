@@ -5,20 +5,20 @@ export interface PublishResult {
 }
 
 export interface PublishImageData {
-  data: Buffer;
+  data: Uint8Array;
   mimeType: string;
 }
 
 export type PublishMediaData =
   | {
       type: "document";
-      data: Buffer;
+      data: Uint8Array;
       mimeType: "application/pdf";
       filename: string;
     }
   | {
       type: "image";
-      data: Buffer;
+      data: Uint8Array;
       mimeType: "image/png";
       filename: string;
     };

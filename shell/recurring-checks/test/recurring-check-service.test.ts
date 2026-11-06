@@ -306,6 +306,30 @@ describe("RecurringCheckService", () => {
     expect(scheduler.getCronExpressions()).toHaveLength(1);
   });
 
+  it("accepts a package-scoped plugin id, as declared plugins have", async () => {
+    const { service, queue } = createService();
+    service.namespace("@fixture/reading-entities:bookmark").register({
+      id: "stale-pages",
+      cadence: "weekly",
+      run: async () => ({}),
+    });
+    await service.start();
+
+    expect(queue.enqueued[0]?.options).toMatchObject({
+      deduplicationKey: "@fixture/reading-entities:bookmark:stale-pages",
+    });
+    for (const invalid of ["", "has space", "@scope/name", "name:Upper"]) {
+      expect(() =>
+        service.namespace(invalid).register({
+          id: "check",
+          cadence: "daily",
+          run: async () => ({}),
+        }),
+      ).toThrow("Invalid recurring-check plugin ID");
+    }
+    await service.stop();
+  });
+
   it("does not enqueue another catch-up after a successful occurrence", async () => {
     const { service, queue } = createService();
     service.namespace("agent").register({

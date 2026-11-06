@@ -90,3 +90,5 @@ export type { EntityDisplayMap } from "./entity-url-generator";
 export { extendSite, sitePackageSchema, themeCssSchema } from "./package";
 export { PageLanguageContext } from "./page-language";
 export type { SitePackage, SitePackageOverrides } from "./package";
+export { feedItemSchema, renderRssFeed } from "./feed";
+export type { FeedChannel, FeedItem, ValidFeedItem } from "./feed";

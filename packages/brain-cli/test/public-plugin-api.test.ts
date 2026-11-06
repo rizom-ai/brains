@@ -205,6 +205,7 @@ describe("@rizom/brain public plugin API surface", () => {
             },
           },
           include: [
+            "../test/fixtures/public-authoring/entity/src/**/*.ts",
             "../test/fixtures/public-authoring/operator-surface/src/**/*.ts",
             "../test/fixtures/public-authoring/account-settings-interface/src/**/*.ts",
           ],
@@ -241,6 +242,49 @@ describe("@rizom/brain public plugin API surface", () => {
       expect(types).not.toContain("RegisteredHttpRoute");
       expect(types).not.toContain("HttpRouteManifestEntry");
     }
+  });
+
+  it("keeps Node-only globals and modules out of public declarations", async () => {
+    // A consumer compiling without Node types must still read every public
+    // declaration, so none may name Node's globals or built-in modules.
+    const nodeBuiltin =
+      /^(?:node:.*|buffer|child_process|crypto|events|fs|fs\/promises|http|https|net|os|path|stream|url|util|worker_threads)$/;
+    for (const publicExport of listTypedPublicExports()) {
+      const types = stripDeclarationComments(
+        readFileSync(join(pkgDir, publicExport.types), "utf-8"),
+      );
+      const globals = [
+        ...types.matchAll(/\b(?:Buffer|NodeJS\.\w+|typeof process)\b/g),
+      ].map((match) => match[0]);
+      const modules = [
+        ...types.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+      ]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => nodeBuiltin.test(specifier));
+      expect({ entry: publicExport.specifier, globals, modules }).toEqual({
+        entry: publicExport.specifier,
+        globals: [],
+        modules: [],
+      });
+    }
+  });
+
+  it("keeps runtime-only packages out of public declarations", async () => {
+    // The database and MCP server are runtime machinery. Their declarations
+    // need Node types, and the brain does not install the database for its
+    // consumers, so a public declaration that imports them cannot compile.
+    const runtimeOnly = /^(?:drizzle-orm(?:\/.*)?|@modelcontextprotocol\/.*)$/;
+    const leaks = listTypedPublicExports().flatMap((publicExport) =>
+      [
+        ...stripDeclarationComments(
+          readFileSync(join(pkgDir, publicExport.types), "utf-8"),
+        ).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+      ]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => runtimeOnly.test(specifier))
+        .map((specifier) => `${publicExport.specifier} imports ${specifier}`),
+    );
+    expect(leaks).toEqual([]);
   });
 
   it("keeps Effect and private /effect imports out of public declarations", async () => {

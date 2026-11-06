@@ -26,7 +26,3 @@ export function getUploadImageIdentity(input: {
   }
   return { id, title };
 }
-
-export function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
-}

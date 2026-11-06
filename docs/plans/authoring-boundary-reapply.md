@@ -48,9 +48,9 @@ One `main` SHA where the public authoring API is complete and frozen for `0.2.0`
 One PR per contract area, in this order:
 
 1. **SDK and entries.** `packages/brain-sdk`; the `@rizom/brain` entries re-exporting it; `brain-definition` and `configured-plugin` moved from `shell/app` into the SDK. Fixture: `brain-definition`.
-2. **Entity contract.** The stable entity slots (`config`, codecs, seeds, data sources, create routing, attachments) and projections; upload directories scoped by owning package. Fixture: `entity` and its canaries.
+2. **Entity contract.** The stable entity slots (`config`, codecs, seeds, data sources, create routing, attachments) and projections. Fixture: `entity` and its canaries.
 3. **Service contract.** The two-stage `defineServicePlugin`, setup and state, jobs, tools, subscriptions, templates, declared routes, `SdkError`, stewardship with the typed steward contract, and account-settings writes. Fixtures: `service` and its canaries, `reminders`.
-4. **Interface contract.** `defineInterface`, `defineMessageInterface` and its package form, daemons and declared routes; interface state namespaced by owning package. Fixtures: `interface`, `message-interface`.
+4. **Interface contract.** `defineInterface`, `defineMessageInterface` and its package form, daemons, declared routes and uploads; interface state and upload directories namespaced by owning package, with an explicit decision for existing stored uploads (`data/upload/uploads`, `data/discord-chat/uploads`, `data/slack-chat/uploads`). Fixtures: `interface`, `message-interface`.
 5. **Operator surfaces.** Studio workspaces, actions including the external launch, Dashboard widgets and account settings. Fixtures: `operator-surface`, `account-settings-interface`.
 6. **Public UI and site contract.** `shared/ui-library` becomes `packages/ui` (`@rizom/brain-ui`, published), consumers' imports updated; the `@rizom/site` changes. Fixture: `site`.
 7. **Testing entry and docs.** `@rizom/brain/testing` and its harness; the authoring guides (`AUTHORING_API_0.2.md`, the migration guide, the external authoring guides) and a quickstart that teaches the two-stage definition; the final ledger tier audit.
@@ -68,7 +68,7 @@ Mechanical migration onto the fixed API, one PR per slice. A gap a conversion fi
 5. **Interfaces:** chat-repl, email, mcp, a2a, chat, web-chat; the scheduled-maintenance move into `@brains/scheduler`.
 6. **Runtime HTTP host:** `interfaces/webserver` becomes `shell/http-host`, started by the shell; top-level `port` and an `http` section replace `plugins.webserver`; site-builder's serving paths move with it.
 7. **Large services:** content-pipeline, dashboard, site-builder, site-content, newsletter, email-workflows, atproto, stock-photo, contact, analytics, studio, directory-sync with the entity mirror.
-8. **Heavily changed hybrids:** topics, conversation-memory, agent-discovery, assessment, faq (its job-type renames as job-queue migrations), book; the shell's conversation projection backfill and poller; entity-service's `apply-entity-*`.
+8. **Heavily changed hybrids:** topics, conversation-memory, agent-discovery (with the `atprotoDiscovery` entity slot, an internal `@brains/sdk/internal/*` slot rather than a public one, since agent-discovery is its only consumer), assessment, faq (its job-type renames as job-queue migrations), book; the shell's conversation projection backfill and poller; entity-service's `apply-entity-*`.
 9. **Packages new since the fork:** guide, action-board, linkedin-import, oauth-broker, the analytics entity.
 10. **Close-out:** the class bases removed from the public entries; the SDK-only boundary rule; the site packages' declarative data sources.
 

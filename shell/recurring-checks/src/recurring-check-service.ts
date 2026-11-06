@@ -209,7 +209,7 @@ export class RecurringCheckService {
   }
 
   register(pluginId: string, definition: RecurringCheckDefinition): () => void {
-    assertValidIdentifier(pluginId, "plugin ID");
+    assertValidPluginId(pluginId);
     assertValidIdentifier(definition.id, "check ID");
     const checkId = `${pluginId}:${definition.id}`;
     if (this.checks.has(checkId)) {
@@ -787,6 +787,17 @@ export function getPreviousOccurrence(
   let occurrence = periodStart + schedule.offsetMs;
   if (occurrence > timestamp) occurrence -= schedule.periodMs;
   return new Date(occurrence);
+}
+
+// A declared plugin is named by its package and local id, such as
+// "@scope/package:type". Check ids are hashed before they key any state, so
+// the wider form is safe wherever a plain identifier is.
+const packageScopedPluginId =
+  /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*:[a-z][a-z0-9-]*$/;
+
+function assertValidPluginId(value: string): void {
+  if (value.length <= 200 && packageScopedPluginId.test(value)) return;
+  assertValidIdentifier(value, "plugin ID");
 }
 
 function assertValidIdentifier(value: string, label: string): void {

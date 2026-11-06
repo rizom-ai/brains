@@ -550,7 +550,9 @@ export class EntityMutations {
     const assertGroupingsCurrent =
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Validate and serialize first to compute the new content hash
-    const current = this.entitySerializer.withoutRetiredFields(entity);
+    const current = this.entitySerializer.withFrontmatterWrites(
+      this.entitySerializer.withoutRetiredFields(entity),
+    );
     const updatedEntity = {
       ...current,
       updated: new Date().toISOString(),

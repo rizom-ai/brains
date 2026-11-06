@@ -580,6 +580,14 @@ export interface EntityAdapter<
   supportsCoverImage?: boolean;
 
   /**
+   * Optional: the type's metadata is its frontmatter. Reads hand back the
+   * body as `content` and the decoded frontmatter as `metadata`, so
+   * frontmatter an update carries in its content is a write — a cover or a
+   * social card recorded by id — and the metadata follows it.
+   */
+  metadataFromFrontmatter?: boolean;
+
+  /**
    * Optional: the `metadata.status` values that count as published for
    * `publishedOnly` queries (production site builds). Declaring this makes the
    * list exact — entities without a status are NOT published. When absent, the

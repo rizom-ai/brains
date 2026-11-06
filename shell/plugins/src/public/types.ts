@@ -378,13 +378,13 @@ export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
 
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;
-  content: Buffer;
+  content: Uint8Array;
 }
 
 export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
-  content: Buffer;
+  content: Uint8Array;
   metadata?: Record<string, unknown> | undefined;
 }
 

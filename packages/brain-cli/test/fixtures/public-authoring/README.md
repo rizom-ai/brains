@@ -77,8 +77,9 @@ checked built-in equivalence boundary.
 
 ## Entity-to-template flow
 
-Entity packages do not declare presentation templates. The service fixture
-shows the stable composition path:
+The reference entity package declares no presentation templates; its
+`presentation-type-canary.ts` shows the entity `templates` and `feed` slots and
+a package's `dataSources`. The service fixture shows the composition path:
 
 1. export the `bookmark` entity definition from the entity package;
 2. import it into the service package;
