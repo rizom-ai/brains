@@ -1,15 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import { EventEmitter } from "node:events";
 import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   authPrincipalResolveRequestSchema,
   createExternalActorId,
+  inboundEmailContract,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockLogger } from "@brains/test-utils";
 
 import {
-  EMAIL_INBOUND,
   EmailInterface,
   createInboundEmailSourceRef,
   inboundEmailSchema,
@@ -233,7 +233,7 @@ describe("inbound email intake", () => {
         },
         publish: async () => {
           expect(recorded).toBe(true);
-          return { success: false, error: "retry" };
+          return { status: "failed", error: "retry" };
         },
         logger: createMockLogger(),
       },
@@ -315,12 +315,12 @@ describe("inbound email intake", () => {
     );
     const firstAttempt: InboundEmail[] = [];
     const unsubscribe = harness.subscribe<InboundEmail>(
-      EMAIL_INBOUND,
+      inboundEmailContract.name,
       async (message) => {
         const email = inboundEmailSchema.parse(message.payload);
         firstAttempt.push(email);
         return email.subject === "Plain inquiry"
-          ? { success: true }
+          ? { success: true, data: {} }
           : { success: false, error: "retry" };
       },
     );
@@ -331,10 +331,13 @@ describe("inbound email intake", () => {
     unsubscribe();
 
     const replayed: InboundEmail[] = [];
-    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
-      replayed.push(inboundEmailSchema.parse(message.payload));
-      return { success: true };
-    });
+    harness.subscribe<InboundEmail>(
+      inboundEmailContract.name,
+      async (message) => {
+        replayed.push(inboundEmailSchema.parse(message.payload));
+        return { success: true, data: {} };
+      },
+    );
     await registry.startPlugin("email");
     await registry.stopPlugin("email");
 
@@ -387,10 +390,13 @@ describe("inbound email intake", () => {
       ),
     );
     const received: InboundEmail[] = [];
-    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
-      received.push(inboundEmailSchema.parse(message.payload));
-      return { success: true };
-    });
+    harness.subscribe<InboundEmail>(
+      inboundEmailContract.name,
+      async (message) => {
+        received.push(inboundEmailSchema.parse(message.payload));
+        return { success: true, data: {} };
+      },
+    );
     const registry = harness.getMockShell().getDaemonRegistry();
 
     await registry.startPlugin("email");
@@ -429,10 +435,13 @@ describe("inbound email intake", () => {
       ),
     );
     const received: InboundEmail[] = [];
-    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
-      received.push(inboundEmailSchema.parse(message.payload));
-      return { success: true };
-    });
+    harness.subscribe<InboundEmail>(
+      inboundEmailContract.name,
+      async (message) => {
+        received.push(inboundEmailSchema.parse(message.payload));
+        return { success: true, data: {} };
+      },
+    );
     const registry = harness.getMockShell().getDaemonRegistry();
 
     await registry.startPlugin("email");
@@ -468,9 +477,9 @@ describe("inbound email intake", () => {
       { mailbox: "INBOX", uidValidity: "1" },
       {
         cursor,
-        publish: async (request) => {
-          received.push(inboundEmailSchema.parse(request.payload));
-          return { success: true };
+        publish: async (email) => {
+          received.push(inboundEmailSchema.parse(email));
+          return { status: "answered", data: {} };
         },
         logger,
       },
@@ -480,9 +489,9 @@ describe("inbound email intake", () => {
       { mailbox: "Archive", uidValidity: "1" },
       {
         cursor,
-        publish: async (request) => {
-          received.push(inboundEmailSchema.parse(request.payload));
-          return { success: true };
+        publish: async (email) => {
+          received.push(inboundEmailSchema.parse(email));
+          return { status: "answered", data: {} };
         },
         logger,
       },
@@ -508,7 +517,7 @@ describe("inbound email intake", () => {
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     const harness = createPluginHarness<EmailInterface>({ logger });
-    harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async (message) => {
+    harness.subscribe(authPrincipalResolveContract.name, async (message) => {
       const request = authPrincipalResolveRequestSchema.parse(message.payload);
       expect(request.actor).toEqual({
         kind: "external",
@@ -543,10 +552,13 @@ describe("inbound email intake", () => {
       ),
     );
     const received: InboundEmail[] = [];
-    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
-      received.push(inboundEmailSchema.parse(message.payload));
-      return { success: true };
-    });
+    harness.subscribe<InboundEmail>(
+      inboundEmailContract.name,
+      async (message) => {
+        received.push(inboundEmailSchema.parse(message.payload));
+        return { success: true, data: {} };
+      },
+    );
 
     const registry = harness.getMockShell().getDaemonRegistry();
     await registry.startPlugin("email");
@@ -566,7 +578,7 @@ describe("inbound email intake", () => {
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     const harness = createPluginHarness<EmailInterface>({ logger });
-    harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async () => {
+    harness.subscribe(authPrincipalResolveContract.name, async () => {
       throw new Error("alice@example.com must not leak");
     });
     await harness.installPlugin(
@@ -579,10 +591,13 @@ describe("inbound email intake", () => {
       ),
     );
     const received: InboundEmail[] = [];
-    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
-      received.push(inboundEmailSchema.parse(message.payload));
-      return { success: true };
-    });
+    harness.subscribe<InboundEmail>(
+      inboundEmailContract.name,
+      async (message) => {
+        received.push(inboundEmailSchema.parse(message.payload));
+        return { success: true, data: {} };
+      },
+    );
 
     const registry = harness.getMockShell().getDaemonRegistry();
     await registry.startPlugin("email");
@@ -614,10 +629,13 @@ describe("inbound email intake", () => {
       ),
     );
     const received: InboundEmail[] = [];
-    harness.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) => {
-      received.push(inboundEmailSchema.parse(message.payload));
-      return { success: true };
-    });
+    harness.subscribe<InboundEmail>(
+      inboundEmailContract.name,
+      async (message) => {
+        received.push(inboundEmailSchema.parse(message.payload));
+        return { success: true, data: {} };
+      },
+    );
 
     const registry = harness.getMockShell().getDaemonRegistry();
     await registry.startPlugin("email");
@@ -646,19 +664,16 @@ describe("inbound email intake", () => {
 
     await intakeInboundEmail(client, selection, {
       cursor,
-      publish: async () => ({
-        success: false,
-        error: `No handler found for message type: ${EMAIL_INBOUND}`,
-      }),
+      publish: async () => ({ status: "unavailable" }),
       logger,
     });
 
     const received: InboundEmail[] = [];
     await intakeInboundEmail(client, selection, {
       cursor,
-      publish: async (request) => {
-        received.push(inboundEmailSchema.parse(request.payload));
-        return { success: true };
+      publish: async (email) => {
+        received.push(inboundEmailSchema.parse(email));
+        return { status: "answered", data: {} };
       },
       logger,
     });

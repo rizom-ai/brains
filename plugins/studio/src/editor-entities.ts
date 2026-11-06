@@ -14,8 +14,8 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import {
-  DIRECTORY_SYNC_CHANNELS,
-  directorySyncPathResponseSchema,
+  directorySyncPathContract,
+  type directorySyncPathResponseSchema,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
@@ -146,20 +146,13 @@ async function resolvePlacement(
   entityId: string,
   entity: Pick<BaseEntity, "metadata" | "content">,
 ): Promise<z.output<typeof directorySyncPathResponseSchema> | null> {
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
-    payload: {
-      entityType,
-      entityId,
-      metadata: entity.metadata,
-      content: entity.content,
-    },
+  const placement = await context.messaging.request(directorySyncPathContract, {
+    entityType,
+    entityId,
+    metadata: entity.metadata,
+    content: entity.content,
   });
-  return "success" in response &&
-    response.success &&
-    response.data !== undefined
-    ? directorySyncPathResponseSchema.parse(response.data)
-    : null;
+  return placement.status === "answered" ? placement.data : null;
 }
 
 export async function handlePreviewDestination(

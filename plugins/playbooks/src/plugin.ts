@@ -1,17 +1,12 @@
 import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  AGENT_CONTEXT_REQUEST_CHANNEL,
   ENTITY_CHANNELS,
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  agentActionRequestSchema,
-  agentContextRequestSchema,
-  lifecycleStarterRegistrationSchema,
+  agentActionContract,
+  lifecycleStarterRegistrationContract,
   type AgentActionRequest,
   type AgentContextItem,
-  type AgentContextResponse,
   type AgentResponse,
   type ActionsCard,
-  type LifecycleStarterRegistration,
+  agentContextContract,
 } from "@brains/contracts";
 import {
   assertValidPlaybookBody,
@@ -43,7 +38,6 @@ import { buildInstructions, renderAgentContextItem } from "./lib/render";
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
-  type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
 
@@ -67,7 +61,6 @@ import {
 export type {
   LifecyclePlaybookConfig,
   LifecyclePlaybookConfigInput,
-  LifecycleStarterRegistrationResponse,
   LifecycleStartersResponse,
   PlaybookStarter,
 } from "./lib/lifecycle-starters";
@@ -390,38 +383,20 @@ export class PlaybooksPlugin extends ServicePlugin<
       return { success: true, data: { starters } };
     });
 
-    context.messaging.subscribe<
-      LifecycleStarterRegistration,
-      LifecycleStarterRegistrationResponse
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, async (message) => {
-      const registration = lifecycleStarterRegistrationSchema.parse(
-        message.payload,
-      );
-      const result = this.lifecycleStarters.register(
-        registration,
-        message.source,
-      );
-      return { success: true, data: result };
-    });
-
-    context.messaging.subscribe<unknown, AgentContextResponse>(
-      AGENT_CONTEXT_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentContextRequestSchema.parse(message.payload);
-        const item = await this.buildAgentContextItem(request.conversationId);
-        return { success: true, data: { items: item ? [item] : [] } };
-      },
+    context.messaging.answer(
+      lifecycleStarterRegistrationContract,
+      async (registration, { sender }) =>
+        this.lifecycleStarters.register(registration, sender),
     );
 
-    context.messaging.subscribe<unknown, AgentResponse>(
-      AGENT_ACTION_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentActionRequestSchema.parse(message.payload);
-        const response = await this.handleAgentAction(request);
-        return response
-          ? { success: true, data: response }
-          : { success: false };
-      },
+    context.messaging.answer(agentContextContract, async (request) => {
+      const item = await this.buildAgentContextItem(request.conversationId);
+      return { items: item ? [item] : [] };
+    });
+
+    context.messaging.answer(
+      agentActionContract,
+      async (request) => (await this.handleAgentAction(request)) ?? null,
     );
 
     context.messaging.subscribe<unknown, { recorded: boolean }>(

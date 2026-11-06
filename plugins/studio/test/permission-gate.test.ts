@@ -1,4 +1,5 @@
 import { enableChatCapability } from "./fixtures/chat-capability";
+import { directorySyncStatusContract } from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 import {
   createMockShell,
@@ -597,10 +598,12 @@ describe("Studio active-session gate inversion", () => {
   it("keeps repository sync metadata Admin-only after gate inversion", async () => {
     const { shell, plugin, sessions } = await setup();
     let syncReads = 0;
-    shell.getMessageBus().subscribe("sync:status:request", async () => {
-      syncReads += 1;
-      return { success: true, data: {} };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncStatusContract.name, async () => {
+        syncReads += 1;
+        return { success: true, data: {} };
+      });
 
     for (const cookie of [sessions.public, sessions.trusted]) {
       const response = await findRoute(

@@ -26,13 +26,7 @@ export type {
   GenerationConditionResult,
 } from "./types/scheduler";
 export { RetryTracker, type RetryInfo } from "./retry-tracker";
-export {
-  PublishAssetRegistry,
-  publishAssetDefinitionSchema,
-  publishAssetTargetFieldSchema,
-  type PublishAssetDefinition,
-  type PublishAssetTargetField,
-} from "./publish-assets";
+export { PublishAssetRegistry } from "./publish-assets";
 export {
   PublishAssetPreflight,
   type PublishAssetPreflightResult,

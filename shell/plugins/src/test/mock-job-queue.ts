@@ -1,6 +1,7 @@
 import type {
   IJobQueueService,
   IJobsNamespace,
+  JobHandler,
   JobInfo,
   JobQueueEnqueueRequest,
 } from "@brains/job-queue";
@@ -24,6 +25,12 @@ export function createMockJobQueue(): MockJobQueue {
   // every fresh job as pruned.
   const enqueuedJobs = new Map<string, JobInfo>();
   let enqueuedJobCount = 0;
+  // Registrations are remembered so a job contract finds its owner; a queue
+  // that forgot them would report every owner as missing.
+  const handlers = new Map<
+    string,
+    { handler: JobHandler; pluginId: string | undefined }
+  >();
 
   function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
     const id = `job-${++enqueuedJobCount}`;
@@ -119,12 +126,20 @@ export function createMockJobQueue(): MockJobQueue {
     }),
     cleanup: async () => 0,
     getRuntimeUpdates: async () => [],
-    registerHandler: () => {},
-    unregisterHandler: () => {},
-    unregisterPluginHandlers: () => {},
-    getRegisteredTypes: () => [],
-    getHandler: () => undefined,
-    getValidator: () => undefined,
+    registerHandler: (type, handler, pluginId) => {
+      handlers.set(type, { handler, pluginId });
+    },
+    unregisterHandler: (type) => {
+      handlers.delete(type);
+    },
+    unregisterPluginHandlers: (pluginId) => {
+      [...handlers]
+        .filter(([, registration]) => registration.pluginId === pluginId)
+        .forEach(([type]) => handlers.delete(type));
+    },
+    getRegisteredTypes: () => [...handlers.keys()],
+    getHandler: (type) => handlers.get(type)?.handler,
+    getValidator: (type) => handlers.get(type)?.handler,
     finalizeHandlerRegistrations: () => [],
     getExecutionRegistrations: () => [],
     getActiveJobs: async (types) =>

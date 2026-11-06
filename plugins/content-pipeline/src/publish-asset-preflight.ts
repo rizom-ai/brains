@@ -2,11 +2,12 @@ import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { slugify } from "@brains/utils/string-utils";
-import type {
-  PublishAssetDefinition,
-  PublishAssetTargetField,
-  PublishAssetRegistry,
-} from "./publish-assets";
+import {
+  imageRenderSourceJobContract,
+  type PublishAssetDefinition,
+  type PublishAssetTargetField,
+} from "@brains/contracts";
+import type { PublishAssetRegistry } from "./publish-assets";
 
 export interface PublishAssetPreflightResult {
   checked: number;
@@ -196,7 +197,7 @@ export class PublishAssetPreflight {
   ): string | undefined {
     if (definition.jobType) return definition.jobType;
     if (definition.mediaEntityType === "image")
-      return "image:image-render-source";
+      return imageRenderSourceJobContract.type;
     return undefined;
   }
 

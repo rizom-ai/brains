@@ -1,20 +1,20 @@
 import { describe, expect, it } from "bun:test";
 import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  lifecycleStarterRegistrationSchema,
+  lifecycleStarterRegistrationContract,
   type LifecycleStarterRegistration,
 } from "../src";
 
 describe("playbook lifecycle starter contract", () => {
-  it("exposes the registration channel used by lifecycle-capable plugins", () => {
-    expect(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER).toBe(
+  it("is a request with one owner on the registration channel", () => {
+    expect(lifecycleStarterRegistrationContract.name).toBe(
       "playbooks:register-lifecycle-starter",
     );
+    expect(lifecycleStarterRegistrationContract.delivery).toBe("request");
   });
 
   it("validates lifecycle starter registrations", () => {
     const registration: LifecycleStarterRegistration =
-      lifecycleStarterRegistrationSchema.parse({
+      lifecycleStarterRegistrationContract.schema.parse({
         id: "onboarding",
         trigger: "first-admin-web-chat",
         playbookId: "rover-onboarding",
@@ -29,6 +29,22 @@ describe("playbook lifecycle starter contract", () => {
       once: true,
       starterText: "Set up Rover",
       starterPrompt: "Start playbook rover-onboarding.",
+    });
+  });
+
+  it("answers whether the starter was registered or ignored", () => {
+    expect(
+      lifecycleStarterRegistrationContract.response.parse({
+        registered: false,
+        id: "onboarding",
+        ignored: true,
+        reason: "conflict",
+      }),
+    ).toEqual({
+      registered: false,
+      id: "onboarding",
+      ignored: true,
+      reason: "conflict",
     });
   });
 });

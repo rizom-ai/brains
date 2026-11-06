@@ -440,9 +440,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     registerMessageHandlers(
       context,
       () => this.requireDirectorySync(),
-      (options) => this.configure(options),
       this.logger,
-      this.config.git,
       () => this.gitSync,
       () => this.studioWorkspaceUrl,
     );

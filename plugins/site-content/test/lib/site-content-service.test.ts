@@ -1,8 +1,9 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentService } from "../../src/lib/site-content-service";
-import type { MessageSendRequest, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/plugins";
+import { siteBuilderRoutesContract } from "@brains/site-composition";
 import { SiteContentOperations } from "../../src/lib/site-content-operations";
 
 const testRoutes: RouteDefinitionInput[] = [
@@ -34,16 +35,8 @@ describe("SiteContentService", () => {
   let service: SiteContentService;
 
   beforeEach(() => {
-    context = createMockServicePluginContext({
-      returns: {
-        messagingSend: async (request: MessageSendRequest) => {
-          if (request.type === "site-builder:routes:list") {
-            return { success: true, data: testRoutes };
-          }
-          return { noop: true };
-        },
-      },
-    });
+    context = createMockServicePluginContext();
+    context.messaging.answer(siteBuilderRoutesContract, async () => testRoutes);
 
     service = new SiteContentService(context);
   });

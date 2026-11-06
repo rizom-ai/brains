@@ -2,8 +2,10 @@ import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   PermissionService,
   UserPermissionLevelSchema,
+  dashboardDigestLineSchema as shellDashboardDigestLineSchema,
   type DashboardDigestLine,
   type DashboardWidgetProviderContext,
+  type DashboardWidgetRenderer,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { JSX } from "react";
@@ -47,17 +49,10 @@ export type DashboardWidgetSection = z.output<
   typeof dashboardWidgetSectionSchema
 >;
 
-// Constrained to the shell's type rather than deriving a second one. The
-// dashboard namespace in `@brains/plugins` declares what a widget may report;
-// this schema is the check that a widget really reported it.
-export const dashboardDigestLineSchema: z.ZodType<
-  DashboardDigestLine,
-  DashboardDigestLine
-> = z.object({
-  label: z.string(),
-  value: z.string(),
-  tone: z.enum(["plain", "good", "warn"]).optional(),
-});
+// The shell's schema, not a second one: the widget contract in
+// `@brains/plugins` declares what a widget may report and checks it.
+export const dashboardDigestLineSchema: typeof shellDashboardDigestLineSchema =
+  shellDashboardDigestLineSchema;
 
 export const dashboardWidgetSchema: z.ZodObject<{
   id: z.ZodString;
@@ -99,10 +94,11 @@ export interface WidgetRenderer {
   clientScript?: string | undefined;
 }
 
+/** A widget as it arrives: its renderer is still the shell's structural one. */
 export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;
   digestProvider?: WidgetDigestProvider;
-  renderer?: WidgetRenderer | undefined;
+  renderer?: DashboardWidgetRenderer | undefined;
 }
 
 export interface StoredRegisteredWidget extends DashboardWidgetMeta {

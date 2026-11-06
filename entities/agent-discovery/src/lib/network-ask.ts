@@ -1,6 +1,8 @@
 import {
   SourceCitationSchema,
   sourceBrainSchema,
+  type A2APeerAnswer,
+  type BusResult,
   type SourceCitation,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
@@ -174,12 +176,6 @@ export const networkAskResultSchema: NetworkAskResultSchema = z.object({
 
 export type NetworkAskResult = z.output<typeof networkAskResultSchema>;
 
-/** What the ask channel returns for one peer. */
-const peerReplySchema = z.object({
-  response: z.string(),
-  sources: z.array(SourceCitationSchema).default([]),
-});
-
 const MAX_EXCERPT = 280;
 
 function excerpt(text: string): string {
@@ -205,11 +201,8 @@ export function peerBrain(
   return { name: peer.name, url: peerHome(peer) };
 }
 
-/** The reply of one peer, as the transport returned it. */
-export type PeerReply =
-  | { success: true; data?: unknown }
-  | { success: false; error?: string }
-  | { noop: true };
+/** The reply of one peer, as the A2A ask contract returned it. */
+export type PeerReply = BusResult<A2APeerAnswer>;
 
 /**
  * Fold the peers' replies into the tool's result. An answering peer is cited
@@ -225,16 +218,12 @@ export function collectNetworkAnswers(
   const unanswered: NetworkUnanswered[] = [];
   for (const { peer, reply } of replies) {
     const brain = peerBrain(peer);
-    const parsed =
-      "success" in reply && reply.success
-        ? peerReplySchema.safeParse(reply.data)
-        : undefined;
-    if (parsed?.success) {
+    if (reply.status === "answered") {
       answers.push({
         agent: peer.id,
         brain,
-        answer: parsed.data.response,
-        sources: parsed.data.sources.map((source) => ({
+        answer: reply.data.response,
+        sources: reply.data.sources.map((source) => ({
           ...source,
           brain: source.brain ?? brain,
         })),
@@ -242,9 +231,7 @@ export function collectNetworkAnswers(
       continue;
     }
     const reason =
-      "success" in reply && !reply.success && reply.error
-        ? reply.error
-        : "network unavailable";
+      reply.status === "failed" ? reply.error : "network unavailable";
     unanswered.push({ agent: peer.id, brain, reason });
   }
   const sources: SourceCitation[] = answers.flatMap((answer) => [

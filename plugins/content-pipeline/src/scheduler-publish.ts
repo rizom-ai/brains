@@ -13,7 +13,7 @@ import type {
   PublishSuccessEvent,
   PublishFailedEvent,
 } from "./types/scheduler";
-import { PUBLISH_MESSAGES } from "./types/messages";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 
 export interface PublishDeps {
   retryTracker: RetryTracker;
@@ -72,7 +72,7 @@ async function executeWithPublishExecutor(
       };
       if (deps.messageBus) {
         await deps.messageBus.send({
-          type: PUBLISH_MESSAGES.FAILED,
+          type: PUBLISH_CHANNELS.failed,
           payload: event,
           sender: "publish-service",
           broadcast: true,
@@ -117,7 +117,7 @@ export function sendPublishCompleted(
 
   if (deps.messageBus) {
     void deps.messageBus.send({
-      type: PUBLISH_MESSAGES.COMPLETED,
+      type: PUBLISH_CHANNELS.completed,
       payload: { entityType, entityId, result },
       sender: "publish-service",
       broadcast: true,
@@ -149,7 +149,7 @@ export function sendPublishFailed(
 
   if (deps.messageBus) {
     void deps.messageBus.send({
-      type: PUBLISH_MESSAGES.FAILED,
+      type: PUBLISH_CHANNELS.failed,
       payload: event,
       sender: "publish-service",
       broadcast: true,

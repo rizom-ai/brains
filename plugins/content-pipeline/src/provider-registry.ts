@@ -5,9 +5,12 @@
  * Provides default internal provider for types without explicit registration.
  */
 
-import type { PublishProvider } from "@brains/contracts";
+import type {
+  PublishConfig,
+  PublishExecutionMode,
+  PublishProvider,
+} from "@brains/contracts";
 import { InternalPublishProvider } from "./types/provider";
-import type { PublishConfig, PublishExecutionMode } from "./types/config";
 
 export class ProviderRegistry {
   // Map of entityType -> provider

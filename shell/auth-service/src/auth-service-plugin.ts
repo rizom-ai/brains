@@ -5,14 +5,8 @@ import {
   type RegisteredWebRoute,
 } from "@brains/plugins";
 import { join } from "node:path";
-import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-  authPrincipalResolveRequestSchema,
-} from "@brains/contracts";
-import {
-  NOTIFICATIONS_SEND,
-  sendNotificationResultSchema,
-} from "@brains/contracts";
+import { authPrincipalResolveContract } from "@brains/contracts";
+import { notificationsSendContract } from "@brains/contracts";
 import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
@@ -277,33 +271,22 @@ export class AuthServicePlugin extends ServicePlugin<
     context.permissions.replaceRuntimePrincipalState(principalState);
     this.unbindAuth = context.auth.bindBackend(this.service);
 
-    this.unsubscribePrincipalResolver = context.messaging.subscribe(
-      AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-      async (message) => {
-        const parsed = authPrincipalResolveRequestSchema.safeParse(
-          message.payload,
-        );
-        if (!parsed.success) {
-          return { success: false, error: "Invalid auth principal request" };
-        }
-        const principal = await this.getService().resolveActorPrincipal(
-          parsed.data.actor,
-        );
+    this.unsubscribePrincipalResolver = context.messaging.answer(
+      authPrincipalResolveContract,
+      async ({ actor }) => {
+        const principal = await this.getService().resolveActorPrincipal(actor);
         return {
-          success: true,
-          data: {
-            principal: principal
-              ? {
-                  userId: principal.userId,
-                  personId: principal.personId,
-                  ...(principal.canonicalId
-                    ? { canonicalId: principal.canonicalId }
-                    : {}),
-                  displayName: principal.displayName,
-                  permissionLevel: principal.permissionLevel,
-                }
-              : null,
-          },
+          principal: principal
+            ? {
+                userId: principal.userId,
+                personId: principal.personId,
+                ...(principal.canonicalId
+                  ? { canonicalId: principal.canonicalId }
+                  : {}),
+                displayName: principal.displayName,
+                permissionLevel: principal.permissionLevel,
+              }
+            : null,
         };
       },
     );
@@ -620,24 +603,17 @@ export class AuthServicePlugin extends ServicePlugin<
       links,
       ...(greetingName ? { greetingName } : {}),
     });
-    const response = await context.messaging.send({
-      type: NOTIFICATIONS_SEND,
-      payload: {
+    const delivered = await context.messaging.request(
+      notificationsSendContract,
+      {
         recipient: { type: "email", address: recipient },
         title: email.subject,
         body: email.text,
         html: email.html,
         sensitivity: "secret",
       },
-    });
-
-    if (!("success" in response) || !response.success || !response.data) {
-      context.logger.warn("Passkey setup email delivery was not confirmed");
-      return;
-    }
-
-    const parsed = sendNotificationResultSchema.safeParse(response.data);
-    if (!parsed.success || parsed.data.status !== "sent") {
+    );
+    if (delivered.status !== "answered" || delivered.data.status !== "sent") {
       context.logger.warn("Passkey setup email delivery was not confirmed");
       return;
     }
@@ -645,7 +621,9 @@ export class AuthServicePlugin extends ServicePlugin<
     await service.recordSetupEmailDelivery(
       setup.setupTokenId,
       recipient,
-      parsed.data.deliveryId ? { deliveryId: parsed.data.deliveryId } : {},
+      delivered.data.deliveryId
+        ? { deliveryId: delivered.data.deliveryId }
+        : {},
     );
   }
 }

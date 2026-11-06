@@ -6,7 +6,7 @@ import {
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationContract,
   type LifecycleStarterRegistration,
 } from "@brains/contracts";
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
@@ -87,10 +87,10 @@ export class OnboardingPlugin extends ServicePlugin<
 
     for (const playbook of bundledPlaybooks) {
       if (!playbook.starter) continue;
-      await context.messaging.send({
-        type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-        payload: playbook.starter,
-      });
+      await context.messaging.request(
+        lifecycleStarterRegistrationContract,
+        playbook.starter,
+      );
     }
   }
 

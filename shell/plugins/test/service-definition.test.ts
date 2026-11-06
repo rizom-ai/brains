@@ -1,6 +1,9 @@
 import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, expectTypeOf, it, mock } from "bun:test";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockProgressReporter,
+  createSilentLogger,
+} from "@brains/test-utils";
 import { PermissionService } from "@brains/templates";
 import {
   MAX_GENERATION_REQUEST_BYTES,
@@ -9,6 +12,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
+import type { JobHandler } from "../src";
 import { createPluginHarness } from "../src/test/harness";
 import {
   defineAccountSettings,
@@ -526,6 +530,57 @@ describe("declarative service definitions", () => {
       success: false,
       error: expect.stringContaining("confirmation found"),
     });
+  });
+
+  it("delivers a job's published message to every subscriber", async () => {
+    const announceJob = defineJob({
+      name: "announce",
+      input: digestInput,
+      output: digestInput,
+    });
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineServicePlugin({
+        id: "announcer",
+        config: z.object({}),
+        jobs: () => [
+          announceJob.handle(async ({ input, messaging }) => {
+            await messaging.publish({ topic: "digest-ready", data: input });
+            return input;
+          }),
+        ],
+      }),
+      {},
+      { name: "@fixture/announcer", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const shell = harness.getMockShell();
+    const queue = shell.getJobQueueService();
+    const handlers = new Map<string, JobHandler>();
+    queue.registerHandler = (type, handler): void => {
+      handlers.set(type, handler);
+    };
+    shell.getJobQueueService = (): typeof queue => queue;
+    await harness.installPlugin(plugin);
+    const heard: string[] = [];
+    for (const listener of ["first", "second"]) {
+      harness.subscribe("digest-ready", async () => {
+        heard.push(listener);
+        return { success: true };
+      });
+    }
+
+    const handler = handlers.get("@fixture/announcer:announcer:announce");
+    if (!handler) throw new Error("Job handler was not registered");
+    await handler.process(
+      { bookmarkId: "saved" },
+      "job-1",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+
+    expect(heard.sort()).toEqual(["first", "second"]);
   });
 
   it("rejects invalid retry and deadline declarations", () => {

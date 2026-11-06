@@ -154,7 +154,8 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /**
    * Messaging namespace
-   * - `messaging.send()` - Send a message to other plugins
+   * - `messaging.send()` - Broadcast an event to other plugins
+   * - `messaging.request/gather/command/answer()` - Cross-plugin calls through bus contracts
    * - `messaging.subscribe()` - Subscribe to messages on a channel
    */
   readonly messaging: IMessagingNamespace;

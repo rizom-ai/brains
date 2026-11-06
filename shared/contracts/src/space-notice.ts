@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 /**
  * The most lines and buttons one notice holds: Discord renders each line and
@@ -89,3 +90,33 @@ export const spaceNoticeActionSchema: z.ZodObject<{
 });
 
 export type SpaceNoticeAction = z.output<typeof spaceNoticeActionSchema>;
+
+/** Post a space notice where the chat app runs. */
+export const spaceNoticeContract: BusContract<
+  SpaceNoticeRequestSchema,
+  typeof spaceNoticeResultSchema,
+  "request"
+> = defineBusContract({
+  channel: "chat:space-notice",
+  request: spaceNoticeRequestSchema,
+  response: spaceNoticeResultSchema,
+  delivery: "request",
+});
+
+type SpaceNoticeActionAnswerSchema = z.ZodNullable<SpaceNoticeContentSchema>;
+
+/** The notice's new content from its poster; null from every other plugin. */
+export const spaceNoticeActionAnswerSchema: SpaceNoticeActionAnswerSchema =
+  spaceNoticeContentSchema.nullable();
+
+/** A click on a space notice, heard by every plugin; only its poster answers. */
+export const spaceNoticeActionContract: BusContract<
+  typeof spaceNoticeActionSchema,
+  SpaceNoticeActionAnswerSchema,
+  "collect"
+> = defineBusContract({
+  channel: "chat:space-notice-action",
+  request: spaceNoticeActionSchema,
+  response: spaceNoticeActionAnswerSchema,
+  delivery: "collect",
+});

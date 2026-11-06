@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { defineBusContract, type BusContract } from "./bus-contract";
 import { SourceCitationSchema } from "./agent-response";
 
 /**
@@ -6,7 +7,6 @@ import { SourceCitationSchema } from "./agent-response";
  * is asked. A hit answers the turn in the model's place, with the sources the
  * FAQ kept from the reply that first gave the answer.
  */
-export const GUEST_ASKED_BEFORE_CHANNEL = "guest:asked-before";
 
 type AskedBeforeRequestSchema = z.ZodObject<{ question: z.ZodString }>;
 
@@ -44,15 +44,17 @@ export const askedBeforeResponseSchema: AskedBeforeResponseSchema = z.object({
 export type AskedBeforeResponse = z.output<typeof askedBeforeResponseSchema>;
 
 /**
- * The first well-formed hit among the answers collected on the channel; a
- * malformed answer is no answer, never a failure of the turn.
+ * A visitor's question a published FAQ may already answer, asked of every
+ * plugin that keeps FAQs. A malformed answer is no answer, never a failure
+ * of the turn.
  */
-export function firstAskedBeforeHit(
-  responses: readonly unknown[],
-): AskedBeforeHit | undefined {
-  for (const response of responses) {
-    const parsed = askedBeforeResponseSchema.safeParse(response);
-    if (parsed.success && parsed.data.hit) return parsed.data.hit;
-  }
-  return undefined;
-}
+export const askedBeforeContract: BusContract<
+  AskedBeforeRequestSchema,
+  AskedBeforeResponseSchema,
+  "collect"
+> = defineBusContract({
+  channel: "guest:asked-before",
+  request: askedBeforeRequestSchema,
+  response: askedBeforeResponseSchema,
+  delivery: "collect",
+});

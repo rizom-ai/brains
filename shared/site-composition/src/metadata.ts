@@ -1,3 +1,4 @@
+import { defineBusContract, type BusContract } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
   SiteLayoutInfo,
@@ -16,7 +17,6 @@ export type {
   SiteMetadataTranslation,
 } from "@rizom/site";
 
-export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
 
 export const siteMetadataCTASchema: z.ZodObject<{
@@ -107,6 +107,31 @@ export const siteMetadataSchema: SiteMetadataSchema = z.object({
     .describe(
       "The site's title, description, copyright and call to action in its other languages, keyed by language tag. A site is built in a language only once it has one.",
     ),
+});
+
+type SiteMetadataRequestSchema = z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
+>;
+
+/** The question carries nothing; a brain has one site. */
+export const siteMetadataRequestSchema: SiteMetadataRequestSchema =
+  z.strictObject({});
+
+/**
+ * The site's metadata as its owner (site-info) keeps it. Declared here, beside
+ * its schema, because `@brains/contracts` sits below site composition.
+ * Answered in every process: the worker builds the site.
+ */
+export const siteMetadataContract: BusContract<
+  SiteMetadataRequestSchema,
+  SiteMetadataSchema,
+  "request"
+> = defineBusContract({
+  channel: "site:metadata:get",
+  request: siteMetadataRequestSchema,
+  response: siteMetadataSchema,
+  delivery: "request",
 });
 
 /**

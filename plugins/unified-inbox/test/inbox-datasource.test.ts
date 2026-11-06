@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  dashboardWidgetRegisterContract,
+  studioWorkspaceRegisterContract,
   InboxRegistry,
   type StudioWorkspaceRegistration,
   type DashboardWidgetRegistration,
@@ -180,7 +180,7 @@ describe("InboxDataSource", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         async () => {
           events.push("workspace");
           return {
@@ -192,7 +192,7 @@ describe("InboxDataSource", () => {
     shell
       .getMessageBus()
       .subscribe<DashboardWidgetRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         async (message) => {
           events.push("dashboard");
           widget = message.payload;
@@ -290,7 +290,7 @@ describe("InboxDataSource", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         async () => ({
           success: true,
           data: { workspaceUrl: "https://evil.test/inbox" },
@@ -299,7 +299,7 @@ describe("InboxDataSource", () => {
     shell
       .getMessageBus()
       .subscribe<DashboardWidgetRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         async (message) => {
           widget = message.payload;
           return { success: true };

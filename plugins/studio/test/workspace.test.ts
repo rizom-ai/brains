@@ -8,9 +8,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
   BaseEntityAdapter,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   baseEntitySchema,
+  createServicePluginContext,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
   type BaseEntity,
   type StudioWorkspaceRegistration,
   type WebRouteDefinition,
@@ -97,7 +99,7 @@ async function registerWorkspace(
   registration: StudioWorkspaceRegistration,
 ): Promise<unknown> {
   return shell.getMessageBus().send({
-    type: "studio:register-workspace",
+    type: studioWorkspaceRegisterContract.name,
     payload: registration,
     sender: registration.pluginId,
   });
@@ -109,7 +111,7 @@ async function unregisterWorkspace(
   workspaceId?: string,
 ): Promise<unknown> {
   return shell.getMessageBus().send({
-    type: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+    type: studioWorkspaceUnregisterContract.name,
     payload: { pluginId, ...(workspaceId ? { workspaceId } : {}) },
     sender: pluginId,
   });
@@ -375,7 +377,7 @@ describe("optional Studio workspaces", () => {
 
     expect(
       await shell.getMessageBus().send({
-        type: "studio:register-workspace",
+        type: studioWorkspaceRegisterContract.name,
         payload: {
           id: "email-reply-drafts",
           pluginId: "email-workflows",
@@ -487,7 +489,7 @@ describe("optional Studio workspaces", () => {
     await plugin.register(shell);
 
     const response = await shell.getMessageBus().send({
-      type: "studio:register-workspace",
+      type: studioWorkspaceRegisterContract.name,
       payload: {
         id: "publishing",
         pluginId: "content-pipeline",
@@ -840,6 +842,84 @@ describe("optional Studio workspaces", () => {
         isAnchor: true,
       }),
       signal: expect.any(AbortSignal),
+    });
+  });
+});
+
+describe("Studio namespace on the workspace contracts", () => {
+  const publishing = {
+    id: "publishing",
+    label: "Publishing",
+    rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+    priority: 40,
+    accessHandler: (): boolean => true,
+    dataProvider: async (): Promise<unknown> => ({}),
+  } satisfies Omit<StudioWorkspaceRegistration, "pluginId">;
+
+  it("answers the register contract as its one owner", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    await studioPlugin().register(shell);
+
+    expect(() =>
+      createServicePluginContext(shell, "imposter").messaging.answer(
+        studioWorkspaceRegisterContract,
+        async () => ({ workspaceUrl: "/elsewhere" }),
+      ),
+    ).toThrow("already has an owner");
+    expect(() =>
+      createServicePluginContext(shell, "imposter").messaging.answer(
+        studioWorkspaceUnregisterContract,
+        async () => undefined,
+      ),
+    ).toThrow("already has an owner");
+  });
+
+  it("registers a workspace and returns its Studio URL", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    await studioPlugin({ routePath: "/studio" }).register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+
+    expect(context.studio.isAvailable()).toBe(true);
+    expect(await context.studio.registerWorkspace(publishing)).toEqual({
+      workspaceUrl: "/studio/workspaces/publishing",
+    });
+  });
+
+  it("returns false when no Studio is mounted", async () => {
+    const context = createServicePluginContext(
+      createMockShell({ domain: "yeehaa.io" }),
+      "content-pipeline",
+    );
+
+    expect(context.studio.isAvailable()).toBe(false);
+    expect(await context.studio.registerWorkspace(publishing)).toBe(false);
+    expect(await context.studio.unregisterWorkspace("publishing")).toBe(false);
+  });
+
+  it("throws the host's refusal of a reserved workspace id", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    await studioPlugin().register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+
+    expect(
+      context.studio.registerWorkspace({ ...publishing, id: "studio:account" }),
+    ).rejects.toThrow(
+      "Studio workspace register failed: Studio workspace id is reserved by the host: studio:account",
+    );
+  });
+
+  it("unregisters the plugin's workspace so its id is free again", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    await studioPlugin().register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+    await context.studio.registerWorkspace(publishing);
+
+    expect(context.studio.registerWorkspace(publishing)).rejects.toThrow(
+      "Studio workspace register failed: Studio workspace already registered: publishing",
+    );
+    expect(await context.studio.unregisterWorkspace("publishing")).toBe(true);
+    expect(await context.studio.registerWorkspace(publishing)).toEqual({
+      workspaceUrl: "/studio/workspaces/publishing",
     });
   });
 });

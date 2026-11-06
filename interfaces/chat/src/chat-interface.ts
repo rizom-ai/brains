@@ -40,7 +40,7 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
-import { CHAT_CHANNELS, spaceNoticeRequestSchema } from "@brains/contracts";
+import { spaceNoticeContract } from "@brains/contracts";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
 import type { ChatIdentityAccess } from "./chat-identity";
@@ -268,24 +268,17 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
     // Another plugin's note for a configured space, e.g. the cards a channel
     // pickup added; posted where the chat app runs.
-    context.messaging.subscribe(CHAT_CHANNELS.spaceNotice, async (message) => {
-      const request = spaceNoticeRequestSchema.safeParse(message.payload);
-      if (!request.success) {
-        return { success: false, error: "Not a space notice" };
-      }
-      return {
-        success: true,
-        data: await postSpaceNotice(
-          {
-            app: this.chatApp.instance,
-            discordBotToken: this.config.adapters.discord?.botToken,
-            logger: this.logger,
-            fetchFn: this.deps.fetch,
-          },
-          request.data,
-        ),
-      };
-    });
+    context.messaging.answer(spaceNoticeContract, async (request) =>
+      postSpaceNotice(
+        {
+          app: this.chatApp.instance,
+          discordBotToken: this.config.adapters.discord?.botToken,
+          logger: this.logger,
+          fetchFn: this.deps.fetch,
+        },
+        request,
+      ),
+    );
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

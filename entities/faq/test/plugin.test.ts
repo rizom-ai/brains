@@ -4,7 +4,7 @@ import {
   CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/plugins";
-import { GUEST_ASKED_BEFORE_CHANNEL } from "@brains/contracts";
+import { askedBeforeContract } from "@brains/contracts";
 import {
   createMockShell,
   createPluginHarness,
@@ -48,16 +48,15 @@ describe("FaqPlugin", () => {
   }
 
   it("answers the shell's asked-before question, with nothing when no FAQ asks it", async () => {
-    const response = await harness.sendMessage(GUEST_ASKED_BEFORE_CHANNEL, {
+    const response = await harness.sendMessage(askedBeforeContract.name, {
       question: "How does Rizom keep memory?",
     });
     expect(response).toEqual({});
-    // A question that is not one is no answer either, never an error.
-    const blank: unknown = await harness.sendMessage(
-      GUEST_ASKED_BEFORE_CHANNEL,
-      { question: "" },
-    );
-    expect(blank).toEqual({});
+    // A question that is not one is refused, so the shell hears no hit.
+    const blank: unknown = await harness.sendMessage(askedBeforeContract.name, {
+      question: "",
+    });
+    expect(blank).toBeUndefined();
   });
 
   it("leaves the shell's asked-before question unanswered while FAQs are off", async () => {
@@ -65,10 +64,9 @@ describe("FaqPlugin", () => {
       dataDir: `/tmp/test-faq-plugin-off-${randomUUID()}`,
     });
     await off.installPlugin(new FaqPlugin({ enabled: false }));
-    const response: unknown = await off.sendMessage(
-      GUEST_ASKED_BEFORE_CHANNEL,
-      { question: "How does Rizom keep memory?" },
-    );
+    const response: unknown = await off.sendMessage(askedBeforeContract.name, {
+      question: "How does Rizom keep memory?",
+    });
     expect(response).toBeUndefined();
   });
 

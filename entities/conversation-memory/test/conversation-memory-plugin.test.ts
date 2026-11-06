@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { CHAT_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
+import {
+  JOB_CHANNELS,
+  spaceNoticeActionContract,
+  spaceNoticeContract,
+} from "@brains/contracts";
 import { createActionItem } from "@brains/action-items";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { ConversationMemoryPlugin } from "../src";
@@ -152,7 +156,7 @@ describe("ConversationMemoryPlugin", () => {
         success: true,
         data: { messageId: "notice-1" },
       }));
-      harness.subscribe(CHAT_CHANNELS.spaceNotice, posted);
+      harness.subscribe(spaceNoticeContract.name, posted);
       await harness.installPlugin(plugin);
       // The card the notice announces, still on the board.
       await createActionItem(
@@ -219,7 +223,7 @@ describe("ConversationMemoryPlugin", () => {
       );
 
       const answer = await harness.sendMessage(
-        CHAT_CHANNELS.spaceNoticeAction,
+        spaceNoticeActionContract.name,
         {
           conversationId: ROOM,
           noticeMessageId: "notice-1",

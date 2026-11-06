@@ -1,8 +1,15 @@
+import {
+  answerContract,
+  collectContract,
+  commandContract,
+  requestContract,
+} from "@brains/messaging-service";
 import type { GetMessagesOptions } from "@brains/conversation-service";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
   createEnqueueBatchFn,
   createEnqueueJobFn,
+  createHasJobFn,
   createRegisterHandlerFn,
 } from "@brains/job-queue";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
@@ -174,7 +181,20 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
-    collect: (request) => messageBus.collect({ ...request, sender: pluginId }),
+    request: (contract, payload) =>
+      requestContract(messageBus, contract, payload, pluginId),
+    gather: (contract, payload) =>
+      collectContract(messageBus, contract, payload, pluginId),
+    command: (contract, payload) =>
+      commandContract(messageBus, contract, payload, pluginId),
+    answer: (contract, handler, options): (() => void) => {
+      if (executionOnly && options?.everyProcess !== true)
+        return (): void => {};
+      return answerContract(messageBus, contract, handler, {
+        owner: pluginId,
+        logger,
+      });
+    },
     /**
      * The channel and its handler are correlated — a Channel takes a
      * TypedMessageHandler, a name takes a MessageHandler — and the public
@@ -203,10 +223,13 @@ export function createMessagingNamespace(
         const wrappedHandler: MessageHandler<unknown, R> = async (message) => {
           const parseResult = channel.schema.safeParse(message.payload);
           if (!parseResult.success) {
-            logger.warn(`Invalid payload for channel ${channel.name}`, {
+            logger.warn(`Refused an invalid ${channel.name} payload`, {
               error: parseResult.error.message,
             });
-            return { noop: true };
+            return {
+              success: false,
+              error: `Invalid ${channel.name} payload`,
+            };
           }
 
           const { payload: _payload, ...baseMessage } = message;
@@ -241,6 +264,7 @@ export function createJobsNamespace(
     enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
     enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
     registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
+    has: createHasJobFn(jobQueueService),
   };
 }
 

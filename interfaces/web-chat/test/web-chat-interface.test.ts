@@ -1,8 +1,5 @@
 import type { AuthPrincipal } from "@brains/contracts";
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  createExternalActorId,
-} from "@brains/contracts";
+import { agentActionContract, createExternalActorId } from "@brains/contracts";
 import { coerceConversationMetadata } from "@brains/plugins";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
@@ -800,7 +797,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     await harness.installPlugin(plugin);
     const received: unknown[] = [];
-    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+    harness.subscribe(agentActionContract.name, async (message) => {
       received.push(message.payload);
       return {
         success: true,
@@ -868,7 +865,7 @@ describe("WebChatInterface", () => {
     const plugin = trustedAuthPlugin();
     await harness.installPlugin(plugin);
     const received: unknown[] = [];
-    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+    harness.subscribe(agentActionContract.name, async (message) => {
       received.push(message.payload);
       return { success: true, data: { text: "Must not run" } };
     });
@@ -1415,7 +1412,7 @@ describe("WebChatInterface", () => {
     harness.setAgentService(agent);
     await harness.installPlugin(plugin);
     const received: unknown[] = [];
-    harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
+    harness.subscribe(agentActionContract.name, async (message) => {
       received.push(message.payload);
       return {
         success: true,
@@ -1449,6 +1446,41 @@ describe("WebChatInterface", () => {
       },
     ]);
   });
+
+  for (const [owner, answer, status] of [
+    ["no runtime", undefined, 404],
+    ["a runtime with nothing for it", { success: true, data: null }, 404],
+    ["a runtime that fails", { success: false, error: "boom" }, 500],
+  ] as const) {
+    it(`answers an action that reaches ${owner} with ${status}`, async () => {
+      harness.getMockShell().setConversationService(
+        makeFixedConversationService({
+          conversations: [makeConversation("web-session", "web-chat")],
+          messagesByConversation: { "web-session": [] },
+        }),
+      );
+      const plugin = adminPlugin();
+      await harness.installPlugin(plugin);
+      if (answer)
+        harness.subscribe(agentActionContract.name, async () => answer);
+
+      const response = await requireRoute(
+        plugin,
+        "/api/chat/actions",
+        "POST",
+      ).handler(
+        new Request("http://brain/api/chat/actions", {
+          method: "POST",
+          body: JSON.stringify({
+            conversationId: "web-session",
+            action: { type: "event", event: "NEXT" },
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(status);
+    });
+  }
 
   for (const authenticated of [false, true]) {
     for (const studio of [false, true]) {

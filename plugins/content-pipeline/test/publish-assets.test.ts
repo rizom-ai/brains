@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import {
-  PublishAssetRegistry,
-  publishAssetDefinitionSchema,
-} from "../src/publish-assets";
+import { publishAssetDefinitionSchema } from "@brains/contracts";
+import { PublishAssetRegistry } from "../src/publish-assets";
 
 describe("PublishAssetRegistry", () => {
   it("stores and unregisters publish asset definitions", () => {

@@ -14,7 +14,10 @@ import type {
   UserPermissionLevel,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
+import {
+  MCP_INTERACTION_ID,
+  directorySyncStatusContract,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
@@ -97,21 +100,6 @@ async function readStudioAssetManifest(): Promise<
 const workspaceActionPayloadSchema = z.object({
   id: z.string().trim().min(1),
   action: z.unknown(),
-});
-
-const syncStatusMessageSchema = z.object({
-  watchEnabled: z.boolean(),
-  lastSync: z.string().nullable(),
-  git: z
-    .object({
-      branch: z.string(),
-      hasChanges: z.boolean(),
-      ahead: z.number(),
-      behind: z.number(),
-      lastCommit: z.string().nullable(),
-      remote: z.string().nullable(),
-    })
-    .nullable(),
 });
 
 function isSafeStudioAssetPath(value: string): boolean {
@@ -586,26 +574,20 @@ export function createEditorRoutes(
 async function handleSyncStatus(
   context: ServicePluginContext,
 ): Promise<Response> {
-  const unavailable = { directorySync: null, git: null };
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.statusRequest,
-    payload: {},
-  });
-  if (!("success" in response) || !response.success) {
-    return jsonResponse(unavailable);
-  }
-
-  const parsed = syncStatusMessageSchema.safeParse(response.data);
-  if (!parsed.success) {
-    return jsonResponse(unavailable);
+  const result = await context.messaging.request(
+    directorySyncStatusContract,
+    {},
+  );
+  if (result.status !== "answered") {
+    return jsonResponse({ directorySync: null, git: null });
   }
 
   return jsonResponse({
     directorySync: {
-      lastSync: parsed.data.lastSync,
-      watching: parsed.data.watchEnabled,
+      lastSync: result.data.lastSync,
+      watching: result.data.watchEnabled,
     },
-    git: parsed.data.git,
+    git: result.data.git,
   });
 }
 

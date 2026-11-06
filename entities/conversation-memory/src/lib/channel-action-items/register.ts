@@ -7,10 +7,9 @@ import {
   type EntityPluginContext,
 } from "@brains/plugins";
 import {
-  CHAT_CHANNELS,
   JOB_CHANNELS,
-  spaceNoticeActionSchema,
-  spaceNoticeResultSchema,
+  spaceNoticeActionContract,
+  spaceNoticeContract,
 } from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import type { Logger } from "@brains/utils/logger";
@@ -184,29 +183,25 @@ export function registerChannelActionItems(
         ),
       })) !== null,
     post: async (request) => {
-      const response = await context.messaging.send({
-        type: CHAT_CHANNELS.spaceNotice,
-        payload: request,
-      });
-      if ("noop" in response || !response.success) return undefined;
-      return spaceNoticeResultSchema.safeParse(response.data).data?.messageId;
+      const posted = await context.messaging.request(
+        spaceNoticeContract,
+        request,
+      );
+      return posted.status === "answered" ? posted.data.messageId : undefined;
     },
   };
-  context.messaging.subscribe(
-    CHAT_CHANNELS.spaceNoticeAction,
-    async (message) => {
-      const action = spaceNoticeActionSchema.safeParse(message.payload);
-      if (!action.success) return { noop: true };
-      const answer = await undoNoticeCard(
+  // Every plugin hears the click; only the notice's poster has new content.
+  context.messaging.answer(
+    spaceNoticeActionContract,
+    async (action) =>
+      (await undoNoticeCard(
         {
           bookmarks,
           entityService: context.entityService,
           visibility: options.visibility,
         },
-        action.data,
-      );
-      return answer ? { success: true, data: answer } : { noop: true };
-    },
+        action,
+      )) ?? null,
   );
   context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
     const conversationId = finishedPickupOf(message.payload);

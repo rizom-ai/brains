@@ -1,6 +1,5 @@
 import { describe, expect, it, mock, spyOn, setSystemTime } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import type {
   ChannelDeliveryInput,
@@ -10,8 +9,9 @@ import type {
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { NotificationsPlugin } from "@brains/notifications";
 import {
-  SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
+  siteBuilderRouteRegisterContract,
+  siteMetadataContract,
 } from "@brains/site-composition";
 import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
 import type { ContactPluginConfig } from "../src/config";
@@ -86,7 +86,7 @@ async function setup(
     },
   ]);
   const pages: unknown[] = [];
-  h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+  h.subscribe(siteBuilderRouteRegisterContract.name, async (message) => {
     pages.push(message.payload);
     return { success: true };
   });
@@ -243,7 +243,7 @@ describe("contact runtime", () => {
     const f = await setup();
     const bus = f.shell.getMessageBus();
     const site = { title: "Brain", description: "A site" };
-    bus.subscribe(SITE_METADATA_GET_CHANNEL, async () => ({
+    bus.subscribe(siteMetadataContract.name, async () => ({
       success: true,
       data: { ...site, themeMode: "light" },
     }));
@@ -511,14 +511,15 @@ describe("the contact page in the site", () => {
       sections: [{ id: "form", template: "contact:page", content: {} }],
       navigation: { show: false },
     });
+    // The command is validated, its defaults filled, before it is sent.
     expect(registered).toEqual([
-      {
+      siteBuilderRouteRegisterContract.schema.parse({
         pluginId: "contact",
         routes: [
           page("contact", "/contact", "Contact"),
           page("contact-thanks", "/contact/thanks", "Note saved"),
         ],
-      },
+      }),
     ]);
   });
 });

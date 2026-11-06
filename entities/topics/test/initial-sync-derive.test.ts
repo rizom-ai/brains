@@ -60,6 +60,8 @@ describe("topic projection ownership migration", () => {
     await harness.installPlugin(
       new TopicsPlugin({ enableAutoExtraction: false }),
     );
+    // A reboot starts with an empty bus; only the brain's state carries over.
+    harness.getMockShell().getMessageBus().clearAllHandlers();
     await harness.installPlugin(
       new TopicsPlugin({ enableAutoExtraction: false }),
     );

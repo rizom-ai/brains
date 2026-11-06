@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
 import { createTestEntity } from "@brains/entity-service/test";
 import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
@@ -18,8 +19,11 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
     });
     receivedMessages = [];
 
-    harness.subscribe("publish:register", async (msg) => {
-      receivedMessages.push({ type: "publish:register", payload: msg.payload });
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
+      receivedMessages.push({
+        type: publishRegisterContract.name,
+        payload: msg.payload,
+      });
       return { success: true };
     });
   });
@@ -108,7 +112,7 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeDefined();
       expect(registerMessage?.payload).toMatchObject({
@@ -127,36 +131,9 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       await harness.installPlugin(new SocialMediaPlugin({}));
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeUndefined();
-    });
-  });
-
-  describe("publish:execute subscription", () => {
-    it("should subscribe to publish:execute messages", async () => {
-      await harness.installPlugin(
-        new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
-      );
-
-      // Sending triggers the handler — verify it ran via side effects
-      harness.subscribe("publish:report:failure", async (msg) => {
-        receivedMessages.push({
-          type: "publish:report:failure",
-          payload: msg.payload,
-        });
-        return { success: true };
-      });
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "social-post",
-        entityId: "non-existent",
-      });
-
-      const failureMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:failure",
-      );
-      expect(failureMessage).toBeDefined();
     });
   });
 });

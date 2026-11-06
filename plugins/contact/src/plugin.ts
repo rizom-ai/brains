@@ -10,15 +10,13 @@ import {
 } from "@brains/plugins";
 import { createElement, type ReactElement } from "react";
 import {
-  NOTIFICATIONS_SEND,
-  SITE_BUILDER_CHANNELS,
+  notificationsSendContract,
   notificationFailureCode,
-  type SendNotificationInput,
-  type SendNotificationResult,
 } from "@brains/contracts";
 import {
-  SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
+  siteBuilderRouteRegisterContract,
+  siteMetadataContract,
 } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
@@ -134,15 +132,12 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     // fills per request. Declared in every process, as the site builds in a
     // separate worker, which registers plugins but never runs their ready phase.
     context.templates.register({ page: contactPageTemplate });
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.routeRegister,
-      payload: {
-        pluginId: this.id,
-        routes: [
-          contactSitePage("contact", "/contact", "Contact"),
-          contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
-        ],
-      },
+    await context.messaging.command(siteBuilderRouteRegisterContract, {
+      pluginId: this.id,
+      routes: [
+        contactSitePage("contact", "/contact", "Contact"),
+        contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
+      ],
     });
     const delivery = new ContactDelivery({
       entities: context.entityService,
@@ -152,25 +147,23 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
         const inbox = this.inboxUrl(context);
         if (!inbox) return { sent: false, failure: "no-inbox" };
-        const result = await context.messaging.send<
-          SendNotificationInput,
-          SendNotificationResult
-        >({
-          type: NOTIFICATIONS_SEND,
-          payload: {
+        const result = await context.messaging.request(
+          notificationsSendContract,
+          {
             title: "New contact request",
             body: `A contact request is saved in your authenticated Inbox.\n\n${inbox}`,
             sensitivity: "secret",
             idempotencyKey,
           },
-        });
-        if ("noop" in result) return { sent: false, failure: "no-notifier" };
-        if (!result.success)
+        );
+        if (result.status === "unavailable")
+          return { sent: false, failure: "no-notifier" };
+        if (result.status === "failed")
           return {
             sent: false,
             failure: notificationFailureCode(result.error),
           };
-        return result.data?.status === "sent"
+        return result.data.status === "sent"
           ? { sent: true }
           : { sent: false, failure: "unconfirmed" };
       },
@@ -303,17 +296,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
 
   /** The form opens in the site's own theme when a link names none. */
   private async readSiteTheme(context: ServicePluginContext): Promise<void> {
-    try {
-      const response = await context.messaging.send({
-        type: SITE_METADATA_GET_CHANNEL,
-        payload: undefined,
-      });
-      if ("success" in response && response.success)
-        this.siteTheme = siteThemeSchema.safeParse(response.data).data
-          ?.themeMode;
-    } catch {
-      // No site describes a theme; the page keeps its own default.
-    }
+    const result = await context.messaging.request(siteMetadataContract, {});
+    // No site describes a theme; the page keeps its own default.
+    if (result.status === "answered") this.siteTheme = result.data.themeMode;
   }
 
   private maintain(signal: AbortSignal): Promise<void> {

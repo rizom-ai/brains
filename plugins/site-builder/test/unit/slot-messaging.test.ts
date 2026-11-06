@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { siteBuilderSlotsContract } from "@brains/site-composition";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createTestConfig } from "../test-helpers";
 
@@ -29,10 +29,13 @@ describe("Site-builder slots at build time", () => {
   function contribute(pluginId: string, data: unknown): void {
     createServicePluginContext(harness.getMockShell(), pluginId, {
       executionOnly: true,
-    }).messaging.subscribeExecution(SITE_BUILDER_CHANNELS.slots, async () => ({
-      success: true,
-      data,
-    }));
+    }).messaging.subscribeExecution(
+      siteBuilderSlotsContract.name,
+      async () => ({
+        success: true,
+        data,
+      }),
+    );
   }
 
   it("collects contributed slots in the worker", async () => {

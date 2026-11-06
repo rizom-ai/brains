@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { publishRegisterContract } from "@brains/contracts";
+import {
+  siteBuilderSlotsContract,
+  type SiteSlotContribution,
+} from "@brains/site-composition";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { ReactElement } from "react";
 import { ButtondownPlugin } from "../src/provider/plugin";
 import { ResendPlugin } from "../src/provider/resend/plugin";
 
@@ -12,20 +15,17 @@ interface PublishRegistration {
   config: Record<string, string>;
 }
 
-interface SlotRegistration {
-  pluginId: string;
-  slotName: string;
-  render: () => ReactElement<{ action?: string; successMessage?: string }>;
-}
-
 describe("newsletter provider registration", () => {
   it("registers Buttondown publishing and its matching signup action", async () => {
     const harness = createPluginHarness<ButtondownPlugin>();
     const publishes: PublishRegistration[] = [];
-    harness.subscribe<PublishRegistration>("publish:register", async (msg) => {
-      publishes.push(msg.payload);
-      return { success: true };
-    });
+    harness.subscribe<PublishRegistration>(
+      publishRegisterContract.name,
+      async (msg) => {
+        publishes.push(msg.payload);
+        return { success: true };
+      },
+    );
     await harness.installPlugin(
       new ButtondownPlugin({ apiKey: "buttondown-key", doubleOptIn: true }),
     );
@@ -44,7 +44,7 @@ describe("newsletter provider registration", () => {
       pluginId: "buttondown",
       slotName: "footer-top",
     });
-    expect(slots[0]?.render().props).toMatchObject({
+    expect(slots[0]?.render()?.props).toMatchObject({
       action: "/api/buttondown/subscribe",
       successMessage: "Check your email to confirm your subscription.",
     });
@@ -57,10 +57,13 @@ describe("newsletter provider registration", () => {
   it("registers Resend publishing and its matching signup action", async () => {
     const harness = createPluginHarness<ResendPlugin>();
     const publishes: PublishRegistration[] = [];
-    harness.subscribe<PublishRegistration>("publish:register", async (msg) => {
-      publishes.push(msg.payload);
-      return { success: true };
-    });
+    harness.subscribe<PublishRegistration>(
+      publishRegisterContract.name,
+      async (msg) => {
+        publishes.push(msg.payload);
+        return { success: true };
+      },
+    );
     await harness.installPlugin(
       new ResendPlugin({
         apiKey: "resend-key",
@@ -87,7 +90,7 @@ describe("newsletter provider registration", () => {
       pluginId: "resend",
       slotName: "footer-top",
     });
-    expect(slots[0]?.render().props).toMatchObject({
+    expect(slots[0]?.render()?.props).toMatchObject({
       action: "/api/resend/subscribe",
       successMessage: "You are subscribed.",
     });
@@ -103,7 +106,7 @@ describe("newsletter provider registration", () => {
   it("registers nothing when a service provider is incomplete", async () => {
     const harness = createPluginHarness<ResendPlugin>();
     const publishes: unknown[] = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       publishes.push(msg.payload);
       return { success: true };
     });
@@ -136,17 +139,17 @@ async function notifyPluginsRegistered(
 // emits pluginsRegistered; the signup slot has to answer there.
 async function slotsInWorker(
   plugin: ButtondownPlugin | ResendPlugin,
-): Promise<SlotRegistration[]> {
+): Promise<SiteSlotContribution[]> {
   const shell = createPluginHarness().getMockShell();
   await plugin.register(shell, { executionOnly: true });
-  const answers = await shell
-    .getMessageBus()
-    .collect<unknown, SlotRegistration[]>({
-      type: SITE_BUILDER_CHANNELS.slots,
-      payload: {},
-      sender: "site-builder",
-    });
+  const answers = await shell.getMessageBus().collect({
+    type: siteBuilderSlotsContract.name,
+    payload: {},
+    sender: "site-builder",
+  });
   return answers.flatMap((answer) =>
-    "data" in answer && answer.data ? answer.data : [],
+    "data" in answer
+      ? siteBuilderSlotsContract.response.parse(answer.data)
+      : [],
   );
 }

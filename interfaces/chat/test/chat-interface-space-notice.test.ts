@@ -1,5 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
-import { CHAT_CHANNELS, type SpaceNoticeRequest } from "@brains/contracts";
+import {
+  spaceNoticeActionContract,
+  spaceNoticeContract,
+  type SpaceNoticeRequest,
+} from "@brains/contracts";
 import {
   MockChatSdk,
   createPlugin,
@@ -37,7 +41,7 @@ describe("ChatInterface space notices", () => {
     await suite.harness.installPlugin(createPlugin());
 
     const response = await suite.harness.sendMessage(
-      CHAT_CHANNELS.spaceNotice,
+      spaceNoticeContract.name,
       request,
       "conversation-memory",
     );
@@ -91,7 +95,7 @@ describe("ChatInterface space notices", () => {
     await suite.harness.installPlugin(createPlugin());
 
     const response = await suite.harness.sendMessage(
-      CHAT_CHANNELS.spaceNotice,
+      spaceNoticeContract.name,
       { channelId: CHANNEL },
       "conversation-memory",
     );
@@ -131,8 +135,9 @@ describe("ChatInterface space notices", () => {
     it("goes to the notice's poster, and the notice is edited to its answer", async () => {
       await suite.harness.installPlugin(createPlugin());
       // Another plugin's notices share the channel; it passes on this one.
-      suite.harness.subscribe(CHAT_CHANNELS.spaceNoticeAction, () => ({
-        noop: true,
+      suite.harness.subscribe(spaceNoticeActionContract.name, () => ({
+        success: true,
+        data: null,
       }));
       const answer = mock(() => ({
         success: true,
@@ -142,7 +147,7 @@ describe("ChatInterface space notices", () => {
           actions: [],
         },
       }));
-      suite.harness.subscribe(CHAT_CHANNELS.spaceNoticeAction, answer);
+      suite.harness.subscribe(spaceNoticeActionContract.name, answer);
 
       const editMessage = await click();
 

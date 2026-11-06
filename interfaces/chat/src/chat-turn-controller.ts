@@ -1,4 +1,4 @@
-import { CHAT_CHANNELS } from "@brains/contracts";
+import { spaceNoticeActionContract } from "@brains/contracts";
 import { matchSpaceSelector } from "@brains/plugins";
 import type {
   InterfacePluginContext,
@@ -187,15 +187,13 @@ export class ChatTurnController {
       if (!shouldHandleChatAction(event.thread, platformConfig)) return;
       // Every plugin hears the click; only the notice's poster answers.
       await handleSpaceNoticeAction(async (action) => {
-        const responses = await context.messaging.collect({
-          type: CHAT_CHANNELS.spaceNoticeAction,
-          payload: action,
-        });
-        return responses.flatMap((response) =>
-          "noop" in response || !response.success || !response.data
-            ? []
-            : [response.data],
-        )[0];
+        const gathered = await context.messaging.gather(
+          spaceNoticeActionContract,
+          action,
+        );
+        return gathered.status === "answered"
+          ? gathered.answers.find((answer) => answer !== null)
+          : undefined;
       }, event);
     });
   }

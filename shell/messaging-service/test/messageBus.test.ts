@@ -324,6 +324,20 @@ describe("MessageBus", () => {
   });
 
   describe("message sending", () => {
+    it("hands back a reply's data unchecked, for the caller to parse", async () => {
+      messageBus.subscribe("test.reply", () => ({ success: true, data: 7 }));
+
+      // @ts-expect-error a raw send names no reply type: a reply the caller
+      // relies on comes through a bus contract, whose schema checks it.
+      const response = await messageBus.send<unknown, number>({
+        type: "test.reply",
+        payload: {},
+        sender: "test",
+      });
+
+      expect(response).toEqual({ success: true, data: 7 });
+    });
+
     it("carries and restores causal provenance around message handlers", async () => {
       const operationContext = OperationContext.createFresh();
       messageBus = MessageBus.createFresh(logger, operationContext);

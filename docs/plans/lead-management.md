@@ -7,7 +7,7 @@
 `opportunity` entity owned by
 [bd-priority-engine.md](./bd-priority-engine.md).** Decided 2026-08-04: a lead is not a
 separate entity. It is an `opportunity` in the `lead` lifecycle state. This plugin
-consumes only durable mail items; it never subscribes to raw `EMAIL_INBOUND`, owns no
+consumes only durable mail items; it never answers raw `email:inbound`, owns no
 mailbox cursor, and cannot block later mail.
 
 ## Goal

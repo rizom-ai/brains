@@ -10,10 +10,8 @@ import {
 } from "@brains/plugins";
 import {
   ENTITY_CHANNELS,
-  TOPIC_SOURCE_TYPES_MESSAGE,
-  TOPIC_TITLES_MESSAGE,
-  type TopicSourceTypesResponse,
-  type TopicTitlesResponse,
+  topicSourceTypesContract,
+  topicTitlesContract,
 } from "@brains/contracts";
 import { getTopicTitle } from "./lib/topic-presenter";
 import { z } from "@brains/utils/zod";
@@ -190,32 +188,25 @@ export class TopicsPlugin extends EntityPlugin<
 
     // What the brain's public work is about, for other plugins: for example
     // the site's subjects when a visitor's question is screened.
-    context.messaging.subscribe<unknown, TopicTitlesResponse>(
-      TOPIC_TITLES_MESSAGE,
-      async () => {
-        const topics = await context.entityService.listEntities(
-          {
-            entityType: TOPIC_ENTITY_TYPE,
-            options: { filter: { visibilityScope: "public" } },
-          },
-          topicEntitySchema,
-        );
-        const titles = topics
-          .map((topic) => getTopicTitle(topic))
-          .sort((a, b) => a.localeCompare(b))
-          .slice(0, 20);
-        return { success: true, data: { titles } };
-      },
-    );
+    context.messaging.answer(topicTitlesContract, async () => {
+      const topics = await context.entityService.listEntities(
+        {
+          entityType: TOPIC_ENTITY_TYPE,
+          options: { filter: { visibilityScope: "public" } },
+        },
+        topicEntitySchema,
+      );
+      const titles = topics
+        .map((topic) => getTopicTitle(topic))
+        .sort((a, b) => a.localeCompare(b))
+        .slice(0, 20);
+      return { titles };
+    });
     // Which types topics are drawn from, for other plugins: a map of the
     // corpus measures its territories against the same sources.
-    context.messaging.subscribe<unknown, TopicSourceTypesResponse>(
-      TOPIC_SOURCE_TYPES_MESSAGE,
-      async () => ({
-        success: true,
-        data: { types: topicSourceTypes(context.entityService, this.config) },
-      }),
-    );
+    context.messaging.answer(topicSourceTypesContract, async () => ({
+      types: topicSourceTypes(context.entityService, this.config),
+    }));
     const extractionStores = topicExtractionStores(context);
     context.analytics.register(
       createTopicDistributionReport({

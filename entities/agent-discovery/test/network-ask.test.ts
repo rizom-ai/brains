@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { Plugin } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
+import { a2aAskContract } from "@brains/contracts";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import {
@@ -222,7 +223,7 @@ describe("network_ask", () => {
     const harness = await setup();
     const asked: Array<{ agent: string; question: string }> = [];
     harness.subscribe<{ agent: string; question: string }, unknown>(
-      "a2a:ask:request",
+      a2aAskContract.name,
       async (message) => {
         asked.push(message.payload);
         // Both peers are in flight before either answers.
@@ -314,7 +315,7 @@ describe("network_ask", () => {
   it("names the peers that refused or timed out and keeps the rest", async () => {
     const harness = await setup();
     harness.subscribe<{ agent: string; question: string }, unknown>(
-      "a2a:ask:request",
+      a2aAskContract.name,
       async (message) =>
         message.payload.agent === "jo.example"
           ? {
@@ -366,7 +367,7 @@ describe("network_ask", () => {
     const harness = await setup();
     const asked: string[] = [];
     harness.subscribe<{ agent: string }, unknown>(
-      "a2a:ask:request",
+      a2aAskContract.name,
       async (message) => {
         asked.push(message.payload.agent);
         return { success: false, error: "unexpected" };

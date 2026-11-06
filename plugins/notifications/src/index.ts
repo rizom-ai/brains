@@ -1,25 +1,13 @@
 import {
   NOTIFICATION_FAILURES,
-  NOTIFICATIONS_SEND,
   notificationRecipientSchema,
-  sendNotificationSchema,
-  type SendNotificationInput,
+  notificationsSendContract,
   type SendNotificationResult,
 } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-
-export {
-  NOTIFICATIONS_SEND,
-  notificationRecipientSchema,
-  sendNotificationResultSchema,
-  sendNotificationSchema,
-  type NotificationRecipient,
-  type SendNotificationInput,
-  type SendNotificationResult,
-} from "@brains/contracts";
 
 // An unset SETUP_EMAIL_TO drops `address` from brain.yaml during env
 // interpolation, and deploy tooling may pass it as an empty string. A
@@ -63,58 +51,50 @@ export class NotificationsPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     // Durable jobs need the same internal transport resolution in worker roles.
-    context.messaging.subscribeExecution<
-      SendNotificationInput,
-      SendNotificationResult
-    >(NOTIFICATIONS_SEND, async (message) => {
-      const input = sendNotificationSchema.parse(message.payload);
-      const recipient = input.recipient ?? this.config.defaultRecipient;
-      if (!recipient) {
-        context.logger.warn("Notification has no recipient");
-        return {
-          success: false,
-          error: NOTIFICATION_FAILURES.recipientMissing,
-        };
-      }
+    context.messaging.answer(
+      notificationsSendContract,
+      async (input): Promise<SendNotificationResult> => {
+        const recipient = input.recipient ?? this.config.defaultRecipient;
+        if (!recipient) {
+          context.logger.warn("Notification has no recipient");
+          throw new Error(NOTIFICATION_FAILURES.recipientMissing);
+        }
 
-      // Resolve a transport by the recipient's channel type. This plugin
-      // never names a transport, so a new one becomes available by
-      // registering a delivery provider — no change here.
-      const provider = context.channels.getDeliveryProvider(recipient.type);
-      if (!provider || !(await provider.isAvailable())) {
-        context.logger.warn("Notification has no available transport", {
-          channelType: recipient.type,
+        // Resolve a transport by the recipient's channel type. This plugin
+        // never names a transport, so a new one becomes available by
+        // registering a delivery provider — no change here.
+        const provider = context.channels.getDeliveryProvider(recipient.type);
+        if (!provider || !(await provider.isAvailable())) {
+          context.logger.warn("Notification has no available transport", {
+            channelType: recipient.type,
+          });
+          throw new Error(NOTIFICATION_FAILURES.transportMissing);
+        }
+
+        const result = await provider.send({
+          recipient: recipient.address,
+          subject: input.title,
+          text: input.body,
+          ...(input.html ? { html: input.html } : {}),
+          sensitivity: input.sensitivity,
+          // Providers dedupe on this, so mint one when the caller has no
+          // natural key rather than leaving retries to double-send.
+          idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
         });
-        return {
-          success: false,
-          error: NOTIFICATION_FAILURES.transportMissing,
-        };
-      }
 
-      const result = await provider.send({
-        recipient: recipient.address,
-        subject: input.title,
-        text: input.body,
-        ...(input.html ? { html: input.html } : {}),
-        sensitivity: input.sensitivity,
-        // Providers dedupe on this, so mint one when the caller has no
-        // natural key rather than leaving retries to double-send.
-        idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
-      });
+        if (result.status !== "sent") {
+          // The transport's failure code names the cause; it carries no message content.
+          throw new Error(
+            `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
+          );
+        }
 
-      if (result.status !== "sent") {
-        // The transport's failure code names the cause; it carries no message content.
-        return {
-          success: false,
-          error: `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
-        };
-      }
-
-      const data: SendNotificationResult = result.providerDeliveryId
-        ? { status: "sent", deliveryId: result.providerDeliveryId }
-        : { status: "sent" };
-      return { success: true, data };
-    });
+        return result.providerDeliveryId
+          ? { status: "sent", deliveryId: result.providerDeliveryId }
+          : { status: "sent" };
+      },
+      { everyProcess: true },
+    );
   }
 }
 

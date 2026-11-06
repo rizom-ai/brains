@@ -1,7 +1,7 @@
 /**
  * Scheduler generation helpers - extracted from ContentScheduler
  *
- * Contains the generation trigger and reporting logic for
+ * Contains the generation trigger logic for
  * automatic draft creation on schedule.
  */
 
@@ -12,7 +12,7 @@ import type {
   GenerationConditionResult,
   SchedulerMessagePublisher,
 } from "./types/scheduler";
-import { GENERATE_MESSAGES } from "./types/messages";
+import { generateExecuteContract } from "@brains/contracts";
 
 export interface GenerationDeps {
   logger: Logger;
@@ -42,66 +42,18 @@ export async function triggerGeneration(
     );
 
     if (!result.shouldGenerate) {
-      if (deps.messageBus) {
-        void deps.messageBus.send({
-          type: GENERATE_MESSAGES.SKIPPED,
-          payload: {
-            entityType,
-            reason: result.reason ?? "Conditions not met",
-          },
-          sender: "content-pipeline",
-        });
-      }
+      deps.logger.debug("Skipping scheduled generation", {
+        entityType,
+        reason: result.reason ?? "Conditions not met",
+      });
       return;
     }
   }
 
   const event: GenerateExecuteEvent = { entityType };
 
-  if (deps.messageBus) {
-    // Each entity type's generator listens and answers for the others, so
-    // only a broadcast reaches the one this event names.
-    await deps.messageBus.send({
-      type: GENERATE_MESSAGES.EXECUTE,
-      payload: event,
-      sender: "content-pipeline",
-      broadcast: true,
-    });
-  }
+  // Every entity type's generator hears the command and acts on its own type.
+  await deps.messageBus?.command(generateExecuteContract, event);
 
   deps.onGenerate?.(event);
-}
-
-/**
- * Report successful generation via message bus
- */
-export function sendGenerationCompleted(
-  entityType: string,
-  entityId: string,
-  messageBus?: SchedulerMessagePublisher,
-): void {
-  if (messageBus) {
-    void messageBus.send({
-      type: GENERATE_MESSAGES.COMPLETED,
-      payload: { entityType, entityId },
-      sender: "content-pipeline",
-    });
-  }
-}
-
-/**
- * Report failed generation via message bus
- */
-export function sendGenerationFailed(
-  entityType: string,
-  error: string,
-  messageBus?: SchedulerMessagePublisher,
-): void {
-  if (messageBus) {
-    void messageBus.send({
-      type: GENERATE_MESSAGES.FAILED,
-      payload: { entityType, error },
-      sender: "content-pipeline",
-    });
-  }
 }

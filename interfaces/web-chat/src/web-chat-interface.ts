@@ -34,10 +34,7 @@ import {
   ASK_BOX_VERSION_PATH,
   askBoxBootScript,
 } from "./ask-box-boot";
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  parseAgentResponse,
-} from "@brains/contracts";
+import { agentActionContract } from "@brains/contracts";
 import {
   chatActionRequestSchema,
   chatContextHandoffRequestSchema,
@@ -690,9 +687,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
     if (accessError) return accessError;
 
-    const response = await this.getContext().messaging.send({
-      type: AGENT_ACTION_REQUEST_CHANNEL,
-      payload: {
+    const result = await this.getContext().messaging.request(
+      agentActionContract,
+      {
         conversationId: parsed.data.conversationId,
         interfaceType: webChatInterfaceType,
         channelName: "Web Chat",
@@ -700,19 +697,20 @@ export class WebChatInterface extends MessageInterfacePlugin<
         isAnchor: principal?.isAnchor ?? false,
         action: parsed.data.action,
       },
-    });
+    );
 
-    if ("noop" in response || !response.success || !response.data) {
+    if (
+      result.status === "unavailable" ||
+      (result.status === "answered" && result.data === null)
+    ) {
       return new Response("No runtime action handler", { status: 404 });
     }
-
-    try {
-      return Response.json(parseAgentResponse(response.data));
-    } catch {
+    if (result.status === "failed") {
       // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
       // origin 502 with its own page, and the reason never reaches the caller.
-      return new Response("Invalid runtime action response", { status: 500 });
+      return new Response("Runtime action failed", { status: 500 });
     }
+    return Response.json(result.data);
   }
 
   private guestAssetVersionPromise: Promise<string> | undefined;

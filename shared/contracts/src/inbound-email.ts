@@ -1,6 +1,5 @@
 import { z } from "@brains/utils/zod";
-
-export const EMAIL_INBOUND = "email:inbound" as const;
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 type InboundEmailAddressSchema = z.ZodObject<
   { name: z.ZodOptional<z.ZodString>; address: z.ZodEmail },
@@ -86,3 +85,24 @@ export const inboundEmailSchema: InboundEmailSchema = z.strictObject({
 });
 
 export type InboundEmail = z.output<typeof inboundEmailSchema>;
+
+type InboundEmailAckSchema = z.ZodObject<Record<string, never>, z.core.$strict>;
+
+/** An acknowledgement carries nothing; it exists or it does not. */
+export const inboundEmailAckSchema: InboundEmailAckSchema = z.strictObject({});
+
+/**
+ * The email interface hands a received email to its triage owner. Only an
+ * acknowledgement advances the mailbox cursor; anything else leaves the
+ * email to be read again.
+ */
+export const inboundEmailContract: BusContract<
+  InboundEmailSchema,
+  InboundEmailAckSchema,
+  "request"
+> = defineBusContract({
+  channel: "email:inbound",
+  request: inboundEmailSchema,
+  response: inboundEmailAckSchema,
+  delivery: "request",
+});

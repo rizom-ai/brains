@@ -1,11 +1,5 @@
 import { z } from "@brains/utils/zod";
-
-/**
- * Another plugin asks the note plugin to keep a piece of text as a note, for
- * example a visitor question the owner chose to save. The note is always
- * private to the owner; the sender cannot choose its visibility.
- */
-export const NOTE_CAPTURE_MESSAGE = "note:capture" as const;
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 export const noteCaptureRequestSchema: z.ZodObject<
   { id: z.ZodString; title: z.ZodString; body: z.ZodString },
@@ -27,3 +21,19 @@ export const noteCaptureResponseSchema: z.ZodObject<
   created: z.boolean(),
 });
 export type NoteCaptureResponse = z.output<typeof noteCaptureResponseSchema>;
+
+/**
+ * Another plugin asks the note plugin to keep a piece of text as a note, for
+ * example a visitor question the owner chose to save. The note is always
+ * private to the owner; the sender cannot choose its visibility.
+ */
+export const noteCaptureContract: BusContract<
+  typeof noteCaptureRequestSchema,
+  typeof noteCaptureResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "note:capture",
+  request: noteCaptureRequestSchema,
+  response: noteCaptureResponseSchema,
+  delivery: "request",
+});
