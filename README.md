@@ -155,6 +155,10 @@ apps/                  local development / legacy instance directories
 
 This project is currently maintainer-led. Bug reports, documentation fixes, and focused patches are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Generative AI
+
+All code in this repository is written by AI coding assistants, using several models. The design, the architecture and the decisions are mine. Every change passes type checks, linting and tests in pre-commit hooks and CI before it lands, and I review what goes in.
+
 ## License
 
 This repository uses a split licensing model:
