@@ -2,10 +2,8 @@ import type { AuthBackend, WebRouteDefinition } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { LinkedInConnections } from "./lib/linkedin-connection";
-import type {
-  LinkedInOAuthClient,
-  OAuthStateStore,
-} from "./lib/linkedin-oauth";
+import type { SingleUseStore } from "@brains/utils/single-use-store";
+import type { LinkedInOAuthClient } from "./lib/linkedin-oauth";
 
 export const START_PATH = "/linkedin/oauth/start";
 export const CALLBACK_PATH = "/linkedin/oauth/callback";
@@ -16,7 +14,7 @@ type Session = Awaited<ReturnType<AuthBackend["resolveSession"]>>;
 
 export interface OAuthRouteDeps {
   oauth: LinkedInOAuthClient;
-  states: OAuthStateStore;
+  states: SingleUseStore<string>;
   connections: LinkedInConnections;
   resolveSession(request: Request): Promise<Session>;
   /** Where the callback returns the owner: the LinkedIn workspace. */
@@ -66,7 +64,7 @@ export function createOAuthRoutes(deps: OAuthRouteDeps): WebRouteDefinition[] {
 
   const callback = async (request: Request): Promise<Response> => {
     const params = new URL(request.url).searchParams;
-    const userId = deps.states.consume(params.get("state") ?? "");
+    const userId = deps.states.take(params.get("state") ?? "");
     const session = await deps.resolveSession(request);
     if (!userId || !isAnchor(session) || session?.userId !== userId) {
       return backToWorkspace("failed");

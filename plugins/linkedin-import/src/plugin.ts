@@ -6,7 +6,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { LinkedInClient, type LinkedInFetch } from "./lib/linkedin-client";
 import { LinkedInConnections } from "./lib/linkedin-connection";
-import { LinkedInOAuthClient, OAuthStateStore } from "./lib/linkedin-oauth";
+import { createOAuthStates, LinkedInOAuthClient } from "./lib/linkedin-oauth";
 import { ProfileImport } from "./lib/profile-import";
 import { CALLBACK_PATH, createOAuthRoutes, START_PATH } from "./oauth-routes";
 import { registerLinkedInWorkspace } from "./workspace";
@@ -54,7 +54,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
   LinkedInImportConfigInput
 > {
   private readonly deps: LinkedInImportDeps;
-  private readonly states = new OAuthStateStore();
+  private readonly states = createOAuthStates();
   private connections: LinkedInConnections | undefined;
   private workspaceUrl = DEFAULT_WORKSPACE_URL;
 

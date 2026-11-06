@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { LinkedInFetch } from "../src/lib/linkedin-client";
 import {
   LinkedInOAuthClient,
-  OAuthStateStore,
+  createOAuthStates,
 } from "../src/lib/linkedin-oauth";
 
 const config = {
@@ -101,26 +101,26 @@ describe("LinkedInOAuthClient", () => {
   });
 });
 
-describe("OAuthStateStore", () => {
+describe("createOAuthStates", () => {
   it("returns the account a state was issued for, once", () => {
-    const store = new OAuthStateStore({ now: (): number => 0 });
+    const store = createOAuthStates((): number => 0);
     const state = store.issue("owner");
 
-    expect(store.consume(state)).toBe("owner");
-    expect(store.consume(state)).toBeNull();
+    expect(store.take(state)).toBe("owner");
+    expect(store.take(state)).toBeNull();
   });
 
   it("forgets a state after ten minutes", () => {
     const clock = { now: 0 };
-    const store = new OAuthStateStore({ now: (): number => clock.now });
+    const store = createOAuthStates((): number => clock.now);
     const state = store.issue("owner");
 
     clock.now = 10 * 60 * 1000;
 
-    expect(store.consume(state)).toBeNull();
+    expect(store.take(state)).toBeNull();
   });
 
   it("knows no state it did not issue", () => {
-    expect(new OAuthStateStore().consume("forged")).toBeNull();
+    expect(createOAuthStates().take("forged")).toBeNull();
   });
 });
