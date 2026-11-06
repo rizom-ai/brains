@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.634
+
+### Patch Changes
+
+- [#826](https://github.com/rizom-ai/brains/pull/826) [`0d0154e`](https://github.com/rizom-ai/brains/commit/0d0154e64e9244d5f6074963de384d6cc033bb2b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cross-plugin calls that nobody answers are told apart from calls that fail. On a brain without auth, resolving who is behind an actor now finds no one instead of failing; generation refuses the request as unauthorized rather than retrying an outage that never clears. A contact request on a brain without a notifier is now recorded as "no notifier" instead of an unconfirmed delivery. A Web Chat action whose runtime handler fails now answers 500 "Runtime action failed" instead of looking like a missing handler (404). Studio's ask-agent answers 400 with the reason when an agent's reply cannot be read, where it answered 500. An image generation or source render queued with invalid data is now refused when it is queued instead of failing when it runs. A subscription to a typed channel now reports an invalid payload to its sender as a failure instead of a success. A declarative service's `messaging.publish` now reaches every subscriber of the topic, not only the first. `MessageCollector` is no longer exported from `@rizom/brain/plugins`; nothing public used it.
+
 ## 0.2.0-alpha.633
 
 ### Patch Changes
