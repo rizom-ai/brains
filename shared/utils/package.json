@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.631",
+  "version": "0.2.0-alpha.633",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
@@ -56,6 +56,7 @@
     "./query": "./src/query.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",
     "./serial-queue": "./src/serial-queue.ts",
+    "./single-use-store": "./src/single-use-store.ts",
     "./sort": "./src/sort.ts",
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",

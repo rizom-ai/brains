@@ -1,5 +1,19 @@
 # @brains/site-default
 
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies [[`143a48c`](https://github.com/rizom-ai/brains/commit/143a48cf57685162c794956bbc186c109a76f7d7)]:
+  - @brains/site-professional@0.2.0-alpha.632
+
 ## 0.2.0-alpha.631
 
 ### Patch Changes

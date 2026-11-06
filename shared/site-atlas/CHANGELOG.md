@@ -1,5 +1,30 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/site-composition@0.2.0-alpha.633
+  - @brains/site-engine@0.2.0-alpha.633
+  - @brains/ui-library@0.2.0-alpha.633
+  - @brains/plugins@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- [#827](https://github.com/rizom-ai/brains/pull/827) [`143a48c`](https://github.com/rizom-ai/brains/commit/143a48cf57685162c794956bbc186c109a76f7d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A professional profile takes three new optional fields: `headline`, `industry` and `location`. The professional site's about page sets the headline under the owner's name, above the description, and lists industry and location among the facts. The editorial homepage leads with the tagline, then the headline, then the description. Profiles without the new fields render as before.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/site-composition@0.2.0-alpha.632
+  - @brains/site-engine@0.2.0-alpha.632
+  - @brains/ui-library@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/plugins@0.2.0-alpha.632
+
 ## 0.2.0-alpha.631
 
 ### Patch Changes
