@@ -127,6 +127,10 @@ export function defineEntity<
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
     | undefined;
+  readonly projectionRules?: EntityDefinition<
+    TType,
+    TMetadataSchema
+  >["projectionRules"];
   readonly atproto?: EntityDefinition<TType, TMetadataSchema>["atproto"];
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");

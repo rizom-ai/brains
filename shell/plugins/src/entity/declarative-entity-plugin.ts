@@ -59,7 +59,12 @@ import {
   entitySchema,
   parseDefinitionEntity,
 } from "./entity-schema";
-import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
+import {
+  defineProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+  type ProjectionRule,
+} from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import { SYSTEM_CHANNELS } from "../system-channels";
 import { createDeclaredDataSource } from "../public/entity-data-source";
@@ -364,6 +369,38 @@ export async function deriveProjectionUpserts(
   return intents;
 }
 
+function boundProjectionInput(
+  context: ProjectionInputContext,
+): ProjectionInputContext {
+  const entities = context.entities;
+  return Object.freeze({
+    entities: Object.freeze({
+      getEntity: entities.getEntity.bind(entities),
+      listEntities: entities.listEntities.bind(entities),
+      getEntityTypes: entities.getEntityTypes.bind(entities),
+      hasEntityType: entities.hasEntityType.bind(entities),
+      getEntityTypeConfig: entities.getEntityTypeConfig.bind(entities),
+      isProjectionOwnedEntity: entities.isProjectionOwnedEntity.bind(entities),
+    }),
+    resolvePrompt: context.resolvePrompt.bind(context),
+    appInfo: context.appInfo.bind(context),
+    identityInput: context.identityInput.bind(context),
+  });
+}
+
+function boundProjectionExecution(
+  context: ProjectionExecutionContext,
+): ProjectionExecutionContext {
+  const ai = context.ai;
+  return Object.freeze({
+    ai: Object.freeze({
+      generate: ai.generate.bind(ai),
+      generateObject: ai.generateObject.bind(ai),
+    }),
+    logger: context.logger,
+  });
+}
+
 function projectionRule(
   projection: ProjectionDefinition,
   version: string,
@@ -451,6 +488,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly attachments: AnyEntityDefinition["attachments"];
   private readonly jobs: Readonly<Record<string, AnyEntityJobDeclaration>>;
   private readonly generation: AnyEntityDefinition["generation"];
+  private readonly projectionRules: readonly ProjectionRule[];
   private releases: readonly (() => void)[] = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
@@ -501,6 +539,39 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
+    const declared = definition.projectionRules;
+    this.projectionRules = (
+      typeof declared === "function"
+        ? declared({ template: (localName) => this.templateName(localName) })
+        : (declared ?? [])
+    ).map((rule) => this.declaredProjectionRule(rule));
+  }
+
+  /**
+   * A declared rule as the runtime runs it: it writes this type only, and it
+   * is handed bound reads and generation, never the services behind them.
+   */
+  private declaredProjectionRule(rule: ProjectionRule): ProjectionRule {
+    if (rule.targetType !== this.entityType) {
+      throw new Error(
+        `Projection rule "${rule.id}" on ${this.entityType} writes ${rule.targetType}`,
+      );
+    }
+    return Object.freeze({
+      ...rule,
+      selectInput: (
+        trigger: Parameters<ProjectionRule["selectInput"]>[0],
+        context: ProjectionInputContext,
+        signal: AbortSignal,
+      ): ReturnType<ProjectionRule["selectInput"]> =>
+        rule.selectInput(trigger, boundProjectionInput(context), signal),
+      derive: (
+        input: Parameters<ProjectionRule["derive"]>[0],
+        context: ProjectionExecutionContext,
+        signal: AbortSignal,
+      ): ReturnType<ProjectionRule["derive"]> =>
+        rule.derive(input, boundProjectionExecution(context), signal),
+    });
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
@@ -1327,9 +1398,12 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   protected override getProjectionRules(): ProjectionRule[] {
-    return this.projections.map((projection) =>
-      projectionRule(projection, this.version, this.scope),
-    );
+    return [
+      ...this.projections.map((projection) =>
+        projectionRule(projection, this.version, this.scope),
+      ),
+      ...this.projectionRules,
+    ];
   }
 }
 

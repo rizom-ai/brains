@@ -2,11 +2,13 @@
 
 export { z } from "@brains/utils/zod";
 export {
+  ProjectionJsonObjectSchema,
   defineDataSource,
   defineEntity,
   defineEntityJob,
   defineEntityPackage,
   defineProjection,
+  defineProjectionRule,
 } from "@brains/plugins";
 export type {
   AnyEntityJobDeclaration,
@@ -55,6 +57,10 @@ export type {
   FeedItem,
   MediaAttachmentContext,
   ProjectionDefinition,
+  ProjectionJsonObject,
+  ProjectionRule,
+  ProjectionRuleDefinition,
+  ProjectionWriteIntent,
 } from "@brains/plugins";
 
 export type {

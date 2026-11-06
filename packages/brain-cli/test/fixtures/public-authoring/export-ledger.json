@@ -280,11 +280,17 @@
         "FeedItem",
         "MediaAttachmentContext",
         "ProjectionDefinition",
+        "ProjectionJsonObject",
+        "ProjectionJsonObjectSchema",
+        "ProjectionRule",
+        "ProjectionRuleDefinition",
+        "ProjectionWriteIntent",
         "defineDataSource",
         "defineEntity",
         "defineEntityJob",
         "defineEntityPackage",
         "defineProjection",
+        "defineProjectionRule",
         "z"
       ],
       "advanced-with-consumer": [

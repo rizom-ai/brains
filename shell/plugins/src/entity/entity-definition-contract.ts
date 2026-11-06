@@ -17,6 +17,7 @@ import type {
   PaginationInfo,
 } from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
+import type { ProjectionRule } from "./projection-rule";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type {
   ResolvedRuntimeUpload,
@@ -278,6 +279,19 @@ export interface EntityDefinition<
   /** This type's syndication feed, written into every site build. */
   readonly feed?:
     | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
+    | undefined;
+  /**
+   * Rules that derive entities of this type from many sources, or from
+   * sources no single `defineProjection` names. Each rule writes this type
+   * only. Rule ids are durable and brain-wide. The function form receives
+   * the registered name of each template this type declares, for a rule
+   * that generates through one.
+   */
+  readonly projectionRules?:
+    | readonly ProjectionRule[]
+    | ((context: {
+        readonly template: (localName: string) => string;
+      }) => readonly ProjectionRule[])
     | undefined;
   /** How this type's public records are published as AT Protocol records. */
   readonly atproto?:

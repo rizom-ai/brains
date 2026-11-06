@@ -142,7 +142,9 @@ Definitions and schema vocabulary:
 - `defineEntity`
 - `defineEntityJob`
 - `defineEntityPackage`
+- `ProjectionJsonObjectSchema`
 - `defineProjection`
+- `defineProjectionRule`
 - `z`
 
 Types:
@@ -193,6 +195,10 @@ Types:
 - `FeedItem`
 - `MediaAttachmentContext`
 - `ProjectionDefinition`
+- `ProjectionJsonObject`
+- `ProjectionRule`
+- `ProjectionRuleDefinition`
+- `ProjectionWriteIntent`
 
 `defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
 
@@ -256,6 +262,13 @@ The agent, the schedule and evals on `defineEntity`:
 - `agentContext` (`EntityAgentContextProvider`) grounds the agent's next turn: given the `request` and definition-typed `entities` reads scoped to the asker's permission, it returns context items (`id`, `source`, optional `title`, `content`). An item that fails validation is dropped rather than costing the turn.
 - `scheduledGeneration` (`EntityScheduledGenerationDeclaration`) answers the content pipeline's schedule for the type, and requires `generation`. `from` names the source type, an optional metadata `status` and a `limit` (1–100). `mode: "each"` writes from the first source no entity of this type already names in its `sourceEntityType`/`sourceEntityId` metadata; `"batch"` writes from all of them (`sourceEntityIds`). The runtime queues the type's `{type}:generation` job, reports back to the pipeline when nothing qualifies, and reports each generation's success or failure.
 - `evals` (`EntityEvalDeclaration`) registers eval handlers keyed by id. Each receives the eval input and a frozen `EntityEvalContext`: `ai.generate` (as a generation has it), `entities` reads as the package, and `EntityEvalFixtures` — `seed` an entity of any type, `settleEmbeddings` (60-second bound), and `reset`, which removes this type's records up to a visibility (public by default) plus everything seeded. Reset deletes, so evals use isolated evaluation data.
+
+Deriving with projection rules on `defineEntity`:
+
+- `projectionRules` declares rules that derive entities of the type from many sources, or from sources no single `defineProjection` names. `defineProjectionRule` (`ProjectionRuleDefinition`) takes an `id` and `version` (durable and brain-wide: a new version re-derives), entity `sources`, the `targetType`, an optional `sourceChangeBatchDelayMs`, an `inputSchema` over JSON (`ProjectionJsonObject`; `ProjectionJsonObjectSchema` validates a JSON field), `selectInput(trigger, context, signal)` and `derive(input, context, signal)`, which returns `ProjectionWriteIntent`s that upsert or delete entities of the target type.
+- The runtime fingerprints the selected input and derives again only when it changes, so everything a derivation depends on, a voice included, belongs in its input.
+- A rule declared on a type writes that type only; one that names another is refused when the package is instantiated. `selectInput` is given bound entity reads, `resolvePrompt`, `appInfo` and `identityInput`; `derive` is given `ai.generate` and `ai.generateObject` and a logger — never the services behind them.
+- The function form, `projectionRules: ({ template }) => [...]`, hands a rule the registered name of each template the type declares; naming one it does not declare is refused.
 
 Publishing to AT Protocol on `defineEntity`:
 
