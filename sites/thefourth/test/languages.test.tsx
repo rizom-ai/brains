@@ -74,6 +74,12 @@ describe("The Fourth in two languages", () => {
     );
   });
 
+  test("offers the switch again at the foot, as a pill", () => {
+    expect(renderLayout("en", BOTH)).toMatch(
+      /<div class="tf-foot__end"><nav class="tf-lang tf-lang--pill" aria-label="Language">/,
+    );
+  });
+
   test("offers no switch on a page that exists in one language", () => {
     expect(renderLayout("en", [{ language: "en", path: "/" }])).not.toContain(
       "中文",
@@ -88,6 +94,10 @@ describe("The Fourth in two languages", () => {
     expect(chinese).toContain("（品牌顧問）");
     expect(chinese).toContain(">由 Rizom 提供技術支援</a>");
     expect(chinese).not.toContain("Powered by Rizom");
+    for (const page of ["隱私權政策", "服務條款", "Cookie 政策"]) {
+      expect(chinese).toContain(`href="#">${page}</a>`);
+    }
+    expect(chinese).not.toContain("Privacy policy");
   });
 
   test("sets Chinese in Noto, loaded only on Chinese pages", () => {
