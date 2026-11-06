@@ -61,7 +61,8 @@ const oauthBrokerConfigSchema: z.ZodObject<{
 });
 
 type OAuthBrokerConfig = z.output<typeof oauthBrokerConfigSchema>;
-type OAuthBrokerConfigInput = z.input<typeof oauthBrokerConfigSchema>;
+/** Brains pass raw config records; the schema validates them at parse time. */
+type OAuthBrokerConfigInput = Record<string, unknown>;
 
 /** Builds a provider's adapter from the shared app the broker holds for it. */
 export type ProviderFactory = (app: ProviderAppConfig) => OAuthBrokerProvider;
@@ -81,7 +82,8 @@ export class OAuthBrokerPlugin extends ServicePlugin<
   OAuthBrokerConfigInput
 > {
   private readonly deps: OAuthBrokerDeps;
-  private providers: OAuthBrokerProvider[] = [];
+  /** Built once, so the routes share one instance registry and start limit. */
+  private routes: WebRouteDefinition[] = [];
   private readonly authorizations: SingleUseStore<PendingAuthorization>;
   private readonly grants: SingleUseStore<PendingGrant>;
 
@@ -103,7 +105,7 @@ export class OAuthBrokerPlugin extends ServicePlugin<
   protected override async onRegister(
     _context: ServicePluginContext,
   ): Promise<void> {
-    this.providers = Object.entries(this.config.providers).map(([id, app]) => {
+    const providers = Object.entries(this.config.providers).map(([id, app]) => {
       const factory = this.deps.providers[id];
       if (!factory) {
         throw new Error(`oauth-broker: no adapter for provider "${id}"`);
@@ -116,20 +118,20 @@ export class OAuthBrokerPlugin extends ServicePlugin<
       }
       return provider;
     });
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    if (this.config.instances.length === 0 || this.providers.length === 0) {
-      return [];
-    }
-    return createBrokerRoutes({
+    if (this.config.instances.length === 0 || providers.length === 0) return;
+    this.routes = createBrokerRoutes({
       publicUrl: this.config.publicUrl,
-      providers: this.providers,
+      providers,
       instances: new BrokerInstances(this.config.instances),
       authorizations: this.authorizations,
       grants: this.grants,
+      now: this.deps.now ?? Date.now,
       logger: this.logger,
     });
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return this.routes;
   }
 }
 

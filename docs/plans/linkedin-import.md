@@ -7,6 +7,7 @@ In progress. On `main`:
 - Professional profiles take `headline`, `industry` and `location`. The professional site's about page sets the headline under the name and lists industry and location; the editorial homepage falls back to the headline before the description.
 - The opt-in `linkedin-import` plugin ([README](../../plugins/linkedin-import/README.md)). The Anchor connects LinkedIn from a Studio workspace through direct-mode OAuth against the instance's own LinkedIn app; the token stays in the Anchor's account settings. A confirmed import fills `name`, `headline`, `industry`, `location`, `website` and the story from the PROFILE snapshot without overwriting what the owner wrote.
 - An Anchor-only **Inspect LinkedIn data shapes** action returns a redacted shape summary of the four rich domains.
+- The opt-in `oauth-broker` plugin ([README](../../plugins/oauth-broker/README.md)) for one central brain, and `linkedin-import`'s `broker` mode. An instance without its own LinkedIn app starts consent at the broker, LinkedIn returns to the broker's single callback, and the instance redeems a two-minute, single-use grant for the token. The protocol is in `@brains/contracts`.
 
 Next: once LinkedIn approves the app (see Precondition), capture the rich-domain fixtures (Phase 4), then Phases 5–8.
 
@@ -60,7 +61,7 @@ The Anchor connects their LinkedIn account once from Studio, reviews a field-by-
 - **The surface is a Studio workspace.** `linkedin-import:linkedin` with permission floor `admin`, and an `accessHandler` that also requires `isAnchor` (Admin does not imply Anchor). The view shows connection status and the preview; Import is a `defineWorkspaceAction` with a prepared confirmation bound to the caller, the preview digest and the profile's content hash, with expiry and single use. The old branch's review store is not ported; prepared confirmation replaces it.
 - **OAuth routes are plugin web routes.** Studio cannot carry author URLs into a form post, so the view links to the plugin's own start route. Routes use `getWebRoutes()` with `public: true` and authenticate inside the handler (`context.auth.get()?.resolveSession`, requiring `admin` and `isAnchor`), as Studio and auth admin do today. They move to the operator security kind when `http-route-registry-hardening.md` Phase 2 lands.
 - **The token lives in the Anchor's account settings.** It is encrypted with `ACCOUNT_SETTINGS_ENCRYPTION_KEY`, scoped to the account, and removed when the account is deleted. The plugin registers its own `defineAccountSettings` definition through `context.accountSettings` and saves, reads and deletes one account's values with the registry's `save`, `getForActor` and `delete`. The setting appears in the Account form as **LinkedIn**, where the token can also be pasted by hand.
-- **Two OAuth modes.** Direct mode (shipped) uses the instance's own approved LinkedIn app; it suits self-hosting and a small pilot. Managed mode (Phase 9) routes consent through a central broker so instances never hold the shared app secret.
+- **Two OAuth modes.** Direct mode (shipped) uses the instance's own approved LinkedIn app; it suits self-hosting and a small pilot. Managed mode (shipped) routes consent through a central broker so instances never hold the shared app secret.
 
 ## Precondition
 
@@ -68,7 +69,7 @@ Apply for the Member Data Portability (3rd Party) product on a Rizom LinkedIn de
 
 ## Phases
 
-Each phase is a commit, tests first. Phases 5–8 share one PR once the Phase 4 fixtures are committed. Phase 9 and Phase 10 are one PR each: the broker needs only the shipped direct mode; the export upload needs the Phase 5–8 mappers.
+Each phase is a commit, tests first. Phases 5–8 share one PR once the Phase 4 fixtures are committed. Phase 10 is one PR; it needs the Phase 5–8 mappers.
 
 ### Phase 4 — Commit rich-domain fixtures
 
@@ -84,14 +85,6 @@ Each phase adds one field and its source, in this order: `skills: string[]`; `po
 - `sites/professional`: Skills apart from Expertise on the about page, with the homepage fallback (Phase 5); a dated Experience, Education or Certifications section on the about page (Phases 6–8).
 - Tests: mapper against the captured fixture; fingerprint matching preserves owner-written records and appends new ones; the template renders and omits the section.
 
-### Phase 9 — Managed connection through a central broker
-
-- `plugins/oauth-broker`: port the provider-neutral broker as a `ServicePlugin` for one central brain (for example `connect.rizom.ai`): per-instance HTTP Basic credentials, exact configured return URIs, hashed lookup keys, ten-minute authorization state, two-minute single-use grants, all process-local. Routes: `POST /oauth-broker/authorizations`, `GET /oauth-broker/callback/linkedin` and `POST /oauth-broker/grants/redeem`, authenticated inside the handler.
-- The LinkedIn provider adapter (scope, token URL, token validation) is composed into the broker from `linkedin-import`; the broker core treats credentials as opaque.
-- `linkedin-import`: a `broker` connection mode beside the direct `oauth` settings, with the broker URL and instance credential; port `linkedin-broker-client.ts` and add `GET /linkedin/oauth/broker/return`, which consumes local state, redeems the grant server to server, validates the credential and stores it in the Anchor's account settings like a direct connection.
-- The broker is catalog-only, never in a bundle; it runs on the central brain alone.
-- Tests: cross-instance substitution, arbitrary return URIs, expired or replayed state and grants, failed instance authentication, concurrent redemption, and no credential in any redirect or log line.
-
 ### Phase 10 — Import from the LinkedIn data export (non-EEA)
 
 - Declarative workspaces have no file input. Add one to the operator view contract and the Studio renderer, with the 10 MB cap Studio uploads already use, delivering the file to the action handler.
@@ -103,6 +96,6 @@ Each phase adds one field and its source, in this order: `skills: string[]`; `po
 
 - **EEA-only API.** Non-EEA owners wait for Phase 10.
 - **Developer approval** can take weeks and is outside our control; until LinkedIn approves the app, connecting and importing fail at LinkedIn.
-- **Broker trust.** The central brain holds the shared app secret and transient credentials. Exact return URIs, per-instance revocation, short grants, atomic redemption, log redaction and rate limits are launch requirements for Phase 9.
+- **Broker trust.** The central brain holds the shared app secret and, for up to two minutes, exchanged credentials; compromising it exposes both. It runs as a dedicated brain with no other users. Return addresses are exact per instance, removing an instance revokes it, and each instance may start ten connections per ten minutes.
 - **Broker availability.** Managed owners cannot connect while the broker is down; a stored token keeps working.
 - **Token expiry.** Without refresh, the owner reconnects when the token expires; the workspace shows the expiry date.

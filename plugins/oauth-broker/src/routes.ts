@@ -34,8 +34,12 @@ export interface BrokerRouteDeps {
   instances: BrokerInstances;
   authorizations: SingleUseStore<PendingAuthorization>;
   grants: SingleUseStore<PendingGrant>;
+  now: () => number;
   logger: Logger;
 }
+
+const STARTS_PER_WINDOW = 10;
+const START_WINDOW_MS = 10 * 60 * 1000;
 
 const PRIVATE_HEADERS = {
   "Cache-Control": "no-store",
@@ -99,6 +103,18 @@ export function createBrokerRoutes(
   const providers = new Map(
     deps.providers.map((provider) => [provider.id, provider]),
   );
+  // Connections each instance started recently, so one instance cannot
+  // crowd the shared pending store and evict another's.
+  const starts = new Map<string, number[]>();
+  const admitStart = (instanceId: string): boolean => {
+    const now = deps.now();
+    const recent = (starts.get(instanceId) ?? []).filter(
+      (startedAt) => startedAt > now - START_WINDOW_MS,
+    );
+    const admitted = recent.length < STARTS_PER_WINDOW;
+    starts.set(instanceId, admitted ? [...recent, now] : recent);
+    return admitted;
+  };
   const callbackUri = (provider: string): string =>
     new URL(oauthBrokerCallbackPath(provider), deps.publicUrl).toString();
 
@@ -115,6 +131,9 @@ export function createBrokerRoutes(
     const returnUri = instance.returnUris[parsed.data.provider];
     if (!provider || !returnUri) {
       return json({ error: "Provider is unavailable for this instance" }, 400);
+    }
+    if (!admitStart(instance.id)) {
+      return json({ error: "Too many connections started; try later" }, 429);
     }
     const state = deps.authorizations.issue({
       provider: provider.id,

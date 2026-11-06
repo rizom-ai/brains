@@ -741,6 +741,7 @@
         "@brains/newsletter": "workspace:*",
         "@brains/note": "workspace:*",
         "@brains/notifications": "workspace:*",
+        "@brains/oauth-broker": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
         "@brains/onboarding": "workspace:*",
         "@brains/operation-context": "workspace:*",
@@ -1075,6 +1076,7 @@
       "name": "@brains/linkedin-import",
       "version": "0.2.0-alpha.632",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },

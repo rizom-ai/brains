@@ -53,6 +53,7 @@ const expectedCatalogIds = [
   "email-workflows",
   "unified-inbox",
   "linkedin-import",
+  "oauth-broker",
   "mcp",
   "email",
   "webserver",

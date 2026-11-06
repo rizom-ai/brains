@@ -37,4 +37,18 @@ plugins:
       redirectUri: https://brain.example.com/linkedin/oauth/callback
 ```
 
-The redirect URI must end at `/linkedin/oauth/callback`. Account settings need `ACCOUNT_SETTINGS_ENCRYPTION_KEY`. Without `oauth` the plugin registers nothing. Only members in the European Economic Area can consent to the portability API.
+The redirect URI must end at `/linkedin/oauth/callback`.
+
+A brain without its own LinkedIn app connects through the managed broker instead (see `@brains/oauth-broker`). Configure `broker` in place of `oauth`, never both:
+
+```yaml
+plugins:
+  linkedin-import:
+    broker:
+      url: https://connect.example.com
+      instanceId: ada
+      secret: ${LINKEDIN_IMPORT_BROKER_SECRET}
+      returnUri: https://ada.example.com/linkedin/oauth/broker/return
+```
+
+The return URI must end at `/linkedin/oauth/broker/return` and match the address the broker holds for this instance. Connect then starts at the broker, LinkedIn returns to the broker, and the broker sends the owner back with a one-time grant this brain redeems for the token. Account settings need `ACCOUNT_SETTINGS_ENCRYPTION_KEY`. Without `oauth` the plugin registers nothing. Only members in the European Economic Area can consent to the portability API.

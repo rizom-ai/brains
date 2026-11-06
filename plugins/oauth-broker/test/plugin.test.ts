@@ -318,6 +318,27 @@ describe("OAuth broker", () => {
     expect(redeemed.status).toBe(400);
   });
 
+  it("limits each instance to ten connections started per ten minutes", async () => {
+    const state = await fixture();
+    const start = (instance: [string, string]): Promise<Response> =>
+      state.request("POST", "/oauth-broker/authorizations", {
+        body: { provider: "linkedin", brainState },
+        instance,
+      });
+
+    const first = await Promise.all(
+      Array.from({ length: 10 }, () => start(["ada", instanceSecret])),
+    );
+    expect(first.map((response) => response.status)).toEqual(
+      Array.from({ length: 10 }, () => 200),
+    );
+    expect((await start(["ada", instanceSecret])).status).toBe(429);
+    expect((await start(["other", otherSecret])).status).toBe(200);
+
+    state.clock.now = 10 * 60 * 1000;
+    expect((await start(["ada", instanceSecret])).status).toBe(200);
+  });
+
   it("refuses to start without an adapter for a configured provider", async () => {
     const harness = createPluginHarness<OAuthBrokerPlugin>();
     harnesses.push(harness);
