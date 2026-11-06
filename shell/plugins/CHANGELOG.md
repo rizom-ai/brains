@@ -1,5 +1,28 @@
 # @brains/plugins
 
+## 0.2.0-alpha.635
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.635
+  - @brains/content-formatters@0.2.0-alpha.635
+  - @brains/contracts@0.2.0-alpha.635
+  - @brains/site-composition@0.2.0-alpha.635
+  - @brains/utils@0.2.0-alpha.635
+  - @brains/ai-service@0.2.0-alpha.635
+  - @brains/content-service@0.2.0-alpha.635
+  - @brains/conversation-service@0.2.0-alpha.635
+  - @brains/entity-service@0.2.0-alpha.635
+  - @brains/identity-service@0.2.0-alpha.635
+  - @brains/job-queue@0.2.0-alpha.635
+  - @brains/mcp-service@0.2.0-alpha.635
+  - @brains/messaging-service@0.2.0-alpha.635
+  - @brains/recurring-checks@0.2.0-alpha.635
+  - @brains/runtime-state@0.2.0-alpha.635
+  - @brains/scheduler@0.2.0-alpha.635
+  - @brains/templates@0.2.0-alpha.635
+
 ## 0.2.0-alpha.634
 
 ### Patch Changes

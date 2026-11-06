@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.635
+
+### Patch Changes
+
+- [#830](https://github.com/rizom-ai/brains/pull/830) [`3ab5462`](https://github.com/rizom-ai/brains/commit/3ab5462505b59f406fa15d212ec1d496b76411e5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - MCP clients that ask for progress on a tool call now receive the tool's progress notifications. Before, the progress a tool reported never left the brain.
+
 ## 0.2.0-alpha.634
 
 ### Patch Changes
