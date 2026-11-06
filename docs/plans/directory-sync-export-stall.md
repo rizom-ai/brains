@@ -3,21 +3,24 @@
 ## Status
 
 Root-cause class confirmed locally; attribution of the specific live production incident remains
-open. The database→git auto-export in `plugins/directory-sync` can silently stop emitting
-`Auto-sync` commits because every export shares the Git lock with pulls, and one Git operation
-whose runtime completion never settles holds that lock indefinitely. Reconciliation checkpoints
-and stale operational health have landed. The separately scoped semantic Git broker has since
-shipped: one owner per checkout, serialized whole operations, and replacement only after its
-process group is proven gone. A future fixed Bun pin is defense in depth rather than a reason to
-block all progress. Fresh
-incident attribution and any live recovery remain separate approval-gated operational work.
+open. The database→git auto-export in `plugins/directory-sync` could silently stop emitting
+`Auto-sync` commits because every export shared the Git lock with pulls, and one Git operation
+whose runtime completion never settled held that lock indefinitely. The runtime defect behind
+that, Bun issue `oven-sh/bun#26580` (a subprocess completion lost in Bun 1.3.x), is fixed in Bun
+1.4.0, which the repository and deployment have pinned since cedf87d16c (2026-08-20).
+
+Reconciliation checkpoints and the semantic Git broker have shipped: one owner per checkout,
+serialized whole operations, and replacement of a broker that exits only after its process group
+is proven gone. The broker's wedge backstop (a supervisor heartbeat and stale-progress watchdog
+that terminated a live broker, and the stale-progress degradation of `/health/operate`) was
+removed after the Bun 1.4.0 pin. Fresh incident attribution and any live recovery remain separate
+approval-gated operational work.
 
 ## Goal
 
 Finish proving the **specific production path** by which the database→git auto-export stopped
 emitting commits, then deliver the Git execution broker, deterministic replay, regression tests,
-and a safe live-recovery procedure. Pin a fixed stable runtime when available as an independent
-defense-in-depth change.
+and a safe live-recovery procedure.
 
 Do NOT stop at the matching local symptom. Preserve the distinction between the confirmed code
 mechanism and the still-unconfirmed attribution of the alpha.262 production incident.
@@ -47,8 +50,7 @@ mechanism and the still-unconfirmed attribution of the alpha.262 production inci
   network stalls when Bun continues dispatching events. It does **not** protect Bun 1.3.x from the
   observed lost completion: the current-main reproduction hung inside that guarded pull because
   both `child.exited` and its in-process Effect timer failed to resume the owner. Network and local
-  subprocesses therefore remain exposed until the fixed Bun pin; the external stale-operation
-  watchdog remains the recovery backstop.
+  subprocesses therefore remained exposed until the fixed Bun pin.
 
 ## What the plugin does (confirmed from the code — verify as you go)
 
@@ -145,19 +147,15 @@ after that evidence is reviewed.
 
 1. **Root cause**: the specific current-main file:line and deployed-alpha.262 file:line, with the
    precise mechanism and confirming code path kept distinct.
-2. **Regression tests for both failure classes**:
-   - A true stalled child may release the serialized queue only after its complete process group is
-     killed and reaped; a later export must then commit normally.
-   - A lost completion whose process termination cannot be confirmed must keep later Git work
-     blocked, surface stale operational health, and recover only through supervised restart plus
-     deterministic checkpoint replay. Never `Promise.race` the lock open while an old Git process
-     may still mutate the checkout.
+2. **Regression test for a stalled child**: a true stalled child may release the serialized queue
+   only after its complete process group is killed and reaped; a later export must then commit
+   normally. Never `Promise.race` the lock open while an old Git process may still mutate the
+   checkout.
 3. **Minimal durable fix** that preserves serialization while implementing the external
    broker boundary — Git executes only in the process that owns the checkout — and retaining
    the repository/branch-scoped
    `lastReconciledGitHead`, replaying a merged-but-not-queued diff on startup, and surfacing an
-   over-age `pulling` run through progress-based `/health/operate` degradation. Do not rely on an
-   in-process timer to recover the affected Bun 1.3.x event loop.
+   over-age `pulling` run through progress-based `/health/operate` degradation.
 
    Cover every child command that can execute while a serialized Git workflow owns the checkout,
    not only `commitGitChanges` and `resolveLocalConflicts`: status, rev-parse, diff, add, commit,
@@ -181,5 +179,5 @@ after that evidence is reviewed.
   historical capture; prove fresh parity before claiming that remains true.
 - Prefer a fix that turns "silent permanent stall" into "recoverable / self-healing with a surfaced
   error," since the failure mode's worst property is that it's invisible.
-- Production restart, watchdog-policy changes, deployment, and active verification edits require
-  explicit approval. Read-only evidence capture does not authorize recovery.
+- Production restart, deployment, and active verification edits require explicit approval. Read-only
+  evidence capture does not authorize recovery.
