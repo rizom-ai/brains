@@ -1,5 +1,37 @@
 # @brains/plugins
 
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared route's handler answers with its response schema's input, for a service's routes and an interface's alike: written inline, an answer keeps its literal types, so an enum value needs no cast, and an answer the schema does not accept is refused by the types as well as by the runtime. `@rizom/brain/interfaces` exports `SdkError`, so an interface route throws a coded failure that is answered in its public form, `{ error, code }`, with the status its code names.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`e2c6e83`](https://github.com/rizom-ai/brains/commit/e2c6e8328fb9ba84dfed78bd63933ed33efd50b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineInterface` and `defineMessageInterface` take two arguments, as `defineServicePlugin` does: a header with the interface's `id`, `config`, `accountSettings`, `setup` and, for a message interface, its `channel`, and the behavior that reads the state `setup` returns, whose slots may be written in any order. A behavior slot written into the header, or a slot the interface does not have, is refused. `setup` is given `config`, `lifecycle.onCleanup` and `runtimeState({ namespace, schema })`, a store qualified by the owning package, so two packages declaring the same interface id never share a record. A message interface's cleanups also run when the queue worker shuts down, where its setup runs for delivery.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface's inbound attachments are kept as chat keeps its uploads. Each is a `url` the runtime fetches or, new, a `read()` the interface answers with the bytes as a `Uint8Array`, for a platform whose media needs its credentials; never both. Only a trusted sender's or an admin's attachments are read. Each is checked by the message upload policy, kept in the runtime's shared upload store attributed to its sender and channel, and handed to the turn with an `upload` reference a later turn restores. A refused or unreadable attachment is skipped and the sender told, instead of failing the turn, and a message with nothing left to answer starts none. The shared upload store is named once, for the writers and readers that use it.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/interfaces` exports `defineMessageInterfacePackage({ id, config, interfaces })`: one package that runs several message interfaces chosen from one config. `interfaces({ config })` returns the `defineMessageInterface` definitions the parsed config enables, each its own plugin with its own channel under the package, which owns their runtime state. Every interface is declared over the package's config schema; one declared over another schema, one that is not a message interface, an id declared twice and a package nested in another are refused.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`0e95b92`](https://github.com/rizom-ai/brains/commit/0e95b92f0a40a3b0943d8650c77321431a04b5e9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface answers in the thread a message came from: `send` is given the inbound `channel` with its `threadId`, where it was given only the channel id, so a reply to a threaded message landed outside its thread.
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.646
+  - @brains/content-formatters@0.2.0-alpha.646
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/site-composition@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+  - @brains/ai-service@0.2.0-alpha.646
+  - @brains/content-service@0.2.0-alpha.646
+  - @brains/conversation-service@0.2.0-alpha.646
+  - @brains/entity-service@0.2.0-alpha.646
+  - @brains/identity-service@0.2.0-alpha.646
+  - @brains/job-queue@0.2.0-alpha.646
+  - @brains/mcp-service@0.2.0-alpha.646
+  - @brains/messaging-service@0.2.0-alpha.646
+  - @brains/recurring-checks@0.2.0-alpha.646
+  - @brains/runtime-state@0.2.0-alpha.646
+  - @brains/scheduler@0.2.0-alpha.646
+  - @brains/templates@0.2.0-alpha.646
+
 ## 0.2.0-alpha.645
 
 ### Patch Changes

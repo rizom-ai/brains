@@ -1,5 +1,15 @@
 # @brains/guide
 
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- Updated dependencies [[`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620), [`e2c6e83`](https://github.com/rizom-ai/brains/commit/e2c6e8328fb9ba84dfed78bd63933ed33efd50b0), [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff), [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573), [`0e95b92`](https://github.com/rizom-ai/brains/commit/0e95b92f0a40a3b0943d8650c77321431a04b5e9)]:
+  - @brains/plugins@0.2.0-alpha.646
+  - @brains/ui-library@0.2.0-alpha.646
+  - @brains/docs-chrome@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+
 ## 0.2.0-alpha.645
 
 ### Patch Changes

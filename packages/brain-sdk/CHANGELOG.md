@@ -1,5 +1,19 @@
 # @brains/sdk
 
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared route's handler answers with its response schema's input, for a service's routes and an interface's alike: written inline, an answer keeps its literal types, so an enum value needs no cast, and an answer the schema does not accept is refused by the types as well as by the runtime. `@rizom/brain/interfaces` exports `SdkError`, so an interface route throws a coded failure that is answered in its public form, `{ error, code }`, with the status its code names.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/interfaces` exports `defineMessageInterfacePackage({ id, config, interfaces })`: one package that runs several message interfaces chosen from one config. `interfaces({ config })` returns the `defineMessageInterface` definitions the parsed config enables, each its own plugin with its own channel under the package, which owns their runtime state. Every interface is declared over the package's config schema; one declared over another schema, one that is not a message interface, an id declared twice and a package nested in another are refused.
+- Updated dependencies [[`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620), [`e2c6e83`](https://github.com/rizom-ai/brains/commit/e2c6e8328fb9ba84dfed78bd63933ed33efd50b0), [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff), [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573), [`0e95b92`](https://github.com/rizom-ai/brains/commit/0e95b92f0a40a3b0943d8650c77321431a04b5e9)]:
+  - @brains/plugins@0.2.0-alpha.646
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+  - @brains/entity-service@0.2.0-alpha.646
+  - @brains/templates@0.2.0-alpha.646
+
 ## 0.2.0-alpha.645
 
 ### Patch Changes
