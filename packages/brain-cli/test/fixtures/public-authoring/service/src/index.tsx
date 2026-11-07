@@ -130,12 +130,23 @@ export default defineServicePlugin(
       },
     },
 
-    // Templates validate render data before producing text.
+    // One declaration per template: it formats a value as text, renders it
+    // as a React component (the authoring dialect of site sections), or both,
+    // and validates the value before either.
     templates: {
       digest: {
         schema: digestResult,
+        description: "A compact reading-digest result.",
         format: ({ value }) =>
           `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
+        renderers: {
+          web: ({ summary, wordCount }) => (
+            <article>
+              <strong>{summary}</strong>
+              <small>{wordCount} words</small>
+            </article>
+          ),
+        },
       },
       generatedBookmark: {
         schema: z.object({ title: z.string(), body: z.string() }),
@@ -152,23 +163,6 @@ export default defineServicePlugin(
         },
         format: ({ value }) =>
           `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
-      },
-    },
-
-    // A same-name view reuses the exact schema object and adds web rendering.
-    // Views are React components, the same authoring dialect as site sections.
-    views: {
-      digest: {
-        schema: digestResult,
-        description: "A compact reading-digest result.",
-        renderers: {
-          web: ({ summary, wordCount }) => (
-            <article>
-              <strong>{summary}</strong>
-              <small>{wordCount} words</small>
-            </article>
-          ),
-        },
       },
     },
 

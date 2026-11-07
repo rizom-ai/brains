@@ -1,8 +1,4 @@
-import type {
-  ComponentType,
-  TemplateDataSchema,
-  UserPermissionLevel,
-} from "@brains/templates";
+import type { ComponentType, UserPermissionLevel } from "@brains/templates";
 import {
   defineBusContract as defineAnyBusContract,
   type BusContract,
@@ -503,32 +499,41 @@ type GenerationTemplateNames<TTemplates extends ServiceTemplateShapeMap> =
     string
   >;
 
+/**
+ * One declaration per template, whatever it can do: it formats a value as
+ * text, renders it, or both, and registration refuses one that does neither.
+ */
 export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
   readonly schema: TSchema;
+  /** What the template is, where a console or a site lists it. */
+  readonly description?: string | undefined;
+  /** Content the brain writes under this template; it must format it too. */
   readonly generation?: ServiceTemplateGenerationDefinition | undefined;
-  format(context: { readonly value: z.output<TSchema> }): string;
+  /** How a value becomes text, when the template produces any. */
+  readonly format?:
+    ((context: { readonly value: z.output<TSchema> }) => string) | undefined;
+  /** How a value is drawn, when the template renders. */
+  readonly renderers?:
+    | {
+        /**
+         * A React component receiving the schema-parsed value as props,
+         * mounted by the site builder exactly like a site section. The value
+         * is stored and serialized to the browser, so the schema must
+         * produce JSON.
+         */
+        readonly web: ComponentType<z.output<TSchema>>;
+      }
+    | undefined;
 }
 
 /**
- * A view schema must produce JSON: its parsed value is stored, serialized to
- * the browser, and handed to a React component as props.
+ * A template renders only a schema that produces JSON: its parsed value is
+ * stored, serialized to the browser, and handed to a component as props.
  */
-export type ServiceViewSchema = TemplateDataSchema<JsonObject>;
-export type ServiceViewSchemaMap = Record<string, ServiceViewSchema>;
-
-export interface ServiceViewDefinition<TSchema extends ServiceViewSchema> {
-  readonly schema: TSchema;
-  readonly description?: string | undefined;
-  readonly renderers: {
-    /**
-     * A React component receiving the schema-parsed value as props. Views are
-     * mounted with createElement by the site builder, exactly like site
-     * sections — the earlier string-returning form was mounted the same way,
-     * which would have rendered its markup as an escaped text node.
-     */
-    readonly web: ComponentType<z.output<TSchema>>;
-  };
-}
+export type ServiceTemplateRenderCheck<TSchema extends ServiceSchema> =
+  z.output<TSchema> extends JsonObject
+    ? unknown
+    : { readonly renderers?: undefined };
 
 /**
  * What the package is: its identity, its config, and what it sets up before
@@ -562,7 +567,6 @@ export interface ServiceDefinitionBehavior<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TOwned extends AnyEntityDefinition = never,
@@ -590,15 +594,9 @@ export interface ServiceDefinitionBehavior<
     | (TTemplateDefinitions & {
         readonly [K in keyof TTemplateSchemas]: ServiceTemplateDefinition<
           TTemplateSchemas[K]
-        >;
+        > &
+          ServiceTemplateRenderCheck<TTemplateSchemas[K]>;
       })
-    | undefined;
-  readonly views?:
-    | {
-        readonly [K in keyof TViewSchemas]: ServiceViewDefinition<
-          TViewSchemas[K]
-        >;
-      }
     | undefined;
   readonly jobs?:
     | ((context: {
@@ -671,7 +669,6 @@ export type NormalizedServiceDefinitionInput<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
@@ -684,7 +681,6 @@ export type NormalizedServiceDefinitionInput<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions,
     TEntities[number]

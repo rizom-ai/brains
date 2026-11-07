@@ -3,6 +3,7 @@ import { unscopeTemplateName } from "@brains/content-service";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
+  jsonObjectSchema,
   sdkErrorSchema,
   toSdkError,
   type ActorRef,
@@ -30,7 +31,6 @@ import {
   PermissionService,
   type ComponentType,
   type Template,
-  type TemplateDataSchema,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -80,7 +80,6 @@ import type {
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
-  ServiceViewSchemaMap,
   ServiceTemplateFormatter,
   ServiceTemplateGenerationDefinition,
   ServiceTemplateShapeMap,
@@ -114,21 +113,16 @@ interface ServiceCall {
   };
 }
 
-/** A template with its schema type erased and `format` bound to that schema. */
+/**
+ * A template with its schema type erased: `format` and the component bound
+ * to that schema, so a value is parsed before either runs.
+ */
 interface ErasedServiceTemplate {
   readonly schema: ServiceSchema;
-  readonly generation?: ServiceTemplateGenerationDefinition | undefined;
-  format(value: unknown): string;
-}
-
-/**
- * A view with its schema erased to the JSON bound it is declared with, and its
- * author component wrapped so props are parsed before render.
- */
-interface ErasedServiceView {
-  readonly schema: TemplateDataSchema<JsonObject>;
   readonly description?: string | undefined;
-  readonly component: ComponentType<JsonObject>;
+  readonly generation?: ServiceTemplateGenerationDefinition | undefined;
+  readonly format?: ((value: unknown) => string) | undefined;
+  readonly component?: ComponentType<JsonObject> | undefined;
 }
 
 function toolConfirmationToken(input: unknown): string | undefined {
@@ -237,7 +231,6 @@ class DeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
@@ -247,7 +240,6 @@ class DeclarativeServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions,
     TEntities
@@ -289,7 +281,6 @@ class DeclarativeServicePlugin<
       TState,
       TPromptSchemas,
       TTemplateSchemas,
-      TViewSchemas,
       TAccountSettings,
       TTemplateDefinitions,
       TEntities
@@ -1023,9 +1014,9 @@ class DeclarativeServicePlugin<
     const formatters = this.erasedTemplates();
     return {
       format(name, value): string {
-        const template = formatters.get(name);
-        if (!template) throw new Error(`Template not found: ${name}`);
-        return template.format(value);
+        const format = formatters.get(name)?.format;
+        if (!format) throw new Error(`No template formats as ${name}`);
+        return format(value);
       },
     };
   }
@@ -1043,92 +1034,84 @@ class DeclarativeServicePlugin<
   private erasedTemplates(): Map<string, ErasedServiceTemplate> {
     this.erasedTemplateCache ??= new Map(
       Object.entries(this.definition.templates ?? {}).map(
-        ([name, template]) => [
-          name,
-          {
-            schema: template.schema,
-            generation: template.generation,
-            format: (value: unknown): string =>
-              template.format({ value: template.schema.parse(value) }),
-          },
-        ],
+        ([name, template]) => {
+          const { format, renderers } = template;
+          if (!format && !renderers) {
+            throw new Error(
+              `Service "${this.publicId}" template "${name}" neither formats nor renders`,
+            );
+          }
+          return [
+            name,
+            {
+              schema: template.schema,
+              description: template.description,
+              generation: template.generation,
+              format:
+                format &&
+                ((value: unknown): string =>
+                  format({ value: template.schema.parse(value) })),
+              component:
+                renderers &&
+                ((props: JsonObject): ReturnType<ComponentType<JsonObject>> =>
+                  renderers.web(template.schema.parse(props))),
+            },
+          ];
+        },
       ),
     );
     return this.erasedTemplateCache;
   }
 
-  private erasedViews(): Map<string, ErasedServiceView> {
-    return new Map(
-      Object.entries(this.definition.views ?? {}).map(([name, view]) => [
-        name,
-        {
-          schema: view.schema,
-          description: view.description,
-          component: (props: JsonObject) =>
-            view.renderers.web(view.schema.parse(props)),
-        },
-      ]),
-    );
-  }
-
   private runtimeTemplates(): Record<string, Template> {
-    const templates = this.erasedTemplates();
-    const views = this.erasedViews();
     const result: Record<string, Template> = {};
-    const names = new Set([...templates.keys(), ...views.keys()]);
-
-    for (const name of names) {
-      const template = templates.get(name);
-      const view = views.get(name);
-      if (template && view && template.schema !== view.schema) {
-        throw new Error(
-          `Service "${this.publicId}" template and view "${name}" must share one schema`,
-        );
-      }
-      const schema = template?.schema ?? view?.schema;
-      if (!schema) continue;
-      if (template?.generation && !template.generation.prompt.trim()) {
+    for (const [name, template] of this.erasedTemplates()) {
+      const { format, component, generation } = template;
+      if (generation && !generation.prompt.trim()) {
         throw new Error(
           `Service "${this.publicId}" generation template "${name}" requires a non-empty prompt`,
         );
       }
+      if (generation && !format) {
+        throw new Error(
+          `Service "${this.publicId}" generation template "${name}" must format what it generates`,
+        );
+      }
       const base = {
         name,
-        description: view?.description ?? `${this.publicId} ${name}`,
-        schema,
+        description: template.description ?? `${this.publicId} ${name}`,
+        schema: template.schema,
         requiredPermission: "admin" as const,
-        ...(template
+        ...(format
           ? {
               formatter: {
-                format: (value: unknown): string => template.format(value),
+                format,
                 parse: (): never => {
                   throw new Error(`Template "${name}" is format-only`);
                 },
               },
-              ...(template.generation
+              ...(generation
                 ? {
-                    basePrompt: template.generation.prompt,
+                    basePrompt: generation.prompt,
                     dataSourceId: "shell:ai-content",
-                    ...(template.generation.useKnowledgeContext !== undefined
-                      ? {
-                          useKnowledgeContext:
-                            template.generation.useKnowledgeContext,
-                        }
+                    ...(generation.useKnowledgeContext !== undefined
+                      ? { useKnowledgeContext: generation.useKnowledgeContext }
                       : {}),
                   }
                 : {}),
             }
           : {}),
       };
-      if (!view) {
-        result[name] = createTemplate(base);
-        continue;
-      }
-      result[name] = createTemplate<JsonObject>({
-        ...base,
-        schema: view.schema,
-        layout: { component: view.component },
-      });
+      result[name] = component
+        ? createTemplate<JsonObject>({
+            ...base,
+            // The registry stores and serializes what renders, so it is held
+            // to JSON; the author's schema stays on the input side, which is
+            // what a generation's structured output is derived from.
+            schema: template.schema.pipe(jsonObjectSchema),
+            layout: { component },
+          })
+        : createTemplate(base);
     }
     return result;
   }
@@ -1295,7 +1278,6 @@ export function createDeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
@@ -1305,7 +1287,6 @@ export function createDeclarativeServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions,
     TEntities
@@ -1318,7 +1299,6 @@ export function createDeclarativeServicePlugin<
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TViewSchemas,
   TAccountSettings,
   TTemplateDefinitions,
   TEntities

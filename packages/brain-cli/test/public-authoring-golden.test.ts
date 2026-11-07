@@ -508,7 +508,7 @@ describe("public authoring 0.2 golden packages", () => {
       "resources:",
       "prompts:",
       "templates:",
-      "views:",
+      "renderers:",
       "jobs:",
       "tools:",
       "subscriptions:",

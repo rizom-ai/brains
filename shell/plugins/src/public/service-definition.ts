@@ -12,7 +12,6 @@ import type {
   ServiceDefinitionBehavior,
   ServiceDefinitionHeaderInput,
   ServiceSchemaMap,
-  ServiceViewSchemaMap,
   ServiceTemplateShapeMap,
 } from "../service/service-definition-contract";
 
@@ -113,12 +112,10 @@ export type {
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
-  ServiceViewSchemaMap,
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
   ServiceTemplateGenerationDefinition,
   ServiceToolDefinition,
-  ServiceViewDefinition,
 } from "../service/service-definition-contract";
 
 export type ServicePackageDefinition<
@@ -130,7 +127,6 @@ function createServicePackage<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
@@ -140,7 +136,6 @@ function createServicePackage<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions,
     TEntities
@@ -174,6 +169,19 @@ const serviceHeaderKeys: ReadonlySet<string> = new Set([
   "accountSettings",
 ]);
 
+/** What a service's behavior may declare: anything else is a slot it does not have. */
+const serviceBehaviorKeys: ReadonlySet<string> = new Set([
+  "instructions",
+  "resources",
+  "prompts",
+  "templates",
+  "jobs",
+  "tools",
+  "subscriptions",
+  "dashboardWidgets",
+  "studioWorkspaces",
+]);
+
 /** Both plugins scope to the package, so a type and the service cannot share a name. */
 function assertOwnedEntities(
   serviceId: string,
@@ -204,7 +212,6 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
@@ -221,7 +228,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions,
     TEntities[number]
@@ -232,7 +238,6 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
   const TEntities extends readonly AnyEntityDefinition[] = readonly [],
@@ -248,7 +253,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions,
     TEntities[number]
@@ -259,7 +263,6 @@ export function defineServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
 >(
@@ -276,7 +279,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     AnyAccountSettingsDefinition | undefined,
     TTemplateDefinitions,
     TEntities[number]
@@ -290,6 +292,14 @@ export function defineServicePlugin<
   if (misplaced !== undefined) {
     throw new Error(
       `Service "${header.id}" declares "${misplaced}" in its header; behavior is defineServicePlugin's second argument`,
+    );
+  }
+  const unknown = Object.keys(behavior ?? {}).find(
+    (key) => !serviceBehaviorKeys.has(key),
+  );
+  if (unknown !== undefined) {
+    throw new Error(
+      `Service "${header.id}" declares "${unknown}", which is not a behavior slot`,
     );
   }
   assertOwnedEntities(header.id, header.entities ?? []);
