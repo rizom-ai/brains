@@ -177,7 +177,6 @@ export interface RuntimeOperatorListItem {
   readonly id: string;
   readonly title: string;
   readonly description?: string | undefined;
-  readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
   readonly at?: string | undefined;
   readonly tags?: readonly string[] | undefined;

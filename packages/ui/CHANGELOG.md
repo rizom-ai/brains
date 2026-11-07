@@ -1,5 +1,15 @@
 # @rizom/brain-ui
 
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/operator-view-react@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/plugins@0.2.0-alpha.648
+
 ## 0.2.0-alpha.647
 
 ### Patch Changes

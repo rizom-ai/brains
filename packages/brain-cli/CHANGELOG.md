@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- [#853](https://github.com/rizom-ai/brains/pull/853) [`6b72d74`](https://github.com/rizom-ai/brains/commit/6b72d740bbd34626f339d99f8c9a1d6f1ead1b2d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator-view list rows no longer accept the deprecated `meta` field; give a row's detail lines as `metadata: [text]`. A Studio workspace or Dashboard widget that still sends `meta` is refused with a validation error naming the field.
+
 ## 0.2.0-alpha.647
 
 ### Patch Changes
