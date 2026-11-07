@@ -88,13 +88,22 @@ export function createJobAuthorityNamespace(
 type ServiceJobDataSchema<TInput extends ServiceSchema> = z.ZodObject<{
   authority: typeof callerAuthoritySchema;
   input: TInput;
+  byPackage: z.ZodOptional<z.ZodLiteral<true>>;
 }>;
 
-/** A package job's queued data: who started it, and its parsed input. */
+/**
+ * A package job's queued data: who started it, and its parsed input.
+ * `byPackage` marks a job the package queued acting as itself, which runs as
+ * the package too; the runtime alone writes it.
+ */
 export function serviceJobDataSchema<TInput extends ServiceSchema>(
   input: TInput,
 ): ServiceJobDataSchema<TInput> {
-  return z.object({ authority: callerAuthoritySchema, input });
+  return z.object({
+    authority: callerAuthoritySchema,
+    input,
+    byPackage: z.literal(true).optional(),
+  });
 }
 
 export type ServiceJobData = z.output<ServiceJobDataSchema<ServiceSchema>>;

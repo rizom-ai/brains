@@ -29,11 +29,4 @@ export default defineBrain({
   },
   plugins: [entities, insights, profile, importer],
   bundles: [core],
-  // The steward writes the profile as itself when an importer asks, so the
-  // brain grants that package what writing the type requires.
-  permissions: {
-    rules: [
-      { pattern: "service:@fixture/reader-profile:profile", level: "admin" },
-    ],
-  },
 });

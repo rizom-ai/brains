@@ -362,10 +362,13 @@ validation.
 The `jobs` and `tools` slots are given one `entities`, which reads and writes
 as the current caller. Inside a running job that is whoever started it: the
 tool's caller, the Studio or Dashboard viewer, or the caller of an interface
-route. A job enqueued outside a request, such as from a daemon, reads and
-writes with the enqueuing package's own grant, which is public unless the brain
-grants more. If the requester's account is revoked before the job runs, the job
-fails. A service writes only the entity types its header's `entities` declares.
+route. A job another package enqueued outside a request, such as from a daemon,
+reads and writes with that package's own grant, which is public unless the
+brain grants more. A job the service queued for itself, like an answer to
+another package, runs as the service: its own types are its to read at every
+visibility and to write past the action policy, which governs callers. If the
+requester's account is revoked before the job runs, the job fails. A service
+writes only the entity types its header's `entities` declares.
 
 ### Account settings and operator surfaces
 

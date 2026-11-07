@@ -137,6 +137,9 @@ interface Installed {
   entities: EntityReader & OwnedEntityWriter<typeof reminder>;
 }
 
+/** A record a test hands a tool, as a caller holding a stale or forged copy would. */
+let handed: EntityOf<typeof reminder> | undefined;
+
 async function installReminders(shell: MockShell): Promise<Installed> {
   let captured:
     { jobs: ServiceJobs; entities: Installed["entities"] } | undefined;
@@ -188,6 +191,30 @@ async function installReminders(shell: MockShell): Promise<Installed> {
                 content: "Call Sam",
                 metadata: { status: "open", dueAt: input.dueAt },
               }),
+          }),
+          defineTool({
+            name: "rewrite",
+            description: "Rewrite the record handed to it",
+            input: z.object({}),
+            output: z.object({}),
+            permission: "public",
+            async execute() {
+              if (!handed) throw new Error("No record was handed");
+              await entities.update(reminder, handed, { content: "Peek" });
+              return {};
+            },
+          }),
+          defineTool({
+            name: "erase",
+            description: "Delete the record handed to it",
+            input: z.object({}),
+            output: z.object({}),
+            permission: "public",
+            async execute() {
+              if (!handed) throw new Error("No record was handed");
+              await entities.delete(reminder, handed);
+              return {};
+            },
           }),
           defineTool({
             name: "queue-list",
@@ -361,32 +388,27 @@ describe("service entity access reads and writes as the current caller", () => {
     ).toMatchObject({ code: "permission_denied" });
   });
 
-  it("a job enqueued outside any call reads public unless the package is granted more", async () => {
+  it("a job the package queued for itself reads its own type at every visibility", async () => {
     const shell = reminderShell();
-    const { plugins, jobs } = await installReminders(shell);
-    const service = plugins.find((plugin) => plugin.type === "service");
+    const { jobs } = await installReminders(shell);
 
-    const { id: ungranted } = await jobs.enqueue(listDue, {});
-    expect(await runQueuedJob(shell, ungranted)).toEqual({
-      ids: ["public-reminder"],
-    });
-
-    shell.getPermissionService = (): PermissionService =>
-      new PermissionService({ trusted: [`service:${service?.id}`] });
-    const { id: granted } = await jobs.enqueue(listDue, {});
-    expect(sortedIds(idList.parse(await runQueuedJob(shell, granted)))).toEqual(
-      ["public-reminder", "shared-reminder"],
+    // No grant: acting as itself, the package sees its own records whole.
+    const { id } = await jobs.enqueue(listDue, {});
+    expect(sortedIds(idList.parse(await runQueuedJob(shell, id)))).toEqual(
+      [...allIds].sort(),
     );
   });
 
-  it("outside any call, reads and writes with the package's own grant", async () => {
+  it("outside any call, reads and writes its own type past the callers' policy", async () => {
     const shell = reminderShell();
-    const { plugins, entities } = await installReminders(shell);
-    const service = plugins.find((plugin) => plugin.type === "service");
-
-    expect(await entities.count(reminder)).toBe(1);
     shell.getPermissionService = (): PermissionService =>
-      new PermissionService({ admins: [`service:${service?.id}`] });
+      new PermissionService({
+        entityActions: { "*": { create: "admin", update: "admin" } },
+      });
+    const { entities } = await installReminders(shell);
+
+    // No grant, and writes reserved to admins: the package writes as a class
+    // plugin writes its own types.
     expect(await entities.count(reminder)).toBe(3);
     expect(
       await entities.create(reminder, {
@@ -490,9 +512,9 @@ describe("owned writes", () => {
     expect(await entities.get(reminder, "public-reminder")).toBeNull();
   });
 
-  it("refuses to write a record the current authority cannot see", async () => {
+  it("refuses a caller a record it cannot see", async () => {
     const shell = reminderShell();
-    const { entities } = await installReminders(shell);
+    const { call } = await installReminders(shell);
     const stored = await shell.getEntityService().getEntity({
       entityType: reminder.type,
       id: "restricted-reminder",
@@ -505,11 +527,25 @@ describe("owned writes", () => {
       entityType: reminder.type,
       metadata: { status: "open", dueAt: "2000-01-01" },
     };
+    handed = record;
+    try {
+      for (const name of ["rewrite", "erase"]) {
+        expect(await call(name, {}, guest)).toMatchObject({
+          success: false,
+          code: "not_found",
+        });
+      }
+    } finally {
+      handed = undefined;
+    }
     expect(
-      await rejection(entities.update(reminder, record, { content: "Peek" })),
-    ).toMatchObject({ code: "not_found" });
-    expect(await rejection(entities.delete(reminder, record))).toMatchObject({
-      code: "not_found",
-    });
+      (
+        await shell.getEntityService().getEntity({
+          entityType: reminder.type,
+          id: "restricted-reminder",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+    ).toBe("A restricted reminder");
   });
 });

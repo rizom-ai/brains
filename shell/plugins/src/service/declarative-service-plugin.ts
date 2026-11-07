@@ -120,6 +120,11 @@ interface ServiceCall {
   readonly caller?: Caller | undefined;
   /** The account the caller signed in as, when it has one. */
   account?(): Promise<AccountHolder | undefined>;
+  /**
+   * The package acting as itself, with no caller: its own types are its to
+   * read and write, as a class plugin's are, past the policy callers meet.
+   */
+  readonly asPackage?: boolean;
   readonly eventContext: {
     readonly actor: ActorRef;
     readonly interfaceType?: string;
@@ -232,7 +237,7 @@ function runtimeJobHandler(
       return parsed.success ? parsed.data : null;
     },
     async process(
-      { authority, input }: ServiceJobData,
+      { authority, input, byPackage }: ServiceJobData,
       _jobId: string,
       progress: ProgressReporter,
       signal: AbortSignal,
@@ -242,6 +247,8 @@ function runtimeJobHandler(
       const access = await context.jobAuthority.resolve(authority);
       const call: ServiceCall = {
         access: () => Promise.resolve(access),
+        // A job the package queued for itself runs as the package.
+        asPackage: byPackage === true,
         eventContext: { actor: authority.actor },
       };
       const output = await withCall(call, () =>
@@ -809,8 +816,28 @@ class DeclarativeServicePlugin<
     const context = this.getContext();
     return {
       access: () => context.jobAuthority.access(undefined),
+      asPackage: true,
       eventContext: { actor: { kind: "service", serviceId: this.id } },
     };
+  }
+
+  /** Whether the package declares this type in its header. */
+  private ownsType(entityType: string): boolean {
+    return this.definition.entities.some(({ type }) => type === entityType);
+  }
+
+  /**
+   * Where a read of a type looks: the package acting as itself sees its own
+   * types at every visibility, and everything else at the caller's.
+   */
+  private readScope(
+    call: ServiceCall,
+    entityType: string,
+    access: CallerAccess,
+  ): CallerAccess["visibilityScope"] {
+    return call.asPackage === true && this.ownsType(entityType)
+      ? internalFullScope("a package acting as itself reads its own types")
+      : access.visibilityScope;
   }
 
   /** Asking other packages over the bus, as this package. */
@@ -920,15 +947,18 @@ class DeclarativeServicePlugin<
   }
 
   /**
-   * Held to the type's action policy at the current permission level. A
-   * `never` rule closes the type to system tools, not to the package that
-   * owns it, which is how a type only its package writes is declared.
+   * Held to the type's action policy at the caller's permission level. The
+   * policy governs callers: the package acting as itself writes its own
+   * types as a class plugin does, and a `never` rule closes a type to system
+   * tools, not to the package that owns it.
    */
-  private assertWriteAllowed(
+  private async assertWriteAllowed(
     entityType: string,
     action: "create" | "update" | "delete",
-    access: CallerAccess,
-  ): void {
+    call: ServiceCall,
+  ): Promise<void> {
+    if (call.asPackage === true) return;
+    const access = await call.access();
     const required = this.requireShell()
       .getPermissionService()
       .getEntityActionRequiredLevel(entityType, action);
@@ -964,8 +994,9 @@ class DeclarativeServicePlugin<
   private async currentRecord(
     definition: AnyEntityDefinition,
     record: EntityOf<AnyEntityDefinition>,
-    access: CallerAccess,
+    call: ServiceCall,
   ): Promise<BaseEntity> {
+    const access = await call.access();
     if (record.entityType !== definition.type) {
       throw new SdkError("permission_denied", {
         message: `A ${definition.type} write cannot change a ${record.entityType}`,
@@ -975,7 +1006,7 @@ class DeclarativeServicePlugin<
     const stored = await this.getContext().entityService.getEntityRaw({
       entityType: definition.type,
       id: record.id,
-      visibilityScope: access.visibilityScope,
+      visibilityScope: this.readScope(call, definition.type, access),
     });
     if (!stored) {
       throw new SdkError("not_found", {
@@ -998,20 +1029,24 @@ class DeclarativeServicePlugin<
   private entityAccess(): ServiceEntityAccess<TEntities[number]> {
     if (this.entityAccessCache) return this.entityAccessCache;
     const context = this.getContext();
-    const reader = async (): Promise<EntityReader> =>
-      createEntityReader(
+    const reader = async (entityType: string): Promise<EntityReader> => {
+      const call = this.currentCall();
+      return createEntityReader(
         context.entityService,
-        (await this.currentCall().access()).visibilityScope,
+        this.readScope(call, entityType, await call.access()),
       );
+    };
     const access: ServiceEntityAccess<AnyEntityDefinition> = {
-      get: async (definition, id) => (await reader()).get(definition, id),
+      get: async (definition, id) =>
+        (await reader(definition.type)).get(definition, id),
       list: async (definition, options) =>
-        (await reader()).list(definition, options),
-      count: async (definition) => (await reader()).count(definition),
+        (await reader(definition.type)).list(definition, options),
+      count: async (definition) =>
+        (await reader(definition.type)).count(definition),
       create: async (definition, input) => {
         const declared = this.ownedDefinition(definition);
         const call = this.currentCall();
-        this.assertWriteAllowed(declared.type, "create", await call.access());
+        await this.assertWriteAllowed(declared.type, "create", call);
         const metadata = this.parseOwnedMetadata(declared, input.metadata);
         // Create-if-absent: an id taken at any visibility is not written
         // over, even one the caller cannot see.
@@ -1048,9 +1083,8 @@ class DeclarativeServicePlugin<
       update: async (definition, record, change) => {
         const declared = this.ownedDefinition(definition);
         const call = this.currentCall();
-        const current = await call.access();
-        this.assertWriteAllowed(declared.type, "update", current);
-        const stored = await this.currentRecord(declared, record, current);
+        await this.assertWriteAllowed(declared.type, "update", call);
+        const stored = await this.currentRecord(declared, record, call);
         const written = await context.entityService.updateEntity({
           entity: {
             ...stored,
@@ -1076,9 +1110,8 @@ class DeclarativeServicePlugin<
       delete: async (definition, record) => {
         const declared = this.ownedDefinition(definition);
         const call = this.currentCall();
-        const current = await call.access();
-        this.assertWriteAllowed(declared.type, "delete", current);
-        await this.currentRecord(declared, record, current);
+        await this.assertWriteAllowed(declared.type, "delete", call);
+        await this.currentRecord(declared, record, call);
         const deleted = await context.entityService.deleteEntity({
           entityType: declared.type,
           id: record.id,
@@ -1126,15 +1159,20 @@ class DeclarativeServicePlugin<
         const parsed = definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
         // A tool's or a route's caller starts the job; outside one, this service.
-        const authority = await context.jobAuthority.admit(
-          this.calls.getStore()?.caller,
-        );
+        const call = this.calls.getStore();
+        const authority = await context.jobAuthority.admit(call?.caller);
+        // Queued by the package acting as itself, the job runs as the package.
+        const byPackage = call === undefined || call.asPackage === true;
         const maxRetries = definition.retry
           ? definition.retry.attempts - 1
           : undefined;
         const id = await context.jobs.enqueue({
           type: definition.name,
-          data: { authority, input: parsed },
+          data: {
+            authority,
+            input: parsed,
+            ...(byPackage && { byPackage: true }),
+          },
           ...(toolContext ? { toolContext } : {}),
           options: {
             source: this.id,
