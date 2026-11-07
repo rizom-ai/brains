@@ -422,7 +422,10 @@
         "sdkErrorCodeSchema",
         "sdkErrorSchema",
         "EntityReader",
-        "OwnedEntityWriter"
+        "OwnedEntityWriter",
+        "defineBusContract",
+        "BusContract",
+        "BusResult"
       ],
       "advanced-with-consumer": [],
       "internal/removable": [

@@ -65,11 +65,18 @@ export type {
   WorkspaceActionResultFieldDefinition,
   WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
-export { defineJob, defineTool } from "../service/service-definition-contract";
+export {
+  defineBusContract,
+  defineJob,
+  defineTool,
+} from "../service/service-definition-contract";
 export { contentGenerationResultSchema } from "@brains/content-service";
 export type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
+  ServiceAnswer,
+  ServiceAnswerContext,
+  ServiceBusDelivery,
   ServiceContentGeneration,
   ServiceContentGenerationContext,
   ServiceContentGenerationItem,
@@ -95,12 +102,14 @@ export type {
   ServiceJobStatus,
   ServiceLifecycle,
   ServiceMessagePublisher,
+  ServiceMessaging,
   ServiceProgressReporter,
   ServicePromptDefinition,
   ServiceRuntimeState,
   ServiceRuntimeStateOptions,
   ServiceRuntimeStateRecord,
   ServiceSetupContext,
+  ServiceSubscriptionBinding,
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,

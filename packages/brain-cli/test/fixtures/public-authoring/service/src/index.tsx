@@ -3,6 +3,7 @@ import { defineEntity } from "@rizom/brain/entities";
 import {
   SdkError,
   contentGenerationResultSchema,
+  defineBusContract,
   defineJob,
   defineServicePlugin,
   defineTool,
@@ -53,6 +54,18 @@ export const compileReadingDigest = defineJob({
   output: digestResult,
   retry: { attempts: 2 },
   deadline: "30s",
+});
+
+// A question this service answers for other packages, exported for them.
+export const summarizeReading = defineBusContract({
+  channel: "reading-insights:summarize",
+  request: z.object({
+    bookmarkId: z.string(),
+    title: z.string(),
+    content: z.string(),
+  }),
+  response: digestResult,
+  delivery: "request",
 });
 
 const readbackInput = z.object({
@@ -214,8 +227,33 @@ export default defineServicePlugin(
       ),
     ],
 
+    // The contracts this service answers, registered with it and released
+    // when it shuts down.
+    subscriptions: ({ answer, state }) => [
+      answer(summarizeReading, ({ request }) =>
+        state.summarize(request.bookmarkId, request.title, request.content),
+      ),
+    ],
+
     // Tools return plain schema-valid data; durable mechanics stay framework-owned.
-    tools: ({ content, entities, jobs }) => [
+    tools: ({ content, entities, jobs, messaging }) => [
+      defineTool({
+        name: "preview-reading-summary",
+        description:
+          "Summarize a page the way another package would ask for it.",
+        input: summarizeReading.schema,
+        output: z.object({ summary: z.string() }),
+        sideEffects: "none",
+        async execute({ input }) {
+          // Another package asks the same way, by the exported contract.
+          const asked = await messaging.request(summarizeReading, input);
+          if (asked.status === "answered")
+            return { summary: asked.data.summary };
+          throw new SdkError(
+            asked.status === "failed" ? asked.error.code : "no_handler",
+          );
+        },
+      }),
       defineTool({
         name: "request-reading-digest",
         description: "Record that a reader asked for a digest.",

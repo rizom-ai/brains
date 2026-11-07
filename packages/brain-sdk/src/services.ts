@@ -70,3 +70,7 @@ export type { SdkErrorCode, SdkErrorData } from "@brains/contracts";
 // What a slot's `entities` reads and writes with, for a handler or helper
 // written outside the slot that is handed it.
 export type { EntityReader, OwnedEntityWriter } from "@brains/plugins";
+// A question one package answers, or a command every package hears, declared
+// once and shared by the package that answers it and the ones that ask.
+export { defineBusContract } from "@brains/plugins";
+export type { BusContract, BusResult } from "@brains/contracts";

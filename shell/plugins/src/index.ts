@@ -369,6 +369,7 @@ export {
   defineAccountSettings,
   defineStudioWorkspace,
   defineDashboardWidget,
+  defineBusContract,
   defineEntityCatalog,
   defineJob,
   defineServicePlugin,

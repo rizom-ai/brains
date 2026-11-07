@@ -6,6 +6,7 @@ import {
   sdkErrorSchema,
   toSdkError,
   type ActorRef,
+  type BusContract,
   type JsonObject,
   type SdkErrorCode,
 } from "@brains/contracts";
@@ -70,10 +71,12 @@ import type {
   ServiceContentGeneration,
   ServiceContentGenerationResult,
   ServiceEntityAccess,
+  ServiceAnswer,
   ServiceJobBinding,
   ServiceJobReference,
   ServiceJobStatus,
   ServiceJobs,
+  ServiceMessaging,
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
@@ -81,6 +84,7 @@ import type {
   ServiceTemplateFormatter,
   ServiceTemplateGenerationDefinition,
   ServiceTemplateShapeMap,
+  ServiceSubscriptionBinding,
 } from "./service-definition-contract";
 import {
   getServiceJobHandler,
@@ -179,6 +183,7 @@ function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
   templates: ServiceTemplateFormatter,
+  messaging: ServiceMessaging,
   withCall: <T>(call: ServiceCall, run: () => Promise<T>) => Promise<T>,
 ): JobHandler<string, ServiceJobData, unknown> {
   const definition = binding.definition;
@@ -212,16 +217,7 @@ function runtimeJobHandler(
           signal,
           progress,
           templates,
-          messaging: {
-            async publish(message): Promise<void> {
-              // A published message is an event: every subscriber hears it.
-              await context.messaging.send({
-                type: message.topic,
-                payload: message.data,
-                broadcast: true,
-              });
-            },
-          },
+          messaging,
         }),
       );
       const parsed = definition.output.safeParse(output);
@@ -263,6 +259,8 @@ class DeclarativeServicePlugin<
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
+  /** Releases the contracts this package answers. */
+  private readonly answered: Array<() => void> = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
   private readonly registeredDashboardWidgetIds: string[] = [];
@@ -364,11 +362,16 @@ class DeclarativeServicePlugin<
       bindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
       context.jobs.registerHandler(
         job.name,
-        runtimeJobHandler(binding, context, templates, (call, run) =>
-          this.calls.run(call, run),
+        runtimeJobHandler(
+          binding,
+          context,
+          templates,
+          this.messaging(),
+          (call, run) => this.calls.run(call, run),
         ),
       );
     }
+    this.registerSubscriptions(context);
   }
 
   protected override async onRegistrationComplete(
@@ -471,6 +474,7 @@ class DeclarativeServicePlugin<
         state,
         entities: this.entityAccess(),
         jobs: this.jobs(),
+        messaging: this.messaging(),
         templates: this.templateFormatter(),
         content: this.content(),
       }) ?? [];
@@ -527,6 +531,7 @@ class DeclarativeServicePlugin<
       unbindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
     }
     this.registeredJobs.clear();
+    for (const release of this.answered.splice(0).reverse()) release();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
@@ -635,13 +640,95 @@ class DeclarativeServicePlugin<
 
   /** Inside a tool or a running job, its caller; anywhere else, this package. */
   private currentCall(): ServiceCall {
-    const call = this.calls.getStore();
-    if (call) return call;
+    return this.calls.getStore() ?? this.packageCall();
+  }
+
+  /** The package itself, at its own grant. */
+  private packageCall(): ServiceCall {
     const context = this.getContext();
     return {
       access: () => context.jobAuthority.access(undefined),
       eventContext: { actor: { kind: "service", serviceId: this.id } },
     };
+  }
+
+  /** Asking other packages over the bus, as this package. */
+  private messaging(): ServiceMessaging {
+    const context = this.getContext();
+    const messaging: ServiceMessaging = {
+      request: (contract, request) =>
+        context.messaging.request(contract, request),
+      command: (contract, request) =>
+        context.messaging.command(contract, request),
+      async publish(message): Promise<void> {
+        // A published message is an event: every subscriber hears it.
+        await context.messaging.send({
+          type: message.topic,
+          payload: message.data,
+          broadcast: true,
+        });
+      },
+    };
+    return Object.freeze(messaging);
+  }
+
+  /**
+   * Answer the contracts the `subscriptions` slot binds. Each answer acts as
+   * the package, whoever asked, and is released when the package shuts down.
+   */
+  private registerSubscriptions(context: ServicePluginContext): void {
+    if (!this.definition.subscriptions) return;
+    const registrations = new WeakMap<
+      ServiceSubscriptionBinding,
+      () => () => void
+    >();
+    const answer: ServiceAnswer<TEntities[number]> = (contract, handler) => {
+      const delivery: string = contract.delivery;
+      if (delivery !== "request" && delivery !== "command") {
+        throw new Error(
+          `Service "${this.publicId}" cannot answer "${contract.name}": a package answers requests and commands only`,
+        );
+      }
+      // The bus checks the answer against the contract's own schema; erasing
+      // the response type here is what lets a handler typed by its input
+      // slot hand the bus a value it parses.
+      const erased: BusContract<typeof contract.schema, z.ZodType> = contract;
+      const binding: ServiceSubscriptionBinding = Object.freeze({
+        kind: "rizom-service-subscription-binding",
+        contract: erased,
+      });
+      registrations.set(binding, () =>
+        context.messaging.answer(erased, (request, { sender }) =>
+          this.calls.run(this.packageCall(), async () =>
+            handler({ request, entities: this.entityAccess(), sender }),
+          ),
+        ),
+      );
+      return binding;
+    };
+    const bindings = this.definition.subscriptions({
+      config: this.config,
+      state: this.requireState(),
+      jobs: this.jobs(),
+      messaging: this.messaging(),
+      answer,
+    });
+    const channels = new Set<string>();
+    for (const binding of bindings) {
+      const register = registrations.get(binding);
+      if (!register) {
+        throw new Error(
+          `Service "${this.publicId}" returns a subscription its own answer did not bind`,
+        );
+      }
+      if (channels.has(binding.contract.name)) {
+        throw new Error(
+          `Service "${this.publicId}" answers "${binding.contract.name}" more than once`,
+        );
+      }
+      channels.add(binding.contract.name);
+      this.answered.push(register());
+    }
   }
 
   /** The declaration that grants a write, or a refusal. */

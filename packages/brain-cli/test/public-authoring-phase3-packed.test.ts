@@ -216,6 +216,20 @@ describe("public authoring Phase 3 packed service contract", () => {
       expect(request).toContain("Asked for a digest");
       expect(request).toContain("requested");
 
+      // A contract the service answers, asked over the brain's bus.
+      const summarized = await invokeTool(
+        consumerDirectory,
+        "reading-insights_preview-reading-summary",
+        {
+          bookmarkId: "durable-services",
+          title: "Durable Services",
+          content: "Hermetic durable service execution",
+        },
+      );
+      expect(summarized).toContain(
+        '"summary": "Saved reading: Durable Services (4 words)"',
+      );
+
       // A job that fails with a code: its status says why, not what it threw.
       const missing = jobIdFrom(
         await invokeTool(

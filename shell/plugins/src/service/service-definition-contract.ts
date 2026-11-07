@@ -3,7 +3,13 @@ import type {
   TemplateDataSchema,
   UserPermissionLevel,
 } from "@brains/templates";
-import type { JsonObject, SdkErrorCode } from "@brains/contracts";
+import {
+  defineBusContract as defineAnyBusContract,
+  type BusContract,
+  type BusResult,
+  type JsonObject,
+  type SdkErrorCode,
+} from "@brains/contracts";
 import type { ServiceContentGeneration } from "./content-generation-contract";
 export type {
   ServiceContentGeneration,
@@ -88,6 +94,104 @@ export interface ServiceMessagePublisher {
   }): Promise<void>;
 }
 
+/** How a package's bus contract travels: one owner answers, or every owner hears. */
+export type ServiceBusDelivery = "request" | "command";
+
+/**
+ * Asking other packages over the bus, by the contract they answer, as this
+ * package. Gathering every owner's answer stays inside the brain.
+ */
+export interface ServiceMessaging extends ServiceMessagePublisher {
+  /**
+   * Ask a request contract's owner: its answer, parsed by the contract;
+   * `unavailable` when no package answers it; or `failed` with the failure
+   * in its public form. A request the contract refuses throws.
+   */
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    request: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
+  /**
+   * Send a command to every package that hears it; nobody answers. A command
+   * the contract refuses throws.
+   */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    request: z.input<TRequest>,
+  ): Promise<void>;
+}
+
+/**
+ * Declare a question one package answers (`request`) or a command every
+ * package that hears it receives (`command`): its channel, what the sender
+ * sends, and what the owner answers, `z.void()` for a command. The same
+ * contract is the brain's own; gathering every owner's answer stays inside
+ * the brain.
+ */
+export function defineBusContract<
+  TRequest extends z.ZodType,
+  TResponse extends z.ZodType,
+  TDelivery extends ServiceBusDelivery,
+>(definition: {
+  readonly channel: string;
+  readonly request: TRequest;
+  readonly response: TResponse;
+  readonly delivery: TDelivery;
+}): BusContract<TRequest, TResponse, TDelivery> {
+  const delivery: string = definition.delivery;
+  if (delivery !== "request" && delivery !== "command") {
+    throw new Error(
+      `Bus contract "${definition.channel}" must be delivered as a "request" or a "command"`,
+    );
+  }
+  return defineAnyBusContract(definition);
+}
+
+/** What answering a contract is handed: the parsed request, and who asked. */
+export interface ServiceAnswerContext<
+  TRequest,
+  TOwned extends AnyEntityDefinition,
+> {
+  readonly request: TRequest;
+  /**
+   * Reads and writes as the package: the bus carries the package that
+   * asked, not a person.
+   */
+  readonly entities: ServiceEntityAccess<TOwned>;
+  /** The package that asked. */
+  readonly sender: string;
+}
+
+/** A contract this package answers, as the `subscriptions` slot returns it. */
+export interface ServiceSubscriptionBinding {
+  readonly kind: "rizom-service-subscription-binding";
+  readonly contract: BusContract<z.ZodType, z.ZodType>;
+}
+
+/**
+ * What a tool returns or an answer gives: its schema's input, also accepted
+ * read-only. Spelled through the schema's own input slot so that, with the
+ * schema taken as a `const` parameter, a literal written inline keeps its
+ * literal type, from a callback with parameters or without.
+ */
+export type ServiceSchemaValue<TSchema extends ServiceSchema> =
+  TSchema["_zod"]["input"] | ReadonlyInput<z.input<TSchema>>;
+
+/**
+ * Answer a request contract, or hear a command: contract first. The handler
+ * sees only a valid request, and its answer reaches the asker only when the
+ * contract accepts it.
+ */
+export type ServiceAnswer<TOwned extends AnyEntityDefinition> = <
+  const TRequest extends z.ZodType,
+  const TResponse extends z.ZodType,
+>(
+  contract: BusContract<TRequest, TResponse, ServiceBusDelivery>,
+  handler: (
+    context: ServiceAnswerContext<z.output<TRequest>, TOwned>,
+  ) => ServiceSchemaValue<TResponse> | Promise<ServiceSchemaValue<TResponse>>,
+) => ServiceSubscriptionBinding;
+
 export interface ServiceJobProgress {
   readonly progress: number;
   readonly total?: number | undefined;
@@ -104,7 +208,7 @@ export interface ServiceTemplateFormatter {
 
 export interface ServiceJobHandlerContext<TInput> {
   readonly input: TInput;
-  readonly messaging: ServiceMessagePublisher;
+  readonly messaging: ServiceMessaging;
   readonly progress: ServiceProgressReporter;
   readonly signal: AbortSignal;
   readonly templates: ServiceTemplateFormatter;
@@ -277,18 +381,9 @@ export interface ServiceToolDefinition<
     readonly input: z.output<TInputSchema>;
     readonly signal: AbortSignal;
   }):
-    | ServiceToolOutput<TOutputSchema>
-    | Promise<ServiceToolOutput<TOutputSchema>>;
+    | ServiceSchemaValue<TOutputSchema>
+    | Promise<ServiceSchemaValue<TOutputSchema>>;
 }
-
-/**
- * What a tool returns: its output schema's input, also accepted read-only.
- * Spelled through the schema's own input slot so that, with `defineTool`
- * taking its output schema as a `const` parameter, a literal returned inline
- * keeps its literal type, from a callback with parameters or without.
- */
-export type ServiceToolOutput<TOutputSchema extends ServiceSchema> =
-  TOutputSchema["_zod"]["input"] | ReadonlyInput<z.input<TOutputSchema>>;
 
 export type AnyServiceToolDefinition = ServiceToolDefinition<
   string,
@@ -513,6 +608,19 @@ export interface ServiceDefinitionBehavior<
         readonly entities: ServiceEntityAccess<TOwned>;
       }) => readonly ServiceJobBinding[])
     | undefined;
+  /**
+   * The contracts this package answers, registered with the package and
+   * released when it shuts down.
+   */
+  readonly subscriptions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly jobs: ServiceJobs;
+        readonly messaging: ServiceMessaging;
+        readonly answer: ServiceAnswer<TOwned>;
+      }) => readonly ServiceSubscriptionBinding[])
+    | undefined;
   readonly tools?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -520,6 +628,7 @@ export interface ServiceDefinitionBehavior<
         /** Reads and writes as the caller of the tool that is running. */
         readonly entities: ServiceEntityAccess<TOwned>;
         readonly jobs: ServiceJobs;
+        readonly messaging: ServiceMessaging;
         readonly templates: ServiceTemplateFormatter;
         readonly content: ServiceContentGeneration<
           GenerationTemplateNames<NoInfer<TTemplateDefinitions>>
