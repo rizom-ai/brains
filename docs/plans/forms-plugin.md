@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed 2026-11-07. Decided: a reusable `forms` plugin owns every public form on a brain's site, and the `contact` plugin folds into it as its first form. The second form, and the reason to extract now, is The Fourth's brand personality test, today a Tally form at `tally.so/r/e5DLgO` that hellofourth.online links to from the crossroads.
+Proposed 2026-11-07; decisions reviewed with the owner the same day. A reusable `forms` plugin owns every public form on a brain's site, and the `contact` plugin folds into it as its first form. The second form, and the reason to extract now, is The Fourth's brand personality test, today a Tally form at `tally.so/r/e5DLgO` that hellofourth.online links to from the crossroads.
 
 ## Goal
 
-A brain offers any number of public forms on its site. Each is defined in the brain and editable in Studio, works without JavaScript, and stores its submissions in the brain and nowhere else. A form is a definition, not code: fields, optional steps, optional scoring towards outcomes, retention, and whether a submission notifies the owner. One admission path keeps abuse out of all of them.
+A brain offers any number of public forms on its site. Each is defined in the brain and editable in Studio, works without JavaScript, and keeps its submissions in the brain until the owner deletes them. A form is a definition, not code: fields, optional steps, optional scoring towards outcomes, and whether a submission emails the owner. One admission path keeps abuse out of all of them.
 
 ## Non-goals
 
@@ -28,7 +28,7 @@ A brain offers any number of public forms on its site. Each is defined in the br
 - **Coupling.** `shared/site-atlas`'s homepage opening finds the form by `pluginId === "contact"` and `/contact`. rizom.ai's content links `/contact?topic=…`, which prefills the message, and `sites/hub` links `https://rizom.ai/contact`.
 - **Contact-specific vs generic.** Generic: network identity, bounded bodies, origin and preview handling, the admission ledger and token mechanics, the slot and delivery mechanics, the maintenance and health pattern. Contact-specific: the fixed submission schema, the `contact-request` entity, the paths, slot and template names, all copy, the `contact-` id prefix, the `contact.*` state namespaces, one plugin-wide policy, and the site-atlas lookup.
 
-[public-ask.md](./public-ask.md) Slice D records why contact was built this way. Those rules carry over unchanged to every form.
+[public-ask.md](./public-ask.md) Slice D records why contact was built this way. Its rules carry over to every form except two the decisions below change: responses are kept until the owner deletes them, and the notification email carries the submission.
 
 ## Decisions
 
@@ -44,9 +44,8 @@ A definition has:
 - `steps`: one or more, each a list of fields;
 - fields of kind `text`, `longText`, `email`, `choice` or `choices`, each with an `id`, a `label`, `required`, a maximum length and, for choices, `options`;
 - optional `scoring`: an option names the `outcome` it counts towards, with a weight (default 1), plus `outcomes` with a title and copy each;
-- `retentionDays` (1–90, default 1, stated on the form as contact states it today);
-- `notify`: a notification title, or off;
-- per-form admission and storage limits, defaulting to contact's;
+- `notify`: whether a submission emails the owner, and the email's title;
+- per-form admission limits, defaulting to contact's;
 - `translations`, per language, for every visible string.
 
 Field ids `token` and `website` are reserved for the token and the honeypot.
@@ -61,13 +60,21 @@ Each form registers its pages with the site builder as contact does. The plugin 
 
 The server validates a submission against the form's definition: unknown fields, missing required ones and options not on the list fail with per-field errors and the draft re-rendered. Scoring also runs on the server. The 303 after a successful post carries an opaque receipt, valid for the receipt lifetime, and the thanks page shows that response's outcome. Submitted fields never appear in a URL.
 
-### Responses are restricted entities
+### One entity type, kept until deleted
 
-A `form-response` carries contact-request's guarantees: restricted, not embeddable, not searchable, never knowledge or model input. Its frontmatter holds the form id, the answers by field id, the outcome, the received and expiry times, `status` and `notification`. Studio shows the answers as provenance and leaves the status editable. Admission counters, storage caps and maintenance are kept per form under `forms.*` runtime-state namespaces, with global limits shared across forms.
+Every form stores its responses as one entity type, `form-response`, with the form as a field. A form is data, defined in code or content, and every response has the same shape; answers are validated against the definition at submission, so the stored type needs no knowledge of any one form. One type keeps the privacy rules in one place, lets a form added in Studio work without a restart, and Studio groups responses by `form`. A type per form would need entity types registered while the brain runs.
 
-### Delivery and Inbox are per form
+A `form-response` keeps contact-request's privacy guarantees: restricted, not embeddable, not searchable, never knowledge or model input. Its frontmatter holds the form id, the answers, the outcome, the received time, `status` and `notification`. Each answer is a snapshot of what the visitor saw: the field id, the label as shown and the value or option text chosen, and the outcome's title as shown. Later edits to the form never make an older response unreadable or change what it says. Studio shows the answers as provenance and leaves the status editable.
 
-The `notify` job and its guarantees stay. The title comes from the form, and the body remains a generic alert with the Inbox link. One unified-inbox source, "Form responses", lists new responses titled by their form; the admin detail shows each answer under its field label; "Done" marks a response handled.
+Responses are kept until the owner deletes them in Studio or the Inbox. Nothing expires on its own and there is no record cap, so nothing is lost unread; each form says on the page that responses are kept until they have been dealt with. Admission's per-hour submission limits bound growth. Contact's one-day expiry, its record and byte caps, and the daily deletion go; maintenance keeps re-enqueuing pending notifications. Admission counters are kept per form under `forms.*` runtime-state namespaces, with global limits shared across forms.
+
+### The email carries the submission
+
+Each form decides whether a new response sends an email (contact: on; a busy quiz may leave it off and only collect in the Inbox). The email carries what was submitted: each answer under its label, the outcome for a scored form, and the Inbox link for marking it done. When the form asks for an email address, the notification's Reply-To is the sender, so the owner answers from the mailbox. The notifications contract gains an optional `replyTo`, passed through to the email transport. Copies of a submission therefore live with the email provider and in the mailbox, outside the brain's deletion. The `notify` job keeps its guarantees: durable, leased, bounded attempts, and a failed notification keeps the response.
+
+### One Inbox source
+
+One unified-inbox source, "Form responses", lists new responses titled by their form; the admin detail shows each answer under its label; "Done" marks a response handled.
 
 ### Well-known routes by role
 
@@ -77,9 +84,10 @@ The site atlas finds the contact form by a route role, not by plugin id, as #822
 
 ### Phase 1 — Forms with contact on it
 
-- `plugins/forms`: definition schema, the built-in contact definition, routes and slot per form, generic admission, storage, delivery, maintenance, health and Inbox, all keyed by form. The contact plugin's code moves here rather than being rewritten, and its tests come along as the contact form's tests.
-- The `form-response` entity type.
-- Migration on first start: existing `contact-request` records (at most 50, a day old by default) become `form-response` records for `contact` with their frontmatter, then the originals are deleted. `contact.*` runtime state is retired: open tokens expire within 30 minutes, and storage slots are rebuilt from the migrated records.
+- `plugins/forms`: definition schema, the built-in contact definition, routes and slot per form, generic admission, delivery, maintenance, health and Inbox, all keyed by form. The contact plugin's code moves here rather than being rewritten, and its tests come along as the contact form's tests; the expiry, deletion and capacity tests go with the behavior.
+- The `form-response` entity type with answer snapshots, kept until deleted.
+- Notifications with the submission and Reply-To: `replyTo` on the notifications contract and the email transport.
+- Migration on first start: existing `contact-request` records (at most 50, a day old by default) become `form-response` records for `contact` with their status and notification state and no expiry, then the originals are deleted. `contact.*` runtime state is retired: open tokens expire within 30 minutes.
 - The site atlas lookup by role. The catalog id `forms` replaces `contact`. The `rizom-ai` test app and rizom.ai's fleet entry change `add: [contact]` to `add: [forms]`.
 - Docs: the plugin README, `entity-types-reference.md`, `architecture-overview.md`, public-ask Slice D, and contact's slot in step 7 of [authoring-boundary-reapply.md](./authoring-boundary-reapply.md).
 
@@ -88,7 +96,7 @@ Done when rizom.ai's `/contact` works in production through the forms plugin, op
 ### Phase 2 — Forms defined in the brain
 
 - The `form` entity type, editable in Studio, defining new forms at their own paths and overriding built-in ones.
-- `choice` and `choices` fields, per-form retention, limits and notification.
+- `choice` and `choices` fields; per-form limits and the email switch.
 
 Done when a test app defines a second form in its content and it works end to end.
 
@@ -101,7 +109,7 @@ Done when a scored, two-language test form shows the right outcome in both langu
 
 ### Phase 4 — The Fourth's brand test
 
-- The brand test as a `form` definition in The Fourth's brain, in Traditional Chinese and English, at `/brand-test`, styled in the Paper theatre CSS. Its retention and notification are decided with Sam.
+- The brand test as a `form` definition in The Fourth's brain, at `/zh-tw/brand-test` in Traditional Chinese and `/brand-test` in English, styled in the Paper theatre CSS. Sam's Chinese is the source; I draft the English for Sam and Becca to correct. Whether a response emails them is Sam's call.
 - The crossroads' "Take the test →" points to `/brand-test`; the Tally form is retired.
 - Deploy order: the brain release with the forms plugin first, then the definition in content. An identity or definition field the running brain does not know is rejected on import.
 
@@ -111,8 +119,11 @@ Done when a visitor on hellofourth.online takes the test in either language, see
 
 ## Validation
 
-- Unit: the definition schema; answer validation (unknown, missing, off-list, too long, reserved ids); server scoring; per-form admission counters under shared global limits.
-- Carried over: every contact behavior the current suite covers, now as the contact form: no-JavaScript GET/POST/303, origin and media-type checks, streamed body caps, topic prefill, dedup and conflict, rate limits and capacity, retention and maintenance, delivery leases, Inbox actions, and private records kept out of search, projections and model calls.
-- Migration: a fixture of contact requests becomes the same number of responses with their fields, status, notification and expiry intact, and leaves no contact requests behind.
+- Unit: the definition schema; answer validation (unknown, missing, off-list, too long, reserved ids); server scoring; answer snapshots; per-form admission counters under shared global limits.
+- Carried over: every contact behavior the current suite covers that stays, now as the contact form: no-JavaScript GET/POST/303, origin and media-type checks, streamed body caps, topic prefill, dedup and conflict, rate limits, delivery leases, Inbox actions, and private records kept out of search, projections and model calls.
+- Kept until deleted: a response survives maintenance indefinitely; deleting it in Studio removes it.
+- Delivery: the email carries every answer and the outcome; Reply-To is the submitted address when there is one; a form with email off sends nothing.
+- Snapshot: after a definition edit renames a field and removes an option, an older response still reads as submitted.
+- Migration: a fixture of contact requests becomes the same number of responses with their fields, status and notification intact and no expiry, and leaves no contact requests behind.
 - Site: a form posts without JavaScript; with it, steps work; the outcome on the thanks page equals the stored one; the atlas door still appears beside the contact form.
 - Live: rizom.ai's contact form after Phase 1, and The Fourth's brand test after Phase 4, submitted on the production sites.
