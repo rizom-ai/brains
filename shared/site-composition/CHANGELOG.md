@@ -1,5 +1,26 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.643
+  - @brains/contracts@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/templates@0.2.0-alpha.643
+
+## 0.2.0-alpha.642
+
+### Patch Changes
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`821fdf7`](https://github.com/rizom-ai/brains/commit/821fdf7451ec6fb80ff3cd70d7164cd672aee288) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts `templates` and `feed`, `defineEntityPackage` accepts `dataSources`, and `@rizom/brain/entities` exports `defineDataSource`, `DataSourceDefinition`, `DataSourceEntityReader`, `EntityDataSourceDefinition`, `EntityFeedDeclaration` and `FeedItem`. A data source either fetches through reads typed by the definitions it names, or lists and shows one declared entity type, with the runtime deriving that type's schema from its definition and handling ordering, paging, filtering, lookup and neighbors. Data source ids are scoped to the package, and templates follow a package data source to its scoped id. A declared feed is written as RSS into every site build, with every record in a preview and only published ones in production, and a malformed item fails the build. Blog RSS feeds no longer break when a post's body contains `]]>`.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.642
+  - @brains/contracts@0.2.0-alpha.642
+  - @brains/utils@0.2.0-alpha.642
+  - @brains/templates@0.2.0-alpha.642
+
 ## 0.2.0-alpha.641
 
 ### Patch Changes

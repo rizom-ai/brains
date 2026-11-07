@@ -19,7 +19,6 @@ import {
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
 import {
-  normalizeStudioBasePath,
   studioCreatePath,
   studioEntityPath,
   studioWorkspacePath,
@@ -67,19 +66,7 @@ const studioPluginConfigSchema: z.ZodObject<
   z.core.$strict
 > = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
-  routePath: z
-    .string()
-    .default("/studio")
-    .refine(
-      (routePath) =>
-        !["/cms", "/account", "/admin"].includes(
-          normalizeStudioBasePath(routePath),
-        ),
-      {
-        message:
-          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
-      },
-    ),
+  routePath: z.string().default("/studio"),
 });
 
 type StudioPluginConfig = z.output<typeof studioPluginConfigSchema>;
@@ -361,54 +348,8 @@ export class StudioPlugin extends ServicePlugin<
       },
       listMembers: () => this.getContext().auth.listAssignableMembers(),
     });
-    return [...legacySurfaceRedirects(this.config.routePath), ...editorRoutes];
+    return editorRoutes;
   }
-}
-
-function permanentRedirect(location: string): Response {
-  return new Response(null, {
-    status: 308,
-    headers: { Location: location, "Cache-Control": "no-store" },
-  });
-}
-
-function legacySurfaceRedirects(routePath: string): WebRouteDefinition[] {
-  const studioBase = normalizeStudioBasePath(routePath);
-  const studioHome = studioBase || "/";
-  return [
-    {
-      path: "/cms",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Response => {
-        const source = new URL(request.url);
-        const suffix =
-          source.pathname === "/cms" ? "" : source.pathname.slice(4);
-        const destinationPath = `${studioBase}${suffix}` || "/";
-        return permanentRedirect(`${destinationPath}${source.search}`);
-      },
-    },
-    {
-      path: "/account",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Response => {
-        const source = new URL(request.url);
-        return permanentRedirect(
-          `${studioWorkspacePath(studioHome, STUDIO_ACCOUNT_WORKSPACE_ID)}${source.search}`,
-        );
-      },
-    },
-    {
-      path: "/admin",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (): Response => permanentRedirect(studioHome),
-    },
-  ];
 }
 
 function safeInboxSummary(summary: string | undefined): string | undefined {
