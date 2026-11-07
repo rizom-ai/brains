@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { extractDomain } from "../src/lib/fetch-agent-card";
+import { extractDomain } from "../src/lib/extract-domain";
 
 describe("extractDomain", () => {
   it("should extract domain from https URL", () => {

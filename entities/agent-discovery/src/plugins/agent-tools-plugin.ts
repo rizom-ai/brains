@@ -15,7 +15,7 @@ import {
 } from "../tools/agent-scan-directories";
 import { createAgentSetTrustLevelTool } from "../tools/agent-set-trust-level";
 import { createNetworkAskTool } from "../tools/network-ask";
-import type { FetchFn } from "../lib/fetch-agent-card";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { AgentSightingsInboxSource } from "../inbox-source";
 import packageJson from "../../package.json";
 
@@ -73,9 +73,9 @@ export class AgentToolsPlugin extends ServicePlugin<
   AgentToolsConfig,
   AgentToolsConfigInput
 > {
-  private readonly fetchFn: FetchFn | undefined;
+  private readonly fetchFn: FetchLike | undefined;
 
-  constructor(fetchFn?: FetchFn, config: AgentToolsConfigInput = {}) {
+  constructor(fetchFn?: FetchLike, config: AgentToolsConfigInput = {}) {
     super("agent", packageJson, config, agentToolsConfigSchema);
     this.fetchFn = fetchFn;
   }

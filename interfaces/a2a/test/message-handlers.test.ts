@@ -69,11 +69,14 @@ describe("A2A call message handlers", () => {
   });
 
   it("lists only approved directory agents", async () => {
-    const response = await harness.getMockShell().getMessageBus().send({
-      type: a2aAgentsContract.name,
-      payload: {},
-      sender: "studio",
-    });
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: a2aAgentsContract.name,
+        payload: { userPermissionLevel: "trusted" },
+        sender: "studio",
+      });
 
     expect(response).toEqual({
       success: true,
@@ -93,6 +96,7 @@ describe("A2A call message handlers", () => {
           agent: "approved.example",
           instruction: "Is this accurate?",
           selection: "Selected markdown",
+          userPermissionLevel: "trusted",
         },
         sender: "studio",
       });
@@ -122,7 +126,12 @@ describe("A2A call message handlers", () => {
         .getMessageBus()
         .send({
           type: a2aCallContract.name,
-          payload: { agent, instruction: "Review", selection: "Text" },
+          payload: {
+            agent,
+            instruction: "Review",
+            selection: "Text",
+            userPermissionLevel: "admin",
+          },
           sender: "studio",
         });
       expect(response).toMatchObject({
@@ -144,6 +153,7 @@ describe("A2A call message handlers", () => {
           agent: "unknown.example",
           instruction: "Review",
           selection: "Text",
+          userPermissionLevel: "admin",
         },
         sender: "studio",
       });
@@ -154,6 +164,84 @@ describe("A2A call message handlers", () => {
       error: expect.stringContaining("saved"),
     });
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  describe("at the requester's access", () => {
+    beforeEach(() => {
+      harness.addEntities([
+        {
+          id: "restricted.example",
+          entityType: "agent",
+          content: "Restricted",
+          visibility: "restricted",
+          metadata: { name: "Restricted Agent", status: "approved" },
+        },
+      ]);
+    });
+
+    type Bus = ReturnType<
+      ReturnType<
+        ReturnType<typeof createPluginHarness>["getMockShell"]
+      >["getMessageBus"]
+    >;
+    const call = (
+      userPermissionLevel: "admin" | "trusted",
+    ): ReturnType<Bus["send"]> =>
+      harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: a2aCallContract.name,
+          payload: {
+            agent: "restricted.example",
+            instruction: "Review",
+            selection: "Text",
+            userPermissionLevel,
+          },
+          sender: "studio",
+        });
+
+    it("refuses a trusted author an agent saved restricted, before network contact", async () => {
+      expect(await call("trusted")).toMatchObject({
+        success: false,
+        code: "permission_denied",
+        error: "Agent restricted.example is not saved or approved.",
+      });
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("calls an agent saved restricted for an admin", async () => {
+      const response = await call("admin");
+
+      expect(response).toHaveProperty("data.response", "Agent answer");
+    });
+
+    it("lists only the agents the requester can see", async () => {
+      const list = (
+        userPermissionLevel: "admin" | "trusted",
+      ): ReturnType<Bus["send"]> =>
+        harness.getMockShell().getMessageBus().send({
+          type: a2aAgentsContract.name,
+          payload: { userPermissionLevel },
+          sender: "studio",
+        });
+
+      expect(await list("trusted")).toEqual({
+        success: true,
+        data: {
+          agents: [{ id: "approved.example", label: "Approved Agent" }],
+        },
+      });
+      expect(await list("admin")).toEqual({
+        success: true,
+        data: {
+          agents: [
+            { id: "approved.example", label: "Approved Agent" },
+            { id: "restricted.example", label: "Restricted Agent" },
+          ],
+        },
+      });
+    });
   });
 });
 
@@ -347,6 +435,30 @@ describe("A2A network ask channel", () => {
           code: "permission_denied",
         });
       }
+      expect(fetchFn).not.toHaveBeenCalled();
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
+  it("asks only peers saved public, as network_ask picks them", async () => {
+    const fetchFn = citingFetch();
+    const harness = await installed(fetchFn);
+    harness.addEntities([
+      {
+        id: "shared.example",
+        entityType: "agent",
+        content: "Shared",
+        visibility: "shared",
+        metadata: { name: "Shared Agent", status: "approved" },
+      },
+    ]);
+    try {
+      expect(await ask(harness, "shared.example")).toMatchObject({
+        success: false,
+        code: "permission_denied",
+        error: "Agent shared.example is not saved or approved.",
+      });
       expect(fetchFn).not.toHaveBeenCalled();
     } finally {
       await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
