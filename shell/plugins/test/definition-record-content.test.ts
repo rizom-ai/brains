@@ -13,6 +13,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { createEntityReader } from "../src/entity/entity-reader";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
+import { queuedByPackage } from "../src/test/package-job-data";
 import type { OwnedEntityWriter } from "../src/service/service-definition-contract";
 import {
   EntityPlugin,
@@ -528,7 +529,9 @@ describe("a generation links into a declared target through the real service", (
       .getHandler("render-post:generation");
     if (!handler) throw new Error("No generation handler");
     const run = async (mode: "cover" | "list"): Promise<void> => {
-      const data = handler.validateAndParse({ mode });
+      const data = handler.validateAndParse(
+        queuedByPackage("@fixture/linked:render-post", { mode }),
+      );
       if (data === null) throw new Error("Refused job data");
       await handler.process(
         data,
@@ -588,7 +591,9 @@ describe("a generation refuses a link its declared target cannot hold", () => {
     const handler = shell
       .getJobQueueService()
       .getHandler("render-plain:generation");
-    const data = handler?.validateAndParse({});
+    const data = handler?.validateAndParse(
+      queuedByPackage("@fixture/linked:render-plain", {}),
+    );
     if (!handler || data === null || data === undefined) {
       throw new Error("No generation handler");
     }

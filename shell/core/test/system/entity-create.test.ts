@@ -1500,6 +1500,43 @@ status: draft
     });
   });
 
+  it("queues a generation through the enqueuer its type registered", async () => {
+    const queued: { data: Record<string, unknown>; toolContext: unknown }[] =
+      [];
+    services.entityRegistry.registerGenerationEnqueuer(
+      "note",
+      async (data, toolContext) => {
+        queued.push({ data, toolContext });
+        return "job-recorded";
+      },
+    );
+
+    const result = await execGenerate(
+      { entityType: "note", prompt: "Write about tides", title: "Tides" },
+      { userId: "usr_writer", userPermissionLevel: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "tides", status: "generating", jobId: "job-recorded" },
+    });
+    expect(queued).toEqual([
+      {
+        data: {
+          entityId: "tides",
+          prompt: "Write about tides",
+          title: "Tides",
+        },
+        toolContext: expect.objectContaining({
+          actor: { kind: "user", userId: "usr_writer" },
+          userPermissionLevel: "trusted",
+        }),
+      },
+    ]);
+    // The type's enqueuer queued it; nothing went to the queue as written.
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
   it("removes the generation stub when the job queue refuses the generation job", async () => {
     spyOn(services.jobs, "enqueue").mockRejectedValue(
       new Error("queue write refused"),
