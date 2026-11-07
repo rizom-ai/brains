@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- [#842](https://github.com/rizom-ai/brains/pull/842) [`971f848`](https://github.com/rizom-ai/brains/commit/971f848690f019c8e348180f13cfcf9b1e50636d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio no longer redirects the retired `/cms`, `/account` and `/admin` addresses, so those paths are free for a site or another plugin, and Studio can be mounted at any of them. Old bookmarks to those addresses now get a 404; Studio lives at its configured path, `/studio` by default.
+
 ## 0.2.0-alpha.642
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @brains/stock-photo
 
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/plugins@0.2.0-alpha.643
+
 ## 0.2.0-alpha.642
 
 ### Patch Changes
