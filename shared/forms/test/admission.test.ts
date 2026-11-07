@@ -5,7 +5,19 @@ import type {
   IRuntimeStateStore,
   RuntimeStateScopeOptions,
 } from "@brains/plugins";
-import { ContactAdmission, type ContactAdmissionPolicy } from "../src";
+import { FormAdmission, type FormAdmissionPolicy } from "../src";
+
+const FORM = { namespace: "contact.admission", idPrefix: "contact" };
+/** An admission ledger for an example form named like contact. */
+class ContactAdmission extends FormAdmission {
+  constructor(
+    state: ConstructorParameters<typeof FormAdmission>[0],
+    policy: FormAdmissionPolicy,
+    now?: () => number,
+  ) {
+    super(state, policy, FORM, now);
+  }
+}
 
 const start = Date.parse("2026-09-21T10:00:00.000Z");
 const network = "192.0.2.1";
@@ -14,7 +26,7 @@ const input = {
   email: "private@example.com",
   message: "Private message",
 };
-const policy: ContactAdmissionPolicy = {
+const policy: FormAdmissionPolicy = {
   windowSeconds: 60,
   globalRequests: 100,
   networkRequests: 50,
@@ -204,29 +216,6 @@ describe("contact admission", () => {
     expect((await admission.issue(network)).kind).toBe("issued");
   });
 
-  it("rejects invalid submissions without consuming or changing a token", async () => {
-    const admission = new ContactAdmission(
-      createMemoryRuntimeStateNamespace(),
-      policy,
-      () => start,
-    );
-    const token = await issue(admission);
-    for (const bad of [
-      { ...input, website: "spam" },
-      { ...input, message: "x".repeat(4001) },
-      { ...input, email: "wrong" },
-      { ...input, visibility: "public" },
-    ]) {
-      expect(await admission.reserve(token, bad, network)).toEqual({
-        kind: "denied",
-        reason: "invalid-submission",
-      });
-    }
-    expect((await admission.reserve(token, input, network)).kind).toBe(
-      "reserved",
-    );
-  });
-
   it("keeps credentials and contact details out of runtime state", async () => {
     const state = createMemoryRuntimeStateNamespace();
     const admission = new ContactAdmission(state, policy, () => start);
@@ -291,18 +280,17 @@ describe("contact admission", () => {
       },
     };
     expect(() => new ContactAdmission(state, policy, () => start)).toThrow(
-      "Contact admission unavailable",
+      "Form admission unavailable",
     );
   });
 });
 
 async function admissionState(state: IRuntimeStateNamespace): Promise<unknown> {
-  const { contactAdmissionStateSchema } =
-    await import("../src/admission-state");
+  const { formAdmissionStateSchema } = await import("../src/admission-state");
   return state
     .scoped({
       namespace: "contact.admission",
-      schema: contactAdmissionStateSchema,
+      schema: formAdmissionStateSchema,
     })
     .get("ledger");
 }

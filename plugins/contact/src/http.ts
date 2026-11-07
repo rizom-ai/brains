@@ -4,11 +4,15 @@ import {
   type WebRouteTransportContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { ContactAdmission, ContactDenialReason } from "./admission";
+import {
+  FormHttpError as ContactHttpError,
+  isPrivatePeer,
+  readForm,
+  type FormAdmission,
+  type FormDenialReason as ContactDenialReason,
+} from "@brains/forms";
 import type { ContactIntake } from "./intake";
 import { contactSubmissionSchema } from "./entity/schema";
-import { ContactHttpError, readContactForm } from "./http-body";
-import { isPrivatePeer } from "./network";
 import {
   CONTACT_SLOT,
   contactForm,
@@ -92,6 +96,14 @@ const formSchema = z.strictObject({
   token: z.string().regex(/^[a-f0-9]{64}$/),
   ...contactSubmissionSchema.shape,
 });
+/** The fields contact's form posts: its submission, the token and the honeypot. */
+const CONTACT_FIELDS: ReadonlySet<string> = new Set([
+  "token",
+  "name",
+  "email",
+  "message",
+  "website",
+]);
 /** A site links a topic to the form; it starts the visitor's message, who can change it. */
 const TOPIC_MAX_LENGTH = 200;
 function topicDraft(url: URL): ContactDraft {
@@ -170,14 +182,14 @@ function denial(reason: ContactDenialReason): ContactHttpError {
 /** Bounded HTTP boundary; the owning plugin controls readiness and opt-in mounting. */
 export class ContactHttpHandlers {
   private readonly policy: ContactHttpPolicy;
-  private readonly admission: ContactAdmission;
+  private readonly admission: FormAdmission;
   private readonly intake: ContactIntake;
   private readonly themeCSS: string;
   private readonly owner: () => string | undefined;
   private readonly defaultTheme: () => "light" | "dark" | undefined;
   private readonly origins: readonly string[];
   constructor(
-    admission: ContactAdmission,
+    admission: FormAdmission,
     intake: ContactIntake,
     policy: ContactHttpPolicy,
     options: ContactHttpOptions = {},
@@ -297,10 +309,11 @@ export class ContactHttpHandlers {
           415,
           "A URL-encoded form is required. Attachments are not accepted.",
         );
-      const fields = await readContactForm(
+      const fields = await readForm(
         request,
         this.policy.maxBodyBytes,
         this.policy.readTimeoutMs,
+        CONTACT_FIELDS,
       );
       draft = {
         name: fields["name"] ?? "",

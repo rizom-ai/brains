@@ -3,7 +3,13 @@ import type {
   IRuntimeStateNamespace,
   ServiceEntityService,
 } from "@brains/plugins";
-import type { ContactAdmission, ContactDenialReason } from "./admission";
+import {
+  FormStorageSlots,
+  formStoragePolicySchema,
+  type FormAdmission,
+  type FormDenialReason as ContactDenialReason,
+  type FormStoragePolicy as ContactStoragePolicy,
+} from "@brains/forms";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
   contactMetadataSchema,
@@ -12,14 +18,10 @@ import {
   type ContactRequest,
   type ContactSubmission,
 } from "./entity/schema";
-import {
-  ContactStorageSlots,
-  contactStoragePolicySchema,
-  type ContactStoragePolicy,
-} from "./storage-slots";
+import { CONTACT_SLOTS } from "./state";
 
 export interface ContactIntakeDependencies {
-  admission: ContactAdmission;
+  admission: FormAdmission;
   entities: ServiceEntityService;
   state: IRuntimeStateNamespace;
   policy: ContactStoragePolicy;
@@ -39,16 +41,21 @@ export interface ContactMaintenanceReport {
 
 export class ContactIntake {
   readonly retentionSeconds: number;
-  private readonly slots: ContactStorageSlots;
+  private readonly slots: FormStorageSlots;
   private readonly now: () => number;
   private readonly deps: ContactIntakeDependencies;
 
   constructor(deps: ContactIntakeDependencies) {
     this.deps = deps;
-    const policy = contactStoragePolicySchema.parse(deps.policy);
+    const policy = formStoragePolicySchema.parse(deps.policy);
     this.retentionSeconds = policy.retentionSeconds;
     this.now = deps.now ?? Date.now;
-    this.slots = new ContactStorageSlots(deps.state, policy, this.now);
+    this.slots = new FormStorageSlots(
+      deps.state,
+      policy,
+      CONTACT_SLOTS,
+      this.now,
+    );
   }
 
   async submit(

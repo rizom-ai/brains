@@ -4,12 +4,12 @@ import type {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export interface ContactStoragePolicy {
+export interface FormStoragePolicy {
   retentionSeconds: number;
   maxRecords: number;
   maxBytes: number;
 }
-export const contactStoragePolicyShape: z.ZodObject<
+export const formStoragePolicyShape: z.ZodObject<
   {
     retentionSeconds: z.ZodNumber;
     maxRecords: z.ZodNumber;
@@ -25,14 +25,14 @@ export const contactStoragePolicyShape: z.ZodObject<
   maxRecords: z.number().int().min(1).max(1000),
   maxBytes: z.number().int().min(1024).max(32_000_000),
 });
-export const contactStoragePolicySchema: z.ZodType<ContactStoragePolicy> =
-  contactStoragePolicyShape;
-export type ContactDeliveryStatus = "pending" | "sent" | "failed";
+export const formStoragePolicySchema: z.ZodType<FormStoragePolicy> =
+  formStoragePolicyShape;
+export type FormDeliveryStatus = "pending" | "sent" | "failed";
 interface DeliveryState {
   attempts: number;
   firstAttemptAt: number | null;
   leaseUntil: number;
-  status: ContactDeliveryStatus;
+  status: FormDeliveryStatus;
   /** Why the latest attempt failed: a short code, never message content. */
   failure?: string | undefined;
 }
@@ -40,7 +40,7 @@ export type DeliveryClaim =
   | { status: "send"; attempt: number; sendBefore: number }
   | { status: "skipped" | "busy" | "sent" | "failed" };
 
-export interface ContactStorageSlot {
+export interface FormStorageSlot {
   receivedAt: number;
   expiresAt: number;
   bytes: number;
@@ -50,10 +50,10 @@ export interface ContactStorageSlot {
 interface SlotState {
   revision: number;
   lastNow: number;
-  slots: Record<string, ContactStorageSlot>;
+  slots: Record<string, FormStorageSlot>;
 }
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const slotSchema: z.ZodType<ContactStorageSlot> = z.strictObject({
+const slotSchema: z.ZodType<FormStorageSlot> = z.strictObject({
   receivedAt: integer,
   expiresAt: integer,
   bytes: integer.max(32000),
@@ -69,35 +69,47 @@ const slotSchema: z.ZodType<ContactStorageSlot> = z.strictObject({
       .optional(),
   }),
 });
-const stateSchema: z.ZodType<SlotState> = z.strictObject({
-  revision: integer,
-  lastNow: integer,
-  slots: z
-    .record(z.string().regex(/^contact-[a-f0-9]{64}$/), slotSchema)
-    .refine((slots) => Object.keys(slots).length <= 1000),
-});
+function stateSchemaFor(idPrefix: string): z.ZodType<SlotState> {
+  const escaped = idPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return z.strictObject({
+    revision: integer,
+    lastNow: integer,
+    slots: z
+      .record(
+        z.string().regex(new RegExp(`^${escaped}-[a-f0-9]{64}$`)),
+        slotSchema,
+      )
+      .refine((slots) => Object.keys(slots).length <= 1000),
+  });
+}
+/** Where a form's slot ledger lives and how its records are named. */
+export interface FormStorageOptions {
+  namespace: string;
+  idPrefix: string;
+}
 export type SlotClaim =
-  | { kind: "new" | "existing"; slot: ContactStorageSlot }
+  | { kind: "new" | "existing"; slot: FormStorageSlot }
   | { kind: "capacity" }
   | { kind: "expired" };
 
 /** Capacity reservations survive credential expiry. Never prune an uncertain
  * writer merely because time passed: a delayed create may still commit.
  */
-export class ContactStorageSlots {
+export class FormStorageSlots {
   private readonly store: IRuntimeStateStore<SlotState>;
-  private readonly policy: ContactStoragePolicy;
+  private readonly policy: FormStoragePolicy;
   private readonly now: () => number;
   constructor(
     state: IRuntimeStateNamespace,
-    policy: ContactStoragePolicy,
+    policy: FormStoragePolicy,
+    options: FormStorageOptions,
     now: () => number,
   ) {
     this.policy = policy;
     this.now = now;
     this.store = state.scoped({
-      namespace: "contact.storage",
-      schema: stateSchema,
+      namespace: options.namespace,
+      schema: stateSchemaFor(options.idPrefix),
     });
   }
 
@@ -116,7 +128,7 @@ export class ContactStorageSlots {
           this.policy.maxBytes
       )
         return { result: { kind: "capacity" } };
-      const slot: ContactStorageSlot = {
+      const slot: FormStorageSlot = {
         receivedAt,
         expiresAt,
         bytes,
@@ -135,7 +147,7 @@ export class ContactStorageSlots {
     });
   }
 
-  async list(): Promise<Array<[string, ContactStorageSlot]>> {
+  async list(): Promise<Array<[string, FormStorageSlot]>> {
     return Object.entries((await this.store.get("slots"))?.slots ?? {});
   }
 
@@ -146,7 +158,7 @@ export class ContactStorageSlots {
       this.now() < slot.receivedAt ||
       this.now() >= slot.expiresAt
     )
-      throw new Error("Contact write unavailable");
+      throw new Error("Form write unavailable");
   }
 
   stored(id: string): Promise<boolean> {
@@ -238,8 +250,8 @@ export class ContactStorageSlots {
     sent: boolean,
     maxAttempts: number,
     failure?: string,
-  ): Promise<ContactDeliveryStatus | null> {
-    return this.mutate<ContactDeliveryStatus | null>((state) => {
+  ): Promise<FormDeliveryStatus | null> {
+    return this.mutate<FormDeliveryStatus | null>((state) => {
       const slot = state.slots[id];
       if (!slot) return { result: null }; // Cleanup owns deletion; never recreate delivery state.
       const delivery = slot.delivery;
@@ -292,7 +304,7 @@ export class ContactStorageSlots {
   ): Promise<T> {
     const now = this.now();
     if (!Number.isSafeInteger(now) || now < 0)
-      throw new Error("Contact storage unavailable");
+      throw new Error("Form storage unavailable");
     for (let attempt = 0; attempt < 16; attempt++) {
       const state = await this.store.get("slots");
       if (!state) {
@@ -316,6 +328,6 @@ export class ContactStorageSlots {
       )
         return changed.result;
     }
-    throw new Error("Contact storage unavailable");
+    throw new Error("Form storage unavailable");
   }
 }

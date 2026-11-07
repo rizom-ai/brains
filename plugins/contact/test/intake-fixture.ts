@@ -1,10 +1,6 @@
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  ContactAdmission,
-  ContactIntake,
-  ContactRequestPlugin,
-  type ContactAdmissionPolicy,
-} from "../src";
+import { FormAdmission, type FormAdmissionPolicy } from "@brains/forms";
+import { CONTACT_ADMISSION, ContactIntake, ContactRequestPlugin } from "../src";
 
 export const start: number = Date.parse("2026-09-21T10:00:00.000Z");
 export const peer: string = "192.0.2.1";
@@ -13,7 +9,7 @@ export const input: { name: string; email: string; message: string } = {
   email: "private@example.com",
   message: "A private message",
 };
-export const admissionPolicy: ContactAdmissionPolicy = {
+export const admissionPolicy: FormAdmissionPolicy = {
   windowSeconds: 60,
   globalRequests: 100,
   networkRequests: 50,
@@ -29,7 +25,7 @@ export const admissionPolicy: ContactAdmissionPolicy = {
 export interface IntakeFixture {
   harness: ReturnType<typeof createPluginHarness>;
   intake: ContactIntake;
-  admission: ContactAdmission;
+  admission: FormAdmission;
   queued: Set<string>;
   now: () => number;
   advance: (milliseconds: number) => void;
@@ -46,7 +42,12 @@ export async function intakeFixture(
   const harness = createPluginHarness();
   await harness.installPlugin(new ContactRequestPlugin());
   const state = harness.getMockShell().getRuntimeState();
-  const admission = new ContactAdmission(state, admissionPolicy, () => now);
+  const admission = new FormAdmission(
+    state,
+    admissionPolicy,
+    CONTACT_ADMISSION,
+    () => now,
+  );
   const intake = new ContactIntake({
     admission,
     entities: harness.getEntityService(),

@@ -1,4 +1,4 @@
-export class ContactHttpError extends Error {
+export class FormHttpError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
     super(message);
@@ -7,17 +7,18 @@ export class ContactHttpError extends Error {
 }
 
 /** Bound the stream before URL/form parsing; Content-Length alone is not a cap. */
-export async function readContactForm(
+export async function readForm(
   request: Request,
   maxBytes: number,
   timeoutMs: number,
+  allowedFields: ReadonlySet<string>,
 ): Promise<Record<string, string>> {
   const length = request.headers.get("content-length");
   if (length !== null && !/^\d+$/.test(length))
-    throw new ContactHttpError(400, "Invalid request body.");
+    throw new FormHttpError(400, "Invalid request body.");
   if (length !== null && Number(length) > maxBytes)
-    throw new ContactHttpError(413, "The request is too large.");
-  if (!request.body) throw new ContactHttpError(400, "A form is required.");
+    throw new FormHttpError(413, "The request is too large.");
+  if (!request.body) throw new FormHttpError(400, "A form is required.");
   const deadline = new AbortController();
   const timer = setTimeout(() => deadline.abort(), timeoutMs);
   const signal = AbortSignal.any([request.signal, deadline.signal]);
@@ -39,7 +40,7 @@ export async function readContactForm(
       size += chunk.value.byteLength;
       if (size > maxBytes) {
         cancel();
-        throw new ContactHttpError(413, "The request is too large.");
+        throw new FormHttpError(413, "The request is too large.");
       }
       chunks.push(chunk.value);
     }
@@ -48,22 +49,19 @@ export async function readContactForm(
     );
     const fields: Record<string, string> = {};
     for (const [key, value] of new URLSearchParams(text)) {
-      if (
-        Object.hasOwn(fields, key) ||
-        !["token", "name", "email", "message", "website"].includes(key)
-      )
-        throw new ContactHttpError(400, "Invalid form fields.");
+      if (Object.hasOwn(fields, key) || !allowedFields.has(key))
+        throw new FormHttpError(400, "Invalid form fields.");
       fields[key] = value;
     }
     return fields;
   } catch (error) {
     if (signal.aborted)
-      throw new ContactHttpError(
+      throw new FormHttpError(
         408,
         "The request timed out or was cancelled. No new form was submitted.",
       );
-    if (error instanceof ContactHttpError) throw error;
-    throw new ContactHttpError(400, "Invalid request body.");
+    if (error instanceof FormHttpError) throw error;
+    throw new FormHttpError(400, "Invalid request body.");
   } finally {
     clearTimeout(timer);
     signal.removeEventListener("abort", cancel);

@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
 
-export interface ContactAdmissionPolicy {
+export interface FormAdmissionPolicy {
   windowSeconds: number;
   globalRequests: number;
   networkRequests: number;
@@ -16,7 +16,7 @@ export interface ContactAdmissionPolicy {
 const limit = z.number().int().min(1).max(1000);
 const seconds = z.number().int().min(1).max(86400);
 /** The policy's fields and bounds; the schema adds the relation between them. */
-export const contactAdmissionPolicyShape: z.ZodObject<
+export const formAdmissionPolicyShape: z.ZodObject<
   {
     windowSeconds: z.ZodNumber;
     globalRequests: z.ZodNumber;
@@ -42,8 +42,8 @@ export const contactAdmissionPolicyShape: z.ZodObject<
   receiptTtlSeconds: seconds,
   maxEntries: limit,
 });
-export const contactAdmissionPolicySchema: z.ZodType<ContactAdmissionPolicy> =
-  contactAdmissionPolicyShape.refine(
+export const formAdmissionPolicySchema: z.ZodType<FormAdmissionPolicy> =
+  formAdmissionPolicyShape.refine(
     (value) =>
       value.networkRequests <= value.globalRequests &&
       value.networkForms <= value.globalForms &&
@@ -62,7 +62,7 @@ interface FormEntry {
   retainUntil: number;
   submission?: { digest: string; receivedAt: number } | undefined;
 }
-export interface ContactAdmissionState {
+export interface FormAdmissionState {
   revision: number;
   lastNow: number;
   salt: string;
@@ -86,7 +86,7 @@ const entry = z.strictObject({
   submission: z.strictObject({ digest, receivedAt: integer }).optional(),
 });
 
-export const contactAdmissionStateSchema: z.ZodType<ContactAdmissionState> =
+export const formAdmissionStateSchema: z.ZodType<FormAdmissionState> =
   z.strictObject({
     revision: integer,
     lastNow: integer,

@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { ContactStorageSlots } from "../src/storage-slots";
+import { FormStorageSlots } from "../src/storage-slots";
+
+const SLOTS = { namespace: "contact.storage", idPrefix: "contact" };
 
 const start = Date.parse("2026-09-21T10:00:00.000Z");
 const policy = { retentionSeconds: 86400, maxRecords: 2, maxBytes: 2048 };
@@ -19,8 +21,8 @@ describe("contact storage capacity", () => {
     const second = RuntimeStateService.createFresh(config);
     try {
       await Promise.all([first.initialize(), second.initialize()]);
-      const a = new ContactStorageSlots(first, policy, () => now);
-      const b = new ContactStorageSlots(second, policy, () => now);
+      const a = new FormStorageSlots(first, policy, SLOTS, () => now);
+      const b = new FormStorageSlots(second, policy, SLOTS, () => now);
       const ids = Array.from(
         { length: 8 },
         (_, i) => `contact-${String(i).padStart(64, "0")}`,
@@ -52,7 +54,7 @@ describe("contact storage capacity", () => {
       const restarted = RuntimeStateService.createFresh(config);
       try {
         await restarted.initialize();
-        const slots = new ContactStorageSlots(restarted, policy, () => now);
+        const slots = new FormStorageSlots(restarted, policy, SLOTS, () => now);
         expect(await slots.beginDelivery(stored, 3, 3600)).toEqual({
           status: "busy",
         });

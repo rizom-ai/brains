@@ -18,12 +18,17 @@ import {
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { ContactInboxSource } from "./inbox-source";
-import { ContactAdmission } from "./admission";
+import {
+  FormAdmission,
+  FormDelivery,
+  FormStorageSlots,
+  type FormAlertOutcome,
+} from "@brains/forms";
 import { ContactIntake, type ContactMaintenanceReport } from "./intake";
 import { ContactHttpHandlers, previewOriginFor } from "./http";
 import { CONTACT_SLOT } from "./http-page";
-import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
-import { ContactStorageSlots } from "./storage-slots";
+import { ContactDeliveryTarget } from "./delivery-target";
+import { CONTACT_ADMISSION, CONTACT_SLOTS } from "./state";
 import { contactRequestSchema } from "./entity/schema";
 import {
   contactPluginConfigSchema,
@@ -89,7 +94,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   private http: ContactHttpHandlers | undefined;
   private policy: ContactIntakePolicy | undefined;
   private intake: ContactIntake | undefined;
-  private slots: ContactStorageSlots | undefined;
+  private slots: FormStorageSlots | undefined;
   private readonly stop = new AbortController();
   private maintenance: Promise<void> | undefined;
   private maintenanceStatus: IRuntimeStateStore<MaintenanceStatus> | undefined;
@@ -136,12 +141,13 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
       ],
     });
-    const delivery = new ContactDelivery({
-      entities: context.entityService,
+    const delivery = new FormDelivery({
+      target: new ContactDeliveryTarget(context.entityService),
       state: context.runtimeState,
       storage: config.storage,
+      slots: CONTACT_SLOTS,
       policy: config.delivery,
-      send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
+      send: async (_id, idempotencyKey): Promise<FormAlertOutcome> => {
         const inbox = this.inboxUrl(context);
         if (!inbox) return { sent: false, failure: "no-inbox" };
         const result = await context.messaging.request(
@@ -184,14 +190,16 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       namespace: "contact.maintenance",
       schema: maintenanceStatusSchema,
     });
-    this.slots = new ContactStorageSlots(
+    this.slots = new FormStorageSlots(
       context.runtimeState,
       config.storage,
+      CONTACT_SLOTS,
       Date.now,
     );
-    const admission = new ContactAdmission(
+    const admission = new FormAdmission(
       context.runtimeState,
       config.admission,
+      CONTACT_ADMISSION,
     );
     this.intake = new ContactIntake({
       admission,

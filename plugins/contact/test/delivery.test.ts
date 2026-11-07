@@ -3,16 +3,18 @@ import type {
   ServiceEntityService,
   IRuntimeStateNamespace,
 } from "@brains/plugins";
-import { ContactDelivery, type ContactAlertOutcome } from "../src/delivery";
+import {
+  FormDelivery,
+  FormStorageSlots,
+  type FormAlertOutcome,
+  type FormStorageSlot,
+} from "@brains/forms";
+import { CONTACT_SLOTS, ContactDeliveryTarget } from "../src";
 import {
   contactRequestAdapter,
   contactRequestSchema,
   type ContactRequest,
 } from "../src";
-import {
-  ContactStorageSlots,
-  type ContactStorageSlot,
-} from "../src/storage-slots";
 import {
   input,
   intakeFixture,
@@ -25,7 +27,7 @@ const policy = { maxAttempts: 3, retryWindowSeconds: 3600 };
 const signal = new AbortController().signal;
 async function failure(promise: Promise<unknown>): Promise<void> {
   expect(await promise.catch((error: unknown) => error)).toEqual(
-    new Error("Contact notification unavailable"),
+    new Error("Form notification unavailable"),
   );
 }
 async function fixture(): Promise<
@@ -33,8 +35,8 @@ async function fixture(): Promise<
     id: string;
     entities: ServiceEntityService;
     state: IRuntimeStateNamespace;
-    send: Mock<(key: string) => Promise<ContactAlertOutcome>>;
-    makeDelivery: () => ContactDelivery;
+    send: Mock<(key: string) => Promise<FormAlertOutcome>>;
+    makeDelivery: () => FormDelivery;
     read: () => Promise<ContactRequest | null>;
   }
 > {
@@ -43,11 +45,19 @@ async function fixture(): Promise<
   if (saved.kind !== "saved") throw new Error("Not saved");
   const entities = f.harness.getEntityService();
   const state = f.harness.getMockShell().getRuntimeState();
-  const send = mock(async (_key: string): Promise<ContactAlertOutcome> => ({
+  const send = mock(async (_key: string): Promise<FormAlertOutcome> => ({
     sent: true,
   }));
-  const makeDelivery = (): ContactDelivery =>
-    new ContactDelivery({ entities, state, storage, policy, send, now: f.now });
+  const makeDelivery = (): FormDelivery =>
+    new FormDelivery({
+      target: new ContactDeliveryTarget(entities, f.now),
+      state,
+      storage,
+      slots: CONTACT_SLOTS,
+      policy,
+      send: (_id, key) => send(key),
+      now: f.now,
+    });
   const read = async (): Promise<ContactRequest | null> =>
     entities.getEntity(
       {
@@ -77,14 +87,14 @@ describe("contact notification delivery", () => {
 
   it("does not send concurrently and recovers known delivery after a metadata-write failure", async () => {
     const f = await fixture();
-    let finish: ((value: ContactAlertOutcome) => void) | undefined;
+    let finish: ((value: FormAlertOutcome) => void) | undefined;
     let started: (() => void) | undefined;
     const sending = new Promise<void>((resolve) => {
       started = resolve;
     });
     f.send.mockImplementation(
       () =>
-        new Promise<ContactAlertOutcome>((resolve) => {
+        new Promise<FormAlertOutcome>((resolve) => {
           finish = resolve;
           started?.();
         }),
@@ -116,8 +126,15 @@ describe("contact notification delivery", () => {
 
   it("keeps why the last attempt failed with the failed alert, never message content", async () => {
     const f = await fixture();
-    const slot = async (): Promise<ContactStorageSlot | undefined> =>
-      (await new ContactStorageSlots(f.state, storage, f.now).list())[0]?.[1];
+    const slot = async (): Promise<FormStorageSlot | undefined> =>
+      (
+        await new FormStorageSlots(
+          f.state,
+          storage,
+          CONTACT_SLOTS,
+          f.now,
+        ).list()
+      )[0]?.[1];
     f.send.mockResolvedValue({ sent: false, failure: "transport-missing" });
     await failure(f.makeDelivery().deliver(f.id, signal));
     expect((await slot())?.delivery.failure).toBe("transport-missing");
@@ -139,12 +156,12 @@ describe("contact notification delivery", () => {
     await failure(f.makeDelivery().deliver(f.id, signal));
     await failure(f.makeDelivery().deliver(f.id, signal));
     expect(await f.makeDelivery().deliver(f.id, signal)).toBe("failed");
-    await new ContactStorageSlots(f.state, storage, f.now).settleDelivery(
-      f.id,
-      1,
-      true,
-      3,
-    );
+    await new FormStorageSlots(
+      f.state,
+      storage,
+      CONTACT_SLOTS,
+      f.now,
+    ).settleDelivery(f.id, 1, true, 3);
     f.queued.clear();
     await f.intake.maintain(signal);
     expect(f.queued.has(f.id)).toBe(true);
@@ -163,7 +180,7 @@ describe("contact notification delivery", () => {
     f.advance(86400_000);
     await f.intake.maintain(signal);
     expect(
-      await new ContactStorageSlots(f.state, storage, f.now).list(),
+      await new FormStorageSlots(f.state, storage, CONTACT_SLOTS, f.now).list(),
     ).toEqual([]);
     expect(await f.makeDelivery().deliver(f.id, signal)).toBe("skipped");
     expect(await f.read()).toBeNull();

@@ -448,7 +448,7 @@ describe("contact runtime", () => {
           new AbortController().signal,
         )
         .catch((error: unknown) => error);
-    const unavailable = new Error("Contact notification unavailable");
+    const unavailable = new Error("Form notification unavailable");
     expect(await attempt()).toEqual(unavailable);
     expect(await attempt()).toEqual(unavailable);
     expect(await attempt()).toBe("failed");

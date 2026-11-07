@@ -5,6 +5,25 @@ import { intakeFixture, input, peer, start } from "./intake-fixture";
 const signal = (): AbortSignal => new AbortController().signal;
 
 describe("contact intake persistence", () => {
+  it("rejects invalid submissions without consuming or changing a token", async () => {
+    const f = await intakeFixture();
+    const token = await f.token();
+    for (const bad of [
+      { ...input, website: "spam" },
+      { ...input, message: "x".repeat(4001) },
+      { ...input, email: "wrong" },
+      { ...input, visibility: "public" },
+    ]) {
+      expect(await f.intake.submit(token, bad, peer, signal())).toEqual({
+        kind: "denied",
+        reason: "invalid-submission",
+      });
+    }
+    expect((await f.intake.submit(token, input, peer, signal())).kind).toBe(
+      "saved",
+    );
+  });
+
   it("saves one restricted request and reconciles concurrent duplicate posts", async () => {
     const f = await intakeFixture();
     const token = await f.token();

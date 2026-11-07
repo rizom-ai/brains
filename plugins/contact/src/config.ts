@@ -1,24 +1,20 @@
 import { z } from "@brains/utils/zod";
 import {
-  contactAdmissionPolicySchema,
-  contactAdmissionPolicyShape,
-  type ContactAdmissionPolicy,
-} from "./admission-state";
+  formAdmissionPolicySchema as contactAdmissionPolicySchema,
+  formAdmissionPolicyShape as contactAdmissionPolicyShape,
+  formDeliveryPolicySchema as contactDeliveryPolicySchema,
+  formDeliveryPolicyShape as contactDeliveryPolicyShape,
+  formStoragePolicySchema as contactStoragePolicySchema,
+  formStoragePolicyShape as contactStoragePolicyShape,
+  type FormAdmissionPolicy as ContactAdmissionPolicy,
+  type FormDeliveryPolicy as ContactDeliveryPolicy,
+  type FormStoragePolicy as ContactStoragePolicy,
+} from "@brains/forms";
 import {
   contactHttpPolicySchema,
   contactHttpPolicyShape,
   type ContactHttpPolicy,
 } from "./http";
-import {
-  contactStoragePolicySchema,
-  contactStoragePolicyShape,
-  type ContactStoragePolicy,
-} from "./storage-slots";
-import {
-  contactDeliveryPolicySchema,
-  contactDeliveryPolicyShape,
-  type ContactDeliveryPolicy,
-} from "./delivery";
 
 /** The intake's policy as it runs: the plugin's defaults under the owner's
  * overrides, on the origin the brain serves. */
