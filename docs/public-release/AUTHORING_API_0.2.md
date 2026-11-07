@@ -138,14 +138,6 @@ paths, and fetch-injected transport. Active selection, reducers, routing,
 navigation, cache behavior, browser storage, UI-message transforms,
 presentation copy, components, hooks, styles, and stores are not public API.
 
-## `@rizom/brain/plugins`
-
-Shared package-definition contract:
-
-- `PluginPackageDefinition`
-
-The root entry exports the same type. `Resource` and `Tool` stay on this subpath, outside the stable commitment, for packages written against the alpha class API.
-
 ## `@rizom/brain/entities`
 
 Definitions and schema vocabulary:
@@ -656,9 +648,9 @@ Props and options:
 
 ## Exported but not stable
 
-The advanced names classified in `export-ledger.json` are alpha contracts outside the patch-stable commitment; pin an exact version when using them. `@rizom/brain/plugins` (`Resource`, `Tool`), `@rizom/brain/templates` (`createTemplate`) and `BaseEntity` from `@rizom/brain/entities` remain only for packages written against the alpha class API, and go when it is removed.
+The advanced names classified in `export-ledger.json` are alpha contracts outside the patch-stable commitment; pin an exact version when using them.
 
-Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed site entry points are not public authoring contracts.
+Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed entry points (`@rizom/brain/site`, `@rizom/brain/plugins`, `@rizom/brain/templates` and `@rizom/site-sections`) are not public authoring contracts.
 
 ## Compatibility rule
 

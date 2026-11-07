@@ -134,10 +134,6 @@
       "types": "./dist/model.d.ts",
       "import": "./dist/model.js"
     },
-    "./plugins": {
-      "types": "./dist/plugins.d.ts",
-      "import": "./dist/plugins.js"
-    },
     "./entities": {
       "types": "./dist/entities.d.ts",
       "import": "./dist/entities.js"
@@ -149,10 +145,6 @@
     "./interfaces": {
       "types": "./dist/interfaces.d.ts",
       "import": "./dist/interfaces.js"
-    },
-    "./templates": {
-      "types": "./dist/templates.d.ts",
-      "import": "./dist/templates.js"
     },
     "./testing": {
       "types": "./dist/testing.d.ts",

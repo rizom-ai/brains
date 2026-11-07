@@ -347,16 +347,12 @@ Rules that are easy to miss:
 
 Several unrelated concepts also use the word “template”:
 
-| Concept                         | Meaning                                                                    |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| Entity `markdown` codec         | Converts persisted content/metadata to and from Markdown; not presentation |
-| Service `templates`             | Schema-validated text formatting and web rendering for that service        |
-| Site route `template`           | A `namespace:section` reference created by `sectionGroup()`                |
-| `@rizom/brain/templates` import | Advanced rich-rendering API outside the patch-stable `0.2` contract        |
-
-Normal external packages should use the family fields above. Pin an exact Brain
-version before deliberately using the advanced `@rizom/brain/templates`
-subpath.
+| Concept                 | Meaning                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Entity `markdown` codec | Converts persisted content/metadata to and from Markdown; not presentation |
+| Entity `templates`      | Presentation an entity type declares, scoped to the type                   |
+| Service `templates`     | Schema-validated text formatting and web rendering for that service        |
+| Site route `template`   | A `namespace:section` reference created by `sectionGroup()`                |
 
 ### Services and durable jobs
 

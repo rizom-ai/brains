@@ -96,6 +96,3 @@ export type {
   PublishProvider,
   PublishResult,
 } from "@brains/contracts";
-
-// Kept for packages written against the alpha class API until it is removed.
-export type { BaseEntity } from "@brains/entity-service";

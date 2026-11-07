@@ -16,14 +16,7 @@ import {
 } from "@brains/build-tools";
 
 const pkgDir = join(import.meta.dir, "..");
-const subpaths = [
-  "plugins",
-  "entities",
-  "services",
-  "interfaces",
-  "templates",
-  "testing",
-] as const;
+const subpaths = ["entities", "services", "interfaces", "testing"] as const;
 
 function listDeclarationFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -335,51 +328,6 @@ describe("@rizom/brain public plugin API surface", () => {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
       expect(findEffectDeclarationImports(types)).toEqual([]);
     }
-  });
-
-  it("keeps shell internals out of public plugin types", async () => {
-    const pluginsTypes = readFileSync(
-      join(pkgDir, "dist", "plugins.d.ts"),
-      "utf-8",
-    );
-
-    expect(pluginsTypes).toContain("PluginPackageDefinition");
-    expect(pluginsTypes).not.toContain("declare abstract class EntityPlugin");
-    expect(pluginsTypes).not.toContain(
-      "declare abstract class InterfacePlugin",
-    );
-    expect(pluginsTypes).not.toContain(
-      "declare abstract class MessageInterfacePlugin",
-    );
-    expect(pluginsTypes).not.toContain("declare abstract class ServicePlugin");
-    expect(pluginsTypes).not.toContain("PluginFactory");
-    expect(pluginsTypes).not.toContain("declare function toolSuccess");
-    // The entry carries only what alpha class-API packages still import.
-    expect(pluginsTypes).not.toContain("ExtensionMetadataSchema");
-    expect(pluginsTypes).not.toContain("declare const AppInfoSchema");
-    expect(pluginsTypes).not.toContain("IShell");
-    expect(pluginsTypes).not.toContain("PluginManager");
-    expect(pluginsTypes).not.toContain("PluginRegistrationContext");
-    expect(pluginsTypes).not.toContain("PluginCapabilities");
-    expect(pluginsTypes).not.toContain("RuntimeInterfacePlugin");
-    expect(pluginsTypes).not.toContain("RuntimeMessageInterfacePlugin");
-    expect(pluginsTypes).not.toContain("isUploadableTextFile");
-    expect(pluginsTypes).not.toContain("isFileSizeAllowed");
-    expect(pluginsTypes).not.toContain("formatFileUploadMessage");
-    expect(pluginsTypes).not.toContain("extractCaptureableUrls");
-    expect(pluginsTypes).not.toContain("captureUrlViaAgent");
-    expect(pluginsTypes).not.toContain("InterfacePluginDelegate");
-    expect(pluginsTypes).not.toContain("MessageInterfacePluginDelegate");
-    expect(pluginsTypes).not.toContain("register(shell");
-    expect(pluginsTypes).not.toContain("SYSTEM_CHANNELS");
-    expect(pluginsTypes).not.toContain("createEntityPluginContext");
-    expect(pluginsTypes).not.toContain("createServicePluginContext");
-    expect(pluginsTypes).not.toContain("createInterfacePluginContext");
-    expect(pluginsTypes).not.toContain("AttachmentRegistry");
-    expect(pluginsTypes).not.toContain("IAttachmentsNamespace");
-    expect(pluginsTypes).not.toContain("AttachmentProvider");
-    expect(pluginsTypes).not.toContain("AttachmentResolveRequest");
-    expect(pluginsTypes).not.toContain("themeCSS");
   });
 
   it("resolves every typed package export against generated dist declarations", async () => {

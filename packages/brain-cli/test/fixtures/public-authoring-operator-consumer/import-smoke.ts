@@ -18,9 +18,7 @@ import type * as DeployEntry from "@rizom/brain/deploy";
 import type * as EntitiesEntry from "@rizom/brain/entities";
 import type * as InterfacesEntry from "@rizom/brain/interfaces";
 import type * as ModelEntry from "@rizom/brain/model";
-import type * as PluginsEntry from "@rizom/brain/plugins";
 import type * as ServicesEntry from "@rizom/brain/services";
-import type * as TemplatesEntry from "@rizom/brain/templates";
 import type * as TestingEntry from "@rizom/brain/testing";
 
 export type PublicEntries = [
@@ -30,9 +28,7 @@ export type PublicEntries = [
   typeof EntitiesEntry,
   typeof InterfacesEntry,
   typeof ModelEntry,
-  typeof PluginsEntry,
   typeof ServicesEntry,
-  typeof TemplatesEntry,
   typeof TestingEntry,
 ];
 

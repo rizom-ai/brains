@@ -826,6 +826,8 @@ describe("public authoring 0.2 export ledger", () => {
     expect(ledger.entries["@rizom/brain/site"]).toBeUndefined();
     expect(ledger.entries["@rizom/site-sections"]).toBeUndefined();
     expect(brainManifest.exports["./site"]).toBeUndefined();
+    expect(brainManifest.exports["./plugins"]).toBeUndefined();
+    expect(brainManifest.exports["./templates"]).toBeUndefined();
     expect(
       existsSync(join(repositoryRoot, "packages/site-sections")),
     ).toBeFalse();
@@ -846,18 +848,12 @@ describe("public authoring 0.2 export ledger", () => {
         "z",
       ]),
     );
+    // The class API's subpaths are gone, with everything they carried.
+    expect(ledger.entries["@rizom/brain/plugins"]).toBeUndefined();
+    expect(ledger.entries["@rizom/brain/templates"]).toBeUndefined();
     expect(
-      ledger.entries["@rizom/brain/plugins"]?.["internal/removable"],
-    ).toEqual(
-      expect.arrayContaining([
-        "EntityPlugin",
-        "InterfacePlugin",
-        "MessageInterfacePlugin",
-        "ServicePlugin",
-        "createTool",
-        "toolSuccess",
-      ]),
-    );
+      ledger.entries["@rizom/brain/entities"]?.["internal/removable"],
+    ).toContain("BaseEntity");
     expect(
       ledger.entries["@rizom/brain/interfaces"]?.["internal/removable"],
     ).toContain("WebRouteDefinition");
