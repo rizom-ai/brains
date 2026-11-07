@@ -126,3 +126,40 @@ export const invalidInlineRoute = defineEntity({
     },
   },
 });
+
+// A known TypeScript limitation, pinned so a release that lifts it fails here
+// and the case can become a positive: an array literal under a conditional
+// widens to string[] before the schema can type it. Choosing between whole
+// literals keeps them.
+const labelledMetadata = z.object({
+  labels: z.array(z.enum(["new", "seen"])),
+});
+
+export const conditionalLabels = defineEntity({
+  type: "conditional-labels",
+  purpose: "Generates labels chosen from its input.",
+  metadata: labelledMetadata,
+  generation: {
+    input: z.object({ fresh: z.boolean() }),
+    // @ts-expect-error An array literal under a conditional widens.
+    generate: async ({ input }) => ({
+      success: true,
+      content: "",
+      metadata: { labels: input.fresh ? ["new"] : [] },
+    }),
+  },
+});
+
+export const chosenLabels = defineEntity({
+  type: "chosen-labels",
+  purpose: "Generates labels chosen as whole literals.",
+  metadata: labelledMetadata,
+  generation: {
+    input: z.object({ fresh: z.boolean() }),
+    generate: async ({ input }) => ({
+      success: true,
+      content: "",
+      metadata: input.fresh ? { labels: ["new"] } : { labels: [] },
+    }),
+  },
+});

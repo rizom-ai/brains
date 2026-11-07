@@ -75,6 +75,10 @@ function makeJobStatus(
     retryCount: 0,
     maxRetries: 3,
     lastError,
+    lastErrorPublic:
+      lastError === null
+        ? null
+        : { code: "handler_failed", message: "The operation failed" },
     createdAt: Date.now(),
     scheduledFor: Date.now(),
     startedAt: status === "pending" ? null : Date.now(),

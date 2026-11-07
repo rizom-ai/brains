@@ -259,6 +259,18 @@ export {
 } from "./generation-result";
 export { JobResult } from "./job-result";
 export {
+  SDK_ERROR_MESSAGE_MAX_LENGTH,
+  SdkError,
+  clipPublicMessage,
+  sdkErrorFrom,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  toSdkError,
+  sdkErrorHttpStatus,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "./sdk-error";
+export {
   jsonObjectSchema,
   jsonValueSchema,
   type IsJsonValue,
@@ -404,7 +416,9 @@ export {
 export {
   notificationsSendContract,
   NOTIFICATION_FAILURES,
-  notificationFailureCode,
+  notificationFailureSchema,
+  notificationTransportCodeSchema,
+  type NotificationFailure,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,

@@ -7,11 +7,15 @@ export type PluginPackageFamily =
 
 // Total map so adding a family is a compile error here, and the deliberate
 // collapse of message interfaces onto the interface plugin type is explicit.
-const FAMILY_PLUGIN_TYPE: Record<PluginPackageFamily, Plugin["type"]> = {
-  entity: "entity",
-  service: "service",
-  interface: "interface",
-  "message-interface": "interface",
+// A service package also installs an entity plugin for each type it owns.
+const FAMILY_PLUGIN_TYPES: Record<
+  PluginPackageFamily,
+  readonly Plugin["type"][]
+> = {
+  entity: ["entity"],
+  service: ["service", "entity"],
+  interface: ["interface"],
+  "message-interface": ["interface"],
 };
 
 export type AnyPluginConfigSchema = z.ZodType<object, object>;
@@ -234,7 +238,7 @@ export function instantiatePluginPackageDefinition(
     },
   });
   const plugins = Array.isArray(created) ? [...created] : [created];
-  const expectedType = FAMILY_PLUGIN_TYPE[definition.family];
+  const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
 
   for (const plugin of plugins) {
     if (
@@ -245,7 +249,7 @@ export function instantiatePluginPackageDefinition(
         `Plugin definition "${metadata.name}:${definition.id}" produced metadata that does not match its installed package`,
       );
     }
-    if (plugin.type !== expectedType) {
+    if (!expectedTypes.includes(plugin.type)) {
       throw new Error(
         `Plugin definition "${metadata.name}:${definition.id}" declared family "${definition.family}" but produced plugin type "${plugin.type}"`,
       );

@@ -1,3 +1,4 @@
+import { sdkErrorFrom } from "@brains/contracts";
 import type { IMessagingNamespace } from "./context-types";
 import {
   studioWorkspaceRegisterContract,
@@ -36,7 +37,10 @@ export function createStudioNamespace(
         pluginId,
       });
       if (result.status === "failed") {
-        throw new Error(`Studio workspace register failed: ${result.error}`);
+        throw sdkErrorFrom(
+          result.error,
+          `Studio workspace register failed: ${result.error.message}`,
+        );
       }
       return result.status === "answered" ? result.data : false;
     },
@@ -48,7 +52,10 @@ export function createStudioNamespace(
         { pluginId, ...(workspaceId ? { workspaceId } : {}) },
       );
       if (result.status === "failed") {
-        throw new Error(`Studio workspace unregister failed: ${result.error}`);
+        throw sdkErrorFrom(
+          result.error,
+          `Studio workspace unregister failed: ${result.error.message}`,
+        );
       }
       return result.status === "answered";
     },

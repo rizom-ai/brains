@@ -247,23 +247,27 @@ const workspace = defineStudioWorkspace({
 describe("declarative Studio workspace runtime", () => {
   it("registers after setup and validates views and typed actions", async () => {
     let factories = 0;
-    const definition = defineServicePlugin({
-      id: "reading-operator",
-      config: z.object({}),
-      setup: () => ({ offset: 4 }),
-      studioWorkspaces: (context) => {
-        factories += 1;
-        const action = refresh.bind(context, ({ input, state }) => ({
-          refreshed: `${input.id}:${state.offset}`,
-        }));
-        return [
-          workspace.bind(context, {
-            actions: [action],
-            load: ({ state }) => ({ count: state.offset }),
-          }),
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "reading-operator",
+        config: z.object({}),
+        setup: () => ({ offset: 4 }),
       },
-    });
+      {
+        studioWorkspaces: (context) => {
+          factories += 1;
+          const action = refresh.bind(context, ({ input, state }) => ({
+            refreshed: `${input.id}:${state.offset}`,
+          }));
+          return [
+            workspace.bind(context, {
+              actions: [action],
+              load: ({ state }) => ({ count: state.offset }),
+            }),
+          ];
+        },
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("declarative-studio-runtime"),
     });
@@ -468,16 +472,20 @@ describe("declarative Studio workspace runtime", () => {
       actions: [],
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "required-query-studio",
-      config: z.object({}),
-      studioWorkspaces: (context) => [
-        requiredWorkspace.bind(context, {
-          actions: [],
-          load: ({ query }) => query.get(requiredQuery),
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "required-query-studio",
+        config: z.object({}),
+      },
+      {
+        studioWorkspaces: (context) => [
+          requiredWorkspace.bind(context, {
+            actions: [],
+            load: ({ query }) => query.get(requiredQuery),
+          }),
+        ],
+      },
+    );
     const shell = createMockShell();
     let registrations = 0;
     shell
@@ -523,16 +531,20 @@ describe("declarative Studio workspace runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "query-studio",
-      config: z.object({}),
-      studioWorkspaces: (context) => [
-        queriedWorkspace.bind(context, {
-          actions: [],
-          load: ({ query }) => query.get(querySchema),
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "query-studio",
+        config: z.object({}),
+      },
+      {
+        studioWorkspaces: (context) => [
+          queriedWorkspace.bind(context, {
+            actions: [],
+            load: ({ query }) => query.get(querySchema),
+          }),
+        ],
+      },
+    );
     const shell = createMockShell();
     let registration: StudioWorkspaceRegistration | undefined;
     shell
@@ -601,37 +613,41 @@ describe("declarative Studio workspace runtime", () => {
     });
     let revision = "revision-1";
     let executions = 0;
-    const definition = defineServicePlugin({
-      id: "prepared-studio",
-      config: z.object({}),
-      studioWorkspaces: (context) => {
-        const execute = ({
-          input,
-        }: {
-          input: { id: string };
-        }): { completed: string } => {
-          executions += 1;
-          return { completed: input.id };
-        };
-        const prepare = ({
-          input,
-        }: {
-          input: { id: string };
-        }): { summary: string; revision: string } => ({
-          summary: `Publish ${input.id}?`,
-          revision,
-        });
-        return [
-          preparedWorkspace.bind(context, {
-            actions: [
-              preparedAction.bind(context, execute, prepare),
-              alternateAction.bind(context, execute, prepare),
-            ],
-            load: () => ({}),
-          }),
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "prepared-studio",
+        config: z.object({}),
       },
-    });
+      {
+        studioWorkspaces: (context) => {
+          const execute = ({
+            input,
+          }: {
+            input: { id: string };
+          }): { completed: string } => {
+            executions += 1;
+            return { completed: input.id };
+          };
+          const prepare = ({
+            input,
+          }: {
+            input: { id: string };
+          }): { summary: string; revision: string } => ({
+            summary: `Publish ${input.id}?`,
+            revision,
+          });
+          return [
+            preparedWorkspace.bind(context, {
+              actions: [
+                preparedAction.bind(context, execute, prepare),
+                alternateAction.bind(context, execute, prepare),
+              ],
+              load: () => ({}),
+            }),
+          ];
+        },
+      },
+    );
     const shell = createMockShell();
     let registration: StudioWorkspaceRegistration | undefined;
     shell
@@ -778,22 +794,26 @@ describe("declarative Studio workspace runtime", () => {
 
   it("does not bind workspace callbacks when Studio is absent", async () => {
     let factories = 0;
-    const definition = defineServicePlugin({
-      id: "absent-studio",
-      config: z.object({}),
-      studioWorkspaces: (context) => {
-        factories += 1;
-        const action = refresh.bind(context, ({ input }) => ({
-          refreshed: input.id,
-        }));
-        return [
-          workspace.bind(context, {
-            actions: [action],
-            load: () => ({ count: 0 }),
-          }),
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "absent-studio",
+        config: z.object({}),
       },
-    });
+      {
+        studioWorkspaces: (context) => {
+          factories += 1;
+          const action = refresh.bind(context, ({ input }) => ({
+            refreshed: input.id,
+          }));
+          return [
+            workspace.bind(context, {
+              actions: [action],
+              load: () => ({ count: 0 }),
+            }),
+          ];
+        },
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("absent-studio-runtime"),
     });
@@ -807,25 +827,29 @@ describe("declarative Studio workspace runtime", () => {
   });
 
   it("rejects duplicate local workspace IDs before host registration", async () => {
-    const definition = defineServicePlugin({
-      id: "duplicate-studio",
-      config: z.object({}),
-      studioWorkspaces: (context) => {
-        const action = refresh.bind(context, ({ input }) => ({
-          refreshed: input.id,
-        }));
-        return [
-          workspace.bind(context, {
-            actions: [action],
-            load: () => ({ count: 0 }),
-          }),
-          workspace.bind(context, {
-            actions: [action],
-            load: () => ({ count: 0 }),
-          }),
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "duplicate-studio",
+        config: z.object({}),
       },
-    });
+      {
+        studioWorkspaces: (context) => {
+          const action = refresh.bind(context, ({ input }) => ({
+            refreshed: input.id,
+          }));
+          return [
+            workspace.bind(context, {
+              actions: [action],
+              load: () => ({ count: 0 }),
+            }),
+            workspace.bind(context, {
+              actions: [action],
+              load: () => ({ count: 0 }),
+            }),
+          ];
+        },
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("duplicate-studio-runtime"),
     });
@@ -1944,25 +1968,29 @@ describe("publication workspace registration", () => {
   });
 
   it("tells the host which workspace publishes its entity types", async () => {
-    const definition = defineServicePlugin({
-      id: "publishing-operator",
-      config: z.object({}),
-      studioWorkspaces: (context) => [
-        workspace.bind(context, {
-          actions: [
-            refresh.bind(context, ({ input }) => ({ refreshed: input.id })),
-          ],
-          load: () => ({ count: 0 }),
-        }),
-        publishing.bind(context, {
-          actions: publicationActions.map((action) =>
-            action.bind(context, () => ({ success: true as const })),
-          ),
-          load: () => ({}),
-          listEntityTypes: () => ["post"],
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "publishing-operator",
+        config: z.object({}),
+      },
+      {
+        studioWorkspaces: (context) => [
+          workspace.bind(context, {
+            actions: [
+              refresh.bind(context, ({ input }) => ({ refreshed: input.id })),
+            ],
+            load: () => ({ count: 0 }),
+          }),
+          publishing.bind(context, {
+            actions: publicationActions.map((action) =>
+              action.bind(context, () => ({ success: true as const })),
+            ),
+            load: () => ({}),
+            listEntityTypes: () => ["post"],
+          }),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("publication-studio-runtime"),
     });

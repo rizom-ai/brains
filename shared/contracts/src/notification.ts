@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 import { defineBusContract, type BusContract } from "./bus-contract";
 
-/** Why notifications:send refused: its response error, stable for senders to read. */
+/** How notifications logs a refusal; senders read the answer's `failure` instead. */
 export const NOTIFICATION_FAILURES: {
   readonly recipientMissing: "Notification recipient missing";
   readonly transportMissing: "Notification transport missing";
@@ -11,24 +11,6 @@ export const NOTIFICATION_FAILURES: {
   transportMissing: "Notification transport missing",
   deliveryFailed: "Notification delivery failed",
 };
-
-const TRANSPORT_FAILURE = new RegExp(
-  `^${NOTIFICATION_FAILURES.deliveryFailed}: ([a-z0-9_:.-]{1,80})$`,
-);
-
-/**
- * A refusal as a short code: the transport's own code after a failed delivery.
- * Free text never becomes a code, so it can be kept and shown.
- */
-export function notificationFailureCode(error: string | undefined): string {
-  if (error === NOTIFICATION_FAILURES.recipientMissing)
-    return "recipient-missing";
-  if (error === NOTIFICATION_FAILURES.transportMissing)
-    return "transport-missing";
-  if (error?.startsWith(NOTIFICATION_FAILURES.deliveryFailed))
-    return TRANSPORT_FAILURE.exec(error)?.[1] ?? "delivery-failed";
-  return "unconfirmed";
-}
 
 type NotificationRecipientSchema = z.ZodDiscriminatedUnion<
   [
@@ -71,13 +53,34 @@ export const sendNotificationSchema: SendNotificationSchema = z.strictObject({
   idempotencyKey: z.string().trim().min(1).max(200).optional(),
 });
 
+/** Why a notification was not sent: a refusal is an answer, not a failure. */
+export const notificationFailureSchema: z.ZodEnum<{
+  "recipient-missing": "recipient-missing";
+  "transport-missing": "transport-missing";
+  "delivery-failed": "delivery-failed";
+}> = z.enum(["recipient-missing", "transport-missing", "delivery-failed"]);
+
+export type NotificationFailure = z.output<typeof notificationFailureSchema>;
+
+/** A transport's own short failure code: no message content, so it can be kept and shown. */
+export const notificationTransportCodeSchema: z.ZodString = z
+  .string()
+  .regex(/^[a-z0-9_:.-]{1,80}$/u);
+
 type SendNotificationResultSchema = z.ZodDiscriminatedUnion<
   [
     z.ZodObject<
       { status: z.ZodLiteral<"sent">; deliveryId: z.ZodOptional<z.ZodString> },
       z.core.$strict
     >,
-    z.ZodObject<{ status: z.ZodLiteral<"failed"> }, z.core.$strict>,
+    z.ZodObject<
+      {
+        status: z.ZodLiteral<"failed">;
+        failure: typeof notificationFailureSchema;
+        transportCode: z.ZodOptional<typeof notificationTransportCodeSchema>;
+      },
+      z.core.$strict
+    >,
   ]
 >;
 
@@ -87,7 +90,11 @@ export const sendNotificationResultSchema: SendNotificationResultSchema =
       status: z.literal("sent"),
       deliveryId: z.string().optional(),
     }),
-    z.strictObject({ status: z.literal("failed") }),
+    z.strictObject({
+      status: z.literal("failed"),
+      failure: notificationFailureSchema,
+      transportCode: notificationTransportCodeSchema.optional(),
+    }),
   ]);
 
 export type NotificationRecipient = z.output<

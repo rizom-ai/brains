@@ -231,7 +231,7 @@ export function collectNetworkAnswers(
       continue;
     }
     const reason =
-      reply.status === "failed" ? reply.error : "network unavailable";
+      reply.status === "failed" ? reply.error.message : "network unavailable";
     unanswered.push({ agent: peer.id, brain, reason });
   }
   const sources: SourceCitation[] = answers.flatMap((answer) => [

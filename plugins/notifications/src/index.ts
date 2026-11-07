@@ -1,5 +1,6 @@
 import {
   NOTIFICATION_FAILURES,
+  notificationTransportCodeSchema,
   notificationRecipientSchema,
   notificationsSendContract,
   type SendNotificationResult,
@@ -55,9 +56,11 @@ export class NotificationsPlugin extends ServicePlugin<
       notificationsSendContract,
       async (input): Promise<SendNotificationResult> => {
         const recipient = input.recipient ?? this.config.defaultRecipient;
+        // A refusal is an answer the sender acts on, not a failure: it
+        // arrives as data. A fault in a transport still throws.
         if (!recipient) {
-          context.logger.warn("Notification has no recipient");
-          throw new Error(NOTIFICATION_FAILURES.recipientMissing);
+          context.logger.warn(NOTIFICATION_FAILURES.recipientMissing);
+          return { status: "failed", failure: "recipient-missing" };
         }
 
         // Resolve a transport by the recipient's channel type. This plugin
@@ -65,10 +68,10 @@ export class NotificationsPlugin extends ServicePlugin<
         // registering a delivery provider — no change here.
         const provider = context.channels.getDeliveryProvider(recipient.type);
         if (!provider || !(await provider.isAvailable())) {
-          context.logger.warn("Notification has no available transport", {
+          context.logger.warn(NOTIFICATION_FAILURES.transportMissing, {
             channelType: recipient.type,
           });
-          throw new Error(NOTIFICATION_FAILURES.transportMissing);
+          return { status: "failed", failure: "transport-missing" };
         }
 
         const result = await provider.send({
@@ -84,9 +87,19 @@ export class NotificationsPlugin extends ServicePlugin<
 
         if (result.status !== "sent") {
           // The transport's failure code names the cause; it carries no message content.
-          throw new Error(
-            `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
+          context.logger.warn(NOTIFICATION_FAILURES.deliveryFailed, {
+            transportCode: result.failureCode,
+          });
+          // A code outside the contract's vocabulary is left out rather than
+          // passed on as free text.
+          const transportCode = notificationTransportCodeSchema.safeParse(
+            result.failureCode,
           );
+          return {
+            status: "failed",
+            failure: "delivery-failed",
+            ...(transportCode.success && { transportCode: transportCode.data }),
+          };
         }
 
         return result.providerDeliveryId

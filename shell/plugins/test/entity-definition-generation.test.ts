@@ -427,10 +427,16 @@ describe("declared generation", () => {
 });
 
 describe("linking what a generation produced", () => {
+  // The fields a link writes are the target's own metadata, as a declared
+  // type's frontmatter is.
   const post = defineEntity({
     type: "post",
     purpose: "Holds a cover and a list of renders.",
-    metadata: z.object({ title: z.string() }),
+    metadata: z.object({
+      title: z.string(),
+      coverImageId: z.string().optional(),
+      renders: z.array(z.object({ id: z.string() })).default([]),
+    }),
     coverImage: true,
   });
   const plainTarget = defineEntity({
@@ -475,9 +481,11 @@ describe("linking what a generation produced", () => {
       entity: {
         id: "essay",
         entityType: "post",
-        content:
-          "---\ntitle: Essay\nrenders:\n  - id: render-stale\n  - id: kept\n---\nBody",
-        metadata: { title: "Essay" },
+        content: "Body",
+        metadata: {
+          title: "Essay",
+          renders: [{ id: "render-stale" }, { id: "kept" }],
+        },
       },
     });
     await harness.getEntityService().createEntity({
@@ -499,18 +507,20 @@ describe("linking what a generation produced", () => {
         targetType: "post",
         mode: "cover",
       });
-      expect((await stored(harness, "post", "essay"))?.content).toContain(
-        "coverImageId: render-essay",
-      );
+      expect((await stored(harness, "post", "essay"))?.metadata).toMatchObject({
+        coverImageId: "render-essay",
+      });
       await run(harness, "render:generation", {
         target: "essay",
         targetType: "post",
         mode: "list",
       });
-      const content = (await stored(harness, "post", "essay"))?.content ?? "";
-      expect(content).toContain("- id: kept");
-      expect(content).toContain("- id: render-essay");
-      expect(content).not.toContain("render-stale");
+      const linked = await stored(harness, "post", "essay");
+      expect(linked?.metadata["renders"]).toEqual([
+        { id: "kept" },
+        { id: "render-essay" },
+      ]);
+      expect(linked?.content).toBe("Body");
     } finally {
       await harness.reset();
     }
@@ -538,6 +548,20 @@ describe("linking what a generation produced", () => {
         success: false,
         error: "Entity type 'jotting' doesn't support cover images",
       });
+      // A declared type's metadata is its frontmatter: a link into a field its
+      // schema does not declare would be stored where no read reaches it.
+      expect(
+        await run(harness, "render:generation", {
+          target: "scribble",
+          targetType: "jotting",
+          mode: "list",
+        }),
+      ).toEqual({
+        success: false,
+        error:
+          "Entity type 'jotting' declares no metadata field 'renders' to link into",
+      });
+      expect(await stored(harness, "render", "render-scribble")).toBeNull();
     } finally {
       await harness.reset();
     }

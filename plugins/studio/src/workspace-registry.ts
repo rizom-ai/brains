@@ -1,3 +1,4 @@
+import { SdkError } from "@brains/contracts";
 import {
   studioWorkspaceRegistrationSchema,
   type StudioWorkspaceActor,
@@ -47,7 +48,9 @@ export class StudioWorkspaceRegistry {
   register(input: StudioWorkspaceRegistration): StoredStudioWorkspace {
     const parsed = studioWorkspaceRegistrationSchema.parse(input);
     if (this.workspaces.has(parsed.id)) {
-      throw new Error(`Studio workspace already registered: ${parsed.id}`);
+      throw new SdkError("conflict", {
+        publicMessage: `Studio workspace already registered: ${parsed.id}`,
+      });
     }
     const occupiedIds = new Set(
       Array.from(this.workspaces.values()).flatMap((workspace) => [
@@ -63,9 +66,9 @@ export class StudioWorkspaceRegistry {
       (id, index) => requestedIds.indexOf(id) !== index,
     );
     if (duplicateRequested || requestedIds.some((id) => occupiedIds.has(id))) {
-      throw new Error(
-        `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
-      );
+      throw new SdkError("conflict", {
+        publicMessage: `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
+      });
     }
     const sourceEntityTypes = parsed.entityTypes;
     const entityTypes =

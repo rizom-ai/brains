@@ -342,6 +342,31 @@ describe("public authoring Phase 5 packed interface contracts", () => {
       expect(health.status).toBe(200);
       expect(await health.json()).toEqual({ status: "ok" });
 
+      // A service serves its declared routes through the same server.
+      const summaryUrl = `http://127.0.0.1:${runtimePort}/reading-insights/summary`;
+      const summary = await fetch(summaryUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          bookmarkId: "interface-jobs",
+          title: "Interface Jobs",
+          content: "Typed interface enqueue",
+        }),
+      });
+      expect(summary.status).toBe(200);
+      expect(await summary.json()).toEqual({
+        bookmarkId: "interface-jobs",
+        summary: "Saved reading: Interface Jobs (3 words)",
+        wordCount: 3,
+      });
+      const refused = await fetch(summaryUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ bookmarkId: "interface-jobs" }),
+      });
+      expect(refused.status).toBe(400);
+      expect(await refused.json()).toMatchObject({ code: "invalid_input" });
+
       const denied = await fetch(
         `http://127.0.0.1:${runtimePort}/hooks/reading-digest`,
         {

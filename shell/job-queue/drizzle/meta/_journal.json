@@ -64,6 +64,13 @@
       "when": 1793619179456,
       "tag": "0008_worker_session_slots",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794008474009,
+      "tag": "0009_job_public_error",
+      "breakpoints": true
     }
   ]
 }

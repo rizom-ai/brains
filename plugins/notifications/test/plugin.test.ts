@@ -1,8 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  NOTIFICATION_FAILURES,
-  notificationsSendContract,
-} from "@brains/contracts";
+import { notificationsSendContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type {
   ChannelDeliveryInput,
@@ -159,7 +156,7 @@ describe("NotificationsPlugin", () => {
     expect(sent[0]?.idempotencyKey).not.toBe(sent[1]?.idempotencyKey);
   });
 
-  it("names the transport's failure code when delivery fails, never the message", async () => {
+  it("answers a failed delivery with its transport's code, never the message", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     installEmailProvider(harness, async () => ({
       status: "failed",
@@ -183,23 +180,37 @@ describe("NotificationsPlugin", () => {
       });
 
     expect(response).toEqual({
-      success: false,
-      error: "Notification delivery failed: resend_validation_error",
+      success: true,
+      data: {
+        status: "failed",
+        failure: "delivery-failed",
+        transportCode: "resend_validation_error",
+      },
     });
   });
 
-  it("reports failure when no transport is registered for the recipient", async () => {
+  it("answers that no transport is available for the recipient", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     await harness.installPlugin(new NotificationsPlugin());
     await harness.finalizeRegistration();
 
-    const response = await harness.sendMessage(notificationsSendContract.name, {
-      recipient: { type: "email", address: "user@example.com" },
-      title: "Set up your Rover",
-      body: "Open the secret setup link.",
-    });
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: notificationsSendContract.name,
+        payload: {
+          recipient: { type: "email", address: "user@example.com" },
+          title: "Set up your Rover",
+          body: "Open the secret setup link.",
+        },
+        sender: "contact",
+      });
 
-    expect(response).toBeUndefined();
+    expect(response).toEqual({
+      success: true,
+      data: { status: "failed", failure: "transport-missing" },
+    });
   });
 });
 
@@ -231,8 +242,8 @@ describe("unset recipient env interpolation", () => {
         });
 
       expect(response).toEqual({
-        success: false,
-        error: NOTIFICATION_FAILURES.recipientMissing,
+        success: true,
+        data: { status: "failed", failure: "recipient-missing" },
       });
       expect(sent).toEqual([]);
     });

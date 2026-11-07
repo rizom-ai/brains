@@ -6,6 +6,8 @@
     "brain": "brain"
   },
   "dependencies": {
+    "@fixture/reader-import": "file:__READER_IMPORT_TARBALL__",
+    "@fixture/reader-profile": "file:__READER_PROFILE_TARBALL__",
     "@fixture/reading-entities": "file:__ENTITY_TARBALL__",
     "@fixture/reading-insights": "file:__SERVICE_TARBALL__",
     "@rizom/brain": "file:__RIZOM_BRAIN_TARBALL__",

@@ -44,13 +44,16 @@ configuration that have actually passed the package boundary.
 | Step | Package                                                                   | What it demonstrates                                                                                          |
 | ---- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | 1    | [`entity`](./entity/src/index.ts)                                         | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                         |
-| 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates/views, reusable job contract, handler, tools           |
+| 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates, reusable job contract, handler, tools                 |
 | 3    | [`interface`](./interface/src/index.ts)                                   | Public and protocol routes, runtime-derived caller, cross-package job enqueue, supervised daemon              |
 | 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, authenticated inbound messages, lazy attachments, normalized send/edit/deliver |
 | 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset      |
 | 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
 | 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation         |
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
+| 9    | [`profile-steward`](./profile-steward/src/index.ts)                       | Stewardship: the one package that writes the reader profile, and the contract it answers for changes          |
+| 10   | [`profile-import`](./profile-import/src/index.ts)                         | An importer that asks the steward through its contract instead of writing the profile itself                  |
+| 11   | [`reminders`](./reminders/src/index.ts)                                   | One service end to end: owned type, runtime state, tools, a job, a template, a contract it answers, a route   |
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split

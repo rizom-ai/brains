@@ -206,6 +206,8 @@ describe("@rizom/brain public plugin API surface", () => {
           },
           include: [
             "../test/fixtures/public-authoring/entity/src/**/*.ts",
+            "../test/fixtures/public-authoring/service/src/**/*.ts",
+            "../test/fixtures/public-authoring/service/src/**/*.tsx",
             "../test/fixtures/public-authoring/operator-surface/src/**/*.ts",
             "../test/fixtures/public-authoring/account-settings-interface/src/**/*.ts",
           ],

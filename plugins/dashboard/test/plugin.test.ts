@@ -1049,6 +1049,7 @@ describe("DashboardPlugin", () => {
       expect(response).toEqual({
         success: false,
         error: "Invalid dashboard:unregister-widget request",
+        code: "invalid_input",
       });
     });
 
@@ -1073,6 +1074,7 @@ describe("DashboardPlugin", () => {
       expect(response).toEqual({
         success: false,
         error: "Invalid dashboard:register-widget request",
+        code: "invalid_input",
       });
       const registry = plugin.getWidgetRegistry();
       const testPluginWidgets =

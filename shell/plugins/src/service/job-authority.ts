@@ -25,6 +25,8 @@ export interface IJobAuthorityNamespace {
   admit(caller: Caller | undefined): Promise<CallerAuthority>;
   /** Current access for a recorded requester; refuses a revoked or rebound account. */
   resolve(authority: CallerAuthority): Promise<CallerAccess>;
+  /** Current access for a caller acting now; without one, this plugin acting for itself. */
+  access(caller: Caller | undefined): Promise<CallerAccess>;
 }
 
 /** A tool call's trusted caller, at the level its interface gave it. */
@@ -71,19 +73,37 @@ export function createJobAuthorityNamespace(
     },
     resolve: (authority): Promise<CallerAccess> =>
       shell.getCallerAuthorizer().resolve(authority, packageJobAccount),
+    access: async (caller): Promise<CallerAccess> => {
+      const { access } = await shell
+        .getCallerAuthorizer()
+        .admit(
+          caller ?? serviceCaller(pluginId, shell.getPermissionService()),
+          packageJobAccount,
+        );
+      return access;
+    },
   };
 }
 
 type ServiceJobDataSchema<TInput extends ServiceSchema> = z.ZodObject<{
   authority: typeof callerAuthoritySchema;
   input: TInput;
+  byPackage: z.ZodOptional<z.ZodLiteral<true>>;
 }>;
 
-/** A package job's queued data: who started it, and its parsed input. */
+/**
+ * A package job's queued data: who started it, and its parsed input.
+ * `byPackage` marks a job the package queued acting as itself, which runs as
+ * the package too; the runtime alone writes it.
+ */
 export function serviceJobDataSchema<TInput extends ServiceSchema>(
   input: TInput,
 ): ServiceJobDataSchema<TInput> {
-  return z.object({ authority: callerAuthoritySchema, input });
+  return z.object({
+    authority: callerAuthoritySchema,
+    input,
+    byPackage: z.literal(true).optional(),
+  });
 }
 
 export type ServiceJobData = z.output<ServiceJobDataSchema<ServiceSchema>>;

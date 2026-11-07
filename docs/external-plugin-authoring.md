@@ -133,27 +133,33 @@ use `>=0.2.0 <0.3.0` for the stable patch line.
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 
-export default defineServicePlugin({
-  id: "calendar",
-  config: z.object({
-    timezone: z.string().default("UTC"),
-  }),
-  tools: ({ config }) => [
-    defineTool({
-      name: "calendar-timezone",
-      description: "Return the configured calendar timezone.",
-      input: z.object({}),
-      output: z.object({ timezone: z.string() }),
-      sideEffects: "none",
-      execute: () => ({ timezone: config.timezone }),
+export default defineServicePlugin(
+  {
+    id: "calendar",
+    config: z.object({
+      timezone: z.string().default("UTC"),
     }),
-  ],
-});
+  },
+  {
+    tools: ({ config }) => [
+      defineTool({
+        name: "calendar-timezone",
+        description: "Return the configured calendar timezone.",
+        input: z.object({}),
+        output: z.object({ timezone: z.string() }),
+        sideEffects: "none",
+        execute: () => ({ timezone: config.timezone }),
+      }),
+    ],
+  },
+);
 ```
 
 Important details:
 
 - import the blessed `z` from the family entry point—do not add direct `zod`;
+- the first argument says what the package is (`id`, `config`, and a `setup`
+  when it holds state); the second says what it does;
 - `config` is authored once and inferred in every callback;
 - the callback returns plain schema-valid data, not a framework wrapper;
 - `calendar` and `calendar-timezone` are local domain names; the runtime scopes
@@ -254,18 +260,22 @@ them. Projections reference source/target definitions and write through the
 typed target helper. Persistence, markdown/frontmatter validation, visibility,
 search indexing, scheduling, and loop prevention stay runtime-owned.
 
-### Entity data, templates, and views
+### Entity data and templates
 
 A declarative entity definition does **not** have a `templates` field. Entities
 own storage schemas, optional Markdown encoding, and projections. Put formatting
-or presentation in a separately composed service and read the entity from a job
-handler:
+or presentation in a separately composed service and read the entity from a job:
 
 <!-- public-authoring-example: external-template-service -->
 
 ```ts
 import { bookmark } from "@example/reading-entities";
-import { defineJob, defineServicePlugin, z } from "@rizom/brain/services";
+import {
+  defineJob,
+  defineServicePlugin,
+  z,
+  type EntityReader,
+} from "@rizom/brain/services";
 
 const digestRequest = z.object({ bookmarkId: z.string() });
 const digestResult = z.object({
@@ -278,35 +288,39 @@ const compileReadingDigest = defineJob({
   output: digestResult,
 });
 
-export default defineServicePlugin({
-  id: "reading-insights",
-  config: z.object({}),
-  templates: {
-    digest: {
-      schema: digestResult,
-      format: ({ value }) =>
-        `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
-    },
-  },
-  jobs: () => [
-    compileReadingDigest.handle(
-      async ({ input, entities, messaging, templates }) => {
-        const saved = await entities.get(bookmark, input.bookmarkId);
-        if (!saved) throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+// A helper written outside the `jobs` slot is handed the slot's `entities`.
+async function summarize(
+  entities: EntityReader,
+  bookmarkId: string,
+): Promise<z.output<typeof digestResult>> {
+  const saved = await entities.get(bookmark, bookmarkId);
+  if (!saved) throw new Error(`Bookmark not found: ${bookmarkId}`);
+  return { bookmarkId: saved.id, summary: saved.metadata.title };
+}
 
-        const result = {
-          bookmarkId: saved.id,
-          summary: saved.metadata.title,
-        };
+export default defineServicePlugin(
+  { id: "reading-insights", config: z.object({}) },
+  {
+    templates: {
+      digest: {
+        schema: digestResult,
+        format: ({ value }) =>
+          `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
+      },
+    },
+    // The slot carries the capabilities; the handler is given the call's data.
+    jobs: ({ entities, messaging, templates }) => [
+      compileReadingDigest.handle(async ({ input }) => {
+        const result = await summarize(entities, input.bookmarkId);
         await messaging.publish({
           topic: "digest-ready",
           data: { ...result, markdown: templates.format("digest", result) },
         });
         return result;
-      },
-    ),
-  ],
-});
+      }),
+    ],
+  },
+);
 ```
 
 The complete checked flow is in the [reading-insights service](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx).
@@ -316,12 +330,11 @@ Rules that are easy to miss:
 - declare the render-data schema once; `format()` receives its parsed output;
 - `templates.format("digest", value)` uses the service-local key and validates
   `value` before calling the formatter;
-- the formatter is available to this service's tool callbacks and job handlers;
+- the formatter is the `tools` and `jobs` slots' `templates`;
 - transform an `EntityOf` value into the intended render model instead of
   coupling presentation to every persisted field;
-- a `template` produces text, while a `view` supplies a web renderer;
-- a template and view with the same key form one capability and must reference
-  the exact same schema object;
+- one template formats a value as text (`format`), renders it
+  (`renderers.web`), or both; it renders only a schema that produces JSON;
 - configuration-dependent text should be represented in the render value before
   formatting because template definitions are static.
 
@@ -330,8 +343,7 @@ Several unrelated concepts also use the word “template”:
 | Concept                         | Meaning                                                                    |
 | ------------------------------- | -------------------------------------------------------------------------- |
 | Entity `markdown` codec         | Converts persisted content/metadata to and from Markdown; not presentation |
-| Service `templates`             | Schema-validated text formatting available to that service                 |
-| Service `views`                 | Schema-validated web rendering; may share a key/schema with a template     |
+| Service `templates`             | Schema-validated text formatting and web rendering for that service        |
 | Site route `template`           | A `namespace:section` reference created by `sectionGroup()`                |
 | `@rizom/brain/templates` import | Advanced rich-rendering API outside the patch-stable `0.2` contract        |
 
@@ -347,11 +359,16 @@ tool and call `jobs.enqueue(job, input)`. The runtime owns retries, deadlines,
 worker execution, cancellation, progress storage, restart recovery, and result
 validation.
 
-A job's `entities.get` reads with the access of whoever started it: the tool's
-caller, the Studio or Dashboard viewer, or the caller of an interface route.
-A job enqueued outside a request, such as from a daemon, reads with the
-enqueuing package's own grant, which is public unless the brain grants more.
-If the requester's account is revoked before the job runs, the job fails.
+The `jobs` and `tools` slots are given one `entities`, which reads and writes
+as the current caller. Inside a running job that is whoever started it: the
+tool's caller, the Studio or Dashboard viewer, or the caller of an interface
+route. A job another package enqueued outside a request, such as from a daemon,
+reads and writes with that package's own grant, which is public unless the
+brain grants more. A job the service queued for itself, like an answer to
+another package, runs as the service: its own types are its to read at every
+visibility and to write past the action policy, which governs callers. If the
+requester's account is revoked before the job runs, the job fails. A service
+writes only the entity types its header's `entities` declares.
 
 ### Account settings and operator surfaces
 

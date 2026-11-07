@@ -21,14 +21,25 @@ export function createMockEntityRegistry(
   const createInterceptors = new Map<string, CreateInterceptor>();
   const createChecks = new Map<string, CreateCheck>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
+  // The types registered here, apart from the store's, which the service
+  // double also fills when a test writes an entity of a type nobody registered.
+  const registered = new Set<string>();
 
   const registry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
+      // As the real registry: a type has one registration.
+      if (registered.has(type)) {
+        throw new Error(
+          `Entity type registration failed for ${type}: Entity type is already registered`,
+        );
+      }
+      registered.add(type);
       store.types.add(type);
       store.adapters.set(type, adapter);
       store.typeConfigs.set(type, config ?? {});
     },
     unregisterEntityType: (type): void => {
+      registered.delete(type);
       store.types.delete(type);
       store.adapters.delete(type);
       store.typeConfigs.delete(type);
@@ -92,7 +103,10 @@ export function createMockEntityRegistry(
     registerPersistValidator: (): void => {},
     getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: () => undefined,
+    // As the real registry: the adapter's schema, with the extensions this
+    // double never records merged in.
+    getEffectiveFrontmatterSchema: (type: string) =>
+      store.adapters.get(type)?.frontmatterSchema,
     getFrontmatterExtensions: () => [],
     getGroupings: () => [],
     registerGroupingSource: (): never => {

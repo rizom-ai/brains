@@ -186,6 +186,13 @@ function queueJob(id: string, status: JobInfo["status"]): JobInfo {
     retryCount: status === "failed" ? 3 : 0,
     maxRetries: 3,
     lastError: status === "failed" ? "No handler registered" : null,
+    lastErrorPublic:
+      status === "failed"
+        ? {
+            code: "no_handler",
+            message: "No handler is available for this capability",
+          }
+        : null,
     createdAt: 10,
     scheduledFor: 10,
     startedAt: status === "pending" ? null : 10,

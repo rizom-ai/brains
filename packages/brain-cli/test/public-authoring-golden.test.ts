@@ -46,7 +46,7 @@ interface ExportLedger {
 interface GoldenPackageExpectation {
   directory: string;
   packageName: string;
-  publicEntryPoint: string;
+  publicEntryPoints: string[];
   requiredVocabulary: string[];
 }
 
@@ -59,7 +59,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "entity",
     packageName: "@fixture/reading-entities",
-    publicEntryPoint: "@rizom/brain/entities",
+    publicEntryPoints: ["@rizom/brain/entities"],
     requiredVocabulary: [
       "defineEntity",
       "defineEntityPackage",
@@ -71,19 +71,61 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "service",
     packageName: "@fixture/reading-insights",
-    publicEntryPoint: "@rizom/brain/services",
-    requiredVocabulary: ["defineJob", "defineServicePlugin", "defineTool", "z"],
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineEntity",
+      "defineJob",
+      "defineServicePlugin",
+      "defineTool",
+      "entities: [readingRequest]",
+      "z",
+    ],
+  },
+  {
+    directory: "profile-steward",
+    packageName: "@fixture/reader-profile",
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineBusContract",
+      "entities: [readerProfile]",
+      "answer(fillReaderProfile",
+      "sender",
+    ],
+  },
+  {
+    directory: "profile-import",
+    packageName: "@fixture/reader-import",
+    publicEntryPoints: ["@rizom/brain/services"],
+    requiredVocabulary: [
+      "messaging.request(fillReaderProfile",
+      "entities.get(readerProfile",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
+    ],
+  },
+  {
+    directory: "reminders",
+    packageName: "@fixture/reminders",
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "entities: [reminder]",
+      "runtimeState(",
+      "answer(dueCount",
+      "fireReminder.handle(",
+      "defineRoute(",
+      "templates.format(",
+    ],
   },
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoint: "@rizom/site",
+    publicEntryPoints: ["@rizom/site"],
     requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
   },
   {
     directory: "interface",
     packageName: "@fixture/reading-webhook",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: [
       "defineDaemon",
       "defineInterface",
@@ -95,13 +137,13 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: ["defineMessageInterface", "z"],
   },
   {
     directory: "brain-definition",
     packageName: "@fixture/reader-brain",
-    publicEntryPoint: "@rizom/brain",
+    publicEntryPoints: ["@rizom/brain"],
     requiredVocabulary: ["defineBrain", "defineBundle", "use"],
   },
 ];
@@ -253,7 +295,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the entity canaries and the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity and service canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "entity",
@@ -264,8 +306,61 @@ describe("public authoring 0.2 golden packages", () => {
         },
       },
       {
+        directory: "service",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+        },
+      },
+      {
+        directory: "reminders",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-steward",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-import",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reader-profile": [
+            "./packages/brain-cli/test/fixtures/public-authoring/profile-steward/src/index.ts",
+          ],
+        },
+      },
+      {
         directory: "operator-surface",
         paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
           ],
@@ -309,6 +404,7 @@ describe("public authoring 0.2 golden packages", () => {
             },
             include: [
               `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
             ],
           }),
         );
@@ -411,7 +507,10 @@ describe("public authoring 0.2 golden packages", () => {
       expect(manifest.dependencies?.zod).toBeUndefined();
       expect(manifest.devDependencies?.zod).toBeUndefined();
       expect(manifest.peerDependencies?.zod).toBeUndefined();
-      expect(publicImports).toEqual([fixture.publicEntryPoint]);
+      // An import inventory, independent of source file traversal order.
+      expect(publicImports.sort()).toEqual(
+        [...fixture.publicEntryPoints].sort(),
+      );
 
       for (const symbol of fixture.requiredVocabulary) {
         expect(source).toContain(symbol);
@@ -480,9 +579,11 @@ describe("public authoring 0.2 golden packages", () => {
       "resources:",
       "prompts:",
       "templates:",
-      "views:",
+      "renderers:",
       "jobs:",
       "tools:",
+      "subscriptions:",
+      "routes:",
     ]) {
       expect(service).toContain(capability);
     }

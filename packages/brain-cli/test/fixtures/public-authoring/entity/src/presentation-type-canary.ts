@@ -4,7 +4,7 @@ import {
   defineEntityPackage,
   z,
   type DataSourceDefinition,
-  type DataSourceEntityReader,
+  type EntityReader,
   type EntityDataSourceDefinition,
   type EntityDefinition,
   type EntityFeedDeclaration,
@@ -14,9 +14,7 @@ import {
 import { bookmark } from "./index";
 
 // Compile-only: checked by the fixture typecheck, never loaded by the brain.
-async function bookmarkTitles(
-  entities: DataSourceEntityReader,
-): Promise<string[]> {
+async function bookmarkTitles(entities: EntityReader): Promise<string[]> {
   const saved = await entities.list(bookmark, {
     sort: [{ field: "title", direction: "asc" }],
     limit: 20,

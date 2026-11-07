@@ -1,3 +1,4 @@
+import { toSdkError } from "@brains/contracts";
 import type {
   IJobQueueService,
   IJobsNamespace,
@@ -48,6 +49,7 @@ export function createMockJobQueue(): MockJobQueue {
       retryCount: 0,
       maxRetries: request.options?.maxRetries ?? 3,
       lastError: null,
+      lastErrorPublic: null,
       createdAt: now,
       scheduledFor: now,
       startedAt: null,
@@ -110,9 +112,36 @@ export function createMockJobQueue(): MockJobQueue {
   const jobQueueService: IJobQueueService = {
     enqueue: async (request) => recordEnqueuedJob(request),
     // The real service reports whether the job was still claimable; the fake
-    // has no attempt bookkeeping, so it reports success.
-    complete: async () => true,
-    fail: async () => true,
+    // has no attempt bookkeeping, so it reports success. A settled job is
+    // recorded as the real queue records it: the diagnostic beside the
+    // failure's public form, both cleared on completion.
+    complete: async (jobId, result) => {
+      const job = enqueuedJobs.get(jobId);
+      if (job) {
+        enqueuedJobs.set(jobId, {
+          ...job,
+          status: "completed",
+          result,
+          lastError: null,
+          lastErrorPublic: null,
+          completedAt: Date.now(),
+        });
+      }
+      return true;
+    },
+    fail: async (jobId, error) => {
+      const job = enqueuedJobs.get(jobId);
+      if (job) {
+        enqueuedJobs.set(jobId, {
+          ...job,
+          status: "failed",
+          lastError: error.message,
+          lastErrorPublic: toSdkError(error).toJSON(),
+          completedAt: Date.now(),
+        });
+      }
+      return true;
+    },
     update: async () => true,
     getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
     getJobsByRootJobId: async (rootJobId) =>

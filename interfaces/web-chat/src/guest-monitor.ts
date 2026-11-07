@@ -7,7 +7,7 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { formatByteSize } from "@brains/utils/string-utils";
-import { noteCaptureContract } from "@brains/contracts";
+import { noteCaptureContract, sdkErrorFrom } from "@brains/contracts";
 import {
   guestRefusalCategorySchema,
   type GuestRefusalCategory,
@@ -635,7 +635,7 @@ export async function registerGuestMonitor(
               );
               if (saved.status === "unavailable")
                 throw new Error("Notes are unavailable");
-              if (saved.status === "failed") throw new Error(saved.error);
+              if (saved.status === "failed") throw sdkErrorFrom(saved.error);
               return { noteId: saved.data.noteId };
             },
             async ({ input }) => {

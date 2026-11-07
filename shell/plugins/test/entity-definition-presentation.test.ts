@@ -3,7 +3,13 @@ import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { siteBuildStagingContract } from "@brains/contracts";
-import type { DataSource } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  DataSource,
+  EntitySchema,
+  IEntityService,
+  ListEntitiesRequest,
+} from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
@@ -327,16 +333,38 @@ describe("declared entity data sources", () => {
   it("derives the entity schema from the definition", async () => {
     const { harness } = await install([bookmark], [bookmarks]);
     try {
-      await harness.getEntityService().createEntity({
-        entity: {
-          id: "broken",
-          entityType: "bookmark",
-          content: "Missing its slug",
-          metadata: { title: "Broken" },
-        },
-      });
+      // The entity service leaves out a row its type cannot read, so the
+      // source's own check is shown on a service that hands one over anyway.
+      const now = new Date().toISOString();
+      const broken: BaseEntity = {
+        id: "broken",
+        entityType: "bookmark",
+        content: "Missing its slug",
+        contentHash: "broken",
+        metadata: { title: "Broken" },
+        visibility: "public",
+        created: now,
+        updated: now,
+      };
+      function listEntities(
+        request: ListEntitiesRequest,
+      ): Promise<BaseEntity[]>;
+      function listEntities<T extends BaseEntity>(
+        request: ListEntitiesRequest,
+        schema: EntitySchema<T>,
+      ): Promise<T[]>;
+      async function listEntities(
+        _request: ListEntitiesRequest,
+        schema?: EntitySchema<BaseEntity>,
+      ): Promise<BaseEntity[]> {
+        return schema ? [schema.parse(broken)] : [broken];
+      }
+      const entityService: IEntityService = {
+        ...harness.getEntityService(),
+        listEntities,
+      };
       const refused = await registered(harness, "@fixture/reading:bookmarks")
-        .fetch?.({}, listSchema, { entityService: harness.getEntityService() })
+        .fetch?.({}, listSchema, { entityService })
         .catch((error: unknown) => error);
       expect(refused).toBeInstanceOf(z.ZodError);
     } finally {

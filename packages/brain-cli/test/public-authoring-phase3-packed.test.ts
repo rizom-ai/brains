@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
+import { waitUntil } from "@brains/test-utils";
 import {
   buildAndPackFixturePackage,
   combinedOutput,
@@ -19,6 +20,8 @@ const packageDirectory = join(import.meta.dir, "..");
 const publicFixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
 const entityFixture = join(publicFixtureRoot, "entity");
 const serviceFixture = join(publicFixtureRoot, "service");
+const stewardFixture = join(publicFixtureRoot, "profile-steward");
+const importerFixture = join(publicFixtureRoot, "profile-import");
 const brainFixture = join(
   import.meta.dir,
   "fixtures",
@@ -169,6 +172,16 @@ describe("public authoring Phase 3 packed service contract", () => {
         tarballs,
       );
       tarballs.set(...service);
+      for (const fixture of [stewardFixture, importerFixture]) {
+        tarballs.set(
+          ...(await buildAndPackFixturePackage(
+            fixture,
+            stagingDirectory,
+            tarballDirectory,
+            tarballs,
+          )),
+        );
+      }
       const brain = await buildAndPackFixturePackage(
         brainFixture,
         stagingDirectory,
@@ -199,6 +212,64 @@ describe("public authoring Phase 3 packed service contract", () => {
           },
         },
         { confirm: true },
+      );
+
+      // The service writes a type its header owns, installed with the package.
+      const requested = await invokeTool(
+        consumerDirectory,
+        "reading-insights_request-reading-digest",
+        { bookmarkId: "durable-services" },
+      );
+      expect(requested).toContain('"id": "durable-services"');
+      const request = await invokeTool(consumerDirectory, "system_get", {
+        entityType: "reading-request",
+        id: "durable-services",
+      });
+      expect(request).toContain("Asked for a digest");
+      expect(request).toContain("requested");
+
+      // A contract the service answers, asked over the brain's bus.
+      const summarized = await invokeTool(
+        consumerDirectory,
+        "reading-insights_preview-reading-summary",
+        {
+          bookmarkId: "durable-services",
+          title: "Durable Services",
+          content: "Hermetic durable service execution",
+        },
+      );
+      expect(summarized).toContain(
+        '"summary": "Saved reading: Durable Services (4 words)"',
+      );
+
+      // A stewarded type changes only by asking its steward.
+      await invokeTool(consumerDirectory, "profile_start-profile", {
+        name: "Alex",
+      });
+      const imported = await invokeTool(
+        consumerDirectory,
+        "reader-import_import-profile",
+        { headline: "Reads widely", website: "https://alex.example" },
+      );
+      expect(imported).toContain('"filled": [');
+      expect(imported).toContain('"headline"');
+      expect(imported).toContain('"kept": []');
+      expect(
+        await invokeTool(
+          consumerDirectory,
+          "reader-import_profile-headline",
+          {},
+        ),
+      ).toContain('"headline": "Reads widely"');
+
+      // A job that fails with a code: its status says why, not what it threw.
+      const missing = jobIdFrom(
+        await invokeTool(
+          consumerDirectory,
+          "reading-insights_compile-reading-digest",
+          { bookmarkId: "no-such-bookmark" },
+          { confirm: true },
+        ),
       );
 
       const enqueued = await invokeTool(
@@ -246,6 +317,23 @@ describe("public authoring Phase 3 packed service contract", () => {
       expect(completed).toContain('"wordCount": 4');
       expect(completed).toContain('"progress": 100');
       expect(completed).toContain('"message": "Digest ready"');
+
+      let failed = "";
+      await waitUntil(
+        async () => {
+          failed = await invokeTool(
+            consumerDirectory,
+            "reading-insights_reading-digest-status",
+            { jobId: missing },
+          );
+          return failed.includes('"status": "failed"');
+        },
+        "the digest of a missing bookmark to fail",
+        { timeoutMs: 30_000, intervalMs: 250 },
+      );
+      expect(failed).toContain('"code": "not_found"');
+      expect(failed).toContain('"error": "Not found"');
+      expect(failed).not.toContain("no-such-bookmark");
 
       expect(admitted).toContain('"template": "generatedDigest"');
       expect(admitted).toContain('"template": "generatedBookmark"');

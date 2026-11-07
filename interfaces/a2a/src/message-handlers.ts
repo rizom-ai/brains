@@ -3,15 +3,41 @@ import {
   type InterfacePluginContext,
 } from "@brains/plugins";
 import {
+  SdkError,
   a2aAgentsContract,
   a2aAskContract,
   a2aCallContract,
   a2aPeerAnswerSchema,
+  clipPublicMessage,
   type A2ADirectoryAgent,
   type A2APeerAnswer,
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { executeAgentCall, type A2AClientDeps } from "./client";
+
+/** The directory's refusals to contact an agent, before any network contact. */
+const directoryRefusals = new Set([
+  "agent_not_saved",
+  "agent_not_approved",
+  "agent_archived",
+]);
+
+/**
+ * An outbound call that did not succeed, as the asker hears it. Its message
+ * is written for the caller, as agent_call returns it: a refusal by the
+ * directory is `permission_denied`, anything else a failed call.
+ */
+function callRefusal(
+  result: Awaited<ReturnType<typeof executeAgentCall>>,
+  fallback: string,
+): SdkError {
+  const code =
+    "code" in result && directoryRefusals.has(result.code ?? "")
+      ? "permission_denied"
+      : "handler_failed";
+  const message = "error" in result ? result.error : fallback;
+  return new SdkError(code, { publicMessage: clipPublicMessage(message) });
+}
 
 /** How a peer is asked: the question, then what kind of answer serves a visitor. */
 export function networkAskMessage(question: string): string {
@@ -43,7 +69,11 @@ export function registerA2ACallMessageHandlers(
     async ({ agent, question }): Promise<A2APeerAnswer> => {
       const budgetMs = options.networkAskTimeoutMs;
       const budget = AbortSignal.timeout(budgetMs);
-      const timedOut = `${agent} did not answer within ${budgetMs} ms`;
+      const timedOut = (cause?: unknown): SdkError =>
+        new SdkError("deadline_exceeded", {
+          publicMessage: `${agent} did not answer within ${budgetMs} ms`,
+          cause,
+        });
       let result: Awaited<ReturnType<typeof executeAgentCall>>;
       try {
         result = await executeAgentCall(
@@ -52,23 +82,30 @@ export function registerA2ACallMessageHandlers(
           { requireSaved: true, signal: budget },
         );
       } catch (error) {
-        throw new Error(
-          budget.aborted
-            ? timedOut
-            : getErrorMessage(error, `${agent} did not answer`),
-          { cause: error },
-        );
+        if (budget.aborted) throw timedOut(error);
+        throw new SdkError("handler_failed", {
+          message: getErrorMessage(error, `${agent} did not answer`),
+          publicMessage: `${agent} did not answer`,
+          cause: error,
+        });
       }
-      if (budget.aborted) throw new Error(timedOut);
+      if (budget.aborted) throw timedOut();
       if (!("success" in result) || result.success !== true) {
-        throw new Error(
-          "error" in result ? result.error : `${agent} did not answer`,
-        );
+        throw callRefusal(result, `${agent} did not answer`);
       }
       const answer = a2aPeerAnswerSchema.safeParse(result.data);
-      if (!answer.success) throw new Error(`${agent} gave no readable answer`);
+      if (!answer.success) {
+        throw new SdkError("handler_failed", {
+          publicMessage: `${agent} gave no readable answer`,
+        });
+      }
       if (answer.data.state !== "completed") {
-        throw new Error(`${agent} did not answer: ${answer.data.response}`);
+        // The peer's own words, written for whoever asked.
+        throw new SdkError("handler_failed", {
+          publicMessage: clipPublicMessage(
+            `${agent} did not answer: ${answer.data.response}`,
+          ),
+        });
       }
       return answer.data;
     },
@@ -92,10 +129,14 @@ export function registerA2ACallMessageHandlers(
         { requireSaved: true },
       );
       if (!("success" in result) || result.success !== true) {
-        throw new Error("error" in result ? result.error : "Agent call failed");
+        throw callRefusal(result, "Agent call failed");
       }
       const answer = a2aPeerAnswerSchema.safeParse(result.data);
-      if (!answer.success) throw new Error("Invalid response from agent");
+      if (!answer.success) {
+        throw new SdkError("handler_failed", {
+          publicMessage: "Invalid response from agent",
+        });
+      }
       return answer.data;
     },
   );

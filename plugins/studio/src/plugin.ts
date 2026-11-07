@@ -1,6 +1,7 @@
 import {
   CHAT_INTERACTION_ID,
   STUDIO_INTERACTION_ID,
+  SdkError,
   consoleJumpDestinationsContract,
 } from "@brains/contracts";
 import type {
@@ -302,9 +303,9 @@ export class StudioPlugin extends ServicePlugin<
           registration.id === STUDIO_CHAT_WORKSPACE_ID ||
           registration.id === STUDIO_OVERVIEW_WORKSPACE_ID
         ) {
-          throw new Error(
-            `Studio workspace id is reserved by the host: ${registration.id}`,
-          );
+          throw new SdkError("invalid_input", {
+            publicMessage: `Studio workspace id is reserved by the host: ${registration.id}`,
+          });
         }
         const workspace = this.workspaceRegistry.register(registration);
         return {

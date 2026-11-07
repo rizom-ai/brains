@@ -36,6 +36,7 @@ function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
     createdAt: Date.now(),
     maxRetries: 3,
     lastError: null,
+    lastErrorPublic: null,
     result: null,
     progress: null,
     completedAt: null,

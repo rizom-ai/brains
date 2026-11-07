@@ -1,5 +1,9 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { a2aAgentsContract, a2aCallContract } from "@brains/contracts";
+import {
+  a2aAgentsContract,
+  a2aCallContract,
+  sdkErrorHttpStatus,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { StudioRequestAccess } from "./editor-contracts";
 import { requireEntityAction } from "./editor-access";
@@ -289,7 +293,10 @@ export async function handleAskAgent(
     return jsonResponse({ error: "Agent asking is unavailable" }, 503);
   }
   if (result.status === "failed") {
-    return jsonResponse({ error: result.error }, 400);
+    return jsonResponse(
+      { error: result.error.message, code: result.error.code },
+      sdkErrorHttpStatus(result.error.code),
+    );
   }
 
   return jsonResponse({

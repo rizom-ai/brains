@@ -8,6 +8,7 @@ import {
   setSystemTime,
   spyOn,
 } from "bun:test";
+import { SdkError } from "@brains/contracts";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler, JobQueueDbConfig } from "../src/types";
 import type { JobOptions } from "../src/schema/types";
@@ -829,6 +830,50 @@ describe("JobQueueService", () => {
       await service.fail(jobId, new Error("Test error"));
       const job = await service.getStatus(jobId);
       expect(job?.scheduledFor).toBeGreaterThan(originalTime);
+    });
+
+    it("records a failure's public form beside its diagnostic, and clears both on completion", async () => {
+      const coded = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts({ maxRetries: 0 }),
+      });
+      await service.fail(
+        coded,
+        new SdkError("not_found", {
+          message: "No bookmark tide-1",
+          publicMessage: "Save the bookmark first",
+        }),
+      );
+      expect(await service.getStatus(coded)).toMatchObject({
+        status: "failed",
+        lastError: "No bookmark tide-1",
+        lastErrorPublic: {
+          code: "not_found",
+          message: "Save the bookmark first",
+        },
+      });
+
+      const plain = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+      await service.fail(plain, new Error("Socket closed"));
+      expect(await service.getStatus(plain)).toMatchObject({
+        status: "pending",
+        lastError: "Socket closed",
+        lastErrorPublic: {
+          code: "handler_failed",
+          message: "The operation failed",
+        },
+      });
+      await service.complete(plain, { success: true });
+      expect(await service.getStatus(plain)).toMatchObject({
+        status: "completed",
+        lastError: null,
+        lastErrorPublic: null,
+      });
     });
 
     it("does not allow an unfenced caller to overwrite a terminal job", async () => {
@@ -1801,6 +1846,10 @@ describe("JobQueueService", () => {
       const job1 = await service.getStatus(id1);
       expect(job1?.status).toBe("failed");
       expect(job1?.lastError).toContain("Replaced");
+      expect(job1?.lastErrorPublic).toEqual({
+        code: "cancelled",
+        message: "The operation was cancelled",
+      });
       const job2 = await service.getStatus(id2);
       expect(job2?.status).toBe("pending");
       const activeJobs = await service.getActiveJobs(["site-build"]);

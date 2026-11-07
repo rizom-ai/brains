@@ -74,22 +74,26 @@ const library = defineStudioWorkspace({
   }),
 });
 
-const definition = defineServicePlugin({
-  id: "reading-operator",
-  config: z.object({}),
-  setup: () => ({ count: 3 }),
-  studioWorkspaces: (context) => {
-    const action = refresh.bind(context, ({ input }) => ({
-      refreshed: input.id,
-    }));
-    return [
-      library.bind(context, {
-        actions: [action],
-        load: ({ state }) => ({ count: state.count }),
-      }),
-    ];
+const definition = defineServicePlugin(
+  {
+    id: "reading-operator",
+    config: z.object({}),
+    setup: () => ({ count: 3 }),
   },
-});
+  {
+    studioWorkspaces: (context) => {
+      const action = refresh.bind(context, ({ input }) => ({
+        refreshed: input.id,
+      }));
+      return [
+        library.bind(context, {
+          actions: [action],
+          load: ({ state }) => ({ count: state.count }),
+        }),
+      ];
+    },
+  },
+);
 
 function instantiateService(): Plugin {
   const [plugin] = instantiatePluginPackageDefinition(
@@ -256,19 +260,23 @@ const broken = defineStudioWorkspace({
   }),
 });
 
-const failingDefinition = defineServicePlugin({
-  id: "failing-operator",
-  config: z.object({}),
-  setup: () => ({}),
-  studioWorkspaces: (context) => [
-    broken.bind(context, {
-      actions: [],
-      load: () => {
-        throw new Error("Snapshots unreadable");
-      },
-    }),
-  ],
-});
+const failingDefinition = defineServicePlugin(
+  {
+    id: "failing-operator",
+    config: z.object({}),
+    setup: () => ({}),
+  },
+  {
+    studioWorkspaces: (context) => [
+      broken.bind(context, {
+        actions: [],
+        load: () => {
+          throw new Error("Snapshots unreadable");
+        },
+      }),
+    ],
+  },
+);
 
 describe("a workspace whose data cannot be loaded", () => {
   // A proxy in front of the brain (Cloudflare) replaces an origin 502 with
