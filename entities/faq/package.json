@@ -1,14 +1,14 @@
 {
   "name": "@brains/faq",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.648",
+  "version": "0.2.0-alpha.652",
   "description": "Plugin that captures reusable chat questions and answers as FAQ entities",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

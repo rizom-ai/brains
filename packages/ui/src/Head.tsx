@@ -1,21 +1,22 @@
 import type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
 import {
-  createContext,
   createElement as h,
   type Context,
   type JSX,
   type ReactNode,
   useContext,
 } from "react";
+import { sharedContext } from "./shared-context";
 
 export type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
 
 /**
  * Context for sharing the HeadCollector during SSR
- * The collector is provided by the site builder during rendering
+ * The collector is provided by the site builder during rendering, and every
+ * copy of this library reads the same context.
  */
 export const HeadContext: Context<HeadCollectorInterface | null> =
-  createContext<HeadCollectorInterface | null>(null);
+  sharedContext<HeadCollectorInterface | null>("head-collector@1", null);
 
 /**
  * Provider component that makes HeadCollector available to child components

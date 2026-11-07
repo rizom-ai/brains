@@ -301,6 +301,7 @@ until the repository owns a corresponding format.
 
 - `@rizom/brain` (`packages/brain-cli`) — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`, `brain secrets:push`, `brain cert:bootstrap`, `brain ssh-key:bootstrap`. Bundles the runtime while `brain init` scaffolds instance-local support files such as `package.json`, `tsconfig.json`, and optional deploy artifacts.
 - `@rizom/ops` (`packages/brains-ops`) — operator CLI for private fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, and multi-user deploy management.
+- `@rizom/brain-ui` (`packages/ui`) — React components for sites and plugin views (Header, Footer, ThemeToggle, cards, widgets); the first-party ones come from `@rizom/brain-ui/internal`, which is not published.
 
 ### Interface Packages (`interfaces/*`)
 
@@ -313,7 +314,6 @@ until the repository owns a corresponding format.
 ### Shared Packages (`shared/*`)
 
 - `@brains/utils` — Logger (JSON mode + log file), markdown, YAML, IDs, permissions, progress, Zod re-export (overloaded; split tracked separately)
-- `@brains/ui-library` — React UI components (Header, Footer, ThemeToggle, widgets)
 - `@brains/site-engine` — renderer-agnostic site build engine utilities
 - `@brains/site-composition` — shared site composition contract and merge helpers
 - `@brains/test-utils` — mock factories, test harnesses, MockShell

@@ -1,3 +1,9 @@
+/**
+ * First-party components of `@rizom/brain-ui`, for the packages in this
+ * repository. Not published: the public names are in `./index`, and a name
+ * moves there only with a fixture that uses it and a ledger entry.
+ */
+
 // Utilities
 export { cn } from "./lib/utils";
 export { cssVariables, type CSSVariableProperties } from "./css-properties";
@@ -59,18 +65,14 @@ export { ProseHeading, proseHeadingVariants } from "./ProseHeading";
 export type { ProseHeadingProps, HeadingLevel } from "./ProseHeading";
 
 // Card components
-export { Card, cardVariants } from "./Card";
-export type { CardProps, CardVariant } from "./Card";
+export { cardVariants } from "./Card";
+export type { CardVariant } from "./Card";
 export { CardImage, cardImageVariants } from "./CardImage";
 export type { CardImageProps, CardImageSize } from "./CardImage";
 
 // Cover image
 export { CoverImage } from "./CoverImage";
 export type { CoverImageProps } from "./CoverImage";
-export { CardTitle } from "./CardTitle";
-export type { CardTitleProps } from "./CardTitle";
-export { CardMetadata } from "./CardMetadata";
-export type { CardMetadataProps } from "./CardMetadata";
 
 // Empty state
 export { EmptyState } from "./EmptyState";
@@ -80,13 +82,8 @@ export type { EmptyStateProps } from "./EmptyState";
 export { ListPageHeader } from "./ListPageHeader";
 export type { ListPageHeaderProps } from "./ListPageHeader";
 
-// Date formatting
-export { formatDate } from "./utils/formatDate";
-export type { FormatDateOptions, DateFormatStyle } from "./utils/formatDate";
-
 // Tags
-export { TagsList, tagVariants } from "./TagsList";
-export type { TagsListProps } from "./TagsList";
+export { tagVariants } from "./TagsList";
 
 // Back link
 export { BackLink } from "./BackLink";
@@ -153,8 +150,6 @@ export {
   useMarkdownToHtml,
 } from "./ImageRendererProvider";
 export type { ImageRendererProviderProps } from "./ImageRendererProvider";
-export { MarkdownContent } from "./MarkdownContent";
-export type { MarkdownContentProps } from "./MarkdownContent";
 
 // Pagination
 export { Pagination } from "./Pagination";

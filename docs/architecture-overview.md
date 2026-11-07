@@ -419,9 +419,10 @@ web routing readiness (`/health/ready`) and full operational health
 Operational health additionally covers durable worker sessions, stale attempt
 leases, daemon health, and projection circuit state; both reports include
 bounded process, queue, and causal-work resource signals. Operational health
-also carries app version, entity counts, and daemon metadata for operator
-diagnostics. Generated containers probe liveness, while generated host
-deployment artifacts install a restart-budgeted systemd
+also carries app version, uptime, and daemon state; it answers without a
+session, so entity counts and totals stay on authenticated surfaces. Generated
+containers probe liveness, while generated host deployment artifacts install a
+restart-budgeted systemd
 watchdog that preserves container diagnostics before restarting a persistently
 unhealthy Brain container.
 

@@ -1,5 +1,33 @@
 # @rizom/brain
 
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- [#859](https://github.com/rizom-ai/brains/pull/859) [`92b3bb7`](https://github.com/rizom-ai/brains/commit/92b3bb74eeffc14b522eb91f55e9fe9f159af195) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every package a release publishes lands on the `latest` dist-tag, the tag third parties install. In prerelease mode changesets chose each package's tag from its registry history: `latest` while every published version was an alpha, `alpha` once any other version existed. The `0.0.0-stage` placeholder left by `@rizom/brain-ui`'s trusted-publishing bootstrap sent it to `alpha` at alpha.650 while `@rizom/brain` and `@rizom/ops` went to `latest`, so `npm install @rizom/brain-ui` got alpha.649. The publish wrapper now sets the prerelease state aside for the publish in both lanes, which leaves `latest` for every package; the thefourth site and theme, whose `latest` stayed at alpha.1 the same way, follow from their next site release.
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- [#858](https://github.com/rizom-ai/brains/pull/858) [`2f1d6c7`](https://github.com/rizom-ai/brains/commit/2f1d6c74de007a302062739772e015c415eb6488) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity package's jobs and generations now read entries with the access of the person whose request started them, as a service package's jobs already do, and a generation writes only what that person may write. Before this, they read every entry. A generation the package starts on its own, such as a scheduled one, reads the package's own types at every visibility and other types with the package's configured grant, which is public unless the brain grants more. Checks, evals and the Inbox listing, which run with no caller behind them, now read the same way instead of reading every entry. A job whose requester's account is revoked before it runs is refused, and entity jobs queued before the upgrade fail rather than run. An AT Protocol record a package declares is built from public entries only, since it is published to a public PDS. A projection's new entry takes its source's visibility unless the package sets one, and so does a generation written from a source, such as a scheduled one: a restricted entry no longer becomes a public one. A generation can set its entry's visibility in its result; one with no source writes as before.
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- [#856](https://github.com/rizom-ai/brains/pull/856) [`eb649b0`](https://github.com/rizom-ai/brains/commit/eb649b00d6cbb591a531c07704e5f0d648544f21) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain builds while a core release has the publish manifests prepared. The release prepares every core-lane publish manifest before `changeset publish` and restores them afterwards, so `@rizom/brain`'s `prepublishOnly` build ran while `@rizom/brain-ui` exported only its published entry, and the entity templates' `@rizom/brain-ui/internal` imports no longer resolved. The alpha.649 release published `@rizom/brain-ui` and `@rizom/ops` but not `@rizom/brain`, so `@rizom/brain@0.2.0-alpha.649` will never exist; this release republishes the core group. The brain's bundle now reads first-party workspace packages from the exports their source declares, whatever state their manifest is in, and the packed compatibility run builds and packs the brain with the core-lane manifests prepared, as the release does.
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`64354f1`](https://github.com/rizom-ai/brains/commit/64354f10a28c2925bab8eecaaf471fae011d68c7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `formatDate` formats in the UTC time zone as well as the `en-US` locale, so a site build renders the same dates wherever it runs. A date-only value such as `2026-03-14` was the day before on a machine west of UTC, and a time near midnight rolled over east of it. Deployed builds already ran in UTC and render as before.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The component library is published as `@rizom/brain-ui`, moved from the private `@brains/ui-library` workspace to `packages/ui`. It versions and releases with `@rizom/brain`. Its public entry holds the components a site or plugin view renders entities with: `Card`, `CardTitle`, `CardMetadata`, `TagsList`, `MarkdownContent` and `formatDate`, with their props and option types. It ships built JavaScript and declarations, with `react` and `react-dom` as peers and no private workspace dependency. The rest of the library stays first-party in `@rizom/brain-ui/internal`, which is not published, and every package in this repository now imports from one entry or the other. `@brains/email-workflows` and `@brains/unified-inbox` drop a dependency they never imported, and Dashboard keeps it for its tests only.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`3737da6`](https://github.com/rizom-ai/brains/commit/3737da657d6bb6599f543347b45aa238f017a73a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site or plugin package that installs or bundles its own copy of `@rizom/brain-ui` now reads the brain's image renderer and head collector. `MarkdownContent` in such a package renders `entity://image/<id>` references as the site build's optimized images, where it used to leave the unresolved reference, and its `Head` reaches the page head. Every copy shares the two contexts through a versioned global key.
+
 ## 0.2.0-alpha.648
 
 ### Patch Changes

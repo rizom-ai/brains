@@ -82,7 +82,10 @@ export const NavigationSlots: readonly NavigationSlot[] = [
   "secondary",
 ];
 
-/** Display and behavior metadata for an entity type. */
+/**
+ * One section placed on a route: its id within the route, the
+ * `namespace:name` template it renders, and its content or data query.
+ */
 export interface SectionDefinitionInput {
   id: string;
   template: string;
@@ -576,6 +579,7 @@ export const entityDisplaySchema: Strict<{
     })
     .optional(),
 });
+/** Display and behavior metadata for an entity type. */
 export type EntityDisplayEntry = z.output<typeof entityDisplaySchema>;
 
 const sectionDefinitionSchema: Strict<{

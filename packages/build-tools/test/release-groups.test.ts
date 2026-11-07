@@ -11,6 +11,7 @@ import {
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
+  preparedManifestPackageDirs,
   resolveReleaseVersionStrategy,
   resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
@@ -264,6 +265,51 @@ test("brain-only changes do not version public site or theme packages", async ()
   ).not.toThrow();
   expect(releases.has("@brains/core")).toBe(true);
   expect(releases.has("@rizom/ops")).toBe(true);
+});
+
+test("the public UI package releases with the brain in the core lane", async () => {
+  // Core packages render with it and @rizom/brain bundles it, so it versions
+  // with them; a site-lane release would re-arm the site→core bridge.
+  expect(inferReleaseLane([{ name: "@rizom/brain-ui" }])).toBe("core");
+
+  const uiRelease = await publishedPackagesFor("@rizom/brain-ui");
+  expect(uiRelease.has("@rizom/brain")).toBe(true);
+  expect([...uiRelease].filter(isPublicSiteOrTheme)).toEqual([]);
+  expect(() =>
+    assertReleasePlanMatchesLane(
+      "core",
+      [...uiRelease].map((name) => ({ name })),
+    ),
+  ).not.toThrow();
+
+  expect(
+    (await publishedPackagesFor("@rizom/brain")).has("@rizom/brain-ui"),
+  ).toBe(true);
+});
+
+test("each lane's publish prepares the manifests of its own publishable packages", async () => {
+  const packages = await getPackages(repositoryRoot);
+  const names = (lane: "core" | "site"): string[] =>
+    preparedManifestPackageDirs(packages.packages, lane)
+      .map(
+        (dir) =>
+          packages.packages.find((workspace) => workspace.dir === dir)
+            ?.packageJson.name ?? dir,
+      )
+      .sort();
+
+  expect(names("core")).toEqual(["@rizom/brain-ui"]);
+  expect(names("site")).toEqual([
+    "@rizom/site-books",
+    "@rizom/site-docs",
+    "@rizom/site-hub",
+    "@rizom/site-rizom-ai",
+    "@rizom/site-thefourth",
+    "@rizom/theme-books",
+    "@rizom/theme-default",
+    "@rizom/theme-rizom-ai",
+    "@rizom/theme-thefourth",
+  ]);
 });
 
 test("release lane is inferred from a changeset's own packages", () => {

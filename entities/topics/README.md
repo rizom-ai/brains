@@ -132,8 +132,8 @@ new topics; unknown legacy fields on existing entities are stripped on read.
 
 ### Dependency boundary follow-up
 
-- `@brains/ui-library` and `@brains/utils` are direct workspace dependencies today.
-- Before publishing this package externally, either publish those packages too or expose the needed stable APIs through `@brains/plugins`.
+- `@brains/utils` and `@rizom/brain-ui/internal` (the first-party components) are direct workspace dependencies today.
+- Before publishing this package externally, either expose the needed stable APIs through `@brains/plugins` and `@rizom/brain-ui`, or replace them.
 
 ## Refactor notes
 

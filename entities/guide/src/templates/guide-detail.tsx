@@ -1,6 +1,6 @@
 import type { CSSProperties, JSX } from "react";
 import { DocsPageShell, type DocsChrome } from "@brains/docs-chrome";
-import { markdownToHtml } from "@brains/ui-library";
+import { markdownToHtml } from "@rizom/brain-ui/internal";
 import type { GuideWithData } from "../schemas/guide";
 import type { GuideMaterial, GuideRecipe } from "../schemas/guide-frontmatter";
 import { parseGuideStages, type GuideStage } from "../lib/guide-stages";

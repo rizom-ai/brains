@@ -33,7 +33,8 @@ configuration that have actually passed the package boundary.
   authenticated inbound chat + send/edit/deliver
 
 @fixture/reading-site
-  layout + route + schema-backed hero + entity display + assets
+  layout + route + schema-backed hero + shelf of @rizom/brain-ui cards
+  + entity display + assets
 
 @fixture/reader-brain
   use() + bundle + identity + site composition
@@ -47,7 +48,7 @@ configuration that have actually passed the package boundary.
 | 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates, reusable job contract, handler, tools                |
 | 3    | [`interface`](./interface/src/index.ts)                                   | Two-stage definition, protocol routes, idempotent deliveries in runtime state, cross-package jobs, daemon    |
 | 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, a resume cursor in runtime state, authenticated inbound, normalized transport |
-| 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset     |
+| 5    | [`site`](./site/src/index.tsx)                                            | Site definition, typed content, routes/layout, public UI components, entity display, CSS, head script, asset |
 | 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                       |
 | 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation        |
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                 |
@@ -157,8 +158,10 @@ fixtures. A real external package should declare both:
 }
 ```
 
-A site package also carries an exact direct dependency on
-`@rizom/site@0.2.0-alpha.233` during the preview.
+A site package also carries exact direct dependencies on
+`@rizom/site@0.2.0-alpha.233` during the preview, and on
+`@rizom/brain-ui@0.2.0-alpha.649`, the first release that publishes the
+component library. The library versions with `@rizom/brain`.
 
 ## How the evidence works
 

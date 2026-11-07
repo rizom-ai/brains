@@ -694,6 +694,15 @@ export {
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
 export {
+  publicDaemonHealthSchema,
+  publicHealthInfoSchema,
+  publicStatusInfoSchema,
+  toPublicHealthInfo,
+  type PublicDaemonHealth,
+  type PublicHealthInfo,
+  type PublicStatusInfo,
+} from "./contracts/public-health";
+export {
   OperationalHealthRegistry,
   type IOperationalHealthRegistry,
   type OperationalHealthProvider,

@@ -1,7 +1,7 @@
 import { PUBLISH_CHANNELS, publishRegisterContract } from "@brains/contracts";
 import { siteBuilderSlotsContract } from "@brains/site-composition";
 import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
-import { NewsletterSignup } from "@brains/ui-library";
+import { NewsletterSignup } from "@rizom/brain-ui/internal";
 import type { Logger } from "@brains/utils/logger";
 import { createElement as h, type ReactElement } from "react";
 import type { NewsletterDeliveryProvider } from "./contracts";

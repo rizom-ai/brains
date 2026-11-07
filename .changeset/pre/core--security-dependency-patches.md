@@ -8,7 +8,7 @@
 "@brains/content-formatters": patch
 "@brains/document": patch
 "@brains/site-engine": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/utils": patch
 "@brains/ai-evaluation": patch
 "@brains/mcp-service": patch

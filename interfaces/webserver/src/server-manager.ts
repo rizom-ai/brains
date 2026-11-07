@@ -6,8 +6,8 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type {
-  AppInfo,
   IApiRoutesNamespace,
+  PublicHealthInfo,
   RuntimeReadiness,
 } from "@brains/plugins";
 import type {
@@ -40,7 +40,7 @@ export interface ServerManagerOptions {
   sharedImagesDir: string;
   productionPort: number;
   /** Returns app metadata for operational diagnostics. */
-  getOperationalInfo?: () => Promise<AppInfo>;
+  getOperationalInfo?: () => Promise<PublicHealthInfo>;
   /** Returns dependency and resource state for readiness checks. */
   getReadinessData?: () => Promise<RuntimeReadiness>;
   /** Resolve finalized routes when the server starts. Invoked exactly once. */
@@ -304,7 +304,7 @@ export class ServerManager {
       });
       app.get("/health/operate", async (c) => {
         let readiness = await this.getReadinessData();
-        let info: AppInfo | undefined;
+        let info: PublicHealthInfo | undefined;
         if (this.options.getOperationalInfo) {
           try {
             info = await this.options.getOperationalInfo();
