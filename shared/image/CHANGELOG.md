@@ -1,5 +1,21 @@
 # @brains/image
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/entity-service@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- Updated dependencies [[`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6)]:
+  - @brains/entity-service@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes

@@ -1,5 +1,30 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.645
+  - @brains/content-formatters@0.2.0-alpha.645
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/db@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/job-queue@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A definition-typed record is read as stored: its body decoded by the type's codec, with image references left as `entity://image/{id}` references instead of resolved to the image's data. `EntityReader.get` used to resolve them while `list` did not, so the two returned different content for one record, and a record read and written back, through an Inbox action, a create route's update or a service's owned writes, could store the image's data in place of its reference. A record written back unchanged is now stored byte for byte. A generation's `linkInto` on a declared target now reads and writes the target's metadata, which is its frontmatter, instead of the body, so extending a list keeps the entries already on it. The read-only entity service that analytics reports are given gains `getEntityRaw`.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/job-queue@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/content-formatters@0.2.0-alpha.644
+  - @brains/assets@0.2.0-alpha.644
+  - @brains/db@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes

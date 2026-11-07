@@ -1,5 +1,17 @@
 # @brains/utils
 
+## 0.2.0-alpha.645
+
+No changes in this release.
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service writes its own account settings for an account the runtime vouches for. The `tools` and `routes` slots of a service that declares `accountSettings` are given `accountSettings`: `save(values)` writes the current caller's own account, `claim()` returns a single-use state naming the caller's account and, through a browser session, that session's account, and `redeem(state, produce)` consumes a claim before `produce` runs and writes what it returns, from a session of the same account when the claim was made in one. A refused value is named by its field alone. The consent-state lifetime main's LinkedIn import uses, ten minutes and twenty waiting, is now `CONSENT_STATE_LIFETIME` in `@brains/utils/single-use-store`, which the import and the runtime share.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A literal returned inline from a `defineTool` `execute` keeps its literal type, with or without parameters, so an enum value in the output no longer needs a cast. A tool's `confirmation` may be a function of its parsed input. A service tool's failure reaches its caller in its public form, `{ success: false, code, error }`: an `SdkError`'s code and `publicMessage`, or else the code's standard message, never the message a failure was thrown with, which stays in the brain's debug log. Refused input is `invalid_input`, and its message names each offending path and why, as main's class tools always have, cut between whole issues to the 1024-character public bound; another error from `execute` is `handler_failed`, an answer outside the output schema is `invalid_response`, and a call whose caller has gone is `cancelled`. Content-generation limits keep their message as `invalid_input`.
+
 ## 0.2.0-alpha.643
 
 No changes in this release.

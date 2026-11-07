@@ -1,5 +1,29 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/image@0.2.0-alpha.645
+  - @brains/site-composition@0.2.0-alpha.645
+  - @brains/ui-library@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/entity-service@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/entity-service@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/site-composition@0.2.0-alpha.644
+  - @brains/ui-library@0.2.0-alpha.644
+  - @brains/image@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes

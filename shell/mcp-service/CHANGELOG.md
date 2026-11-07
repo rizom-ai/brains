@@ -1,5 +1,26 @@
 # @brains/mcp-service
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/messaging-service@0.2.0-alpha.645
+  - @brains/templates@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A literal returned inline from a `defineTool` `execute` keeps its literal type, with or without parameters, so an enum value in the output no longer needs a cast. A tool's `confirmation` may be a function of its parsed input. A service tool's failure reaches its caller in its public form, `{ success: false, code, error }`: an `SdkError`'s code and `publicMessage`, or else the code's standard message, never the message a failure was thrown with, which stays in the brain's debug log. Refused input is `invalid_input`, and its message names each offending path and why, as main's class tools always have, cut between whole issues to the 1024-character public bound; another error from `execute` is `handler_failed`, an answer outside the output schema is `invalid_response`, and a call whose caller has gone is `cancelled`. Content-generation limits keep their message as `invalid_input`.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/messaging-service@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/templates@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes

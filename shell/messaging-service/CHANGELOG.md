@@ -1,5 +1,26 @@
 # @brains/messaging-service
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/operation-context@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/templates@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bus contract's failure reaches the asker in its public form. `BusResult`'s `failed` carries `error: SdkErrorData` (`{ code, message }`) and `BusCollection.failures` is `SdkErrorData[]`: an owner that throws an `SdkError` keeps its code and public message, any other error is `handler_failed`, an answer outside the contract is `invalid_response` and an invalid request `invalid_input`. The message a failure was thrown with stays in the owner's log. Askers that pass a failure on raise it again with `sdkErrorFrom`, keeping its code. The A2A ask and call owners report a directory refusal as `permission_denied`, a timeout as `deadline_exceeded` and a peer's refusal in its own words, cut to the public bound with `clipPublicMessage`; Studio's workspace host refuses a reserved id as `invalid_input` and a taken one as `conflict`. Studio's ask-agent route answers a failure with `{ error, code }` and the code's HTTP status, and `network_ask` gives each unanswered peer's public message as its reason.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/operation-context@0.2.0-alpha.644
+  - @brains/templates@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes

@@ -1,5 +1,22 @@
 # @brains/runtime-state
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineServicePlugin` now takes two arguments: a header with the package's `id`, `config`, `accountSettings` and `setup`, and the behavior that reads the state `setup` returns, whose slots may be written in any order; a behavior slot written into the header is refused. `setup` is given `runtimeState({ namespace, schema })`, a store qualified by the owning package so two packages naming the same namespace never share a record. `@rizom/brain/services` exports `SdkError`, `SdkErrorCode`, `SdkErrorData`, `sdkErrorCodeSchema` and `sdkErrorSchema`: a coded failure whose code survives every boundary and whose diagnostic message stays local. Runtime state now stores the schema's input and parses it at every read, so a transforming schema no longer fails on a stored value; a value that does not survive a JSON round trip is refused before it is written, and `compareAndSet` compares the expected value with the stored value as read, answering `false` rather than throwing for one the schema would refuse. Namespaces may be up to 512 characters, and a scoped store is a frozen handle that exposes no storage internals.
+- Updated dependencies [[`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6)]:
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/db@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes
