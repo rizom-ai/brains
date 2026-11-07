@@ -559,19 +559,20 @@ describe("buildMessageWithAttachments", () => {
       source: { kind: "upload", id },
     });
     const candidate = (
+      saved: string,
       entityType: string,
       id: string,
       transform: string,
     ): string =>
-      `Available system_create candidate for saving the newest upload as itself, when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${entityType}", source: { kind: "upload", id: "${id}", transform: "${transform}" } }`;
+      `Available system_create candidate for saving the newest upload, newest, as ${saved} when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${entityType}", source: { kind: "upload", id: "${id}", transform: "${transform}" } }`;
 
     it.each([
-      ["image/png", "image", "preserve"],
-      ["application/pdf", "document", "preserve"],
-      ["text/markdown", "note", "extract-markdown"],
+      ["image/png", "an image", "image", "preserve"],
+      ["application/pdf", "a document", "document", "preserve"],
+      ["text/markdown", "a note", "note", "extract-markdown"],
     ])(
       "is offered for a %s upload when no prior response can be saved",
-      (mediaType, entityType, transform) => {
+      (mediaType, saved, entityType, transform) => {
         const content = buildMessageWithAttachments("save it", undefined, {
           uploadRefs: [
             ref("newest", mediaType, "upload-newest"),
@@ -580,7 +581,7 @@ describe("buildMessageWithAttachments", () => {
         });
 
         expect(content).toContain(
-          candidate(entityType, "upload-newest", transform),
+          candidate(saved, entityType, "upload-newest", transform),
         );
         expect(content).not.toContain('id: "upload-older", transform');
       },
@@ -594,7 +595,7 @@ describe("buildMessageWithAttachments", () => {
       );
 
       expect(content).toContain(
-        'Available system_create candidate for saving the newest upload as a note, its text extracted, when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "upload-pdf", transform: "extract-markdown" } }',
+        'Available system_create candidate for saving the newest upload, primer.pdf, as a note of its text when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "upload-pdf", transform: "extract-markdown" } }',
       );
     });
 
@@ -604,7 +605,7 @@ describe("buildMessageWithAttachments", () => {
         priorResponseRef: { messageId: "message-summary" },
       });
 
-      expect(content).not.toContain("saving the newest upload");
+      expect(content).not.toContain("the newest upload");
     });
 
     it("is not offered when the newest upload is already saved", () => {
@@ -617,7 +618,7 @@ describe("buildMessageWithAttachments", () => {
         ],
       });
 
-      expect(content).not.toContain("saving the newest upload");
+      expect(content).not.toContain("the newest upload");
     });
 
     it("is not offered beside keeping several attached files", () => {
@@ -642,7 +643,7 @@ describe("buildMessageWithAttachments", () => {
       const text = textPart?.type === "text" ? textPart.text : "";
 
       expect(text).toContain("keeping every file attached to this message");
-      expect(text).not.toContain("saving the newest upload");
+      expect(text).not.toContain("the newest upload");
     });
   });
 

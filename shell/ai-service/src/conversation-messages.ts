@@ -492,19 +492,19 @@ function formatNewestUploadCandidate(
   if (!ref || ref.savedAs) return "";
   const mediaType = ref.mediaType.toLowerCase();
   const save = mediaType.startsWith("image/")
-    ? { entityType: "image", transform: "preserve" }
+    ? { saved: "an image", entityType: "image", transform: "preserve" }
     : mediaType === "application/pdf"
-      ? { entityType: "document", transform: "preserve" }
+      ? { saved: "a document", entityType: "document", transform: "preserve" }
       : mediaType.startsWith("text/")
-        ? { entityType: "note", transform: "extract-markdown" }
+        ? { saved: "a note", entityType: "note", transform: "extract-markdown" }
         : undefined;
   if (!save) return "";
-  const asItself = `Available system_create candidate for saving the newest upload as itself, when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${save.entityType}", source: { kind: "upload", id: "${ref.source.id}", transform: "${save.transform}" } }`;
+  const asSaved = `Available system_create candidate for saving the newest upload, ${ref.filename}, as ${save.saved} when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${save.entityType}", source: { kind: "upload", id: "${ref.source.id}", transform: "${save.transform}" } }`;
   // A PDF also becomes a note of its text, as a single PDF note import does.
-  if (mediaType !== "application/pdf") return asItself;
+  if (mediaType !== "application/pdf") return asSaved;
   return [
-    asItself,
-    `Available system_create candidate for saving the newest upload as a note, its text extracted, when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "${ref.source.id}", transform: "extract-markdown" } }`,
+    asSaved,
+    `Available system_create candidate for saving the newest upload, ${ref.filename}, as a note of its text when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "${ref.source.id}", transform: "extract-markdown" } }`,
   ].join("\n");
 }
 
