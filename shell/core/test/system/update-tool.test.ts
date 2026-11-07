@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
-import { updateInputSchema } from "../../src/system/schemas";
+import {
+  updateInputSchema,
+  updateOperationInputSchema,
+} from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import {
   BaseEntityAdapter,
@@ -349,6 +352,16 @@ describe("system_update tool", () => {
       for (const text of says) expect(error).toContain(text);
     },
   );
+
+  it.each([
+    ["fields", "Update partial frontmatter or metadata fields."],
+    ["content", "Replace the stored Markdown."],
+    ["edits", "Apply exact text replacements to the stored Markdown."],
+    ["source", "Replace the stored Markdown with user-supplied text."],
+  ] as const)("describes the %s operation as itself", (field, purpose) => {
+    const description = updateOperationInputSchema.shape[field].description;
+    expect(description?.startsWith(purpose)).toBe(true);
+  });
 
   it("names only the field an operation got wrong", async () => {
     const result = await exec({

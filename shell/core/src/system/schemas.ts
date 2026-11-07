@@ -622,13 +622,13 @@ export const updateOperationInputSchema: UpdateOperationInputSchema = z
         .record(z.string(), z.unknown())
         .optional()
         .describe(
-          "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
+          "Update partial frontmatter or metadata fields. Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
         ),
       content: z
         .string()
         .optional()
         .describe(
-          "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
+          "Replace the stored Markdown. Full replacement text you wrote yourself, stored literally. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use the source operation instead of copying it here. For small changes, use the edits operation instead of regenerating the whole document.",
         ),
       edits: z
         .array(contentEditSchema)
@@ -636,12 +636,12 @@ export const updateOperationInputSchema: UpdateOperationInputSchema = z
         .max(50)
         .optional()
         .describe(
-          "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
+          "Apply exact text replacements to the stored Markdown. Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first; an upload ref marked saved already holds its text, so edit that note without fetching it. Unchanged text is preserved without regeneration.",
         ),
       source: userMessageSourceInputSchema
         .optional()
         .describe(
-          "Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
+          "Replace the stored Markdown with user-supplied text. Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
         ),
     },
     {
