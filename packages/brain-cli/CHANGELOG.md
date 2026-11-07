@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- [#870](https://github.com/rizom-ai/brains/pull/870) [`29e5336`](https://github.com/rizom-ai/brains/commit/29e53365c5c0a36ba5d41f3dee7222e2f4124572) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish-asset preflight queues image renders through the image job contract, so their data is validated when they are queued. Publish-asset definitions no longer take a `jobType` override or a `"document"` media type, which never generated anything.
+
 ## 0.2.0-alpha.656
 
 ### Patch Changes
