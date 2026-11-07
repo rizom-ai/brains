@@ -137,6 +137,11 @@ console.log("Building @rizom/brain...");
 
 // Native modules, lazy-loaded SDKs, and the JSX runtime.
 const sharedExternals = [
+  // Baileys imports an image library only for thumbnails and profile
+  // pictures; the WhatsApp adapter supplies its own thumbnails, so neither is
+  // bundled or installed.
+  "sharp",
+  "jimp",
   "@libsql/client",
   "libsql",
   "lightningcss",

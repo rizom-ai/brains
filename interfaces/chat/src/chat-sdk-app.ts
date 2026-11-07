@@ -159,7 +159,7 @@ export class ChatSdkAppHost {
 
   private async handleUploadRequest(
     request: Request,
-    platform: ChatPlatform,
+    platform: "discord" | "slack",
   ): Promise<Response> {
     if (!this.deps[platform]) {
       const label = platform === "discord" ? "Discord" : "Slack";

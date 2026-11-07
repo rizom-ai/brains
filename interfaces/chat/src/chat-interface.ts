@@ -55,6 +55,10 @@ import {
   isEnabledChatPlatform,
 } from "./chat-turn-controller";
 import { clearDiscordMessageComponents } from "./discord-message-components";
+import type {
+  CreateWhatsAppRuntime,
+  WhatsAppRuntime,
+} from "./whatsapp-runtime";
 import packageJson from "../package.json";
 
 /** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
@@ -70,7 +74,18 @@ const MAX_PROMPT_ACTIONS = 1000;
  */
 export interface ChatInterfaceDeps {
   fetch?: ChatFetch | undefined;
+  /**
+   * Builds the WhatsApp adapter and its connection loop. Production imports
+   * the WhatsApp modules, and with them Baileys, only when a brain configures
+   * `adapters.whatsapp`; tests hand in a stand-in.
+   */
+  createWhatsApp?: CreateWhatsAppRuntime | undefined;
 }
+
+const loadWhatsApp: CreateWhatsAppRuntime = async (options) => {
+  const { createWhatsApp } = await import("./whatsapp");
+  return createWhatsApp(options);
+};
 
 export class ChatInterface extends MessageInterfacePlugin<
   ChatConfig,
@@ -148,6 +163,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   private readonly chatApp: ChatSdkAppHost;
   private discordSubscriptions: ChatThreadSubscriptionStore | undefined;
   private slackSubscriptions: ChatThreadSubscriptionStore | undefined;
+  private whatsapp: WhatsAppRuntime | undefined;
   private chatAppRunning = false;
 
   /**
@@ -222,6 +238,7 @@ export class ChatInterface extends MessageInterfacePlugin<
           userName: this.config.userName,
           discord: this.config.adapters.discord,
           slack: this.config.adapters.slack,
+          whatsapp: this.whatsapp?.adapter,
           gatewayLoop: this.gatewayLoop,
           slackSocketLoop: this.slackSocketLoop,
           runtimeState,
@@ -249,6 +266,16 @@ export class ChatInterface extends MessageInterfacePlugin<
         subjectPattern: { source: "^[UW][A-Z0-9]+$" },
         manualDelivery: true,
       });
+    // The phone number in digits, or the LID WhatsApp gives a sender who
+    // hides their number.
+    if (this.config.adapters.whatsapp)
+      context.channels.registerDescriptor({
+        type: "whatsapp",
+        displayName: "WhatsApp",
+        subjectLabel: "WhatsApp phone number",
+        subjectPattern: { source: "^(?:[0-9]{7,15}|[0-9]+@lid)$" },
+        manualDelivery: true,
+      });
   }
 
   protected override async onRegister(
@@ -263,6 +290,16 @@ export class ChatInterface extends MessageInterfacePlugin<
       this.slackSubscriptions = createSlackThreadSubscriptionStore(
         context.runtimeState,
       );
+    const whatsappConfig = this.config.adapters.whatsapp;
+    if (whatsappConfig) {
+      this.whatsapp = await (this.deps.createWhatsApp ?? loadWhatsApp)({
+        config: whatsappConfig,
+        userName: this.config.userName,
+        runtimeState: context.runtimeState,
+        restartDelayMs: this.config.gatewayRestartDelayMs,
+        logger: this.logger,
+      });
+    }
     this.turnController.registerHandlers(
       this.chatApp.build(context.runtimeState),
     );
@@ -288,7 +325,12 @@ export class ChatInterface extends MessageInterfacePlugin<
   protected override createDaemon(): Daemon | undefined {
     const discordEnabled = Boolean(this.config.adapters.discord);
     const slackSocketEnabled = this.config.adapters.slack?.mode === "socket";
-    if (!discordEnabled && !this.config.adapters.slack) return undefined;
+    if (
+      !discordEnabled &&
+      !this.config.adapters.slack &&
+      !this.config.adapters.whatsapp
+    )
+      return undefined;
 
     return {
       start: async (): Promise<void> => {
@@ -296,10 +338,12 @@ export class ChatInterface extends MessageInterfacePlugin<
         this.chatAppRunning = true;
         if (discordEnabled) this.gatewayLoop.start();
         if (slackSocketEnabled) this.slackSocketLoop.start();
+        this.whatsapp?.loop.start();
       },
       stop: async (): Promise<void> => {
         await this.gatewayLoop.stop();
         await this.slackSocketLoop.stop();
+        await this.whatsapp?.loop.stop();
         this.threadRegistry.clear();
         this.uploadCoordinator.clear();
         this.responseCoordinator.clear();
@@ -308,17 +352,60 @@ export class ChatInterface extends MessageInterfacePlugin<
         this.chatAppRunning = false;
       },
       healthCheck: async (): Promise<DaemonHealth> => {
-        const healthy =
+        const lastCheck = new Date();
+        const running =
           this.chatAppRunning &&
           (!discordEnabled || this.gatewayLoop.isRunning()) &&
           (!slackSocketEnabled || this.slackSocketLoop.isRunning());
-        return {
-          status: healthy ? "healthy" : "error",
-          message: healthy ? "Chat SDK app running" : "Chat SDK app stopped",
-          lastCheck: new Date(),
-        };
+        if (!running) {
+          return {
+            status: "error",
+            message: "Chat SDK app stopped",
+            lastCheck,
+          };
+        }
+        return (
+          this.whatsappHealth(lastCheck) ?? {
+            status: "healthy",
+            message: "Chat SDK app running",
+            lastCheck,
+          }
+        );
       },
     };
+  }
+
+  /** WhatsApp's own state, when it is anything other than connected. */
+  private whatsappHealth(lastCheck: Date): DaemonHealth | undefined {
+    const loop = this.whatsapp?.loop;
+    if (!loop) return undefined;
+    const status = loop.isRunning() ? loop.status() : "stopped";
+    switch (status) {
+      case "connected":
+        return undefined;
+      case "awaiting-pairing":
+        return {
+          status: "warning",
+          message:
+            "WhatsApp is waiting for pairing: enter the pairing code from the brain's log on the brain's phone",
+          lastCheck,
+        };
+      case "connecting":
+        return { status: "warning", message: "WhatsApp connecting", lastCheck };
+      case "logged-out":
+        return {
+          status: "error",
+          message:
+            "WhatsApp logged out the brain; restart the brain to pair again",
+          lastCheck,
+        };
+      case "stopped":
+        return {
+          status: "error",
+          message: "WhatsApp connection stopped",
+          lastCheck,
+        };
+    }
   }
 
   override sendMessageToChannel({

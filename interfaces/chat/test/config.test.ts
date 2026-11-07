@@ -56,3 +56,31 @@ describe("Slack chat configuration", () => {
     expect(parsed.success).toBe(false);
   });
 });
+
+describe("WhatsApp chat configuration", () => {
+  it("needs only a phone number and applies the routing defaults", () => {
+    const parsed = chatConfigSchema.parse({
+      adapters: { whatsapp: { phoneNumber: "31600000001" } },
+    });
+
+    expect(parsed.adapters.whatsapp).toEqual({
+      phoneNumber: "31600000001",
+      allowedChannels: [],
+      requireMention: true,
+      allowDMs: true,
+      showTypingIndicator: true,
+      captureUrls: false,
+      blockedUrlDomains: expect.arrayContaining(["meet.google.com"]),
+    });
+  });
+
+  it.each([["+31 6 0000 0001"], ["0600000001x"], ["123"]])(
+    "rejects %s as a phone number",
+    (phoneNumber) => {
+      expect(
+        chatConfigSchema.safeParse({ adapters: { whatsapp: { phoneNumber } } })
+          .success,
+      ).toBe(false);
+    },
+  );
+});

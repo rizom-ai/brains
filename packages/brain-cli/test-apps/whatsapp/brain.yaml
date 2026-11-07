@@ -1,0 +1,32 @@
+brain: brain
+bundleContract: capability-bundles-v1
+anchor: person
+kind: professional
+bundles:
+  - core
+  - web
+  - chat
+
+permissions:
+  rules:
+    # Give the operator's own number admin, e.g. "whatsapp:31612345678".
+    - pattern: "whatsapp:*"
+      level: public
+
+plugins:
+  chat:
+    adapters:
+      whatsapp:
+        # The brain's own number. The first start logs a pairing code; enter
+        # it on that number's phone under Linked devices.
+        phoneNumber: ${WHATSAPP_PHONE_NUMBER}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+  directory-sync:
+    seedContentPath: ../../eval-content/core
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/canonical-whatsapp-test-content
+      gitUrl: file:///tmp/canonical-whatsapp-test-content.git
