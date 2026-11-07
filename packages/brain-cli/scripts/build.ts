@@ -28,6 +28,7 @@ import {
   findInternalDeclarationImports,
   formatDeclarationLeakError,
   productionReactJsx,
+  workspaceSourceExports,
 } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
@@ -161,6 +162,13 @@ const sharedExternals = [
   "react-dom/server",
 ];
 
+// The bundle reads first-party workspace packages from the exports their
+// source declares. A release builds this from prepublishOnly while every
+// core-lane publish manifest is prepared, and a prepared manifest exports only
+// what it publishes: @rizom/brain-ui/internal, which the entity templates
+// import, would not resolve (the alpha.649 failure).
+const sourcePlugins = [workspaceSourceExports({ root: monorepoRoot })];
+
 async function bundle(opts: {
   name: string;
   source: string;
@@ -175,6 +183,7 @@ async function bundle(opts: {
     sourcemap: opts.sourcemap,
     jsx: productionReactJsx,
     external: sharedExternals,
+    plugins: sourcePlugins,
     naming: `${opts.name}.js`,
   });
   if (!result.success) {
@@ -247,6 +256,7 @@ async function bundleLibraries(): Promise<void> {
     sourcemap: "linked",
     jsx: productionReactJsx,
     external: sharedExternals,
+    plugins: sourcePlugins,
     naming: {
       entry: "[name].js",
       chunk: "chunks/[name]-[hash].js",
@@ -271,6 +281,7 @@ async function bundleLibraries(): Promise<void> {
     splitting: false,
     sourcemap: "linked",
     external: sharedExternals,
+    plugins: sourcePlugins,
     naming: "[name].js",
   });
   if (!browserResult.success) {
