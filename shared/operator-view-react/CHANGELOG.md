@@ -1,5 +1,14 @@
 # @brains/operator-view-react
 
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A workspace action can send the operator's browser to a URL it computes, such as a provider's consent page: `defineWorkspaceAction({ ..., launch: { origins } })` declares absolute https origins and its `execute` answers `{ url }`. The runtime refuses, as `invalid_response`, any destination that is not an absolute https URL on a declared origin, carries credentials or is longer than 2048 characters, and Studio sends the page there only after that check and its own https check. A workspace action's `execute` is handed `accountSettings` (`save`, `claim`, `redeem`) for the operator's account; a claim made there names the operator's Studio session, so only that session's account redeems it at the provider's callback.
+- Updated dependencies [[`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710), [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476), [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57), [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242), [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de), [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b)]:
+  - @brains/plugins@0.2.0-alpha.647
+  - @brains/app-ui-react@0.2.0-alpha.647
+
 ## 0.2.0-alpha.646
 
 ### Patch Changes

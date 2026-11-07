@@ -1,5 +1,18 @@
 # @brains/studio
 
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An operator surface's failure reaches Studio in its public form, `{ error, code }`, with the HTTP status its code names. A workspace callback's `SdkError` keeps its code and public message, any other error is `handler_failed`, input or query state its schema refuses is `invalid_input` naming the offending paths, an undeclared action is `not_found`, a request below its permission is `permission_denied`, a stale prepared confirmation is `conflict`, and an answer outside what the surface declares is `invalid_response`. The diagnostic and its cause stay in the declaring package's log; Studio no longer shows the operator a message naming the package and surface, and a callback's own public message is no longer dropped. The Administration workspace refuses an action it does not route by code.
+- Updated dependencies [[`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710), [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476), [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57), [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242), [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de), [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b)]:
+  - @brains/plugins@0.2.0-alpha.647
+  - @brains/operator-view-react@0.2.0-alpha.647
+  - @brains/app-ui-react@0.2.0-alpha.647
+  - @brains/console-theme@0.2.0-alpha.647
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+
 ## 0.2.0-alpha.646
 
 ### Patch Changes
