@@ -6,7 +6,7 @@ import { loadPluginEvalConfig, parseEvalYaml } from "@brains/ai-evaluation";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 
-const repositoryRoot = join(import.meta.dir, "..");
+const repositoryRoot = join(import.meta.dir, "..", "..", "..");
 
 const evalConfigPaths = Array.from(
   new Glob("*/*/evals/eval.yaml").scanSync({ cwd: repositoryRoot }),
