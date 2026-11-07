@@ -83,7 +83,6 @@ export const shellConfigSchema: z.ZodObject<{
     imageApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
     temperature: z.ZodDefault<z.ZodNumber>;
-    maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   }>;
@@ -131,7 +130,6 @@ export const shellConfigSchema: z.ZodObject<{
     imageApiKey: z.string().optional(),
     model: z.string(),
     temperature: z.number().min(0).max(2).default(0.7),
-    maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
     reasoningEffort: reasoningEffortSchema.optional(),
   }),
