@@ -1,8 +1,6 @@
 import {
-  ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_DISCOVERED,
-  atprotoBrainCardConflictPayloadSchema,
-  atprotoBrainDiscoveryEventPayloadSchema,
+  atprotoBrainCardConflictChannel,
+  atprotoBrainDiscoveredChannel,
 } from "@brains/atproto-contracts";
 import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
@@ -96,31 +94,28 @@ export class AgentToolsPlugin extends ServicePlugin<
 
     context.inbox.registerSource(new AgentSightingsInboxSource(context));
 
-    context.messaging.subscribe(ATPROTO_BRAIN_DISCOVERED, async (message) => {
-      if (!this.config.notifyOnNewAgents) return { success: true };
-      const payload = atprotoBrainDiscoveryEventPayloadSchema.parse(
-        message.payload,
-      );
-      if (payload.status !== "discovered") return { success: true };
-      const key = `candidate:${payload.cardCid ?? payload.repoDid ?? payload.agentId}`;
-      await atprotoNotifications.setIfNotExists(key, {
-        agentId: payload.agentId,
-        name: payload.name,
-        ...(payload.repoDid && { repoDid: payload.repoDid }),
-        ...(payload.cardCid && { cardCid: payload.cardCid }),
-        observedAt: new Date().toISOString(),
-        status: "pending",
-      });
-      return { success: true };
-    });
+    context.messaging.subscribe(
+      atprotoBrainDiscoveredChannel,
+      async (payload) => {
+        if (!this.config.notifyOnNewAgents) return { success: true };
+        if (payload.status !== "discovered") return { success: true };
+        const key = `candidate:${payload.cardCid ?? payload.repoDid ?? payload.agentId}`;
+        await atprotoNotifications.setIfNotExists(key, {
+          agentId: payload.agentId,
+          name: payload.name,
+          ...(payload.repoDid && { repoDid: payload.repoDid }),
+          ...(payload.cardCid && { cardCid: payload.cardCid }),
+          observedAt: new Date().toISOString(),
+          status: "pending",
+        });
+        return { success: true };
+      },
+    );
 
     context.messaging.subscribe(
-      ATPROTO_BRAIN_CARD_CONFLICT,
-      async (message) => {
+      atprotoBrainCardConflictChannel,
+      async (payload) => {
         if (!this.config.notifyOnNewAgents) return { success: true };
-        const payload = atprotoBrainCardConflictPayloadSchema.parse(
-          message.payload,
-        );
         const key = `conflict:${computeContentHash(
           `${payload.domain}\0${payload.existingRepoDid ?? ""}\0${payload.candidateRepoDid}`,
         )}`;

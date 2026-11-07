@@ -48,10 +48,10 @@ import {
 
 export * from "./publish-contracts";
 import {
-  ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_CARD_DISCOVERED,
-  ATPROTO_BRAIN_CARD_UNAVAILABLE,
-  ATPROTO_JETSTREAM_GAP,
+  atprotoBrainCardConflictChannel,
+  atprotoBrainCardDiscoveredChannel,
+  atprotoBrainCardUnavailableChannel,
+  atprotoJetstreamGapChannel,
   type AtprotoProjectionRegistry,
   atprotoBrainCardDiscoveredPayloadSchema,
   canonicalAtprotoLexicons,
@@ -290,7 +290,7 @@ export class AtprotoPlugin extends ServicePlugin<
                   1000,
             ).toISOString();
             await context.messaging.send({
-              type: ATPROTO_BRAIN_CARD_UNAVAILABLE,
+              type: atprotoBrainCardUnavailableChannel.name,
               payload: {
                 repoDid,
                 observedAt,
@@ -306,7 +306,7 @@ export class AtprotoPlugin extends ServicePlugin<
           },
           reportGap: async (payload): Promise<void> => {
             await context.messaging.send({
-              type: ATPROTO_JETSTREAM_GAP,
+              type: atprotoJetstreamGapChannel.name,
               payload: {
                 ...payload,
                 observedAt: new Date(
@@ -518,7 +518,7 @@ export class AtprotoPlugin extends ServicePlugin<
         }
         seenRecords.add(recordKey);
         await context.messaging.send({
-          type: ATPROTO_BRAIN_CARD_DISCOVERED,
+          type: atprotoBrainCardDiscoveredChannel.name,
           payload: {
             repoDid: resolved.repoDid,
             uri: record.uri,
@@ -970,7 +970,7 @@ export class AtprotoPlugin extends ServicePlugin<
       const existingRepoDid =
         typeof existingDomainRepo === "string" ? existingDomainRepo : undefined;
       await context.messaging.send({
-        type: ATPROTO_BRAIN_CARD_CONFLICT,
+        type: atprotoBrainCardConflictChannel.name,
         payload: {
           domain,
           ...(existingRepoDid && { existingRepoDid }),
