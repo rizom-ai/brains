@@ -68,3 +68,8 @@ export type {
   AtprotoPublishConfig,
 } from "./projection";
 export { AtprotoProjectionRegistry } from "./projection-registry";
+export {
+  atprotoProvenance,
+  defineAtprotoProjection,
+  type AtprotoRecordProvenance,
+} from "./record-provenance";
