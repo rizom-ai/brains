@@ -30,6 +30,9 @@ class FakeSocket implements WhatsAppConnectionSocket {
   }));
   readonly sendPresenceUpdate = mock(async (): Promise<void> => {});
   readonly groupMetadata = mock(async () => ({ subject: "Group" }));
+  readonly signalRepository = {
+    lidMapping: { getPNForLID: async (): Promise<string | null> => null },
+  };
   readonly updateGroupsAddPrivacy = mock(
     async (_value: string): Promise<void> => {},
   );

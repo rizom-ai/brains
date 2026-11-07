@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { PermissionService } from "@brains/plugins/test";
 import type { Adapter } from "chat";
 import type { WhatsAppChatAdapterConfig } from "../src/config";
 import type {
@@ -300,5 +301,49 @@ describe("ChatInterface WhatsApp", () => {
       groupMessage(true),
     );
     expect(suite.agentService.chat).toHaveBeenCalledTimes(1);
+  });
+
+  it("grants a whatsapp:<phone> rule's level to that sender, and not to a LID", async () => {
+    suite.harness.setPermissionService(
+      new PermissionService({ admins: ["whatsapp:31612345678"] }),
+    );
+    await suite.harness.installPlugin(
+      createWhatsAppPlugin(createFakeWhatsApp()),
+    );
+    const chat = MockChatSdk.instances[0];
+    const sender = (userId: string): ReturnType<typeof createMessage> =>
+      createMessage({
+        threadId: DM_THREAD,
+        isMention: false,
+        author: {
+          userId,
+          userName: "Mira",
+          fullName: "Mira",
+          isBot: false,
+          isMe: false,
+        },
+      });
+    const thread = createThread({
+      id: DM_THREAD,
+      channelId: DM_THREAD,
+      isDM: true,
+      adapter: { name: "whatsapp" },
+    });
+
+    await chat?.handlers.directMessages[0]?.(
+      thread,
+      sender("31612345678"),
+      thread,
+    );
+    await chat?.handlers.directMessages[0]?.(
+      thread,
+      sender("987654321@lid"),
+      thread,
+    );
+
+    const levels = suite.agentService.chat.mock.calls.map(
+      ([, , context]) => context?.userPermissionLevel,
+    );
+    expect(levels).toEqual(["admin", "public"]);
   });
 });

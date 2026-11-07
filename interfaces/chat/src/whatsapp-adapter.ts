@@ -28,6 +28,21 @@ const THREAD_PREFIX = "whatsapp:";
 
 /** Group messages whose sender a reaction may still need, newest last. */
 const MAX_REMEMBERED_SENDERS = 1000;
+/** Senders' LIDs already resolved to phone numbers, newest last. */
+const MAX_REMEMBERED_PHONES = 5000;
+
+/** Remember an entry, forgetting the oldest once the map is full. */
+function rememberBounded(
+  map: Map<string, string>,
+  key: string,
+  value: string,
+  max: number,
+): void {
+  map.delete(key);
+  map.set(key, value);
+  const oldest = map.keys().next().value;
+  if (map.size > max && oldest !== undefined) map.delete(oldest);
+}
 
 export interface WhatsAppThreadId {
   jid: string;
@@ -46,6 +61,9 @@ export interface WhatsAppSocket {
   ): Promise<WAMessage | undefined>;
   sendPresenceUpdate(type: WAPresence, toJid?: string): Promise<void>;
   groupMetadata(jid: string): Promise<{ subject: string }>;
+  signalRepository: {
+    lidMapping: { getPNForLID(lid: string): Promise<string | null> };
+  };
 }
 
 /** The part of the Chat SDK the adapter delivers incoming messages to. */
@@ -88,17 +106,21 @@ function userPartOf(jid: string): string {
 }
 
 /**
- * The sender as a permission subject: the phone number in digits when
- * WhatsApp exposes it, otherwise the LID it keys the sender by. In a group
- * the sender is the participant; in a direct message, the chat itself.
+ * Who sent a message, as WhatsApp names them: in a group the participant, in
+ * a direct message the chat itself. `phoneJid` is set when WhatsApp exposes
+ * the phone number beside the LID it keys the sender by.
  */
-function senderIdOf(key: WAMessageKey): string {
+function senderOf(key: WAMessageKey): { jid: string; phoneJid?: string } {
   const candidates = key.participant
     ? [key.participantAlt, key.participant]
     : [key.remoteJidAlt, key.remoteJid];
   const phoneJid = candidates.find((jid) => jid?.endsWith("@s.whatsapp.net"));
-  if (phoneJid) return userPartOf(jidNormalizedUser(phoneJid));
-  return jidNormalizedUser(key.participant ?? key.remoteJid ?? "");
+  const jid = jidNormalizedUser(key.participant ?? key.remoteJid ?? "");
+  return phoneJid ? { jid, phoneJid: jidNormalizedUser(phoneJid) } : { jid };
+}
+
+function isLidJid(jid: string): boolean {
+  return jid.endsWith("@lid");
 }
 
 function dateOf(timestamp: WAMessage["messageTimestamp"]): Date {
@@ -123,6 +145,8 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
   private socket: WhatsAppSocket | undefined;
   /** A reaction in a group names the sender of the message it reacts to. */
   private readonly groupSenders = new Map<string, string>();
+  /** Phone numbers, in digits, of senders WhatsApp names only by LID. */
+  private readonly phonesByLid = new Map<string, string>();
 
   constructor(options: WhatsAppAdapterOptions) {
     this.userName = options.userName;
@@ -152,8 +176,9 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
     await Promise.all(
       upsert.messages
         .filter((raw) => this.isIncomingText(raw))
-        .map((raw) => {
+        .map(async (raw) => {
           this.rememberGroupSender(raw.key);
+          await this.resolvePhone(raw.key);
           const message = this.parseMessage(raw);
           return chat.processMessage(this, message.threadId, message, options);
         }),
@@ -166,7 +191,7 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
     });
     const ownJids = this.ownJids();
     const text = this.withOwnName(textOf(raw) ?? "", ownJids);
-    const userId = senderIdOf(raw.key);
+    const userId = this.senderIdOf(raw.key);
     return new Message({
       id: raw.key.id ?? "",
       threadId,
@@ -332,12 +357,43 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
 
   private rememberGroupSender(key: WAMessageKey): void {
     if (!key.id || !key.participant) return;
-    this.groupSenders.delete(key.id);
-    this.groupSenders.set(key.id, key.participant);
-    const oldest = this.groupSenders.keys().next().value;
-    if (this.groupSenders.size > MAX_REMEMBERED_SENDERS && oldest) {
-      this.groupSenders.delete(oldest);
-    }
+    rememberBounded(
+      this.groupSenders,
+      key.id,
+      key.participant,
+      MAX_REMEMBERED_SENDERS,
+    );
+  }
+
+  /**
+   * The sender as a permission subject: the phone number in digits, from the
+   * message or from the account's LID mapping, otherwise the LID itself.
+   */
+  private senderIdOf(key: WAMessageKey): string {
+    const sender = senderOf(key);
+    if (sender.phoneJid) return userPartOf(sender.phoneJid);
+    return this.phonesByLid.get(sender.jid) ?? sender.jid;
+  }
+
+  /**
+   * WhatsApp names a sender who hides their number only by LID. The
+   * account's LID mapping, kept with the session, often still knows the
+   * number; ask it once per LID.
+   */
+  private async resolvePhone(key: WAMessageKey): Promise<void> {
+    const sender = senderOf(key);
+    if (sender.phoneJid || !isLidJid(sender.jid)) return;
+    if (this.phonesByLid.has(sender.jid)) return;
+    const phoneJid = await this.socket?.signalRepository.lidMapping
+      .getPNForLID(sender.jid)
+      .catch(() => null);
+    if (!phoneJid) return;
+    rememberBounded(
+      this.phonesByLid,
+      sender.jid,
+      userPartOf(jidNormalizedUser(phoneJid)),
+      MAX_REMEMBERED_PHONES,
+    );
   }
 
   private async send(

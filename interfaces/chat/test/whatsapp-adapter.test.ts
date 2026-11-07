@@ -39,7 +39,11 @@ function createSocket(): WhatsAppSocket & {
     typeof mock<WhatsAppSocket["sendPresenceUpdate"]>
   >;
   groupMetadata: ReturnType<typeof mock<WhatsAppSocket["groupMetadata"]>>;
+  getPNForLID: ReturnType<typeof mock<(lid: string) => Promise<string | null>>>;
 } {
+  const getPNForLID = mock(
+    async (_lid: string): Promise<string | null> => null,
+  );
   return {
     user: { id: "31600000001:5@s.whatsapp.net", lid: "1234567890:5@lid" },
     sendMessage: mock(
@@ -49,6 +53,8 @@ function createSocket(): WhatsAppSocket & {
     ),
     sendPresenceUpdate: mock(async (): Promise<void> => {}),
     groupMetadata: mock(async () => ({ subject: "Rizom team" })),
+    signalRepository: { lidMapping: { getPNForLID } },
+    getPNForLID,
   };
 }
 
@@ -252,6 +258,85 @@ describe("WhatsAppAdapter groups", () => {
     expect(chat.processed[0]?.message.text).toBe(
       "@brain and @brain, what is next?",
     );
+  });
+});
+
+describe("WhatsAppAdapter identity", () => {
+  function fromLid(remoteJid: string, participant?: string): WAMessage {
+    return inbound({
+      key: {
+        remoteJid,
+        ...(participant ? { participant } : {}),
+        fromMe: false,
+        id: "LID-1",
+      },
+    });
+  }
+
+  it("resolves a group sender known only by LID to their phone number", async () => {
+    const { adapter, chat, socket } = await connectedAdapter();
+    socket.getPNForLID.mockImplementation(async (lid) =>
+      lid === "987654321@lid" ? "31612345678:0@s.whatsapp.net" : null,
+    );
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [fromLid(GROUP_JID, "987654321@lid")],
+    });
+
+    expect(chat.processed[0]?.message.author.userId).toBe("31612345678");
+  });
+
+  it("resolves a direct message keyed by LID to the sender's phone number", async () => {
+    const { adapter, chat, socket } = await connectedAdapter();
+    socket.getPNForLID.mockImplementation(
+      async () => "31612345678:0@s.whatsapp.net",
+    );
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [fromLid("987654321@lid")],
+    });
+
+    expect(chat.processed[0]?.threadId).toBe("whatsapp:987654321@lid");
+    expect(chat.processed[0]?.message.author.userId).toBe("31612345678");
+  });
+
+  it("keeps an unmapped LID as the sender", async () => {
+    const { adapter, chat } = await connectedAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [fromLid(GROUP_JID, "987654321@lid")],
+    });
+
+    expect(chat.processed[0]?.message.author.userId).toBe("987654321@lid");
+  });
+
+  it("asks WhatsApp's mapping once per LID", async () => {
+    const { adapter, socket } = await connectedAdapter();
+    socket.getPNForLID.mockImplementation(
+      async () => "31612345678:0@s.whatsapp.net",
+    );
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [fromLid(GROUP_JID, "987654321@lid")],
+    });
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [fromLid(GROUP_JID, "987654321@lid")],
+    });
+
+    expect(socket.getPNForLID).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask the mapping when WhatsApp names the phone number", async () => {
+    const { adapter, socket } = await connectedAdapter();
+
+    await adapter.handleUpsert({ type: "notify", messages: [inbound()] });
+
+    expect(socket.getPNForLID).not.toHaveBeenCalled();
   });
 });
 
