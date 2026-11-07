@@ -13,6 +13,8 @@ The community Chat SDK adapters do not fit:
 
 Baileys installs about 77 MB, 37 MB of it its required `sharp` peer.
 
+Spike part 1 ran Baileys under Bun 1.4.0, from source and bundled with `bun build` (346 modules, 7.1 MB) with `sharp` and `jimp` external. In the bundled run no image library is importable, and WhatsApp issues a login QR in both runs. WhatsApp closes the connection with status 428 before the QR when the client presents a Desktop sub-platform (`Browsers.macOS("Desktop")`, `Browsers.windows("Desktop")`), under Node and Bun alike ([WhiskeySockets/Baileys#2677](https://github.com/WhiskeySockets/Baileys/issues/2677), [#2880](https://github.com/WhiskeySockets/Baileys/issues/2880)); a web-browser identity connects, with Baileys' built-in WhatsApp Web version or the latest one.
+
 ## Goal
 
 A brain answers WhatsApp direct messages and takes part in WhatsApp groups through `@brains/chat`, with the same turn routing, mention gating, approvals, uploads and permissions as Discord and Slack.
@@ -23,6 +25,7 @@ A brain answers WhatsApp direct messages and takes part in WhatsApp groups throu
 - **Baileys loads only when configured.** It is imported dynamically when `adapters.whatsapp` is set, so other brains never load it.
 - **No image library.** Baileys loads `sharp` or `jimp` only to build image thumbnails and profile pictures, and skips the thumbnail when a message already carries `jpegThumbnail`. Outbound images carry a thumbnail made with `Bun.Image` (32 px wide, JPEG quality 50, as Baileys makes it), and the brain sets no profile picture. `sharp` and `jimp` are externals of the brain bundle and not dependencies, so deployed brains do not ship them; Baileys' import of them fails and is caught.
 - **A dedicated number on its own phone.** The brain's WhatsApp account uses a number that serves nothing else, with WhatsApp running on a phone as the account's primary device. WhatsApp logs out every linked device when the primary phone has not used WhatsApp for 14 days, so that phone opens WhatsApp at least that often. Operators keep their own numbers and reach the brain through permission rules.
+- **Browser identity.** The socket presents `Browsers.ubuntu("Chrome")`, a web-browser sub-platform, because WhatsApp rejects the Desktop sub-platforms before login.
 - **Pairing-code login.** The config holds `phoneNumber` (country code, digits only), set from `WHATSAPP_PHONE_NUMBER`. While the session is unregistered, the adapter calls `requestPairingCode` and writes the code to the brain's log; the operator enters it on the primary phone under Linked devices → Link with phone number.
 - **The session lives in runtime state.** Baileys' `AuthenticationState` (credentials and signal keys) is stored in the interface's runtime state, not on disk, so restarts and redeploys keep the link.
 - **Connection.** A `WhatsAppConnectionLoop` on `RestartingListenerSupervisor`, like the Discord and Slack loops. A dropped connection reconnects. A logged-out close (`DisconnectReason.loggedOut`, 401) stops the loop and clears the session, and the daemon reports unhealthy until the number is paired again. There are no webhook routes.
@@ -45,8 +48,7 @@ A brain answers WhatsApp direct messages and takes part in WhatsApp groups throu
 
 Step 0 is a spike. Steps 1–7 are one PR; each step is one commit, with its tests written first.
 
-0. **Spike.** A throwaway Bun script run against the dedicated number, never committed. Its findings replace this step in Status, and a failure in any check is fixed or designed around before step 1 starts.
-   - Baileys runs under Bun, both from source and bundled with `bun build` with `sharp` and `jimp` external.
+0. **Spike part 2.** A throwaway Bun script run against the dedicated number, never committed. Its findings join part 1's in Status, and a failure in any check is fixed or designed around before step 1 starts.
    - The number pairs with a code; after a restart the script reconnects from a session kept in a non-file store, without pairing again.
    - A DM arrives and the reply is delivered.
    - A native-flow card with two `quick_reply` buttons renders on iPhone, Android and WhatsApp desktop, and each tap arrives.
@@ -79,8 +81,8 @@ Exit: the test app, paired with a dedicated number, answers DMs and mentions in 
 ## Risks
 
 - **Bans.** WhatsApp can ban the number at any time. The number is dedicated, so a ban costs only the brain's WhatsApp access; the setup docs say so.
-- **Protocol changes.** Baileys follows WhatsApp Web, so a WhatsApp change can break the connection or the buttons until Baileys catches up. Baileys 7 is still a release candidate.
-- **Bun.** Baileys targets Node.js. Step 0 is its first run under Bun, from source and bundled into the same shape as `brain.js`.
+- **Protocol changes.** Baileys follows WhatsApp Web, so a WhatsApp change can break the connection or the buttons until Baileys catches up, as the Desktop sub-platform rejection did from 2026-06-30. Baileys 7 is still a release candidate.
+- **Bun.** Connecting and the login handshake run under Bun from source and bundled; pairing, a long-lived session and media are first run under Bun in spike part 2.
 - **Buttons from a linked device** depend on each WhatsApp client rendering them. Step 0 checks the three clients, and typed yes/no stays as the fallback.
 - **An idle primary phone.** If the brain's phone goes 14 days without opening WhatsApp, the brain is logged out and the daemon reports unhealthy until the number is paired again.
 - **The authoring boundary re-apply** ([authoring-boundary-reapply.md](./authoring-boundary-reapply.md)) converts `@brains/chat`. Whichever lands second re-reads the other.
