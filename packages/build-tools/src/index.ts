@@ -25,6 +25,7 @@ export {
   type RestorePublishManifestOptions,
 } from "./publish-manifest";
 export { runWithPreparedPublishManifests } from "./publish-workspace";
+export { runLanePublish, type LanePublishOptions } from "./lane-publish";
 export {
   workspaceSourceExports,
   type WorkspaceSourceExportsOptions,
