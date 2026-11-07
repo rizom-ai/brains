@@ -10,6 +10,7 @@
 
 export {
   entityRuntime,
+  type AnyEntityReads,
   type EntityRuntime,
   type OrdinaryCreateDocument,
 } from "@brains/plugins";

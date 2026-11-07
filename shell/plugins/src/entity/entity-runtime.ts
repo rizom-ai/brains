@@ -1,5 +1,9 @@
 import { SdkError } from "@brains/contracts";
-import type { SearchWithDistancesRequest } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  IEntityService,
+  SearchWithDistancesRequest,
+} from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 import type { AIGenerationSchema } from "./ai-types";
 import type {
@@ -50,7 +54,43 @@ export interface EntityRuntime {
   ordinaryCreate(document?: OrdinaryCreateDocument): {
     readonly refuse: string;
   };
+  /**
+   * Untyped reads of any entity type, at exactly the build's own scope
+   * (public, and only published records in a production build), for a data
+   * source that reads across types it has no definitions for. Data sources
+   * only; it never widens the scope and never writes.
+   */
+  readonly anyEntities: AnyEntityReads;
 }
+
+/** Read-only, untyped reads across entity types. */
+export interface AnyEntityReads {
+  getEntityTypes(): string[];
+  listEntities(request: {
+    readonly entityType: string;
+    readonly options?:
+      | {
+          readonly filter?:
+            | {
+                readonly metadata?:
+                  Readonly<Record<string, unknown>> | undefined;
+              }
+            | undefined;
+          readonly limit?: number | undefined;
+        }
+      | undefined;
+  }): Promise<BaseEntity[]>;
+  getEntity(request: {
+    readonly entityType: string;
+    readonly id: string;
+  }): Promise<BaseEntity | null>;
+}
+
+/** The build-scoped reads a data source's runtime reads through. */
+export type AnyEntityService = Pick<
+  IEntityService,
+  "getEntityTypes" | "listEntities" | "getEntity"
+>;
 
 /** What an ordinary create takes in place of the request's own. */
 export interface OrdinaryCreateDocument {
@@ -193,7 +233,82 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       });
       return Object.freeze(resolution);
     },
+    anyEntities: unavailableAnyEntities("an entity callback"),
   });
+}
+
+/** An untyped read refused where no build scope stands behind it. */
+function unavailableAnyEntities(where: string): AnyEntityReads {
+  const refuse = (): never => {
+    throw new Error(`anyEntities reads only in a data source, not in ${where}`);
+  };
+  return Object.freeze({
+    getEntityTypes: refuse,
+    listEntities: refuse,
+    getEntity: refuse,
+  });
+}
+
+/**
+ * Untyped reads through the build-scoped entity service a data source is
+ * handed. Requests are rebuilt from the fields the view names, so no scope
+ * or option a caller passes can widen what the build may read.
+ */
+function buildScopedAnyEntities(service: AnyEntityService): AnyEntityReads {
+  return Object.freeze({
+    getEntityTypes: (): string[] => service.getEntityTypes(),
+    listEntities: (
+      request: Parameters<AnyEntityReads["listEntities"]>[0],
+    ): Promise<BaseEntity[]> => {
+      const metadata = request.options?.filter?.metadata;
+      const limit = request.options?.limit;
+      return service.listEntities({
+        entityType: request.entityType,
+        options: {
+          ...(metadata !== undefined && {
+            filter: { metadata: { ...metadata } },
+          }),
+          ...(limit !== undefined && { limit }),
+        },
+      });
+    },
+    getEntity: (
+      request: Parameters<AnyEntityReads["getEntity"]>[0],
+    ): Promise<BaseEntity | null> =>
+      service.getEntity({ entityType: request.entityType, id: request.id }),
+  });
+}
+
+/**
+ * A data source's read context with its internal runtime: untyped reads at
+ * the build's own scope. A data source neither searches, generates, writes
+ * nor creates, so those refuse.
+ */
+export function withDataSourceRuntime<TContext extends object>(
+  context: TContext,
+  service: AnyEntityService,
+): Readonly<TContext> {
+  const refuse = (name: string) => (): never => {
+    throw new Error(`${name} is not available to a data source`);
+  };
+  const runtime: EntityRuntime = Object.freeze({
+    nearest: refuse("nearest"),
+    generateObject: refuse("generateObject"),
+    packageEntities: Object.freeze({
+      get: refuse("packageEntities"),
+      list: refuse("packageEntities"),
+      count: refuse("packageEntities"),
+    }),
+    ordinaryCreate: refuse("ordinaryCreate"),
+    anyEntities: buildScopedAnyEntities(service),
+  });
+  Object.defineProperty(context, entityRuntimeKey, {
+    value: runtime,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return Object.freeze(context);
 }
 
 /**

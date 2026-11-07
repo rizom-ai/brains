@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   EntityRegistry,
   EntityService,
+  scopeEntityReads,
   type IEntityService,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -11,9 +12,11 @@ import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
   EntityPlugin,
   defineEntity,
+  defineDataSource,
   defineEntityPackage,
   entityRuntime,
   instantiatePluginPackageDefinition,
+  type DataSourceDefinition,
   type EntityCreateContext,
   type EntityCreateRouting,
   type EntityEvalDeclaration,
@@ -48,10 +51,15 @@ const wishShape = defineEntity({
   purpose: "A wish.",
   metadata: note,
 });
+// Another package's type, with the lifecycle and grouping a cross-type read
+// filters on.
 const other = defineEntity({
   type: "other",
   purpose: "Another package's type.",
-  metadata: note,
+  metadata: note.extend({
+    status: z.string().optional(),
+    series: z.string().optional(),
+  }),
 });
 let observed: unknown;
 let close: (() => Promise<void>) | undefined;
@@ -64,6 +72,7 @@ afterEach(async () => {
 async function store(
   create: EntityCreateRouting,
   evals: EntityEvalDeclaration,
+  dataSources: readonly DataSourceDefinition[] = [],
 ): Promise<{
   service: EntityService;
   shell: MockShell;
@@ -81,7 +90,7 @@ async function store(
   const registry = EntityRegistry.createFresh(logger);
   const plugins = [
     ...instantiatePluginPackageDefinition(
-      defineEntityPackage({ id: "wishes", entities: [wish] }),
+      defineEntityPackage({ id: "wishes", entities: [wish], dataSources }),
       {},
       { name: "@fixture/wishes", version: "0.1.0" },
     ),
@@ -316,6 +325,242 @@ describe("entityRuntime(context) on a context the runtime did not build", () => 
     const double = Object.freeze({ input: {}, entities: {}, uploads: {} });
     expect(() => entityRuntime(double)).toThrow(
       /carries no entity runtime.*first-party packages only/,
+    );
+  });
+});
+
+// What a capability refuses with, thrown or rejected.
+async function refusalOf(reach: () => unknown): Promise<string> {
+  try {
+    await reach();
+    return "not refused";
+  } catch (error) {
+    // The refusal is the value under test.
+    return String(error);
+  }
+}
+
+describe("entityRuntime(context) in a data source", () => {
+  // Every type's members of the "tides" series, as a cross-type source reads
+  // them, with the types the build names.
+  const tides = defineDataSource({
+    id: "tides",
+    name: "Tides",
+    description: "Members of the tides series across every type",
+    fetch: async (_query, _entities, context) => {
+      const reads = entityRuntime(context).anyEntities;
+      const members = await Promise.all(
+        reads.getEntityTypes().map((entityType) =>
+          reads.listEntities({
+            entityType,
+            options: { filter: { metadata: { series: "tides" } }, limit: 10 },
+          }),
+        ),
+      );
+      const hidden = await reads.getEntity({
+        entityType: "other",
+        id: "hidden-tide",
+      });
+      return {
+        members: members
+          .flat()
+          .map(({ id }) => id)
+          .sort(),
+        hidden: hidden?.id ?? null,
+      };
+    },
+  });
+  const output = z.object({
+    members: z.array(z.string()),
+    hidden: z.string().nullable(),
+  });
+
+  async function seeded(): Promise<{
+    service: EntityService;
+    shell: MockShell;
+  }> {
+    const installed = await store(
+      observing(async () => null),
+      {},
+      [tides],
+    );
+    const seeds = [
+      { id: "spring-tide", status: "published", visibility: "public" },
+      { id: "draft-tide", status: "draft", visibility: "public" },
+      { id: "hidden-tide", status: "published", visibility: "restricted" },
+    ] as const;
+    for (const seed of seeds) {
+      await installed.service.createEntity({
+        entity: {
+          id: seed.id,
+          entityType: "other",
+          content: `About ${seed.id}`,
+          metadata: { title: seed.id, status: seed.status, series: "tides" },
+          visibility: seed.visibility,
+        },
+      });
+    }
+    return installed;
+  }
+
+  async function fetchTides(
+    shell: MockShell,
+    entityService: IEntityService,
+    publishedOnly?: boolean,
+  ): Promise<z.output<typeof output>> {
+    const source = shell.getDataSourceRegistry().get("@fixture/wishes:tides");
+    if (!source?.fetch) throw new Error("No tides data source");
+    return source.fetch({}, output, {
+      entityService,
+      ...(publishedOnly !== undefined && { publishedOnly }),
+    });
+  }
+
+  it("reads every type at a preview build's scope: public records, drafts included", async () => {
+    const { service, shell } = await seeded();
+    const preview = scopeEntityReads(service, { visibilityScope: "public" });
+
+    expect(await fetchTides(shell, preview)).toEqual({
+      members: ["draft-tide", "spring-tide"],
+      hidden: null,
+    });
+  });
+
+  it("reads only published records at a production build's scope", async () => {
+    const { service, shell } = await seeded();
+    const production = scopeEntityReads(service, {
+      visibilityScope: "public",
+      publishedOnly: true,
+    });
+
+    expect(await fetchTides(shell, production, true)).toEqual({
+      members: ["spring-tide"],
+      hidden: null,
+    });
+  });
+
+  it("never widens the build's scope, whatever a request carries", async () => {
+    const wider = defineDataSource({
+      id: "wider",
+      name: "Wider",
+      description: "Asks for more than the build may read",
+      fetch: async (_query, _entities, context) => {
+        const reads = entityRuntime(context).anyEntities;
+        const listing = {
+          entityType: "other",
+          options: {
+            filter: { metadata: { series: "tides" } },
+            visibilityScope: "restricted",
+            source: true,
+          },
+          visibilityScope: "restricted",
+        };
+        const lookup = {
+          entityType: "other",
+          id: "hidden-tide",
+          visibilityScope: "restricted",
+        };
+        const listed = await reads.listEntities(listing);
+        const found = await reads.getEntity(lookup);
+        return {
+          // A stored-markdown read would hand back the frontmatter too.
+          members: listed
+            .map(({ id, content }) =>
+              content.startsWith("---") ? `${id} (stored markdown)` : id,
+            )
+            .sort(),
+          hidden: found?.id ?? null,
+        };
+      },
+    });
+    const installed = await store(
+      observing(async () => null),
+      {},
+      [wider],
+    );
+    for (const [id, visibility] of [
+      ["open-tide", "public"],
+      ["hidden-tide", "restricted"],
+    ] as const) {
+      await installed.service.createEntity({
+        entity: {
+          id,
+          entityType: "other",
+          content: `About ${id}`,
+          metadata: { title: id, series: "tides" },
+          visibility,
+        },
+      });
+    }
+    const source = installed.shell
+      .getDataSourceRegistry()
+      .get("@fixture/wishes:wider");
+    if (!source?.fetch) throw new Error("No wider data source");
+
+    expect(
+      await source.fetch({}, output, {
+        entityService: scopeEntityReads(installed.service, {
+          visibilityScope: "public",
+        }),
+      }),
+    ).toEqual({ members: ["open-tide"], hidden: null });
+  });
+
+  it("only reads: no writes, and the other capabilities refuse", async () => {
+    let refusals: unknown;
+    const probe = defineDataSource({
+      id: "probe",
+      name: "Probe",
+      description: "Reaches past the read view",
+      fetch: async (_query, _entities, context) => {
+        const runtime = entityRuntime(context);
+        refusals = {
+          reads: Object.keys(runtime.anyEntities).sort(),
+          nearest: await refusalOf(() =>
+            runtime.nearest(wishShape, "a tide wish"),
+          ),
+          create: await refusalOf(() => runtime.ordinaryCreate()),
+        };
+        return { members: [], hidden: null };
+      },
+    });
+    const { service, shell } = await store(
+      observing(async () => null),
+      {},
+      [probe],
+    );
+    const source = shell.getDataSourceRegistry().get("@fixture/wishes:probe");
+    if (!source?.fetch) throw new Error("No probe data source");
+    await source.fetch({}, output, { entityService: service });
+
+    expect(refusals).toEqual({
+      reads: ["getEntity", "getEntityTypes", "listEntities"],
+      nearest: expect.stringContaining(
+        "nearest is not available to a data source",
+      ),
+      create: expect.stringContaining(
+        "ordinaryCreate is not available to a data source",
+      ),
+    });
+  });
+
+  it("is refused outside a data source, where no build scope stands behind it", async () => {
+    const { shell } = await store(
+      observing(async (context) =>
+        refusalOf(() =>
+          entityRuntime(context).anyEntities.listEntities({
+            entityType: "other",
+          }),
+        ),
+      ),
+      {},
+    );
+    await create(shell, "admin");
+
+    expect(observed).toEqual(
+      expect.stringContaining(
+        "anyEntities reads only in a data source, not in an entity callback",
+      ),
     );
   });
 });

@@ -934,6 +934,7 @@ export {
 // the public contexts never name it.
 export {
   entityRuntime,
+  type AnyEntityReads,
   type EntityRuntime,
   type OrdinaryCreateDocument,
 } from "./entity/entity-runtime";
