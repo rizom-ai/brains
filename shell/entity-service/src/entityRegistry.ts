@@ -31,6 +31,7 @@ import {
 import type {
   BaseEntity,
   CreateCheck,
+  GenerationEnqueuer,
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
@@ -49,6 +50,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
   private createChecks = new Map<string, CreateCheck>();
+  private generationEnqueuers = new Map<string, GenerationEnqueuer>();
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
@@ -143,6 +145,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.entityConfigs.delete(type);
     this.createInterceptors.delete(type);
     this.createChecks.delete(type);
+    this.generationEnqueuers.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
     this.groupingExtensions.delete(type);
@@ -335,6 +338,14 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateCheck(type: string): CreateCheck | undefined {
     return this.createChecks.get(type);
+  }
+
+  registerGenerationEnqueuer(type: string, enqueuer: GenerationEnqueuer): void {
+    this.generationEnqueuers.set(type, enqueuer);
+  }
+
+  getGenerationEnqueuer(type: string): GenerationEnqueuer | undefined {
+    return this.generationEnqueuers.get(type);
   }
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void {

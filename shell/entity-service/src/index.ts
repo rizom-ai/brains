@@ -166,6 +166,7 @@ export type {
   CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  GenerationEnqueuer,
   UploadSaveInput,
   UploadSaveHandler,
   UploadSaveHandlerRegistration,
