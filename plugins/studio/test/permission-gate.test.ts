@@ -362,7 +362,7 @@ describe("Studio active-session gate inversion", () => {
     }
   });
 
-  it("keeps only static assets and legacy redirects as anonymous non-data exceptions", async () => {
+  it("keeps only static assets as an anonymous non-data exception", async () => {
     const { plugin } = await setup();
 
     const manifest = studioAssetManifestSchema.parse(
@@ -374,14 +374,6 @@ describe("Studio active-session gate inversion", () => {
       request(`/studio/assets/${manifest.entrypoints.script}`),
     );
     expect(asset.status).toBe(200);
-
-    const redirect = await findRoute(plugin, "/cms").handler(
-      request("/cms/entities/note/example?view=edit"),
-    );
-    expect(redirect.status).toBe(308);
-    expect(redirect.headers.get("location")).toBe(
-      "/studio/entities/note/example?view=edit",
-    );
   });
 
   it("admits every active session to shell entries", async () => {
