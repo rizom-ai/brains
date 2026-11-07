@@ -13,6 +13,7 @@ import {
 import { FormHttpError, readForm } from "./http-body";
 import type { FormIntake } from "./intake";
 import { isPrivatePeer } from "./network";
+import type { FormReceipts } from "./receipts";
 import { formPage } from "./page";
 import {
   renderForm,
@@ -95,6 +96,8 @@ export interface FormHttpOptions {
   copy?: FormCopy | undefined;
   /** A draft from the link that opened the form. */
   prefill?: ((url: URL) => FormDraft) | undefined;
+  /** Where a scored form keeps the receipts its thanks page reads. */
+  receipts?: FormReceipts | undefined;
 }
 
 const headers = {
@@ -122,6 +125,7 @@ export class FormHttpHandlers {
   private readonly defaultTheme: () => "light" | "dark" | undefined;
   private readonly copy: FormCopy;
   private readonly prefill: (url: URL) => FormDraft;
+  private readonly receipts: FormReceipts | undefined;
   private readonly origins: readonly string[];
   /** Every name the form posts: its fields, the token and the honeypot. */
   private readonly fields: ReadonlySet<string>;
@@ -140,6 +144,7 @@ export class FormHttpHandlers {
     this.defaultTheme = options.defaultTheme ?? ((): undefined => undefined);
     this.copy = options.copy ?? FORM_COPY;
     this.prefill = options.prefill ?? ((): FormDraft => ({}));
+    this.receipts = options.receipts;
     this.admission = admission;
     this.intake = intake;
     this.policy = formHttpPolicySchema.parse(policy);
@@ -264,11 +269,17 @@ export class FormHttpHandlers {
       const gate = await this.admission.checkRequest(transport?.remoteAddress);
       if (gate.kind === "denied") throw this.denial(gate.reason);
       request.signal.throwIfAborted();
-      if (url.pathname === this.thanksPath)
+      if (url.pathname === this.thanksPath) {
+        const receipt = url.searchParams.get("receipt");
+        const results =
+          receipt && this.receipts
+            ? ((await this.receipts.read(receipt)) ?? [])
+            : [];
         return this.page(
-          renderThanks(this.form, presentation, this.copy),
+          renderThanks(this.form, presentation, this.copy, results),
           presentation,
         );
+      }
       if (request.method === "GET") {
         const form = await this.admission.issue(transport?.remoteAddress);
         if (form.kind === "denied") throw this.denial(form.reason);
@@ -314,11 +325,19 @@ export class FormHttpHandlers {
         errors = result.errors ?? {};
         throw this.denial(result.reason);
       }
+      // The thanks page shows a scored submission's results through an
+      // opaque receipt; what was submitted never goes in the URL.
+      const query = new URLSearchParams({
+        ...(this.receipts && result.results.length > 0
+          ? { receipt: await this.receipts.issue(result.results) }
+          : {}),
+        ...(presentation.theme ? { theme: presentation.theme } : {}),
+      }).toString();
       return new Response(null, {
         status: 303,
         headers: {
           ...headers,
-          Location: `${this.thanksPath}${presentation.theme ? `?theme=${presentation.theme}` : ""}`,
+          Location: `${this.thanksPath}${query ? `?${query}` : ""}`,
         },
       });
     } catch (error) {

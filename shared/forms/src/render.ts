@@ -1,5 +1,6 @@
 import { escapeHtml } from "@brains/utils/string-utils";
 import { FORM_COPY, type FormCopy } from "./copy";
+import type { FormResult } from "./score";
 import { stepsScript } from "./steps-script";
 import type { FormChoiceField, FormDefinition, FormField } from "./definition";
 
@@ -28,6 +29,7 @@ const FORM_STYLES = `:where(.form){max-width:38rem;margin:clamp(1.5rem,6vw,4.5re
 :where(.form) .form__field--choice{grid-column:1/-1;border:0;padding:0;margin:0;min-width:0}:where(.form) .form__field--choice legend{font:inherit;font-size:.9rem;font-weight:500;margin-bottom:.4rem}:where(.form) .form__choice{display:flex;gap:.6rem;align-items:baseline;font-weight:400;color:var(--color-text);padding:.2rem 0}:where(.form) .form__choice input{width:auto;accent-color:var(--color-accent)}
 :where(.form) .form__notice{border-inline-start:2px solid var(--color-error);border-radius:.25rem;padding:1rem 1.25rem;background:var(--color-bg-subtle,var(--color-bg));color:var(--color-text);margin-block:1.5rem}
 :where(.form) [hidden]{display:none!important}:where(.form) .form__progress{font-size:.85rem;margin:0}:where(.form) .form__back{background:transparent;color:var(--color-text);border:1px solid var(--color-border)}
+:where(.form) .form__outcomes{display:grid;gap:1.5rem;margin-block:2rem}:where(.form) .form__outcome h2{font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;margin:0;color:var(--color-text-muted)}:where(.form) .form__outcome h3{font-family:var(--font-heading);font-weight:400;font-size:1.8rem;margin:.25rem 0 .5rem;color:var(--color-heading,var(--color-text))}
 @media(max-width:540px){:where(.form) .form__step{grid-template-columns:1fr}:where(.form) button{width:100%}}`;
 
 /** Visible copy, escaped, with the site's owner where it says `{owner}`. */
@@ -175,15 +177,42 @@ ${steps}
   );
 }
 
-/** Saved is what the visitor can be told; the owner's alert is sent separately. */
+/** A scored submission's results, each under its dimension. */
+function outcomesHtml(
+  form: FormDefinition,
+  results: readonly FormResult[],
+  presentation: FormPresentation,
+  copy: FormCopy,
+): string {
+  const shown = results.flatMap((result) => {
+    const dimension = form.scoring?.dimensions.find(
+      (candidate) => candidate.id === result.dimension,
+    );
+    const outcome = dimension?.outcomes.find(
+      (candidate) => candidate.id === result.outcome,
+    );
+    return dimension && outcome
+      ? [
+          `<div class="form__outcome" data-dimension="${escapeHtml(dimension.id)}" data-outcome="${escapeHtml(outcome.id)}"><h2>${fill(dimension.title, presentation, copy)}</h2><h3>${fill(outcome.title, presentation, copy)}</h3>${paragraphs(outcome.body, presentation, copy, "", "")}</div>`,
+        ]
+      : [];
+  });
+  return shown.length > 0
+    ? `<section class="form__outcomes">${shown.join("")}</section>`
+    : "";
+}
+
+/** Saved is what the visitor can be told; the owner's alert is sent
+ * separately. A scored submission's results follow. */
 export function renderThanks(
   form: FormDefinition,
   presentation: FormPresentation = {},
   copy: FormCopy = FORM_COPY,
+  results: readonly FormResult[] = [],
 ): string {
   return formSection(
     form,
-    `<h1>${fill(form.thanks.title, presentation, copy)}</h1>${paragraphs(form.thanks.body, presentation, copy, ' class="form__intro"', "")}`,
+    `<h1>${fill(form.thanks.title, presentation, copy)}</h1>${paragraphs(form.thanks.body, presentation, copy, ' class="form__intro"', "")}${outcomesHtml(form, results, presentation, copy)}`,
   );
 }
 

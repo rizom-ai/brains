@@ -6,6 +6,8 @@ export interface FormAlertAnswer {
 
 export interface FormAlertContent {
   answers: FormAlertAnswer[];
+  /** A scored submission's results: each dimension and its outcome. */
+  outcomes?: FormAlertAnswer[] | undefined;
   /** Where the owner marks the submission done. */
   inboxUrl: string;
   /** The alert's Reply-To is the person who submitted it. */
@@ -22,9 +24,13 @@ export function formAlertText(content: FormAlertContent): string {
         ? `${answer.label}:\n${answer.value}`
         : `${answer.label}: ${answer.value}`,
     );
+  const outcomes = (content.outcomes ?? []).map(
+    (outcome) => `${outcome.label}: ${outcome.value}`,
+  );
   return [
     ...answers,
     "",
+    ...(outcomes.length > 0 ? ["Results:", ...outcomes, ""] : []),
     ...(content.replyable ? ["Reply to this email to answer."] : []),
     `Mark it done in your Inbox: ${content.inboxUrl}`,
   ].join("\n");

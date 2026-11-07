@@ -196,3 +196,37 @@ describe("a form of several steps", () => {
     expect(renderForm(form, { token })).not.toContain("<script");
   });
 });
+
+describe("a scored form's thanks page", () => {
+  it("shows the submission's outcome in each dimension", () => {
+    const quiz = formDefinitionSchema.parse({
+      id: "quiz",
+      target: "quiz-result",
+      title: "Quiz",
+      thanks: { title: "Done" },
+      steps: [{ fields: [{ kind: "text", id: "name", label: "Name" }] }],
+      scoring: {
+        dimensions: [
+          {
+            id: "identity",
+            title: "Identity",
+            outcomes: [
+              {
+                id: "seeking",
+                title: "Seeking",
+                body: "You look <ahead>.\n\nAlways.",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      renderThanks(quiz, {}, FORM_COPY, [
+        { dimension: "identity", outcome: "seeking" },
+      ]),
+    ).toContain(
+      '<h1>Done</h1><section class="form__outcomes"><div class="form__outcome" data-dimension="identity" data-outcome="seeking"><h2>Identity</h2><h3>Seeking</h3><p>You look &lt;ahead&gt;.</p><p>Always.</p></div></section>',
+    );
+  });
+});

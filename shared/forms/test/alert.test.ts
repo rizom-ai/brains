@@ -42,3 +42,18 @@ describe("a form's alert", () => {
     ).toBe(`Name: Ada\n\nMark it done in your Inbox: ${inboxUrl}`);
   });
 });
+
+describe("a scored form's alert", () => {
+  it("carries its results after the answers", () => {
+    expect(
+      formAlertText({
+        answers: [{ label: "Name", value: "Ada" }],
+        outcomes: [{ label: "Identity", value: "Seeking" }],
+        inboxUrl,
+        replyable: false,
+      }),
+    ).toBe(
+      `Name: Ada\n\nResults:\nIdentity: Seeking\n\nMark it done in your Inbox: ${inboxUrl}`,
+    );
+  });
+});

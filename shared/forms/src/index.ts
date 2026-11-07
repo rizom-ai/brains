@@ -96,3 +96,7 @@ export { formMarkdown, parseFormMarkdown } from "./form-markdown";
 export { answerText } from "./validate";
 export type { FormChoiceField, FormTextField } from "./definition";
 export type { FormStepCopy } from "./steps-script";
+export { scoreAnswers } from "./score";
+export type { FormResult } from "./score";
+export { FormReceipts } from "./receipts";
+export type { FormDimension, FormOutcome } from "./definition";

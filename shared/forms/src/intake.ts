@@ -7,6 +7,7 @@ import type { FormAdmission, FormDenialReason } from "./admission";
 import type { FormDefinition } from "./definition";
 import { FormRecords } from "./records";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
+import { scoreAnswers, type FormResult } from "./score";
 import type { FormSubmission, FormTarget } from "./target";
 import {
   FORM_FIELD_MESSAGES,
@@ -28,7 +29,12 @@ export interface FormIntakeDependencies<E extends BaseEntity = BaseEntity> {
   now?: () => number;
 }
 export type FormSaveResult =
-  | { kind: "saved"; id: string }
+  | {
+      kind: "saved";
+      id: string;
+      /** A scored form's results, for the visitor's thanks page. */
+      results: FormResult[];
+    }
   | {
       kind: "denied";
       reason: FormDenialReason;
@@ -89,6 +95,7 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
         answers: validation.answers,
         receivedAt,
         notify: this.deps.form.notify.enabled,
+        results: scoreAnswers(this.deps.form, validation.answers),
       };
       const record = this.deps.target.record(submission);
       // Reserve canonical UTF-8 content plus bounded room for operational status changes.
@@ -118,7 +125,7 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
       if (notification === "pending") await this.enqueue(id);
       // Its form sends no alert: the record is all there was to do.
       if (notification === "none") await this.slots.forget(id);
-      return { kind: "saved", id };
+      return { kind: "saved", id, results: submission.results };
     } catch {
       // Storage and validation errors can contain private fields. Preserve all
       // uncertain reservations; neither an error nor a disconnect proves rollback.

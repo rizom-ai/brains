@@ -62,6 +62,7 @@ describe("contact requests as a form's target", () => {
       answers: { name: "Ada", email: "ada@example.com" },
       receivedAt: Date.parse("2026-11-07T10:00:00.000Z"),
       notify: true,
+      results: [],
     });
     const entity = contactRequestTarget.schema.parse({
       id: "work-1",

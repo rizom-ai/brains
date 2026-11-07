@@ -52,14 +52,34 @@ function textField<K extends string>(
   });
 }
 
-type FormOptionSchema = z.ZodObject<
-  { value: z.ZodString; label: z.ZodString },
+type FormScoreSchema = z.ZodObject<
+  {
+    dimension: z.ZodString;
+    outcome: z.ZodString;
+    weight: z.ZodDefault<z.ZodNumber>;
+  },
   z.core.$strict
 >;
-/** One answer a choice offers: what it posts, and what the visitor reads. */
+/** What choosing an option counts towards: an outcome in one dimension. */
+const scoreSchema: FormScoreSchema = z.strictObject({
+  dimension: slugSchema,
+  outcome: slugSchema,
+  weight: z.number().int().min(1).max(100).default(1),
+});
+type FormOptionSchema = z.ZodObject<
+  {
+    value: z.ZodString;
+    label: z.ZodString;
+    scores: z.ZodOptional<z.ZodArray<FormScoreSchema>>;
+  },
+  z.core.$strict
+>;
+/** One answer a choice offers: what it posts, what the visitor reads, and,
+ * in a scored form, what choosing it counts towards. */
 const optionSchema: FormOptionSchema = z.strictObject({
   value: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
   label: labelSchema,
+  scores: z.array(scoreSchema).min(1).max(20).optional(),
 });
 type ChoiceFieldSchema = z.ZodObject<
   {
@@ -123,6 +143,39 @@ export type FormTextField = Extract<FormField, { maxLength: number }>;
 /** A field answered from a list of options. */
 export type FormChoiceField = Extract<FormField, { options: unknown }>;
 
+type FormOutcomeSchema = z.ZodObject<
+  { id: z.ZodString; title: z.ZodString; body: z.ZodOptional<z.ZodString> },
+  z.core.$strict
+>;
+type FormDimensionSchema = z.ZodObject<
+  {
+    id: z.ZodString;
+    title: z.ZodString;
+    outcomes: z.ZodArray<FormOutcomeSchema>;
+  },
+  z.core.$strict
+>;
+type FormScoringSchema = z.ZodObject<
+  { dimensions: z.ZodArray<FormDimensionSchema> },
+  z.core.$strict
+>;
+const outcomeSchema: FormOutcomeSchema = z.strictObject({
+  id: slugSchema,
+  title: labelSchema,
+  body: copySchema.optional(),
+});
+const dimensionSchema: FormDimensionSchema = z.strictObject({
+  id: slugSchema,
+  title: labelSchema,
+  outcomes: z.array(outcomeSchema).min(1).max(50),
+});
+/** What a scored form measures: dimensions, each with the outcomes its
+ * options count towards. Each dimension's highest-scoring outcome is its
+ * result, so one submission can have several. */
+const scoringSchema: FormScoringSchema = z.strictObject({
+  dimensions: z.array(dimensionSchema).min(1).max(20),
+});
+
 type FormStepSchema = z.ZodObject<
   {
     title: z.ZodOptional<z.ZodString>;
@@ -161,6 +214,7 @@ type FormObjectSchema = z.ZodObject<
         z.core.$strict
       >
     >;
+    scoring: z.ZodOptional<FormScoringSchema>;
   },
   z.core.$strict
 >;
@@ -199,6 +253,7 @@ const formObjectSchema: FormObjectSchema = z.strictObject({
     .default({ enabled: true }),
   /** Its own admission limits, over the plugin's. */
   limits: formAdmissionPolicyShape.partial().optional(),
+  scoring: scoringSchema.optional(),
 });
 
 export const formFrontmatterSchema: FormFrontmatterSchema =
@@ -228,8 +283,36 @@ export const formDefinitionSchema: z.ZodType<
         path: ["steps"],
         message: "Each field needs its own id",
       });
+    const dimensions = new Map(
+      (form.scoring?.dimensions ?? []).map((dimension) => [
+        dimension.id,
+        new Set(dimension.outcomes.map((outcome) => outcome.id)),
+      ]),
+    );
+    if (dimensions.size !== (form.scoring?.dimensions.length ?? 0))
+      context.addIssue({
+        code: "custom",
+        path: ["scoring"],
+        message: "Each dimension needs its own id",
+      });
+    for (const dimension of form.scoring?.dimensions ?? [])
+      if (dimensions.get(dimension.id)?.size !== dimension.outcomes.length)
+        context.addIssue({
+          code: "custom",
+          path: ["scoring"],
+          message: `Each outcome of "${dimension.id}" needs its own id`,
+        });
     for (const field of form.steps.flatMap((step) => step.fields)) {
       if (!("options" in field)) continue;
+      for (const score of field.options.flatMap(
+        (option) => option.scores ?? [],
+      ))
+        if (!dimensions.get(score.dimension)?.has(score.outcome))
+          context.addIssue({
+            code: "custom",
+            path: ["steps"],
+            message: `"${field.id}" counts towards "${score.dimension}/${score.outcome}", which the form does not score`,
+          });
       const values = field.options.map((option) => option.value);
       if (new Set(values).size !== values.length)
         context.addIssue({
@@ -258,6 +341,9 @@ export const formDefinitionSchema: z.ZodType<
       title: form.notify.title ?? `New submission: ${form.title}`,
     },
   }));
+
+export type FormDimension = z.output<FormDimensionSchema>;
+export type FormOutcome = z.output<FormOutcomeSchema>;
 
 /** Every field of a form, in the order its steps ask them. */
 export function formFields(form: FormDefinition): FormField[] {

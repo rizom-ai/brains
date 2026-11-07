@@ -3,6 +3,7 @@ import type { z } from "@brains/utils/zod";
 import type { FormAlertAnswer } from "./alert";
 import type { FormDefinition } from "./definition";
 import type { FormNotificationState } from "./delivery";
+import type { FormResult } from "./score";
 import type { FormAnswers } from "./validate";
 
 /** One accepted submission, before it is stored. */
@@ -12,6 +13,8 @@ export interface FormSubmission {
   receivedAt: number;
   /** Whether the owner is alerted; a record without an alert says none. */
   notify: boolean;
+  /** A scored form's result in each dimension it scored. */
+  results: FormResult[];
 }
 
 /** A record as its package writes it: markdown and the metadata queried. */
@@ -43,5 +46,9 @@ export interface FormTarget<E extends BaseEntity = BaseEntity> {
   alert(
     entity: E,
     form: FormDefinition,
-  ): { answers: FormAlertAnswer[]; replyTo?: string | undefined };
+  ): {
+    answers: FormAlertAnswer[];
+    outcomes?: FormAlertAnswer[] | undefined;
+    replyTo?: string | undefined;
+  };
 }

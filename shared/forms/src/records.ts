@@ -64,6 +64,7 @@ export class FormRecords<
     form: FormDefinition,
   ): Promise<{
     answers: FormAlertAnswer[];
+    outcomes?: FormAlertAnswer[] | undefined;
     replyTo?: string | undefined;
   } | null> {
     const entity = await this.read(id);

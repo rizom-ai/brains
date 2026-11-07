@@ -37,7 +37,9 @@ export const noteTarget: FormTarget<NoteRequest> = {
     const fields = read(entity);
     return (
       fields["receivedAt"] === receivedAt &&
-      Object.entries(answers).every(([id, value]) => fields[id] === value)
+      Object.entries(answers).every(
+        ([id, value]) => JSON.stringify(fields[id]) === JSON.stringify(value),
+      )
     );
   },
   notification: (entity): FormNotificationState => {

@@ -38,6 +38,7 @@ import {
   type FormEnginePolicy,
   type FormPolicyOverrides,
 } from "./policy";
+import { FormReceipts } from "./receipts";
 import { FormRecords } from "./records";
 import type { FormDraft } from "./render";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
@@ -458,6 +459,13 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
         copy,
         prefill: form.prefill,
+        receipts: definition.scoring
+          ? new FormReceipts(
+              context.runtimeState,
+              `forms.${definition.id}.receipts`,
+              policy.admission.receiptTtlSeconds,
+            )
+          : undefined,
       },
     );
     return {
@@ -486,6 +494,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       title: form.notify.title,
       body: formAlertText({
         answers: alert.answers,
+        outcomes: alert.outcomes,
         inboxUrl: inbox,
         replyable: alert.replyTo !== undefined,
       }),
