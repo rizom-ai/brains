@@ -93,13 +93,10 @@ export const listInputSchema: z.ZodObject<{
     .describe("Maximum number of results (default: 20)"),
 });
 
-const createUploadInputSchema: z.ZodObject<{
-  kind: z.ZodLiteral<"upload">;
-  id: z.ZodString;
-}> = z.object({
-  kind: z.literal("upload").describe("Upload ref kind"),
-  id: z.string().min(1).describe("Upload ID"),
-});
+const uploadIdInputSchema: z.ZodString = z
+  .string()
+  .min(1)
+  .describe("Upload id from the conversation's upload refs");
 
 // Models fill unused optional fields with empty strings, so an empty string
 // here means omitted rather than an invalid call.
@@ -169,7 +166,7 @@ type UploadsSourceInputSchema = StrictObjectSchema<{
   kind: z.ZodLiteral<"uploads">;
   items: z.ZodArray<
     StrictObjectSchema<{
-      upload: typeof createUploadInputSchema;
+      id: typeof uploadIdInputSchema;
       transform: typeof uploadTransformSchema;
       title: z.ZodOptional<z.ZodString>;
       fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -189,9 +186,7 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
       .array(
         z
           .object({
-            upload: createUploadInputSchema.describe(
-              "Exact upload candidate object from the current conversation",
-            ),
+            id: uploadIdInputSchema,
             transform: uploadTransformSchema,
             title: z
               .string()
@@ -224,7 +219,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
     }>,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"upload">;
-      upload: typeof createUploadInputSchema;
+      id: typeof uploadIdInputSchema;
       transform: z.ZodEnum<{
         "extract-markdown": "extract-markdown";
         preserve: "preserve";
@@ -279,9 +274,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         .describe(
           "Use extract-markdown to import upload text into a note, or preserve only when the user explicitly wants to save the uploaded file/document bytes themselves. Do not use for saving a previous assistant summary about an upload; use prior-response for that.",
         ),
-      upload: createUploadInputSchema.describe(
-        "Exact upload candidate object from the current conversation",
-      ),
+      id: uploadIdInputSchema,
       transform: uploadTransformSchema,
     })
     .strict(),

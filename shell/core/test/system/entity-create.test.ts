@@ -486,8 +486,13 @@ describe("system_create tool", () => {
     if (typeof url === "string" && url.trim().length > 0) {
       return { ...rest, source: { kind: "url", url } };
     }
-    if (upload && transform === "extract-markdown") {
-      return { ...rest, source: { kind: "upload", upload, transform } };
+    if (
+      typeof upload === "object" &&
+      upload !== null &&
+      "id" in upload &&
+      transform === "extract-markdown"
+    ) {
+      return { ...rest, source: { kind: "upload", id: upload.id, transform } };
     }
     if (sourceAttachment && typeof sourceAttachment === "object") {
       return { ...rest, source: { kind: "attachment", ...sourceAttachment } };
@@ -2214,7 +2219,7 @@ A saved research link.`;
         entityType: "note",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: "upload-1" },
+          id: "upload-1",
           transform: "extract-markdown",
         },
       },

@@ -19,6 +19,30 @@ describe("redactUploadRefs", () => {
     });
   });
 
+  it("hides the upload id of each file a save of several uploads lists", () => {
+    expect(
+      redactUploadRefs({
+        entityType: "note",
+        source: {
+          kind: "uploads",
+          items: [
+            { id: "upload-123", transform: "extract-markdown" },
+            { id: "upload-456", transform: "preserve", title: "Harbor" },
+          ],
+        },
+      }),
+    ).toEqual({
+      entityType: "note",
+      source: {
+        kind: "uploads",
+        items: [
+          { id: "uploaded file", transform: "extract-markdown" },
+          { id: "uploaded file", transform: "preserve", title: "Harbor" },
+        ],
+      },
+    });
+  });
+
   it("leaves non-upload records intact", () => {
     expect(redactUploadRefs({ kind: "entity", id: "note-1" })).toEqual({
       kind: "entity",

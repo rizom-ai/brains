@@ -147,12 +147,10 @@ function normalizeCreateSource(
       return { content: source.content };
     case "url":
       return { url: source.url };
-    case "upload":
-      return {
-        from: source.upload,
-        uploadRef: source.upload,
-        transform: source.transform,
-      };
+    case "upload": {
+      const uploadRef = { kind: "upload" as const, id: source.id };
+      return { from: uploadRef, uploadRef, transform: source.transform };
+    }
     case "prior-response":
     case "user-message":
       return { conversationMessageRef: source };
@@ -1018,7 +1016,7 @@ async function prepareUploadItem(
         : {}),
       source: {
         kind: "upload",
-        upload: item.upload,
+        id: item.id,
         transform: item.transform,
       },
       ...(Object.keys(fields).length > 0 && { fields }),
@@ -1034,7 +1032,7 @@ async function prepareUploadItem(
   return {
     kind: "ok",
     value: {
-      filename: prepared.uploadFilename ?? item.upload.id,
+      filename: prepared.uploadFilename ?? item.id,
       entityType: prepared.createInput.entityType,
       title: prepared.createInput.title ?? prepared.uploadFilename ?? "",
       ...(prepared.createInput.fields && {

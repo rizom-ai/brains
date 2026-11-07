@@ -116,13 +116,44 @@ function context(): ToolContext {
 }
 
 describe("system_create upload preserve", () => {
-  it("exposes preserve as an upload transform and removes system_upload_save", () => {
+  it("takes the upload id in the source, not a nested upload object", () => {
     expect(
       createInputSchema.safeParse({
         entityType: "document",
         source: {
           kind: "upload",
           upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: {
+          kind: "uploads",
+          items: [
+            {
+              upload: { kind: "upload", id: "upload-1" },
+              transform: "preserve",
+            },
+            {
+              upload: { kind: "upload", id: "upload-2" },
+              transform: "preserve",
+            },
+          ],
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("exposes preserve as an upload transform and removes system_upload_save", () => {
+    expect(
+      createInputSchema.safeParse({
+        entityType: "document",
+        source: {
+          kind: "upload",
+          id: uploadId,
           transform: "preserve",
         },
       }).success,
@@ -155,7 +186,7 @@ describe("system_create upload preserve", () => {
         visibility: "shared",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },
@@ -215,7 +246,7 @@ describe("system_create upload preserve", () => {
         title: "Quarterly Report",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },
@@ -259,7 +290,7 @@ describe("system_create upload preserve", () => {
         title: "Quarterly Report",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },
@@ -288,7 +319,7 @@ describe("system_create upload preserve", () => {
         entityType: "document",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },

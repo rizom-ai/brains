@@ -147,7 +147,7 @@ export async function createFromUploads(params: {
     if (prepared.kind === "error") {
       return {
         success: false,
-        error: `Upload ${index + 1} of ${input.source.items.length} (${request.upload.id}): ${errorText(prepared.result)}`,
+        error: `Upload ${index + 1} of ${input.source.items.length} (${request.id}): ${errorText(prepared.result)}`,
       };
     }
     items.push(prepared.value);
@@ -168,7 +168,7 @@ export async function createFromUploads(params: {
     source: {
       kind: "uploads" as const,
       items: input.source.items.map((request, index) => ({
-        upload: request.upload,
+        id: request.id,
         transform: request.transform,
         title: items[index]?.title ?? request.title,
         ...((items[index]?.fields ?? request.fields) && {

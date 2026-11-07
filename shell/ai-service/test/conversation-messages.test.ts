@@ -469,7 +469,7 @@ describe("buildMessageWithAttachments", () => {
       "do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity",
     );
     expect(content).toContain(
-      'Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note',
+      'Use system_create source.kind upload with its upload id as source.id and transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note',
     );
   });
 
@@ -532,7 +532,7 @@ describe("buildMessageWithAttachments", () => {
     expect(content).not.toContain("Raw uploaded file path:");
     expect(content).not.toContain("Prior assistant response path:");
     expect(content).toContain(
-      '- distributed-systems-primer.pdf; upload: { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
+      '- distributed-systems-primer.pdf; upload id: "upload-00000000-0000-4000-8000-000000000401"; mediaType: application/pdf',
     );
     expect(content).not.toContain("note-extract args");
   });
@@ -569,7 +569,7 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
 
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+      'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
     );
   });
 
@@ -603,10 +603,10 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
 
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message, each as itself, text files as notes and PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "preserve" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+      'Available system_create candidate for keeping every file attached to this message, each as itself, text files as notes and PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "preserve" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
     );
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message as notes, each PDF\'s text extracted into its note, when the user asks for notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ upload: { kind: "upload", id: "upload-pdf" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-text" }, transform: "extract-markdown" }, { upload: { kind: "upload", id: "upload-image" }, transform: "preserve" }] } }',
+      'Available system_create candidate for keeping every file attached to this message as notes, each PDF\'s text extracted into its note, when the user asks for notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "extract-markdown" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
     );
   });
 
@@ -666,7 +666,7 @@ describe("buildMessageWithAttachments", () => {
       {
         type: "text",
         text: expect.stringContaining(
-          '- brief.pdf; upload: { kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }; mediaType: application/pdf',
+          '- brief.pdf; upload id: "upload-00000000-0000-4000-8000-000000000401"; mediaType: application/pdf',
         ),
       },
       {
@@ -744,7 +744,7 @@ describe("uploads already saved in the conversation", () => {
             title: "Community Launch Plan",
             source: {
               kind: "upload",
-              upload: upload.source,
+              id: upload.source.id,
               transform: "extract-markdown",
             },
           },
@@ -772,8 +772,8 @@ describe("uploads already saved in the conversation", () => {
             source: {
               kind: "uploads",
               items: [
-                { upload: upload.source, transform: "extract-markdown" },
-                { upload: photo.source, transform: "preserve" },
+                { id: upload.source.id, transform: "extract-markdown" },
+                { id: photo.source.id, transform: "preserve" },
               ],
             },
           },
@@ -805,7 +805,7 @@ describe("uploads already saved in the conversation", () => {
     });
 
     expect(content).toContain(
-      '- community-launch-plan.md; upload: { kind: "upload", id: "upload-plan" }; mediaType: text/markdown; saved as note "community-launch-plan" holding this upload text verbatim: change it there with system_update edits quoting that text, without system_get first, never as a new note',
+      '- community-launch-plan.md; upload id: "upload-plan"; mediaType: text/markdown; saved as note "community-launch-plan" holding this upload text verbatim: change it there with system_update edits quoting that text, without system_get first, never as a new note',
     );
   });
 });

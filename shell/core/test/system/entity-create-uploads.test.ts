@@ -33,7 +33,7 @@ function item(
   title?: string,
 ): Record<string, unknown> {
   return {
-    upload: { kind: "upload", id: upload.id },
+    id: upload.id,
     transform,
     ...(title !== undefined ? { title } : {}),
   };
@@ -326,7 +326,7 @@ describe("system_create uploads as another type's text", () => {
         entityType: "post",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: slownessUpload.id },
+          id: slownessUpload.id,
           transform: "extract-markdown",
         },
         fields: { status: "published", publishedAt: "2025-03-12" },
@@ -477,7 +477,7 @@ describe("system_create uploads as another type's text", () => {
         entityType: "post",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: reportUpload.id },
+          id: reportUpload.id,
           transform: "extract-markdown",
         },
       },

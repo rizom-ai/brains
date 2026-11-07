@@ -28,7 +28,7 @@ function importRequest(
     ...(title !== undefined ? { title } : {}),
     source: {
       kind: "upload",
-      upload: { kind: "upload", id: upload.id },
+      id: upload.id,
       transform: "extract-markdown",
     },
   };
@@ -147,7 +147,7 @@ describe("system_create save confirmations", () => {
         entityType: "image",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: photo.id },
+          id: photo.id,
           transform: "preserve",
         },
       },

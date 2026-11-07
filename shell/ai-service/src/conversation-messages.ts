@@ -127,8 +127,6 @@ export interface ConversationUploadRef {
   savedAs?: { entityType: string; entityId: string };
 }
 
-const uploadSourceRefSchema = z.object({ kind: z.string(), id: z.string() });
-
 /** A confirmed system_create whose source was one or several uploads. */
 const savedUploadCardSchema = z.looseObject({
   kind: z.literal("tool-approval"),
@@ -137,13 +135,10 @@ const savedUploadCardSchema = z.looseObject({
   input: z.looseObject({
     entityType: z.string(),
     source: z.union([
-      z.looseObject({
-        kind: z.literal("upload"),
-        upload: uploadSourceRefSchema,
-      }),
+      z.looseObject({ kind: z.literal("upload"), id: z.string() }),
       z.looseObject({
         kind: z.literal("uploads"),
-        items: z.array(z.looseObject({ upload: uploadSourceRefSchema })),
+        items: z.array(z.looseObject({ id: z.string() })),
       }),
     ]),
   }),
@@ -173,7 +168,7 @@ function collectSavedUploads(messages: Message[]): SavedUploads {
       if (input.source.kind === "upload") {
         const { entityId } = output.data;
         if (entityId === undefined) continue;
-        saved.set(`${input.source.upload.kind}:${input.source.upload.id}`, {
+        saved.set(`upload:${input.source.id}`, {
           entityType: input.entityType,
           entityId,
         });
@@ -183,7 +178,7 @@ function collectSavedUploads(messages: Message[]): SavedUploads {
       input.source.items.forEach((item, index) => {
         const entity = output.data.items?.[index];
         if (!entity) return;
-        saved.set(`${item.upload.kind}:${item.upload.id}`, {
+        saved.set(`upload:${item.id}`, {
           entityType: entity.entityType,
           entityId: entity.entityId,
         });
@@ -427,7 +422,7 @@ function formatKeepAllCandidateLine(
   const items = attachments.flatMap((attachment) =>
     attachment.source
       ? [
-          `{ upload: { kind: "${attachment.source.kind}", id: "${attachment.source.id}" }, transform: "${transform(attachment)}" }`,
+          `{ id: "${attachment.source.id}", transform: "${transform(attachment)}" }`,
         ]
       : [],
   );
@@ -490,7 +485,7 @@ function formatUploadRefs(
   if (lines.length === 0) return priorResponseCandidate;
 
   const guidance =
-    'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. To keep several uploads at once, call system_create once with source.kind uploads listing every attached file. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
+    'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with its upload id as source.id and transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. To keep several uploads at once, call system_create once with source.kind uploads listing every attached file. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
 
   return [
     guidance,
@@ -505,7 +500,7 @@ function formatUploadRefs(
 function formatUploadRefLine(ref: ConversationUploadRef): string {
   return [
     `- ${ref.filename}`,
-    `upload: { kind: "${ref.source.kind}", id: "${ref.source.id}" }`,
+    `upload id: "${ref.source.id}"`,
     `mediaType: ${ref.mediaType}`,
     ...(ref.savedAs
       ? [
