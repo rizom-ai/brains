@@ -4,29 +4,8 @@ import type {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export interface FormStoragePolicy {
-  retentionSeconds: number;
-  maxRecords: number;
-  maxBytes: number;
-}
-export const formStoragePolicyShape: z.ZodObject<
-  {
-    retentionSeconds: z.ZodNumber;
-    maxRecords: z.ZodNumber;
-    maxBytes: z.ZodNumber;
-  },
-  z.core.$strict
-> = z.strictObject({
-  retentionSeconds: z
-    .number()
-    .int()
-    .min(86400)
-    .max(90 * 86400),
-  maxRecords: z.number().int().min(1).max(1000),
-  maxBytes: z.number().int().min(1024).max(32_000_000),
-});
-export const formStoragePolicySchema: z.ZodType<FormStoragePolicy> =
-  formStoragePolicyShape;
+/** The ledger's ceiling: submissions whose write or alert has not settled. */
+const MAX_IN_FLIGHT = 1000;
 export type FormDeliveryStatus = "pending" | "sent" | "failed";
 interface DeliveryState {
   attempts: number;
@@ -42,7 +21,6 @@ export type DeliveryClaim =
 
 export interface FormStorageSlot {
   receivedAt: number;
-  expiresAt: number;
   bytes: number;
   phase: "writing" | "stored";
   delivery: DeliveryState;
@@ -53,22 +31,25 @@ interface SlotState {
   slots: Record<string, FormStorageSlot>;
 }
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const slotSchema: z.ZodType<FormStorageSlot> = z.strictObject({
-  receivedAt: integer,
-  expiresAt: integer,
-  bytes: integer.max(32000),
-  phase: z.enum(["writing", "stored"]),
-  delivery: z.strictObject({
-    attempts: integer.max(5),
-    firstAttemptAt: integer.nullable(),
-    leaseUntil: integer,
-    status: z.enum(["pending", "sent", "failed"]),
-    failure: z
-      .string()
-      .regex(/^[a-z0-9_:.-]{1,80}$/)
-      .optional(),
-  }),
-});
+const slotSchema: z.ZodType<FormStorageSlot> = z
+  .strictObject({
+    receivedAt: integer,
+    // Written while submissions expired; read, never written.
+    expiresAt: integer.optional(),
+    bytes: integer.max(32000),
+    phase: z.enum(["writing", "stored"]),
+    delivery: z.strictObject({
+      attempts: integer.max(5),
+      firstAttemptAt: integer.nullable(),
+      leaseUntil: integer,
+      status: z.enum(["pending", "sent", "failed"]),
+      failure: z
+        .string()
+        .regex(/^[a-z0-9_:.-]{1,80}$/)
+        .optional(),
+    }),
+  })
+  .transform(({ expiresAt: _expiresAt, ...slot }) => slot);
 function stateSchemaFor(idPrefix: string): z.ZodType<SlotState> {
   const escaped = idPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return z.strictObject({
@@ -79,33 +60,37 @@ function stateSchemaFor(idPrefix: string): z.ZodType<SlotState> {
         z.string().regex(new RegExp(`^${escaped}-[a-f0-9]{64}$`)),
         slotSchema,
       )
-      .refine((slots) => Object.keys(slots).length <= 1000),
+      .refine((slots) => Object.keys(slots).length <= MAX_IN_FLIGHT),
   });
 }
 /** Where a form's slot ledger lives and how its records are named. */
 export interface FormStorageOptions {
   namespace: string;
   idPrefix: string;
+  /** Fewer than the ledger's ceiling, for tests. */
+  maxInFlight?: number | undefined;
 }
 export type SlotClaim =
-  | { kind: "new" | "existing"; slot: FormStorageSlot }
-  | { kind: "capacity" }
-  | { kind: "expired" };
+  { kind: "new" | "existing"; slot: FormStorageSlot } | { kind: "capacity" };
 
-/** Capacity reservations survive credential expiry. Never prune an uncertain
- * writer merely because time passed: a delayed create may still commit.
+/** Submissions are kept until their owner deletes them; a slot covers only the
+ * work still in flight for one: its write, then its alert. Never prune an
+ * uncertain writer merely because time passed: a delayed create may still
+ * commit.
  */
 export class FormStorageSlots {
   private readonly store: IRuntimeStateStore<SlotState>;
-  private readonly policy: FormStoragePolicy;
+  private readonly maxInFlight: number;
   private readonly now: () => number;
   constructor(
     state: IRuntimeStateNamespace,
-    policy: FormStoragePolicy,
     options: FormStorageOptions,
     now: () => number,
   ) {
-    this.policy = policy;
+    this.maxInFlight = Math.min(
+      options.maxInFlight ?? MAX_IN_FLIGHT,
+      MAX_IN_FLIGHT,
+    );
     this.now = now;
     this.store = state.scoped({
       namespace: options.namespace,
@@ -114,23 +99,13 @@ export class FormStorageSlots {
   }
 
   claim(id: string, receivedAt: number, bytes: number): Promise<SlotClaim> {
-    return this.mutate<SlotClaim>((state, now) => {
+    return this.mutate<SlotClaim>((state) => {
       const existing = state.slots[id];
       if (existing) return { result: { kind: "existing", slot: existing } };
-      const expiresAt = receivedAt + this.policy.retentionSeconds * 1000;
-      if (now >= expiresAt || now < receivedAt)
-        return { result: { kind: "expired" } };
-      const slots = Object.values(state.slots);
-      if (
-        slots.length >= this.policy.maxRecords ||
-        bytes > 32000 ||
-        slots.reduce((sum, slot) => sum + slot.bytes, 0) + bytes >
-          this.policy.maxBytes
-      )
+      if (Object.keys(state.slots).length >= this.maxInFlight || bytes > 32000)
         return { result: { kind: "capacity" } };
       const slot: FormStorageSlot = {
         receivedAt,
-        expiresAt,
         bytes,
         phase: "writing",
         delivery: {
@@ -153,11 +128,7 @@ export class FormStorageSlots {
 
   async assertWritable(id: string): Promise<void> {
     const slot = (await this.store.get("slots"))?.slots[id];
-    if (
-      slot?.phase !== "writing" ||
-      this.now() < slot.receivedAt ||
-      this.now() >= slot.expiresAt
-    )
+    if (slot?.phase !== "writing" || this.now() < slot.receivedAt)
       throw new Error("Form write unavailable");
   }
 
@@ -186,8 +157,7 @@ export class FormStorageSlots {
   ): Promise<DeliveryClaim> {
     return this.mutate<DeliveryClaim>((state, now) => {
       const slot = state.slots[id];
-      if (slot?.phase !== "stored" || now >= slot.expiresAt)
-        return { result: { status: "skipped" } };
+      if (slot?.phase !== "stored") return { result: { status: "skipped" } };
       const delivery = slot.delivery;
       if (delivery.status !== "pending")
         return { result: { status: delivery.status } };
@@ -219,7 +189,6 @@ export class FormStorageSlots {
           status: "send",
           attempt,
           sendBefore: Math.min(
-            slot.expiresAt,
             now + 65_000,
             (delivery.firstAttemptAt ?? now) + retryWindowSeconds * 1000,
           ),
@@ -253,7 +222,7 @@ export class FormStorageSlots {
   ): Promise<FormDeliveryStatus | null> {
     return this.mutate<FormDeliveryStatus | null>((state) => {
       const slot = state.slots[id];
-      if (!slot) return { result: null }; // Cleanup owns deletion; never recreate delivery state.
+      if (!slot) return { result: null }; // A released slot is never recreated.
       const delivery = slot.delivery;
       if (
         delivery.status === "sent" ||
@@ -286,13 +255,29 @@ export class FormStorageSlots {
     });
   }
 
-  /** Call only after observing the committed entity and acknowledging its deletion. */
-  releaseDeleted(id: string): Promise<boolean> {
-    return this.mutate((state, now) => {
+  /** Call once the settled alert is recorded on the stored submission. A
+   * pending alert or an uncertain write keeps its slot. */
+  release(id: string): Promise<boolean> {
+    return this.remove(
+      id,
+      (slot) => slot.phase === "stored" && slot.delivery.status !== "pending",
+    );
+  }
+
+  /** Call only after observing that the stored submission is gone: its owner
+   * deleted it, so nothing is left to alert about. */
+  releaseGone(id: string): Promise<boolean> {
+    return this.remove(id, (slot) => slot.phase === "stored");
+  }
+
+  private remove(
+    id: string,
+    releasable: (slot: FormStorageSlot) => boolean,
+  ): Promise<boolean> {
+    return this.mutate((state) => {
       const slot = state.slots[id];
       if (!slot) return { result: true };
-      if (slot.phase !== "stored" || now < slot.expiresAt)
-        return { result: false };
+      if (!releasable(slot)) return { result: false };
       const slots = { ...state.slots };
       delete slots[id];
       return { result: true, next: { ...state, slots } };

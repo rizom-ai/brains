@@ -144,7 +144,6 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     const delivery = new FormDelivery({
       target: new ContactDeliveryTarget(context.entityService),
       state: context.runtimeState,
-      storage: config.storage,
       slots: CONTACT_SLOTS,
       policy: config.delivery,
       send: async (_id, idempotencyKey): Promise<FormAlertOutcome> => {
@@ -192,7 +191,6 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     });
     this.slots = new FormStorageSlots(
       context.runtimeState,
-      config.storage,
       CONTACT_SLOTS,
       Date.now,
     );
@@ -205,7 +203,6 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       admission,
       entities: context.entityService,
       state: context.runtimeState,
-      policy: config.storage,
       enqueueNotification: async (id): Promise<void> => {
         await context.jobs.enqueue({
           type: "notify",
@@ -357,7 +354,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         now - status.at <= MAX_MAINTENANCE_AGE_MS
       );
     } catch {
-      // An unreadable status cannot show that retention ran; keep intake closed.
+      // An unreadable status cannot show that recovery ran; keep intake closed.
       return false;
     }
   }
@@ -370,7 +367,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         return {
           status: "unhealthy",
           message:
-            "Contact retention/recovery is unavailable or overdue; intake is closed.",
+            "Contact recovery is unavailable or overdue; intake is closed.",
         };
       const slots = await this.slots.list();
       const pending = slots.filter(
@@ -405,7 +402,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         message:
           "Contact operational counts. A failed alert counts until its request is marked Done in the Inbox; failure can include an unconfirmed provider outcome.",
         details: {
-          records: slots.length,
+          inFlight: slots.length,
           pending,
           failed: failed.length,
           failedUnhandled,

@@ -61,7 +61,6 @@ export class ContactRequestAdapter extends BaseEntityAdapter<
       metadata: {
         title: "Contact request",
         receivedAt: frontmatter.receivedAt,
-        expiresAt: frontmatter.expiresAt,
         status: frontmatter.status,
         notification: frontmatter.notification,
       },

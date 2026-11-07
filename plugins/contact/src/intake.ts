@@ -5,10 +5,8 @@ import type {
 } from "@brains/plugins";
 import {
   FormStorageSlots,
-  formStoragePolicySchema,
   type FormAdmission,
   type FormDenialReason as ContactDenialReason,
-  type FormStoragePolicy as ContactStoragePolicy,
 } from "@brains/forms";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
@@ -24,7 +22,8 @@ export interface ContactIntakeDependencies {
   admission: FormAdmission;
   entities: ServiceEntityService;
   state: IRuntimeStateNamespace;
-  policy: ContactStoragePolicy;
+  /** Fewer submissions in flight than the ledger allows, for tests. */
+  maxInFlight?: number | undefined;
   /** Durable enqueue only, with a request-derived deduplication key. Never send email inline. */
   enqueueNotification: (id: string) => Promise<void>;
   now?: () => number;
@@ -33,27 +32,24 @@ export type ContactSaveResult =
   | { kind: "saved"; id: string }
   | { kind: "denied"; reason: ContactDenialReason };
 export interface ContactMaintenanceReport {
-  deleted: number;
+  /** Slots freed: their alert settled and was dealt with, or their request was deleted. */
+  released: number;
   pendingNotifications: number;
   enqueueFailures: number;
   uncertainWrites: number;
 }
 
 export class ContactIntake {
-  readonly retentionSeconds: number;
   private readonly slots: FormStorageSlots;
   private readonly now: () => number;
   private readonly deps: ContactIntakeDependencies;
 
   constructor(deps: ContactIntakeDependencies) {
     this.deps = deps;
-    const policy = formStoragePolicySchema.parse(deps.policy);
-    this.retentionSeconds = policy.retentionSeconds;
     this.now = deps.now ?? Date.now;
     this.slots = new FormStorageSlots(
       deps.state,
-      policy,
-      CONTACT_SLOTS,
+      { ...CONTACT_SLOTS, maxInFlight: deps.maxInFlight },
       this.now,
     );
   }
@@ -77,11 +73,7 @@ export class ContactIntake {
       if (reservation.kind === "denied") return reservation;
       signal.throwIfAborted();
       const { id, receivedAt } = reservation;
-      const content = this.content(
-        parsed.data,
-        receivedAt,
-        receivedAt + this.retentionSeconds * 1000,
-      );
+      const content = this.content(parsed.data, receivedAt);
       // Reserve canonical UTF-8 content plus bounded room for operational status changes.
       const claim = await this.slots.claim(
         id,
@@ -90,31 +82,17 @@ export class ContactIntake {
       );
       if (claim.kind === "capacity")
         return { kind: "denied", reason: "capacity" };
-      if (claim.kind === "expired")
-        return { kind: "denied", reason: "invalid-token" };
-      if (this.now() >= claim.slot.expiresAt)
-        return { kind: "denied", reason: "invalid-token" };
       if (claim.kind === "new") {
         await this.create(id, content, signal);
       }
       // A receipt/slot is not an acknowledgement. Observe the exact persisted
       // request before reporting success, including after an ambiguous create.
       const entity = await this.read(id);
-      if (
-        !entity ||
-        !this.matches(
-          entity,
-          parsed.data,
-          claim.slot.receivedAt,
-          claim.slot.expiresAt,
-        )
-      )
+      if (!entity || !this.matches(entity, parsed.data, claim.slot.receivedAt))
         return { kind: "denied", reason: "unavailable" };
       if (!(await this.slots.stored(id)))
         return { kind: "denied", reason: "unavailable" };
       signal.throwIfAborted();
-      if (this.now() >= claim.slot.expiresAt)
-        return { kind: "denied", reason: "invalid-token" };
       if (
         contactRequestAdapter.parseContent(entity.content).frontmatter
           .notification === "pending"
@@ -128,13 +106,14 @@ export class ContactIntake {
     }
   }
 
-  /** A bounded recovery/retention pass. Schedule through the owning plugin, never
-   * an unowned interval. Queue jobs contain an id only, not the contact message.
+  /** A bounded recovery pass. It deletes nothing: requests are kept until their
+   * owner deletes them. Schedule through the owning plugin, never an unowned
+   * interval. Queue jobs contain an id only, not the contact message.
    */
   async maintain(signal: AbortSignal): Promise<ContactMaintenanceReport> {
     signal.throwIfAborted();
     const report: ContactMaintenanceReport = {
-      deleted: 0,
+      released: 0,
       pendingNotifications: 0,
       enqueueFailures: 0,
       uncertainWrites: 0,
@@ -150,28 +129,30 @@ export class ContactIntake {
         }
         if (slot.phase === "writing" && !(await this.slots.stored(id)))
           continue;
-        if (this.now() >= slot.expiresAt) {
-          if (entity)
-            await this.deps.entities.deleteEntity({
-              entityType: "contact-request",
-              id,
-            });
-          signal.throwIfAborted();
-          if (await this.read(id))
-            throw new Error("Contact deletion not confirmed");
-          if (await this.slots.releaseDeleted(id)) report.deleted++;
+        if (!entity) {
+          // Its owner deleted it: nothing is left to alert about.
+          if (await this.slots.releaseGone(id)) report.released++;
           continue;
         }
+        const { frontmatter } = contactRequestAdapter.parseContent(
+          entity.content,
+        );
         if (
-          entity &&
-          (contactRequestAdapter.parseContent(entity.content).frontmatter
-            .notification === "pending" ||
-            (slot.delivery.status === "sent" &&
-              entity.metadata.notification !== "sent"))
+          frontmatter.notification === "pending" ||
+          (slot.delivery.status === "sent" &&
+            frontmatter.notification !== "sent")
         ) {
           report.pendingNotifications++;
           if (!(await this.enqueue(id))) report.enqueueFailures++;
+          continue;
         }
+        // A sent alert is done; a failed one, once its request is dealt with.
+        if (
+          (slot.delivery.status === "sent" ||
+            frontmatter.status === "handled") &&
+          (await this.slots.release(id))
+        )
+          report.released++;
       }
       return report;
     } catch {
@@ -180,17 +161,12 @@ export class ContactIntake {
     }
   }
 
-  private content(
-    input: ContactSubmission,
-    receivedAt: number,
-    expiresAt: number,
-  ): string {
+  private content(input: ContactSubmission, receivedAt: number): string {
     return contactRequestAdapter.createContent(
       {
         name: input.name,
         email: input.email,
         receivedAt: new Date(receivedAt).toISOString(),
-        expiresAt: new Date(expiresAt).toISOString(),
         status: "new",
         notification: "pending",
       },
@@ -248,7 +224,6 @@ export class ContactIntake {
     entity: ContactRequest,
     input: ContactSubmission,
     receivedAt: number,
-    expiresAt: number,
   ): boolean {
     const { frontmatter, message } = contactRequestAdapter.parseContent(
       entity.content,
@@ -257,8 +232,7 @@ export class ContactIntake {
       frontmatter.name === input.name &&
       frontmatter.email === input.email &&
       message === input.message &&
-      Date.parse(frontmatter.receivedAt) === receivedAt &&
-      Date.parse(frontmatter.expiresAt) === expiresAt
+      Date.parse(frontmatter.receivedAt) === receivedAt
     );
   }
 

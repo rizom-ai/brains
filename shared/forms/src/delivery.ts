@@ -1,11 +1,6 @@
 import type { IRuntimeStateNamespace } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import {
-  FormStorageSlots,
-  formStoragePolicySchema,
-  type FormStorageOptions,
-  type FormStoragePolicy,
-} from "./storage-slots";
+import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
 
 export interface FormDeliveryPolicy {
   maxAttempts: number;
@@ -41,7 +36,6 @@ export interface FormDeliveryTarget {
 export interface FormDeliveryDependencies {
   target: FormDeliveryTarget;
   state: IRuntimeStateNamespace;
-  storage: FormStoragePolicy;
   slots: FormStorageOptions;
   policy: FormDeliveryPolicy;
   send: (id: string, idempotencyKey: string) => Promise<FormAlertOutcome>;
@@ -57,12 +51,7 @@ export class FormDelivery {
     this.deps = deps;
     this.now = deps.now ?? Date.now;
     this.policy = formDeliveryPolicySchema.parse(deps.policy);
-    this.slots = new FormStorageSlots(
-      deps.state,
-      formStoragePolicySchema.parse(deps.storage),
-      deps.slots,
-      this.now,
-    );
+    this.slots = new FormStorageSlots(deps.state, deps.slots, this.now);
   }
 
   async deliver(
@@ -72,8 +61,11 @@ export class FormDelivery {
     try {
       signal.throwIfAborted();
       const state = await this.deps.target.notification(id);
-      if (state === null) return "skipped";
-      if (state === "sent") return "sent";
+      if (state === null) return await this.gone(id);
+      if (state === "sent") {
+        await this.slots.release(id);
+        return "sent";
+      }
       const claim = await this.slots.beginDelivery(
         id,
         this.policy.maxAttempts,
@@ -86,7 +78,7 @@ export class FormDelivery {
         signal.throwIfAborted();
         const current = await this.deps.target.notification(id);
         signal.throwIfAborted();
-        if (current === null) return "skipped";
+        if (current === null) return await this.gone(id);
         // A slow read must not turn a once-valid reservation into a late send.
         if (this.now() >= claim.sendBefore) throw new Error("Expired attempt");
         let outcome: FormAlertOutcome = { sent: false, failure: "unconfirmed" };
@@ -113,9 +105,18 @@ export class FormDelivery {
         status = claim.status;
       }
       await this.deps.target.recordNotification(id, status, signal);
+      // A failed alert stays in flight until its submission is dealt with, so
+      // health keeps counting it; the target's maintenance releases it then.
+      if (status === "sent") await this.slots.release(id);
       return status;
     } catch {
       throw new Error("Form notification unavailable");
     }
+  }
+
+  /** Its owner deleted the submission: nothing is left to alert about. */
+  private async gone(id: string): Promise<"skipped"> {
+    await this.slots.releaseGone(id);
+    return "skipped";
   }
 }

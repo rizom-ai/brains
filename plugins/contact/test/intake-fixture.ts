@@ -34,7 +34,7 @@ export interface IntakeFixture {
 }
 
 export async function intakeFixture(
-  options: { maxRecords?: number; maxBytes?: number } = {},
+  options: { maxInFlight?: number } = {},
 ): Promise<IntakeFixture> {
   let now = start;
   let enqueueFails = false;
@@ -52,11 +52,7 @@ export async function intakeFixture(
     admission,
     entities: harness.getEntityService(),
     state,
-    policy: {
-      retentionSeconds: 86400,
-      maxRecords: options.maxRecords ?? 10,
-      maxBytes: options.maxBytes ?? 100000,
-    },
+    maxInFlight: options.maxInFlight,
     enqueueNotification: async (id): Promise<void> => {
       if (enqueueFails) throw new Error("PRIVATE delivery failure");
       queued.add(id);

@@ -4,11 +4,8 @@ import {
   formAdmissionPolicyShape as contactAdmissionPolicyShape,
   formDeliveryPolicySchema as contactDeliveryPolicySchema,
   formDeliveryPolicyShape as contactDeliveryPolicyShape,
-  formStoragePolicySchema as contactStoragePolicySchema,
-  formStoragePolicyShape as contactStoragePolicyShape,
   type FormAdmissionPolicy as ContactAdmissionPolicy,
   type FormDeliveryPolicy as ContactDeliveryPolicy,
-  type FormStoragePolicy as ContactStoragePolicy,
 } from "@brains/forms";
 import {
   contactHttpPolicySchema,
@@ -21,7 +18,6 @@ import {
 export interface ContactIntakePolicy {
   http: ContactHttpPolicy;
   admission: ContactAdmissionPolicy;
-  storage: ContactStoragePolicy;
   delivery: ContactDeliveryPolicy;
 }
 
@@ -30,12 +26,12 @@ export interface ContactIntakePolicy {
  * proxy's and every visitor shares it: the network limits equal the global
  * ones, and requests and forms take their bound's maximum, so honest traffic
  * is never refused; a hundred submissions an hour, half-hour form tokens,
- * notes kept for a day, and a few alert attempts within the transport's
- * idempotency window. The brain supplies the origin. */
+ * and a few alert attempts within the transport's idempotency window.
+ * Requests are kept until the owner deletes them. The brain supplies the
+ * origin. */
 export const CONTACT_INTAKE_DEFAULTS: {
   http: Omit<ContactHttpPolicy, "origin" | "trustForwardedProto">;
   admission: ContactAdmissionPolicy;
-  storage: ContactStoragePolicy;
   delivery: ContactDeliveryPolicy;
 } = {
   http: { maxBodyBytes: 20000, readTimeoutMs: 10000 },
@@ -51,7 +47,6 @@ export const CONTACT_INTAKE_DEFAULTS: {
     receiptTtlSeconds: 600,
     maxEntries: 1000,
   },
-  storage: { retentionSeconds: 86400, maxRecords: 50, maxBytes: 500000 },
   delivery: { maxAttempts: 3, retryWindowSeconds: 3600 },
 };
 
@@ -64,7 +59,6 @@ export interface ContactIntakeOverrides {
     | Overridable<Omit<ContactHttpPolicy, "origin" | "trustForwardedProto">>
     | undefined;
   admission?: Overridable<ContactAdmissionPolicy> | undefined;
-  storage?: Overridable<ContactStoragePolicy> | undefined;
   delivery?: Overridable<ContactDeliveryPolicy> | undefined;
 }
 const intakeOverridesSchema: z.ZodType<ContactIntakeOverrides> = z.strictObject(
@@ -74,7 +68,6 @@ const intakeOverridesSchema: z.ZodType<ContactIntakeOverrides> = z.strictObject(
       .partial()
       .optional(),
     admission: contactAdmissionPolicyShape.partial().optional(),
-    storage: contactStoragePolicyShape.partial().optional(),
     delivery: contactDeliveryPolicyShape.partial().optional(),
   },
 );
@@ -103,10 +96,6 @@ export function resolveIntakePolicy(
     admission: contactAdmissionPolicySchema.parse({
       ...CONTACT_INTAKE_DEFAULTS.admission,
       ...overrides.admission,
-    }),
-    storage: contactStoragePolicySchema.parse({
-      ...CONTACT_INTAKE_DEFAULTS.storage,
-      ...overrides.storage,
     }),
     delivery: contactDeliveryPolicySchema.parse({
       ...CONTACT_INTAKE_DEFAULTS.delivery,

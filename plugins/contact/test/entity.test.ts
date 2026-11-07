@@ -10,7 +10,6 @@ const frontmatter = {
   name: "Ada",
   email: "ada@example.com",
   receivedAt: "2026-09-21T10:00:00.000Z",
-  expiresAt: "2026-10-21T10:00:00.000Z",
   status: "new" as const,
   notification: "pending" as const,
 };
@@ -27,7 +26,6 @@ describe("contact request records", () => {
     expect(entity.metadata).toEqual({
       title: "Contact request",
       receivedAt: frontmatter.receivedAt,
-      expiresAt: frontmatter.expiresAt,
       status: "new",
       notification: "pending",
     });
@@ -70,19 +68,15 @@ describe("contact request records", () => {
     ).toBe("");
   });
 
-  it("requires finite bounded retention", () => {
-    for (const expiresAt of [
-      frontmatter.receivedAt,
-      "2026-09-20T10:00:00.000Z",
-      "2099-01-01T00:00:00.000Z",
-    ]) {
-      expect(() =>
-        contactRequestAdapter.createContent(
-          { ...frontmatter, expiresAt },
-          "hello",
-        ),
-      ).toThrow("Invalid contact request");
-    }
+  it("reads a request written while requests expired, with no expiry in its metadata", () => {
+    const legacy = { ...frontmatter, expiresAt: "2026-09-22T10:00:00.000Z" };
+    const markdown = contactRequestAdapter.createContent(legacy, "hello");
+    expect(contactRequestAdapter.parseContent(markdown).frontmatter).toEqual(
+      legacy,
+    );
+    expect(
+      contactRequestAdapter.fromMarkdown(markdown).metadata,
+    ).not.toHaveProperty("expiresAt");
   });
 
   it("registers a restricted, non-indexed, non-projection entity and no public surface", async () => {

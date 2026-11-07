@@ -352,10 +352,10 @@ describe("contact page for visitors", () => {
     );
   });
 
-  it("adds no retention notice to the form", async () => {
+  it("says a note is kept until it has been dealt with", async () => {
     const html = await page("Yeehaa");
+    expect(html).toContain("It’s kept until Yeehaa has dealt with it");
     expect(html).not.toContain("kept for");
-    expect(html).not.toContain("contact-privacy");
   });
 
   it("confirms a saved note without promising the alert arrived", async () => {

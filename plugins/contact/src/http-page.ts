@@ -76,7 +76,7 @@ export function contactForm(
     : "Write a note";
   return section(
     `<h1>${heading}</h1>${notice}
-<p class="introduction">Your note goes privately to ${recipient(presentation)}, who can reply by email. It doesn’t start a chat, and it never becomes part of what this site knows.</p>
+<p class="introduction">Your note goes privately to ${recipient(presentation)}, who can reply by email. It’s kept until ${recipient(presentation)} has dealt with it, doesn’t start a chat, and never becomes part of what this site knows.</p>
 <form method="post" action="/contact${query}" accept-charset="UTF-8">
 <input type="hidden" name="token" value="${escapeHtml(token)}">
 <label for="contact-name">Name<input id="contact-name" name="name" autocomplete="name" required maxlength="120" value="${value(draft.name, 120)}"></label>

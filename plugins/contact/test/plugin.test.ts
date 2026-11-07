@@ -27,10 +27,7 @@ type RecurringCheckDefinition = Parameters<
 const origin = "https://brain.test";
 const inboxUrl = `${origin}/studio/workspaces/unified-inbox%3Ainbox`;
 const config: ContactPluginConfig = {
-  intake: {
-    admission: admissionPolicy,
-    storage: { maxRecords: 10, maxBytes: 100000 },
-  },
+  intake: { admission: admissionPolicy },
 };
 type Harness = ReturnType<typeof createPluginHarness>;
 /** One brain process. A worker shares the web process's runtime state, as the
@@ -302,7 +299,7 @@ describe("contact runtime", () => {
     await f.plugin.shutdown();
   });
 
-  it("closes stale or failed retention, retries cleanup, and makes old queued deliveries harmless", async () => {
+  it("closes on stale or failed maintenance and keeps every request through it", async () => {
     let f: Awaited<ReturnType<typeof setup>> | undefined;
     try {
       const start = Date.parse("2026-09-21T10:00:00.000Z");
@@ -321,10 +318,9 @@ describe("contact runtime", () => {
           })
         ).status,
       ).toBe(503);
-      const deletion = spyOn(
-        f.h.getEntityService(),
-        "deleteEntity",
-      ).mockRejectedValue(new Error("PRIVATE"));
+      const read = spyOn(f.h.getEntityService(), "getEntity").mockRejectedValue(
+        new Error("PRIVATE"),
+      );
       expect(
         await check
           .run({ signal: new AbortController().signal })
@@ -333,7 +329,7 @@ describe("contact runtime", () => {
       expect(
         (await f.shell.getOperationalHealthRegistry().getChecks())[0]?.status,
       ).toBe("unhealthy");
-      deletion.mockRestore();
+      read.mockRestore();
       await check.run({ signal: new AbortController().signal });
       expect(
         (
@@ -343,13 +339,15 @@ describe("contact runtime", () => {
         ).status,
       ).toBe(200);
       expect(
-        await f.h
-          .getEntityService()
-          .listEntities(
-            { entityType: "contact-request" },
-            contactRequestSchema,
-          ),
-      ).toEqual([]);
+        await f.h.getEntityService().listEntities(
+          {
+            entityType: "contact-request",
+            options: { filter: { visibilityScope: "restricted" } },
+          },
+          contactRequestSchema,
+        ),
+      ).toHaveLength(1);
+      // An alert queued before the outage still goes out.
       const job = (await f.shell.getJobQueueService().getActiveJobs())[0];
       if (!job) throw new Error("Missing saved delivery job");
       const handler = f.handlers.get(job.type);
@@ -360,8 +358,8 @@ describe("contact runtime", () => {
           CallbackProgressReporter.noop(),
           new AbortController().signal,
         ),
-      ).toBe("skipped");
-      expect(f.sent).toEqual([]);
+      ).toBe("sent");
+      expect(f.sent).toHaveLength(1);
     } finally {
       await f?.plugin.shutdown();
       setSystemTime();
@@ -478,6 +476,21 @@ describe("contact runtime", () => {
         failures: { "test-transport": 1 },
       },
     });
+    // Maintenance then lets go of the failed alert; the request stays.
+    const check = f.checks[0];
+    if (!check) throw new Error("Missing maintenance");
+    await check.run({ signal: new AbortController().signal });
+    expect(await intake()).toMatchObject({
+      status: "healthy",
+      details: { inFlight: 0, failed: 0, failures: {} },
+    });
+    expect(
+      await inbox.resolveDetail?.(
+        request.id,
+        { permissionLevel: "admin" },
+        new AbortController().signal,
+      ),
+    ).toMatchObject({ kind: "plain" });
     await f.plugin.shutdown();
   });
 

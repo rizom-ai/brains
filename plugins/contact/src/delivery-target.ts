@@ -12,16 +12,13 @@ import {
  * state, recorded on the request contact owns. */
 export class ContactDeliveryTarget implements FormDeliveryTarget {
   private readonly entities: ServiceEntityService;
-  private readonly now: () => number;
-  constructor(entities: ServiceEntityService, now: () => number = Date.now) {
+  constructor(entities: ServiceEntityService) {
     this.entities = entities;
-    this.now = now;
   }
 
   async notification(id: string): Promise<FormNotificationState | null> {
     const entity = await this.read(id);
-    if (!entity || this.expired(entity)) return null;
-    return entity.metadata.notification;
+    return entity?.metadata.notification ?? null;
   }
 
   async recordNotification(
@@ -34,7 +31,6 @@ export class ContactDeliveryTarget implements FormDeliveryTarget {
       const entity = await this.read(id);
       if (
         !entity ||
-        this.expired(entity) ||
         entity.metadata.notification === notification ||
         entity.metadata.notification === "sent"
       )
@@ -73,9 +69,5 @@ export class ContactDeliveryTarget implements FormDeliveryTarget {
       },
       contactRequestSchema,
     );
-  }
-
-  private expired(entity: ContactRequest): boolean {
-    return this.now() >= Date.parse(entity.metadata.expiresAt);
   }
 }

@@ -17,15 +17,10 @@ export type {
   FormRequestResult,
   FormReservationResult,
 } from "./admission";
-export {
-  FormStorageSlots,
-  formStoragePolicyShape,
-  formStoragePolicySchema,
-} from "./storage-slots";
+export { FormStorageSlots } from "./storage-slots";
 export type {
   FormDeliveryStatus,
   FormStorageOptions,
-  FormStoragePolicy,
   FormStorageSlot,
   SlotClaim,
 } from "./storage-slots";
