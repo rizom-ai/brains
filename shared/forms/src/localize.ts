@@ -51,12 +51,14 @@ export function localizeForm(
     intro: translation.intro ?? form.intro,
     submitLabel: translation.submitLabel ?? form.submitLabel,
     thanks: {
+      ...form.thanks,
       title: translation.thanks?.title ?? form.thanks.title,
       body: translation.thanks?.body ?? form.thanks.body,
     },
     steps: form.steps.map((step, index) => ({
       ...step,
       title: translation.steps?.[index]?.title ?? step.title,
+      intro: translation.steps?.[index]?.intro ?? step.intro,
       fields: step.fields.map((field) =>
         localizeField(field, translation.fields?.[field.id]),
       ),

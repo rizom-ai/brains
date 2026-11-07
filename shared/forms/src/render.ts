@@ -21,7 +21,7 @@ export type FormDraft = Record<string, string | string[]>;
 const FORM_STYLES = `:where(.form){max-width:38rem;margin:clamp(1.5rem,6vw,4.5rem) auto;padding:0 clamp(1.25rem,6vw,1.5rem) 4rem;color:var(--color-text);line-height:1.6}:where(.form) *{box-sizing:border-box}
 :where(.form) h1{font-family:var(--font-heading);font-weight:400;font-size:clamp(2.2rem,8vw,3.6rem);line-height:1.06;letter-spacing:-.02em;font-variation-settings:"SOFT" 30,"opsz" 96;margin:0 0 1rem;color:var(--color-heading,var(--color-text));overflow-wrap:anywhere}
 :where(.form) p{max-width:60ch;color:var(--color-text-muted)}:where(.form) .form__intro{font-family:var(--font-heading);font-size:1.15rem;line-height:1.55;font-weight:300;margin:0 0 .5rem}
-:where(.form) form{display:grid;gap:1.25rem;margin-block:1.75rem}:where(.form) .form__step{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem 1rem;min-width:0;border:0;padding:0;margin:0}:where(.form) legend{font-family:var(--font-heading);font-size:1.3rem;padding:0;margin-bottom:.75rem}
+:where(.form) form{display:grid;gap:1.25rem;margin-block:1.75rem}:where(.form) .form__step{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem 1rem;min-width:0;border:0;padding:0;margin:0}:where(.form) .form__step-intro{grid-column:1/-1;margin:0}:where(.form) legend{font-family:var(--font-heading);font-size:1.3rem;padding:0;margin-bottom:.75rem}
 :where(.form) .form__field{display:grid;gap:.4rem;align-content:start;font-size:.9rem;font-weight:500;color:var(--color-text)}:where(.form) .form__field--long{grid-column:1/-1}:where(.form) .form__optional{font-weight:400;color:var(--color-text-muted)}
 :where(.form) input,:where(.form) textarea{width:100%;min-width:0;font:400 1rem/1.5 var(--font-sans);color:var(--color-text);background:var(--color-bg-subtle,var(--color-bg));border:1px solid var(--color-border);border-radius:.5rem;padding:.75rem .85rem}:where(.form) [aria-invalid="true"]{border-color:var(--color-error)}
 :where(.form) textarea{resize:vertical;min-height:9rem}:where(.form) button{justify-self:start;cursor:pointer;font:600 1rem/1 var(--font-sans);border:0;border-radius:.5rem;padding:1rem 1.5rem;background:var(--color-accent);color:var(--color-on-accent)}:where(.form) button:hover{filter:brightness(1.08)}
@@ -160,7 +160,7 @@ export function renderForm(
   const steps = form.steps
     .map(
       (step) =>
-        `<fieldset class="form__step">${step.title ? `<legend>${fill(step.title, presentation, copy)}</legend>` : ""}${step.fields
+        `<fieldset class="form__step">${step.title ? `<legend>${fill(step.title, presentation, copy)}</legend>` : ""}${paragraphs(step.intro, presentation, copy, ' class="form__step-intro"', ' class="form__step-intro"')}${step.fields
           .map((field) => fieldHtml(form, field, draft, errors[field.id], copy))
           .join("\n")}</fieldset>`,
     )
@@ -212,7 +212,7 @@ export function renderThanks(
 ): string {
   return formSection(
     form,
-    `<h1>${fill(form.thanks.title, presentation, copy)}</h1>${paragraphs(form.thanks.body, presentation, copy, ' class="form__intro"', "")}${outcomesHtml(form, results, presentation, copy)}`,
+    `<h1>${fill(form.thanks.title, presentation, copy)}</h1>${paragraphs(form.thanks.body, presentation, copy, ' class="form__intro"', "")}${form.thanks.showResults ? outcomesHtml(form, results, presentation, copy) : ""}`,
   );
 }
 

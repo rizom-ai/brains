@@ -188,7 +188,9 @@ type FormTranslationSchema = z.ZodObject<
       z.ZodObject<{ title: Optional; body: Optional }, z.core.$strict>
     >;
     steps: z.ZodOptional<
-      z.ZodArray<z.ZodObject<{ title: Optional }, z.core.$strict>>
+      z.ZodArray<
+        z.ZodObject<{ title: Optional; intro: Optional }, z.core.$strict>
+      >
     >;
     fields: z.ZodOptional<
       z.ZodRecord<
@@ -237,7 +239,12 @@ const translationSchema: FormTranslationSchema = z.strictObject({
     .optional(),
   /** By position, one for each step translated. */
   steps: z
-    .array(z.strictObject({ title: labelSchema.optional() }))
+    .array(
+      z.strictObject({
+        title: labelSchema.optional(),
+        intro: copySchema.optional(),
+      }),
+    )
     .max(20)
     .optional(),
   fields: z
@@ -272,6 +279,7 @@ export type FormTranslation = z.output<FormTranslationSchema>;
 type FormStepSchema = z.ZodObject<
   {
     title: z.ZodOptional<z.ZodString>;
+    intro: z.ZodOptional<z.ZodString>;
     fields: z.ZodArray<FormFieldSchema>;
   },
   z.core.$strict
@@ -287,7 +295,11 @@ type FormObjectSchema = z.ZodObject<
     submitLabel: z.ZodDefault<z.ZodString>;
     thanks: z.ZodDefault<
       z.ZodObject<
-        { title: z.ZodString; body: z.ZodOptional<z.ZodString> },
+        {
+          title: z.ZodString;
+          body: z.ZodOptional<z.ZodString>;
+          showResults: z.ZodDefault<z.ZodBoolean>;
+        },
         z.core.$strict
       >
     >;
@@ -322,6 +334,8 @@ type FormFrontmatterSchema = z.ZodObject<
 
 const stepSchema: FormStepSchema = z.strictObject({
   title: labelSchema.optional(),
+  /** What the step says before its fields. */
+  intro: copySchema.optional(),
   fields: z.array(formFieldSchema).min(1).max(50),
 });
 const formObjectSchema: FormObjectSchema = z.strictObject({
@@ -337,8 +351,13 @@ const formObjectSchema: FormObjectSchema = z.strictObject({
   intro: copySchema.optional(),
   submitLabel: labelSchema.default("Send"),
   thanks: z
-    .strictObject({ title: labelSchema, body: copySchema.optional() })
-    .default({ title: "Thank you" }),
+    .strictObject({
+      title: labelSchema,
+      body: copySchema.optional(),
+      /** Whether a scored form shows the visitor their results here. */
+      showResults: z.boolean().default(true),
+    })
+    .default({ title: "Thank you", showResults: true }),
   steps: z.array(stepSchema).min(1).max(20),
   notify: z
     .strictObject({

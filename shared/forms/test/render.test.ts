@@ -230,3 +230,42 @@ describe("a scored form's thanks page", () => {
     );
   });
 });
+
+describe("what a step says and what the thanks page shows", () => {
+  const quiz = formDefinitionSchema.parse({
+    id: "quiz",
+    target: "quiz-result",
+    title: "Quiz",
+    thanks: { title: "Done", showResults: false },
+    steps: [
+      {
+        title: "Last",
+        intro: "We send the report by email.\n\nOnly the report.",
+        fields: [{ kind: "email", id: "email", label: "Email" }],
+      },
+    ],
+    scoring: {
+      dimensions: [
+        {
+          id: "identity",
+          title: "Identity",
+          outcomes: [{ id: "seeking", title: "Seeking" }],
+        },
+      ],
+    },
+  });
+
+  it("puts a step's intro under its title", () => {
+    expect(renderForm(quiz, { token })).toContain(
+      '<fieldset class="form__step"><legend>Last</legend><p class="form__step-intro">We send the report by email.</p><p class="form__step-intro">Only the report.</p>',
+    );
+  });
+
+  it("keeps the results off a thanks page whose form says so", () => {
+    expect(
+      renderThanks(quiz, {}, FORM_COPY, [
+        { dimension: "identity", outcome: "seeking" },
+      ]),
+    ).not.toContain('class="form__outcomes"');
+  });
+});
