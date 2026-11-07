@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it, mock } from "bun:test";
 import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
+import { createTempDataDir } from "../src/test/temp-dir";
 import {
   defineAccountSettings,
   defineDaemon,
@@ -546,7 +547,9 @@ describe("declarative message interfaces", () => {
       },
     );
 
-    const harness = createPluginHarness();
+    const harness = createPluginHarness({
+      dataDir: await createTempDataDir("campfire-attachments-"),
+    });
     harness.setPermissionService(
       new PermissionService({
         admins: ["campfire:reader-1"],
@@ -596,6 +599,8 @@ describe("declarative message interfaces", () => {
             kind: "text",
             filename: "saved.txt",
             content: "saved attachment",
+            // Kept in the shared upload store, so a later turn restores it.
+            source: { kind: "upload", id: expect.any(String) },
           }),
         ],
       }),

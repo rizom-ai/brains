@@ -49,6 +49,7 @@ import type { EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import { createUploadSaveHandler } from "./upload-save";
+import { sharedUploadScope } from "../service/upload-registry";
 import {
   DeclarativeGenerationHandler,
   createEvalFixtures,
@@ -122,16 +123,6 @@ const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
 };
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
-
-/**
- * The runtime's shared upload namespace: every interface that accepts a file
- * writes into it, and a create request's upload ref points into it.
- */
-const createUploadScope = {
-  namespace: "upload",
-  refKind: "upload",
-  routePath: "/api/chat/uploads",
-} as const;
 
 /**
  * Which route a create request takes, by how the caller expressed it: an
@@ -1353,7 +1344,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     input: CreateInput,
     executionContext: CreateExecutionContext,
   ): EntityCreateContext {
-    const uploads = context.uploads.scoped(createUploadScope);
+    const uploads = context.uploads.scoped(sharedUploadScope);
     const reader: EntityCreateUploadReader = Object.freeze({
       read: (uploadId: string) => uploads.read(uploadId),
       readRecord: (uploadId: string) => uploads.readRecord(uploadId),

@@ -144,6 +144,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
       "defineMessageInterface",
       "defineMessageInterfacePackage",
       "runtimeState(",
+      "read: (): Promise<Uint8Array>",
       "z",
     ],
   },

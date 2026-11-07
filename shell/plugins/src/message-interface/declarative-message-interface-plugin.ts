@@ -1,6 +1,5 @@
 import { createExternalActorId } from "@brains/contracts";
 import { emptyPluginState } from "../base/empty-state";
-import type { ChatAttachment } from "../contracts/agent";
 import type {
   ChannelDeliveryInput,
   ChannelDeliveryResult,
@@ -16,7 +15,6 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import type {
-  InboundMessageAttachment,
   MessageInterfaceDefinitionInput,
   MessageOutput,
   ReceiveAuthenticatedInput,
@@ -28,6 +26,9 @@ import type {
   SendMessageWithIdRequest,
 } from "./progress-message-coordinator";
 import { MessageInterfacePlugin } from "./message-interface-plugin";
+import { takeInboundAttachments } from "./inbound-attachment-intake";
+import { sharedUploadScope } from "../service/upload-registry";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
@@ -37,33 +38,17 @@ function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   };
 }
 
-async function attachmentFrom(
-  attachment: InboundMessageAttachment,
-  signal: AbortSignal,
-): Promise<ChatAttachment> {
-  const response = await fetch(attachment.url, { signal });
-  if (!response.ok) {
-    throw new Error(
-      `Attachment "${attachment.name}" could not be downloaded (${response.status})`,
-    );
-  }
-  const data = new Uint8Array(await response.arrayBuffer());
-  if (attachment.mediaType.startsWith("text/")) {
-    return {
-      kind: "text",
-      filename: attachment.name,
-      mediaType: attachment.mediaType,
-      content: new TextDecoder().decode(data),
-      sizeBytes: data.byteLength,
-    };
-  }
-  return {
-    kind: "file",
-    filename: attachment.name,
-    mediaType: attachment.mediaType,
-    data,
-    sizeBytes: data.byteLength,
-  };
+/** Who may upload over a channel: as chat has it, a trusted sender or an admin. */
+function mayUpload(permission: UserPermissionLevel): boolean {
+  return permission === "admin" || permission === "trusted";
+}
+
+/** The notice a sender is shown for the uploads a message could not bring. */
+function skippedUploads(notices: readonly string[]): string {
+  return [
+    "Some uploads were skipped:",
+    ...[...new Set(notices)].map((notice) => `- ${notice}`),
+  ].join("\n");
 }
 
 class DeclarativeMessageInterfacePlugin<
@@ -373,13 +358,35 @@ class DeclarativeMessageInterfacePlugin<
     ]
       .filter((part): part is string => part !== undefined)
       .join(":");
-    const attachments: ChatAttachment[] = [];
-    if (input.attachments) {
-      const pending = await input.attachments();
-      for (const attachment of pending) {
-        attachments.push(await attachmentFrom(attachment, signal));
-      }
+    // A sender who may not upload brings no files; nothing of theirs is read.
+    const list = mayUpload(permission) ? input.attachments : undefined;
+    const { attachments, notices } = list
+      ? await takeInboundAttachments({
+          list,
+          store: context.uploads.scoped(sharedUploadScope),
+          metadata: {
+            interfaceType,
+            channelId: input.channel.id,
+            ...(input.channel.threadId
+              ? { threadId: input.channel.threadId }
+              : {}),
+            uploaderId: input.sender.id,
+            ...(input.sender.displayName
+              ? { uploaderUsername: input.sender.displayName }
+              : {}),
+          },
+          signal,
+          logger: this.logger,
+        })
+      : { attachments: [], notices: [] };
+    if (notices.length > 0) {
+      await this.sendMessageWithId({
+        channelId: input.channel.id,
+        message: skippedUploads(notices),
+      });
     }
+    // Nothing left to answer: no words, and no file that could be taken.
+    if (!input.text.trim() && attachments.length === 0) return;
 
     this.startProcessingInput(input.channel.id);
     try {
@@ -411,7 +418,7 @@ class DeclarativeMessageInterfacePlugin<
               ? { threadId: input.channel.threadId }
               : {}),
           },
-          ...(attachments.length > 0 ? { attachments } : {}),
+          ...(attachments.length > 0 ? { attachments: [...attachments] } : {}),
         },
         signal,
       );

@@ -31,6 +31,7 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import {
   SYSTEM_CHANNELS,
+  sharedUploadScope,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRegistry,
 } from "@brains/plugins";
@@ -165,7 +166,9 @@ async function resolveRuntimeUploadAttachment(
 }
 
 function getRuntimeUploadNamespace(refKind: string): string | null {
-  return refKind === "upload" ? "upload" : null;
+  return refKind === sharedUploadScope.refKind
+    ? sharedUploadScope.namespace
+    : null;
 }
 
 function toChatAttachment(

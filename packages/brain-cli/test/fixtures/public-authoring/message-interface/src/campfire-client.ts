@@ -117,6 +117,20 @@ export class CampfireClient {
     return z.array(attachment).parse(await response.json());
   }
 
+  /** An attachment's bytes; Campfire serves them only to a signed request. */
+  async download(url: string): Promise<Uint8Array> {
+    const response = await fetch(url, {
+      headers: {
+        authorization: `Bearer ${this.token}`,
+        "x-campfire-workspace": this.workspace,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Campfire download failed (${response.status})`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
   private async request(path: string, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);
     headers.set("authorization", `Bearer ${this.token}`);

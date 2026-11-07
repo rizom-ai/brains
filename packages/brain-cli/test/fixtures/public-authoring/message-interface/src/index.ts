@@ -55,7 +55,15 @@ export default defineMessageInterface(
               threadId: incoming.threadId,
             },
             text: incoming.text,
-            attachments: () => state.client.attachments(incoming.id),
+            // Campfire's media needs the token, so the interface reads the
+            // bytes itself; the brain checks and keeps them.
+            attachments: async () =>
+              (await state.client.attachments(incoming.id)).map((file) => ({
+                name: file.name,
+                mediaType: file.mediaType,
+                read: (): Promise<Uint8Array> =>
+                  state.client.download(file.url),
+              })),
           });
           // Only once the brain has it, so a message lost in a crash is read again.
           await state.cursor.set(config.workspace, { messageId: incoming.id });

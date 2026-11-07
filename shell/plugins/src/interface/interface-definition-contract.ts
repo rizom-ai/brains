@@ -7,6 +7,7 @@ import type {
   AnyServiceJobDefinition,
   ServiceSetupContext,
 } from "../service/service-definition-contract";
+import type { InboundMessageAttachment } from "../message-interface/inbound-attachment";
 
 import {
   routeMethods,
@@ -173,11 +174,7 @@ export interface InboundMessageSender {
   readonly displayName?: string | undefined;
 }
 
-export interface InboundMessageAttachment {
-  readonly name: string;
-  readonly mediaType: string;
-  readonly url: string;
-}
+export type { InboundMessageAttachment } from "../message-interface/inbound-attachment";
 
 export interface ReceiveAuthenticatedInput {
   readonly sender: InboundMessageSender;

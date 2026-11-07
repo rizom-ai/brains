@@ -201,6 +201,7 @@ export {
   createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
   runtimeUploadIdPattern,
+  sharedUploadScope,
   defaultRuntimeUploadRetentionMs,
   defaultRuntimeUploadMaxCount,
   type IRuntimeUploadsNamespace,
