@@ -106,7 +106,7 @@ export type PublishAssetFieldReference = Exclude<
 type PublishAssetDefinitionSchema = z.ZodObject<{
   entityType: z.ZodString;
   attachmentType: z.ZodString;
-  mediaEntityType: z.ZodEnum<{ image: "image"; document: "document" }>;
+  mediaEntityType: z.ZodEnum<{ image: "image" }>;
   targetEntityField: z.ZodOptional<typeof publishAssetTargetFieldSchema>;
   requiredWhen: z.ZodOptional<
     z.ZodObject<{
@@ -116,14 +116,13 @@ type PublishAssetDefinitionSchema = z.ZodObject<{
   >;
   autoGenerate: z.ZodOptional<z.ZodBoolean>;
   requiredForPublish: z.ZodOptional<z.ZodBoolean>;
-  jobType: z.ZodOptional<z.ZodString>;
 }>;
 
 export const publishAssetDefinitionSchema: PublishAssetDefinitionSchema =
   z.object({
     entityType: z.string().min(1),
     attachmentType: z.string().min(1),
-    mediaEntityType: z.enum(["image", "document"]),
+    mediaEntityType: z.enum(["image"]),
     targetEntityField: publishAssetTargetFieldSchema.optional(),
     requiredWhen: z
       .object({
@@ -133,7 +132,6 @@ export const publishAssetDefinitionSchema: PublishAssetDefinitionSchema =
       .optional(),
     autoGenerate: z.boolean().optional(),
     requiredForPublish: z.boolean().optional(),
-    jobType: z.string().min(1).optional(),
   });
 
 export type PublishAssetDefinition = z.output<
