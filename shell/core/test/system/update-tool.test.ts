@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
-import { updateInputSchema } from "../../src/system/schemas";
+import {
+  updateInputSchema,
+  updateOperationInputSchema,
+} from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import {
   BaseEntityAdapter,
@@ -293,22 +296,22 @@ describe("system_update tool", () => {
     { fields: { title: "New" } },
     { content: "replacement" },
     { edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }] },
-    { operation: { kind: "unknown", fields: {} } },
-    { operation: { kind: "fields", fields: {}, content: "replacement" } },
-    { operation: { kind: "content", content: "replacement", fields: {} } },
+    { operation: { unknown: {} } },
+    { operation: { kind: "fields", fields: {} } },
+    { operation: { fields: {}, content: "replacement" } },
+    { operation: { content: "replacement", fields: {} } },
     {
       operation: {
-        kind: "edits",
         edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }],
         fields: {},
       },
     },
     {
-      operation: { kind: "fields", fields: {} },
+      operation: { fields: {} },
       content: "legacy replacement",
     },
   ])(
-    "rejects missing, flat, unknown, or mixed update contracts without writing: %j",
+    "rejects missing, flat, unknown, kind-tagged, or mixed update contracts without writing: %j",
     async (input) => {
       expect(
         await exec({ entityType: "base", id: "woodchuck-note", ...input }),
@@ -320,6 +323,58 @@ describe("system_update tool", () => {
     },
   );
 
+  it.each([
+    {
+      operation: { edit: [{ oldText: "Woodchucks", newText: "Groundhogs" }] },
+      says: ["edit", "exactly one of `fields`, `content`, `edits` or `source`"],
+    },
+    {
+      operation: {
+        kind: "edits",
+        edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }],
+      },
+      says: ["has no `kind`", "{ edits: [...] }"],
+    },
+    {
+      operation: { fields: { title: "New" }, content: "replacement" },
+      says: ["exactly one of `fields`, `content`, `edits` or `source`"],
+    },
+  ])(
+    "says what an update operation should be: %j",
+    async ({ operation, says }) => {
+      const result = await exec({
+        entityType: "base",
+        id: "woodchuck-note",
+        operation,
+      });
+      expect(result).toMatchObject({ success: false });
+      const error = "error" in result ? String(result.error) : "";
+      for (const text of says) expect(error).toContain(text);
+    },
+  );
+
+  it.each([
+    ["fields", "Update partial frontmatter or metadata fields."],
+    ["content", "Replace the stored Markdown."],
+    ["edits", "Apply exact text replacements to the stored Markdown."],
+    ["source", "Replace the stored Markdown with user-supplied text."],
+  ] as const)("describes the %s operation as itself", (field, purpose) => {
+    const description = updateOperationInputSchema.shape[field].description;
+    expect(description?.startsWith(purpose)).toBe(true);
+  });
+
+  it("names only the field an operation got wrong", async () => {
+    const result = await exec({
+      entityType: "base",
+      id: "woodchuck-note",
+      operation: { edits: [{ oldText: "Woodchucks" }] },
+    });
+    const error = "error" in result ? String(result.error) : "";
+    expect(error).toContain("operation.edits.0.newText");
+    expect(error).not.toContain("fields");
+    expect(error).not.toContain("source");
+  });
+
   it("passes separate conversation, channel, run, and tool call provenance to confirmed entity updates", async () => {
     const tool = tools.find((candidate) => candidate.name === "system_update");
     if (!tool) throw new Error("system_update not found");
@@ -327,7 +382,7 @@ describe("system_update tool", () => {
     const confirmation = await exec({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "fields", fields: { status: "approved" } },
+      operation: { fields: { status: "approved" } },
     });
     const args = expectConfirmationArgs(confirmation);
 
@@ -357,7 +412,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "fields", fields: { status: "approved" } },
+      operation: { fields: { status: "approved" } },
       confirmed: true,
       contentHash: "hash-1",
     });
@@ -372,13 +427,13 @@ describe("system_update tool", () => {
     const confirmation = await exec({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "fields", fields: { status: "approved" } },
+      operation: { fields: { status: "approved" } },
     });
     const args = expectConfirmationArgs(confirmation);
 
     const result = await exec({
       ...args,
-      operation: { kind: "fields", fields: { status: "retired" } },
+      operation: { fields: { status: "retired" } },
     });
 
     expect(result).toMatchObject({ success: false });
@@ -391,7 +446,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "newsletter",
       id: "newsletter-1",
-      operation: { kind: "fields", fields: { status: "queued" } },
+      operation: { fields: { status: "queued" } },
     });
 
     expect(result).toMatchObject({
@@ -407,7 +462,6 @@ describe("system_update tool", () => {
       entityType: "base",
       id: "woodchuck-note",
       operation: {
-        kind: "content",
         content:
           "Woodchucks and woodpeckers are different animals. The distinction is useful.",
       },
@@ -516,14 +570,14 @@ describe("system_update tool", () => {
       const proposal = await exec({
         entityType: "base",
         id: "woodchuck-note",
-        operation: { kind: "edits", edits },
+        operation: { edits },
       });
       expect(proposal).toMatchObject({
         needsConfirmation: true,
         preview: "- Review: monthly.\n+ Review: weekly.",
       });
       const args = expectConfirmationArgs(proposal);
-      expect(args["operation"]).toEqual({ kind: "edits", edits });
+      expect(args["operation"]).toEqual({ edits });
       expect(args).not.toHaveProperty("content");
       expect(args["operation"]).not.toHaveProperty("content");
       expect(services.getLastUpdateRequest()).toBeUndefined();
@@ -546,7 +600,6 @@ describe("system_update tool", () => {
         entityType: "base",
         id: "woodchuck-note",
         operation: {
-          kind: "edits",
           edits: [
             { oldText: "alpha", newText: "beta" },
             { oldText: "beta", newText: "$&\\gamma" },
@@ -566,7 +619,6 @@ describe("system_update tool", () => {
           entityType: "base",
           id: "woodchuck-note",
           operation: {
-            kind: "edits",
             edits: [{ oldText: "Remove me\n", newText: "" }],
           },
         }),
@@ -607,7 +659,7 @@ describe("system_update tool", () => {
           await exec({
             entityType: "base",
             id: "woodchuck-note",
-            operation: { kind: "edits", edits },
+            operation: { edits },
           }),
         ).toMatchObject({ success: false });
         expect(services.getLastUpdateRequest()).toBeUndefined();
@@ -629,7 +681,6 @@ describe("system_update tool", () => {
           entityType: "base",
           id: "woodchuck-note",
           operation: {
-            kind: "edits",
             edits: [{ oldText: "alpha", newText: "beta" }],
             ...other,
           },
@@ -645,7 +696,6 @@ describe("system_update tool", () => {
           entityType: "base",
           id: "woodchuck-note",
           operation: {
-            kind: "edits",
             edits: [{ oldText: "alpha", newText: "beta" }],
           },
         }),
@@ -654,7 +704,6 @@ describe("system_update tool", () => {
         await exec({
           ...args,
           operation: {
-            kind: "edits",
             edits: [{ oldText: "alpha", newText: "tampered" }],
           },
         }),
@@ -669,7 +718,6 @@ describe("system_update tool", () => {
           entityType: "base",
           id: "woodchuck-note",
           operation: {
-            kind: "edits",
             edits: [{ oldText: "alpha", newText: "beta" }],
           },
         }),
@@ -699,7 +747,6 @@ describe("system_update tool", () => {
           entityType: "base",
           id: "woodchuck-note",
           operation: {
-            kind: "edits",
             edits: [{ oldText: "alpha", newText: "beta" }],
           },
         }),
@@ -730,7 +777,6 @@ describe("system_update tool", () => {
             entityType: "social-post",
             id: "linkedin-update",
             operation: {
-              kind: "edits",
               edits: [
                 { oldText: "status: draft", newText: "status: published" },
               ],
@@ -759,7 +805,7 @@ describe("system_update tool", () => {
         const result = await exec({
           entityType: "base",
           id: original.id,
-          operation: { kind: "fields", ...input },
+          operation: { ...input },
         });
 
         expect(result).toMatchObject({
@@ -793,13 +839,10 @@ describe("system_update tool", () => {
         const proposal = await exec({
           entityType: "base",
           id: original.id,
-          operation: { kind: "content", content: replacement },
+          operation: { content: replacement },
         });
         const args = expectConfirmationArgs(proposal);
-        expect(args["operation"]).toEqual({
-          kind: "content",
-          content: replacement,
-        });
+        expect(args["operation"]).toEqual({ content: replacement });
         expect(services.getLastUpdateRequest()).toBeUndefined();
         expect(services.getEntities().get(original.id)?.content).toBe(
           originalContent,
@@ -842,7 +885,7 @@ describe("system_update tool", () => {
         const result = await exec({
           entityType: "base",
           id: original.id,
-          operation: { kind: "content", content: after },
+          operation: { content: after },
         });
 
         expect(result).toMatchObject({ needsConfirmation: true, preview });
@@ -865,7 +908,6 @@ describe("system_update tool", () => {
         entityType: "base",
         id: original.id,
         operation: {
-          kind: "content",
           content: `# Note\nOne inserted line\n${suffix}`,
         },
       });
@@ -884,7 +926,7 @@ describe("system_update tool", () => {
       await execConfirmed({
         entityType: "base",
         id: "woodchuck-note",
-        operation: { kind: "content", content },
+        operation: { content },
       }),
     ).toMatchObject({ success: true });
     const updated = expectDefined(services.getEntities().get("woodchuck-note"));
@@ -896,7 +938,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "fields", fields: { visibility: "private" } },
+      operation: { fields: { visibility: "private" } },
     });
 
     expect(result).toEqual({
@@ -958,7 +1000,6 @@ describe("system_update tool", () => {
       entityType: "post",
       id: "resilience-in-distributed-systems",
       operation: {
-        kind: "fields",
         fields: { status: "draft", publishedAt: null },
       },
     });
@@ -987,7 +1028,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "fields", fields: { coverImageId: "hero-banner" } },
+      operation: { fields: { coverImageId: "hero-banner" } },
     });
 
     expect(result).toMatchObject({
@@ -1000,7 +1041,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "social-post",
       id: "linkedin-update",
-      operation: { kind: "fields", fields: { coverImageId: "__PENDING__" } },
+      operation: { fields: { coverImageId: "__PENDING__" } },
     });
 
     expect(result).toMatchObject({
@@ -1014,7 +1055,6 @@ describe("system_update tool", () => {
       entityType: "social-post",
       id: "linkedin-update",
       operation: {
-        kind: "fields",
         fields: {
           coverImageId: "upload-00000000-0000-4000-8000-000000000912",
         },
@@ -1031,7 +1071,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "social-post",
       id: "linkedin-update",
-      operation: { kind: "fields", fields: { coverImageId: "hero-banner" } },
+      operation: { fields: { coverImageId: "hero-banner" } },
     });
 
     expect(result).toEqual({
@@ -1050,7 +1090,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "social-post",
       id: "linkedin-update",
-      operation: { kind: "fields", fields: { ogImageId: "social-card" } },
+      operation: { fields: { ogImageId: "social-card" } },
     });
 
     expect(result).toEqual({
@@ -1083,7 +1123,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "social-post",
       id: "covered-post",
-      operation: { kind: "fields", fields: { coverImageId: null } },
+      operation: { fields: { coverImageId: null } },
     });
 
     expect(result).toEqual({
@@ -1102,7 +1142,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "content", content: newMarkdown },
+      operation: { content: newMarkdown },
     });
 
     expect(result).toEqual({
@@ -1140,7 +1180,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "content", content: newMarkdown },
+      operation: { content: newMarkdown },
     });
 
     expect(result).toEqual({
@@ -1162,7 +1202,7 @@ describe("system_update tool", () => {
       await execConfirmed({
         entityType: "base",
         id: "woodchuck-note",
-        operation: { kind: "content", content },
+        operation: { content },
       }),
     ).toMatchObject({ success: true });
     const updated = expectDefined(services.getEntities().get("woodchuck-note"));
@@ -1177,12 +1217,12 @@ describe("system_update tool", () => {
       await exec({
         entityType: "agent",
         id,
-        operation: { kind: "fields", fields: { status: "approved" } },
+        operation: { fields: { status: "approved" } },
       }),
     );
   }
 
-  it.each([undefined, { kind: "content", content: " " }])(
+  it.each([undefined, { content: " " }])(
     "rejects omitted or blank operations rather than repairing an approval (%p)",
     async (operation) => {
       const args = await proposeAgentApproval("pending-agent.io");
@@ -1210,7 +1250,7 @@ describe("system_update tool", () => {
       await exec({
         entityType: "base",
         id: "woodchuck-note",
-        operation: { kind: "fields", fields: { title: "New title" } },
+        operation: { fields: { title: "New title" } },
       }),
     );
     expect(await exec(args)).toMatchObject({ success: true });
@@ -1220,9 +1260,8 @@ describe("system_update tool", () => {
   });
 
   it.each([
-    { kind: "content", content: "A complete replacement." },
+    { content: "A complete replacement." },
     {
-      kind: "edits",
       edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }],
     },
   ])(
@@ -1281,7 +1320,7 @@ describe("system_update tool", () => {
       await exec({
         entityType: "agent",
         id: "pending-agent.io",
-        operation: { kind: "fields", fields: { status: "approved" } },
+        operation: { fields: { status: "approved" } },
         confirmed: true,
       }),
     ).toMatchObject({
@@ -1315,7 +1354,7 @@ describe("system_update tool", () => {
       {
         entityType: "agent",
         id: "old-agent.io",
-        operation: { kind: "fields", fields: { status: "archived" } },
+        operation: { fields: { status: "archived" } },
       },
       "trusted",
     );
@@ -1340,7 +1379,7 @@ describe("system_update tool", () => {
       {
         entityType: "agent",
         id: "old-agent.io",
-        operation: { kind: "fields", fields: { status: "archived" } },
+        operation: { fields: { status: "archived" } },
         confirmed: true,
       },
       "trusted",
@@ -1371,7 +1410,7 @@ describe("system_update tool", () => {
       {
         entityType: "social-post",
         id: "linkedin-update",
-        operation: { kind: "fields", fields: { status: "queued" } },
+        operation: { fields: { status: "queued" } },
       },
       "trusted",
     );
@@ -1401,7 +1440,7 @@ describe("system_update tool", () => {
       {
         entityType: "social-post",
         id: "linkedin-update",
-        operation: { kind: "fields", fields: { status: "failed" } },
+        operation: { fields: { status: "failed" } },
       },
       "trusted",
     );
@@ -1431,7 +1470,7 @@ describe("system_update tool", () => {
       {
         entityType: "social-post",
         id: "linkedin-update",
-        operation: { kind: "fields", fields: { status: "queued" } },
+        operation: { fields: { status: "queued" } },
       },
       "trusted",
     );
@@ -1454,7 +1493,7 @@ describe("system_update tool", () => {
       {
         entityType: "workflow-card",
         id: "workflow-card",
-        operation: { kind: "fields", fields: { status: "queued" } },
+        operation: { fields: { status: "queued" } },
       },
       "trusted",
     );
@@ -1477,7 +1516,6 @@ describe("system_update tool", () => {
         entityType: "social-post",
         id: "linkedin-update",
         operation: {
-          kind: "content",
           content:
             "---\ntitle: LinkedIn Update\nstatus: queued\n---\n\nPost body.",
         },
@@ -1617,7 +1655,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "anchor-profile",
       id: "anchor-profile",
-      operation: { kind: "fields", fields: { name: "Research partner" } },
+      operation: { fields: { name: "Research partner" } },
     });
     expect(result).toMatchObject({
       success: false,
@@ -1631,7 +1669,7 @@ describe("system_update tool", () => {
     const proposal = await exec({
       entityType: "anchor-profile",
       id: "anchor-profile",
-      operation: { kind: "fields", fields: { visibility: "shared" } },
+      operation: { fields: { visibility: "shared" } },
     });
     const result = await exec(expectConfirmationArgs(proposal));
     expect(result).toMatchObject({ success: true });
@@ -1647,7 +1685,6 @@ describe("system_update tool", () => {
       entityType: "brain-character",
       id: "brain-character",
       operation: {
-        kind: "fields",
         fields: {
           role: "Research partner",
           purpose: "Accelerate research",
@@ -1687,7 +1724,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: adapter.entityType,
       id: "source-owned",
-      operation: { kind: "fields", fields: { title: "Changed" } },
+      operation: { fields: { title: "Changed" } },
     });
 
     expect(result).toEqual({
@@ -1707,7 +1744,6 @@ describe("system_update tool", () => {
         entityType: "metadata-backed-test",
         id: "metadata-backed-1",
         operation: {
-          kind: "content",
           content: "---\ntitle: New title\n---\n\nNew body.",
         },
       }),
@@ -1726,7 +1762,7 @@ describe("system_update tool", () => {
       await execConfirmed({
         entityType: "metadata-backed-test",
         id: "metadata-backed-1",
-        operation: { kind: "content", content: "New body.\n" },
+        operation: { content: "New body.\n" },
       }),
     ).toMatchObject({ success: true });
     const updated = services.getLastUpdateRequest()?.entity;
@@ -1755,7 +1791,7 @@ describe("system_update tool", () => {
       await execConfirmed({
         entityType: "base",
         id: note.id,
-        operation: { kind: "content", content: "Replacement body." },
+        operation: { content: "Replacement body." },
       }),
     ).toMatchObject({ success: true });
     const updated = services.getLastUpdateRequest()?.entity;
@@ -1788,7 +1824,7 @@ describe("system_update tool", () => {
       await exec({
         entityType: adapter.entityType,
         id: "source-owned",
-        operation: { kind: "content", content: "title: Changed" },
+        operation: { content: "title: Changed" },
       }),
     ).toEqual({
       success: false,
@@ -1812,7 +1848,6 @@ describe("system_update tool", () => {
         entityType: entity.entityType,
         id: entity.id,
         operation: {
-          kind: "edits",
           edits: [{ oldText: "Body.", newText: "Edited body." }],
         },
       }),
@@ -1828,7 +1863,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "metadata-backed-test",
       id: "metadata-backed-1",
-      operation: { kind: "fields", fields: { title: "Updated title" } },
+      operation: { fields: { title: "Updated title" } },
     });
 
     expect(() => expectConfirmationArgs(result)).not.toThrow();
@@ -1840,7 +1875,7 @@ describe("system_update tool", () => {
     const result = await execConfirmed({
       entityType: "metadata-backed-test",
       id: "metadata-backed-1",
-      operation: { kind: "fields", fields: { publishedAt: null } },
+      operation: { fields: { publishedAt: null } },
     });
 
     expect(result).toEqual({
@@ -1858,7 +1893,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "metadata-backed-test",
       id: "metadata-backed-1",
-      operation: { kind: "fields", fields: { title: "Updated title" } },
+      operation: { fields: { title: "Updated title" } },
     });
 
     expect(() => expectConfirmationArgs(result)).not.toThrow();
@@ -1902,7 +1937,6 @@ describe("system_update tool", () => {
       entityType: "anchor-profile",
       id: "anchor-profile",
       operation: {
-        kind: "content",
         content:
           "---\nname: Yeehaa\nkind: person\nrole: \naudience: \nexpertise:\n  - \navailability: \n---\n",
       },
@@ -1920,7 +1954,7 @@ describe("system_update tool", () => {
     const result = await exec({
       entityType: "agent",
       id: "old-agent.io",
-      operation: { kind: "content", content: " " },
+      operation: { content: " " },
       confirmed: true,
     });
 

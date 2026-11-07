@@ -24,7 +24,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: post
-            operation.kind: fields
             operation.fields.status: draft
       responseNotContains:
         - "send the exact ID"
@@ -41,7 +40,6 @@ turns:
           argsContain:
             entityType: post
             id: resilience-in-distributed-systems
-            operation.kind: fields
             operation.fields.status: draft
 
   - userMessage: >-

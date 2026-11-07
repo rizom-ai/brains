@@ -568,7 +568,6 @@ turns:
             entityType: note
             id: long-note-update-17kb
             operation:
-              kind: edits
               edits:
                 &patch [
                   {
@@ -604,7 +603,6 @@ turns:
             entityType: note
             id: long-note-update-17kb
             operation:
-              kind: edits
               edits: *patch
           argsAbsent: ["operation.fields", "operation.content"]
           resultContains:

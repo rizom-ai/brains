@@ -21,10 +21,12 @@ import type { UpdateOperationInput } from "./schemas";
  * What an update asks for once edits are applied and a source is resolved: a
  * full content replacement or a set of field changes, never both.
  */
-export type UpdateOperation = Extract<
-  UpdateOperationInput,
-  { kind: "fields" | "content" }
->;
+export type UpdateOperation =
+  | {
+      kind: "fields";
+      fields: NonNullable<UpdateOperationInput["fields"]>;
+    }
+  | { kind: "content"; content: string };
 
 /**
  * Changed lines a replacement preview still lists. Beyond it the preview says
