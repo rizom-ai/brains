@@ -396,63 +396,45 @@ function isPdfAttachment(attachment: ChatAttachment): boolean {
   return attachment.mediaType.toLowerCase() === "application/pdf";
 }
 
-/** What a kept file becomes: a note of its text, or itself by its type. */
-function keptAs(
-  attachment: ChatAttachment,
-  transform: "extract-markdown" | "preserve",
-): string {
-  if (transform === "extract-markdown") return "a note";
-  if (attachment.mediaType.toLowerCase().startsWith("image/"))
-    return "an image";
-  return isPdfAttachment(attachment) ? "a document" : "itself";
-}
-
 function formatKeepAllCandidateLine(
   label: string,
   attachments: ChatAttachment[],
   transform: (attachment: ChatAttachment) => "extract-markdown" | "preserve",
 ): string {
-  const kept = attachments.flatMap((attachment) =>
+  const items = attachments.flatMap((attachment) =>
     attachment.source
       ? [
-          {
-            attachment,
-            id: attachment.source.id,
-            transform: transform(attachment),
-          },
+          `{ id: "${attachment.source.id}", transform: "${transform(attachment)}" }`,
         ]
       : [],
   );
-  const items = kept.map(
-    ({ id, transform }) => `{ id: "${id}", transform: "${transform}" }`,
-  );
-  const outcomes = kept.map(
-    ({ attachment, transform }) =>
-      `${attachment.filename} as ${keptAs(attachment, transform)}`,
-  );
-  return `Available system_create candidate for keeping all ${kept.length} files attached to this message${label}: ${outcomes.join(", ")} (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [${items.join(", ")}] } }`;
+  return `Available system_create candidate for keeping every file attached to this message${label} (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [${items.join(", ")}] } }`;
 }
 
 /**
  * Several files attached to one message are kept together: the candidate
  * names every one of them, each with the transform that keeps it as itself
- * (a text file as a note, a PDF as a document) and what it becomes, so none
- * is left out of a request to keep them. With a PDF among them, a second
- * candidate keeps them as notes, the PDF's text extracted the way a single
- * PDF note import does.
+ * (a text file as a note, a PDF as a document), so none is left out of a
+ * request to keep them. With a PDF among them, a second candidate keeps them
+ * as notes, the PDF's text extracted the way a single PDF note import does.
  */
 function formatKeepAllCandidate(attachments: ChatAttachment[]): string[] {
   const kept = attachments.filter((attachment) => attachment.source);
   if (kept.length < 2) return [];
   const hasPdf = kept.some(isPdfAttachment);
   return [
-    formatKeepAllCandidateLine(", each as itself", kept, (attachment) =>
-      attachment.kind === "text" ? "extract-markdown" : "preserve",
+    formatKeepAllCandidateLine(
+      hasPdf
+        ? ", each as itself, text files as notes and PDFs as documents"
+        : ", each as itself and text files as notes",
+      kept,
+      (attachment) =>
+        attachment.kind === "text" ? "extract-markdown" : "preserve",
     ),
     ...(hasPdf
       ? [
           formatKeepAllCandidateLine(
-            " as notes when the user asks for notes, each PDF's text extracted into its note",
+            " as notes, each PDF's text extracted into its note, when the user asks for notes",
             kept,
             (attachment) =>
               attachment.kind === "text" || isPdfAttachment(attachment)
