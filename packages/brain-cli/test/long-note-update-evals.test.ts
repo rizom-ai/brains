@@ -44,20 +44,19 @@ describe("long-note agent eval coverage", () => {
       expect(criteria?.expectedTools?.map((tool) => tool.toolName)).toEqual([
         "system_update",
       ]);
+      // An edit is judged by the note it stores, read back after approval,
+      // not by the exact text it quotes: any edits operation may propose it.
       expect(criteria?.expectedTools?.[0]?.argsContain).toEqual({
         entityType: "note",
         id,
-        operation: {
-          kind: "edits",
-          edits: [
-            { oldText: "# Working Plan", newText: "# Approved Plan" },
-            {
-              oldText: "Review cadence: monthly.",
-              newText: "Review cadence: weekly.",
-            },
-          ],
-        },
       });
+      expect(criteria?.expectedTools?.[0]?.argsAbsent).toEqual(
+        expect.arrayContaining([
+          "operation.fields",
+          "operation.content",
+          "operation.source",
+        ]),
+      );
       expect(criteria?.expectedTools?.[0]?.resultContains).toEqual({
         needsConfirmation: true,
       });
@@ -126,24 +125,10 @@ describe("long-note agent eval coverage", () => {
         ]?.successCriteria?.expectedTools?.find(
           (tool) => tool.toolName === "system_update",
         );
-        expect(proposal?.argsContain).toMatchObject({
-          entityType: "note",
-          id,
-          operation: {
-            kind: "edits",
-            edits: [
-              ...(combined
-                ? [{ oldText: "# Working Plan", newText: "# Approved Plan" }]
-                : []),
-              {
-                oldText: "Review cadence: monthly.",
-                newText: "Review cadence: weekly.",
-              },
-            ],
-          },
-        });
+        expect(proposal?.argsContain).toEqual({ entityType: "note", id });
         expect(proposal?.argsAbsent).toContain("operation.fields");
         expect(proposal?.argsAbsent).toContain("operation.content");
+        expect(proposal?.argsAbsent).toContain("operation.source");
         expect(proposal?.resultContains).toEqual({ needsConfirmation: true });
       }
       const cancelledRead =
