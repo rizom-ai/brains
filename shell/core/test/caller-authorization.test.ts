@@ -147,9 +147,12 @@ describe("generation over the runtime's caller authorizer", () => {
       .admit(writer)
       .catch((error: unknown) => error);
     expect(denied).not.toBeInstanceOf(GenerationAuthorizationError);
+    // An outage the auth runtime did not classify: a failed handler, its
+    // diagnostic left with the runtime.
     expect(denied).toMatchObject({
-      name: "Error",
-      message: "database unavailable",
+      name: "SdkError",
+      code: "handler_failed",
     });
+    expect(String(denied)).not.toContain("database unavailable");
   });
 });

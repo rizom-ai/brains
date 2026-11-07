@@ -1,5 +1,6 @@
 import {
   authPrincipalResolveContract,
+  sdkErrorFrom,
   type ActorRef,
   type AuthPrincipalResolveResponse,
 } from "@brains/contracts";
@@ -25,6 +26,11 @@ export async function resolvePrincipalViaBus(
     sender,
   );
   if (result.status === "unavailable") return null;
-  if (result.status === "failed") throw new Error(result.error);
+  if (result.status === "failed") {
+    throw sdkErrorFrom(
+      result.error,
+      `Principal resolution failed: ${result.error.message}`,
+    );
+  }
   return result.data.principal;
 }

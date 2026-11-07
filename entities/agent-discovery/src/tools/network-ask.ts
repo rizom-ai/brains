@@ -1,5 +1,5 @@
 import { type Tool, type ToolResponse } from "@brains/plugins";
-import { a2aAskContract } from "@brains/contracts";
+import { a2aAskContract, toSdkError } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -25,7 +25,7 @@ const networkAskInputSchema = z.object({
 
 type NetworkAskContext = Pick<
   ServicePluginContext,
-  "entityService" | "messaging" | "semantic"
+  "entityService" | "logger" | "messaging" | "semantic"
 >;
 
 const BRAIN_CHARACTER = {
@@ -104,10 +104,12 @@ async function askPeer(
       question,
     });
   } catch (error) {
-    return {
-      status: "failed",
-      error: getErrorMessage(error, "network unavailable"),
-    };
+    // The visitor's turn hears the failure's public form; the diagnostic
+    // stays in this brain's log.
+    context.logger.warn(`Could not ask ${peer.id}`, {
+      error: getErrorMessage(error),
+    });
+    return { status: "failed", error: toSdkError(error).toJSON() };
   }
 }
 

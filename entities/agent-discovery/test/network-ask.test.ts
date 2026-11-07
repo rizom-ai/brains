@@ -321,6 +321,7 @@ describe("network_ask", () => {
           ? {
               success: false,
               error: "jo.example did not answer within 6000 ms",
+              code: "deadline_exceeded",
             }
           : {
               success: true,
@@ -345,6 +346,28 @@ describe("network_ask", () => {
         brain: { name: "Jo", url: "https://jo.example" },
         reason: "jo.example did not answer within 6000 ms",
       },
+    ]);
+  });
+
+  it("gives a failure's public message, never its diagnostic, as the reason", async () => {
+    const harness = await setup();
+    harness.subscribe<{ agent: string; question: string }, unknown>(
+      a2aAskContract.name,
+      async () => ({
+        success: false,
+        error: "connect ECONNREFUSED 10.0.0.7:443",
+      }),
+    );
+
+    const result = await networkAsk(harness).handler(
+      { question: "How do I plan a permaculture garden?" },
+      guestContext,
+    );
+    expectSuccess(result);
+    const data = networkAskResultSchema.parse(result.data);
+    expect(data.unanswered.map((entry) => entry.reason)).toEqual([
+      "The operation failed",
+      "The operation failed",
     ]);
   });
 

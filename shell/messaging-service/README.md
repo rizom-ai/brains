@@ -51,9 +51,16 @@ with the bus it owns.
   invalid payload throws.
 - `unavailable` means no plugin answers the contract in this process. It is
   decided from the subscriber count, never from an error string.
+- A failure reaches the sender in its public form, as an `SdkError` publishes
+  it: `failed` carries `error: { code, message }` (`SdkErrorData`), and each
+  of `gather`'s `failures` is one. An owner that throws an `SdkError` keeps its
+  code and public message; any other error is `handler_failed` with the code's
+  standard message. The message a failure was thrown with stays in the owner's
+  log, as an error for `handler_failed` and a warning for any other code. To
+  pass a failure on, throw `sdkErrorFrom(result.error)`, which keeps both.
 - An owner's handler sees only a valid request; an invalid one is answered with
-  `Invalid <channel> request`. Its reply leaves only when the response schema
-  accepts it, otherwise the sender gets `failed`.
+  `invalid_input` and `Invalid <channel> request`. Its reply leaves only when
+  the response schema accepts it, otherwise the sender gets `invalid_response`.
 - The handler's second argument names the sending plugin (`{ sender }`).
 - An execution-only (worker) process answers only with
   `answer(contract, handler, { everyProcess: true })`.

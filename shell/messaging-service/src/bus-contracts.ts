@@ -1,8 +1,12 @@
-import type {
-  BusAnswerMeta,
-  BusCollection,
-  BusContract,
-  BusResult,
+import {
+  SdkError,
+  sdkErrorSchema,
+  toSdkError,
+  type BusAnswerMeta,
+  type BusCollection,
+  type BusContract,
+  type BusResult,
+  type SdkErrorData,
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
@@ -10,13 +14,31 @@ import type { z } from "@brains/utils/zod";
 import type { IMessageBus } from "./types";
 import type { MessageResponse } from "./base-types";
 
-function outsideContract(contract: { name: string }): string {
-  return `${contract.name} answered outside its contract`;
+/** An answer outside its contract: the owner's bug, which the asker cannot fix. */
+const outsideContract: SdkErrorData = new SdkError("invalid_response").toJSON();
+
+/**
+ * A reply's failure as the asker is told it, or undefined for a success. Only
+ * a failure that names its code carries a public message the asker may
+ * trust; any other is a failed handler, its text left unread.
+ */
+function failureOf(
+  response: MessageResponse<unknown>,
+): SdkErrorData | undefined {
+  if ("success" in response && response.success) return undefined;
+  if (!("success" in response)) return new SdkError("no_handler").toJSON();
+  const published = sdkErrorSchema.safeParse({
+    code: response.code,
+    message: response.error,
+  });
+  return published.success
+    ? published.data
+    : new SdkError("handler_failed").toJSON();
 }
 
-function failureOf(response: MessageResponse<unknown>): string | undefined {
-  if ("success" in response && response.success) return undefined;
-  return ("error" in response ? response.error : undefined) ?? "No answer";
+/** A failure as the bus carries it: the public message beside its code. */
+function failedReply(failure: SdkErrorData): MessageResponse<never> {
+  return { success: false, error: failure.message, code: failure.code };
 }
 
 /** Ask a request contract's owner; see `IMessagingNamespace.request`. */
@@ -44,7 +66,7 @@ export async function requestContract<
   );
   return answer.success
     ? { status: "answered", data: answer.data }
-    : { status: "failed", error: outsideContract(contract) };
+    : { status: "failed", error: outsideContract };
 }
 
 /** Gather every owner's answer to a collect contract. */
@@ -66,7 +88,7 @@ export async function collectContract<
     sender,
   });
   const answers: z.output<TResponse>[] = [];
-  const failures: string[] = [];
+  const failures: SdkErrorData[] = [];
   for (const response of responses) {
     const failure = failureOf(response);
     if (failure !== undefined) {
@@ -77,7 +99,7 @@ export async function collectContract<
       "data" in response ? response.data : undefined,
     );
     if (answer.success) answers.push(answer.data);
-    else failures.push(outsideContract(contract));
+    else failures.push(outsideContract);
   }
   return { status: "answered", answers, failures };
 }
@@ -133,7 +155,11 @@ export function answerContract<
       logger.warn(`Refused an invalid ${contract.name} request`, {
         error: request.error.message,
       });
-      return { success: false, error: `Invalid ${contract.name} request` };
+      return failedReply(
+        new SdkError("invalid_input", {
+          publicMessage: `Invalid ${contract.name} request`,
+        }).toJSON(),
+      );
     }
     const meta = { sender: message.source };
     try {
@@ -148,9 +174,18 @@ export function answerContract<
       logger.error(`${owner} answered ${contract.name} outside its contract`, {
         error: reply.error.message,
       });
-      return { success: false, error: outsideContract(contract) };
+      return failedReply(outsideContract);
     } catch (error) {
-      return { success: false, error: getErrorMessage(error) };
+      // The asker is told the failure's public form; the diagnostic stays
+      // in the answering package's log. A failed handler is a fault; any
+      // other code is an outcome the owner chose to report.
+      const failure = toSdkError(error);
+      const log = failure.code === "handler_failed" ? "error" : "warn";
+      logger[log](`${owner} failed to answer ${contract.name}`, {
+        code: failure.code,
+        error: getErrorMessage(error),
+      });
+      return failedReply(failure.toJSON());
     }
   });
 }

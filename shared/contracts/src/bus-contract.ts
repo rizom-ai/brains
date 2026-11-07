@@ -1,4 +1,5 @@
 import type { z } from "@brains/utils/zod";
+import type { SdkErrorData } from "./sdk-error";
 
 /**
  * How a contract's message travels:
@@ -26,14 +27,18 @@ export interface BusContract<
 
 /** What a collect contract's sender gets: every valid answer, and what went wrong with the rest. */
 export type BusCollection<T> =
-  | { status: "answered"; answers: T[]; failures: string[] }
+  | { status: "answered"; answers: T[]; failures: SdkErrorData[] }
   | { status: "unavailable" };
 
-/** A sender's view of a contract call. */
+/**
+ * A sender's view of a contract call. A failure arrives in its public form,
+ * as an SdkError publishes it: the code survives, and the diagnostic stays
+ * with the answering package.
+ */
 export type BusResult<T> =
   | { status: "answered"; data: T }
   | { status: "unavailable" }
-  | { status: "failed"; error: string };
+  | { status: "failed"; error: SdkErrorData };
 
 /** What an owner learns about a call besides the request: the plugin that sent it. */
 export interface BusAnswerMeta {

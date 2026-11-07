@@ -1,5 +1,6 @@
 import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
+import { SdkError } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
@@ -909,18 +910,43 @@ describe("dashboard namespace on the widget contracts", () => {
     ]);
   });
 
-  it("throws the host's refusal", async () => {
+  it("throws the host's refusal with its code and public message", async () => {
     const shell = createMockShell();
     createServicePluginContext(shell, "host").messaging.answer(
       dashboardWidgetRegisterContract,
       async () => {
-        throw new Error("host rejected widget");
+        throw new SdkError("conflict", {
+          publicMessage: "host rejected widget",
+        });
       },
     );
     const context = createServicePluginContext(shell, "reading");
 
-    expect(context.dashboard.registerWidget(widget)).rejects.toThrow(
-      "Dashboard widget register failed: host rejected widget",
+    const refusal: unknown = await context.dashboard
+      .registerWidget(widget)
+      .catch((error: unknown) => error);
+    expect(refusal).toBeInstanceOf(SdkError);
+    expect(refusal).toMatchObject({
+      code: "conflict",
+      publicMessage: "host rejected widget",
+      message: "Dashboard widget register failed: host rejected widget",
+    });
+  });
+
+  it("keeps a host's diagnostic out of the refusal the plugin is told", async () => {
+    const shell = createMockShell();
+    createServicePluginContext(shell, "host").messaging.answer(
+      dashboardWidgetRegisterContract,
+      async () => {
+        throw new Error("widget store at /var/brain is locked");
+      },
     );
+    const context = createServicePluginContext(shell, "reading");
+
+    const refusal: unknown = await context.dashboard
+      .registerWidget(widget)
+      .catch((error: unknown) => error);
+    expect(refusal).toMatchObject({ code: "handler_failed" });
+    expect(String(refusal)).not.toContain("/var/brain");
   });
 });

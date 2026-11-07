@@ -261,6 +261,8 @@ export { JobResult } from "./job-result";
 export {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
+  clipPublicMessage,
+  sdkErrorFrom,
   sdkErrorCodeSchema,
   sdkErrorSchema,
   toSdkError,

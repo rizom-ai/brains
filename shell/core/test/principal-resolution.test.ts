@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { authPrincipalResolveContract } from "@brains/contracts";
-import { MessageBus } from "@brains/messaging-service";
+import { authPrincipalResolveContract, SdkError } from "@brains/contracts";
+import { MessageBus, answerContract } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { resolvePrincipalViaBus } from "../src/initialization/principal-resolution";
 
@@ -13,15 +13,30 @@ describe("resolvePrincipalViaBus", () => {
     expect(await resolvePrincipalViaBus(bus, "shell", actor)).toBeNull();
   });
 
-  test("still throws when the auth runtime answers with a failure", async () => {
+  test("still throws, keeping the failure's code, when the auth runtime fails", async () => {
     const bus = MessageBus.createFresh(createSilentLogger());
-    bus.subscribe(authPrincipalResolveContract.name, async () => ({
-      success: false,
-      error: "auth database locked",
-    }));
-
-    expect(resolvePrincipalViaBus(bus, "shell", actor)).rejects.toThrow(
-      "auth database locked",
+    answerContract(
+      bus,
+      authPrincipalResolveContract,
+      async () => {
+        throw new SdkError("unauthenticated", {
+          message: "auth database locked",
+        });
+      },
+      { owner: "auth", logger: createSilentLogger() },
     );
+
+    const failure: unknown = await resolvePrincipalViaBus(
+      bus,
+      "shell",
+      actor,
+    ).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(SdkError);
+    expect(failure).toMatchObject({
+      code: "unauthenticated",
+      publicMessage: "Authentication required",
+    });
+    // The diagnostic stays in the auth runtime's log.
+    expect(String(failure)).not.toContain("auth database locked");
   });
 });

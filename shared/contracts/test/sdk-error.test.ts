@@ -5,11 +5,15 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "@brains/utils/zod";
 import {
+  SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
+  clipPublicMessage,
   sdkErrorCodeSchema,
+  sdkErrorFrom,
   sdkErrorSchema,
   sdkErrorHttpStatus,
   toSdkError,
+  type SdkErrorData,
 } from "../src/sdk-error";
 
 const secret = "private-token-and-request-body";
@@ -162,5 +166,33 @@ export default new SdkError("not_found", {message: ${JSON.stringify(secret)}, pu
       ["cancelled", 408],
       ["deadline_exceeded", 504],
     ]);
+  });
+
+  it("raises a failure that arrived in its public form as itself again", () => {
+    const failure: SdkErrorData = { code: "conflict", message: "Busy" };
+    const raised = sdkErrorFrom(failure, "Workspace register failed: Busy");
+
+    expect(raised).toBeInstanceOf(SdkError);
+    expect(raised.code).toBe("conflict");
+    expect(raised.publicMessage).toBe("Busy");
+    expect(raised.message).toBe("Workspace register failed: Busy");
+    expect(raised.toJSON()).toEqual(failure);
+    expect(toSdkError(raised).toJSON()).toEqual(failure);
+    expect(sdkErrorFrom(failure).message).toBe("Busy");
+  });
+
+  it("clips text an owner did not write to the public bound", () => {
+    expect(clipPublicMessage("Over for today.")).toBe("Over for today.");
+    const exact = "x".repeat(SDK_ERROR_MESSAGE_MAX_LENGTH);
+    expect(clipPublicMessage(exact)).toBe(exact);
+
+    const clipped = clipPublicMessage(
+      "y".repeat(SDK_ERROR_MESSAGE_MAX_LENGTH + 40),
+    );
+    expect(clipped).toHaveLength(SDK_ERROR_MESSAGE_MAX_LENGTH);
+    expect(clipped.endsWith("…")).toBe(true);
+    expect(
+      new SdkError("handler_failed", { publicMessage: clipped }).toJSON(),
+    ).toEqual({ code: "handler_failed", message: clipped });
   });
 });

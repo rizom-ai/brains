@@ -116,6 +116,32 @@ export function toSdkError(
   });
 }
 
+/**
+ * Raise again a failure that arrived in its public form, so its code and
+ * public message travel on with it; `message` is the local diagnostic.
+ */
+export function sdkErrorFrom(
+  failure: SdkErrorData,
+  message?: string,
+): SdkError {
+  return new SdkError(failure.code, {
+    publicMessage: failure.message,
+    ...(message !== undefined ? { message } : {}),
+  });
+}
+
+const ELLIPSIS = "…";
+
+/**
+ * Text an owner passes on but did not write, such as a remote peer's reply,
+ * cut to fit the public message bound.
+ */
+export function clipPublicMessage(text: string): string {
+  return text.length <= SDK_ERROR_MESSAGE_MAX_LENGTH
+    ? text
+    : `${text.slice(0, SDK_ERROR_MESSAGE_MAX_LENGTH - ELLIPSIS.length)}${ELLIPSIS}`;
+}
+
 /** Explicit mapping for runtime-generated HTTP errors, not protocol envelopes. */
 export function sdkErrorHttpStatus(code: SdkErrorCode): number {
   switch (code) {

@@ -1,4 +1,8 @@
-import type { BusContract, BusResult } from "@brains/contracts";
+import {
+  sdkErrorFrom,
+  type BusContract,
+  type BusResult,
+} from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
 import {
   dashboardWidgetRegisterContract,
@@ -39,7 +43,10 @@ function hosted(
   result: BusResult<void>,
 ): boolean {
   if (result.status === "failed") {
-    throw new Error(`Dashboard widget ${operation} failed: ${result.error}`);
+    throw sdkErrorFrom(
+      result.error,
+      `Dashboard widget ${operation} failed: ${result.error.message}`,
+    );
   }
   return result.status === "answered";
 }
