@@ -71,6 +71,13 @@
       "when": 1794008474009,
       "tag": "0009_job_public_error",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794087274063,
+      "tag": "0010_retire_wish_create",
+      "breakpoints": true
     }
   ]
 }

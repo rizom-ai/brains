@@ -65,7 +65,7 @@ import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
-import { wishlistPlugin } from "@brains/wishlist";
+import wishlistPackage from "@brains/wishlist";
 import packageJson from "../../package.json" with { type: "json" };
 import {
   automationBundle,
@@ -157,7 +157,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],
     ["link", linkPlugin, undefined],
-    ["wishlist", wishlistPlugin, undefined],
+    packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
+      pluginId: "wishlist",
+    }),
     ["topics", topicsPlugin, undefined],
     ["decks", decksPlugin, undefined],
     [

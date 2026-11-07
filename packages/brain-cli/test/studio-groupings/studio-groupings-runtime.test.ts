@@ -18,6 +18,7 @@ import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
 import promptPackage from "@brains/prompt";
+import wishlistPackage from "@brains/wishlist";
 import { z } from "@brains/utils/zod";
 import {
   EntityPlugin,
@@ -2210,5 +2211,68 @@ describe("declared types in the editor", () => {
       (await fixture.service.getEntity({ entityType: "card", id: "tide" }))
         ?.metadata,
     ).toEqual({ title: "Ebb", tone: "plain" });
+  });
+});
+
+/** A first-party declared package's types, registered as the brain does. */
+function registerPackage(
+  definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
+  packageName: string,
+  pluginId: string,
+): (registry: EntityRegistry) => void {
+  return (registry) => {
+    for (const plugin of instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: packageName, version: "0.0.0-test" },
+      { pluginId },
+    )) {
+      if (plugin instanceof EntityPlugin) {
+        registry.registerEntityType(
+          plugin.entityType,
+          plugin.schema,
+          plugin.adapter,
+        );
+      }
+    }
+  };
+}
+
+describe("first-party declared types in the editor", () => {
+  test("saves a wish edited in the editor, its derived slug left out of the file", async () => {
+    const dir = await directory();
+    const fixture = await open(
+      dir,
+      registerPackage(wishlistPackage, "@brains/wishlist", "wishlist"),
+    );
+    const authored =
+      "---\ntitle: Send emails\nstatus: new\npriority: medium\nrequested: 2\n---\nUser wants email integration\n";
+    await fixture.service.createEntityFromMarkdown({
+      input: { entityType: "wish", id: "send-emails", markdown: authored },
+    });
+    const opened = await (
+      await fixture.request("GET", "entities?type=wish&id=send-emails")
+    ).json();
+
+    const saved = await fixture.request("PUT", "entities", {
+      entityType: "wish",
+      id: "send-emails",
+      frontmatter: { ...opened.entity.frontmatter, priority: "high" },
+      body: opened.entity.body,
+      baseContentHash: opened.entity.contentHash,
+    });
+
+    expect(saved.status).toBe(200);
+    expect(
+      parseMarkdown(await storedContent(dir, "wish", "send-emails")),
+    ).toEqual({
+      frontmatter: {
+        title: "Send emails",
+        status: "new",
+        priority: "high",
+        requested: 2,
+      },
+      content: expect.stringContaining("User wants email integration"),
+    });
   });
 });
