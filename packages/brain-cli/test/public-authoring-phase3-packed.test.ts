@@ -20,6 +20,8 @@ const packageDirectory = join(import.meta.dir, "..");
 const publicFixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
 const entityFixture = join(publicFixtureRoot, "entity");
 const serviceFixture = join(publicFixtureRoot, "service");
+const stewardFixture = join(publicFixtureRoot, "profile-steward");
+const importerFixture = join(publicFixtureRoot, "profile-import");
 const brainFixture = join(
   import.meta.dir,
   "fixtures",
@@ -170,6 +172,16 @@ describe("public authoring Phase 3 packed service contract", () => {
         tarballs,
       );
       tarballs.set(...service);
+      for (const fixture of [stewardFixture, importerFixture]) {
+        tarballs.set(
+          ...(await buildAndPackFixturePackage(
+            fixture,
+            stagingDirectory,
+            tarballDirectory,
+            tarballs,
+          )),
+        );
+      }
       const brain = await buildAndPackFixturePackage(
         brainFixture,
         stagingDirectory,
@@ -229,6 +241,26 @@ describe("public authoring Phase 3 packed service contract", () => {
       expect(summarized).toContain(
         '"summary": "Saved reading: Durable Services (4 words)"',
       );
+
+      // A stewarded type changes only by asking its steward.
+      await invokeTool(consumerDirectory, "profile_start-profile", {
+        name: "Alex",
+      });
+      const imported = await invokeTool(
+        consumerDirectory,
+        "reader-import_import-profile",
+        { headline: "Reads widely", website: "https://alex.example" },
+      );
+      expect(imported).toContain('"filled": [');
+      expect(imported).toContain('"headline"');
+      expect(imported).toContain('"kept": []');
+      expect(
+        await invokeTool(
+          consumerDirectory,
+          "reader-import_profile-headline",
+          {},
+        ),
+      ).toContain('"headline": "Reads widely"');
 
       // A job that fails with a code: its status says why, not what it threw.
       const missing = jobIdFrom(

@@ -82,6 +82,26 @@ const goldenPackages: GoldenPackageExpectation[] = [
     ],
   },
   {
+    directory: "profile-steward",
+    packageName: "@fixture/reader-profile",
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineBusContract",
+      "entities: [readerProfile]",
+      "answer(fillReaderProfile",
+      "sender",
+    ],
+  },
+  {
+    directory: "profile-import",
+    packageName: "@fixture/reader-import",
+    publicEntryPoints: ["@rizom/brain/services"],
+    requiredVocabulary: [
+      "messaging.request(fillReaderProfile",
+      "entities.get(readerProfile",
+    ],
+  },
+  {
     directory: "site",
     packageName: "@fixture/reading-site",
     publicEntryPoints: ["@rizom/site"],
@@ -281,6 +301,31 @@ describe("public authoring 0.2 golden packages", () => {
           ],
           "@fixture/reading-entities": [
             "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-steward",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-import",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reader-profile": [
+            "./packages/brain-cli/test/fixtures/public-authoring/profile-steward/src/index.ts",
           ],
         },
       },

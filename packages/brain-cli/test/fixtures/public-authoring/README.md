@@ -51,6 +51,8 @@ configuration that have actually passed the package boundary.
 | 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
 | 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation         |
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
+| 9    | [`profile-steward`](./profile-steward/src/index.ts)                       | Stewardship: the one package that writes the reader profile, and the contract it answers for changes          |
+| 10   | [`profile-import`](./profile-import/src/index.ts)                         | An importer that asks the steward through its contract instead of writing the profile itself                  |
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split
