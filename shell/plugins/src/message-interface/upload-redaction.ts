@@ -1,32 +1,19 @@
 import type { StructuredChatCard } from "../contracts/agent";
 import { isRecord } from "@brains/utils/is-record";
+import { runtimeUploadIdSource } from "../service/upload-registry";
 
-function isUploadRef(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    value["kind"] === "upload" &&
-    typeof value["id"] === "string"
-  );
-}
-
-/** A save of several uploads names each file by its upload id alone. */
-function isUploadsSource(
-  value: Record<string, unknown>,
-): value is Record<string, unknown> & { items: unknown[] } {
-  return value["kind"] === "uploads" && Array.isArray(value["items"]);
-}
-
-function redactUploadItem(item: unknown): unknown {
-  if (!isRecord(item) || typeof item["id"] !== "string") return item;
-  return { ...redactUploadRefsInRecord(item), id: "uploaded file" };
-}
-
+/**
+ * Every upload id in a value, found by the format the upload registry mints,
+ * so no argument or result shape can carry one past redaction.
+ */
 export function redactUploadRefs(value: unknown): unknown {
-  if (isUploadRef(value)) return "uploaded file";
+  if (typeof value === "string")
+    return value.replace(
+      new RegExp(runtimeUploadIdSource, "gi"),
+      "uploaded file",
+    );
   if (Array.isArray(value)) return value.map((item) => redactUploadRefs(item));
   if (!isRecord(value)) return value;
-  if (isUploadsSource(value))
-    return { ...value, items: value.items.map(redactUploadItem) };
   return redactUploadRefsInRecord(value);
 }
 
