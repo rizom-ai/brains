@@ -10,7 +10,12 @@ import {
   STUDY_STATE,
   UPDATE,
 } from "./options";
-import { evaluatePage } from "./page";
+import {
+  BoundedWebView,
+  boundPageCall,
+  evaluatePage,
+  livenessProbe,
+} from "./page";
 import { CHANGED_PIXEL_THRESHOLD, comparePng } from "./png";
 
 /** One surface, at one viewport, in one climate, open in its own page. */
@@ -32,7 +37,7 @@ export async function openCapturePage(
   origin: string,
   conversation: string,
 ): Promise<Bun.WebView> {
-  const page = new Bun.WebView({
+  const page = new BoundedWebView({
     width: viewport.width,
     height: viewport.height,
     backend,
@@ -83,7 +88,11 @@ export async function settleVisualCapture(page: Bun.WebView): Promise<void> {
 }
 
 export async function screenshot(page: Bun.WebView): Promise<Buffer> {
-  return page.screenshot({ encoding: "buffer", format: "png" });
+  return boundPageCall(
+    page.screenshot({ encoding: "buffer", format: "png" }),
+    "screenshot",
+    livenessProbe(page, "evaluate"),
+  );
 }
 
 /** Compares a capture with its baseline, or replaces the baseline on --update. */
