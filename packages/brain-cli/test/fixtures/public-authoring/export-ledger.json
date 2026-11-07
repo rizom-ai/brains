@@ -425,7 +425,9 @@
         "OwnedEntityWriter",
         "defineBusContract",
         "BusContract",
-        "BusResult"
+        "BusResult",
+        "defineRoute",
+        "protocol"
       ],
       "advanced-with-consumer": [],
       "internal/removable": [

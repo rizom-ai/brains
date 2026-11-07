@@ -148,6 +148,10 @@ describe("declarative generic interfaces", () => {
       }),
     );
     expect(denied.status).toBe(401);
+    expect(await denied.json()).toEqual({
+      error: "Authentication required",
+      code: "unauthenticated",
+    });
 
     const accepted = await digest.handler(
       new Request("http://brain/digest", {

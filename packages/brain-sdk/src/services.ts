@@ -73,4 +73,6 @@ export type { EntityReader, OwnedEntityWriter } from "@brains/plugins";
 // A question one package answers, or a command every package hears, declared
 // once and shared by the package that answers it and the ones that ask.
 export { defineBusContract } from "@brains/plugins";
+// The HTTP routes a service serves, declared as an interface declares them.
+export { defineRoute, protocol } from "@brains/plugins";
 export type { BusContract, BusResult } from "@brains/contracts";

@@ -512,6 +512,7 @@ describe("public authoring 0.2 golden packages", () => {
       "jobs:",
       "tools:",
       "subscriptions:",
+      "routes:",
     ]) {
       expect(service).toContain(capability);
     }

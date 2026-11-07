@@ -36,6 +36,7 @@ import type {
 } from "../operator/operator-definition-contract";
 import type { OperatorBindingContext } from "../operator/operator-context-contract";
 import { assertIdentifier } from "../package-definition";
+import type { AnyInterfaceRouteDefinition } from "../interface/route-definition-contract";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -627,6 +628,21 @@ export interface ServiceDefinitionBehavior<
         readonly messaging: ServiceMessaging;
         readonly answer: ServiceAnswer;
       }) => readonly ServiceSubscriptionBinding[])
+    | undefined;
+  /**
+   * HTTP routes the package serves, declared with `defineRoute` as an
+   * interface's are. Inside a route, `entities` and `jobs` act as the
+   * route's caller: the signed caller of a protocol route, and nobody in
+   * particular on a public one.
+   */
+  readonly routes?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly entities: ServiceEntityAccess<TOwned>;
+        readonly jobs: ServiceJobs;
+        readonly messaging: ServiceMessaging;
+      }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   readonly tools?:
     | ((context: {

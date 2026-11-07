@@ -178,6 +178,7 @@ const serviceBehaviorKeys: ReadonlySet<string> = new Set([
   "jobs",
   "tools",
   "subscriptions",
+  "routes",
   "dashboardWidgets",
   "studioWorkspaces",
 ]);

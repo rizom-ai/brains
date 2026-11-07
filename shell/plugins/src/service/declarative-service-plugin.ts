@@ -11,7 +11,7 @@ import {
   type JsonObject,
   type SdkErrorCode,
 } from "@brains/contracts";
-import type { CallerAccess } from "@brains/content-service";
+import type { Caller, CallerAccess } from "@brains/content-service";
 import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { formatZodIssues } from "@brains/utils/zod-issues";
@@ -94,10 +94,14 @@ import {
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
 import {
+  anonymousCaller,
   serviceJobDataSchema,
   toolCaller,
   type ServiceJobData,
 } from "./job-authority";
+import type { AnyInterfaceRouteDefinition } from "../interface/route-definition-contract";
+import { createDeclaredRoute } from "../internal/declared-route";
+import type { WebRouteDefinition } from "../types/web-routes";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -107,6 +111,8 @@ const confirmationTokenField = "_rizomConfirmationToken";
  */
 interface ServiceCall {
   access(): Promise<CallerAccess>;
+  /** Who a job started now is admitted as; unset, the package itself. */
+  readonly caller?: Caller | undefined;
   readonly eventContext: {
     readonly actor: ActorRef;
     readonly interfaceType?: string;
@@ -245,6 +251,7 @@ class DeclarativeServicePlugin<
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
   /** Releases the contracts this package answers. */
   private readonly answered: Array<() => void> = [];
+  private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
   private readonly registeredDashboardWidgetIds: string[] = [];
@@ -353,6 +360,36 @@ class DeclarativeServicePlugin<
       );
     }
     this.registerSubscriptions(context);
+    this.routes = (
+      this.definition.routes?.({
+        config: this.config,
+        state: this.state,
+        entities: this.entityAccess(),
+        jobs: this.jobs(),
+        messaging: this.messaging(),
+      }) ?? []
+    ).map((route) => this.runtimeRoute(route));
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return [...this.routes];
+  }
+
+  /** A declared route, served as its caller. */
+  private runtimeRoute(route: AnyInterfaceRouteDefinition): WebRouteDefinition {
+    const permissions = this.requireShell().getPermissionService();
+    return createDeclaredRoute(route, {
+      declarationId: this.publicId,
+      permissions: {
+        getUserLevel: (declarationId, actorId) =>
+          permissions.determineUserLevel(declarationId, actorId),
+        isAnchor: (declarationId, actorId) =>
+          permissions.isAnchor(declarationId, actorId),
+      },
+      anonymous: anonymousCaller(this.id),
+      runAs: (caller, run) => this.calls.run(this.routeCall(caller), run),
+      logger: this.logger,
+    });
   }
 
   protected override async onRegistrationComplete(
@@ -508,6 +545,7 @@ class DeclarativeServicePlugin<
     this.dashboardWidgetBindings = [];
     this.tools = undefined;
     this.resources = undefined;
+    this.routes = [];
     for (const job of this.registeredJobs) {
       unbindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
     }
@@ -609,13 +647,25 @@ class DeclarativeServicePlugin<
   private toolCall(toolContext: ToolContext): ServiceCall {
     const context = this.getContext();
     let admitted: Promise<CallerAccess> | undefined;
+    const caller = toolCaller(toolContext);
     return {
-      access: () =>
-        (admitted ??= context.jobAuthority.access(toolCaller(toolContext))),
+      access: () => (admitted ??= context.jobAuthority.access(caller)),
+      caller,
       eventContext: {
         actor: toolContext.actor,
         interfaceType: toolContext.interfaceType,
       },
+    };
+  }
+
+  /** A route call acts as its caller; access is admitted once, when first used. */
+  private routeCall(caller: Caller): ServiceCall {
+    const context = this.getContext();
+    let admitted: Promise<CallerAccess> | undefined;
+    return {
+      access: () => (admitted ??= context.jobAuthority.access(caller)),
+      caller,
+      eventContext: { actor: caller.actor },
     };
   }
 
@@ -945,9 +995,9 @@ class DeclarativeServicePlugin<
         }
         const parsed = definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
-        // The tool call's caller starts the job; outside one, this service.
+        // A tool's or a route's caller starts the job; outside one, this service.
         const authority = await context.jobAuthority.admit(
-          toolContext ? toolCaller(toolContext) : undefined,
+          this.calls.getStore()?.caller,
         );
         const maxRetries = definition.retry
           ? definition.retry.attempts - 1

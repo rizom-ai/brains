@@ -1,4 +1,3 @@
-import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import type {
   AccountSettingsValue,
@@ -6,18 +5,27 @@ import type {
 } from "../operator/account-settings-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 
-export const routeMethods = [
-  "GET",
-  "POST",
-  "PUT",
-  "DELETE",
-  "OPTIONS",
-] as const;
-export type RouteMethod = (typeof routeMethods)[number];
-export type InterfaceSchema = z.ZodType<unknown, unknown>;
+import {
+  routeMethods,
+  type AnyInterfaceRouteDefinition,
+} from "./route-definition-contract";
+export { routeMethods };
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
-
+export type {
+  AnyInterfaceRouteDefinition,
+  InterfaceActor,
+  InterfaceCaller,
+  InterfaceRouteDefinition,
+  InterfaceRouteInput,
+  InterfaceSchema,
+  ProtocolSecurityDefinition,
+  PublicSecurityDefinition,
+  RouteBody,
+  RouteCaller,
+  RouteMethod,
+  RouteSecurity,
+} from "./route-definition-contract";
 export interface InterfaceJobReference {
   readonly id: string;
 }
@@ -28,74 +36,6 @@ export interface InterfaceJobs {
     input: z.input<TDefinition["input"]>,
   ): Promise<InterfaceJobReference>;
 }
-
-export interface InterfaceActor {
-  readonly id: string;
-  readonly displayName?: string | undefined;
-}
-
-export interface InterfaceCaller {
-  readonly actor: InterfaceActor;
-  readonly permission: UserPermissionLevel;
-  readonly isAnchor: boolean;
-}
-
-export interface ProtocolSecurityDefinition {
-  readonly kind: "protocol";
-  authenticate(context: {
-    readonly request: Request;
-  }): InterfaceActor | null | Promise<InterfaceActor | null>;
-}
-
-export interface PublicSecurityDefinition {
-  readonly kind: "public";
-}
-
-export type RouteSecurity =
-  PublicSecurityDefinition | ProtocolSecurityDefinition;
-export type RouteCaller<TSecurity extends RouteSecurity> =
-  TSecurity extends ProtocolSecurityDefinition ? InterfaceCaller : null;
-export type RouteBody<TSchema extends InterfaceSchema | undefined> =
-  TSchema extends InterfaceSchema ? z.output<TSchema> : undefined;
-
-export interface InterfaceRouteInput<
-  TMethod extends RouteMethod = RouteMethod,
-  TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
-  TSecurity extends RouteSecurity = RouteSecurity,
-> {
-  readonly method: TMethod;
-  readonly path: string;
-  readonly security: TSecurity;
-  readonly body?: TBodySchema | undefined;
-  readonly response: TResponseSchema;
-  handle(context: {
-    readonly request: Request;
-    readonly body: RouteBody<TBodySchema>;
-    readonly caller: RouteCaller<TSecurity>;
-  }): unknown | Promise<unknown>;
-}
-
-export interface InterfaceRouteDefinition<
-  TMethod extends RouteMethod = RouteMethod,
-  TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
-  TSecurity extends RouteSecurity = RouteSecurity,
-> extends InterfaceRouteInput<
-  TMethod,
-  TBodySchema,
-  TResponseSchema,
-  TSecurity
-> {
-  readonly kind: "rizom-interface-route";
-}
-
-export type AnyInterfaceRouteDefinition = InterfaceRouteDefinition<
-  RouteMethod,
-  InterfaceSchema | undefined,
-  InterfaceSchema,
-  RouteSecurity
->;
 
 export interface InterfaceDaemonHealth {
   ready(): void;

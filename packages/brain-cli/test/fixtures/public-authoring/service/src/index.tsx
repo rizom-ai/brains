@@ -5,6 +5,7 @@ import {
   contentGenerationResultSchema,
   defineBusContract,
   defineJob,
+  defineRoute,
   defineServicePlugin,
   defineTool,
   sdkErrorCodeSchema,
@@ -227,6 +228,19 @@ export default defineServicePlugin(
       answer(summarizeReading, ({ request }) =>
         state.summarize(request.bookmarkId, request.title, request.content),
       ),
+    ],
+
+    // HTTP routes the service serves, held to their body and response schemas.
+    routes: ({ state }) => [
+      defineRoute({
+        method: "POST",
+        path: "/reading-insights/summary",
+        security: { kind: "public" },
+        body: summarizeReading.schema,
+        response: digestResult,
+        handle: ({ body }) =>
+          state.summarize(body.bookmarkId, body.title, body.content),
+      }),
     ],
 
     // Tools return plain schema-valid data; durable mechanics stay framework-owned.
