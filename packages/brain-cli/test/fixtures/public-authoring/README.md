@@ -229,7 +229,9 @@ bun test packages/brain-cli/test/public-authoring-live-packed.test.ts
 ## Contract files
 
 - [`export-ledger.json`](./export-ledger.json) classifies every authoring export
-  as stable, advanced-with-consumer, or internal/removable. It lists as stable
+  as stable, advanced-with-consumer, or internal/removable. Every stable name
+  is imported by a fixture, a fixture's own test or canary, or one of the
+  packed consumers, and the golden test checks it. The ledger lists as stable
   or advanced only names its entry exports; internal/removable names are not
   exported.
 - `docs/public-release/AUTHORING_API_0.2.md` is the human-readable patch-stable

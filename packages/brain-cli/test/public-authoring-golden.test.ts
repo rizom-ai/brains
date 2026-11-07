@@ -223,7 +223,7 @@ function publicNamedImports(source: string): Map<string, string[]> {
   const imports = new Map<string, string[]>();
 
   for (const match of source.matchAll(
-    /import\s+\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain-ui|brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
+    /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain-ui|brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
   )) {
     const specifier = match[2];
     if (!specifier) continue;
@@ -797,6 +797,32 @@ describe("public authoring 0.2 export ledger", () => {
           `${fixture.directory} imports non-stable ${specifier} symbols`,
         ).toEqual([]);
       }
+    }
+  });
+
+  it("has a fixture that imports every stable name", () => {
+    const ledger = readLedger();
+    // The authoring fixtures with their own tests and canaries, the packed
+    // operator consumer, and the headless Chat consumer.
+    const consumers = [
+      fixtureRoot,
+      join(import.meta.dir, "fixtures", "public-authoring-operator-consumer"),
+      join(import.meta.dir, "fixtures", "public-chat-consumer"),
+    ];
+    const imports = publicNamedImports(
+      consumers
+        .flatMap((directory) => listSourceFiles(directory))
+        .filter((path) => !path.includes("/node_modules/"))
+        .map((path) => readFileSync(path, "utf8"))
+        .join("\n"),
+    );
+
+    for (const [specifier, entry] of Object.entries(ledger.entries)) {
+      const imported = imports.get(specifier) ?? [];
+      expect(
+        entry.stable.filter((name) => !imported.includes(name)),
+        `${specifier} has stable names no fixture imports`,
+      ).toEqual([]);
     }
   });
 
