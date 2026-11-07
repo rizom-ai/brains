@@ -12,6 +12,7 @@ import type {
 import type { BasePluginContext } from "../base/context";
 import type { Caller } from "@brains/content-service";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import { publicJobFailure, readJobResult } from "../service/job-status";
 import { anonymousCaller } from "../service/job-authority";
 import type {
   AccountSettingsValue,
@@ -44,29 +45,17 @@ function redactSettings<TDefinition extends AnyAccountSettingsDefinition>(
   return Object.freeze(redacted);
 }
 
-function parseOperatorJobOutput<TSchema extends z.ZodType<unknown, unknown>>(
-  schema: TSchema,
-  input: unknown,
-): z.output<TSchema> {
-  return schema.parse(input);
-}
-
+/** A job's status as a service's reader is told it: a failure in public form. */
 function operatorJobStatus<TDefinition extends OperatorJobDefinition>(
   definition: TDefinition,
   job: JobInfo,
 ): OperatorJobStatus<z.output<TDefinition["output"]>> {
-  const result: z.output<TDefinition["output"]> | undefined =
-    job.status === "completed" && job.result !== undefined
-      ? parseOperatorJobOutput<TDefinition["output"]>(
-          definition.output,
-          job.result,
-        )
-      : undefined;
+  const result = readJobResult<TDefinition["output"]>(definition.output, job);
   return Object.freeze({
     id: job.id,
     status: job.status,
     ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? { error: job.lastError } : {}),
+    ...publicJobFailure(job),
   });
 }
 
@@ -93,13 +82,14 @@ function createOperatorJobs(
       input: z.input<TDefinition["input"]>,
     ): Promise<OperatorJobReference<TDefinition>> {
       const runtimeType = getServiceJobRuntimeType(definition);
-      const parsed = definition.input.parse(input);
+      // Refused here, but queued as written: the worker parses it, once.
+      definition.input.parse(input);
       const authority = await context.jobAuthority.admit(
         operatorJobCaller(caller, context.pluginId),
       );
       const id = await context.jobs.enqueue({
         type: runtimeType,
-        data: { authority, input: parsed },
+        data: { authority, input },
         options: {
           source: context.pluginId,
           metadata: {

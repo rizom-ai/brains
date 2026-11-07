@@ -11,6 +11,7 @@ import {
 import type { JobHandler } from "@brains/job-queue";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -183,12 +184,20 @@ export function entityJobHandler(
   context: EntityPluginContext,
 ): JobHandler<string, unknown, unknown> {
   return {
+    // The queue checks a job's data when it is queued and when it runs, and
+    // keeps what this answers: the input as written, so it is parsed once.
     validateAndParse(data): unknown | null {
-      const parsed = declaration.input.safeParse(data);
-      return parsed.success ? parsed.data : null;
+      return declaration.input.safeParse(data).success ? data : null;
     },
     process: (input, _jobId, progress, signal): Promise<unknown> =>
-      declaration.handle(jobContext(context, input, progress, signal)),
+      declaration.handle(
+        jobContext(
+          context,
+          parseWithSchema(declaration.input, input),
+          progress,
+          signal,
+        ),
+      ),
   };
 }
 
@@ -381,6 +390,24 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     this.target = target;
   }
 
+  /**
+   * Checked as the base handler checks it, which also reads the allocated id
+   * and cover request beside the input; the input itself is kept as written,
+   * since the queue stores what this answers, and `generate` parses it once.
+   */
+  override validateAndParse(data: unknown): unknown {
+    const checked = super.validateAndParse(data);
+    if (checked === null) return null;
+    if (!isPlainRecord(data) || !isPlainRecord(checked)) return data;
+    return {
+      ...data,
+      ...definedFields({
+        entityId: checked["entityId"],
+        coverImage: checked["coverImage"],
+      }),
+    };
+  }
+
   override process(
     data: unknown,
     jobId: string,
@@ -400,7 +427,12 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     const entityId = allocatedEntityId(data);
     const result = await this.declaration.generate(
       Object.freeze({
-        ...jobContext(this.context, data, progressReporter, signal),
+        ...jobContext(
+          this.context,
+          parseWithSchema(this.declaration.input, data),
+          progressReporter,
+          signal,
+        ),
         entityId,
         ai: this.generationAI(signal),
       }) satisfies EntityGenerationContext<unknown>,

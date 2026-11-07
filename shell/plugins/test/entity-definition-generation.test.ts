@@ -803,3 +803,76 @@ describe("create routes that allocate and delegate", () => {
     }
   });
 });
+
+describe("a delegated job's input", () => {
+  // The schema's input is queued; the job is handed its output, once.
+  const counted = z.object({
+    count: z.string().transform((count) => Number(count)),
+  });
+  const seen: unknown[] = [];
+  const ledger = defineEntity({
+    type: "ledger",
+    purpose: "Delegates jobs whose input schema transforms.",
+    metadata: noteMetadata,
+    jobs: {
+      count: defineEntityJob({
+        input: counted,
+        handle: async ({ input }) => {
+          seen.push(input.count);
+          return null;
+        },
+      }),
+      grow: defineEntityJob({
+        input: counted,
+        generate: async ({ input }) => {
+          seen.push(input.count);
+          return {
+            success: true,
+            content: `Grew ${input.count}`,
+            metadata: { title: "Grown" },
+          };
+        },
+      }),
+    },
+    create: {
+      fromContent: {
+        resolve: async ({ input }) =>
+          input.title === "grow"
+            ? {
+                create: {
+                  id: "grown",
+                  content: "",
+                  metadata: { title: "Growing", status: "generating" },
+                },
+                delegate: { job: "grow", input: { count: "3" } },
+              }
+            : { delegate: { job: "count", input: { count: "2" } } },
+      },
+    },
+  });
+
+  it("is queued as written and parsed once, when the job runs", async () => {
+    const harness = await install([ledger]);
+    try {
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("ledger");
+      if (!interceptor) throw new Error("No create interceptor registered");
+      for (const title of ["count", "grow"]) {
+        await interceptor(
+          { entityType: "ledger", title, content: "x" },
+          caller,
+        );
+      }
+      for (const { type, data } of await enqueued(harness)) {
+        await run(harness, type, data);
+      }
+      expect([...seen].sort()).toEqual([2, 3]);
+      expect((await stored(harness, "ledger", "grown"))?.content).toContain(
+        "Grew 3",
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+});

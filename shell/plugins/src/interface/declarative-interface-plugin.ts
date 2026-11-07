@@ -163,14 +163,15 @@ class DeclarativeInterfacePlugin<
         input: z.input<TDefinition["input"]>,
       ): Promise<{ readonly id: string }> => {
         const type = getServiceJobRuntimeType(definition);
-        const parsed = definition.input.parse(input);
+        // Refused here, but queued as written: the worker parses it, once.
+        definition.input.parse(input);
         // A route's caller starts the job; outside a route, this interface.
         const authority = await context.jobAuthority.admit(
           this.routeCaller.getStore(),
         );
         const id = await context.jobs.enqueue({
           type,
-          data: { authority, input: parsed },
+          data: { authority, input },
         });
         return Object.freeze({ id });
       },

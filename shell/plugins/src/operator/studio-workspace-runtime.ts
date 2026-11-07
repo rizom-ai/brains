@@ -123,13 +123,6 @@ function requestSignal(
   return signal ? AbortSignal.any([signal, runtimeSignal]) : runtimeSignal;
 }
 
-function parseActionInput<TSchema extends z.ZodType<unknown, unknown>>(
-  schema: TSchema,
-  input: unknown,
-): z.output<TSchema> {
-  return schema.parse(input);
-}
-
 async function prepareActionBinding<
   TDefinition extends AnyWorkspaceActionDefinition,
   TConfig,
@@ -138,19 +131,14 @@ async function prepareActionBinding<
 >(
   binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  input: unknown,
+  input: z.output<TDefinition["input"]>,
 ): Promise<z.output<typeof preparedConfirmationSchema>> {
-  const parsedInput = parseActionInput<TDefinition["input"]>(
-    binding.definition.input,
-    input,
-  );
+  // Admission parsed the input once; a callback is handed that value.
   const prepare = getWorkspaceActionExecutor(binding).prepare;
   if (!prepare) {
     throw new Error("Prepared confirmation callback is unavailable");
   }
-  return preparedConfirmationSchema.parse(
-    await prepare({ ...context, input: parsedInput }),
-  );
+  return preparedConfirmationSchema.parse(await prepare({ ...context, input }));
 }
 
 async function executeActionBinding<
@@ -161,16 +149,9 @@ async function executeActionBinding<
 >(
   binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  input: unknown,
+  input: z.output<TDefinition["input"]>,
 ): Promise<unknown> {
-  const parsedInput = parseActionInput<TDefinition["input"]>(
-    binding.definition.input,
-    input,
-  );
-  return getWorkspaceActionExecutor(binding).execute({
-    ...context,
-    input: parsedInput,
-  });
+  return getWorkspaceActionExecutor(binding).execute({ ...context, input });
 }
 
 export function createDeclarativeStudioWorkspaceRegistration<
@@ -269,7 +250,8 @@ export function createDeclarativeStudioWorkspaceRegistration<
     readonly binding: (typeof input.binding.actions)[number];
     readonly mode: "prepare" | "execute";
     readonly confirmationToken: string | undefined;
-    readonly input: unknown;
+    /** Parsed once, here: every callback is handed this value. */
+    readonly input: z.output<TDefinition["actions"][number]["input"]>;
     readonly jsonInput: JsonValue;
   }
 
@@ -300,7 +282,10 @@ export function createDeclarativeStudioWorkspaceRegistration<
         `action "${action.name}" was requested below its minimum permission`,
       );
     }
-    const parsedInput = action.input.safeParse(request.data.input);
+    const parsedInput = z.safeParse<TDefinition["actions"][number]["input"]>(
+      action.input,
+      request.data.input,
+    );
     if (!parsedInput.success) {
       throw runtimeError(
         identity,
@@ -334,6 +319,8 @@ export function createDeclarativeStudioWorkspaceRegistration<
       runtimeContext,
       request.input,
     );
+    // A request that went while the summary was written gets no token.
+    runtimeContext.signal.throwIfAborted();
     const { token, expiresAt } = preparedConfirmations.issue({
       callerId: actor.userId,
       actionId: request.binding.definition.name,
@@ -369,9 +356,13 @@ export function createDeclarativeStudioWorkspaceRegistration<
       request.binding,
       runtimeContext,
       request.input,
-    ).catch((): never => {
+    ).catch((error: unknown): never => {
+      if (runtimeContext.signal.aborted) {
+        throw runtimeContext.signal.reason ?? error;
+      }
       throw stale();
     });
+    runtimeContext.signal.throwIfAborted();
     if (current.revision !== redeemed.revision) throw stale();
   }
 
@@ -394,6 +385,9 @@ export function createDeclarativeStudioWorkspaceRegistration<
       }
       throw runtimeError(identity, `action "${action.name}" failed`);
     }
+    // An action whose request went while it ran answers with the
+    // cancellation, whatever its callback returned.
+    signal.throwIfAborted();
     const parsedOutput = action.output.safeParse(rawOutput);
     if (!parsedOutput.success) {
       throw runtimeError(

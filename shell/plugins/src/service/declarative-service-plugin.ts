@@ -4,7 +4,6 @@ import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
   jsonObjectSchema,
-  sdkErrorSchema,
   toSdkError,
   type ActorRef,
   type BusContract,
@@ -38,7 +37,6 @@ import {
   SingleUseStore,
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
-import { parseWithSchema } from "@brains/utils/parse-schema";
 import { emptyPluginState } from "../base/empty-state";
 import type {
   PluginCapabilities,
@@ -98,6 +96,7 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
+import { publicJobFailure, readJobResult } from "./job-status";
 import {
   anonymousCaller,
   serviceJobDataSchema,
@@ -186,36 +185,17 @@ function promptInput(value: string | undefined): unknown {
   }
 }
 
-/**
- * What a caller is told of a failure: its recorded public form, as an
- * SdkError would publish it. The diagnostic beside it is for operators only,
- * and a failure recorded without a valid public form reads as a failed
- * handler.
- */
-function publicFailure(stored: unknown): {
-  readonly code: SdkErrorCode;
-  readonly error: string;
-} {
-  const failure =
-    sdkErrorSchema.safeParse(stored).data ??
-    new SdkError("handler_failed").toJSON();
-  return { code: failure.code, error: failure.message };
-}
-
 function statusFor<TDefinition extends AnyServiceJobDefinition>(
   definition: TDefinition,
   job: JobInfo,
 ): ServiceJobStatus<z.output<TDefinition["output"]>> {
-  const result: z.output<TDefinition["output"]> | undefined =
-    job.status === "completed" && job.result !== undefined
-      ? parseWithSchema<TDefinition["output"]>(definition.output, job.result)
-      : undefined;
+  const result = readJobResult<TDefinition["output"]>(definition.output, job);
   return {
     id: job.id,
     status: job.status,
     progress: job.progress,
     ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? publicFailure(job.lastErrorPublic) : {}),
+    ...publicJobFailure(job),
   };
 }
 
@@ -261,7 +241,8 @@ function runtimeJobHandler(
           cause: parsed.error,
         });
       }
-      return parsed.data;
+      // Stored as the handler answered; a status read parses it, once.
+      return output;
     },
   };
 }
@@ -1155,7 +1136,8 @@ class DeclarativeServicePlugin<
             `Service "${this.publicId}" cannot enqueue unregistered job "${definition.name}"`,
           );
         }
-        const parsed = definition.input.parse(input);
+        // Refused here, but queued as written: the worker parses it, once.
+        definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
         // A tool's or a route's caller starts the job; outside one, this service.
         const call = this.calls.getStore();
@@ -1169,7 +1151,7 @@ class DeclarativeServicePlugin<
           type: definition.name,
           data: {
             authority,
-            input: parsed,
+            input,
             ...(byPackage && { byPackage: true }),
           },
           ...(toolContext ? { toolContext } : {}),

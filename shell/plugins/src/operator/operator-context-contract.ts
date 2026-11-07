@@ -1,3 +1,4 @@
+import type { SdkErrorCode } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import type {
@@ -74,7 +75,13 @@ export interface OperatorJobStatus<TOutput> {
   readonly id: string;
   readonly status: "pending" | "processing" | "completed" | "failed";
   readonly result?: TOutput | undefined;
+  /**
+   * Why the last attempt failed, as its public message: never the message
+   * the failure was thrown with, which stays in the brain's logs.
+   */
   readonly error?: string | undefined;
+  /** The code of the last attempt's failure, when it failed. */
+  readonly code?: SdkErrorCode | undefined;
 }
 
 export interface OperatorJobReference<
