@@ -763,6 +763,11 @@ describe("public authoring 0.2 export ledger", () => {
       expect(missing, `${specifier} has unclassified current exports`).toEqual(
         [],
       );
+      const listed = [...entry.stable, ...entry["advanced-with-consumer"]];
+      expect(
+        listed.filter((name) => !current.includes(name)),
+        `${specifier} lists exports its source does not have`,
+      ).toEqual([]);
       const removable = current.filter((name) =>
         entry["internal/removable"].includes(name),
       );

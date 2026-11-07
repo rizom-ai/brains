@@ -456,19 +456,7 @@
         "protocol",
         "z"
       ],
-      "advanced-with-consumer": [
-        "BaseMessage",
-        "BaseMessageSchema",
-        "MessageContext",
-        "MessageResponse",
-        "MessageResponseSchema",
-        "MessageSendOptions",
-        "MessageSender",
-        "MessageWithPayload",
-        "PermissionConfig",
-        "PermissionRule",
-        "WithVisibility"
-      ],
+      "advanced-with-consumer": [],
       "internal/removable": [
         "ApiRouteDefinition",
         "Daemon",
@@ -491,7 +479,18 @@
         "UnregisterRoutesPayloadSchema",
         "WebRouteDefinition",
         "WebRouteHandler",
-        "WebRouteMethod"
+        "WebRouteMethod",
+        "BaseMessage",
+        "BaseMessageSchema",
+        "MessageContext",
+        "MessageResponse",
+        "MessageResponseSchema",
+        "MessageSendOptions",
+        "MessageSender",
+        "MessageWithPayload",
+        "PermissionConfig",
+        "PermissionRule",
+        "WithVisibility"
       ]
     },
     "@rizom/brain/templates": {
