@@ -527,6 +527,28 @@ A message interface hands the runtime an inbound message with `messages.receiveA
 
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 
+## `@rizom/brain/testing`
+
+Testing a package on the runtime:
+
+- `startTestBrain`
+
+Types:
+
+- `TestBrain`
+- `TestBrainOptions`
+- `TestToolResult`
+
+`startTestBrain({ plugins })` starts a brain in the test's own process, on the runtime's own services, and runs the packages it is given, each configured with `use()` as `defineBrain` takes them. They belong to the package under test: the nearest `package.json` at or above the working directory names them, as an installed package's manifest does, so the package owns its channels, state and jobs under that name, and its `@rizom/brain` peer range must admit the brain the test runs. The brain keeps its storage in a temporary directory of its own and writes nothing beside the package. It computes no embeddings and reaches no AI provider: a generation is refused. `stop()` shuts the brain down and deletes what it stored.
+
+A `TestBrain` drives the packages through the brain's own surfaces:
+
+- `tool(name, input)` calls a tool by the name the brain gives it, as `brain tool` does: as the brain's operator, an admin. It answers a `TestToolResult`: `{ success: true, data }`, a failure in its public form `{ success: false, code, error }`, or `{ needsConfirmation: true, summary }` for a tool that waits for approval. A name no tool has is refused.
+- `request(contract, request)` asks a request contract's owner, as the brain itself asks, and answers its `BusResult`.
+- `fetch(request)` serves a `Request` as the brain's web server serves the routes its packages declare. A path no package serves answers 404.
+- `entities` is an `EntityReader` over everything the brain stores, at every visibility. Records are written through tools, a package's own or the brain's.
+- `jobs.wait(definition, id)` waits for a job the packages queued, which the brain's worker runs, and answers its `ServiceJobStatus` once the job is neither running nor due: completed, failed, or waiting to be retried after an attempt failed, with that attempt's `code`. It answers `null` when no package queued a job of that definition with that id.
+
 ## `@rizom/site`
 
 Definitions and schema vocabulary:

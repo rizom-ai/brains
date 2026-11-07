@@ -21,6 +21,7 @@ import type * as ModelEntry from "@rizom/brain/model";
 import type * as PluginsEntry from "@rizom/brain/plugins";
 import type * as ServicesEntry from "@rizom/brain/services";
 import type * as TemplatesEntry from "@rizom/brain/templates";
+import type * as TestingEntry from "@rizom/brain/testing";
 
 export type PublicEntries = [
   typeof BrainEntry,
@@ -32,6 +33,7 @@ export type PublicEntries = [
   typeof PluginsEntry,
   typeof ServicesEntry,
   typeof TemplatesEntry,
+  typeof TestingEntry,
 ];
 
 const compositionStatus: OperatorViewStatus = {

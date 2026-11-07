@@ -106,7 +106,12 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "reminders",
     packageName: "@fixture/reminders",
-    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    publicEntryPoints: [
+      "@rizom/brain",
+      "@rizom/brain/entities",
+      "@rizom/brain/services",
+      "@rizom/brain/testing",
+    ],
     requiredVocabulary: [
       "entities: [reminder]",
       "runtimeState(",
@@ -114,6 +119,9 @@ const goldenPackages: GoldenPackageExpectation[] = [
       "fireReminder.handle(",
       "defineRoute(",
       "templates.format(",
+      "startTestBrain({ plugins: [use(reminders)] })",
+      "brain.jobs.wait(fireReminder",
+      "brain.request(dueCount",
     ],
   },
   {
@@ -339,11 +347,15 @@ describe("public authoring 0.2 golden packages", () => {
       {
         directory: "reminders",
         paths: {
+          "@rizom/brain": ["./packages/brain-cli/src/entries/index.ts"],
           "@rizom/brain/entities": [
             "./packages/brain-cli/src/entries/entities.ts",
           ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/testing": [
+            "./packages/brain-cli/src/entries/testing.ts",
           ],
         },
       },
@@ -454,6 +466,8 @@ describe("public authoring 0.2 golden packages", () => {
               include: [
                 `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
                 `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
+                // A package's own tests and their canaries compile with it.
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/test/**/*.ts`,
               ],
             }),
           );

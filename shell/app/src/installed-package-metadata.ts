@@ -43,6 +43,45 @@ function ancestorDirectories(directory: string): string[] {
     : [directory, ...ancestorDirectories(parent)];
 }
 
+function installedManifest(
+  manifest: z.output<typeof packageManifestSchema>,
+  directory: string,
+): InstalledPackageManifest {
+  return Object.freeze({
+    name: manifest.name,
+    version: manifest.version,
+    dependencies: Object.freeze({ ...(manifest.dependencies ?? {}) }),
+    peerDependencies: Object.freeze({ ...(manifest.peerDependencies ?? {}) }),
+    directory,
+  });
+}
+
+/**
+ * The package a directory belongs to: the nearest `package.json` at or above
+ * it, the way an installed module's package is found.
+ */
+export function findPackageManifest(
+  fromDirectory: string,
+): InstalledPackageManifest {
+  const directory = ancestorDirectories(fromDirectory).find((candidate) =>
+    existsSync(join(candidate, "package.json")),
+  );
+  if (directory === undefined) {
+    throw new Error(
+      `No package.json at or above "${fromDirectory}"; run from the package's own directory`,
+    );
+  }
+  const manifestPath = join(directory, "package.json");
+  const rawManifest: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const parsed = packageManifestSchema.safeParse(rawManifest);
+  if (!parsed.success) {
+    throw new Error(
+      `"${manifestPath}" must declare non-empty name and version fields`,
+    );
+  }
+  return installedManifest(parsed.data, directory);
+}
+
 export function resolveInstalledPackageManifest(
   packageRef: string,
   fromDirectory: string,
@@ -64,17 +103,7 @@ export function resolveInstalledPackageManifest(
     const rawManifest: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
     const parsed = packageManifestSchema.safeParse(rawManifest);
     if (parsed.success && matchesPackageRef(packageRef, parsed.data.name)) {
-      return Object.freeze({
-        name: parsed.data.name,
-        version: parsed.data.version,
-        dependencies: Object.freeze({
-          ...(parsed.data.dependencies ?? {}),
-        }),
-        peerDependencies: Object.freeze({
-          ...(parsed.data.peerDependencies ?? {}),
-        }),
-        directory,
-      });
+      return installedManifest(parsed.data, directory);
     }
   }
 
@@ -83,7 +112,8 @@ export function resolveInstalledPackageManifest(
   );
 }
 
-function assertBrainPeerCompatibility(
+/** A package runs only on a Brain its `@rizom/brain` peer range admits. */
+export function assertBrainPeerCompatibility(
   packageMetadata: InstalledPackageManifest,
   brainVersion: string,
 ): void {
