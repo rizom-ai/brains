@@ -932,7 +932,11 @@ export {
 } from "./entity/create-from-text";
 // First-party entity callbacks reach their call's internal runtime here;
 // the public contexts never name it.
-export { entityRuntime, type EntityRuntime } from "./entity/entity-runtime";
+export {
+  entityRuntime,
+  type EntityRuntime,
+  type OrdinaryCreateDocument,
+} from "./entity/entity-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";

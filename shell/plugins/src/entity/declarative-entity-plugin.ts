@@ -48,7 +48,11 @@ import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import type { EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
-import { withEntityRuntime, type EntityRuntimeBinding } from "./entity-runtime";
+import {
+  ordinaryCreateOf,
+  withEntityRuntime,
+  type EntityRuntimeBinding,
+} from "./entity-runtime";
 import { createUploadSaveHandler } from "./upload-save";
 import { sharedUploadScope } from "../service/upload-registry";
 import {
@@ -1416,6 +1420,23 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const resolution = await route.resolve(
       this.createContext(context, input, executionContext),
     );
+    // A first-party route handing on to the ordinary create, which system
+    // create performs at the caller's authority.
+    const ordinary = ordinaryCreateOf(resolution);
+    if (ordinary) {
+      if (!ordinary.document) return { kind: "continue", input };
+      const { fields: _folded, ...request } = input;
+      const { title, content, fields } = ordinary.document;
+      return {
+        kind: "continue",
+        input: {
+          ...request,
+          ...(title !== undefined && { title }),
+          content,
+          ...(fields !== undefined && { fields: { ...fields } }),
+        },
+      };
+    }
     return {
       kind: "handled",
       result: await this.applyCreateResolution(

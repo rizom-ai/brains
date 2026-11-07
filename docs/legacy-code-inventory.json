@@ -211,12 +211,13 @@
       "id": "first-party-entity-runtime",
       "paths": [
         "packages/brain-sdk/src/internal/entity-runtime.ts",
+        "packages/brain-sdk/src/internal/presentation.ts",
         "shell/plugins/src/entity/entity-runtime.ts"
       ],
       "symbol": "entityRuntime(context)",
       "owner": "@brains/plugins",
       "class": "runtime-compatibility",
-      "behavior": "Gives a first-party entity definition internal capabilities bound to the create route or eval call it was handed: nearest records by embedding distance at the call's visibility, a free-form structured AI answer, reads of the package's own types at every visibility, and the entity-text helpers. The public context types never name them; a context the runtime did not build is refused.",
+      "behavior": "Gives a first-party entity definition internal capabilities bound to the create route or eval call it was handed: nearest records by embedding distance at the call's visibility, a free-form structured AI answer, reads of the package's own types at every visibility, a create route's hand-off to the ordinary create, the entity-text helpers, and the template builder and record schemas a definition's rendered templates use. The public context types never name them; a context the runtime did not build is refused.",
       "currentConsumers": "First-party entity packages converted to declarative definitions whose create routes or evals need search, structured checks or package-wide placement (wishlist, doc).",
       "removalPrerequisite": "Promote each capability to the public entity contract once a third-party package needs it, or retire it when no first-party package does.",
       "rollbackDependency": "None: the capabilities are bound per call and store nothing.",

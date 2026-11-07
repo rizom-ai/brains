@@ -8,7 +8,11 @@
  * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
  */
 
-export { entityRuntime, type EntityRuntime } from "@brains/plugins";
+export {
+  entityRuntime,
+  type EntityRuntime,
+  type OrdinaryCreateDocument,
+} from "@brains/plugins";
 export {
   checkEntityText,
   entityTextError,

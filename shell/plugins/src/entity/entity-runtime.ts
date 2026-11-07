@@ -39,6 +39,24 @@ export interface EntityRuntime {
   ): Promise<z.output<TSchema>>;
   /** Reads of the declaring package's own types, at every visibility. */
   readonly packageEntities: EntityReader;
+  /**
+   * A create route's answer that hands the request to the ordinary create,
+   * as an entity plugin's interceptor continued it: unchanged, or with this
+   * title and content in place of the request's and its stated fields
+   * folded in. The runtime performs it at the caller's authority, choosing
+   * the id from the title and making it unique, as the direct create does.
+   * Outside the brain's runtime it is a refusal.
+   */
+  ordinaryCreate(document?: OrdinaryCreateDocument): {
+    readonly refuse: string;
+  };
+}
+
+/** What an ordinary create takes in place of the request's own. */
+export interface OrdinaryCreateDocument {
+  readonly title?: string | undefined;
+  readonly content: string;
+  readonly fields?: Readonly<Record<string, unknown>> | undefined;
 }
 
 /** What binding a call's runtime needs. */
@@ -60,6 +78,30 @@ export interface EntityRuntimeBinding {
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
+const ordinaryCreateKey = Symbol("rizom.ordinary-create");
+
+/**
+ * The ordinary create a route answered, when it did: the document it hands
+ * on, or `null` for the request as made.
+ */
+export function ordinaryCreateOf(
+  resolution: object,
+): { document: OrdinaryCreateDocument | null } | undefined {
+  const marked: unknown = Reflect.get(resolution, ordinaryCreateKey);
+  if (typeof marked !== "object" || marked === null) return undefined;
+  const document: unknown = Reflect.get(marked, "document");
+  return { document: isOrdinaryCreateDocument(document) ? document : null };
+}
+
+function isOrdinaryCreateDocument(
+  value: unknown,
+): value is OrdinaryCreateDocument {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof Reflect.get(value, "content") === "string"
+  );
+}
 
 function ownTypesOnly(
   reader: EntityReader,
@@ -136,6 +178,21 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       return schema.parse(object);
     },
     packageEntities: ownTypesOnly(binding.packageReader, binding.ownsType),
+    ordinaryCreate(document?: OrdinaryCreateDocument): {
+      readonly refuse: string;
+    } {
+      const resolution = {
+        refuse:
+          "This create hands on to the ordinary create, which only the brain's runtime performs",
+      };
+      Object.defineProperty(resolution, ordinaryCreateKey, {
+        value: Object.freeze({
+          document: document ? Object.freeze({ ...document }) : null,
+        }),
+        enumerable: false,
+      });
+      return Object.freeze(resolution);
+    },
   });
 }
 
