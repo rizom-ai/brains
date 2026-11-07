@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed 2026-11-07; decisions reviewed with the owner the same day. A reusable `forms` engine runs every public form on a brain's site, and each form's submissions become a domain entity owned by the package whose type it is. `contact` is rebuilt on the engine, and a new `quiz` package owns the results of scored forms. The first quiz is The Fourth's brand personality test, today a Tally form at `tally.so/r/e5DLgO` that hellofourth.online links to from the crossroads.
+Proposed 2026-11-07; decisions reviewed with the owner the same day. Phases 1–4 are built on PR #857, not yet merged or deployed; [As built](#as-built) records where the build differs from the decisions below. A reusable `forms` engine runs every public form on a brain's site, and each form's submissions become a domain entity owned by the package whose type it is. `contact` is rebuilt on the engine, and a new `quiz` package owns the results of scored forms. The first quiz is The Fourth's brand personality test, today a Tally form at `tally.so/r/e5DLgO` that hellofourth.online links to from the crossroads.
 
 ## Goal
 
@@ -36,11 +36,11 @@ No person, lead or opportunity entity exists on `main`; `opportunity` is unmerge
 
 ### Forms is an engine, not a store
 
-`plugins/forms` owns what every form shares: admission, request-time rendering, validation against the definition, scoring, the notification email, maintenance and health. It stores no submissions. Its only entity type is `form`, for forms defined in content.
+`@brains/forms` (`shared/forms`) owns what every form shares: admission, request-time rendering, validation against the definition, scoring, the notification email, maintenance and health. It stores no submissions. Forms defined in content are `form` entities, a type of their own (`@brains/form`) in the `site` bundle.
 
 ### A submission becomes a domain entity
 
-A form names its target: the entity type its submissions become. A package becomes a target by registering with the engine through a typed bus contract (#826): it declares the fields it accepts and stores each accepted submission as its own entity. The target package owns everything about its records:
+A form names its target: the entity type its submissions become. A package becomes a target by implementing the engine's `FormTarget` for its type and running the engine's `FormService` in its plugin: it says which forms it can hold and stores each accepted submission as its own entity. The target package owns everything about its records:
 
 - their markdown shape;
 - their visibility, always restricted for submitted personal data;
@@ -51,11 +51,11 @@ Nothing in the brain is a generic "response".
 
 ### Contact stays, rebuilt on the engine
 
-`plugins/contact` shrinks to its domain: the `contact-request` type, the contact form (same fields, copy, `/contact` and `/contact/thanks`, `?topic=` prefill) and its "Contact requests" Inbox source. `add: [contact]` brings in `forms`. Its engine code (admission, slots, delivery, maintenance, rendering) moves to `plugins/forms`. `contact-request` keeps its type, so stored requests need no migration and rizom.ai's fleet entry does not change.
+`plugins/contact` shrinks to its domain: the `contact-request` type, the contact form (same fields, copy, `/contact` and `/contact/thanks`, `?topic=` prefill) and its "Contact requests" Inbox source. Its engine code (admission, slots, delivery, maintenance, rendering) moves to `@brains/forms`, which contact runs. `contact-request` keeps its type, so stored requests need no migration and rizom.ai's fleet entry does not change.
 
 ### Quizzes share one result type
 
-A new `quiz` package owns `quiz-result`: which quiz, each scored dimension's result as shown, each answer as the visitor saw it (field id, label and the value or option text chosen), and the taker's name and email when the quiz asks for them. Later edits to a quiz never change what an older result says. A result appears in the Inbox as a to-do only when the taker left contact details. Every result is visible in Studio, grouped by quiz. `add: [quiz]` brings in `forms`. The brand test and Rizom's planned Team Type quiz both produce `quiz-result`. Each quiz's own outcomes give a result its meaning.
+A new `quiz` package owns `quiz-result`: which quiz, each scored dimension's result as shown, each answer as the visitor saw it (field id, label and the value or option text chosen), and the taker's name and email when the quiz asks for them. Later edits to a quiz never change what an older result says. A result appears in the Inbox as a to-do only when the taker left contact details. Every result is visible in Studio, grouped by quiz. A brain adds `quiz`. The brand test and Rizom's planned Team Type quiz both produce `quiz-result`. Each quiz's own outcomes give a result its meaning.
 
 ### A form is a definition
 
@@ -82,7 +82,7 @@ The engine validates a submission against the form's definition: unknown fields,
 
 ### Kept until deleted
 
-Submissions stay until the owner deletes them in Studio or the Inbox. Nothing expires on its own and there is no record cap, so nothing is lost unread. Each form says on the page that submissions are kept until they have been dealt with. Admission's per-hour submission limits bound growth. Contact's one-day expiry, its record and byte caps, and the daily deletion go; maintenance keeps re-enqueuing pending notifications. Admission counters are kept per form under `forms.*` runtime-state namespaces, with global limits shared across forms.
+Submissions stay until the owner deletes them in Studio or the Inbox. Nothing expires on its own and there is no record cap, so nothing is lost unread. Each form says on the page that submissions are kept until they have been dealt with. Admission's per-hour submission limits bound growth. Contact's one-day expiry, its record and byte caps, and the daily deletion go; maintenance keeps re-enqueuing pending notifications. Admission counters are kept per form under `forms.<id>.*` runtime-state namespaces; each form's limits are its own.
 
 ### The email carries the submission
 
@@ -102,7 +102,7 @@ The site atlas finds the contact form by a route role, not by plugin id, as #822
 
 ### Phase 1 — The engine, with contact on it
 
-- `plugins/forms`: definitions, routes and slot per form, generic admission, rendering, validation, delivery, maintenance and health, all keyed by form, and the target contract. Contact's engine code moves here rather than being rewritten; its tests come along.
+- `@brains/forms`: definitions, routes and slot per form, generic admission, rendering, validation, delivery, maintenance and health, all keyed by form, and the target contract. Contact's engine code moves here rather than being rewritten; its tests come along.
 - `plugins/contact` as a target: `contact-request`, the built-in contact form, its Inbox source. Expiry, record and byte caps, and the daily deletion are removed, along with their tests.
 - Notifications with the submission and Reply-To: `replyTo` on the notifications contract and the email transport.
 - The site atlas lookup by role.
@@ -146,3 +146,12 @@ Done when a visitor on hellofourth.online takes the test in either language, see
 - Quiz: after a definition edit renames a field and removes an option, an older result still reads as submitted; a result with contact details is an Inbox item, one without is not.
 - Site: a form posts without JavaScript; with it, steps work; the outcome on the thanks page equals the stored one; the atlas door still appears beside the contact form.
 - Live: rizom.ai's contact form after Phase 1, and The Fourth's brand test after Phase 4, submitted on the production sites.
+
+## As built
+
+- **The engine is a library.** `@brains/forms` is run by each target's plugin (`FormService`), not a plugin of its own, so no plugin imports another and no bus contract carries submissions; contact and quiz each serve the forms that target their type. The `form` type is `@brains/form`, in the `site` bundle, so `add: [contact]` and `add: [quiz]` need nothing else.
+- **Admission is per form.** Each form has its own ledger and limits (`forms.<id>.admission`); there are no global limits across forms. Contact keeps `contact.admission`, `contact.storage` and `contact.maintenance`.
+- **Forms from content are claimed per request.** Web routes are fixed at boot, so a web route may now match by claim (`match: "claim"`, asked after exact and prefix routes and never for a reserved path), and the site builder asks plugins for the pages they add to each build (`siteBuilderPagesContract`). A site route may name the languages its plugin fills it in, built without saved copy. A form's pages in another language are built only when the site has site-info for that language; until then the form is served on its fallback page there.
+- **Contact.** A request written with an `expiresAt` is still read. Contact refuses a form that sends no alert.
+- **Additions.** A step may have an intro; a scored form may keep its results off the thanks page (`thanks.showResults`). Quiz results are filed under their quiz (`<quiz>:<key>`), which is how Studio lists them by quiz.
+- **The brand test.** Its definition is in The Fourth's content (`form/brand-test.md`), with the crossroads linking `/brand-test`, ready to push once the brain release with `quiz` is deployed and The Fourth's fleet entry adds `quiz`. The English is a draft for Sam and Becca. It scores as the Tally test does (124 scored options, Q1 at weight 2, Q17's seventh and Q18's fourth option unscored), shows no result on the page and sends results to the owner, until Sam decides what a visitor gets; the seven types have English titles only, and no copy.
