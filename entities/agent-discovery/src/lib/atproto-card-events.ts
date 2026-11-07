@@ -10,6 +10,7 @@ import {
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
 import type { EntityPluginContext, IRuntimeStateStore } from "@brains/plugins";
+import { internalFullScope } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   createSafePublicFetch,
@@ -19,7 +20,7 @@ import { slugifyUrl } from "@brains/utils/string-utils";
 
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import type { FetchFn } from "./fetch-agent-card";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   agentEntitySchema,
   type AgentEntity,
@@ -170,7 +171,13 @@ export async function upsertAgentFromCard(
     record: AtprotoBrainCardRecord;
   },
   now: string = new Date().toISOString(),
-): Promise<{ agent: AgentEntity; created: boolean; conflict?: boolean }> {
+): Promise<{
+  agent: AgentEntity;
+  created: boolean;
+  conflict?: boolean;
+  /** Already saved above public: left as saved, and nothing announced. */
+  skipped?: boolean;
+}> {
   const { record } = input;
   const siteUrl = record.siteUrl;
   if (!siteUrl) {
@@ -183,9 +190,16 @@ export async function upsertAgentFromCard(
     {
       entityType: "agent",
       id: agentId,
+      visibilityScope: internalFullScope(
+        "a brain card tells a new agent from a saved one; one saved above public is skipped, not read out",
+      ),
     },
     agentEntitySchema,
   );
+  // A public card never rewrites or announces an agent saved above public.
+  if (existing && existing.visibility !== "public") {
+    return { agent: existing, created: false, skipped: true };
+  }
   if (
     existing?.metadata.repoDid &&
     existing.metadata.repoDid !== input.repoDid
@@ -333,7 +347,7 @@ export interface RefreshKnownAgentCardsResult {
   failed: number;
 }
 
-export type AtprotoCardFetch = FetchFn;
+export type AtprotoCardFetch = FetchLike;
 
 function getFetch(fetchFn?: AtprotoCardFetch): AtprotoCardFetch {
   return fetchFn ?? fetch;
@@ -540,7 +554,7 @@ export function registerAtprotoBrainCardHandlers(
         message.payload,
       );
       const result = await upsertAgentFromCard(context, parsed);
-      if (result.conflict) return { success: true };
+      if (result.conflict || result.skipped) return { success: true };
       const eventPayload = buildEventPayload({
         agent: result.agent,
         repoDid: parsed.repoDid,

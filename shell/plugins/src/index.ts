@@ -1084,6 +1084,14 @@ export {
   type AnchorExtensionProfile,
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
+export {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  fetchVerifiedAgentCard,
+  isEndpointRefusal,
+  type AgentCardRefusalReason,
+  type FetchVerifiedAgentCardOptions,
+  type VerifiedAgentCard,
+} from "./a2a/fetch-verified-agent-card";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
 export {
   agentBodySchema,
