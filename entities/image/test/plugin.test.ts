@@ -16,6 +16,7 @@ describe("ImagePlugin", () => {
   let plugin: ImagePlugin;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
   let registeredHandlers: Map<string, JobHandler>;
+  let capabilities: Awaited<ReturnType<typeof harness.installPlugin>>;
 
   beforeEach(async () => {
     enqueuedJobs = [];
@@ -37,7 +38,7 @@ describe("ImagePlugin", () => {
       getHandler: (type) => registeredHandlers.get(type),
     });
     plugin = new ImagePlugin();
-    await harness.installPlugin(plugin);
+    capabilities = await harness.installPlugin(plugin);
   });
 
   afterEach(async () => {
@@ -56,8 +57,8 @@ describe("ImagePlugin", () => {
     ).toBe("data-url");
   });
 
-  it("should return zero tools", async () => {
-    const capabilities = await harness.installPlugin(plugin);
+  it("should return zero tools", () => {
+    // A type has one registration, so the plugin installed once is the one read.
     expect(capabilities.tools).toHaveLength(0);
   });
 
