@@ -28,7 +28,9 @@ import {
   type RuntimeDashboardWidgetData,
 } from "./operator-view-runtime";
 import {
+  callbackFailure,
   parseOperatorData,
+  reportedFailure,
   runtimeError,
   validationDetail,
   type OperatorRuntimeIdentity,
@@ -51,6 +53,7 @@ function parseWidgetView(
       identity,
       "returned an invalid view; use supported OperatorView blocks and safe links",
       validationDetail(parsed.issues),
+      { code: "invalid_response" },
     );
   }
   return parsed.data;
@@ -66,6 +69,7 @@ function parseWidgetDigest(
       identity,
       "returned an invalid digest; provide at most four bounded lines and a non-negative attention count",
       validationDetail(parsed.issues),
+      { code: "invalid_response" },
     );
   }
   return parsed.data;
@@ -125,9 +129,9 @@ export function createDeclarativeDashboardWidgetRegistration<
       input.runAs
         ? input.runAs(
             { caller: provider.caller, interfaceType: "dashboard" },
-            () => provideData(provider),
+            () => reported(provider, () => provideData(provider)),
           )
-        : provideData(provider),
+        : reported(provider, () => provideData(provider)),
     digestProvider(data): DashboardDigestProviderResult {
       const parsed = safeParseRuntimeDashboardWidgetData(data);
       if (!parsed.success) return {};
@@ -147,6 +151,17 @@ export function createDeclarativeDashboardWidgetRegistration<
     },
   };
 
+  function reported<T>(
+    provider: DashboardWidgetProviderContext,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    return reportedFailure(
+      input.context.logger,
+      [provider.signal, input.runtimeSignal],
+      run,
+    );
+  }
+
   async function provideData(
     provider: DashboardWidgetProviderContext,
   ): Promise<RuntimeDashboardWidgetData & { readonly source?: unknown }> {
@@ -159,6 +174,8 @@ export function createDeclarativeDashboardWidgetRegistration<
       throw runtimeError(
         identity,
         "was requested below its minimum permission",
+        undefined,
+        { code: "permission_denied" },
       );
     }
     const runtimeContext = await createOperatorContext({
@@ -180,7 +197,7 @@ export function createDeclarativeDashboardWidgetRegistration<
       if (runtimeProvider.signal.aborted) {
         throw runtimeProvider.signal.reason ?? error;
       }
-      throw runtimeError(identity, "data loader failed");
+      throw callbackFailure(identity, "data loader failed", error);
     }
     runtimeProvider.signal.throwIfAborted();
     const data = parseOperatorData(definition.data, rawData, identity);
@@ -192,7 +209,7 @@ export function createDeclarativeDashboardWidgetRegistration<
       if (runtimeProvider.signal.aborted) {
         throw runtimeProvider.signal.reason ?? error;
       }
-      throw runtimeError(identity, "view derivation failed");
+      throw callbackFailure(identity, "view derivation failed", error);
     }
     const view = parseWidgetView(rawView, identity);
 
@@ -205,7 +222,7 @@ export function createDeclarativeDashboardWidgetRegistration<
         if (runtimeProvider.signal.aborted) {
           throw runtimeProvider.signal.reason ?? error;
         }
-        throw runtimeError(identity, "digest derivation failed");
+        throw callbackFailure(identity, "digest derivation failed", error);
       }
       digest = parseWidgetDigest(rawDigest, identity);
     }
