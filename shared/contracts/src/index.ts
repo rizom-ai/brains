@@ -309,7 +309,19 @@ export {
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
   SITE_CHANNELS,
+  publishCompletedChannel,
+  publishCompletedPayloadSchema,
+  publishFailedChannel,
+  publishFailedPayloadSchema,
+  type PublishCompletedPayload,
+  type PublishFailedPayload,
 } from "./message-channels";
+export {
+  defineChannel,
+  isChannel,
+  type Channel,
+  type ChannelSchema,
+} from "./channel";
 export {
   directorySyncPathContract,
   directorySyncPathRequestSchema,

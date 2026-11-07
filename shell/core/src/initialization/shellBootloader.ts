@@ -2,6 +2,7 @@ import { collectContract } from "@brains/messaging-service";
 import { projectionWaveReadyContract } from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
+  initialSyncOutcomeSchema,
   materializePrompts,
   pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
@@ -26,8 +27,6 @@ import {
 } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
-
-const initialSyncOutcomeSchema = z.object({ success: z.boolean() });
 
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({

@@ -1,11 +1,12 @@
 import {
-  ENTITY_CHANNELS,
   agentActionContract,
+  defineChannel,
   lifecycleStarterRegistrationContract,
   type AgentActionRequest,
   type AgentContextItem,
   type AgentResponse,
   type ActionsCard,
+  type Channel,
   agentContextContract,
 } from "@brains/contracts";
 import {
@@ -22,8 +23,10 @@ import type {
   ToolResponse,
 } from "@brains/plugins";
 import {
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
   ServicePlugin,
+  conversationMessageAddedChannel,
+  entityCreatedChannel,
+  entityUpdatedChannel,
   internalFullScope,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -117,6 +120,11 @@ const lifecycleStartersRequestSchema: z.ZodObject<
   .strict();
 
 type LifecycleStartersRequest = z.output<typeof lifecycleStartersRequestSchema>;
+
+const lifecycleStartersChannel: Channel<
+  LifecycleStartersRequest,
+  LifecycleStartersResponse
+> = defineChannel(PLAYBOOKS_LIFECYCLE_STARTERS, lifecycleStartersRequestSchema);
 
 const playbookEntitySchema: z.ZodObject<
   {
@@ -374,12 +382,8 @@ export class PlaybooksPlugin extends ServicePlugin<
       this.goalCheck.evaluate(goalCheckInputSchema.parse(input)),
     );
 
-    context.messaging.subscribe<
-      LifecycleStartersRequest,
-      LifecycleStartersResponse
-    >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
-      const input = lifecycleStartersRequestSchema.parse(message.payload);
-      const starters = await this.lifecycleStarters.resolveStarters(input);
+    context.messaging.subscribe(lifecycleStartersChannel, async (request) => {
+      const starters = await this.lifecycleStarters.resolveStarters(request);
       return { success: true, data: { starters } };
     });
 
@@ -399,37 +403,25 @@ export class PlaybooksPlugin extends ServicePlugin<
       async (request) => (await this.handleAgentAction(request)) ?? null,
     );
 
-    context.messaging.subscribe<unknown, { recorded: boolean }>(
-      CONVERSATION_MESSAGE_ADDED_CHANNEL,
-      async (message) => ({
+    context.messaging.subscribe(
+      conversationMessageAddedChannel,
+      async (reply, message) => ({
         success: true,
         data: await this.runs.recordAssistantReplyEvidence(
           message.source,
-          message.payload,
+          reply,
         ),
       }),
     );
     // Observed: an entity the worker writes for a run is evidence too.
-    context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(
-      ENTITY_CHANNELS.created,
-      async (message) => ({
-        success: true,
-        data: await this.runs.recordEntityEventEvidence(
-          "created",
-          message.payload,
-        ),
-      }),
-    );
-    context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(
-      ENTITY_CHANNELS.updated,
-      async (message) => ({
-        success: true,
-        data: await this.runs.recordEntityEventEvidence(
-          "updated",
-          message.payload,
-        ),
-      }),
-    );
+    context.messaging.observe(entityCreatedChannel, async (change) => ({
+      success: true,
+      data: await this.runs.recordEntityEventEvidence("created", change),
+    }));
+    context.messaging.observe(entityUpdatedChannel, async (change) => ({
+      success: true,
+      data: await this.runs.recordEntityEventEvidence("updated", change),
+    }));
   }
 
   protected override async getTools(): Promise<Tool[]> {

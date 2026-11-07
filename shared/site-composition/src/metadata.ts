@@ -1,7 +1,9 @@
 import {
   defineBusContract,
+  defineChannel,
   socialLinkSchema,
   type BusContract,
+  type Channel,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
@@ -137,6 +139,16 @@ export const siteMetadataContract: BusContract<
   response: siteMetadataSchema,
   delivery: "request",
 });
+
+/**
+ * Broadcast by site-info whenever the site's metadata changes, carrying the
+ * metadata as its owner now keeps it.
+ */
+export const siteMetadataUpdatedChannel: Channel<
+  SiteMetadata,
+  unknown,
+  typeof SITE_METADATA_UPDATED_CHANNEL
+> = defineChannel(SITE_METADATA_UPDATED_CHANNEL, siteMetadataSchema);
 
 /**
  * Accepted input for {@link siteMetadataSchema}. Differs from `SiteMetadata` in

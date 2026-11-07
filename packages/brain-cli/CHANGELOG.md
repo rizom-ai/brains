@@ -1,5 +1,41 @@
 # @rizom/brain
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- [#871](https://github.com/rizom-ai/brains/pull/871) [`20a1e64`](https://github.com/rizom-ai/brains/commit/20a1e6414d3c1747a736a1b2860690d14aacd658) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The topics plugin no longer has the deprecated `includeEntityTypes`, `sourceWeights`, `mintableEntityTypes` and `mergeSimilarityThreshold` config fields. Topics are drawn from every projection source not named in `excludeEntityTypes`, each weighted and given mint authority by its source role (`sourceRolePolicies`, `sourceRoleOverrides`), and automatic merging uses `semanticMergeDistance`. A brain config that still sets one of the four fields boots, and the field has no effect.
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- [#870](https://github.com/rizom-ai/brains/pull/870) [`29e5336`](https://github.com/rizom-ai/brains/commit/29e53365c5c0a36ba5d41f3dee7222e2f4124572) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish-asset preflight queues image renders through the image job contract, so their data is validated when they are queued. Publish-asset definitions no longer take a `jobType` override or a `"document"` media type, which never generated anything.
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- [#869](https://github.com/rizom-ai/brains/pull/869) [`0540c35`](https://github.com/rizom-ai/brains/commit/0540c3531e4c7f44da74dbebc3398210f07c3fbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Unified Inbox and Dashboard no longer register their aggregates as shared data sources. Nothing read them through the registry, and the Inbox aggregate ignored who was asking, so any template or package that fetched `unified-inbox:inbox` could have received admin inbox items.
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- [#868](https://github.com/rizom-ai/brains/pull/868) [`9c95dba`](https://github.com/rizom-ai/brains/commit/9c95dbaf91c9a625c51cab534be8522c0c44bca7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A malformed broadcast event is now refused and logged instead of being read with its missing fields as undefined. Entity changes, embeddings, publish results, job progress, conversation messages, tool activity, site metadata updates and the startup import's completion each have one declared payload, which every plugin following them checks. A publish event that does not name its entity no longer marks a queued post published or failed, the newsletter no longer looks up an undefined post, and an invalid site metadata update no longer clears the contact form's theme. Studio's activity feed now shows a job whose message runs past 500 characters, with the message cut short, where it used to leave the job out.
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- [#865](https://github.com/rizom-ai/brains/pull/865) [`01a6ab9`](https://github.com/rizom-ai/brains/commit/01a6ab983194bdb9aad9991ff97c6a52eba49eff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `agent_connect` now refuses an Agent Card whose endpoint is on a different host than the one you connected, the same rule `agent_call` applies at call time. Connecting `https://a.example` when its card names `https://b.example/a2a` fails with an error naming both hosts and saves nothing, so it no longer approves and overwrites `b.example` or republishes it in `/.well-known/agent-directory.json`. An `http://` source is refused before confirmation, and an agent is always saved under the host its card was fetched from. `agent_call`, `agent_connect`, `agent_scan_directories` and agent creation from a domain now share one card fetch: HTTPS only, the endpoint on the same host, and a 30 s limit on the response and body together, so a peer that never answers no longer stalls a call, a connect, a create job, or the daily directory scan, whose directory reads get the same limit. Sightings whose card names another host are counted unverified and not saved.
+
+  `agent_call` reads saved agents at the caller's access instead of at any visibility. A trusted caller no longer learns the saved status of an agent saved as restricted, or calls it as a saved contact: it is treated as an unsaved domain. Studio's ask-agent list and calls carry the author's level, so a trusted author sees and asks only agents it can read, and `network_ask` asks only peers saved public, the ones it picks.
+
+  `agent_connect`, `agent_scan_directories`, ATProto brain-card discovery and `agent_set_trust_level` now see agents saved at any visibility. Connecting an agent already saved as shared or restricted used to fail with a database constraint error; now a caller who may write that visibility updates it as before, and anyone else is told only that the agent is already saved and can't be changed at their access. The directory scan counts a sighting already saved above public as already known and leaves it as saved, where it used to abort the whole scan; only peers saved public are walked, as before. A brain card announced over ATProto for an agent saved above public is skipped the same way: the agent is not rewritten, no refresh state is kept for it, and no discovery, refresh or conflict event names it, where it used to fail with the same constraint error. An admin can now set inbound trust with `agent_set_trust_level` for an agent saved at any visibility, which used to report it as not found.
+
+- [#866](https://github.com/rizom-ai/brains/pull/866) [`e051d69`](https://github.com/rizom-ai/brains/commit/e051d6916056222cd976610215cd6825f4003961) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio opens an entry of a type declared with `defineEntity` with its frontmatter, and saving it keeps the authored frontmatter the type does not own. A declared type's reads carry its body alone, so the editor showed such an entry without its fields and a save dropped keys such as a grouping's values. The editor, its collection lists, folders and grouping members, and editor assist now read a declared type's stored document. An update that hands a declared type back its body alone, as a package writing through its own entities does, keeps the stored frontmatter the type does not write; a writer that sends the whole document, as a file import does, still decides what it keeps. Types written as entity plugin classes read and write as before.
+
 ## 0.2.0-alpha.653
 
 ### Patch Changes

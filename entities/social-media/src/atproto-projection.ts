@@ -1,4 +1,7 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import {
+  atprotoProvenance,
+  defineAtprotoProjection,
+} from "@brains/atproto-contracts";
 import type {
   AtprotoBrainSocialPostRecord,
   AtprotoProjection,
@@ -33,22 +36,14 @@ export async function buildSocialPostAtprotoRecord({
     ...(frontmatter.sourceEntityId && {
       sourceLocalEntityId: frontmatter.sourceEntityId,
     }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "social-post",
-    sourceEntityId: socialPost.id,
-    createdAt: socialPost.created,
-    ...(socialPost.updated && { updatedAt: socialPost.updated }),
+    ...atprotoProvenance({ config, pageUrl }, socialPost),
   };
 }
 
 export function createSocialPostAtprotoProjection(): AtprotoProjection<AtprotoBrainSocialPostRecord> {
-  return {
+  return defineAtprotoProjection({
     entityType: "social-post",
     collection: "ai.rizom.brain.socialPost",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.socialPost"],
-    validate: false,
     buildRecord: buildSocialPostAtprotoRecord,
-  };
+  });
 }

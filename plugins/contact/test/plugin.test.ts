@@ -285,6 +285,14 @@ describe("contact runtime", () => {
       broadcast: true,
     });
     expect(await theme()).toBe("dark");
+    // A malformed update is refused; it no longer clears the theme.
+    await bus.send({
+      type: SITE_METADATA_UPDATED_CHANNEL,
+      payload: { ...site, themeMode: "sepia" },
+      sender: "site-info",
+      broadcast: true,
+    });
+    expect(await theme()).toBe("dark");
     await f.plugin.shutdown();
   });
 
