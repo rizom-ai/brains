@@ -1,4 +1,7 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import {
+  atprotoProvenance,
+  defineAtprotoProjection,
+} from "@brains/atproto-contracts";
 import type {
   AtprotoBrainSeriesRecord,
   AtprotoProjection,
@@ -20,22 +23,14 @@ export async function buildSeriesAtprotoRecord({
     title: series.metadata.title,
     slug: series.metadata.slug,
     ...(body.description && { description: body.description }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "series",
-    sourceEntityId: series.id,
-    createdAt: series.created,
-    ...(series.updated && { updatedAt: series.updated }),
+    ...atprotoProvenance({ config, pageUrl }, series),
   };
 }
 
 export function createSeriesAtprotoProjection(): AtprotoProjection<AtprotoBrainSeriesRecord> {
-  return {
+  return defineAtprotoProjection({
     entityType: "series",
     collection: "ai.rizom.brain.series",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.series"],
-    validate: false,
     buildRecord: buildSeriesAtprotoRecord,
-  };
+  });
 }

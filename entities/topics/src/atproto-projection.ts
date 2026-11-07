@@ -1,4 +1,7 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import {
+  atprotoProvenance,
+  defineAtprotoProjection,
+} from "@brains/atproto-contracts";
 import type {
   AtprotoBrainTopicRecord,
   AtprotoProjection,
@@ -22,22 +25,14 @@ export async function buildTopicAtprotoRecord({
     title: parsed.title,
     body: parsed.content,
     format: "text/markdown",
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "topic",
-    sourceEntityId: topic.id,
-    createdAt: topic.created,
-    ...(topic.updated && { updatedAt: topic.updated }),
+    ...atprotoProvenance({ config, pageUrl }, topic),
   };
 }
 
 export function createTopicAtprotoProjection(): AtprotoProjection<AtprotoBrainTopicRecord> {
-  return {
+  return defineAtprotoProjection({
     entityType: "topic",
     collection: "ai.rizom.brain.topic",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.topic"],
-    validate: false,
     buildRecord: buildTopicAtprotoRecord,
-  };
+  });
 }
