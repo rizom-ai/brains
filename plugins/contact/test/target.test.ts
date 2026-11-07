@@ -43,6 +43,17 @@ describe("contact requests as a form's target", () => {
     expect(contactRequestTarget.refuse(form([name]))).toBe(
       'Form "work": a contact request needs "email", required',
     );
+    expect(
+      contactRequestTarget.refuse(
+        formDefinitionSchema.parse({
+          id: "work",
+          target: "contact-request",
+          title: "Work with us",
+          steps: [{ fields: [name, email] }],
+          notify: { enabled: false },
+        }),
+      ),
+    ).toBe('Form "work": a contact request always alerts its owner');
   });
 
   it("labels the alert's answers as the form asked them", () => {
@@ -50,6 +61,7 @@ describe("contact requests as a form's target", () => {
       form: form([name, email]),
       answers: { name: "Ada", email: "ada@example.com" },
       receivedAt: Date.parse("2026-11-07T10:00:00.000Z"),
+      notify: true,
     });
     const entity = contactRequestTarget.schema.parse({
       id: "work-1",

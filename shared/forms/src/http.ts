@@ -1,6 +1,5 @@
 import {
   SitePageResponse,
-  type WebRouteDefinition,
   type WebRouteTransportContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -173,19 +172,6 @@ export class FormHttpHandlers {
     )
       url.protocol = "https:";
     return url;
-  }
-
-  routes(preview = false): WebRouteDefinition[] {
-    return [
-      { path: this.form.path, method: "GET" as const },
-      { path: this.form.path, method: "POST" as const },
-      { path: this.thanksPath, method: "GET" as const },
-    ].map((route) => ({
-      ...route,
-      public: true,
-      preview,
-      handler: (request, transport) => this.handle(request, transport),
-    }));
   }
 
   private presentation(request: Request): FormPresentation {

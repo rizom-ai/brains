@@ -264,9 +264,9 @@ export class FormStorageSlots {
     );
   }
 
-  /** Call only after observing that the stored submission is gone: its owner
-   * deleted it, so nothing is left to alert about. */
-  releaseGone(id: string): Promise<boolean> {
+  /** Call only after observing that nothing is left to alert about a stored
+   * submission: its owner deleted it, or its form sends no alert. */
+  forget(id: string): Promise<boolean> {
     return this.remove(id, (slot) => slot.phase === "stored");
   }
 

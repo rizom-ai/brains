@@ -19,7 +19,9 @@ export const formDeliveryPolicySchema: z.ZodType<FormDeliveryPolicy> =
 /** A sent alert, or why it was not sent as a short code without submitted content. */
 export type FormAlertOutcome =
   { sent: true } | { sent: false; failure: string };
-export type FormNotificationState = "pending" | "sent" | "failed";
+/** A record's alert: still to send, sent, failed, or none, its form
+ * sending no alert. */
+export type FormNotificationState = "pending" | "sent" | "failed" | "none";
 
 /** The package that owns a form's records: it reads and writes its own type. */
 export interface FormDeliveryTarget {
@@ -61,7 +63,7 @@ export class FormDelivery {
     try {
       signal.throwIfAborted();
       const state = await this.deps.target.notification(id);
-      if (state === null) return await this.gone(id);
+      if (state === null || state === "none") return await this.gone(id);
       if (state === "sent") {
         await this.slots.release(id);
         return "sent";
@@ -78,7 +80,7 @@ export class FormDelivery {
         signal.throwIfAborted();
         const current = await this.deps.target.notification(id);
         signal.throwIfAborted();
-        if (current === null) return await this.gone(id);
+        if (current === null || current === "none") return await this.gone(id);
         // A slow read must not turn a once-valid reservation into a late send.
         if (this.now() >= claim.sendBefore) throw new Error("Expired attempt");
         let outcome: FormAlertOutcome = { sent: false, failure: "unconfirmed" };
@@ -114,9 +116,10 @@ export class FormDelivery {
     }
   }
 
-  /** Its owner deleted the submission: nothing is left to alert about. */
+  /** Nothing is left to alert about: its owner deleted the submission, or
+   * its form sends no alert. */
   private async gone(id: string): Promise<"skipped"> {
-    await this.slots.releaseGone(id);
+    await this.slots.forget(id);
     return "skipped";
   }
 }

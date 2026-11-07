@@ -1,4 +1,5 @@
 import {
+  ENTITY_CHANNELS,
   notificationsSendContract,
   type WebRouteRole,
 } from "@brains/contracts";
@@ -8,14 +9,18 @@ import type {
   RuntimeHealthCheck,
   ServicePluginContext,
   WebRouteDefinition,
+  WebRouteTransportContext,
 } from "@brains/plugins";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
+  siteBuilderPagesContract,
   siteBuilderRouteRegisterContract,
   siteMetadataContract,
 } from "@brains/site-composition";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { FormAdmission } from "./admission";
+import { formAdmissionPolicySchema } from "./admission-state";
 import { formAlertText } from "./alert";
 import { FORM_COPY, type FormCopy } from "./copy";
 import {
@@ -24,6 +29,7 @@ import {
   type FormDefinitionInput,
 } from "./definition";
 import { FormDelivery, type FormAlertOutcome } from "./delivery";
+import { parseFormMarkdown } from "./form-markdown";
 import { FormHttpHandlers, previewOriginFor } from "./http";
 import { FormIntake, type FormMaintenanceReport } from "./intake";
 import { formPageTemplate, formSitePages } from "./page";
@@ -60,6 +66,8 @@ export interface FormServiceOptions<E extends BaseEntity> {
   overrides?: FormPolicyOverrides | undefined;
 }
 
+/** A change to a form in content. */
+const formChangeSchema = z.looseObject({ entityType: z.literal("form") });
 /** The queue holds an id only, never submitted content. A job queued before
  * forms named theirs belongs to the first built-in form. */
 const notificationJobSchema = z.strictObject({
@@ -86,7 +94,6 @@ const siteThemeSchema = z.looseObject({
  * intake, delivery and pages. */
 interface RunningForm {
   definition: FormDefinition;
-  role: WebRouteRole | undefined;
   slots: FormStorageSlots;
   intake: FormIntake;
   delivery: FormDelivery;
@@ -95,13 +102,24 @@ interface RunningForm {
 
 /**
  * Public forms on the brain's own origin, whose submissions become one
- * target's records. Readiness requires recovery and the actual Studio Inbox
- * destination, not a successful email send. A target package runs one from
- * its plugin's lifecycle.
+ * target's records: the target package's built-in forms, which content may
+ * reword, and the forms content defines for the target. Readiness requires
+ * recovery and the actual Studio Inbox destination, not a successful email
+ * send. A target package runs one from its plugin's lifecycle.
  */
 export class FormService<E extends BaseEntity = BaseEntity> {
   private readonly options: FormServiceOptions<E>;
-  private readonly forms = new Map<string, RunningForm>();
+  private context: ServicePluginContext | undefined;
+  private pluginId: string | undefined;
+  private builtIns: Array<{ form: BuiltInForm; definition: FormDefinition }> =
+    [];
+  /** The forms served now, by id. */
+  private forms = new Map<string, RunningForm>();
+  /** Content's forms by the paths they claim: theirs and their thanks page. */
+  private claimed = new Map<string, RunningForm>();
+  /** Forms no longer served in this process; their alerts still settle. */
+  private readonly retired = new Map<string, RunningForm>();
+  private refreshing: Promise<void> = Promise.resolve();
   private policy: FormEnginePolicy | undefined;
   private records: FormRecords<E> | undefined;
   private readonly stop = new AbortController();
@@ -145,6 +163,9 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       const refusal = target.refuse(definition);
       if (refusal) throw new Error(refusal);
     }
+    this.context = context;
+    this.pluginId = pluginId;
+    this.builtIns = definitions;
     // The site's own pages for the forms: its layout around an empty slot the
     // form fills per request. Declared in every process, as the site builds
     // in a separate worker, which registers plugins but never runs their
@@ -156,6 +177,16 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         formSitePages(definition, pluginId),
       ),
     });
+    // The pages of the forms content defines, for the build that asks: in
+    // every process, as the site builds in a separate worker.
+    context.messaging.answer(
+      siteBuilderPagesContract,
+      async () =>
+        (await this.contentForms(context))
+          .filter(({ id }) => !this.isBuiltIn(id))
+          .flatMap((definition) => formSitePages(definition, pluginId)),
+      { everyProcess: true },
+    );
     this.maintenanceStatus = context.runtimeState.scoped({
       namespace: `${pluginId}.maintenance`,
       schema: maintenanceStatusSchema,
@@ -165,6 +196,17 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         definition.id,
         this.run(context, policy, records, form, definition),
       );
+    if (!context.executionOnly)
+      for (const channel of [
+        ENTITY_CHANNELS.created,
+        ENTITY_CHANNELS.updated,
+        ENTITY_CHANNELS.deleted,
+      ])
+        context.messaging.observe(channel, async (message) => {
+          if (formChangeSchema.safeParse(message.payload).success)
+            await this.refresh();
+          return { success: true };
+        });
     context.jobs.registerHandler("notify", {
       executionTimeoutMs: 60_000,
       validateAndParse: (input) => {
@@ -173,7 +215,9 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       },
       process: async (input, _jobId, _progress, signal) => {
         const data = notificationJobSchema.safeParse(input);
-        const form = data.success ? this.formFor(data.data.form) : undefined;
+        const form = data.success
+          ? await this.formFor(data.data.form)
+          : undefined;
         if (!data.success || !form)
           throw new Error(
             `Invalid ${this.label.toLowerCase()} notification job`,
@@ -216,11 +260,132 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       );
   }
 
-  /** A job without a form is the first built-in form's. */
-  private formFor(id: string | undefined): RunningForm | undefined {
-    return id === undefined
-      ? this.forms.values().next().value
-      : this.forms.get(id);
+  /** A job without a form is the first built-in form's. A form this process
+   * has not seen yet is read from content. */
+  private async formFor(
+    id: string | undefined,
+  ): Promise<RunningForm | undefined> {
+    const known = id ?? this.builtIns[0]?.definition.id;
+    if (known === undefined) return undefined;
+    const form = this.forms.get(known) ?? this.retired.get(known);
+    if (form) return form;
+    await this.refresh();
+    return this.forms.get(known);
+  }
+
+  private isBuiltIn(id: string): boolean {
+    return this.builtIns.some(({ definition }) => definition.id === id);
+  }
+
+  /** The forms content defines for this target, each as the engine runs it.
+   * One its target cannot hold, whose limits do not fit, or that takes a
+   * built-in form's path is left out, and said so in the log. */
+  private async contentForms(
+    context: ServicePluginContext,
+  ): Promise<FormDefinition[]> {
+    const target = this.options.target;
+    const entities = await context.entityService
+      .listEntities({
+        entityType: "form",
+        options: {
+          limit: 1000,
+          filter: {
+            visibilityScope: "public",
+            metadata: { target: target.entityType },
+          },
+        },
+      })
+      .catch(() => {
+        // A brain without the form type holds no forms in its content.
+        return [];
+      });
+    const builtInPaths = new Set(
+      this.builtIns.flatMap(({ definition }) => [
+        definition.path,
+        `${definition.path}/thanks`,
+      ]),
+    );
+    return entities.flatMap((entity): FormDefinition[] => {
+      try {
+        const definition = parseFormMarkdown(entity.id, entity.content);
+        if (definition.target !== target.entityType) return [];
+        const refusal = target.refuse(definition);
+        if (refusal) throw new Error(refusal);
+        formAdmissionPolicySchema.parse({
+          ...this.policy?.admission,
+          ...definition.limits,
+        });
+        if (
+          !this.isBuiltIn(definition.id) &&
+          [definition.path, `${definition.path}/thanks`].some((path) =>
+            builtInPaths.has(path),
+          )
+        )
+          throw new Error(
+            `Form "${definition.id}" takes a built-in form's path`,
+          );
+        return [definition];
+      } catch (error) {
+        // One broken form must not take the others down: it is left out,
+        // and the log says which and why; the owner fixes it in content.
+        context.logger.warn("A form in content is not served", {
+          form: entity.id,
+          reason: getErrorMessage(error, "invalid"),
+        });
+        return [];
+      }
+    });
+  }
+
+  /** Serve what content says now. Refreshes run one at a time. */
+  refresh(): Promise<void> {
+    this.refreshing = this.refreshing.then(
+      () => this.load(),
+      () => this.load(),
+    );
+    return this.refreshing;
+  }
+
+  private async load(): Promise<void> {
+    const context = this.context;
+    const policy = this.policy;
+    const records = this.records;
+    if (!context || !policy || !records) return;
+    const content = await this.contentForms(context);
+    const byId = new Map(
+      content.map((definition) => [definition.id, definition]),
+    );
+    const next = new Map<string, RunningForm>();
+    for (const { form, definition } of this.builtIns) {
+      // Content may change a built-in form's words and fields, never its path.
+      const override = byId.get(definition.id);
+      const current = override
+        ? { ...override, path: definition.path }
+        : definition;
+      next.set(
+        definition.id,
+        this.run(context, policy, records, form, current),
+      );
+    }
+    const claimed = new Map<string, RunningForm>();
+    for (const definition of content) {
+      if (this.isBuiltIn(definition.id)) continue;
+      const running = this.run(
+        context,
+        policy,
+        records,
+        { definition },
+        definition,
+      );
+      next.set(definition.id, running);
+      claimed.set(definition.path, running);
+      claimed.set(`${definition.path}/thanks`, running);
+    }
+    for (const [id, running] of this.forms)
+      if (!next.has(id)) this.retired.set(id, running);
+    for (const id of next.keys()) this.retired.delete(id);
+    this.forms = next;
+    this.claimed = claimed;
   }
 
   private run(
@@ -249,13 +414,14 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     });
     const admission = new FormAdmission(
       context.runtimeState,
-      policy.admission,
-      {
-        namespace: state.admission,
-        idPrefix: definition.id,
-      },
+      formAdmissionPolicySchema.parse({
+        ...policy.admission,
+        ...definition.limits,
+      }),
+      { namespace: state.admission, idPrefix: definition.id },
     );
-    const first = this.forms.size === 0 && this.options.forms[0] === form;
+    // Jobs for the first built-in form name no form, as before forms did.
+    const first = this.builtIns[0]?.definition.id === definition.id;
     const intake = new FormIntake({
       form: definition,
       target: this.options.target,
@@ -296,7 +462,6 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     );
     return {
       definition,
-      role: form.role,
       slots: new FormStorageSlots(context.runtimeState, slots, Date.now),
       intake,
       delivery,
@@ -341,20 +506,67 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     };
   }
 
+  /** Built-in forms at their own paths, each served as content has it at
+   * the time of the request; content's forms wherever they claim. Every
+   * route is public and served on the preview host too. */
   webRoutes(): WebRouteDefinition[] {
-    return [...this.forms.values()].flatMap((form) =>
-      form.http.routes(true).map((route) => ({
+    const pluginId = this.pluginId;
+    if (!pluginId) return [];
+    const builtIn = this.builtIns.flatMap(({ form, definition }) => {
+      const serve = (
+        request: Request,
+        transport?: WebRouteTransportContext,
+      ): Promise<Response> =>
+        this.serve(this.forms.get(definition.id), request, transport);
+      const role = form.role ? { role: form.role } : {};
+      return [
+        { path: definition.path, method: "GET" as const, ...role },
+        { path: definition.path, method: "POST" as const, ...role },
+        { path: `${definition.path}/thanks`, method: "GET" as const },
+      ].map((route) => ({
         ...route,
-        ...(form.role && route.path === form.definition.path
-          ? { role: form.role }
-          : {}),
-        handler: async (request, transport): Promise<Response> => {
-          if (!this.readyState || !(await this.maintenanceFresh()))
-            return form.http.unavailable(request);
-          return route.handler(request, transport);
-        },
-      })),
-    );
+        public: true,
+        preview: true,
+        handler: serve,
+      }));
+    });
+    const claim = (method: "GET" | "POST"): WebRouteDefinition => ({
+      path: `/_forms/${pluginId}`,
+      match: "claim",
+      method,
+      public: true,
+      preview: true,
+      claims: (path: string): boolean => {
+        const form = this.claimed.get(path);
+        return (
+          form !== undefined &&
+          (method === "GET" || path === form.definition.path)
+        );
+      },
+      handler: (request, transport) =>
+        this.serve(
+          this.claimed.get(new URL(request.url).pathname),
+          request,
+          transport,
+        ),
+    });
+    return [...builtIn, claim("GET"), claim("POST")];
+  }
+
+  private async serve(
+    form: RunningForm | undefined,
+    request: Request,
+    transport?: WebRouteTransportContext,
+  ): Promise<Response> {
+    if (!form) return new Response("Not found", { status: 404 });
+    if (!this.readyState || !(await this.maintenanceFresh()))
+      return form.http.unavailable(request);
+    return form.http.handle(request, transport);
+  }
+
+  /** Every form whose submissions may still need work in this process. */
+  private running(): RunningForm[] {
+    return [...this.forms.values(), ...this.retired.values()];
   }
 
   async ready(context: ServicePluginContext): Promise<void> {
@@ -363,6 +575,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
       throw new Error(`${this.label} Inbox unavailable`);
     await this.readSiteTheme(context);
+    await this.refresh();
     await this.maintain(this.stop.signal);
     this.stop.signal.throwIfAborted();
     this.readyState = true;
@@ -399,8 +612,10 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     try {
       if (!this.maintenanceStatus)
         throw new Error(`${this.label} intake unavailable`);
+      // The worker that maintains learns content's forms here.
+      await this.refresh();
       const reports = await Promise.all(
-        [...this.forms.values()].map((form) => form.intake.maintain(signal)),
+        this.running().map((form) => form.intake.maintain(signal)),
       );
       this.report = reports.reduce(
         (sum, report) => ({
@@ -467,9 +682,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
           message: `${this.label} recovery is unavailable or overdue; intake is closed.`,
         };
       const slots = (
-        await Promise.all(
-          [...this.forms.values()].map((form) => form.slots.list()),
-        )
+        await Promise.all(this.running().map((form) => form.slots.list()))
       ).flat();
       const pending = slots.filter(
         ([, slot]) => slot.delivery.status === "pending",

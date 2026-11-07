@@ -88,6 +88,7 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
         form: this.deps.form,
         answers: validation.answers,
         receivedAt,
+        notify: this.deps.form.notify.enabled,
       };
       const record = this.deps.target.record(submission);
       // Reserve canonical UTF-8 content plus bounded room for operational status changes.
@@ -113,8 +114,10 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
       if (!(await this.slots.stored(id)))
         return { kind: "denied", reason: "unavailable" };
       signal.throwIfAborted();
-      if (this.deps.target.notification(entity) === "pending")
-        await this.enqueue(id);
+      const notification = this.deps.target.notification(entity);
+      if (notification === "pending") await this.enqueue(id);
+      // Its form sends no alert: the record is all there was to do.
+      if (notification === "none") await this.slots.forget(id);
       return { kind: "saved", id };
     } catch {
       // Storage and validation errors can contain private fields. Preserve all
@@ -146,12 +149,15 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
         }
         if (slot.phase === "writing" && !(await this.slots.stored(id)))
           continue;
-        if (!entity) {
-          // Its owner deleted it: nothing is left to alert about.
-          if (await this.slots.releaseGone(id)) report.released++;
+        const notification = entity
+          ? this.deps.target.notification(entity)
+          : "none";
+        if (!entity || notification === "none") {
+          // Its owner deleted it, or its form sends no alert: nothing is left
+          // to alert about.
+          if (await this.slots.forget(id)) report.released++;
           continue;
         }
-        const notification = this.deps.target.notification(entity);
         if (
           notification === "pending" ||
           (slot.delivery.status === "sent" && notification !== "sent")

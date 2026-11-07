@@ -108,3 +108,22 @@ describe("a form definition", () => {
       );
   });
 });
+
+describe("a form's own limits and alert", () => {
+  it("takes admission limits of its own, within the policy's bounds, and may send no alert", () => {
+    const form = formDefinitionSchema.parse({
+      ...minimal,
+      limits: { globalSubmissions: 500, networkSubmissions: 20 },
+      notify: { enabled: false },
+    });
+    expect(form.limits).toEqual({
+      globalSubmissions: 500,
+      networkSubmissions: 20,
+    });
+    expect(form.notify.enabled).toBe(false);
+    for (const limits of [{ globalSubmissions: 0 }, { submissions: 5 }])
+      expect(
+        formDefinitionSchema.safeParse({ ...minimal, limits }).success,
+      ).toBe(false);
+  });
+});

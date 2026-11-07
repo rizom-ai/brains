@@ -46,7 +46,8 @@ export class FormRecords<
     const entity = await this.read(id);
     if (!entity) return;
     const current = this.target.notification(entity);
-    if (current === notification || current === "sent") return;
+    if (current === notification || current === "sent" || current === "none")
+      return;
     const result = await this.entities.updateEntity({
       entity: {
         ...entity,

@@ -58,10 +58,13 @@ describe("contact inbox", () => {
       harness.getMockShell().getInboxRegistry().getSource("contact-requests"),
     ).toBeDefined();
     expect(capabilities.tools).toEqual([]);
+    // Its own form's pages, and what forms in content claim.
     expect(plugin.getWebRoutes().map((route) => route.path)).toEqual([
       "/contact",
       "/contact",
       "/contact/thanks",
+      "/_forms/contact",
+      "/_forms/contact",
     ]);
     expect(plugin.getApiRoutes()).toEqual([]);
   });

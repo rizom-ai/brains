@@ -10,6 +10,8 @@ export interface FormSubmission {
   form: FormDefinition;
   answers: FormAnswers;
   receivedAt: number;
+  /** Whether the owner is alerted; a record without an alert says none. */
+  notify: boolean;
 }
 
 /** A record as its package writes it: markdown and the metadata queried. */
@@ -28,7 +30,8 @@ export interface FormTarget<E extends BaseEntity = BaseEntity> {
   readonly schema: z.ZodType<E>;
   /** Why a form cannot produce this type, or nothing when it can. */
   refuse(form: FormDefinition): string | undefined;
-  /** The new record for a submission, its alert pending. */
+  /** The new record for a submission, its alert pending, or none when its
+   * form sends none. */
   record(submission: FormSubmission): FormRecord;
   /** Whether a stored record is this submission, read back after a write. */
   matches(entity: E, submission: FormSubmission): boolean;

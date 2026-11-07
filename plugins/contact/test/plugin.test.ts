@@ -1,17 +1,24 @@
 import { describe, expect, it, mock, spyOn, setSystemTime } from "bun:test";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  createTestEntityAdapter,
+} from "@brains/plugins/test";
 import { renderToStaticMarkup } from "react-dom/server";
-import type {
-  ChannelDeliveryInput,
-  ServicePluginContext,
-  JobHandler,
+import {
+  baseEntitySchema,
+  type ChannelDeliveryInput,
+  type JobHandler,
+  type ServicePluginContext,
+  type WebRouteDefinition,
 } from "@brains/plugins";
+import { parseFormMarkdown } from "@brains/forms";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { NotificationsPlugin } from "@brains/notifications";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
+  siteBuilderPagesContract,
   siteBuilderRouteRegisterContract,
   siteMetadataContract,
 } from "@brains/site-composition";
@@ -24,8 +31,8 @@ type RecurringCheckDefinition = Parameters<
 >[0];
 // The brain's domain gives the intake its origin; the tests tighten the
 // policy's limits to the fixture's small ones.
-const origin = "https://brain.test";
-const inboxUrl = `${origin}/studio/workspaces/unified-inbox%3Ainbox`;
+const origin: string = "https://brain.test";
+const inboxUrl: string = `${origin}/studio/workspaces/unified-inbox%3Ainbox`;
 const config: ContactPluginConfig = {
   intake: { admission: admissionPolicy },
 };
@@ -101,6 +108,14 @@ async function setup(
   });
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
+  // Forms in the brain's content come with its site.
+  shell
+    .getEntityRegistry()
+    .registerEntityType(
+      "form",
+      baseEntitySchema.partial().passthrough(),
+      createTestEntityAdapter("form"),
+    );
   const sent: ChannelDeliveryInput[] = [];
   const transport: { status: "sent" | "failed" | "unavailable" } = {
     status: "sent",
@@ -163,7 +178,14 @@ describe("contact runtime", () => {
     await plugin.register(h.getMockShell());
     expect(
       plugin.getWebRoutes().map((route) => `${route.method} ${route.path}`),
-    ).toEqual(["GET /contact", "POST /contact", "GET /contact/thanks"]);
+    ).toEqual([
+      "GET /contact",
+      "POST /contact",
+      "GET /contact/thanks",
+      // Forms in the brain's content, wherever they claim.
+      "GET /_forms/contact",
+      "POST /_forms/contact",
+    ]);
     await plugin.shutdown();
   });
   it("takes the brain's local site URL while the brain prefers local URLs", async () => {
@@ -395,6 +417,8 @@ describe("contact runtime", () => {
       "GET /contact",
       "POST /contact",
       "GET /contact/thanks",
+      "GET /_forms/contact",
+      "POST /_forms/contact",
     ]);
     expect(routes.every((route) => route.public && route.preview)).toBe(true);
     // The site finds the form by what it is, not by this plugin's id.
@@ -614,5 +638,182 @@ describe("the contact page in the site", () => {
         ],
       }),
     ]);
+  });
+});
+
+const workWithUs = `---
+target: contact-request
+path: /work-with-us
+title: Work with us
+pageTitle: Work with us
+submitLabel: Send
+thanks:
+  title: Thanks
+steps:
+  - fields:
+      - kind: text
+        id: name
+        label: Your name
+        required: true
+      - kind: email
+        id: email
+        label: Email
+        required: true
+      - kind: longText
+        id: message
+        label: What do you have in mind?
+---
+Tell us about your project.
+`;
+
+type Setup = Awaited<ReturnType<typeof setup>>;
+
+/** What the form type keeps to find a form by. */
+function formMetadata(id: string, content: string): Record<string, string> {
+  const { title, target, path } = parseFormMarkdown(id, content);
+  return { title, target, path };
+}
+
+async function addForm(f: Setup, id: string, content: string): Promise<void> {
+  await f.h.getEntityService().createEntity({
+    entity: {
+      id,
+      entityType: "form",
+      visibility: "public",
+      content,
+      metadata: formMetadata(id, content),
+    },
+  });
+  await f.shell.getMessageBus().send({
+    type: "entity:created",
+    payload: { entityType: "form", entityId: id },
+    sender: "test",
+  });
+}
+
+/** The route serving a path: its exact route, else the claim route claiming it. */
+function routeFor(
+  f: Setup,
+  path: string,
+  method: "GET" | "POST",
+): WebRouteDefinition | undefined {
+  const routes = f.plugin
+    .getWebRoutes()
+    .filter((route) => (route.method ?? "GET") === method);
+  return (
+    routes.find((route) => route.match !== "claim" && route.path === path) ??
+    routes.find((route) => route.match === "claim" && route.claims?.(path))
+  );
+}
+
+async function send(f: Setup, path: string): Promise<Response> {
+  const get = routeFor(f, path, "GET");
+  const post = routeFor(f, path, "POST");
+  if (!get || !post) throw new Error(`Nothing serves ${path}`);
+  const page = await get.handler(new Request(`${origin}${path}`), {
+    remoteAddress: peer,
+  });
+  const token = (await page.text()).match(
+    /name="token" value="([a-f0-9]+)"/,
+  )?.[1];
+  if (!token) throw new Error("Missing token");
+  return post.handler(
+    new Request(`${origin}${path}`, {
+      method: "POST",
+      headers: { origin },
+      body: new URLSearchParams({ token, ...input }),
+    }),
+    { remoteAddress: peer },
+  );
+}
+
+describe("forms defined in the brain's content", () => {
+  it("serves a form for contact requests at its own path, its pages built with the site", async () => {
+    const f = await setup();
+    await addForm(f, "work-with-us", workWithUs);
+    await f.plugin.ready();
+    const get = routeFor(f, "/work-with-us", "GET");
+    const page = await get?.handler(new Request(`${origin}/work-with-us`), {
+      remoteAddress: peer,
+    });
+    expect(page?.status).toBe(200);
+    const html = await page?.text();
+    expect(html).toContain("<h1>Work with us</h1>");
+    expect(html).toContain("Tell us about your project.");
+    expect(html).toContain(
+      '<label for="form-work-with-us-name">Your name</label>',
+    );
+    const sent = await send(f, "/work-with-us");
+    expect(sent.status).toBe(303);
+    expect(sent.headers.get("location")).toBe("/work-with-us/thanks");
+    expect(routeFor(f, "/work-with-us/thanks", "GET")).toBeDefined();
+    expect(routeFor(f, "/work-with-us/thanks", "POST")).toBeUndefined();
+    const requests = await f.h.getEntityService().listEntities(
+      {
+        entityType: "contact-request",
+        options: { filter: { visibilityScope: "restricted" } },
+      },
+      contactRequestSchema,
+    );
+    expect(requests.map((request) => request.id)).toEqual([
+      expect.stringMatching(/^work-with-us-[a-f0-9]{64}$/),
+    ]);
+    const pages = await f.shell.getMessageBus().send({
+      type: siteBuilderPagesContract.name,
+      payload: {},
+      sender: "test",
+    });
+    expect(JSON.stringify(pages)).toContain('"path":"/work-with-us"');
+    expect(JSON.stringify(pages)).toContain('"path":"/work-with-us/thanks"');
+    await f.plugin.shutdown();
+  });
+
+  it("lets content override the built-in contact form's words, never its path", async () => {
+    const f = await setup();
+    await addForm(
+      f,
+      "contact",
+      workWithUs.replace("title: Work with us", "title: Write to us"),
+    );
+    await f.plugin.ready();
+    const page = await routeFor(f, "/contact", "GET")?.handler(
+      new Request(`${origin}/contact`),
+      { remoteAddress: peer },
+    );
+    expect(await page?.text()).toContain("<h1>Write to us</h1>");
+    // An override is the built-in form: nothing else is claimed for it.
+    const claim = f.plugin
+      .getWebRoutes()
+      .find((route) => route.match === "claim" && route.method === "GET");
+    expect(claim?.claims?.("/contact")).toBe(false);
+    expect(claim?.claims?.("/work-with-us")).toBe(false);
+    expect((await send(f, "/contact")).status).toBe(303);
+    await f.plugin.shutdown();
+  });
+
+  it("follows the content: a form that goes is no longer served, one its target cannot hold never is", async () => {
+    const f = await setup();
+    await f.plugin.ready();
+    await addForm(f, "work-with-us", workWithUs);
+    await addForm(
+      f,
+      "phone",
+      workWithUs
+        .replace("path: /work-with-us", "path: /call-me")
+        .replace("id: message", "id: phone")
+        .replace("kind: longText", "kind: text"),
+    );
+    expect(routeFor(f, "/work-with-us", "GET")).toBeDefined();
+    expect(routeFor(f, "/call-me", "GET")).toBeUndefined();
+    await f.h
+      .getEntityService()
+      .deleteEntity({ entityType: "form", id: "work-with-us" });
+    await f.shell.getMessageBus().send({
+      type: "entity:deleted",
+      payload: { entityType: "form", entityId: "work-with-us" },
+      sender: "test",
+    });
+    expect(routeFor(f, "/work-with-us", "GET")).toBeUndefined();
+    await f.plugin.shutdown();
   });
 });

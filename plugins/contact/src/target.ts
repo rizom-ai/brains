@@ -51,6 +51,8 @@ export const contactRequestTarget: FormTarget<ContactRequest> = {
     );
     if (refused)
       return `Form "${form.id}": a contact request holds no field "${refused.id}" of kind ${refused.kind}`;
+    if (!form.notify.enabled)
+      return `Form "${form.id}": a contact request always alerts its owner`;
     const missing = [...CONTACT_FIELDS].find(
       ([id, field]) =>
         field.required &&

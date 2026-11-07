@@ -1,4 +1,7 @@
 import { z } from "@brains/utils/zod";
+import { formAdmissionPolicyShape } from "./admission-state";
+
+type AdmissionShape = (typeof formAdmissionPolicyShape)["shape"];
 
 /** Every form posts its token and a honeypot under these names. */
 export const RESERVED_FIELD_IDS: ReadonlySet<string> = new Set([
@@ -95,6 +98,12 @@ type FormObjectSchema = z.ZodObject<
         z.core.$strict
       >
     >;
+    limits: z.ZodOptional<
+      z.ZodObject<
+        { [K in keyof AdmissionShape]: z.ZodOptional<AdmissionShape[K]> },
+        z.core.$strict
+      >
+    >;
   },
   z.core.$strict
 >;
@@ -131,6 +140,8 @@ const formObjectSchema: FormObjectSchema = z.strictObject({
       title: labelSchema.optional(),
     })
     .default({ enabled: true }),
+  /** Its own admission limits, over the plugin's. */
+  limits: formAdmissionPolicyShape.partial().optional(),
 });
 
 export const formFrontmatterSchema: FormFrontmatterSchema =
