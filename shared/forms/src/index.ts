@@ -95,3 +95,4 @@ export type { FormFrontmatter } from "./definition";
 export { formMarkdown, parseFormMarkdown } from "./form-markdown";
 export { answerText } from "./validate";
 export type { FormChoiceField, FormTextField } from "./definition";
+export type { FormStepCopy } from "./steps-script";

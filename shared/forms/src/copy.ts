@@ -1,4 +1,5 @@
 import type { FormDenialReason } from "./admission";
+import type { FormStepCopy } from "./steps-script";
 import { FORM_FIELD_MESSAGES, type FormFieldMessages } from "./validate";
 
 /** What the engine itself says to a visitor, beside a form's own copy. A
@@ -23,6 +24,8 @@ export interface FormCopy {
   /** Where the owner's name stands when the site names none. */
   ownerFallback: string;
   fields: FormFieldMessages;
+  /** The buttons and progress of a form shown one step at a time. */
+  steps: FormStepCopy;
 }
 
 export const FORM_COPY: FormCopy = {
@@ -53,4 +56,5 @@ export const FORM_COPY: FormCopy = {
   newForm: "Open a new form",
   ownerFallback: "the owner of this site",
   fields: FORM_FIELD_MESSAGES,
+  steps: { next: "Next", back: "Back", step: "Step {n} of {total}" },
 };

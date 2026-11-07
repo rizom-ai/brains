@@ -1,5 +1,6 @@
 import { escapeHtml } from "@brains/utils/string-utils";
 import { FORM_COPY, type FormCopy } from "./copy";
+import { stepsScript } from "./steps-script";
 import type { FormChoiceField, FormDefinition, FormField } from "./definition";
 
 /** How a page shows a form: in whose name, in which theme. */
@@ -26,6 +27,7 @@ const FORM_STYLES = `:where(.form){max-width:38rem;margin:clamp(1.5rem,6vw,4.5re
 :where(.form) a{color:var(--color-accent);text-underline-offset:.2em}:where(.form) :focus-visible{outline:2px solid var(--color-accent);outline-offset:4px}:where(.form) .form__trap{position:absolute;left:-10000px}:where(.form) .form__error{margin:0;font-weight:400;color:var(--color-error)}
 :where(.form) .form__field--choice{grid-column:1/-1;border:0;padding:0;margin:0;min-width:0}:where(.form) .form__field--choice legend{font:inherit;font-size:.9rem;font-weight:500;margin-bottom:.4rem}:where(.form) .form__choice{display:flex;gap:.6rem;align-items:baseline;font-weight:400;color:var(--color-text);padding:.2rem 0}:where(.form) .form__choice input{width:auto;accent-color:var(--color-accent)}
 :where(.form) .form__notice{border-inline-start:2px solid var(--color-error);border-radius:.25rem;padding:1rem 1.25rem;background:var(--color-bg-subtle,var(--color-bg));color:var(--color-text);margin-block:1.5rem}
+:where(.form) [hidden]{display:none!important}:where(.form) .form__progress{font-size:.85rem;margin:0}:where(.form) .form__back{background:transparent;color:var(--color-text);border:1px solid var(--color-border)}
 @media(max-width:540px){:where(.form) .form__step{grid-template-columns:1fr}:where(.form) button{width:100%}}`;
 
 /** Visible copy, escaped, with the site's owner where it says `{owner}`. */
@@ -169,7 +171,7 @@ ${paragraphs(form.intro, presentation, copy, ' class="form__intro"', ' class="fo
 <input type="hidden" name="token" value="${escapeHtml(options.token)}">
 ${steps}
 <div class="form__trap" aria-hidden="true"><label>${escapeHtml(copy.trap)}<input name="website" tabindex="-1" autocomplete="off" value=""></label></div>
-<button type="submit">${fill(form.submitLabel, presentation, copy)}</button></form>`,
+<button type="submit">${fill(form.submitLabel, presentation, copy)}</button></form>${form.steps.length > 1 ? stepsScript(copy.steps) : ""}`,
   );
 }
 

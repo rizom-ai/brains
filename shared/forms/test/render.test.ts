@@ -172,3 +172,27 @@ describe("choice fields on the page", () => {
     );
   });
 });
+
+describe("a form of several steps", () => {
+  const steps = formDefinitionSchema.parse({
+    id: "quiz",
+    target: "quiz-result",
+    title: "Quiz",
+    steps: [
+      { title: "You", fields: [{ kind: "text", id: "name", label: "Name" }] },
+      { title: "More", fields: [{ kind: "text", id: "more", label: "More" }] },
+    ],
+  });
+
+  it("works without JavaScript, every step on one page, and a script then shows one at a time", () => {
+    const html = renderForm(steps, { token });
+    // Without the script every step shows and the form posts as it is.
+    expect(html).not.toContain(" hidden");
+    expect(html).toContain("<script data-form-steps>");
+    expect(html).toContain(
+      '"next":"Next","back":"Back","step":"Step {n} of {total}"',
+    );
+    expect(html.match(/<script/g)).toHaveLength(1);
+    expect(renderForm(form, { token })).not.toContain("<script");
+  });
+});
