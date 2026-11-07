@@ -9,7 +9,7 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import type {
-  AnyInterfaceRouteDefinition,
+  AnyDeclaredRouteDefinition,
   InterfaceDefinitionInput,
   InterfaceJobs,
 } from "./interface-definition-contract";
@@ -179,7 +179,7 @@ class DeclarativeInterfacePlugin<
   }
 
   private runtimeRoute(
-    definition: AnyInterfaceRouteDefinition,
+    definition: AnyDeclaredRouteDefinition,
     context: InterfacePluginContext,
   ): WebRouteDefinition {
     return createDeclaredRoute(definition, {

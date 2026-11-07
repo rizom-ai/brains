@@ -107,7 +107,11 @@ import {
   toolCaller,
   type ServiceJobData,
 } from "./job-authority";
-import type { AnyInterfaceRouteDefinition } from "../interface/route-definition-contract";
+import {
+  isReturnToRoute,
+  type AnyDeclaredRouteDefinition,
+  type ReturnToWorkspace,
+} from "../interface/route-definition-contract";
 import { createDeclaredRoute } from "../internal/declared-route";
 import type { WebRouteDefinition } from "../types/web-routes";
 
@@ -281,6 +285,13 @@ class DeclarativeServicePlugin<
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
+  /** Where Studio serves each workspace this package registered. */
+  private readonly workspaceUrls = new Map<ReturnToWorkspace, string>();
+  /** The routes that return the browser to one of this package's workspaces. */
+  private readonly returnTargets: {
+    readonly route: AnyDeclaredRouteDefinition;
+    readonly workspace: ReturnToWorkspace;
+  }[] = [];
   private readonly registeredDashboardWidgetIds: string[] = [];
   private accountSettingsRegistration:
     AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
@@ -404,7 +415,10 @@ class DeclarativeServicePlugin<
   }
 
   /** A declared route, served as its caller. */
-  private runtimeRoute(route: AnyInterfaceRouteDefinition): WebRouteDefinition {
+  private runtimeRoute(route: AnyDeclaredRouteDefinition): WebRouteDefinition {
+    if (isReturnToRoute(route)) {
+      this.returnTargets.push({ route, workspace: route.returnTo });
+    }
     const permissions = this.requireShell().getPermissionService();
     return createDeclaredRoute(route, {
       declarationId: this.publicId,
@@ -418,6 +432,7 @@ class DeclarativeServicePlugin<
       runAs: (caller, request, run) =>
         this.calls.run(this.routeCall(caller, request), run),
       logger: this.logger,
+      workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
     });
   }
 
@@ -464,8 +479,10 @@ class DeclarativeServicePlugin<
           if (result === false) {
             await this.rollbackStudioWorkspaces(context, acquiredStudio);
             acquiredStudio.splice(0);
+            this.workspaceUrls.clear();
             break;
           }
+          this.workspaceUrls.set(binding.definition, result.workspaceUrl);
         } catch (error) {
           throw new Error(
             `Service "${this.publicId}" package "${this.packageName}" Studio workspace "${binding.definition.id}" host registration failed; correct the declaration or Studio configuration: ${getErrorMessage(error)}`,
@@ -578,6 +595,8 @@ class DeclarativeServicePlugin<
     );
     this.studioWorkspaceBindings = [];
     this.dashboardWidgetBindings = [];
+    this.workspaceUrls.clear();
+    this.returnTargets.splice(0);
     this.tools = undefined;
     this.resources = undefined;
     this.routes = [];
@@ -588,6 +607,23 @@ class DeclarativeServicePlugin<
     for (const release of this.answered.splice(0).reverse()) release();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
+    }
+  }
+
+  /**
+   * A route may return the browser only to a workspace this package binds;
+   * any other, another package's included, is refused here.
+   */
+  private assertReturnTargets(): void {
+    const bound = new Set<ReturnToWorkspace>(
+      this.studioWorkspaceBindings.map((binding) => binding.definition),
+    );
+    for (const { route, workspace } of this.returnTargets) {
+      if (!bound.has(workspace)) {
+        throw new Error(
+          `Service "${this.publicId}" route ${route.method} ${route.path} returns to Studio workspace "${workspace.id}", which this package does not declare`,
+        );
+      }
     }
   }
 
@@ -628,6 +664,7 @@ class DeclarativeServicePlugin<
         ids.add(id);
       }
       this.studioWorkspaceBindings = Object.freeze([...bindings]);
+      this.assertReturnTargets();
     }
   }
 

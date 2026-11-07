@@ -402,7 +402,9 @@ blocks for authenticated Studio operations. Studio-only capabilities include:
 - a launch action, `launch: { origins }`, whose `execute` answers `{ url }`:
   Studio sends the operator's browser there once the runtime has checked it is
   an absolute https URL on a declared origin; with `accountSettings.claim()`
-  it starts a consent flow whose `protocol` callback route redeems the claim;
+  it starts a consent flow whose `protocol` callback route redeems the claim
+  and, declared with `returnTo: workspace`, answers the workspace's query input
+  so the runtime sends the browser back there;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
 - closed external, entity, Account, Admin, Inbox, Publishing, Site, and Traffic launch

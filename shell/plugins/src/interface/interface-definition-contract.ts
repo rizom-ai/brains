@@ -11,12 +11,13 @@ import type { InboundMessageAttachment } from "../message-interface/inbound-atta
 
 import {
   routeMethods,
-  type AnyInterfaceRouteDefinition,
+  type AnyDeclaredRouteDefinition,
 } from "./route-definition-contract";
 export { routeMethods };
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
 export type {
+  AnyDeclaredRouteDefinition,
   AnyInterfaceRouteDefinition,
   InterfaceActor,
   InterfaceCaller,
@@ -127,12 +128,16 @@ export interface InterfaceDefinitionBehavior<
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
+  /**
+   * The interface's HTTP routes. An interface declares no Studio workspace,
+   * so a route that returns the browser to one is refused when it registers.
+   */
   readonly routes?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
         readonly jobs: InterfaceJobs;
-      }) => readonly AnyInterfaceRouteDefinition[])
+      }) => readonly AnyDeclaredRouteDefinition[])
     | undefined;
   readonly daemons?:
     | ((context: {

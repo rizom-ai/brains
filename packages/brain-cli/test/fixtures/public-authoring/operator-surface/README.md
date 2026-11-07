@@ -19,7 +19,8 @@ loaders/actions bind once inside the typed service factories after setup:
 - a provider connection: a launch action claims a single-use state for the
   operator's account and Studio session and sends their browser to the
   provider's consent page, and the provider's `protocol` callback route
-  redeems it to write that operator's settings.
+  redeems it to write that operator's settings and returns the browser to the
+  workspace with how the connection went.
 
 Every loader and action acts as its caller: loaders read at the caller's
 visibility, and `src/caller-type-canary.ts` pins that only an action writes,

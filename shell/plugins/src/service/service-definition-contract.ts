@@ -39,7 +39,7 @@ import type {
 } from "../operator/operator-definition-contract";
 import type { OperatorBindingContext } from "../operator/operator-context-contract";
 import { assertIdentifier } from "../package-definition";
-import type { AnyInterfaceRouteDefinition } from "../interface/route-definition-contract";
+import type { AnyDeclaredRouteDefinition } from "../interface/route-definition-contract";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -612,7 +612,7 @@ export interface ServiceDefinitionBehavior<
         readonly accountSettings: ServiceAccountSettings<
           NonNullable<TAccountSettings>
         >;
-      }) => readonly AnyInterfaceRouteDefinition[])
+      }) => readonly AnyDeclaredRouteDefinition[])
     | undefined;
   readonly tools?:
     | ((context: {

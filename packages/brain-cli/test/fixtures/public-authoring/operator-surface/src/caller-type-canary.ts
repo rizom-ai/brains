@@ -1,5 +1,6 @@
 import { bookmark } from "@fixture/reading-entities";
 import {
+  defineRoute,
   defineServicePlugin,
   defineStudioWorkspace,
   defineWorkspaceAction,
@@ -142,6 +143,43 @@ export const launchAnswerCanary = defineServicePlugin(
           go.bind(context, () => ({ href: "https://reading.example/consent" })),
         ],
       }),
+    ],
+  },
+);
+
+const outcomes = defineStudioWorkspace({
+  id: "outcomes",
+  label: "Outcomes",
+  permission: "trusted",
+  query: z.object({ connection: z.enum(["connected", "failed"]).optional() }),
+  data: z.object({}),
+  actions: [],
+  view: () => ({ blocks: [] }),
+});
+
+export const returnCanary = defineServicePlugin(
+  { id: "return-canary", config: z.object({}) },
+  {
+    routes: () => [
+      defineRoute({
+        method: "GET",
+        path: "/return-canary/connected",
+        security: { kind: "public" },
+        returnTo: outcomes,
+        // An inline literal keeps its type: no cast for the enum.
+        handle: () => ({ connection: "connected" }),
+      }),
+      defineRoute({
+        method: "GET",
+        path: "/return-canary/unknown",
+        security: { kind: "public" },
+        // @ts-expect-error The query refuses "maybe", so this is no return-to route.
+        returnTo: outcomes,
+        handle: () => ({ connection: "maybe" }),
+      }),
+    ],
+    studioWorkspaces: (context) => [
+      outcomes.bind(context, { load: () => ({}), actions: [] }),
     ],
   },
 );

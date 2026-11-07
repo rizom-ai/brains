@@ -101,12 +101,17 @@ const readingRow = z.object({
   wordCount: z.number().int().nonnegative().optional(),
 });
 
+// The URL state: a tag filter, and how a provider connection came back.
+const connectionOutcome = z.enum(["connected", "declined", "failed"]);
+
 const readingWorkspaceQuery = z.object({
   tag: z.string().optional(),
+  connection: connectionOutcome.optional(),
 });
 
 const readingWorkspaceData = z.object({
   connected: z.boolean(),
+  connection: connectionOutcome.optional(),
   selectedTag: z.string().optional(),
   bookmarks: z.array(readingRow),
   digestCount: z.number().int().nonnegative(),
@@ -140,7 +145,18 @@ const readingWorkspace = defineStudioWorkspace({
         },
       ],
     };
+    const connectionNotice: OperatorViewBlock<ReadingWorkspaceAction>[] =
+      data.connection
+        ? [
+            {
+              type: "notice",
+              tone: data.connection === "connected" ? "good" : "warn",
+              text: `The reading provider connection ${data.connection === "connected" ? "succeeded" : `was ${data.connection}`}.`,
+            },
+          ]
+        : [];
     const blocks: OperatorViewBlock<ReadingWorkspaceAction>[] = [
+      ...connectionNotice,
       {
         type: "stats",
         items: [
@@ -326,14 +342,21 @@ export default defineServicePlugin(
               ? { id: "reading-provider" }
               : null,
         }),
-        response: z.object({ connected: z.boolean() }),
+        // The browser lands back in the workspace, with how it went.
+        returnTo: readingWorkspace,
         async handle({ request }) {
           const params = new URL(request.url).searchParams;
-          // A bad state is refused before the code is exchanged.
-          await accountSettings.redeem(params.get("state") ?? "", () =>
-            exchangeCode(params.get("code") ?? ""),
-          );
-          return { connected: true };
+          if (params.has("error")) return { connection: "declined" };
+          try {
+            // A bad state is refused before the code is exchanged.
+            await accountSettings.redeem(params.get("state") ?? "", () =>
+              exchangeCode(params.get("code") ?? ""),
+            );
+            return { connection: "connected" };
+          } catch {
+            // Refused or failed, the reader is told so and connects again.
+            return { connection: "failed" };
+          }
         },
       }),
     ],
@@ -433,6 +456,9 @@ export default defineServicePlugin(
             return {
               connected: settings !== null,
               ...(selected.tag ? { selectedTag: selected.tag } : {}),
+              ...(selected.connection
+                ? { connection: selected.connection }
+                : {}),
               bookmarks: bookmarks.map((saved) => {
                 const digest = digestByBookmark.get(saved.id);
                 return {

@@ -266,6 +266,7 @@ describe("public authoring 0.2 golden packages", () => {
       "launch: { origins: [READING_PROVIDER] }",
       "accountSettings.claim(",
       "accountSettings.redeem(",
+      "returnTo: readingWorkspace",
       "defineAccountSettings",
       "defineStudioWorkspace",
       "defineDashboardWidget",
