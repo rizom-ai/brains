@@ -7,7 +7,7 @@ Use this checklist when choosing a declarative extension family. For package and
 | Need                                                          | Entry point               | Use                                                             |
 | ------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
 | Durable markdown-backed entities and deterministic derivation | `@rizom/brain/entities`   | `defineEntity()`, `defineProjection()`, `defineEntityPackage()` |
-| Tools, resources, prompts, templates, views, or durable jobs  | `@rizom/brain/services`   | `defineServicePlugin()`, `defineTool()`, `defineJob()`          |
+| Tools, resources, prompts, templates, or durable jobs         | `@rizom/brain/services`   | `defineServicePlugin()`, `defineTool()`, `defineJob()`          |
 | HTTP routes or supervised event listeners                     | `@rizom/brain/interfaces` | `defineInterface()`, `defineRoute()`, `defineDaemon()`          |
 | Conversational or outbound channels                           | `@rizom/brain/interfaces` | `defineMessageInterface()`                                      |
 | Site layouts, routes, sections, content, and assets           | `@rizom/site`             | `defineSite()`, `defineSection()`, `sectionGroup()`             |
@@ -97,14 +97,14 @@ await messaging.publish({
 ```
 
 Declare `digest` under the owning service's `templates` field. The runtime
-validates `value` against that template's schema before formatting it. A service
-`view` adds web rendering and must reuse the exact schema object when it shares
-the template key.
+validates `value` against that template's schema before formatting it. The same
+template renders on the web when it declares `renderers.web`, a component given
+the parsed value as props.
 
 Do not confuse service templates with an entity's persistence `markdown` codec
 or a site's `namespace:section` route template. The generic
 `@rizom/brain/templates` subpath remains an advanced exact-version API. See
-[Entity data, templates, and views](./external-plugin-authoring.md#entity-data-templates-and-views)
+[Entity data and templates](./external-plugin-authoring.md#entity-data-and-templates)
 for the complete rules and checked reference.
 
 ## Lifecycle ownership

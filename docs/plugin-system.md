@@ -6,13 +6,13 @@
 
 Choose the narrowest family:
 
-| Family            | Public helper              | Use for                                                             |
-| ----------------- | -------------------------- | ------------------------------------------------------------------- |
-| Entity            | `defineEntityPackage()`    | Durable markdown-backed entities and deterministic projections      |
-| Service           | `defineServicePlugin()`    | Tools, resources, prompts, templates, views, jobs, and integrations |
-| Interface         | `defineInterface()`        | HTTP routes and supervised non-chat listeners                       |
-| Message interface | `defineMessageInterface()` | Conversational and outbound channels                                |
-| Site              | `defineSite()`             | Layouts, routes, sections, content, display metadata, and assets    |
+| Family            | Public helper              | Use for                                                          |
+| ----------------- | -------------------------- | ---------------------------------------------------------------- |
+| Entity            | `defineEntityPackage()`    | Durable markdown-backed entities and deterministic projections   |
+| Service           | `defineServicePlugin()`    | Tools, resources, prompts, templates, jobs, and integrations     |
+| Interface         | `defineInterface()`        | HTTP routes and supervised non-chat listeners                    |
+| Message interface | `defineMessageInterface()` | Conversational and outbound channels                             |
+| Site              | `defineSite()`             | Layouts, routes, sections, content, display metadata, and assets |
 
 A package default-exports one definition. Packages with multiple concerns remain focused and are composed in the brain-definition package.
 

@@ -260,7 +260,7 @@ them. Projections reference source/target definitions and write through the
 typed target helper. Persistence, markdown/frontmatter validation, visibility,
 search indexing, scheduling, and loop prevention stay runtime-owned.
 
-### Entity data, templates, and views
+### Entity data and templates
 
 A declarative entity definition does **not** have a `templates` field. Entities
 own storage schemas, optional Markdown encoding, and projections. Put formatting
@@ -330,12 +330,11 @@ Rules that are easy to miss:
 - declare the render-data schema once; `format()` receives its parsed output;
 - `templates.format("digest", value)` uses the service-local key and validates
   `value` before calling the formatter;
-- the formatter is available to this service's tool callbacks and job handlers;
+- the formatter is the `tools` and `jobs` slots' `templates`;
 - transform an `EntityOf` value into the intended render model instead of
   coupling presentation to every persisted field;
-- a `template` produces text, while a `view` supplies a web renderer;
-- a template and view with the same key form one capability and must reference
-  the exact same schema object;
+- one template formats a value as text (`format`), renders it
+  (`renderers.web`), or both; it renders only a schema that produces JSON;
 - configuration-dependent text should be represented in the render value before
   formatting because template definitions are static.
 
@@ -344,8 +343,7 @@ Several unrelated concepts also use the word “template”:
 | Concept                         | Meaning                                                                    |
 | ------------------------------- | -------------------------------------------------------------------------- |
 | Entity `markdown` codec         | Converts persisted content/metadata to and from Markdown; not presentation |
-| Service `templates`             | Schema-validated text formatting available to that service                 |
-| Service `views`                 | Schema-validated web rendering; may share a key/schema with a template     |
+| Service `templates`             | Schema-validated text formatting and web rendering for that service        |
 | Site route `template`           | A `namespace:section` reference created by `sectionGroup()`                |
 | `@rizom/brain/templates` import | Advanced rich-rendering API outside the patch-stable `0.2` contract        |
 
