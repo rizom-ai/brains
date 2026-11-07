@@ -26,7 +26,7 @@ const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
 const nominatedSiteVersion = "0.2.0-alpha.233";
 // The first release that publishes the component library. It versions with
 // @rizom/brain, so its floor is a Brain release number.
-const nominatedBrainUiVersion = "0.2.0-alpha.648";
+const nominatedBrainUiVersion = "0.2.0-alpha.649";
 
 const categories = [
   "stable",

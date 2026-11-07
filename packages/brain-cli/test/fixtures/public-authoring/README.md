@@ -160,7 +160,7 @@ fixtures. A real external package should declare both:
 
 A site package also carries exact direct dependencies on
 `@rizom/site@0.2.0-alpha.233` during the preview, and on
-`@rizom/brain-ui@0.2.0-alpha.648`, the first release that publishes the
+`@rizom/brain-ui@0.2.0-alpha.649`, the first release that publishes the
 component library. The library versions with `@rizom/brain`.
 
 ## How the evidence works
