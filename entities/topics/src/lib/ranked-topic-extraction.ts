@@ -63,8 +63,8 @@ export async function acquireExtractionLease(
     (await leases.compareAndSet("lease", previous, lease))
   )
     return lease;
-  // skip deduplication preserves one pending successor even while another
-  // attempt is processing. A lease keeps those attempts from racing.
+  // Jobs run one at a time, so a held lease belongs to an attempt the queue
+  // gave up on. Retry once that holder has had time to finish or expire.
   await enqueueTopicExtraction(context, 30_000);
   return null;
 }
@@ -103,6 +103,8 @@ export function createRankedTopicJobHandler(
 
   return {
     executionTimeoutMs: EXECUTION_TIMEOUT_MS,
+    // A job woken during a run waits for it instead of meeting its lease.
+    exclusive: true,
     validateAndParse: (data): Record<string, never> | null => {
       const parsed = jobDataSchema.safeParse(data);
       return parsed.success ? parsed.data : null;
