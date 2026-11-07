@@ -8,7 +8,6 @@
         "BrainAnchorConfigKind",
         "BrainDefinition",
         "BrainIdentity",
-        "BrainMode",
         "BundleConfigContribution",
         "BundlePermissionContribution",
         "CapabilityBundleDefinition",
@@ -37,7 +36,8 @@
         "ZodError",
         "ZodSchema",
         "ZodType",
-        "z"
+        "z",
+        "BrainMode"
       ]
     },
     "@rizom/brain/chat": {

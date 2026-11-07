@@ -458,6 +458,38 @@ describe("public authoring 0.2 golden packages", () => {
           "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
         },
       },
+      {
+        directory: "brain-definition",
+        paths: {
+          "@rizom/brain": ["./packages/brain-cli/src/entries/index.ts"],
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@rizom/site": ["./packages/site/src/index.ts"],
+          "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+          "@fixture/reading-webhook": [
+            "./packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts",
+          ],
+          "@fixture/campfire-interface": [
+            "./packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts",
+          ],
+          "@fixture/reading-site": [
+            "./packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx",
+          ],
+        },
+      },
     ] as const;
 
     // Each case is a whole tsc run over the public entries, and none reads
