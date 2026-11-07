@@ -148,7 +148,7 @@ export class ChatInterface extends MessageInterfacePlugin<
   private deps: ChatInterfaceDeps = {};
   private readonly chatInputBuilder = new ChatInputBuilder({
     getUploadStore: (platform: string): ScopedRuntimeUploadStore | undefined =>
-      platform === "discord" || platform === "slack"
+      platform === "discord" || platform === "slack" || platform === "whatsapp"
         ? this.uploadCoordinator.getCanonicalStore()
         : undefined,
     getThreadIdParts,

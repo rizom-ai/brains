@@ -54,6 +54,8 @@ function createSocket(): WhatsAppSocket & {
     sendPresenceUpdate: mock(async (): Promise<void> => {}),
     groupMetadata: mock(async () => ({ subject: "Rizom team" })),
     signalRepository: { lidMapping: { getPNForLID } },
+    updateMediaMessage: async (message: WAMessage): Promise<WAMessage> =>
+      message,
     getPNForLID,
   };
 }
@@ -337,6 +339,177 @@ describe("WhatsAppAdapter identity", () => {
     await adapter.handleUpsert({ type: "notify", messages: [inbound()] });
 
     expect(socket.getPNForLID).not.toHaveBeenCalled();
+  });
+});
+
+/** A 1×1 PNG, enough for Bun.Image to decode. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+describe("WhatsAppAdapter media", () => {
+  async function mediaAdapter(): Promise<
+    Awaited<ReturnType<typeof connectedAdapter>> & {
+      downloadMedia: ReturnType<
+        typeof mock<(raw: WAMessage) => Promise<Buffer>>
+      >;
+    }
+  > {
+    const downloadMedia = mock(async (_raw: WAMessage): Promise<Buffer> =>
+      Buffer.from("media-bytes"),
+    );
+    const adapter = new WhatsAppAdapter({ userName: "brain", downloadMedia });
+    const chat = createChat();
+    const socket = createSocket();
+    await adapter.initialize(chat);
+    adapter.attach(socket);
+    return { adapter, chat, socket, downloadMedia };
+  }
+
+  it("hands over an image with its caption as the text", async () => {
+    const { adapter, chat, downloadMedia } = await mediaAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [
+        inbound({
+          message: {
+            imageMessage: {
+              caption: "The whiteboard",
+              mimetype: "image/jpeg",
+              fileLength: 2048,
+            },
+          },
+        }),
+      ],
+    });
+    const message = chat.processed[0]?.message;
+    const data = await message?.attachments[0]?.fetchData?.();
+
+    expect(message?.text).toBe("The whiteboard");
+    expect(message?.attachments[0]).toMatchObject({
+      type: "image",
+      name: "IN-1.jpg",
+      mimeType: "image/jpeg",
+      size: 2048,
+    });
+    expect(data).toEqual(Buffer.from("media-bytes"));
+    expect(downloadMedia).toHaveBeenCalledTimes(1);
+  });
+
+  it("names a document by its file name", async () => {
+    const { adapter, chat } = await mediaAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [
+        inbound({
+          message: {
+            documentMessage: {
+              fileName: "plan.pdf",
+              mimetype: "application/pdf",
+              fileLength: 4096,
+            },
+          },
+        }),
+      ],
+    });
+
+    expect(chat.processed[0]?.message.text).toBe("");
+    expect(chat.processed[0]?.message.attachments[0]).toMatchObject({
+      type: "file",
+      name: "plan.pdf",
+      mimeType: "application/pdf",
+    });
+  });
+
+  it.each([
+    ["audioMessage", "audio", "audio/ogg; codecs=opus", "IN-1.ogg"],
+    ["videoMessage", "video", "video/mp4", "IN-1.mp4"],
+  ] as const)("hands over %s as %s", async (kind, type, mimetype, name) => {
+    const { adapter, chat } = await mediaAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [inbound({ message: { [kind]: { mimetype } } })],
+    });
+
+    expect(chat.processed[0]?.message.attachments[0]).toMatchObject({
+      type,
+      name,
+    });
+  });
+
+  it("reads a mention in a caption", async () => {
+    const { adapter, chat } = await mediaAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [
+        inbound({
+          key: {
+            remoteJid: GROUP_JID,
+            participant: DM_JID,
+            fromMe: false,
+            id: "IN-1",
+          },
+          message: {
+            imageMessage: {
+              caption: "@31600000001 what is this?",
+              mimetype: "image/jpeg",
+              contextInfo: { mentionedJid: ["31600000001@s.whatsapp.net"] },
+            },
+          },
+        }),
+      ],
+    });
+
+    expect(chat.processed[0]?.message).toMatchObject({
+      isMention: true,
+      text: "@brain what is this?",
+    });
+  });
+
+  it("sends a generated image after its text, with a Bun.Image thumbnail", async () => {
+    const { adapter, socket } = await mediaAdapter();
+
+    await adapter.postMessage(DM_THREAD, {
+      markdown: "Here is the chart",
+      files: [{ filename: "chart.png", mimeType: "image/png", data: PNG }],
+    });
+
+    expect(socket.sendMessage.mock.calls[0]).toEqual([
+      DM_JID,
+      { text: "Here is the chart" },
+    ]);
+    const image = socket.sendMessage.mock.calls[1]?.[1];
+    expect(image).toMatchObject({ image: PNG, mimetype: "image/png" });
+    const thumbnail =
+      image && "jpegThumbnail" in image ? image.jpegThumbnail : undefined;
+    // A JPEG, so Baileys never reaches for an image library of its own.
+    expect(Buffer.from(String(thumbnail), "base64").subarray(0, 2)).toEqual(
+      Buffer.from([0xff, 0xd8]),
+    );
+  });
+
+  it("sends other files as documents", async () => {
+    const { adapter, socket } = await mediaAdapter();
+    const pdf = Buffer.from("%PDF-1.7");
+
+    await adapter.postMessage(DM_THREAD, {
+      raw: "",
+      files: [
+        { filename: "notes.pdf", mimeType: "application/pdf", data: pdf },
+      ],
+    });
+
+    expect(socket.sendMessage.mock.calls).toEqual([
+      [
+        DM_JID,
+        { document: pdf, mimetype: "application/pdf", fileName: "notes.pdf" },
+      ],
+    ]);
   });
 });
 

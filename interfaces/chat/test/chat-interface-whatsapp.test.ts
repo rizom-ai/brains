@@ -390,4 +390,46 @@ describe("ChatInterface WhatsApp", () => {
     expect(sentMessage.edit).toHaveBeenCalledTimes(1);
     expect(thread.post).toHaveBeenCalledTimes(1);
   });
+
+  it("stores a trusted sender's attachment and hands it to the agent", async () => {
+    suite.harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "whatsapp:*", level: "trusted" }],
+      }),
+    );
+    await suite.harness.installPlugin(
+      createWhatsAppPlugin(createFakeWhatsApp()),
+    );
+    const chat = MockChatSdk.instances[0];
+    const thread = createThread({
+      id: DM_THREAD,
+      channelId: DM_THREAD,
+      isDM: true,
+      adapter: { name: "whatsapp" },
+    });
+    const fetchData = mock(async () => Buffer.from("meeting notes"));
+
+    await chat?.handlers.directMessages[0]?.(
+      thread,
+      createMessage({
+        text: "Read this",
+        threadId: DM_THREAD,
+        isMention: false,
+        attachments: [
+          { name: "notes.txt", mimeType: "text/plain", size: 13, fetchData },
+        ],
+      }),
+      thread,
+    );
+
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    expect(suite.agentService.chat.mock.calls[0]?.[2]).toMatchObject({
+      attachments: [
+        expect.objectContaining({
+          filename: "notes.txt",
+          content: "meeting notes",
+        }),
+      ],
+    });
+  });
 });
