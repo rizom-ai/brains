@@ -95,8 +95,18 @@ function assertMethodIn(
   }
 }
 
-function assertValidMatch(match: string, pluginId: string): void {
-  if (match !== "exact" && match !== "prefix") {
+/** A claim route needs its claims, and only a claim route has them. */
+function assertValidMatch(
+  match: string,
+  claims: unknown,
+  pluginId: string,
+): void {
+  const claimed = match === "claim";
+  if (
+    !["exact", "prefix", "claim"].includes(match) ||
+    claimed !== (typeof claims === "function") ||
+    (!claimed && claims !== undefined)
+  ) {
     throw new Error(
       `Invalid HTTP route match "${match}" declared by plugin "${pluginId}"`,
     );
@@ -111,7 +121,8 @@ function normalizeHandlerRoute(
   const method = definition.method ?? "GET";
   assertMethodIn(WEB_ROUTE_METHODS, method, contributor.pluginId);
   const match = definition.match ?? "exact";
-  assertValidMatch(match, contributor.pluginId);
+  assertValidMatch(match, definition.claims, contributor.pluginId);
+  const claims = definition.claims;
   if (typeof definition.handler !== "function") {
     throw new Error(
       `Invalid HTTP route handler for "${definition.path}" declared by plugin "${contributor.pluginId}"`,
@@ -125,6 +136,12 @@ function normalizeHandlerRoute(
     match,
     sharedHostAdmission: definition.public === true ? "admit" : "deny",
     ...(definition.preview === true ? { preview: true } : {}),
+    ...(claims
+      ? {
+          claims: (path: string): boolean =>
+            !isReservedPath(path) && claims(path),
+        }
+      : {}),
     handler: definition.handler,
   });
 }

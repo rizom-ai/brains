@@ -472,7 +472,12 @@ export class ServerManager {
             (requestPath === route.fullPath ||
               requestPath.startsWith(`${route.fullPath.replace(/\/$/, "")}/`)),
         )
-        .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
+        .sort(
+          (left, right) => right.fullPath.length - left.fullPath.length,
+        )[0] ??
+      handlerRoutes.find(
+        (route) => route.match === "claim" && route.claims?.(requestPath),
+      );
     if (handlerRoute) {
       if (!opts.healthEndpoint && handlerRoute.preview !== true) return null;
       if (handlerRoute.sharedHostAdmission === "deny") {
