@@ -1,8 +1,7 @@
 import { describe, expect, it, jest } from "bun:test";
 import { SitePageResponse } from "@brains/plugins";
-import { ContactHttpHandlers } from "../src";
-import { previewOriginFor } from "../src/http";
-import { intakeFixture, input, peer } from "./intake-fixture";
+import { previewOriginFor, type FormHttpHandlers } from "@brains/forms";
+import { contactHandlers, intakeFixture, input, peer } from "./intake-fixture";
 
 const origin = "https://brain.test";
 function post(
@@ -23,13 +22,13 @@ function form(token: string, values = input): string {
   return new URLSearchParams({ token, ...values, website: "" }).toString();
 }
 async function fixture(maxBodyBytes = 65536): Promise<{
-  handlers: ContactHttpHandlers;
+  handlers: FormHttpHandlers;
   f: Awaited<ReturnType<typeof intakeFixture>>;
 }> {
   const f = await intakeFixture();
   return {
     f,
-    handlers: new ContactHttpHandlers(f.admission, f.intake, {
+    handlers: contactHandlers(f.admission, f.intake, {
       origin,
       maxBodyBytes,
       readTimeoutMs: 10000,
@@ -289,7 +288,7 @@ describe("contact HTTP boundary", () => {
 });
 
 async function page(
-  handlers: ContactHttpHandlers,
+  handlers: FormHttpHandlers,
   request: Request,
   remoteAddress = peer,
 ): Promise<{ status: number; token: string | undefined }> {
@@ -303,7 +302,7 @@ async function page(
 describe("contact page for visitors", () => {
   async function page(owner?: string, path = "/contact"): Promise<string> {
     const f = await intakeFixture();
-    const handlers = new ContactHttpHandlers(
+    const handlers = contactHandlers(
       f.admission,
       f.intake,
       { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
@@ -325,13 +324,13 @@ describe("contact page for visitors", () => {
     for (const jargon of ["Brain", "intake", "Cleanup runs", "request"])
       expect(shown).not.toContain(jargon);
     const unnamed = await page();
-    expect(unnamed).toContain("<h1>Write a note</h1>");
+    expect(unnamed).toContain("<h1>Write to the owner of this site</h1>");
     expect(unnamed).toContain("goes privately to the owner of this site");
   });
 
   it("opens in the site's own theme unless the link chose one", async () => {
     const f = await intakeFixture();
-    const handlers = new ContactHttpHandlers(
+    const handlers = contactHandlers(
       f.admission,
       f.intake,
       { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
@@ -384,9 +383,9 @@ describe("contact HTTP behind a TLS-terminating proxy", () => {
   }
   async function behindProxy(
     trustForwardedProto: boolean,
-  ): Promise<ContactHttpHandlers> {
+  ): Promise<FormHttpHandlers> {
     const f = await intakeFixture();
-    return new ContactHttpHandlers(f.admission, f.intake, {
+    return contactHandlers(f.admission, f.intake, {
       origin,
       maxBodyBytes: 65536,
       readTimeoutMs: 10000,
@@ -430,9 +429,9 @@ describe("contact HTTP on the preview host", () => {
   const preview = "https://preview.brain.test";
   async function withPreview(
     previewOrigin?: string,
-  ): Promise<ContactHttpHandlers> {
+  ): Promise<FormHttpHandlers> {
     const f = await intakeFixture();
-    return new ContactHttpHandlers(
+    return contactHandlers(
       f.admission,
       f.intake,
       { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
@@ -504,7 +503,7 @@ describe("the preview origin a deployment serves", () => {
     const local = "http://localhost:8080";
     const localPreview = previewOriginFor(local, undefined);
     const f = await intakeFixture();
-    const handlers = new ContactHttpHandlers(
+    const handlers = contactHandlers(
       f.admission,
       f.intake,
       { origin: local, maxBodyBytes: 65536, readTimeoutMs: 10000 },
@@ -534,9 +533,9 @@ describe("the preview origin a deployment serves", () => {
 });
 
 describe("the contact page inside the site's own page", () => {
-  async function handlers(): Promise<ContactHttpHandlers> {
+  async function handlers(): Promise<FormHttpHandlers> {
     const f = await intakeFixture();
-    return new ContactHttpHandlers(f.admission, f.intake, {
+    return contactHandlers(f.admission, f.intake, {
       origin,
       maxBodyBytes: 65536,
       readTimeoutMs: 10000,
@@ -556,7 +555,9 @@ describe("the contact page inside the site's own page", () => {
     const token = /name="token" value="([a-f0-9]{64})"/.exec(own)?.[1];
     if (!token) throw new Error("Missing form token");
     expect(slot?.html).toContain(`name="token" value="${token}"`);
-    expect(slot?.html.startsWith('<div class="contact">')).toBe(true);
+    expect(
+      slot?.html.startsWith('<div class="form" data-form="contact">'),
+    ).toBe(true);
     expect(slot?.html).not.toContain("<html");
   });
 

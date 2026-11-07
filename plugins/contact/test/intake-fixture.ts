@@ -1,6 +1,39 @@
 import { createPluginHarness } from "@brains/plugins/test";
-import { FormAdmission, type FormAdmissionPolicy } from "@brains/forms";
-import { CONTACT_ADMISSION, ContactIntake, ContactRequestPlugin } from "../src";
+import {
+  FormAdmission,
+  FormHttpHandlers,
+  FormIntake,
+  formDefinitionSchema,
+  type FormAdmissionPolicy,
+  type FormDefinition,
+  type FormHttpOptions,
+  type FormHttpPolicy,
+} from "@brains/forms";
+import {
+  CONTACT_ADMISSION,
+  CONTACT_FORM,
+  CONTACT_SLOTS,
+  ContactRequestPlugin,
+  contactRequestTarget,
+} from "../src";
+
+/** The contact form as the engine runs it. */
+export const contactDefinition: FormDefinition = formDefinitionSchema.parse(
+  CONTACT_FORM.definition,
+);
+/** The contact form's HTTP boundary, in contact's own words. */
+export function contactHandlers(
+  admission: FormAdmission,
+  intake: FormIntake,
+  policy: FormHttpPolicy,
+  options: FormHttpOptions = {},
+): FormHttpHandlers {
+  return new FormHttpHandlers(contactDefinition, admission, intake, policy, {
+    copy: CONTACT_FORM.copy,
+    prefill: CONTACT_FORM.prefill,
+    ...options,
+  });
+}
 
 export const start: number = Date.parse("2026-09-21T10:00:00.000Z");
 export const peer: string = "192.0.2.1";
@@ -24,7 +57,7 @@ export const admissionPolicy: FormAdmissionPolicy = {
 
 export interface IntakeFixture {
   harness: ReturnType<typeof createPluginHarness>;
-  intake: ContactIntake;
+  intake: FormIntake;
   admission: FormAdmission;
   queued: Set<string>;
   now: () => number;
@@ -48,11 +81,13 @@ export async function intakeFixture(
     CONTACT_ADMISSION,
     () => now,
   );
-  const intake = new ContactIntake({
+  const intake = new FormIntake({
+    form: contactDefinition,
+    target: contactRequestTarget,
     admission,
     entities: harness.getEntityService(),
     state,
-    maxInFlight: options.maxInFlight,
+    slots: { ...CONTACT_SLOTS, maxInFlight: options.maxInFlight },
     enqueueNotification: async (id): Promise<void> => {
       if (enqueueFails) throw new Error("PRIVATE delivery failure");
       queued.add(id);

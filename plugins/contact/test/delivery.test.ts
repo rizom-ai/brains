@@ -5,11 +5,12 @@ import type {
 } from "@brains/plugins";
 import {
   FormDelivery,
+  FormRecords,
   FormStorageSlots,
   type FormAlertOutcome,
   type FormStorageSlot,
 } from "@brains/forms";
-import { CONTACT_SLOTS, ContactDeliveryTarget } from "../src";
+import { CONTACT_SLOTS, contactRequestTarget } from "../src";
 import {
   contactRequestAdapter,
   contactRequestSchema,
@@ -51,7 +52,7 @@ async function fixture(): Promise<
   }));
   const makeDelivery = (): FormDelivery =>
     new FormDelivery({
-      target: new ContactDeliveryTarget(entities),
+      target: new FormRecords(entities, contactRequestTarget),
       state,
       slots: CONTACT_SLOTS,
       policy,
@@ -250,7 +251,10 @@ describe("contact notification delivery", () => {
       { kind: "denied", reason: "capacity" },
     );
     const delivery = new FormDelivery({
-      target: new ContactDeliveryTarget(f.harness.getEntityService()),
+      target: new FormRecords(
+        f.harness.getEntityService(),
+        contactRequestTarget,
+      ),
       state: f.harness.getMockShell().getRuntimeState(),
       slots: CONTACT_SLOTS,
       policy,

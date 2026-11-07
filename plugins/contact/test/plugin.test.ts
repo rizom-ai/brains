@@ -585,14 +585,17 @@ describe("the contact page in the site", () => {
     await f.plugin.ready();
     const component = f.h.getTemplates().get("contact:page")?.layout?.component;
     if (!component) throw new Error("Missing contact:page template");
-    expect(renderToStaticMarkup(component({}))).toBe(
+    // One template for every form, each page naming its form's slot.
+    expect(renderToStaticMarkup(component({ slot: "contact" }))).toBe(
       '<div data-site-slot="contact"></div>',
     );
     const page = (id: string, path: string, title: string): unknown => ({
       id,
       path,
       title,
-      sections: [{ id: "form", template: "contact:page", content: {} }],
+      sections: [
+        { id: "form", template: "contact:page", content: { slot: "contact" } },
+      ],
       navigation: { show: false },
     });
     // The command is validated, its defaults filled, before it is sent.

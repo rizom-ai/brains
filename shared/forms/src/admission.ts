@@ -236,54 +236,64 @@ export class FormAdmission {
         now > Number.MAX_SAFE_INTEGER - 86400_000
       )
         return denied("unavailable");
-      for (let attempt = 0; attempt < 16; attempt++) {
-        const stored = await this.store.get("ledger");
-        if (!stored) {
-          await this.store.setIfNotExists("ledger", {
-            revision: 0,
-            lastNow: now,
-            salt: randomBytes(32).toString("hex"),
-            windowEnd: now + this.policy.windowSeconds * 1000,
-            global: emptyCounters(),
-            networks: {},
-            entries: {},
-          });
-          continue;
-        }
-        if (now < stored.lastNow || stored.revision === Number.MAX_SAFE_INTEGER)
-          return denied("unavailable");
-        const rollover = now >= stored.windowEnd;
-        const state: FormAdmissionState = {
-          ...stored,
-          ...(rollover
-            ? {
-                windowEnd: now + this.policy.windowSeconds * 1000,
-                global: emptyCounters(),
-                networks: {},
-              }
-            : {}),
-          entries: Object.fromEntries(
-            Object.entries(stored.entries).filter(
-              ([, entry]) => now < entry.retainUntil,
-            ),
-          ),
-        };
-        const transition = change(state, now);
-        if (!transition.next) return transition.result;
-        if (
-          await this.store.compareAndSet("ledger", stored, {
-            ...transition.next,
-            revision: stored.revision + 1,
-            lastNow: now,
-          })
-        )
-          return transition.result;
-      }
+      return await this.attempt(change, now, 16);
     } catch {
       // An ambiguous write may have consumed quota. Never guess a refund, retry
       // an uncertain write here, or leak the storage exception to the HTTP layer.
       return denied("unavailable");
     }
-    return denied("unavailable");
+  }
+
+  /** One compare-and-set round; losing a race tries again, a bounded number
+   * of times. */
+  private async attempt<
+    T extends FormRequestResult | FormIssueResult | FormReservationResult,
+  >(
+    change: (state: FormAdmissionState, now: number) => Transition<T>,
+    now: number,
+    attempts: number,
+  ): Promise<T | Denied> {
+    if (attempts === 0) return denied("unavailable");
+    const stored = await this.store.get("ledger");
+    if (!stored) {
+      await this.store.setIfNotExists("ledger", {
+        revision: 0,
+        lastNow: now,
+        salt: randomBytes(32).toString("hex"),
+        windowEnd: now + this.policy.windowSeconds * 1000,
+        global: emptyCounters(),
+        networks: {},
+        entries: {},
+      });
+      return this.attempt(change, now, attempts - 1);
+    }
+    if (now < stored.lastNow || stored.revision === Number.MAX_SAFE_INTEGER)
+      return denied("unavailable");
+    const rollover = now >= stored.windowEnd;
+    const state: FormAdmissionState = {
+      ...stored,
+      ...(rollover
+        ? {
+            windowEnd: now + this.policy.windowSeconds * 1000,
+            global: emptyCounters(),
+            networks: {},
+          }
+        : {}),
+      entries: Object.fromEntries(
+        Object.entries(stored.entries).filter(
+          ([, entry]) => now < entry.retainUntil,
+        ),
+      ),
+    };
+    const transition = change(state, now);
+    if (!transition.next) return transition.result;
+    const written = await this.store.compareAndSet("ledger", stored, {
+      ...transition.next,
+      revision: stored.revision + 1,
+      lastNow: now,
+    });
+    return written
+      ? transition.result
+      : this.attempt(change, now, attempts - 1);
   }
 }

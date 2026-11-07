@@ -290,29 +290,35 @@ export class FormStorageSlots {
     const now = this.now();
     if (!Number.isSafeInteger(now) || now < 0)
       throw new Error("Form storage unavailable");
-    for (let attempt = 0; attempt < 16; attempt++) {
-      const state = await this.store.get("slots");
-      if (!state) {
-        await this.store.setIfNotExists("slots", {
-          revision: 0,
-          lastNow: now,
-          slots: {},
-        });
-        continue;
-      }
-      if (now < state.lastNow || state.revision === Number.MAX_SAFE_INTEGER)
-        break;
-      const changed = change(state, now);
-      if (!changed.next) return changed.result;
-      if (
-        await this.store.compareAndSet("slots", state, {
-          ...changed.next,
-          revision: state.revision + 1,
-          lastNow: now,
-        })
-      )
-        return changed.result;
+    return this.attempt(change, now, 16);
+  }
+
+  /** One compare-and-set round; losing a race tries again, a bounded number
+   * of times. */
+  private async attempt<T>(
+    change: (state: SlotState, now: number) => { result: T; next?: SlotState },
+    now: number,
+    attempts: number,
+  ): Promise<T> {
+    if (attempts === 0) throw new Error("Form storage unavailable");
+    const state = await this.store.get("slots");
+    if (!state) {
+      await this.store.setIfNotExists("slots", {
+        revision: 0,
+        lastNow: now,
+        slots: {},
+      });
+      return this.attempt(change, now, attempts - 1);
     }
-    throw new Error("Form storage unavailable");
+    if (now < state.lastNow || state.revision === Number.MAX_SAFE_INTEGER)
+      throw new Error("Form storage unavailable");
+    const changed = change(state, now);
+    if (!changed.next) return changed.result;
+    const written = await this.store.compareAndSet("slots", state, {
+      ...changed.next,
+      revision: state.revision + 1,
+      lastNow: now,
+    });
+    return written ? changed.result : this.attempt(change, now, attempts - 1);
   }
 }

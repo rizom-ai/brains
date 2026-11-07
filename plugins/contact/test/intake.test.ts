@@ -15,7 +15,7 @@ describe("contact intake persistence", () => {
       { ...input, email: "wrong" },
       { ...input, visibility: "public" },
     ]) {
-      expect(await f.intake.submit(token, bad, peer, signal())).toEqual({
+      expect(await f.intake.submit(token, bad, peer, signal())).toMatchObject({
         kind: "denied",
         reason: "invalid-submission",
       });

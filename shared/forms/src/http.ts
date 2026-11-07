@@ -4,27 +4,27 @@ import {
   type WebRouteTransportContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import type { FormAdmission, FormDenialReason } from "./admission";
+import { FORM_COPY, type FormCopy } from "./copy";
 import {
-  FormHttpError as ContactHttpError,
-  isPrivatePeer,
-  readForm,
-  type FormAdmission,
-  type FormDenialReason as ContactDenialReason,
-} from "@brains/forms";
-import type { ContactIntake } from "./intake";
-import { contactSubmissionSchema } from "./entity/schema";
+  formFields,
+  RESERVED_FIELD_IDS,
+  type FormDefinition,
+} from "./definition";
+import { FormHttpError, readForm } from "./http-body";
+import type { FormIntake } from "./intake";
+import { isPrivatePeer } from "./network";
+import { formPage } from "./page";
 import {
-  CONTACT_SLOT,
-  contactForm,
-  contactPage,
-  contactRefused,
-  contactThanks,
-  contactUnavailable,
-  type ContactDraft,
-  type ContactPresentation,
-} from "./http-page";
+  renderForm,
+  renderPaused,
+  renderRefused,
+  renderThanks,
+  type FormDraft,
+  type FormPresentation,
+} from "./render";
 
-export interface ContactHttpPolicy {
+export interface FormHttpPolicy {
   origin: string;
   maxBodyBytes: number;
   readTimeoutMs: number;
@@ -67,7 +67,7 @@ export function previewOriginFor(
   url.hostname = "preview.localhost";
   return url.origin;
 }
-export const contactHttpPolicyShape: z.ZodObject<
+export const formHttpPolicyShape: z.ZodObject<
   {
     origin: z.ZodString;
     maxBodyBytes: z.ZodNumber;
@@ -81,38 +81,23 @@ export const contactHttpPolicyShape: z.ZodObject<
   readTimeoutMs: z.number().int().min(100).max(30000),
   trustForwardedProto: z.boolean().optional(),
 });
-export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
-  contactHttpPolicyShape;
-export interface ContactHttpOptions {
+export const formHttpPolicySchema: z.ZodType<FormHttpPolicy> =
+  formHttpPolicyShape;
+
+export interface FormHttpOptions {
   themeCSS?: string | undefined;
   /** The deployment's preview origin, served alongside the policy origin. */
   previewOrigin?: string | undefined;
-  /** Who notes go to, as the site names its owner; read per request. */
+  /** Who submissions go to, as the site names its owner; read per request. */
   owner?: (() => string | undefined) | undefined;
   /** The site's own theme, used when the visitor's link names none; read per request. */
   defaultTheme?: (() => "light" | "dark" | undefined) | undefined;
+  /** What the engine says around the form, when it says it in its own words. */
+  copy?: FormCopy | undefined;
+  /** A draft from the link that opened the form. */
+  prefill?: ((url: URL) => FormDraft) | undefined;
 }
-const formSchema = z.strictObject({
-  token: z.string().regex(/^[a-f0-9]{64}$/),
-  ...contactSubmissionSchema.shape,
-});
-/** The fields contact's form posts: its submission, the token and the honeypot. */
-const CONTACT_FIELDS: ReadonlySet<string> = new Set([
-  "token",
-  "name",
-  "email",
-  "message",
-  "website",
-]);
-/** A site links a topic to the form; it starts the visitor's message, who can change it. */
-const TOPIC_MAX_LENGTH = 200;
-function topicDraft(url: URL): ContactDraft {
-  const topic = url.searchParams
-    .get("topic")
-    ?.trim()
-    .slice(0, TOPIC_MAX_LENGTH);
-  return topic ? { message: `${topic}\n\n` } : {};
-}
+
 const headers = {
   "Content-Type": "text/html; charset=utf-8",
   "Cache-Control": "no-store",
@@ -120,92 +105,57 @@ const headers = {
   // preserves the origin check while still suppressing cross-site referrers.
   "Referrer-Policy": "same-origin",
   "X-Content-Type-Options": "nosniff",
-  // The page is the site's own contact page with the form in it, so the
-  // site's styles, fonts and scripts load; the form still posts only here and
-  // the page cannot be framed.
+  // The page is the site's own page with the form in it, so the site's
+  // styles, fonts and scripts load; the form still posts only here and the
+  // page cannot be framed.
   "Content-Security-Policy":
     "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' https: data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
 };
 
-/** A contact page: the section fills the site's own page, or stands in the fallback page. */
-function page(
-  section: string,
-  presentation: ContactPresentation,
-  status = 200,
-): SitePageResponse {
-  return new SitePageResponse(contactPage(section, presentation), {
-    status,
-    headers,
-    slot: { name: CONTACT_SLOT, html: section },
-  });
-}
-function denial(reason: ContactDenialReason): ContactHttpError {
-  switch (reason) {
-    case "invalid-network":
-      return new ContactHttpError(
-        403,
-        "Notes can’t be sent from this connection.",
-      );
-    case "invalid-submission":
-      return new ContactHttpError(
-        400,
-        "Check the name, email and message fields before retrying.",
-      );
-    case "invalid-token":
-      return new ContactHttpError(
-        409,
-        "This form is unavailable or expired. Copy your message before opening a new form.",
-      );
-    case "submission-conflict":
-      return new ContactHttpError(
-        409,
-        "This form already sent a different note. To send another, open a new form.",
-      );
-    case "rate-limited":
-      return new ContactHttpError(
-        429,
-        "Too many requests. Please wait before retrying this form.",
-      );
-    case "capacity":
-      return new ContactHttpError(
-        503,
-        "There’s no room for new notes right now. Please try this same form again later.",
-      );
-    case "unavailable":
-      return new ContactHttpError(
-        503,
-        "Your note couldn’t be confirmed as saved. Send this same form again rather than opening a new one.",
-      );
-  }
-}
-
-/** Bounded HTTP boundary; the owning plugin controls readiness and opt-in mounting. */
-export class ContactHttpHandlers {
-  private readonly policy: ContactHttpPolicy;
+/** Bounded HTTP boundary for one form; the owning plugin controls readiness and mounting. */
+export class FormHttpHandlers {
+  private readonly form: FormDefinition;
+  private readonly policy: FormHttpPolicy;
   private readonly admission: FormAdmission;
-  private readonly intake: ContactIntake;
+  private readonly intake: FormIntake;
   private readonly themeCSS: string;
   private readonly owner: () => string | undefined;
   private readonly defaultTheme: () => "light" | "dark" | undefined;
+  private readonly copy: FormCopy;
+  private readonly prefill: (url: URL) => FormDraft;
   private readonly origins: readonly string[];
+  /** Every name the form posts: its fields, the token and the honeypot. */
+  private readonly fields: ReadonlySet<string>;
   constructor(
+    form: FormDefinition,
     admission: FormAdmission,
-    intake: ContactIntake,
-    policy: ContactHttpPolicy,
-    options: ContactHttpOptions = {},
+    intake: FormIntake,
+    policy: FormHttpPolicy,
+    options: FormHttpOptions = {},
   ) {
+    this.form = form;
     this.themeCSS = options.themeCSS ?? "";
     this.owner = options.owner ?? ((): undefined => undefined);
     this.defaultTheme = options.defaultTheme ?? ((): undefined => undefined);
+    this.copy = options.copy ?? FORM_COPY;
+    this.prefill = options.prefill ?? ((): FormDraft => ({}));
     this.admission = admission;
     this.intake = intake;
-    this.policy = contactHttpPolicySchema.parse(policy);
+    this.policy = formHttpPolicySchema.parse(policy);
     this.origins = [
       this.policy.origin,
       ...(options.previewOrigin
         ? [originSchema.parse(options.previewOrigin)]
         : []),
     ];
+    this.fields = new Set([
+      ...RESERVED_FIELD_IDS,
+      ...formFields(form).map((field) => field.id),
+    ]);
+  }
+
+  private get thanksPath(): string {
+    return `${this.form.path}/thanks`;
   }
 
   /** The URL the visitor used. A trusted private proxy's forwarded https
@@ -227,9 +177,9 @@ export class ContactHttpHandlers {
 
   routes(preview = false): WebRouteDefinition[] {
     return [
-      { path: "/contact", method: "GET" as const },
-      { path: "/contact", method: "POST" as const },
-      { path: "/contact/thanks", method: "GET" as const },
+      { path: this.form.path, method: "GET" as const },
+      { path: this.form.path, method: "POST" as const },
+      { path: this.thanksPath, method: "GET" as const },
     ].map((route) => ({
       ...route,
       public: true,
@@ -238,20 +188,52 @@ export class ContactHttpHandlers {
     }));
   }
 
-  private presentation(request: Request): ContactPresentation {
+  private presentation(request: Request): FormPresentation {
     const chosen = new URL(request.url).searchParams.get("theme");
     const theme =
       chosen === "light" || chosen === "dark" ? chosen : this.defaultTheme();
     const owner = this.owner()?.trim();
     return {
-      themeCSS: this.themeCSS,
       ...(theme ? { theme } : {}),
       ...(owner ? { owner } : {}),
     };
   }
 
+  /** A page of this form: it fills the site's own page, or stands in the fallback page. */
+  private page(
+    section: string,
+    presentation: FormPresentation,
+    status = 200,
+  ): SitePageResponse {
+    return new SitePageResponse(
+      formPage(section, {
+        themeCSS: this.themeCSS,
+        theme: presentation.theme,
+        title: this.form.pageTitle,
+      }),
+      { status, headers, slot: { name: this.form.id, html: section } },
+    );
+  }
+
+  private denial(reason: FormDenialReason): FormHttpError {
+    const status: Record<FormDenialReason, number> = {
+      "invalid-network": 403,
+      "invalid-submission": 400,
+      "invalid-token": 409,
+      "submission-conflict": 409,
+      "rate-limited": 429,
+      capacity: 503,
+      unavailable: 503,
+    };
+    return new FormHttpError(status[reason], this.copy.denials[reason]);
+  }
+
   unavailable(request: Request): Response {
-    return page(contactUnavailable(), this.presentation(request), 503);
+    return this.page(
+      renderPaused(this.form, this.copy),
+      this.presentation(request),
+      503,
+    );
   }
 
   async handle(
@@ -260,41 +242,50 @@ export class ContactHttpHandlers {
   ): Promise<Response> {
     const presentation = this.presentation(request);
     let token = "";
-    let draft: ContactDraft = {};
+    let draft: FormDraft = {};
+    let errors: Record<string, string> = {};
     try {
       const url = this.visitorUrl(request, transport);
       if (!this.origins.includes(url.origin))
-        throw new ContactHttpError(403, "Contact request denied.");
+        throw new FormHttpError(403, this.copy.denied);
       if (
         url.protocol === "http:" &&
         !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(
           transport?.remoteAddress ?? "",
         )
       )
-        throw new ContactHttpError(403, "Contact request denied.");
-      if (!["/contact", "/contact/thanks"].includes(url.pathname))
-        throw new ContactHttpError(404, "Page not found.");
+        throw new FormHttpError(403, this.copy.denied);
+      if (![this.form.path, this.thanksPath].includes(url.pathname))
+        throw new FormHttpError(404, this.copy.notFound);
       if (
         !["GET", "POST"].includes(request.method) ||
-        (url.pathname === "/contact/thanks" && request.method !== "GET")
+        (url.pathname === this.thanksPath && request.method !== "GET")
       )
-        throw new ContactHttpError(405, "Method not allowed.");
+        throw new FormHttpError(405, this.copy.methodNotAllowed);
       if (
         request.method === "POST" &&
         (request.headers.get("origin") !== url.origin ||
           request.headers.get("sec-fetch-site") === "cross-site")
       )
-        throw new ContactHttpError(403, "Contact request denied.");
+        throw new FormHttpError(403, this.copy.denied);
       const gate = await this.admission.checkRequest(transport?.remoteAddress);
-      if (gate.kind === "denied") throw denial(gate.reason);
+      if (gate.kind === "denied") throw this.denial(gate.reason);
       request.signal.throwIfAborted();
-      if (url.pathname === "/contact/thanks")
-        return page(contactThanks(presentation), presentation);
+      if (url.pathname === this.thanksPath)
+        return this.page(
+          renderThanks(this.form, presentation, this.copy),
+          presentation,
+        );
       if (request.method === "GET") {
         const form = await this.admission.issue(transport?.remoteAddress);
-        if (form.kind === "denied") throw denial(form.reason);
-        return page(
-          contactForm(form.token, topicDraft(url), undefined, presentation),
+        if (form.kind === "denied") throw this.denial(form.reason);
+        return this.page(
+          renderForm(this.form, {
+            token: form.token,
+            draft: this.prefill(url),
+            presentation,
+            copy: this.copy,
+          }),
           presentation,
         );
       }
@@ -305,48 +296,48 @@ export class ContactHttpHandlers {
           ?.trim()
           .toLowerCase() !== "application/x-www-form-urlencoded"
       )
-        throw new ContactHttpError(
-          415,
-          "A URL-encoded form is required. Attachments are not accepted.",
-        );
-      const fields = await readForm(
+        throw new FormHttpError(415, this.copy.mediaType);
+      const posted = await readForm(
         request,
         this.policy.maxBodyBytes,
         this.policy.readTimeoutMs,
-        CONTACT_FIELDS,
+        this.fields,
       );
-      draft = {
-        name: fields["name"] ?? "",
-        email: fields["email"] ?? "",
-        message: fields["message"] ?? "",
-      };
-      token = /^[a-f0-9]{64}$/.test(fields["token"] ?? "")
-        ? (fields["token"] ?? "")
-        : "";
-      const parsed = formSchema.safeParse(fields);
-      if (!parsed.success) throw denial("invalid-submission");
-      const { token: credential, ...submission } = parsed.data;
+      const { token: credential = "", ...answers } = posted;
+      draft = answers;
+      token = /^[a-f0-9]{64}$/.test(credential) ? credential : "";
+      if (!token) throw this.denial("invalid-submission");
       const result = await this.intake.submit(
-        credential,
-        submission,
+        token,
+        answers,
         transport?.remoteAddress,
         request.signal,
       );
-      if (result.kind === "denied") throw denial(result.reason);
+      if (result.kind === "denied") {
+        errors = result.errors ?? {};
+        throw this.denial(result.reason);
+      }
       return new Response(null, {
         status: 303,
         headers: {
           ...headers,
-          Location: `/contact/thanks${presentation.theme ? `?theme=${presentation.theme}` : ""}`,
+          Location: `${this.thanksPath}${presentation.theme ? `?theme=${presentation.theme}` : ""}`,
         },
       });
     } catch (error) {
       const failure =
-        error instanceof ContactHttpError ? error : denial("unavailable");
+        error instanceof FormHttpError ? error : this.denial("unavailable");
       const section = token
-        ? contactForm(token, draft, failure.message, presentation)
-        : contactRefused(failure.message, presentation);
-      return page(section, presentation, failure.status);
+        ? renderForm(this.form, {
+            token,
+            draft,
+            errors,
+            notice: failure.message,
+            presentation,
+            copy: this.copy,
+          })
+        : renderRefused(this.form, failure.message, presentation, this.copy);
+      return this.page(section, presentation, failure.status);
     }
   }
 }

@@ -2,9 +2,9 @@ import { ContactPlugin } from "./plugin";
 import { ContactRequestPlugin } from "./entity/plugin";
 import type { ContactPluginConfig } from "./config";
 
-export { ContactHttpHandlers, contactHttpPolicySchema } from "./http";
-export { ContactDeliveryTarget } from "./delivery-target";
 export { CONTACT_ADMISSION, CONTACT_SLOTS } from "./state";
+export { CONTACT_COPY, CONTACT_FORM } from "./form";
+export { contactRequestTarget } from "./target";
 export {
   CONTACT_INTAKE_DEFAULTS,
   contactPluginConfigSchema,
@@ -15,13 +15,6 @@ export type {
   ContactIntakeOverrides,
   ContactIntakePolicy,
 } from "./config";
-export type { ContactHttpOptions, ContactHttpPolicy } from "./http";
-export { ContactIntake } from "./intake";
-export type {
-  ContactIntakeDependencies,
-  ContactSaveResult,
-  ContactMaintenanceReport,
-} from "./intake";
 export { ContactPlugin, ContactRequestPlugin };
 export { ContactInboxSource } from "./inbox-source";
 export { ContactRequestAdapter, contactRequestAdapter } from "./entity/adapter";

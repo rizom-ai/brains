@@ -1,113 +1,26 @@
 import {
-  internalFullScope,
-  createTemplate,
   ServicePlugin,
-  SITE_SLOT_ATTRIBUTE,
-  type IRuntimeStateStore,
   type ServicePluginContext,
   type WebRouteDefinition,
-  type RuntimeHealthCheck,
 } from "@brains/plugins";
-import { createElement, type ReactElement } from "react";
-import { notificationsSendContract } from "@brains/contracts";
-import {
-  SITE_METADATA_UPDATED_CHANNEL,
-  siteBuilderRouteRegisterContract,
-  siteMetadataContract,
-} from "@brains/site-composition";
-import { z } from "@brains/utils/zod";
+import { FormService } from "@brains/forms";
 import packageJson from "../package.json";
 import { ContactInboxSource } from "./inbox-source";
-import {
-  FormAdmission,
-  FormDelivery,
-  FormStorageSlots,
-  formAlertText,
-  type FormAlertOutcome,
-} from "@brains/forms";
-import { ContactIntake, type ContactMaintenanceReport } from "./intake";
-import { ContactHttpHandlers, previewOriginFor } from "./http";
-import { CONTACT_SLOT } from "./http-page";
-import { ContactDeliveryTarget } from "./delivery-target";
-import { CONTACT_ADMISSION, CONTACT_SLOTS } from "./state";
-import { contactRequestSchema } from "./entity/schema";
-import {
-  contactPluginConfigSchema,
-  resolveIntakePolicy,
-  type ContactIntakePolicy,
-  type ContactPluginConfig,
-} from "./config";
+import { contactPluginConfigSchema, type ContactPluginConfig } from "./config";
+import type { ContactRequest } from "./entity/schema";
+import { CONTACT_FORM } from "./form";
+import { contactRequestTarget } from "./target";
 
-const notificationJobSchema = z.strictObject({
-  id: z.string().regex(/^contact-[a-f0-9]{64}$/),
-});
-const MAX_MAINTENANCE_AGE_MS = 26 * 60 * 60 * 1000;
-/** Shared across processes: a separate worker runs the daily maintenance the
- * web process's intake depends on. */
-const maintenanceStatusSchema = z.strictObject({
-  at: z.number().int().nonnegative(),
-  failed: z.boolean(),
-});
-type MaintenanceStatus = z.output<typeof maintenanceStatusSchema>;
-/** Only the theme is read from the site's metadata. */
-const siteThemeSchema = z.looseObject({
-  themeMode: z.enum(["light", "dark"]).optional(),
-});
-
-/** Public intake on the plugin's own policy, on the origin the brain serves.
- * Readiness requires recovery and the actual Studio Inbox destination, not a
- * successful email send. */
-/** The slot the site's contact page leaves for the form. */
-function ContactSlot(): ReactElement {
-  return createElement("div", { [SITE_SLOT_ATTRIBUTE]: CONTACT_SLOT });
-}
-
-const contactPageTemplate = createTemplate({
-  name: "page",
-  description: "The site's contact page: its layout around the form's slot",
-  schema: z.object({}),
-  requiredPermission: "public",
-  layout: { component: ContactSlot },
-});
-
-function contactSitePage(
-  id: string,
-  path: string,
-  title: string,
-): {
-  id: string;
-  path: string;
-  title: string;
-  sections: { id: string; template: string; content: Record<string, never> }[];
-  navigation: { show: false };
-} {
-  return {
-    id,
-    path,
-    title,
-    sections: [{ id: "form", template: "contact:page", content: {} }],
-    navigation: { show: false },
-  };
-}
-
+/** The brain's contact form, on the forms engine; its requests are
+ * `contact-request` records in the owner's Inbox. */
 export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   readonly dependencies: string[];
-  private http: ContactHttpHandlers | undefined;
-  private policy: ContactIntakePolicy | undefined;
-  private intake: ContactIntake | undefined;
-  private slots: FormStorageSlots | undefined;
-  private readonly stop = new AbortController();
-  private maintenance: Promise<void> | undefined;
-  private maintenanceStatus: IRuntimeStateStore<MaintenanceStatus> | undefined;
-  private report: ContactMaintenanceReport | undefined;
-  private readyState = false;
-  private siteTheme: "light" | "dark" | undefined;
-  private readonly unregister: Array<() => void> = [];
+  private readonly forms: FormService<ContactRequest>;
 
   constructor(config: ContactPluginConfig = {}) {
     super("contact", packageJson, config, contactPluginConfigSchema);
     // site-builder registers first, so it is listening when the site's
-    // contact pages are declared below.
+    // contact pages are declared.
     this.dependencies = [
       "contact-request",
       "notifications",
@@ -115,6 +28,12 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       "studio",
       "unified-inbox",
     ];
+    this.forms = new FormService({
+      label: "Contact",
+      target: contactRequestTarget,
+      forms: [CONTACT_FORM],
+      overrides: this.config.intake,
+    });
   }
 
   protected override async onRegister(
@@ -122,345 +41,20 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   ): Promise<void> {
     if (!context.executionOnly)
       context.inbox.registerSource(new ContactInboxSource(context));
-    // The intake serves the brain's own origin: its local site URL while the
-    // brain prefers local URLs (a development run), else its domain.
-    const origin =
-      (context.preferLocalUrls ? context.localSiteUrl : context.siteUrl) ??
-      context.localSiteUrl ??
-      context.siteUrl;
-    if (!origin) throw new Error("Contact intake needs the brain's site URL");
-    const config = resolveIntakePolicy(this.config, origin);
-    this.policy = config;
-    // The site's own contact pages: its layout around an empty slot the form
-    // fills per request. Declared in every process, as the site builds in a
-    // separate worker, which registers plugins but never runs their ready phase.
-    context.templates.register({ page: contactPageTemplate });
-    await context.messaging.command(siteBuilderRouteRegisterContract, {
-      pluginId: this.id,
-      routes: [
-        contactSitePage("contact", "/contact", "Contact"),
-        contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
-      ],
-    });
-    const target = new ContactDeliveryTarget(context.entityService);
-    const delivery = new FormDelivery({
-      target,
-      state: context.runtimeState,
-      slots: CONTACT_SLOTS,
-      policy: config.delivery,
-      send: async (id, idempotencyKey): Promise<FormAlertOutcome> => {
-        const inbox = this.inboxUrl(context);
-        if (!inbox) return { sent: false, failure: "no-inbox" };
-        const alert = await target.alert(id);
-        if (!alert) return { sent: false, failure: "no-request" };
-        const result = await context.messaging.request(
-          notificationsSendContract,
-          {
-            title: "New contact request",
-            body: formAlertText({
-              answers: alert.answers,
-              inboxUrl: inbox,
-              replyable: true,
-            }),
-            sensitivity: "secret",
-            idempotencyKey,
-            replyTo: alert.replyTo,
-          },
-        );
-        if (result.status === "unavailable")
-          return { sent: false, failure: "no-notifier" };
-        // A fault answering, unlike a refusal, says nothing of the outcome.
-        if (result.status === "failed")
-          return { sent: false, failure: "unconfirmed" };
-        if (result.data.status === "sent") return { sent: true };
-        // A refusal names its reason; a failed delivery, its transport's code.
-        return {
-          sent: false,
-          failure: result.data.transportCode ?? result.data.failure,
-        };
-      },
-    });
-    context.jobs.registerHandler("notify", {
-      executionTimeoutMs: 60_000,
-      validateAndParse: (input) => {
-        const parsed = notificationJobSchema.safeParse(input);
-        return parsed.success ? parsed.data : null;
-      },
-      process: async (input, _jobId, _progress, signal) => {
-        const data = notificationJobSchema.safeParse(input);
-        if (!data.success) throw new Error("Invalid contact notification job");
-        return delivery.deliver(data.data.id, signal);
-      },
-    });
-    // Both processes build intake: the web process serves it, while a separate
-    // worker runs its maintenance and the site builds that look for the form.
-    this.maintenanceStatus = context.runtimeState.scoped({
-      namespace: "contact.maintenance",
-      schema: maintenanceStatusSchema,
-    });
-    this.slots = new FormStorageSlots(
-      context.runtimeState,
-      CONTACT_SLOTS,
-      Date.now,
-    );
-    const admission = new FormAdmission(
-      context.runtimeState,
-      config.admission,
-      CONTACT_ADMISSION,
-    );
-    this.intake = new ContactIntake({
-      admission,
-      entities: context.entityService,
-      state: context.runtimeState,
-      enqueueNotification: async (id): Promise<void> => {
-        await context.jobs.enqueue({
-          type: "notify",
-          data: { id },
-          toolContext: null,
-          options: {
-            source: "contact",
-            metadata: { operationType: "data_processing", silent: true },
-            deduplication: "skip",
-            deduplicationKey: `contact-notification:${id}`,
-            maxRetries: config.delivery.maxAttempts,
-          },
-        });
-      },
-    });
-    this.http = new ContactHttpHandlers(admission, this.intake, config.http, {
-      themeCSS: context.themeCSS,
-      // The deployment's own preview host is served beside the origin.
-      previewOrigin: previewOriginFor(config.http.origin, context.previewUrl),
-      owner: (): string => context.identity.getProfile().name,
-      defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
-    });
-    if (!context.executionOnly)
-      context.messaging.subscribe<unknown, { success: boolean }>(
-        SITE_METADATA_UPDATED_CHANNEL,
-        async (message) => {
-          this.siteTheme = siteThemeSchema.safeParse(message.payload).data
-            ?.themeMode;
-          return { success: true };
-        },
-      );
-    context.endpoints.register({
-      label: "Contact",
-      url: `${config.http.origin}/contact`,
-      priority: 50,
-      visibility: "public",
-    });
-    this.unregister.push(
-      context.recurringChecks.register({
-        id: "maintenance",
-        cadence: "daily",
-        deliverAlerts: false,
-        includeInInbox: false,
-        run: async ({ signal }) => {
-          await this.maintain(signal);
-          return {};
-        },
-      }),
-    );
-    if (!context.executionOnly)
-      this.unregister.push(
-        context.operationalHealth.register("intake", () =>
-          this.health(context.entityService),
-        ),
-      );
+    await this.forms.register(context, this.id);
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
-    const http = this.http;
-    if (!http) return [];
-    return http.routes(true).map((route) => ({
-      ...route,
-      handler: async (request, transport): Promise<Response> => {
-        if (!this.readyState || !(await this.maintenanceFresh()))
-          return http.unavailable(request);
-        return route.handler(request, transport);
-      },
-    }));
+    return this.forms.webRoutes();
   }
 
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    // A separate worker never serves the form, so it is never ready to.
-    if (context.executionOnly || !this.intake) return;
-    if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
-      throw new Error("Contact Inbox unavailable");
-    await this.readSiteTheme(context);
-    await this.maintain(this.stop.signal);
-    this.stop.signal.throwIfAborted();
-    this.readyState = true;
-  }
-
-  /** Where the alerts point: the unified-inbox workspace under Studio's
-   * mounted workspaces route, on the intake's origin. Nothing while Studio
-   * mounts no such route. */
-  private inboxUrl(context: ServicePluginContext): string | undefined {
-    const origin = this.policy?.http.origin;
-    const workspaces = context.webRoutes.findByRole("studio-workspaces");
-    return origin && workspaces
-      ? `${origin}${workspaces.fullPath}/unified-inbox%3Ainbox`
-      : undefined;
-  }
-
-  /** The form opens in the site's own theme when a link names none. */
-  private async readSiteTheme(context: ServicePluginContext): Promise<void> {
-    const result = await context.messaging.request(siteMetadataContract, {});
-    // No site describes a theme; the page keeps its own default.
-    if (result.status === "answered") this.siteTheme = result.data.themeMode;
-  }
-
-  private maintain(signal: AbortSignal): Promise<void> {
-    const combined = AbortSignal.any([signal, this.stop.signal]);
-    combined.throwIfAborted();
-    this.maintenance ??= this.runMaintenance(combined).finally(() => {
-      this.maintenance = undefined;
-    });
-    return this.maintenance;
-  }
-
-  private async runMaintenance(signal: AbortSignal): Promise<void> {
-    try {
-      if (!this.intake || !this.maintenanceStatus)
-        throw new Error("Contact intake unavailable");
-      this.report = await this.intake.maintain(signal);
-      signal.throwIfAborted();
-      await this.maintenanceStatus.set("status", {
-        at: Date.now(),
-        failed: false,
-      });
-    } catch {
-      await this.recordMaintenanceFailure();
-      throw new Error("Contact maintenance unavailable");
-    }
-  }
-
-  private async recordMaintenanceFailure(): Promise<void> {
-    try {
-      const previous = await this.maintenanceStatus?.get("status");
-      await this.maintenanceStatus?.set("status", {
-        at: previous?.at ?? 0,
-        failed: true,
-      });
-    } catch {
-      // The status store itself failed; an unreadable status already keeps
-      // intake closed, and the caller reports the maintenance failure.
-    }
-  }
-
-  private async maintenanceFresh(): Promise<boolean> {
-    if (this.stop.signal.aborted || !this.maintenanceStatus) return false;
-    try {
-      const status = await this.maintenanceStatus.get("status");
-      const now = Date.now();
-      return (
-        status !== null &&
-        !status.failed &&
-        now >= status.at &&
-        now - status.at <= MAX_MAINTENANCE_AGE_MS
-      );
-    } catch {
-      // An unreadable status cannot show that recovery ran; keep intake closed.
-      return false;
-    }
-  }
-
-  private async health(
-    entities: ServicePluginContext["entityService"],
-  ): Promise<Omit<RuntimeHealthCheck, "name">> {
-    try {
-      if (!this.slots || !(await this.maintenanceFresh()))
-        return {
-          status: "unhealthy",
-          message:
-            "Contact recovery is unavailable or overdue; intake is closed.",
-        };
-      const slots = await this.slots.list();
-      const pending = slots.filter(
-        ([, slot]) => slot.delivery.status === "pending",
-      ).length;
-      const failed = slots
-        .filter(([, slot]) => slot.delivery.status === "failed")
-        .map(([id]) => id);
-      const failedUnhandled = await this.unhandled(entities, failed);
-      // Why failed alerts failed, by code: the cause without the server log.
-      const failures = slots
-        .flatMap(([, slot]) =>
-          slot.delivery.status === "failed"
-            ? [slot.delivery.failure ?? "unrecorded"]
-            : [],
-        )
-        .reduce<Record<string, number>>(
-          (counts, code) => ({ ...counts, [code]: (counts[code] ?? 0) + 1 }),
-          {},
-        );
-      const unconfirmed = slots.filter(
-        ([, slot]) => slot.phase === "writing",
-      ).length;
-      return {
-        status:
-          pending ||
-          failedUnhandled ||
-          unconfirmed ||
-          this.report?.enqueueFailures
-            ? "degraded"
-            : "healthy",
-        message:
-          "Contact operational counts. A failed alert counts until its request is marked Done in the Inbox; failure can include an unconfirmed provider outcome.",
-        details: {
-          inFlight: slots.length,
-          pending,
-          failed: failed.length,
-          failedUnhandled,
-          failures,
-          unconfirmed,
-          lastMaintenanceAt: (await this.maintenanceStatus?.get("status"))?.at,
-          ...this.report,
-        },
-      };
-    } catch {
-      // State errors can contain stored values; report failure, never those values.
-      return {
-        status: "unhealthy",
-        message: "Contact operational state unavailable.",
-      };
-    }
-  }
-
-  /** Failed alerts whose request still waits in the Inbox. Marking it Done
-   * acknowledges the failure: the owner has seen what the alert was for. */
-  private async unhandled(
-    entities: ServicePluginContext["entityService"],
-    failed: string[],
-  ): Promise<number> {
-    const waiting = await Promise.all(
-      failed.map(async (id) => {
-        const request = await entities.getEntity(
-          {
-            entityType: "contact-request",
-            id,
-            visibilityScope: internalFullScope(
-              "contact health check counts only",
-            ),
-          },
-          contactRequestSchema,
-        );
-        return request?.metadata.status === "new";
-      }),
-    );
-    return waiting.filter(Boolean).length;
+    await this.forms.ready(context);
   }
 
   protected override async onShutdown(): Promise<void> {
-    this.readyState = false;
-    this.stop.abort();
-    for (const unregister of this.unregister.splice(0)) unregister();
-    await this.maintenance?.catch(() => {
-      // The initiating lifecycle/check caller received the sanitized failure;
-      // shutdown still drains the owned work after aborting it.
-    });
+    await this.forms.shutdown();
   }
 }
