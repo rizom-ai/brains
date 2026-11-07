@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import {
-  packageMatchesReleaseLane,
+  preparedManifestPackageDirs,
   runWithPreparedPublishManifests,
   runWithScopedReleasePackages,
   type ReleaseLane,
@@ -10,17 +10,7 @@ import { getPackages } from "@manypkg/get-packages";
 const rootDir = process.cwd();
 const lane = parseLane(process.argv[2]);
 const packages = await getPackages(rootDir);
-const packageDirs = packages.packages
-  .filter(({ packageJson }) => {
-    const scripts = (packageJson as { scripts?: Record<string, string> })
-      .scripts;
-    return (
-      packageJson.private !== true &&
-      packageMatchesReleaseLane(packageJson.name, lane) &&
-      scripts?.["prepack"] === "publish-manifest prepare"
-    );
-  })
-  .map(({ dir }) => dir);
+const packageDirs = preparedManifestPackageDirs(packages.packages, lane);
 
 const exitCode = await runWithScopedReleasePackages(
   packages.packages,

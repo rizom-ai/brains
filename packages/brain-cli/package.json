@@ -110,6 +110,7 @@
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*",
     "@libsql/client": "^0.17.4",
+    "@manypkg/get-packages": "^3.1.0",
     "@rizom/theme-default": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react-dom": "^19.0.3",
