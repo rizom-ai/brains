@@ -1156,7 +1156,12 @@ status: draft
 
     expect(result).toEqual({
       success: true,
-      data: { status: "created", entityId: "brief" },
+      data: {
+        status: "created",
+        entityId: "brief",
+        entityType: "note",
+        uploadId: "upload-00000000-0000-4000-8000-000000000301",
+      },
     });
     expect(capturedInput).toEqual({
       entityType: "note",
@@ -1234,7 +1239,12 @@ status: draft
 
       expect(result).toEqual({
         success: true,
-        data: { status: "created", entityId: "brief-note" },
+        data: {
+          status: "created",
+          entityId: "brief-note",
+          entityType,
+          uploadId: "upload-00000000-0000-4000-8000-000000000304",
+        },
       });
       expect(capturedInput).toEqual({
         entityType,
@@ -1415,7 +1425,12 @@ status: draft
 
     expect(result).toEqual({
       success: true,
-      data: { status: "created", entityId: "brief" },
+      data: {
+        status: "created",
+        entityId: "brief",
+        entityType: "note",
+        uploadId: "upload-00000000-0000-4000-8000-000000000303",
+      },
     });
     expect(capturedInput?.from).toEqual({
       kind: "upload",

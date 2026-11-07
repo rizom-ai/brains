@@ -265,7 +265,12 @@ describe("system_create upload preserve", () => {
 
     const confirmed = await tool.handler(confirmationArgs, context());
 
-    expect(confirmed).toMatchObject({ success: true });
+    // The result names the upload it saved and the entity it became, so a
+    // later turn knows the file is kept without reading the call that made it.
+    expect(confirmed).toMatchObject({
+      success: true,
+      data: { entityId: "report", entityType: "document", uploadId },
+    });
     expect(calls).toEqual([
       { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
     ]);

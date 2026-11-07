@@ -748,7 +748,12 @@ describe("uploads already saved in the conversation", () => {
               transform: "extract-markdown",
             },
           },
-          { entityId: "community-launch-plan", status: "generating" },
+          {
+            entityId: "community-launch-plan",
+            entityType: "note",
+            uploadId: upload.source.id,
+            status: "generating",
+          },
         ),
       ],
     });
@@ -780,8 +785,16 @@ describe("uploads already saved in the conversation", () => {
           {
             status: "generating",
             items: [
-              { entityType: "note", entityId: "community-launch-plan" },
-              { entityType: "image", entityId: "harbor" },
+              {
+                uploadId: upload.source.id,
+                entityType: "note",
+                entityId: "community-launch-plan",
+              },
+              {
+                uploadId: photo.source.id,
+                entityType: "image",
+                entityId: "harbor",
+              },
             ],
           },
         ),
@@ -792,6 +805,29 @@ describe("uploads already saved in the conversation", () => {
       ...photo,
       savedAs: { entityType: "image", entityId: "harbor" },
     });
+  });
+
+  it("learns a saved upload from the save's result, not from the call", () => {
+    const result = resolveConversationUploadContinuity({
+      message: "change the launch day to Friday",
+      currentAttachments: [],
+      historyMessages: [
+        userMessage,
+        confirmedSave(
+          {
+            entityType: "note",
+            source: {
+              kind: "upload",
+              id: upload.source.id,
+              transform: "extract-markdown",
+            },
+          },
+          { entityId: "community-launch-plan", status: "generating" },
+        ),
+      ],
+    });
+
+    expect(result.refs).toContainEqual(upload);
   });
 
   it("tells the agent to change a saved upload where it was saved", () => {

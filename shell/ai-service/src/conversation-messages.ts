@@ -127,29 +127,21 @@ export interface ConversationUploadRef {
   savedAs?: { entityType: string; entityId: string };
 }
 
-/** A confirmed system_create whose source was one or several uploads. */
+/** An upload a confirmed save kept, as the save's result names it. */
+const savedUploadSchema = z.looseObject({
+  uploadId: z.string(),
+  entityType: z.string(),
+  entityId: z.string(),
+});
+
+/** A confirmed system_create; its result names each upload it kept. */
 const savedUploadCardSchema = z.looseObject({
   kind: z.literal("tool-approval"),
   toolName: z.literal("system_create"),
   state: z.literal("output-available"),
-  input: z.looseObject({
-    entityType: z.string(),
-    source: z.union([
-      z.looseObject({ kind: z.literal("upload"), id: z.string() }),
-      z.looseObject({
-        kind: z.literal("uploads"),
-        items: z.array(z.looseObject({ id: z.string() })),
-      }),
-    ]),
-  }),
   output: z.looseObject({
     success: z.literal(true),
-    data: z.looseObject({
-      entityId: z.string().optional(),
-      items: z
-        .array(z.looseObject({ entityType: z.string(), entityId: z.string() }))
-        .optional(),
-    }),
+    data: z.looseObject({ items: z.array(z.unknown()).optional() }),
   }),
 });
 
@@ -164,25 +156,15 @@ function collectSavedUploads(messages: Message[]): SavedUploads {
     for (const card of cards) {
       const parsed = savedUploadCardSchema.safeParse(card);
       if (!parsed.success) continue;
-      const { input, output } = parsed.data;
-      if (input.source.kind === "upload") {
-        const { entityId } = output.data;
-        if (entityId === undefined) continue;
-        saved.set(`upload:${input.source.id}`, {
-          entityType: input.entityType,
-          entityId,
+      const { data } = parsed.data.output;
+      for (const candidate of [data, ...(data.items ?? [])]) {
+        const upload = savedUploadSchema.safeParse(candidate);
+        if (!upload.success) continue;
+        saved.set(`upload:${upload.data.uploadId}`, {
+          entityType: upload.data.entityType,
+          entityId: upload.data.entityId,
         });
-        continue;
       }
-      // A save of several uploads lists its entities in the order of its files.
-      input.source.items.forEach((item, index) => {
-        const entity = output.data.items?.[index];
-        if (!entity) return;
-        saved.set(`upload:${item.id}`, {
-          entityType: entity.entityType,
-          entityId: entity.entityId,
-        });
-      });
     }
   }
   return saved;

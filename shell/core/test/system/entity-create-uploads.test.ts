@@ -103,12 +103,23 @@ describe("system_create several uploads", () => {
         status: "generating",
         items: [
           {
+            uploadId: draftUpload.id,
             filename: "draft-one.md",
             entityType: "note",
             title: "Field Notes",
           },
-          { filename: "essay.md", entityType: "note", title: "essay" },
-          { filename: "harbor.png", entityType: "image", title: "harbor" },
+          {
+            uploadId: essayUpload.id,
+            filename: "essay.md",
+            entityType: "note",
+            title: "essay",
+          },
+          {
+            uploadId: photoUpload.id,
+            filename: "harbor.png",
+            entityType: "image",
+            title: "harbor",
+          },
         ],
       },
     });

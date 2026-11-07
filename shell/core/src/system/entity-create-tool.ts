@@ -42,6 +42,7 @@ import {
   type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
+import { isPlainRecord } from "@brains/utils/predicates";
 import {
   isTextUploadMediaType,
   repeatsUploadFileName,
@@ -343,6 +344,8 @@ interface PreparedCreate {
   eventContext: CreateEventContext;
   /** The uploaded file's name, when the source is an upload. */
   uploadFilename?: string;
+  /** The upload this create saves, named in its result. */
+  uploadId?: string;
   /** The failed placeholder this create replaces once confirmed. */
   replacesFailed?: FailedCreateTarget;
   uploadPreserve?: {
@@ -925,14 +928,44 @@ async function prepareCreate(
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(upload && { uploadFilename: upload.value.filename }),
+      ...(uploadRef && { uploadId: uploadRef.id }),
       ...(target.value && { replacesFailed: target.value }),
       ...(uploadPreserve && { uploadPreserve }),
     },
   };
 }
 
-/** Run a prepared create once it is confirmed. */
+/**
+ * Run a prepared create once it is confirmed. A saved upload's result names
+ * the upload and the entity it became, so a later turn knows the file is kept.
+ */
 async function executePreparedCreate(
+  services: SystemServices,
+  prepared: PreparedCreate,
+  toolContext: CreateToolContext,
+  pending: PendingCreateTexts,
+): Promise<ToolResponse> {
+  const result = await runPreparedCreate(
+    services,
+    prepared,
+    toolContext,
+    pending,
+  );
+  const { uploadId } = prepared;
+  if (uploadId === undefined || !("success" in result) || !result.success)
+    return result;
+  if (!isPlainRecord(result.data)) return result;
+  return {
+    ...result,
+    data: {
+      entityType: prepared.createInput.entityType,
+      ...result.data,
+      uploadId,
+    },
+  };
+}
+
+async function runPreparedCreate(
   services: SystemServices,
   prepared: PreparedCreate,
   toolContext: CreateToolContext,
