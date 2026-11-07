@@ -181,6 +181,15 @@ export function defineEntity<
   if (!definition.purpose.trim()) {
     throw new Error(`Entity "${definition.type}" purpose must not be empty`);
   }
+  // A cover is recorded in frontmatter, which binary content has none of.
+  if (
+    definition.config?.binaryStorage !== undefined &&
+    definition.coverImage === true
+  ) {
+    throw new Error(
+      `Entity "${definition.type}" stores binary content, which carries no cover image`,
+    );
+  }
   assertPublishAssets(definition);
   // Local ids: the runtime scopes each check to the declaring plugin, and
   // two checks of one type would claim one schedule.

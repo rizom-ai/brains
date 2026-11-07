@@ -265,7 +265,7 @@ function encodeParts(
     readonly metadata: Record<string, unknown>;
   },
 ): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
-  return definition.markdown
+  return definition.markdown?.encode
     ? definition.markdown.encode({
         content: input.content,
         metadata: definition.metadata.parse(
@@ -286,15 +286,24 @@ function encodeEntityMarkdown(
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
-function entityAdapter(
+type DeclaredAdapter = EntityAdapter<
+  EntityOf<AnyEntityDefinition>,
+  Record<string, unknown>
+>;
+
+/** How a text type's record is its markdown: its metadata is its frontmatter. */
+function markdownStorage(
   definition: AnyEntityDefinition,
-): EntityAdapter<EntityOf<AnyEntityDefinition>, Record<string, unknown>> {
-  const schema = entitySchema(definition);
-  const stub = definition.stub;
+): Pick<
+  DeclaredAdapter,
+  | "frontmatterSchema"
+  | "toMarkdown"
+  | "fromMarkdown"
+  | "parseFrontMatter"
+  | "generateFrontMatter"
+  | "metadataFromFrontmatter"
+> {
   return {
-    entityType: definition.type,
-    purpose: definition.purpose,
-    schema,
     frontmatterSchema: definition.metadata,
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, entity);
@@ -317,12 +326,53 @@ function entityAdapter(
         ),
       };
     },
-    extractMetadata: (entity) => entity.metadata,
     parseFrontMatter: (markdown, schemaToParse) =>
       parseMarkdownWithFrontmatter(markdown, schemaToParse).metadata,
     generateFrontMatter(entity): string {
       return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },
+    // Metadata is the frontmatter, decoded by fromMarkdown, so a frontmatter
+    // write on an update carries into metadata.
+    metadataFromFrontmatter: true,
+  };
+}
+
+/**
+ * How a binary type's record is its content: stored unchanged, with no
+ * frontmatter, its metadata kept beside it. Decoding says what the bytes
+ * say, which an import merges with the metadata handed beside the file; the
+ * schema checks the record when it is stored.
+ */
+function binaryStorage(
+  definition: AnyEntityDefinition,
+): Pick<
+  DeclaredAdapter,
+  "toMarkdown" | "fromMarkdown" | "parseFrontMatter" | "generateFrontMatter"
+> {
+  return {
+    toMarkdown: (entity): string => entity.content,
+    fromMarkdown(content): Partial<EntityOf<AnyEntityDefinition>> {
+      const decoded = definition.markdown?.decode({ content, frontmatter: {} });
+      return decoded
+        ? { content: decoded.content, metadata: { ...decoded.metadata } }
+        : { content };
+    },
+    parseFrontMatter: (_content, schemaToParse) => schemaToParse.parse({}),
+    generateFrontMatter: (): string => "",
+  };
+}
+
+function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
+  const schema = entitySchema(definition);
+  const stub = definition.stub;
+  return {
+    entityType: definition.type,
+    purpose: definition.purpose,
+    schema,
+    ...(definition.config?.binaryStorage === undefined
+      ? markdownStorage(definition)
+      : binaryStorage(definition)),
+    extractMetadata: (entity) => entity.metadata,
     getBodyTemplate: () => "",
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.
@@ -340,9 +390,6 @@ function entityAdapter(
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
-    // Metadata is the frontmatter, decoded by fromMarkdown, so a frontmatter
-    // write on an update carries into metadata.
-    metadataFromFrontmatter: true,
     ...(definition.displayTitle && {
       displayTitle: (entity): string | undefined =>
         displayTitle(definition, entity),

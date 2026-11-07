@@ -74,14 +74,30 @@ export interface EncodedEntityMarkdown {
   readonly frontmatter: Record<string, unknown>;
 }
 
+/**
+ * How a type's stored document maps to its record. A text type's document
+ * is markdown: `decode` reads its body and frontmatter into the record, and
+ * `encode` writes them back; omitted, the metadata is the frontmatter. A
+ * type that declares `binaryStorage` stores its content unchanged, with no
+ * frontmatter: its metadata is kept beside the content, `decode` is handed
+ * the content alone and says what the content itself says, and `encode` is
+ * not used.
+ *
+ * A text type's decoded metadata is checked against its schema as it is
+ * decoded. A binary type's may be partial, what the bytes say: an import
+ * merges it with the metadata handed beside the file, and the schema checks
+ * the record when it is stored.
+ */
 export interface EntityMarkdownCodec<
   TMetadataSchema extends EntityMetadataSchema,
 > {
   decode(input: {
     readonly content: string;
     readonly frontmatter: Readonly<Record<string, unknown>>;
-  }): EntityMarkdownDocument<EntityMetadataInput<TMetadataSchema>>;
-  encode(
+  }): EntityMarkdownDocument<
+    EntityMetadataInput<TMetadataSchema> | Partial<z.input<TMetadataSchema>>
+  >;
+  encode?(
     input: EntityMarkdownDocument<z.output<TMetadataSchema>>,
   ): EncodedEntityMarkdown;
 }
