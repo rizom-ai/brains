@@ -164,6 +164,7 @@ describe("public operator definitions", () => {
         status: async () => null,
       },
       permissions: { allows: () => true },
+      accountSettings: { read: refuse },
       signal: new AbortController().signal,
     };
 
@@ -174,7 +175,12 @@ describe("public operator definitions", () => {
       await getWorkspaceActionExecutor(actionBinding).execute({
         ...runtimeContext,
         entities: { ...runtimeContext.entities, ...refusedWrites },
-        accountSettings: { save: refuse, claim: refuse, redeem: refuse },
+        accountSettings: {
+          read: refuse,
+          save: refuse,
+          claim: refuse,
+          redeem: refuse,
+        },
         input: { id: "saved" },
       }),
     ).toEqual({ refreshed: "saved" });

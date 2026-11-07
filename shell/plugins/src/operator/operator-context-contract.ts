@@ -6,6 +6,7 @@ import type {
   EntityReader,
 } from "../entity/entity-definition-contract";
 import type {
+  AccountSettingsReader,
   AnyAccountSettingsDefinition,
   RedactedAccountSettingsValue,
 } from "./account-settings-definition-contract";
@@ -127,6 +128,14 @@ export interface OperatorBaseContext<
   readonly settings: RedactedAccountSettingsValue<
     NonNullable<TAccountSettings>
   > | null;
+  /**
+   * Reads the package's own settings for the caller's account, every field
+   * and each secret sealed until revealed, for the server-side call that
+   * needs it. A sealed secret serializes as a redacted marker.
+   */
+  readonly accountSettings: AccountSettingsReader<
+    NonNullable<TAccountSettings>
+  >;
   /**
    * Definition-typed reads as the caller, at their visibility. Inside a
    * service, the package's other capabilities act as the caller too.

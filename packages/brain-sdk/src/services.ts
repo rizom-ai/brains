@@ -14,6 +14,7 @@ export {
 export type {
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,
+  AccountSettingsSecret,
   AccountSettingsValue,
   StudioWorkspaceDefinition,
   StudioWorkspaceView,

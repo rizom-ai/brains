@@ -23,6 +23,7 @@ export { defineAccountSettings } from "../operator/account-settings-definition-c
 export type {
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,
+  AccountSettingsSecret,
   AccountSettingsValue,
 } from "../operator/account-settings-definition-contract";
 export {

@@ -267,6 +267,8 @@ describe("public authoring 0.2 golden packages", () => {
       "accountSettings.claim(",
       "accountSettings.redeem(",
       "returnTo: readingWorkspace",
+      "accountSettings.read()",
+      "accessToken.reveal()",
       "defineAccountSettings",
       "defineStudioWorkspace",
       "defineDashboardWidget",

@@ -1,10 +1,12 @@
 import { bookmark } from "@fixture/reading-entities";
 import {
+  defineAccountSettings,
   defineRoute,
   defineServicePlugin,
   defineStudioWorkspace,
   defineWorkspaceAction,
   z,
+  type AccountSettingsSecret,
 } from "@rizom/brain/services";
 import { queuedReading } from "./index";
 
@@ -180,6 +182,52 @@ export const returnCanary = defineServicePlugin(
     ],
     studioWorkspaces: (context) => [
       outcomes.bind(context, { load: () => ({}), actions: [] }),
+    ],
+  },
+);
+
+export const secretCanary = defineServicePlugin(
+  {
+    id: "secret-canary",
+    config: z.object({}),
+    accountSettings: defineAccountSettings({
+      title: "Provider",
+      schema: z.object({ token: z.string(), region: z.string() }),
+      fields: {
+        token: { label: "Token", secret: true },
+        region: { label: "Region" },
+      },
+    }),
+  },
+  {
+    studioWorkspaces: (context) => [
+      departures.bind(context, {
+        async load({ accountSettings }) {
+          const settings = await accountSettings.read();
+          if (settings) {
+            const region: string = settings.region;
+            // A secret becomes a string only when revealed.
+            const sealed: AccountSettingsSecret = settings.token;
+            const token: string = sealed.reveal();
+            // @ts-expect-error A secret is not a string until it is revealed.
+            const leaked: string = settings.token;
+            // @ts-expect-error A loader reads settings; it writes none.
+            await accountSettings.save({ token, region });
+            void leaked;
+          }
+          return {};
+        },
+        actions: [
+          go.bind(context, async ({ accountSettings }) => {
+            const settings = await accountSettings.read();
+            if (settings) {
+              // @ts-expect-error A sealed secret is not saved back as a value.
+              await accountSettings.save(settings);
+            }
+            return { url: "https://reading.example/consent" };
+          }),
+        ],
+      }),
     ],
   },
 );

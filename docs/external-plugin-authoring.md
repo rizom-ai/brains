@@ -373,9 +373,13 @@ writes only the entity types its header's `entities` declares.
 ### Account settings and operator surfaces
 
 A service or interface can declare `defineAccountSettings()`. Secret fields are
-encrypted by the host and full values enter only the principal-specific
-`forAccounts` callback. Dashboard and Studio callbacks receive only the current
-caller's redacted settings.
+encrypted by the host; full values enter the principal-specific `forAccounts`
+callback, and a service's own `accountSettings.read()` with each secret sealed.
+Dashboard and Studio callbacks receive the current caller's redacted `settings`
+for view data. When a server-side call needs the
+full value, `accountSettings.read()` returns the caller's own settings with each
+secret sealed: `reveal()` gives the value, and serialized, printed or
+interpolated it is `[secret]`.
 
 A service can independently declare `defineDashboardWidget()` and
 `defineStudioWorkspace()`. Both return schema-validated semantic data: authors do

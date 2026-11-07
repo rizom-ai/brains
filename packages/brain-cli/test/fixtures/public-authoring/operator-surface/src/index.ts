@@ -60,6 +60,15 @@ const connectProvider = defineWorkspaceAction({
   launch: { origins: [READING_PROVIDER] },
 });
 
+/** How many items the reader's provider feed holds. Stubbed here. */
+async function countFeedItems(
+  feedUrl: string,
+  accessToken: string,
+): Promise<number> {
+  if (!accessToken) throw new Error("The provider needs a token");
+  return new URL(feedUrl).pathname.split("/").filter(Boolean).length;
+}
+
 /** The provider's half of consent: a code becomes a token. Stubbed here. */
 async function exchangeCode(
   code: string,
@@ -115,6 +124,7 @@ const readingWorkspaceData = z.object({
   selectedTag: z.string().optional(),
   bookmarks: z.array(readingRow),
   digestCount: z.number().int().nonnegative(),
+  feedItems: z.number().int().nonnegative(),
 });
 
 type ReadingWorkspaceAction =
@@ -167,6 +177,10 @@ const readingWorkspace = defineStudioWorkspace({
           {
             label: "Digests",
             value: data.digestCount,
+          },
+          {
+            label: "Feed items",
+            value: data.feedItems,
           },
           {
             label: "Reading provider",
@@ -437,9 +451,18 @@ export default defineServicePlugin(
             addReadingItemHandler,
             connectProviderHandler,
           ],
-          async load({ entities, settings, signal, query }) {
+          async load({ entities, settings, accountSettings, signal, query }) {
             signal.throwIfAborted();
             const selected = query.get(readingWorkspaceQuery);
+            // The token is read server-side, sealed: only reveal() gives the
+            // string, and printed or serialized it is a redacted marker.
+            const connection = await accountSettings.read();
+            const feedItems = connection
+              ? await countFeedItems(
+                  connection.feedUrl,
+                  connection.accessToken.reveal(),
+                )
+              : 0;
             const [allBookmarks, digests] = await Promise.all([
               entities.list(bookmark),
               entities.list(readingDigest),
@@ -469,6 +492,7 @@ export default defineServicePlugin(
                 };
               }),
               digestCount: digests.length,
+              feedItems,
             };
           },
         }),

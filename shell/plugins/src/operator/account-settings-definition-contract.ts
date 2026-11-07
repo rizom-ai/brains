@@ -78,6 +78,98 @@ export type RedactedAccountSettingsValue<
 > &
   PreserveNever<TDefinition>;
 
+/**
+ * A secret setting as the package reads it: opaque until revealed. It
+ * serializes, prints and interpolates as a redacted marker, so a secret placed
+ * by accident in view data, a route answer, a tool result or a log line leaves
+ * as the marker, never the value.
+ */
+export interface AccountSettingsSecret<TValue = string> {
+  /** The value itself, for the server-side call that needs it. */
+  reveal(): TValue;
+  /** The redacted marker. */
+  toJSON(): string;
+  /** The redacted marker. */
+  toString(): string;
+}
+
+/** What a secret serializes, prints and interpolates as. */
+export const ACCOUNT_SETTINGS_SECRET_MARKER = "[secret]";
+
+const inspectCustom = Symbol.for("nodejs.util.inspect.custom");
+
+/** A sealed secret; its value is reachable only through `reveal()`. */
+class SealedAccountSettingsSecret<
+  TValue,
+> implements AccountSettingsSecret<TValue> {
+  readonly #value: TValue;
+
+  constructor(value: TValue) {
+    this.#value = value;
+    // Console and inspector output, as well as serialization, print the
+    // marker; the key is not a declared member, so it is set here.
+    Object.defineProperty(this, inspectCustom, {
+      value: (): string => ACCOUNT_SETTINGS_SECRET_MARKER,
+    });
+    Object.freeze(this);
+  }
+
+  reveal(): TValue {
+    return this.#value;
+  }
+
+  toJSON(): string {
+    return ACCOUNT_SETTINGS_SECRET_MARKER;
+  }
+
+  toString(): string {
+    return ACCOUNT_SETTINGS_SECRET_MARKER;
+  }
+
+  [Symbol.toPrimitive](): string {
+    return ACCOUNT_SETTINGS_SECRET_MARKER;
+  }
+}
+
+/**
+ * Settings as the package reads them for its own server-side use: every
+ * field, and each the definition marks `secret` sealed until revealed.
+ */
+export type SealedAccountSettingsValue<
+  TDefinition extends AnyAccountSettingsDefinition,
+> = {
+  readonly [
+    K in keyof AccountSettingsValue<TDefinition>
+  ]: K extends SecretSettingsKeys<TDefinition>
+    ? AccountSettingsSecret<
+        Exclude<AccountSettingsValue<TDefinition>[K], undefined>
+      >
+    : AccountSettingsValue<TDefinition>[K];
+} & PreserveNever<TDefinition>;
+
+/** Seals every field the definition marks secret. */
+export function sealAccountSettings<
+  TDefinition extends AnyAccountSettingsDefinition,
+>(
+  definition: TDefinition,
+  values: AccountSettingsValue<TDefinition>,
+): SealedAccountSettingsValue<TDefinition>;
+export function sealAccountSettings(
+  definition: AnyAccountSettingsDefinition,
+  values: Record<string, unknown>,
+): Readonly<Record<string, unknown>> {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(values).map(([name, value]) => [
+        name,
+        definition.fields[name]?.secret === true && value !== undefined
+          ? new SealedAccountSettingsSecret(value)
+          : value,
+      ]),
+    ),
+  );
+}
+
 export function defineAccountSettings<
   TSchema extends AccountSettingsSchema,
   const TFields extends AccountSettingsFieldMap<TSchema>,
@@ -144,9 +236,22 @@ export function defineAccountSettings<
  * names an account. Values are checked by the definition's schema, and a
  * refused one is named by its field alone.
  */
-export interface ServiceAccountSettings<
+/** Reads the package's own account settings for the current caller's account. */
+export interface AccountSettingsReader<
   TSettings extends AnyAccountSettingsDefinition,
 > {
+  /**
+   * The current caller's own settings, each secret field sealed until
+   * revealed; `null` for a caller without an account, or one who has none.
+   */
+  read(
+    ...declared: [TSettings] extends [never] ? [never] : []
+  ): Promise<SealedAccountSettingsValue<TSettings> | null>;
+}
+
+export interface ServiceAccountSettings<
+  TSettings extends AnyAccountSettingsDefinition,
+> extends AccountSettingsReader<TSettings> {
   /** Writes the settings of the current caller's own account. */
   save(values: z.input<TSettings["schema"]>): Promise<void>;
   /**

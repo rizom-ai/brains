@@ -5,7 +5,10 @@ import {
   type DashboardWidgetRegistration,
   type DashboardWidgetRenderer,
 } from "../base/dashboard-namespace";
-import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
+import type {
+  AccountSettingsReader,
+  AnyAccountSettingsDefinition,
+} from "./account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "./account-settings-registry";
 import {
   callerVisibilityScope,
@@ -104,6 +107,9 @@ export function createDeclarativeDashboardWidgetRegistration<
   readonly includeSource?: boolean | undefined;
   /** A service's own `entities`, which act as the current caller. */
   readonly entities?: EntityReader | undefined;
+  /** A service's own account settings, read for the current caller. */
+  readonly accountSettings?:
+    AccountSettingsReader<NonNullable<TAccountSettings>> | undefined;
   /** Runs the loader as its caller, in the declaring package's context. */
   readonly runAs?: OperatorRunAs | undefined;
 }): DashboardWidgetRegistration {
@@ -187,6 +193,7 @@ export function createDeclarativeDashboardWidgetRegistration<
       provider: runtimeProvider,
       context: input.context,
       entities: input.entities,
+      accountSettings: input.accountSettings,
     });
     runtimeProvider.signal.throwIfAborted();
 

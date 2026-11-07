@@ -43,7 +43,11 @@ import type {
   PluginRegistrationContext,
   IShell,
 } from "../interfaces";
-import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import {
+  sealAccountSettings,
+  type AnyAccountSettingsDefinition,
+  type SealedAccountSettingsValue,
+} from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
@@ -508,6 +512,7 @@ class DeclarativeServicePlugin<
           context,
           runtimeSignal: this.operatorAbortController.signal,
           entities: this.entityAccess(),
+          accountSettings: this.accountSettingsWriter(),
           runAs: this.asOperator,
         });
         try {
@@ -757,11 +762,14 @@ class DeclarativeServicePlugin<
       access: () => (admitted ??= context.jobAuthority.access(caller)),
       caller,
       // A Studio operator acts through a browser session of their own
-      // account, so a claim they make binds that session.
+      // account, so a claim they make binds that session; a Dashboard
+      // viewer's account is theirs to read, with no session bound.
       account: async () =>
-        scope.browserSession && userId !== undefined
-          ? { userId, sessionUserId: userId }
-          : undefined,
+        userId === undefined
+          ? undefined
+          : scope.browserSession
+            ? { userId, sessionUserId: userId }
+            : { userId },
       eventContext: { actor: caller.actor, interfaceType: scope.interfaceType },
     };
   }
@@ -840,6 +848,21 @@ class DeclarativeServicePlugin<
       }
     };
     return {
+      read: async (): Promise<SealedAccountSettingsValue<
+        NonNullable<TAccountSettings>
+      > | null> => {
+        const account = await this.calls.getStore()?.account?.();
+        const registration = this.accountSettingsRegistration;
+        if (!account || !registration) return null;
+        // The caller's own account only; the package never names one.
+        const values = await this.getContext().accountSettings.getForActor(
+          registration,
+          account.userId,
+        );
+        return values
+          ? sealAccountSettings(registration.definition, values)
+          : null;
+      },
       save: async (values) => write((await holder()).userId, values),
       claim: async (): Promise<string> => {
         const account = await holder();

@@ -378,6 +378,7 @@ export {
   defineWorkspaceAction,
   type AccountSettingsDefinition,
   type AccountSettingsFieldDefinition,
+  type AccountSettingsSecret,
   type AccountSettingsValue,
   type AnyServiceJobDefinition,
   type AnyServiceToolDefinition,

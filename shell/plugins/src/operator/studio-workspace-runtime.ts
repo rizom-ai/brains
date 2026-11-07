@@ -20,7 +20,7 @@ import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
 import {
   accessWithin,
   createOperatorContext,
-  noAccountSettingsWrites,
+  noAccountSettings,
   noOwnedWrites,
   type OperatorRunAs,
 } from "./operator-context-runtime";
@@ -275,6 +275,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
       provider: { caller: operatorCaller(actor), signal },
       context: input.context,
       entities: input.entities,
+      accountSettings: input.accountSettings,
     });
     return Object.freeze({
       ...base,
@@ -541,7 +542,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
           entities: actionEntities(runtimeContext),
           accountSettings:
             input.accountSettings ??
-            noAccountSettingsWrites<NonNullable<TAccountSettings>>(),
+            noAccountSettings<NonNullable<TAccountSettings>>(),
         },
         request.input,
       );

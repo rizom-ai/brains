@@ -21,6 +21,7 @@ import { anonymousCaller } from "../service/job-authority";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
+  AccountSettingsReader,
   RedactedAccountSettingsValue,
   ServiceAccountSettings,
 } from "./account-settings-definition-contract";
@@ -119,18 +120,24 @@ export function accessWithin<TOwned extends AnyEntityDefinition>(
 }
 
 /**
- * The account settings writes of a binding that keeps none of its own, such
- * as a first-party workspace: the runtime refuses every call.
+ * The account settings of a binding that keeps none of its own, such as a
+ * first-party workspace or an entity type's widget: the types refuse every
+ * call, and so does the runtime.
  */
-export function noAccountSettingsWrites<
+export function noAccountSettings<
   TSettings extends AnyAccountSettingsDefinition,
 >(): ServiceAccountSettings<TSettings> {
   const refuse = async (): Promise<never> => {
     throw new SdkError("permission_denied", {
-      message: "This operator surface keeps no account settings to write",
+      message: "This operator surface keeps no account settings",
     });
   };
-  return Object.freeze({ save: refuse, claim: refuse, redeem: refuse });
+  return Object.freeze({
+    read: refuse,
+    save: refuse,
+    claim: refuse,
+    redeem: refuse,
+  });
 }
 
 /**
@@ -265,6 +272,9 @@ export async function createOperatorContext<
    * the current caller; without one, reads at the caller's visibility.
    */
   readonly entities?: EntityReader | undefined;
+  /** A service's own account settings, read for the current caller. */
+  readonly accountSettings?:
+    AccountSettingsReader<NonNullable<TAccountSettings>> | undefined;
 }): Promise<OperatorBaseContext<TConfig, TState, TAccountSettings>> {
   const { caller, signal } = input.provider;
   signal.throwIfAborted();
@@ -289,6 +299,9 @@ export async function createOperatorContext<
     state: input.state,
     caller,
     settings,
+    accountSettings:
+      input.accountSettings ??
+      noAccountSettings<NonNullable<TAccountSettings>>(),
     // As stored: the same record `list` hands back, with no read-time
     // resolution of image references into their data.
     entities: readerWithin(
