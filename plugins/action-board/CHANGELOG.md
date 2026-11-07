@@ -1,5 +1,14 @@
 # @brains/action-board
 
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/action-items@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+
 ## 0.2.0-alpha.652
 
 ### Patch Changes

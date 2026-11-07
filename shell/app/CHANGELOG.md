@@ -1,5 +1,27 @@
 # @brains/app
 
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/testing` runs a package's own tests on the runtime itself. `startTestBrain({ plugins: [use(definition)] })` starts a brain in the test's process, on the runtime's own services and a temporary storage of its own, running the packages under the name the working directory's `package.json` gives them and holding that package to its `@rizom/brain` peer range. The brain calls a tool as `brain tool` does, as its operator, and answers in the tool's public form; it asks a contract as the brain asks, serves a `Request` through the routes its packages declare, reads every stored record through an `EntityReader`, and waits for a queued job's status by the job's definition. It reaches no AI provider and computes no embeddings, and `stop()` deletes what it stored.
+- Updated dependencies [[`66f7e59`](https://github.com/rizom-ai/brains/commit/66f7e59f4f21cb0f906bab83bcd097ad1f0cac87), [`5d99cf6`](https://github.com/rizom-ai/brains/commit/5d99cf6632894eacc4667ab54a5a1da5fb5c9665), [`b6a6d9e`](https://github.com/rizom-ai/brains/commit/b6a6d9e85930701eb12c7fea557253eb871f2721), [`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/sdk@0.2.0-alpha.653
+  - @brains/core@0.2.0-alpha.653
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/conversation-service@0.2.0-alpha.653
+  - @brains/entity-service@0.2.0-alpha.653
+  - @brains/job-queue@0.2.0-alpha.653
+  - @brains/runtime-state@0.2.0-alpha.653
+  - @brains/chat-repl@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/site-composition@0.2.0-alpha.653
+  - @brains/theme-base@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/mcp-service@0.2.0-alpha.653
+  - @brains/messaging-service@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
 ## 0.2.0-alpha.652
 
 ### Patch Changes

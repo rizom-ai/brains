@@ -1,5 +1,21 @@
 # @brains/sdk
 
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`66f7e59`](https://github.com/rizom-ai/brains/commit/66f7e59f4f21cb0f906bab83bcd097ad1f0cac87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain` no longer exports `BrainMode`, which no author signature names. The brain-definition fixture's canary writes every field a brain definition freezes through its own exported type, and the fixture now compiles with the other public-authoring packages.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`5d99cf6`](https://github.com/rizom-ai/brains/commit/5d99cf6632894eacc4667ab54a5a1da5fb5c9665) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/entities` no longer exports the alpha entity-service types `BaseEntity`, `EntityInput`, `EntityMutationResult`, `FrontmatterConfig`, `ListOptions`, `PaginateOptions`, `PaginateResult`, `PaginationInfo`, `SearchOptions` and `SearchResult`, which no declarative package uses; a definition's records are `EntityOf` the definition. Every stable entity name now has a fixture that uses it.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`b6a6d9e`](https://github.com/rizom-ai/brains/commit/b6a6d9e85930701eb12c7fea557253eb871f2721) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `@rizom/brain/plugins` and `@rizom/brain/templates` subpaths are removed. No declarative package used their advanced alpha names: the agent, app-info, runtime-readiness, conversation, identity, extension-metadata, messaging and channel contracts, and the template and site-builder types. `PluginPackageDefinition` stays on the root entry. The packages written against the alpha class API that still imported `Resource`, `Tool` and `createTemplate` already stopped working when the class bases left the public entries.
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/entity-service@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
 ## 0.2.0-alpha.652
 
 ### Patch Changes
