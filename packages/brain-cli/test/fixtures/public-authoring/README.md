@@ -53,6 +53,7 @@ configuration that have actually passed the package boundary.
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
 | 9    | [`profile-steward`](./profile-steward/src/index.ts)                       | Stewardship: the one package that writes the reader profile, and the contract it answers for changes          |
 | 10   | [`profile-import`](./profile-import/src/index.ts)                         | An importer that asks the steward through its contract instead of writing the profile itself                  |
+| 11   | [`reminders`](./reminders/src/index.ts)                                   | One service end to end: owned type, runtime state, tools, a job, a template, a contract it answers, a route   |
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split
