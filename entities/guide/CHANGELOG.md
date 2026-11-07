@@ -1,5 +1,15 @@
 # @brains/guide
 
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/docs-chrome@0.2.0-alpha.648
+  - @brains/ui-library@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/plugins@0.2.0-alpha.648
+
 ## 0.2.0-alpha.647
 
 ### Patch Changes
