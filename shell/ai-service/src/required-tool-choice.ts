@@ -1,31 +1,20 @@
 import { generateId, type LanguageModelMiddleware } from "ai";
 
-type GenerateResult = Awaited<
-  ReturnType<NonNullable<LanguageModelMiddleware["wrapGenerate"]>>
->;
-type Usage = GenerateResult["usage"];
-
 /**
- * Gives a required tool choice its meaning on a runtime that ignores it:
- * when a step that must call a tool comes back without a call, the model is
- * asked again with its output constrained to a call of one of the step's
- * tools, which the runtime enforces.
+ * Gives a required tool choice its meaning on a runtime that ignores it: a
+ * step that must call a tool has its output constrained to a call of one of
+ * the step's tools, which the runtime enforces as it does any JSON schema.
  */
 export const requiredToolChoice: LanguageModelMiddleware = {
   specificationVersion: "v3",
   wrapGenerate: async ({ doGenerate, params, model }) => {
-    const result = await doGenerate();
     const tools = (params.tools ?? []).flatMap((tool) =>
       tool.type === "function" ? [tool] : [],
     );
-    if (
-      params.toolChoice?.type !== "required" ||
-      tools.length === 0 ||
-      result.content.some((part) => part.type === "tool-call")
-    )
-      return result;
+    if (params.toolChoice?.type !== "required" || tools.length === 0)
+      return doGenerate();
 
-    const constrained = await model.doGenerate({
+    const result = await model.doGenerate({
       ...params,
       responseFormat: {
         type: "json",
@@ -43,15 +32,16 @@ export const requiredToolChoice: LanguageModelMiddleware = {
         },
       },
     });
+    if (result.content.some((part) => part.type === "tool-call")) return result;
     const call = parseCall(
-      constrained.content.flatMap((part) =>
+      result.content.flatMap((part) =>
         part.type === "text" ? [part.text] : [],
       ),
       tools.map((tool) => tool.name),
     );
     if (!call) return result;
     return {
-      ...constrained,
+      ...result,
       content: [
         {
           type: "tool-call",
@@ -61,7 +51,6 @@ export const requiredToolChoice: LanguageModelMiddleware = {
         },
       ],
       finishReason: { unified: "tool-calls", raw: "tool_calls" },
-      usage: addUsage(result.usage, constrained.usage),
     };
   },
 };
@@ -83,26 +72,8 @@ function parseCall(
       return { tool: parsed.tool, input: parsed.input };
     return undefined;
   } catch {
-    // Output that is not JSON is no call: the step keeps its first result.
+    // Output that is not JSON is no call: the SDK reports the step's
+    // required call as missing.
     return undefined;
   }
-}
-
-const sum = (a?: number, b?: number): number | undefined =>
-  a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0);
-
-function addUsage(a: Usage, b: Usage): Usage {
-  return {
-    inputTokens: {
-      total: sum(a.inputTokens.total, b.inputTokens.total),
-      noCache: sum(a.inputTokens.noCache, b.inputTokens.noCache),
-      cacheRead: sum(a.inputTokens.cacheRead, b.inputTokens.cacheRead),
-      cacheWrite: sum(a.inputTokens.cacheWrite, b.inputTokens.cacheWrite),
-    },
-    outputTokens: {
-      total: sum(a.outputTokens.total, b.outputTokens.total),
-      text: sum(a.outputTokens.text, b.outputTokens.text),
-      reasoning: sum(a.outputTokens.reasoning, b.outputTokens.reasoning),
-    },
-  };
 }

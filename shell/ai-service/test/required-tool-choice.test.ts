@@ -79,9 +79,8 @@ async function generate(
 }
 
 describe("a required tool call on the local runtime", () => {
-  it("is asked for again in the tools' schema when the runtime replies without one", async () => {
+  it("is asked for in the tools' schema, which the runtime enforces", async () => {
     const { fetch, requests } = runtime([
-      { content: "" },
       { content: '{"tool":"system_create","input":{"title":"Harbor"}}' },
     ]);
 
@@ -90,10 +89,9 @@ describe("a required tool call on the local runtime", () => {
     expect(result.toolCalls.map((call) => [call.toolName, call.input])).toEqual(
       [["system_create", { title: "Harbor" }]],
     );
-    expect(result.inputTokens).toBe(200);
-    expect(requests).toHaveLength(2);
-    expect(requests[0]?.["response_format"]).toBeUndefined();
-    expect(requests[1]?.["response_format"]).toEqual({
+    expect(result.inputTokens).toBe(100);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.["response_format"]).toEqual({
       type: "json_schema",
       json_schema: {
         name: "tool_call",
@@ -120,7 +118,7 @@ describe("a required tool call on the local runtime", () => {
     });
   });
 
-  it("is kept as the runtime made it", async () => {
+  it("is kept as the runtime made it natively", async () => {
     const { fetch, requests } = runtime([
       {
         content: "",
@@ -149,10 +147,11 @@ describe("a required tool call on the local runtime", () => {
 
     expect(result.text).toBe("Hello.");
     expect(requests).toHaveLength(1);
+    expect(requests[0]?.["response_format"]).toBeUndefined();
   });
 
   it("is still missing when the schema answer is not a call", async () => {
-    const { fetch } = runtime([{ content: "" }, { content: "not json" }]);
+    const { fetch } = runtime([{ content: "not json" }]);
 
     expect(generate(fetch, "required")).rejects.toThrow(
       "did not contain a tool call",
