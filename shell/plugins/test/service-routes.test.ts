@@ -175,6 +175,7 @@ const reminders = defineServicePlugin(
         path: "/reminders/stray",
         security: { kind: "public" },
         response: z.object({ count: z.number() }),
+        // @ts-expect-error The types refuse an answer outside the schema; an untyped author meets the runtime check.
         handle: () => ({ count: "many" }),
       }),
     ],

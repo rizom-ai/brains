@@ -1,4 +1,6 @@
 import { z } from "@brains/utils/zod";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
+import type { ServiceSetupContext } from "../service/service-definition-contract";
 
 const stateOwnerSchema = z
   .string()
@@ -29,4 +31,20 @@ export function stateNamespaceFor(
     return `${owner.slice(1).replace("/", ".")}.${namespace}`;
   }
   return `package:${Buffer.from(owner).toString("base64url")}:${namespace}`;
+}
+
+/**
+ * The `runtimeState` a package's `setup` is given: stores under namespaces
+ * local to the package, qualified by its name, the one owner identity every
+ * family keeps its state under.
+ */
+export function packageRuntimeState(
+  runtimeState: IRuntimeStateNamespace,
+  packageName: string,
+): ServiceSetupContext<unknown>["runtimeState"] {
+  return (options) =>
+    runtimeState.scoped({
+      namespace: stateNamespaceFor(packageName, options.namespace),
+      schema: options.schema,
+    });
 }

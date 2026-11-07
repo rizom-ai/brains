@@ -43,7 +43,7 @@ export interface InstalledPluginPackageMetadata {
   readonly version: string;
 }
 
-interface PluginPackageInstantiationContext<TConfig extends object> {
+export interface PluginPackageInstantiationContext<TConfig extends object> {
   readonly config: TConfig;
   readonly package: InstalledPluginPackageMetadata;
   scope(localId: string): string;
@@ -181,6 +181,26 @@ function runtimeDefinition(
   return definition;
 }
 
+/**
+ * The plugins a definition declared inside another package creates, under
+ * that package's parsed config, metadata and scope: a package that declares
+ * several definitions instantiates each as its own.
+ */
+export function instantiateWithinPackage<TConfig extends object>(
+  definition: PluginPackageDefinition,
+  context: PluginPackageInstantiationContext<TConfig>,
+): Plugin[] {
+  const created = runtimeDefinition(definition)[runtimeFactory](context);
+  return isSeveral(created) ? [...created] : [created];
+}
+
+// `Array.isArray` alone leaves the readonly array in the else branch.
+function isSeveral(
+  created: Plugin | readonly Plugin[],
+): created is readonly Plugin[] {
+  return Array.isArray(created);
+}
+
 export function bindPluginPackageMetadata(
   definition: PluginPackageDefinition,
   metadata: InstalledPluginPackageMetadata,
@@ -237,7 +257,7 @@ export function instantiatePluginPackageDefinition(
       return `${metadata.name}:${localId}`;
     },
   });
-  const plugins = Array.isArray(created) ? [...created] : [created];
+  const plugins = isSeveral(created) ? [...created] : [created];
   const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
 
   for (const plugin of plugins) {

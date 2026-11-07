@@ -322,44 +322,45 @@ describe("interface and operator jobs read as their requester", () => {
     shell.getPermissionService = (): PermissionService =>
       new PermissionService({ trusted: ["note-webhook:reader-1"] });
     let enqueueFromDaemon: (() => Promise<string>) | undefined;
-    const definition = defineInterface({
-      id: "note-webhook",
-      config: z.object({}),
-      routes: ({ jobs }) => [
-        defineRoute({
-          method: "POST",
-          path: "/read",
-          security: protocol({
-            authenticate: ({ request }) =>
-              request.headers.get("x-reader") ? { id: "reader-1" } : null,
+    const definition = defineInterface(
+      { id: "note-webhook", config: z.object({}) },
+      {
+        routes: ({ jobs }) => [
+          defineRoute({
+            method: "POST",
+            path: "/read",
+            security: protocol({
+              authenticate: ({ request }) =>
+                request.headers.get("x-reader") ? { id: "reader-1" } : null,
+            }),
+            response: z.object({ jobId: z.string() }),
+            handle: async () => ({
+              jobId: (await jobs.enqueue(routedNotes, { ids: allNotes })).id,
+            }),
           }),
-          response: z.object({ jobId: z.string() }),
-          handle: async () => ({
-            jobId: (await jobs.enqueue(routedNotes, { ids: allNotes })).id,
+          defineRoute({
+            method: "POST",
+            path: "/public-read",
+            security: { kind: "public" },
+            response: z.object({ jobId: z.string() }),
+            handle: async () => ({
+              jobId: (await jobs.enqueue(routedNotes, { ids: allNotes })).id,
+            }),
           }),
-        }),
-        defineRoute({
-          method: "POST",
-          path: "/public-read",
-          security: { kind: "public" },
-          response: z.object({ jobId: z.string() }),
-          handle: async () => ({
-            jobId: (await jobs.enqueue(routedNotes, { ids: allNotes })).id,
-          }),
-        }),
-      ],
-      daemons: ({ jobs }) => {
-        enqueueFromDaemon = async (): Promise<string> =>
-          (await jobs.enqueue(routedNotes, { ids: allNotes })).id;
-        return [
-          defineDaemon({
-            id: "feed",
-            required: false,
-            run: async () => {},
-          }),
-        ];
+        ],
+        daemons: ({ jobs }) => {
+          enqueueFromDaemon = async (): Promise<string> =>
+            (await jobs.enqueue(routedNotes, { ids: allNotes })).id;
+          return [
+            defineDaemon({
+              id: "feed",
+              required: false,
+              run: async () => {},
+            }),
+          ];
+        },
       },
-    });
+    );
     await instantiate(readerService, "@fixture/note-service").register(shell);
     const plugin = instantiate(definition, "@fixture/note-webhook");
     await plugin.register(shell);

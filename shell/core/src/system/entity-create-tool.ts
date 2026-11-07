@@ -8,6 +8,7 @@ import {
   type CreateCheckResult,
   type CreateInput,
 } from "@brains/entity-service";
+import { sharedUploadScope } from "@brains/plugins";
 import { bufferView } from "@brains/utils/bytes";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
@@ -56,11 +57,6 @@ import {
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
 // `content` already holds the resolved text or conversation-message content.
-const uploadScope = {
-  namespace: "upload",
-  refKind: "upload",
-  routePath: "/api/chat/uploads",
-} as const;
 
 function buildUploadPreserveConfirmation(input: {
   title?: string;
@@ -456,7 +452,7 @@ async function readUploadMarkdown(
 ): Promise<string | undefined> {
   if (!isTextUploadMediaType(upload.mediaType)) return undefined;
   const { content } = await services.runtimeUploads
-    .scoped(uploadScope)
+    .scoped(sharedUploadScope)
     .read(upload.id);
   return bufferView(content).toString("utf8");
 }
@@ -488,7 +484,7 @@ async function resolveUploadSource(
   let markdown: string | undefined;
   try {
     uploadRecord = await services.runtimeUploads
-      .scoped(uploadScope)
+      .scoped(sharedUploadScope)
       .readRecord(input.uploadRef.id);
     markdown =
       input.transform === "extract-markdown"

@@ -65,7 +65,7 @@ import type {
   EntityOf,
   EntityReader,
 } from "../entity/entity-definition-contract";
-import { stateNamespaceFor } from "../internal/state-namespace";
+import { packageRuntimeState } from "../internal/state-namespace";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -363,11 +363,10 @@ class DeclarativeServicePlugin<
               this.cleanups.push(cleanup);
             },
           },
-          runtimeState: (options) =>
-            context.runtimeState.scoped({
-              namespace: stateNamespaceFor(this.packageName, options.namespace),
-              schema: options.schema,
-            }),
+          runtimeState: packageRuntimeState(
+            context.runtimeState,
+            this.packageName,
+          ),
         })
       : emptyPluginState<TState>();
 

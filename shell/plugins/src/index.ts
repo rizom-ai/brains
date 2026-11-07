@@ -201,6 +201,7 @@ export {
   createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
   runtimeUploadIdPattern,
+  sharedUploadScope,
   defaultRuntimeUploadRetentionMs,
   defaultRuntimeUploadMaxCount,
   type IRuntimeUploadsNamespace,
@@ -429,6 +430,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineRoute,
   protocol,
 } from "./public/interface-definition";

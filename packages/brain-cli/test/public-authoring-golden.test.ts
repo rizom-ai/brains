@@ -131,6 +131,8 @@ const goldenPackages: GoldenPackageExpectation[] = [
       "defineInterface",
       "defineRoute",
       "protocol",
+      "runtimeState(",
+      'new SdkError("conflict"',
       "z",
     ],
   },
@@ -138,7 +140,13 @@ const goldenPackages: GoldenPackageExpectation[] = [
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
     publicEntryPoints: ["@rizom/brain/interfaces"],
-    requiredVocabulary: ["defineMessageInterface", "z"],
+    requiredVocabulary: [
+      "defineMessageInterface",
+      "defineMessageInterfacePackage",
+      "runtimeState(",
+      "read: (): Promise<Uint8Array>",
+      "z",
+    ],
   },
   {
     directory: "brain-definition",
@@ -295,7 +303,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the entity and service canaries and the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity, service and interface canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "entity",
@@ -380,50 +388,86 @@ describe("public authoring 0.2 golden packages", () => {
           ],
         },
       },
+      {
+        directory: "interface",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+        },
+      },
+      {
+        directory: "message-interface",
+        paths: {
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+        },
+      },
     ] as const;
 
-    for (const fixture of cases) {
-      const tsconfigPath = join(
-        repositoryRoot,
-        `.public-authoring-${fixture.directory}.tsconfig.json`,
-      );
-      try {
-        writeFileSync(
-          tsconfigPath,
-          JSON.stringify({
-            extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
-            compilerOptions: {
-              rootDir: ".",
-              declaration: false,
-              jsx: "react-jsx",
-              jsxImportSource: "react",
-              types: ["bun"],
-              noUnusedLocals: false,
-              noUnusedParameters: false,
-              paths: fixture.paths,
+    // Each case is a whole tsc run over the public entries, and none reads
+    // another's tsconfig, so they run side by side; the bound covers the
+    // slowest CI runner rather than the sum of the cases.
+    const compiled = await Promise.all(
+      cases.map(async (fixture) => {
+        const tsconfigPath = join(
+          repositoryRoot,
+          `.public-authoring-${fixture.directory}.tsconfig.json`,
+        );
+        try {
+          writeFileSync(
+            tsconfigPath,
+            JSON.stringify({
+              extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
+              compilerOptions: {
+                rootDir: ".",
+                declaration: false,
+                jsx: "react-jsx",
+                jsxImportSource: "react",
+                types: ["bun"],
+                noUnusedLocals: false,
+                noUnusedParameters: false,
+                paths: fixture.paths,
+              },
+              include: [
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
+              ],
+            }),
+          );
+          const result = await runProcess(
+            ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
+            {
+              cwd: repositoryRoot,
+              env: process.env,
             },
-            include: [
-              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
-              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
-            ],
-          }),
-        );
-        const result = await runProcess(
-          ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
-          {
-            cwd: repositoryRoot,
-            env: process.env,
-          },
-        );
-        expect(
-          result.exitCode,
-          `${fixture.directory} failed to compile:\n${result.stdout}${result.stderr}`,
-        ).toBe(0);
-      } finally {
-        rmSync(tsconfigPath, { force: true });
-      }
+          );
+          return { directory: fixture.directory, result };
+        } finally {
+          rmSync(tsconfigPath, { force: true });
+        }
+      }),
+    );
+    for (const { directory, result } of compiled) {
+      expect(
+        result.exitCode,
+        `${directory} failed to compile:\n${result.stdout}${result.stderr}`,
+      ).toBe(0);
     }
-  }, 30_000);
+  }, 120_000);
 
   it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");
