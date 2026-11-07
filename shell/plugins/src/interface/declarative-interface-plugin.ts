@@ -15,6 +15,8 @@ import type {
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import { emptyPluginState } from "../base/empty-state";
+import { packageRuntimeState } from "../internal/state-namespace";
 import { anonymousCaller } from "../service/job-authority";
 import type { WebRouteDefinition } from "../types/web-routes";
 import { createDeclaredRoute } from "../internal/declared-route";
@@ -24,20 +26,29 @@ import { InterfacePlugin } from "./interface-plugin";
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: InterfaceDefinitionInput<
     TConfigSchema,
+    TState,
     TAccountSettings
   >;
   private accountSettingsRegistration: AccountSettingsRegistration | undefined;
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
+  private state: TState | undefined;
+  /** What setup acquired, released last first at shutdown. */
+  private readonly cleanups: Array<() => void | Promise<void>> = [];
   /** The caller of the route being handled; unset outside a route (daemons). */
   private readonly routeCaller = new AsyncLocalStorage<Caller>();
 
   constructor(
-    definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+    definition: InterfaceDefinitionInput<
+      TConfigSchema,
+      TState,
+      TAccountSettings
+    >,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
     id: string,
@@ -58,15 +69,30 @@ class DeclarativeInterfacePlugin<
         definition: this.definition.accountSettings,
       });
     }
+    this.state = this.definition.setup
+      ? await this.definition.setup({
+          config: this.config,
+          lifecycle: {
+            onCleanup: (cleanup): void => {
+              this.cleanups.push(cleanup);
+            },
+          },
+          runtimeState: packageRuntimeState(
+            context.runtimeState,
+            this.packageName,
+          ),
+        })
+      : emptyPluginState<TState>();
+    const state = this.state;
     const jobs = this.jobs(context);
     const routeDefinitions =
-      this.definition.routes?.({ config: this.config, jobs }) ?? [];
+      this.definition.routes?.({ config: this.config, state, jobs }) ?? [];
     this.routes = routeDefinitions.map((route) =>
       this.runtimeRoute(route, context),
     );
 
     const daemonDefinitions =
-      this.definition.daemons?.({ config: this.config, jobs }) ?? [];
+      this.definition.daemons?.({ config: this.config, state, jobs }) ?? [];
     const daemonIds = new Set<string>();
     for (const daemon of daemonDefinitions) {
       if (daemonIds.has(daemon.id)) {
@@ -123,6 +149,10 @@ class DeclarativeInterfacePlugin<
     this.accountSettingsRegistration = undefined;
     this.routes = [];
     this.hasRequiredDaemon = false;
+    this.state = undefined;
+    for (const cleanup of this.cleanups.splice(0).reverse()) {
+      await cleanup();
+    }
     await super.onShutdown();
   }
 
@@ -163,9 +193,10 @@ class DeclarativeInterfacePlugin<
 
 export function createDeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+  definition: InterfaceDefinitionInput<TConfigSchema, TState, TAccountSettings>,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,

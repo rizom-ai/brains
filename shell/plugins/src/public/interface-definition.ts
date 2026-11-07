@@ -6,17 +6,23 @@ import type {
   AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
   InterfaceDaemonDefinition,
-  InterfaceDefinitionInput,
+  InterfaceDefinitionBehavior,
+  InterfaceDefinitionHeader,
   InterfaceRouteDefinition,
   InterfaceRouteInput,
   InterfaceSchema,
-  MessageInterfaceDefinitionInput,
+  MessageInterfaceDefinitionBehavior,
+  MessageInterfaceDefinitionHeader,
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   RouteMethod,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
 import { createDeclarativeMessageInterfacePlugin } from "../message-interface/declarative-message-interface-plugin";
+import {
+  assertTwoStageSlots,
+  type TwoStageSlots,
+} from "../internal/two-stage-declaration";
 import {
   assertIdentifier,
   createPluginPackageDefinition,
@@ -39,14 +45,20 @@ export type {
   InterfaceConfigSchema,
   InterfaceDaemonDefinition,
   InterfaceDaemonHealth,
+  InterfaceDaemons,
+  InterfaceDefinitionBehavior,
+  InterfaceDefinitionHeader,
   InterfaceDefinitionInput,
   InterfaceJobReference,
   InterfaceJobs,
   InterfaceRouteDefinition,
   InterfaceRouteInput,
   InterfaceSchema,
+  InterfaceSetupContext,
   MessageChannel,
   MessageChannelDefinition,
+  MessageInterfaceDefinitionBehavior,
+  MessageInterfaceDefinitionHeader,
   MessageInterfaceDefinitionInput,
   MessageOutput,
   MessageReceiver,
@@ -59,6 +71,22 @@ export type {
   RouteMethod,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
+
+/** What an interface header and its behavior may declare. */
+const interfaceSlots: TwoStageSlots = {
+  label: "Interface",
+  helper: "defineInterface",
+  header: new Set(["id", "config", "accountSettings", "setup"]),
+  behavior: new Set(["routes", "daemons"]),
+};
+
+/** What a message interface header and its behavior may declare. */
+const messageInterfaceSlots: TwoStageSlots = {
+  label: "Message interface",
+  helper: "defineMessageInterface",
+  header: new Set(["id", "config", "accountSettings", "channel", "setup"]),
+  behavior: new Set(["daemons", "listen", "send", "edit", "deliver"]),
+};
 
 export function protocol(
   definition: Omit<ProtocolSecurityDefinition, "kind">,
@@ -125,17 +153,33 @@ export function defineDaemon(
   return freeze(result);
 }
 
+/**
+ * An interface package, declared in two halves: the header says what the
+ * interface is and what it sets up; the behavior says what it serves with
+ * that. Behavior is checked against the state the header already fixed, so
+ * its slots may be written in any order.
+ */
 export function defineInterface<
   TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+  header: InterfaceDefinitionHeader<TConfigSchema, TState, TAccountSettings>,
+  behavior?: InterfaceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TAccountSettings
+  >,
 ): {
   readonly kind: "rizom-plugin-package";
   readonly family: "interface";
   readonly id: string;
   readonly config: TConfigSchema;
 } {
+  assertTwoStageSlots(interfaceSlots, header, behavior);
+  // The split exists so the state type is known before behavior is checked;
+  // the runtime reads one declaration.
+  const definition = { ...behavior, ...header };
   return createPluginPackageDefinition({
     family: "interface",
     id: definition.id,
@@ -150,13 +194,24 @@ export function defineInterface<
   });
 }
 
+/**
+ * A message interface package, declared in two halves: the header says what
+ * the interface is — its channel — and what it sets up; the behavior says how
+ * it talks, reading the state the header already fixed.
+ */
 export function defineMessageInterface<
   TConfigSchema extends InterfaceConfigSchema,
   TState extends object = Record<never, never>,
   TRecipientSchema extends MessageRecipientSchema = MessageRecipientSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
 >(
-  definition: MessageInterfaceDefinitionInput<
+  header: MessageInterfaceDefinitionHeader<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  >,
+  behavior?: MessageInterfaceDefinitionBehavior<
     TConfigSchema,
     TState,
     TRecipientSchema,
@@ -168,6 +223,8 @@ export function defineMessageInterface<
   readonly id: string;
   readonly config: TConfigSchema;
 } {
+  assertTwoStageSlots(messageInterfaceSlots, header, behavior);
+  const definition = { ...behavior, ...header };
   assertIdentifier(definition.channel.type, "Channel type");
   if (definition.listen && !definition.send) {
     throw new Error(

@@ -138,7 +138,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
     publicEntryPoints: ["@rizom/brain/interfaces"],
-    requiredVocabulary: ["defineMessageInterface", "z"],
+    requiredVocabulary: ["defineMessageInterface", "runtimeState(", "z"],
   },
   {
     directory: "brain-definition",
@@ -295,7 +295,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the entity and service canaries and the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity, service and interface canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "entity",
@@ -374,6 +374,34 @@ describe("public authoring 0.2 golden packages", () => {
       },
       {
         directory: "account-settings-interface",
+        paths: {
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+        },
+      },
+      {
+        directory: "interface",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+        },
+      },
+      {
+        directory: "message-interface",
         paths: {
           "@rizom/brain/interfaces": [
             "./packages/brain-cli/src/entries/interfaces.ts",

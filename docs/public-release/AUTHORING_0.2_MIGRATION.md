@@ -60,7 +60,7 @@ Replace raw `WebRouteDefinition`, `public: true`, daemon classes, and context re
 - `defineRoute({ security: { kind: "public" }, ... })` for public routes;
 - `defineRoute({ security: protocol({ authenticate }), ... })` for protocol-authenticated routes;
 - `defineDaemon({ run({ signal, health }) { ... } })` for listeners; and
-- `defineInterface()` as the package default.
+- `defineInterface(header, behavior)` as the package default: `id`, `config`, `accountSettings` and `setup` in the header, `routes` and `daemons` in the behavior.
 
 The authenticator returns only the transport actor. The runtime derives permission and Anchor status and supplies the shared HTTP host. Import reusable service job definitions for typed enqueue rather than registering interface-owned handlers.
 
@@ -68,7 +68,7 @@ The authenticator returns only the transport actor. The runtime derives permissi
 
 Replace `MessageInterfacePlugin`, support flags, progress registries, native-card requirements, and manual channel registration with `defineMessageInterface()`:
 
-- `channel` declares the descriptor and recipient schema;
+- the header holds `id`, `config`, `accountSettings`, `setup` and `channel`, which declares the descriptor and recipient schema, and the behavior every other slot;
 - `listen` receives supervised cancellation and health;
 - inbound events call `messages.receiveAuthenticated()`;
 - `send` and optional `edit` use normalized text;

@@ -412,6 +412,11 @@ their first published release in `@rizom/brain@0.2.0-alpha.313`.
 
 ### Generic interfaces
 
+`defineInterface(header, behavior)` takes two arguments, as a service does: the
+header names the interface, its config and account settings, and its `setup`;
+the behavior's `routes` and `daemons` read the `state` setup returns. Setup is
+given `runtimeState`, kept under the owning package.
+
 Use `{ kind: "public" }` only for genuinely unauthenticated routes. For a
 protocol-authenticated route, `protocol({ authenticate })` returns the external
 identity or `null`; the runtime derives the canonical actor, permission, and
@@ -424,7 +429,9 @@ workers.
 
 ### Message interfaces
 
-Declare the channel and recipient schema once. A conversational listener calls
+`defineMessageInterface(header, behavior)` takes two arguments too: the channel
+and `setup` belong to the header, and `listen`, `send`, `edit`, `deliver` and
+`daemons` to the behavior. Declare the channel and recipient schema once. A conversational listener calls
 `messages.receiveAuthenticated()` with normalized sender/channel/text and a
 lazy attachment function. Implement `send` and optional `edit`; implement
 `deliver` for manual outbound delivery. Conversation mapping, permissions,

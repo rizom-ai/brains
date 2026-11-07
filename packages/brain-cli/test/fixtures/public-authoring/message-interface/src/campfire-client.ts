@@ -19,6 +19,8 @@ const attachment = z.object({
 
 interface ListenOptions {
   signal: AbortSignal;
+  /** Resume after this message id rather than from the room's start. */
+  after?: string | undefined;
   onReady(): void;
   onWarning(message: string): void;
   onMessage(message: z.output<typeof incomingMessage>): Promise<void>;
@@ -33,6 +35,7 @@ export class CampfireClient {
 
   async listen({
     signal,
+    after,
     onReady,
     onWarning,
     onMessage,
@@ -48,6 +51,7 @@ export class CampfireClient {
             type: "authenticate",
             workspace: this.workspace,
             token: this.token,
+            ...(after === undefined ? {} : { after }),
           }),
         );
         onReady();

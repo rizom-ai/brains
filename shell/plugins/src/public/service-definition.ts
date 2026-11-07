@@ -4,6 +4,10 @@ import {
   type PluginPackageDefinition,
 } from "../package-definition";
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
+import {
+  assertTwoStageSlots,
+  type TwoStageSlots,
+} from "../internal/two-stage-declaration";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
@@ -160,28 +164,24 @@ function createServicePackage<
   });
 }
 
-/** What a service header may declare; everything else is behavior. */
-const serviceHeaderKeys: ReadonlySet<string> = new Set([
-  "id",
-  "config",
-  "entities",
-  "setup",
-  "accountSettings",
-]);
-
-/** What a service's behavior may declare: anything else is a slot it does not have. */
-const serviceBehaviorKeys: ReadonlySet<string> = new Set([
-  "instructions",
-  "resources",
-  "prompts",
-  "templates",
-  "jobs",
-  "tools",
-  "subscriptions",
-  "routes",
-  "dashboardWidgets",
-  "studioWorkspaces",
-]);
+/** What a service header and its behavior may declare. */
+const serviceSlots: TwoStageSlots = {
+  label: "Service",
+  helper: "defineServicePlugin",
+  header: new Set(["id", "config", "entities", "setup", "accountSettings"]),
+  behavior: new Set([
+    "instructions",
+    "resources",
+    "prompts",
+    "templates",
+    "jobs",
+    "tools",
+    "subscriptions",
+    "routes",
+    "dashboardWidgets",
+    "studioWorkspaces",
+  ]),
+};
 
 /** Both plugins scope to the package, so a type and the service cannot share a name. */
 function assertOwnedEntities(
@@ -285,24 +285,7 @@ export function defineServicePlugin<
     TEntities[number]
   >,
 ): ServicePackageDefinition<TConfigSchema> {
-  // The types refuse behavior in the header; an untyped author is told too,
-  // rather than having a misplaced slot work by accident.
-  const misplaced = Object.keys(header).find(
-    (key) => !serviceHeaderKeys.has(key),
-  );
-  if (misplaced !== undefined) {
-    throw new Error(
-      `Service "${header.id}" declares "${misplaced}" in its header; behavior is defineServicePlugin's second argument`,
-    );
-  }
-  const unknown = Object.keys(behavior ?? {}).find(
-    (key) => !serviceBehaviorKeys.has(key),
-  );
-  if (unknown !== undefined) {
-    throw new Error(
-      `Service "${header.id}" declares "${unknown}", which is not a behavior slot`,
-    );
-  }
+  assertTwoStageSlots(serviceSlots, header, behavior);
   assertOwnedEntities(header.id, header.entities ?? []);
   // The split exists so the state type is known before behavior is checked;
   // the runtime reads one declaration. Account settings are the header's,
