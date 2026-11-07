@@ -570,7 +570,6 @@ Definitions and schema vocabulary:
 - `defineSection`
 - `defineSite`
 - `sectionGroup`
-- `siteDefinitionSchema`
 - `z`
 
 Site, layout, route, and section types:
@@ -581,7 +580,6 @@ Site, layout, route, and section types:
 - `NavigationMetadata`
 - `NavigationMetadataInput`
 - `NavigationSlot`
-- `NavigationSlots`
 - `RouteDefinition`
 - `RouteDefinitionInput`
 - `RouteSectionDefinition`
@@ -592,31 +590,23 @@ Site, layout, route, and section types:
 - `SectionMeta`
 - `SiteContent`
 - `SiteDefinition`
-- `SiteDefinitionOverrides`
 - `SiteLayoutInfo`
 - `SiteLayoutProps`
 - `SiteMetadata`
 - `SiteMetadataCTA`
 - `SiteMetadataSection`
+- `SiteMetadataTranslation`
 - `SiteSectionDefinition`
 - `SiteSectionGroup`
 - `UserPermissionLevel`
 
-JSON and schema-backed content types:
+JSON content types:
 
 - `IsJsonValue`
 - `JsonObject`
 - `JsonObjectOutputGuard`
 - `JsonPrimitive`
 - `JsonValue`
-- `SiteContentArrayFieldDefinition`
-- `SiteContentDefinition`
-- `SiteContentEnumFieldDefinition`
-- `SiteContentFieldDefinition`
-- `SiteContentNumberFieldDefinition`
-- `SiteContentObjectFieldDefinition`
-- `SiteContentSectionDefinition`
-- `SiteContentStringFieldDefinition`
 
 ## `@rizom/brain-ui`
 
