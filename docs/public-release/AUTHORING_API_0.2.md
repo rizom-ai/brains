@@ -608,7 +608,7 @@ Props and options:
 - `MarkdownContentProps`
 - `TagsListProps`
 
-`MarkdownContent` renders markdown as sanitized prose. Inside a site build it resolves `entity://image/<id>` references to the build's optimized images through the brain's image renderer, from whichever copy of the library the package installs, on a brain at the same release as the library or later. `formatDate` formats in the site's fixed `en-US` locale.
+`MarkdownContent` renders markdown as sanitized prose. Inside a site build it resolves `entity://image/<id>` references to the build's optimized images through the brain's image renderer, from whichever copy of the library the package installs, on a brain at the same release as the library or later. `formatDate` formats in the `en-US` locale and the UTC time zone, so a build renders the same dates wherever it runs.
 
 ## Exported but not stable
 

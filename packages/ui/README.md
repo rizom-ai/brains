@@ -22,7 +22,7 @@ tree a site renders into.
 | `CardMetadata`    | A metadata row under the title                                                                                                |
 | `TagsList`        | Tags as pills, truncated after `maxVisible`                                                                                   |
 | `MarkdownContent` | Markdown as sanitized prose; in a brain's site build, `entity://image/<id>` references render as the build's optimized images |
-| `formatDate`      | A date as `short`, `medium`, `long` or `full` text in the site's fixed locale, optionally with the time                       |
+| `formatDate`      | A date as `short`, `medium`, `long` or `full` text, in `en-US` and UTC, optionally with the time                              |
 
 Each component's props type is exported beside it (`CardProps`,
 `CardTitleProps`, `CardMetadataProps`, `TagsListProps`,

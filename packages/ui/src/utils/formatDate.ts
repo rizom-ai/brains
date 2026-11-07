@@ -6,10 +6,13 @@ export interface FormatDateOptions {
 }
 
 /**
- * Rendered sites pin en-US so static builds are deterministic and every
- * template on a site agrees on one date format.
+ * Rendered sites pin the locale and the time zone, so every template on a
+ * site agrees on one date format and a static build renders the same dates
+ * wherever it runs: en-US text, and the day and time a value names in UTC.
+ * A date-only string such as `2026-03-14` is that day everywhere.
  */
 const LOCALE = "en-US";
+const TIME_ZONE = "UTC";
 
 const STYLE_OPTIONS: Record<DateFormatStyle, Intl.DateTimeFormatOptions> = {
   short: { year: "numeric", month: "numeric", day: "numeric" },
@@ -45,8 +48,12 @@ export const formatDate = (
       ...STYLE_OPTIONS[style],
       hour: "numeric",
       minute: "2-digit",
+      timeZone: TIME_ZONE,
     });
   }
 
-  return dateObj.toLocaleDateString(LOCALE, STYLE_OPTIONS[style]);
+  return dateObj.toLocaleDateString(LOCALE, {
+    ...STYLE_OPTIONS[style],
+    timeZone: TIME_ZONE,
+  });
 };
