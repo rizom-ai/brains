@@ -28,7 +28,7 @@ import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
-import { docsPlugin } from "@brains/doc";
+import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
 import { documentPlugin } from "@brains/document-plugin";
@@ -209,7 +209,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["conversation-memory", conversationMemoryPlugin, undefined],
     ["action-board", actionBoardPlugin, undefined],
     ["faq", faqPlugin, undefined],
-    ["docs", docsPlugin, undefined],
+    packageCapability("docs", "@brains/doc", docsPackage, {
+      pluginId: "docs",
+    }),
     ["guides", guidesPlugin, undefined],
     ["book", bookPlugin, undefined],
 

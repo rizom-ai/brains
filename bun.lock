@@ -204,12 +204,13 @@
       "version": "0.2.0-alpha.649",
       "dependencies": {
         "@brains/docs-chrome": "workspace:*",
-        "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
         "react": "^19.2.7",
       },
       "devDependencies": {
+        "@brains/plugins": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/react": "^19.2.17",
