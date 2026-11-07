@@ -58,7 +58,8 @@ export const compileReadingDigest = defineJob({
 
 // A question this service answers for other packages, exported for them.
 export const summarizeReading = defineBusContract({
-  channel: "reading-insights:summarize",
+  // An answered channel is named by the package that owns it.
+  channel: "@fixture/reading-insights:summarize",
   request: z.object({
     bookmarkId: z.string(),
     title: z.string(),

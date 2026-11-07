@@ -670,6 +670,17 @@ class DeclarativeServicePlugin<
           `Service "${this.publicId}" cannot answer "${contract.name}": a package answers requests and commands only`,
         );
       }
+      // A package answers only what its owner names, the same owner its
+      // runtime state is kept under; asking any owner's contract is open.
+      const owned = `${this.packageName}:`;
+      if (
+        !contract.name.startsWith(owned) ||
+        contract.name.length === owned.length
+      ) {
+        throw new Error(
+          `Service "${this.publicId}" answers only channels named "${owned}<name>", and "${contract.name}" is not one`,
+        );
+      }
       // The bus checks the answer against the contract's own schema; erasing
       // the response type here is what lets a handler typed by its input
       // slot hand the bus a value it parses.

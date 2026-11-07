@@ -26,21 +26,22 @@ const reminder = defineEntity({
   metadata: z.object({ status: z.enum(["open", "done"]) }),
 });
 
-// Another package's question, and how its answer is shaped.
+// The package's own question, named by its owner, and how its answer is shaped.
 const reminderCount = defineBusContract({
-  channel: "reminders:count",
+  channel: "@fixture/reminders:count",
   request: z.object({ status: z.enum(["open", "done"]) }),
   response: z.object({ count: z.number().int() }),
   delivery: "request",
 });
 const remindLater = defineBusContract({
-  channel: "reminders:remind-later",
+  channel: "@fixture/reminders:remind-later",
   request: z.object({ id: z.string() }),
   response: z.void(),
   delivery: "command",
 });
+// Asking is not restricted: a package asks any owner's contract.
 const unanswered = defineBusContract({
-  channel: "reminders:nobody",
+  channel: "@fixture/elsewhere:nobody",
   request: z.object({}),
   response: z.object({ ok: z.boolean() }),
   delivery: "request",
@@ -383,7 +384,7 @@ describe("a service's subscriptions", () => {
       },
     );
     expect(install(createMockShell(), twice)).rejects.toThrow(
-      'Service "reminders" answers "reminders:remind-later" more than once',
+      'Service "reminders" answers "@fixture/reminders:remind-later" more than once',
     );
 
     // Built inside the brain, where gathering is declared.
@@ -418,6 +419,37 @@ describe("a service's subscriptions", () => {
     expect(install(createMockShell(), forged)).rejects.toThrow(
       'Service "reminders" returns a subscription its own answer did not bind',
     );
+  });
+
+  it("answer only channels named by the package that owns them", async () => {
+    const answering = (channel: string): Parameters<typeof install>[1] =>
+      defineServicePlugin(
+        { id: "reminders", config: z.object({}) },
+        {
+          subscriptions: ({ answer }) => [
+            answer(
+              defineBusContract({
+                channel,
+                request: z.object({}),
+                response: z.void(),
+                delivery: "command",
+              }),
+              async () => {},
+            ),
+          ],
+        },
+      );
+    for (const channel of [
+      "reminders:count",
+      "@fixture/calendar:count",
+      "@fixture/reminders:",
+      "@fixture/reminderscount",
+    ]) {
+      expect(install(createMockShell(), answering(channel))).rejects.toThrow(
+        `Service "reminders" answers only channels named "@fixture/reminders:<name>", and "${channel}" is not one`,
+      );
+    }
+    await install(createMockShell(), answering("@fixture/reminders:count"));
   });
 
   it("declare requests and commands only", () => {

@@ -15,14 +15,14 @@ const verdict = z.object({
 
 // Another package's question: one owner answers it.
 const reminderVerdict = defineBusContract({
-  channel: "reminders:verdict",
+  channel: "@fixture/reading-insights:verdict",
   request: z.object({ priority: z.enum(["low", "high"]) }),
   response: verdict,
   delivery: "request",
 });
 // A command every owner hears; nobody answers it.
 const remindLater = defineBusContract({
-  channel: "reminders:remind-later",
+  channel: "@fixture/reading-insights:remind-later",
   request: z.object({ when: z.enum(["tonight", "tomorrow"]) }),
   response: z.void(),
   delivery: "command",
@@ -36,7 +36,7 @@ const annotated: BusContract<
 > = reminderVerdict;
 
 defineBusContract({
-  channel: "reminders:gather",
+  channel: "@fixture/reading-insights:gather",
   request: z.object({}),
   response: z.object({}),
   // @ts-expect-error Gathering every owner's answer stays inside the brain.
