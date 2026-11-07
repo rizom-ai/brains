@@ -768,6 +768,7 @@
         "@brains/portfolio": "workspace:*",
         "@brains/profile": "workspace:*",
         "@brains/prompt": "workspace:*",
+        "@brains/quiz": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/series": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
@@ -1256,6 +1257,26 @@
       "devDependencies": {
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/quiz": {
+      "name": "@brains/quiz",
+      "version": "0.2.0-alpha.648",
+      "dependencies": {
+        "@brains/forms": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/notifications": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
@@ -2792,6 +2813,8 @@
     "@brains/profile": ["@brains/profile@workspace:plugins/profile"],
 
     "@brains/prompt": ["@brains/prompt@workspace:entities/prompt"],
+
+    "@brains/quiz": ["@brains/quiz@workspace:plugins/quiz"],
 
     "@brains/recurring-checks": ["@brains/recurring-checks@workspace:shell/recurring-checks"],
 

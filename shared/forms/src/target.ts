@@ -32,6 +32,9 @@ export interface FormRecord {
  */
 export interface FormTarget<E extends BaseEntity = BaseEntity> {
   readonly entityType: string;
+  /** `:` files the type's records in a folder per form, as Studio lists
+   * them (`brand-test:<key>`); `-` (the default) keeps them side by side. */
+  readonly idSeparator?: "-" | ":" | undefined;
   readonly schema: z.ZodType<E>;
   /** Why a form cannot produce this type, or nothing when it can. */
   refuse(form: FormDefinition): string | undefined;

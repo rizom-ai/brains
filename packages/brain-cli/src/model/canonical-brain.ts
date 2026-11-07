@@ -17,6 +17,7 @@ import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
 import { formPlugin } from "@brains/form";
+import { quizPlugin } from "@brains/quiz";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
@@ -140,6 +141,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["contact", contactPlugin, undefined],
+    ["quiz", quizPlugin, undefined],
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],
     ["onboarding", onboardingPlugin, undefined],

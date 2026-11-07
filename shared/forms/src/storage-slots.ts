@@ -50,14 +50,17 @@ const slotSchema: z.ZodType<FormStorageSlot> = z
     }),
   })
   .transform(({ expiresAt: _expiresAt, ...slot }) => slot);
-function stateSchemaFor(idPrefix: string): z.ZodType<SlotState> {
+function stateSchemaFor(
+  idPrefix: string,
+  separator: "-" | ":",
+): z.ZodType<SlotState> {
   const escaped = idPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return z.strictObject({
     revision: integer,
     lastNow: integer,
     slots: z
       .record(
-        z.string().regex(new RegExp(`^${escaped}-[a-f0-9]{64}$`)),
+        z.string().regex(new RegExp(`^${escaped}${separator}[a-f0-9]{64}$`)),
         slotSchema,
       )
       .refine((slots) => Object.keys(slots).length <= MAX_IN_FLIGHT),
@@ -67,6 +70,8 @@ function stateSchemaFor(idPrefix: string): z.ZodType<SlotState> {
 export interface FormStorageOptions {
   namespace: string;
   idPrefix: string;
+  /** What joins the prefix and the key; `-` by default. */
+  separator?: "-" | ":" | undefined;
   /** Fewer than the ledger's ceiling, for tests. */
   maxInFlight?: number | undefined;
 }
@@ -94,7 +99,7 @@ export class FormStorageSlots {
     this.now = now;
     this.store = state.scoped({
       namespace: options.namespace,
-      schema: stateSchemaFor(options.idPrefix),
+      schema: stateSchemaFor(options.idPrefix, options.separator ?? "-"),
     });
   }
 

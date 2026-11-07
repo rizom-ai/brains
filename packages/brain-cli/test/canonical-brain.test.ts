@@ -25,6 +25,7 @@ const expectedCatalogIds = [
   "auth-service",
   "notifications",
   "contact",
+  "quiz",
   "playbook",
   "playbooks",
   "onboarding",

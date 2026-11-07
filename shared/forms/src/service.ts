@@ -77,7 +77,7 @@ const notificationJobSchema = z.strictObject({
     .string()
     .regex(/^[a-z][a-z0-9-]{0,63}$/)
     .optional(),
-  id: z.string().regex(/^[a-z][a-z0-9-]{0,63}-[a-f0-9]{64}$/),
+  id: z.string().regex(/^[a-z][a-z0-9-]{0,63}[-:][a-f0-9]{64}$/),
 });
 const MAX_MAINTENANCE_AGE_MS = 26 * 60 * 60 * 1000;
 /** Shared across processes: a separate worker runs the daily maintenance the
@@ -411,6 +411,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     const slots: FormStorageOptions = {
       namespace: state.storage,
       idPrefix: definition.id,
+      separator: this.options.target.idSeparator,
     };
     const copy = form.copy ?? FORM_COPY;
     const delivery = new FormDelivery({
@@ -427,7 +428,11 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         ...policy.admission,
         ...definition.limits,
       }),
-      { namespace: state.admission, idPrefix: definition.id },
+      {
+        namespace: state.admission,
+        idPrefix: definition.id,
+        separator: this.options.target.idSeparator,
+      },
     );
     // Jobs for the first built-in form name no form, as before forms did.
     const first = this.builtIns[0]?.definition.id === definition.id;
@@ -609,7 +614,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
 
   async ready(context: ServicePluginContext): Promise<void> {
     // A separate worker never serves the forms, so it is never ready to.
-    if (context.executionOnly || this.forms.size === 0) return;
+    if (context.executionOnly) return;
     if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
       throw new Error(`${this.label} Inbox unavailable`);
     await this.readSiteTheme(context);

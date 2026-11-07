@@ -50,6 +50,9 @@ export interface FormAdmissionOptions {
   namespace: string;
   /** Prefix of the deterministic id a reservation names: `<prefix>-<sha256(token)>`. */
   idPrefix: string;
+  /** What joins the prefix and the key: `-` unless the target files its
+   * records in a folder per form (`:`). */
+  separator?: "-" | ":" | undefined;
 }
 
 /** Atomic form issuance and submission reservation, shared across processes.
@@ -62,6 +65,7 @@ export class FormAdmission {
   private readonly policy: FormAdmissionPolicy;
   private readonly now: () => number;
   private readonly idPrefix: string;
+  private readonly separator: "-" | ":";
 
   constructor(
     state: IRuntimeStateNamespace,
@@ -72,6 +76,7 @@ export class FormAdmission {
     this.policy = formAdmissionPolicySchema.parse(policy);
     this.now = now;
     this.idPrefix = options.idPrefix;
+    this.separator = options.separator ?? "-";
     try {
       this.store = state.scoped({
         namespace: options.namespace,
@@ -169,7 +174,7 @@ export class FormAdmission {
       const entry = state.entries[key];
       if (entry?.network !== bucketKey)
         return { result: denied("invalid-token") };
-      const id = `${this.idPrefix}-${key}`;
+      const id = `${this.idPrefix}${this.separator}${key}`;
       if (entry.submission) {
         return {
           result:

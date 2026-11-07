@@ -86,6 +86,7 @@
     "@brains/portfolio": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
+    "@brains/quiz": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
