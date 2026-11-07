@@ -5,12 +5,22 @@ import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
 import { getErrorMessage } from "@brains/utils/error";
 
+/**
+ * A plugin eval's eval.yaml.
+ *
+ * `plugin` is the module to import and `export` the one export of it that
+ * provides the eval plugin, the module's default export when omitted. Nothing
+ * else in the module is considered, so a package adding or renaming an export
+ * never changes which plugin its evals run against.
+ */
 const evalYamlSchema: z.ZodObject<{
   plugin: z.ZodString;
+  export: z.ZodOptional<z.ZodString>;
   model: z.ZodOptional<z.ZodString>;
   config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }> = z.object({
   plugin: z.string(),
+  export: z.string().min(1).optional(),
   model: z.string().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
@@ -45,66 +55,59 @@ function isPlugin(value: unknown): value is Plugin {
   return typeof value.register === "function";
 }
 
+/** A plugin `build` returns, or undefined with why it failed in `errors`. */
+async function buildPlugin(
+  via: string,
+  build: () => unknown,
+  errors: string[],
+): Promise<Plugin | undefined> {
+  try {
+    const instance = await Promise.resolve(build());
+    return isPlugin(instance) ? instance : undefined;
+  } catch (error) {
+    errors.push(`via ${via}: ${getErrorMessage(error)}`);
+    return undefined;
+  }
+}
+
+/**
+ * The plugin the named export provides: a plugin instance as it is, otherwise
+ * one built from eval.yaml's `config` by constructing the export (a plugin
+ * class) or, failing that, calling it (a factory).
+ */
 async function resolvePluginExport(
   moduleExports: Record<string, unknown>,
+  exportName: string,
   pluginConfig: Record<string, unknown>,
-  pluginPackageName: string,
+  pluginModule: string,
 ): Promise<Plugin> {
-  const entries = Object.entries(moduleExports);
-  const candidates = entries.sort(([nameA, valueA], [nameB, valueB]) => {
-    const rank = (name: string, value: unknown): number => {
-      if (name === "default") return 0;
-      if (isPlugin(value)) return 1;
-      if (name.startsWith("create") && name.endsWith("Plugin")) return 2;
-      if (name.endsWith("Plugin")) return 3;
-      if (typeof value === "function") return 4;
-      return 5;
-    };
-
-    return rank(nameA, valueA) - rank(nameB, valueB);
-  });
+  if (!Object.hasOwn(moduleExports, exportName)) {
+    throw new Error(
+      `${pluginModule} has no export "${exportName}". ` +
+        "Name the export that provides the eval plugin with `export:` in eval.yaml.",
+    );
+  }
+  const candidate = moduleExports[exportName];
+  if (isPlugin(candidate)) return candidate;
 
   const errors: string[] = [];
-
-  for (const [exportName, candidate] of candidates) {
-    if (isPlugin(candidate)) {
-      return candidate;
-    }
-
-    if (typeof candidate !== "function") {
-      continue;
-    }
-
-    try {
-      const instance = await Promise.resolve(
-        Reflect.construct(candidate, [pluginConfig]),
-      );
-      if (isPlugin(instance)) {
-        return instance;
-      }
-    } catch (error) {
-      errors.push(
-        `${exportName} via constructor failed: ${getErrorMessage(error)}`,
-      );
-    }
-
-    try {
-      const instance = await Promise.resolve(
-        Reflect.apply(candidate, undefined, [pluginConfig]),
-      );
-      if (isPlugin(instance)) {
-        return instance;
-      }
-    } catch (error) {
-      errors.push(
-        `${exportName} via factory failed: ${getErrorMessage(error)}`,
-      );
-    }
-  }
+  const plugin =
+    typeof candidate === "function"
+      ? ((await buildPlugin(
+          "constructor",
+          () => Reflect.construct(candidate, [pluginConfig]),
+          errors,
+        )) ??
+        (await buildPlugin(
+          "factory",
+          () => Reflect.apply(candidate, undefined, [pluginConfig]),
+          errors,
+        )))
+      : undefined;
+  if (plugin) return plugin;
 
   throw new Error(
-    `Could not resolve a plugin export from ${pluginPackageName}. ` +
-      `Tried exports: ${candidates.map(([name]) => name).join(", ")}.` +
+    `${pluginModule} export "${exportName}" is not a plugin, a plugin class, or a plugin factory.` +
       (errors.length > 0 ? ` Errors: ${errors.join(" | ")}` : ""),
   );
 }
@@ -112,8 +115,10 @@ async function resolvePluginExport(
 /**
  * Load a plugin eval config from eval.yaml.
  *
- * Imports the plugin package, instantiates it with optional config,
- * and wraps it in a minimal AppConfig (in-memory DB, no file sync).
+ * Imports the plugin module, takes the plugin from the export eval.yaml
+ * names (see `evalYamlSchema`), instantiates it with optional config, and
+ * wraps it in a minimal AppConfig (throwaway databases under /tmp, no file
+ * sync).
  */
 export async function loadPluginEvalConfig(
   evalConfig: EvalYamlConfig,
@@ -124,6 +129,7 @@ export async function loadPluginEvalConfig(
   const pluginConfig = evalConfig.config ?? {};
   const plugin = await resolvePluginExport(
     mod,
+    evalConfig.export ?? "default",
     pluginConfig,
     evalConfig.plugin,
   );
