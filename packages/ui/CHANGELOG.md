@@ -1,4 +1,4 @@
-# @brains/ui-library
+# @rizom/brain-ui
 
 ## 0.2.0-alpha.647
 
