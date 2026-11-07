@@ -3,6 +3,7 @@ import { mock } from "bun:test";
 import { createTestEntity } from "./fixtures";
 import type {
   BaseEntity,
+  ListEntitiesRequest,
   EntityMutationResult,
   EntityMutationReceipt,
   EntityWriteSnapshot,
@@ -71,7 +72,7 @@ export interface MockEntityServiceOptions {
   /** Pre-configured return values for methods */
   returns?: MockEntityServiceReturns;
   /** Dynamic implementation for listEntities (overrides returns.listEntities) */
-  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
+  listEntitiesImpl?: (request: ListEntitiesRequest) => Promise<BaseEntity[]>;
   /** Dynamic implementation for getEntity (overrides returns.getEntity) */
   getEntityImpl?: (request: {
     entityType: string;
@@ -121,7 +122,7 @@ export function createMockEntityService(
   // restores the type parameters `mock()` erased. Every other member below is
   // fully checked by the `satisfies` at the end of this literal.
   const listEntitiesMock = mock(
-    (request: { entityType: string }): Promise<BaseEntity[]> =>
+    (request: ListEntitiesRequest): Promise<BaseEntity[]> =>
       listEntitiesImpl?.(request) ??
       Promise.resolve(returns.listEntities ?? []),
   );

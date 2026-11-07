@@ -9,6 +9,8 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   instantiatePluginPackageDefinition,
+  type BaseDataSourceContext,
+  type DataSourceSchema,
   type PluginPackageDefinition,
 } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
@@ -26,6 +28,13 @@ export interface DeclaredEntityStore {
   service: EntityService;
   /** Settle startup content, as the shell does once at boot. */
   settleStartupContent(): Promise<void>;
+  /** Fetch from a data source the packages registered, by its registered id. */
+  fetchData<T>(
+    id: string,
+    query: unknown,
+    schema: DataSourceSchema<T>,
+    context: BaseDataSourceContext,
+  ): Promise<T>;
   stored(entityType: string, id: string): Promise<StoredRow | null>;
   /** Rewrite a row as an earlier release stored it: its markdown and metadata. */
   rewrite(
@@ -47,17 +56,29 @@ export async function declaredEntityStore(
   packageName: string,
   pluginId: string,
   config: EntityTypeConfig = {},
+  // Packages installed beside it under their own scoped ids, such as the
+  // types a cross-type package reads.
+  companions: readonly PluginPackageDefinition[] = [],
 ): Promise<DeclaredEntityStore> {
   const temporary = await createTestDirectory();
   const logger = createSilentLogger();
   const dbConfig = { url: `file:${temporary.dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
-  const plugins = instantiatePluginPackageDefinition(
-    definition,
-    {},
-    { name: packageName, version: "0.0.0-test" },
-    { pluginId },
-  );
+  const plugins = [
+    ...instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: packageName, version: "0.0.0-test" },
+      { pluginId },
+    ),
+    ...companions.flatMap((companion) =>
+      instantiatePluginPackageDefinition(
+        companion,
+        {},
+        { name: `@fixture/${companion.id}`, version: "0.0.0-test" },
+      ),
+    ),
+  ];
   const registry = EntityRegistry.createFresh(logger);
   for (const plugin of plugins) {
     if (!(plugin instanceof EntityPlugin)) throw new Error("No entity plugin");
@@ -98,6 +119,16 @@ export async function declaredEntityStore(
         sender: "shell",
         broadcast: true,
       });
+    },
+    async fetchData<T>(
+      id: string,
+      query: unknown,
+      schema: DataSourceSchema<T>,
+      context: BaseDataSourceContext,
+    ): Promise<T> {
+      const source = shell.getDataSourceRegistry().get(id);
+      if (!source?.fetch) throw new Error(`No fetching data source ${id}`);
+      return source.fetch(query, schema, context);
     },
     async stored(entityType, id): Promise<StoredRow | null> {
       const result = await db.execute({

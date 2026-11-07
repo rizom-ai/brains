@@ -78,6 +78,13 @@
       "when": 1794087274063,
       "tag": "0010_retire_wish_create",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794092900097,
+      "tag": "0011_retire_series_generation",
+      "breakpoints": true
     }
   ]
 }

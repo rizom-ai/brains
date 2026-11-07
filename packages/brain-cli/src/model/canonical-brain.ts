@@ -52,7 +52,7 @@ import { portfolioPlugin } from "@brains/portfolio";
 import { profilePlugin } from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import { onboardingPlugin } from "@brains/onboarding";
-import { seriesPlugin } from "@brains/series";
+import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -190,7 +190,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["analytics", analyticsPlugin, undefined],
 
     ["blog", blogPlugin, undefined],
-    ["series", seriesPlugin, undefined],
+    packageCapability("series", "@brains/series", seriesPackage, {
+      pluginId: "series",
+    }),
     ["portfolio", portfolioPlugin, undefined],
     ["content-pipeline", contentPipelinePlugin, undefined],
     ["social-media", socialMediaPlugin, undefined],
