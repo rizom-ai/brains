@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- [#869](https://github.com/rizom-ai/brains/pull/869) [`0540c35`](https://github.com/rizom-ai/brains/commit/0540c3531e4c7f44da74dbebc3398210f07c3fbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Unified Inbox and Dashboard no longer register their aggregates as shared data sources. Nothing read them through the registry, and the Inbox aggregate ignored who was asking, so any template or package that fetched `unified-inbox:inbox` could have received admin inbox items.
+
 ## 0.2.0-alpha.655
 
 ### Patch Changes
