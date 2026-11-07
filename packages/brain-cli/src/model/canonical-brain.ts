@@ -58,7 +58,7 @@ import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
 import { socialMediaPlugin } from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
-import { styleGuidePlugin } from "@brains/style-guide";
+import styleGuidePackage from "@brains/style-guide";
 import { askContentPlugin } from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
@@ -147,7 +147,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       pluginId: "prompt",
     }),
     ["profile", profilePlugin, undefined],
-    ["style-guide", styleGuidePlugin, undefined],
+    packageCapability("style-guide", "@brains/style-guide", styleGuidePackage, {
+      pluginId: "style-guide",
+    }),
     ["ask-content", askContentPlugin, undefined],
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
