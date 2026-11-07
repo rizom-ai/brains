@@ -418,48 +418,56 @@ describe("public authoring 0.2 golden packages", () => {
       },
     ] as const;
 
-    for (const fixture of cases) {
-      const tsconfigPath = join(
-        repositoryRoot,
-        `.public-authoring-${fixture.directory}.tsconfig.json`,
-      );
-      try {
-        writeFileSync(
-          tsconfigPath,
-          JSON.stringify({
-            extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
-            compilerOptions: {
-              rootDir: ".",
-              declaration: false,
-              jsx: "react-jsx",
-              jsxImportSource: "react",
-              types: ["bun"],
-              noUnusedLocals: false,
-              noUnusedParameters: false,
-              paths: fixture.paths,
+    // Each case is a whole tsc run over the public entries, and none reads
+    // another's tsconfig, so they run side by side; the bound covers the
+    // slowest CI runner rather than the sum of the cases.
+    const compiled = await Promise.all(
+      cases.map(async (fixture) => {
+        const tsconfigPath = join(
+          repositoryRoot,
+          `.public-authoring-${fixture.directory}.tsconfig.json`,
+        );
+        try {
+          writeFileSync(
+            tsconfigPath,
+            JSON.stringify({
+              extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
+              compilerOptions: {
+                rootDir: ".",
+                declaration: false,
+                jsx: "react-jsx",
+                jsxImportSource: "react",
+                types: ["bun"],
+                noUnusedLocals: false,
+                noUnusedParameters: false,
+                paths: fixture.paths,
+              },
+              include: [
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
+              ],
+            }),
+          );
+          const result = await runProcess(
+            ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
+            {
+              cwd: repositoryRoot,
+              env: process.env,
             },
-            include: [
-              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
-              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
-            ],
-          }),
-        );
-        const result = await runProcess(
-          ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
-          {
-            cwd: repositoryRoot,
-            env: process.env,
-          },
-        );
-        expect(
-          result.exitCode,
-          `${fixture.directory} failed to compile:\n${result.stdout}${result.stderr}`,
-        ).toBe(0);
-      } finally {
-        rmSync(tsconfigPath, { force: true });
-      }
+          );
+          return { directory: fixture.directory, result };
+        } finally {
+          rmSync(tsconfigPath, { force: true });
+        }
+      }),
+    );
+    for (const { directory, result } of compiled) {
+      expect(
+        result.exitCode,
+        `${directory} failed to compile:\n${result.stdout}${result.stderr}`,
+      ).toBe(0);
     }
-  }, 30_000);
+  }, 120_000);
 
   it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");
