@@ -8,8 +8,6 @@ export const AUTH_ACCOUNT_MUTATION_ACTIONS = {
 } as const;
 
 export type AuthAccountRole = "admin" | "trusted" | "public";
-export type AuthAccountMutationAction =
-  (typeof AUTH_ACCOUNT_MUTATION_ACTIONS)[keyof typeof AUTH_ACCOUNT_MUTATION_ACTIONS];
 
 export type AuthAccountMutation =
   | {
@@ -101,8 +99,4 @@ export interface AuthAccountSnapshot {
   connectedChannels: AuthAccountConnectedChannel[];
   pluginSettings: readonly AuthAccountPluginSettingsForm[];
   sessions: AuthAccountSessionSummary[];
-}
-
-export interface AuthAccountResponse {
-  account: AuthAccountSnapshot;
 }

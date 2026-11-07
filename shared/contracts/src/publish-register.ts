@@ -35,7 +35,6 @@ export const publishConfigSchema: PublishConfigSchema = z
   .strict();
 
 export type PublishConfig = z.output<typeof publishConfigSchema>;
-export type PublishConfigInput = z.input<typeof publishConfigSchema>;
 
 function isPublishProvider(value: unknown): value is PublishProvider {
   return (
@@ -66,8 +65,6 @@ export const publishRegisterSchema: PublishRegisterSchema = z.object({
   config: publishConfigSchema.optional(),
 });
 
-export type PublishRegisterPayload = z.input<typeof publishRegisterSchema>;
-
 /** An entity plugin hands content-pipeline the provider that publishes its type. */
 export const publishRegisterContract: BusContract<
   PublishRegisterSchema,
@@ -97,10 +94,6 @@ export const publishAssetTargetFieldSchema: z.ZodUnion<
 
 export type PublishAssetTargetField = z.output<
   typeof publishAssetTargetFieldSchema
->;
-export type PublishAssetFieldReference = Exclude<
-  PublishAssetTargetField,
-  string
 >;
 
 type PublishAssetDefinitionSchema = z.ZodObject<{
@@ -136,9 +129,6 @@ export const publishAssetDefinitionSchema: PublishAssetDefinitionSchema =
 
 export type PublishAssetDefinition = z.output<
   typeof publishAssetDefinitionSchema
->;
-export type PublishAssetRequirement = NonNullable<
-  PublishAssetDefinition["requiredWhen"]
 >;
 
 /** An entity plugin declares an asset its entities need before they publish. */
