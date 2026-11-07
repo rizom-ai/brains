@@ -65,7 +65,7 @@ A definition has:
 - a `path` (default `/forms/<id>`), a `title`, an `intro`, a `submitLabel` and thanks copy;
 - `steps`: one or more, each a list of fields;
 - fields of kind `text`, `longText`, `email`, `choice` or `choices`, each with an `id`, a `label`, `required`, a maximum length and, for choices, `options`;
-- optional `scoring`: an option names the `outcome` it counts towards, with a weight (default 1), plus `outcomes` with a title and copy each;
+- optional `scoring`: one or more scored dimensions, each with its own `outcomes` (a title and copy each); an option names, per dimension, the outcome it counts towards and a weight (default 1); each dimension's highest-scoring outcome is its result, so a form can return several results at once;
 - `notify`: whether a submission emails the owner, and the email's title;
 - per-form admission limits, defaulting to contact's;
 - `translations`, per language, for every visible string.
@@ -119,19 +119,21 @@ Done when a test app defines a second form in its content and it works end to en
 
 ### Phase 3 — Quizzes
 
-- Multi-step rendering with the progressive script; scoring and outcomes on the server, the outcome on the thanks page.
+- Multi-step rendering with the progressive script; scored dimensions and their outcomes on the server, the results on the thanks page.
 - `translations`: a form renders in the page's language; `/zh-tw/<path>` follows [bilingual-sites.md](./bilingual-sites.md).
 - `plugins/quiz` with `quiz-result`: answer snapshots, the Inbox only with contact details, Studio grouping by quiz.
 
-Done when a scored, two-language test quiz shows the right outcome in both languages, with and without JavaScript, and its results land as `quiz-result`.
+Done when a scored, two-language test quiz with more than one dimension shows the right results in both languages, with and without JavaScript, and they land as `quiz-result`.
 
 ### Phase 4 — The Fourth's brand test
 
-- The brand test as a `form` definition in The Fourth's brain, targeting `quiz-result`, at `/zh-tw/brand-test` in Traditional Chinese and `/brand-test` in English, styled in the Paper theatre CSS. Sam's Chinese is the source; I draft the English for Sam and Becca to correct. Whether a result emails them is Sam's call.
+- The brand test as a `form` definition in The Fourth's brain, targeting `quiz-result`, at `/zh-tw/brand-test` in Traditional Chinese and `/brand-test` in English, styled in the Paper theatre CSS. Whether a result emails them is Sam's call.
+- The definition comes from the Tally test, whose public page carries all of it: 24 questions on five pages, the answer options, and the scoring. Three scored dimensions (identity Q1–Q7, expression Q8–Q14, audience Q15–Q21) each count towards seven types (seeking, play, care, grief, lust, rage, fear) by option order; Q1 weighs 2, the other scored questions 1. Q7, Q14, Q21 and the background questions Q22–Q24 are unscored, and the last page asks for an email. The test's content stays in The Fourth's brain, not in this repository. Sam's Chinese is the source; I draft the English for Sam and Becca to correct.
+- Tally shows no result: it promises a full report by email (main personality, communication style, consistency between identity and expression, fit with the audience) and sends the visitor to hellofourth.online.
 - The crossroads' "Take the test →" points to `/brand-test`; the Tally form is retired.
 - Deploy order: the brain release with the engine and `quiz` first, then the definition in content. The brain rejects on import any entity field the running version does not know.
 
-Needs from Sam: every question on all five pages, how each answer counts towards a type, and each outcome's copy.
+Needs from Sam: what a visitor gets at the end (results on the page, her emailed report, or both) and the copy for each type in each dimension; and whether two scoring gaps in the Tally test are mistakes: Q17's seventh option and Q18's fourth option add no points.
 
 Done when a visitor on hellofourth.online takes the test in either language, sees their outcome, and the result is in The Fourth's brain.
 
