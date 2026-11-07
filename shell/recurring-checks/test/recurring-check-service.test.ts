@@ -171,8 +171,21 @@ class DrainingSchedulerBackend implements SchedulerBackend {
 
 const logger = createSilentLogger();
 
+/**
+ * The clock a fixture reads unless its test brings its own TestClock. It holds
+ * one instant: the tests that use it never advance time.
+ */
+const fixtureClock: Clock.Clock = await Effect.runPromise(
+  Effect.scoped(
+    TestClock.make().pipe(
+      Effect.tap((clock) =>
+        clock.setTime(Date.parse("2026-07-14T12:00:00.000Z")),
+      ),
+    ),
+  ),
+);
+
 interface CreateServiceOptions {
-  now?: Date;
   clock?: Clock.Clock;
   delivery?: (body: string) => Promise<boolean | void>;
 }
@@ -194,12 +207,8 @@ function createService(
 function createService(
   options: CreateServiceOptions & { scheduler?: SchedulerBackend } = {},
 ): ServiceFixture<SchedulerBackend> {
-  const now = options.now ?? new Date("2026-07-14T12:00:00.000Z");
-  const scheduler =
-    options.scheduler ??
-    new TestSchedulerBackend({
-      ...(options.clock ? { clock: options.clock } : { now }),
-    });
+  const clock = options.clock ?? fixtureClock;
+  const scheduler = options.scheduler ?? new TestSchedulerBackend({ clock });
   const queue = new TestJobQueue();
   const state = new MemoryRuntimeState();
   const delivered: string[] = [];
@@ -209,9 +218,7 @@ function createService(
     runtimeState: state,
     jobQueue: queue,
     logger,
-    ...(options.clock
-      ? { clock: options.clock }
-      : { now: (): Date => new Date(now) }),
+    clock,
     delivery: {
       deliver: async (alert): Promise<boolean | void> => {
         const outcome = options.delivery

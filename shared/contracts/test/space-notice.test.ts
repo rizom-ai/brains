@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { spaceNoticeRequestSchema } from "../src";
+import { spaceNoticeRequestSchema } from "../src/space-notice";
 
 function notice(cards: number, value = "card"): unknown {
   return {
