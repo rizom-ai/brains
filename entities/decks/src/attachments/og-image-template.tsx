@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
-import { OgCard } from "@brains/ui-library";
+import { OgCard } from "@rizom/brain-ui/internal";
 import { createTemplate, type Template } from "@brains/plugins";
 
 export const DECK_OG_IMAGE_ATTACHMENT_TYPE = "og-image";

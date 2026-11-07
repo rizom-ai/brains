@@ -582,6 +582,34 @@ JSON and schema-backed content types:
 - `SiteContentSectionDefinition`
 - `SiteContentStringFieldDefinition`
 
+## `@rizom/brain-ui`
+
+The components a site section or a plugin view renders entities with. They take the selected theme's tokens, and `react` and `react-dom` are peers. The package versions and releases with `@rizom/brain`.
+
+Components:
+
+- `Card`
+- `CardMetadata`
+- `CardTitle`
+- `MarkdownContent`
+- `TagsList`
+
+Formatting:
+
+- `formatDate`
+
+Props and options:
+
+- `CardMetadataProps`
+- `CardProps`
+- `CardTitleProps`
+- `DateFormatStyle`
+- `FormatDateOptions`
+- `MarkdownContentProps`
+- `TagsListProps`
+
+`MarkdownContent` renders markdown as sanitized prose. Inside a site build it resolves `entity://image/<id>` references to the build's optimized images through the brain's image renderer, from whichever copy of the library the package installs, on a brain at the same release as the library or later. `formatDate` formats in the `en-US` locale and the UTC time zone, so a build renders the same dates wherever it runs.
+
 ## Exported but not stable
 
 `@rizom/brain/plugins`, `@rizom/brain/templates`, and the advanced names classified in `export-ledger.json` remain consumer-backed alpha contracts. They are not part of the patch-stable authoring commitment unless listed above. Pin an exact version when using them.

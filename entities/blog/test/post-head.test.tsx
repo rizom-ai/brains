@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { HeadProps } from "@brains/contracts";
-import { HeadProvider } from "@brains/ui-library";
+import { HeadProvider } from "@rizom/brain-ui/internal";
 import { BlogPostTemplate } from "../src/templates/blog-post";
 import {
   blogViewSchema,

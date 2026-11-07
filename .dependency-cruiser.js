@@ -72,7 +72,8 @@ module.exports = {
     {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
-      comment: "Plugins can only import from shell/* and shared/* packages",
+      comment:
+        "Plugins can only import from shell/* and shared/* packages, and the published component library (packages/ui, @rizom/brain-ui)",
       from: {
         path: "^plugins/",
         // Covered by the companion rule below with a wider builtin allowlist
@@ -82,7 +83,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins
@@ -141,12 +142,12 @@ module.exports = {
       name: "entities-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Entity packages can only import from shell/* and shared/* packages",
+        "Entity packages can only import from shell/* and shared/* packages, and the published component library (packages/ui, @rizom/brain-ui)",
       from: {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins

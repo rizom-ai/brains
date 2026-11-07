@@ -1,13 +1,13 @@
 import type { JSX } from "react";
-import { formatDate } from "@brains/ui-library";
+import { formatDate } from "@rizom/brain-ui";
+import { Card } from "@rizom/brain-ui";
 import {
   Head,
   Breadcrumb,
   StatusBadge,
-  Card,
   CoverImage,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 import type { SocialPostView } from "./social-post-view";
 
 export interface SocialPostDetailProps {

@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "@rizom/brain-ui": "0.2.0-alpha.648",
     "@rizom/site": "0.2.0-alpha.233"
   },
   "peerDependencies": {
