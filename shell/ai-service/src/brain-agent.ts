@@ -7,6 +7,7 @@
  * - activeTools for permission-based tool filtering
  */
 import {
+  ToolChoiceViolationError,
   ToolLoopAgent,
   stepCountIs,
   type LanguageModel,
@@ -185,9 +186,9 @@ export function createBrainAgentFactory(
     );
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-    const createAgent = (stepModel: LanguageModel) =>
+    const createAgent = (requireCall: boolean) =>
       new ToolLoopAgent({
-        model: stepModel,
+        model,
         callOptionsSchema: brainCallOptionsSchema,
         // A tool result is answered by the answer model when one is set;
         // otherwise a local model answers it without thinking. On a runtime that
@@ -195,6 +196,8 @@ export function createBrainAgentFactory(
         // tool choice is where reasoning pays.
         // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
         prepareStep: ({ steps }) => {
+          if (requireCall && steps.length === 0)
+            return { toolChoice: "required" as const };
           const last = steps.at(-1);
           if (!last?.toolResults.length) return {};
           // A tool the answer model calls hands the next step back to the
@@ -287,10 +290,10 @@ export function createBrainAgentFactory(
         ...(repairToolCall && { experimental_repairToolCall: repairToolCall }),
         stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
       });
-    const agent = createAgent(model);
-    // An empty local turn is run again by the answer model, which makes the
-    // call the thinking model only reasoned about.
-    const retryAgent = answerModel ? createAgent(answerModel) : agent;
+    const agent = createAgent(false);
+    // An empty local turn is run again with its first step required to call
+    // a tool: the call the thinking model only reasoned about.
+    const retryAgent = createAgent(true);
     return {
       generate: async (params): Promise<BrainAgentResult> => {
         assertGuestPermission(params.options);
@@ -310,19 +313,25 @@ export function createBrainAgentFactory(
           const first = await run(agent);
           // A local thinking model can settle on a tool call in its
           // reasoning and stop without making it, leaving no reply and no
-          // call; that turn is run once more, by the answer model when set.
+          // call; that turn is run once more, now required to make a call.
           const empty =
             capabilities.provider === "local" &&
             first.text.trim() === "" &&
             first.result.steps.every((step) => step.toolCalls.length === 0);
-          const { result, text, retriedAfter } = empty
-            ? await run(retryAgent)
-            : first;
+          // A retry that still makes no call keeps the empty turn.
+          const retry = empty
+            ? await run(retryAgent).catch((error: unknown) => {
+                if (ToolChoiceViolationError.isInstance(error))
+                  return undefined;
+                throw error;
+              })
+            : undefined;
+          const { result, text, retriedAfter } = retry ?? first;
           return {
             text,
             steps: result.steps,
             usage: turnUsage([
-              ...(empty
+              ...(retry
                 ? [
                     ...(first.retriedAfter
                       ? [first.retriedAfter.totalUsage]
