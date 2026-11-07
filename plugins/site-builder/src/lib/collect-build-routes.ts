@@ -8,6 +8,23 @@ import {
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 
+/** The registered routes with the pages plugins add to one build; a page
+ * never displaces a registered route at its path. Nothing is kept: the next
+ * build asks again. */
+export function withGatheredPages(
+  routeRegistry: Pick<RouteRegistry, "list" | "getNavigationItems">,
+  pages: readonly RouteDefinition[] = [],
+): Pick<RouteRegistry, "list" | "getNavigationItems"> {
+  return {
+    list: (): RouteDefinition[] => {
+      const registered = routeRegistry.list();
+      const taken = new Set(registered.map((route) => route.path));
+      return [...registered, ...pages.filter((page) => !taken.has(page.path))];
+    },
+    getNavigationItems: (slot) => routeRegistry.getNavigationItems(slot),
+  };
+}
+
 /** The language a site without declared languages is built in. */
 export const DEFAULT_SITE_LANGUAGE = "en";
 
