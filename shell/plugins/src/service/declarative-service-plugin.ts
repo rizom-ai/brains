@@ -15,7 +15,7 @@ import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
-import type { JobHandler, JobInfo } from "@brains/job-queue";
+import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createConfirmationGate,
@@ -104,7 +104,7 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
-import { publicJobFailure, readJobResult } from "./job-status";
+import { serviceJobStatus } from "./job-status";
 import {
   anonymousCaller,
   serviceJobDataSchema,
@@ -195,20 +195,6 @@ function promptInput(value: string | undefined): unknown {
   } catch {
     return value;
   }
-}
-
-function statusFor<TDefinition extends AnyServiceJobDefinition>(
-  definition: TDefinition,
-  job: JobInfo,
-): ServiceJobStatus<z.output<TDefinition["output"]>> {
-  const result = readJobResult<TDefinition["output"]>(definition.output, job);
-  return {
-    id: job.id,
-    status: job.status,
-    progress: job.progress,
-    ...(result !== undefined ? { result } : {}),
-    ...publicJobFailure(job),
-  };
 }
 
 function runtimeJobHandler(
@@ -1225,7 +1211,7 @@ class DeclarativeServicePlugin<
     ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> => {
       const job = await context.jobs.getStatus(id);
       return job?.type === `${this.id}:${definition.name}`
-        ? statusFor(definition, job)
+        ? serviceJobStatus(definition, job)
         : null;
     };
     return {

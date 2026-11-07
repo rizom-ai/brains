@@ -22,6 +22,7 @@ const subpaths = [
   "services",
   "interfaces",
   "templates",
+  "testing",
 ] as const;
 
 function listDeclarationFiles(dir: string): string[] {
@@ -173,6 +174,46 @@ describe("@rizom/brain public plugin API surface", () => {
     ]) {
       expect(servicesTypes).not.toContain(privateType);
       expect(interfacesTypes).not.toContain(privateType);
+    }
+  });
+
+  it("publishes the test brain without the runtime it runs", async () => {
+    const testingTypes = stripDeclarationComments(
+      readFileSync(join(pkgDir, "dist", "testing.d.ts"), "utf-8"),
+    );
+    const exported = [
+      ...testingTypes.matchAll(/export \{([\s\S]*?)\};/gu),
+    ].flatMap((block) =>
+      (block[1] ?? "")
+        .split(",")
+        .map((part) =>
+          part
+            .trim()
+            .replace(/^type\s+/u, "")
+            .split(/\s+as\s+/u)
+            .at(-1)
+            ?.trim(),
+        )
+        .filter((name) => name !== undefined && name !== ""),
+    );
+
+    expect(exported.sort()).toEqual([
+      "TestBrain",
+      "TestBrainOptions",
+      "TestToolResult",
+      "startTestBrain",
+    ]);
+    for (const runtimeName of [
+      "IShell",
+      "declare class Shell",
+      "PluginManager",
+      "MockShell",
+      "JobQueueService",
+      "MCPService",
+      "TestBrainRuntime",
+      "temporaryRoot",
+    ]) {
+      expect(testingTypes).not.toContain(runtimeName);
     }
   });
 
