@@ -22,6 +22,7 @@ import {
   FormAdmission,
   FormDelivery,
   FormStorageSlots,
+  formAlertText,
   type FormAlertOutcome,
 } from "@brains/forms";
 import { ContactIntake, type ContactMaintenanceReport } from "./intake";
@@ -141,21 +142,29 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
       ],
     });
+    const target = new ContactDeliveryTarget(context.entityService);
     const delivery = new FormDelivery({
-      target: new ContactDeliveryTarget(context.entityService),
+      target,
       state: context.runtimeState,
       slots: CONTACT_SLOTS,
       policy: config.delivery,
-      send: async (_id, idempotencyKey): Promise<FormAlertOutcome> => {
+      send: async (id, idempotencyKey): Promise<FormAlertOutcome> => {
         const inbox = this.inboxUrl(context);
         if (!inbox) return { sent: false, failure: "no-inbox" };
+        const alert = await target.alert(id);
+        if (!alert) return { sent: false, failure: "no-request" };
         const result = await context.messaging.request(
           notificationsSendContract,
           {
             title: "New contact request",
-            body: `A contact request is saved in your authenticated Inbox.\n\n${inbox}`,
+            body: formAlertText({
+              answers: alert.answers,
+              inboxUrl: inbox,
+              replyable: true,
+            }),
             sensitivity: "secret",
             idempotencyKey,
+            replyTo: alert.replyTo,
           },
         );
         if (result.status === "unavailable")

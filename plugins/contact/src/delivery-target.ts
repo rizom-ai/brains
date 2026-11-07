@@ -1,6 +1,10 @@
 import { internalFullScope } from "@brains/plugins";
 import type { ServiceEntityService } from "@brains/plugins";
-import type { FormDeliveryTarget, FormNotificationState } from "@brains/forms";
+import type {
+  FormAlertAnswer,
+  FormDeliveryTarget,
+  FormNotificationState,
+} from "@brains/forms";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
   contactMetadataSchema,
@@ -14,6 +18,26 @@ export class ContactDeliveryTarget implements FormDeliveryTarget {
   private readonly entities: ServiceEntityService;
   constructor(entities: ServiceEntityService) {
     this.entities = entities;
+  }
+
+  /** What the owner's alert carries: the request under the form's labels,
+   * answered by replying to its sender. */
+  async alert(
+    id: string,
+  ): Promise<{ answers: FormAlertAnswer[]; replyTo: string } | null> {
+    const entity = await this.read(id);
+    if (!entity) return null;
+    const { frontmatter, message } = contactRequestAdapter.parseContent(
+      entity.content,
+    );
+    return {
+      answers: [
+        { label: "Name", value: frontmatter.name },
+        { label: "Email", value: frontmatter.email },
+        { label: "Message", value: message },
+      ],
+      replyTo: frontmatter.email,
+    };
   }
 
   async notification(id: string): Promise<FormNotificationState | null> {

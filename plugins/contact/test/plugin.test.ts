@@ -192,7 +192,7 @@ describe("contact runtime", () => {
         .catch((error: unknown) => error),
     ).toEqual(new Error("Contact intake needs the brain's site URL"));
   });
-  it("gates startup, saves/enqueues without sending inline, then executes a private generic notification", async () => {
+  it("gates startup, saves/enqueues without sending inline, then alerts the owner with the request, answerable by email", async () => {
     const f = await setup();
     const route = f.plugin.getWebRoutes()[0];
     expect(
@@ -226,13 +226,21 @@ describe("contact runtime", () => {
       {
         recipient: "owner@example.com",
         subject: "New contact request",
-        text: `A contact request is saved in your authenticated Inbox.\n\n${inboxUrl}`,
+        text: [
+          `Name: ${input.name}`,
+          `Email: ${input.email}`,
+          `Message: ${input.message}`,
+          "",
+          "Reply to this email to answer.",
+          `Mark it done in your Inbox: ${inboxUrl}`,
+        ].join("\n"),
         sensitivity: "secret",
         idempotencyKey: expect.stringMatching(/^contact-notification:contact-/),
+        replyTo: input.email,
       },
     ]);
+    // The queue holds an id only; the request travels in the alert itself.
     expect(JSON.stringify(jobs)).not.toContain(input.email);
-    expect(JSON.stringify(f.sent)).not.toContain(input.message);
     const records = await f.h.getEntityService().listEntities(
       {
         entityType: "contact-request",

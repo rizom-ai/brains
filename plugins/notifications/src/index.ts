@@ -79,6 +79,7 @@ export class NotificationsPlugin extends ServicePlugin<
           subject: input.title,
           text: input.body,
           ...(input.html ? { html: input.html } : {}),
+          ...(input.replyTo ? { replyTo: input.replyTo } : {}),
           sensitivity: input.sensitivity,
           // Providers dedupe on this, so mint one when the caller has no
           // natural key rather than leaving retries to double-send.

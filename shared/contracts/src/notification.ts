@@ -39,6 +39,7 @@ type SendNotificationSchema = z.ZodObject<
       z.ZodEnum<{ normal: "normal"; secret: "secret" }>
     >;
     idempotencyKey: z.ZodOptional<z.ZodString>;
+    replyTo: z.ZodOptional<z.ZodEmail>;
   },
   z.core.$strict
 >;
@@ -51,6 +52,8 @@ export const sendNotificationSchema: SendNotificationSchema = z.strictObject({
   html: z.string().min(1).optional(),
   sensitivity: z.enum(["normal", "secret"]).default("normal"),
   idempotencyKey: z.string().trim().min(1).max(200).optional(),
+  /** Where the recipient's answer goes, such as the person a form alert is about. */
+  replyTo: z.email().optional(),
 });
 
 /** Why a notification was not sent: a refusal is an answer, not a failure. */
