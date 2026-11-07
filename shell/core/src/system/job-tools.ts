@@ -11,7 +11,13 @@ export function createJobTools(services: SystemServices): Tool[] {
       "job_status",
       "Inspect runtime job status for ready checks only when the prior operation created a job, or for status disputes. With a known batch ID, pass batchId. Without an ID, call this tool with no arguments to list active jobs and batches; do not ask the user for an ID first. Do not argue from the transcript alone.",
       jobStatusInputSchema,
-      async (input) => {
+      async (input, context) => {
+        // A failed job's error is raw runtime text (paths, driver messages);
+        // a public caller sees the failure counts without it.
+        const showErrors = services.permissionService.hasPermission(
+          context.userPermissionLevel ?? "public",
+          "trusted",
+        );
         if (input.batchId) {
           const batch = await jobs.getBatchStatus(input.batchId);
           if (!batch) {
@@ -38,7 +44,7 @@ export function createJobTools(services: SystemServices): Tool[] {
                 percentComplete: pct,
               },
               currentOperation: batch.currentOperation,
-              errors: batch.errors,
+              ...(showErrors && { errors: batch.errors }),
             },
           };
         }
@@ -71,7 +77,7 @@ export function createJobTools(services: SystemServices): Tool[] {
               failedOperations: b.status.failedOperations,
               currentOperation: b.status.currentOperation,
               pluginId: b.metadata.metadata.pluginId,
-              errors: b.status.errors,
+              ...(showErrors && { errors: b.status.errors }),
             })),
           },
         };
