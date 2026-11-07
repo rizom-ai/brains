@@ -5,7 +5,6 @@
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
   },

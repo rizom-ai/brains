@@ -106,7 +106,7 @@ Disallowed dependencies for published official plugins:
 Examples:
 
 - `@brains/utils`
-- `@brains/ui-library`
+- `@rizom/brain-ui/internal`
 - shell service implementations
 - registries, storage adapters, DB helpers, test harnesses
 
@@ -136,7 +136,7 @@ majors in author code produces incompatible schema classes. So:
 3. External plugin packages import `z` from `@rizom/brain`, not from `zod`,
    so the SDK owns the schema-version boundary.
 
-The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@brains/ui-library`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.
+The internal grab-bag has already been broken up: ops/env/cert moved to `@brains/deploy-support`, shared contracts to `@brains/contracts`, presentation/UI helpers to `@rizom/brain-ui`, entity URL/preview helpers to `@brains/site-composition`, formatters to `@brains/content-formatters`, and image markdown to `@brains/image`. Remaining boundary work is the curation question below: deciding which of the surviving `@brains/utils` primitives belong on the public `@rizom/brain/*` surface.
 
 Candidate utilities to promote deliberately:
 
@@ -155,16 +155,11 @@ Non-candidates for promotion without more review:
 - internal process/env helpers
 - implementation-specific logger constructors
 
-## Decision: keep UI private until there is a narrow public surface
+## Decision: a narrow public UI package
 
-`@brains/ui-library` should not become a default dependency for publishable entity packages just because TSX templates need components.
+`@rizom/brain-ui` (`packages/ui`) publishes a narrow stable surface: the components a site or plugin view renders entities with, each used by the public-authoring `site` fixture and classified in the export ledger. The rest of the component library is first-party, in `@rizom/brain-ui/internal`, which is not published.
 
-Preferred direction:
-
-1. expose a narrow template/rendering surface from `@rizom/brain/templates`; or
-2. add a deliberate public UI subpath/package once template needs stabilize.
-
-Until then, avoid moving more entity packages onto direct `@brains/ui-library` dependencies unless the package is still explicitly internal-only.
+A component moves to the public entry only with a fixture that uses it and a ledger entry. A publishable entity package does not depend on `@rizom/brain-ui/internal`.
 
 ## Import policy matrix
 
@@ -249,10 +244,11 @@ This milestone intentionally avoids the UI/template question. It proves the offi
 
 ### Milestone B: UI/template publishing decision
 
-Immediately after the non-UI proof, choose the public surface for TSX-heavy official packages. Do not publish `@brains/ui-library` as-is just to unblock plugins. Decide from concrete package needs among:
+Immediately after the non-UI proof, choose the public surface for TSX-heavy official packages. Do not move `@rizom/brain-ui/internal` components to the public entry just to unblock plugins. Decide from concrete package needs among:
 
-1. package-local TSX/components plus `react` and `react-dom`, and/or
-2. narrow renderer/template contracts from `@rizom/brain/templates`.
+1. package-local TSX/components plus `react` and `react-dom`;
+2. narrow renderer/template contracts from `@rizom/brain/templates`; and/or
+3. the stable `@rizom/brain-ui` components.
 
 (`@rizom/ui` is no longer an option: it existed for multiple app-owned Rizom
 site variants, and the one-site consolidation retired that need — its

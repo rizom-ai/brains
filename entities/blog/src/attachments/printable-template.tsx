@@ -2,7 +2,7 @@ import type { JSX } from "react";
 import {
   MarkdownContent,
   formatDate as formatDateStyled,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import { z } from "@brains/utils/zod";
 import { createTemplate, type Template } from "@brains/plugins";
 

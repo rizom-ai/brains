@@ -132,11 +132,12 @@ This is mainly useful if you are developing the framework itself:
 ```text
 packages/brain-cli/    canonical definition, recipes, assets, and @rizom/brain CLI/runtime
 packages/brains-ops/   operator CLI for fleets: @rizom/ops
+packages/ui/           React components for sites and plugin views: @rizom/brain-ui
 shell/                 core runtime and services
 plugins/               built-in service plugins
 entities/              built-in content/entity plugins
 interfaces/            built-in interfaces: MCP, web, Discord, etc.
-shared/                shared utilities, UI, themes, site engine
+shared/                shared utilities, themes, site engine
 sites/                 site packages
 deploy/                deployment templates and helper scripts
 docs/                  documentation and plans

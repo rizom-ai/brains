@@ -7,7 +7,7 @@ The Brains repository is a monorepo with seven workspace directories (`shell/`, 
 ```
 brains/
 ├── shell/              # Core infrastructure & services
-├── shared/             # Shared utilities, themes, UI components
+├── shared/             # Shared utilities, themes, site engine
 ├── entities/           # Content type definitions (entity plugins)
 ├── plugins/            # Service plugins (tools + integrations)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
@@ -42,7 +42,6 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | -------------------------- | -------------------------------------------------------------------------- |
 | `shared/utils`             | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives |
 | `shared/contracts`         | Shared result, job progress, and publish contracts                         |
-| `shared/ui-library`        | React components (Header, Footer, Cards, CTA)                              |
 | `shared/site-composition`  | Shared site composition contract and merge helpers                         |
 | `shared/site-engine`       | Renderer-agnostic site build engine utilities                              |
 | `shared/theme-base`        | `composeTheme()`, shared CSS utilities, Tailwind setup                     |
@@ -136,6 +135,7 @@ Standalone published packages.
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/brain-cli`  | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds the instance-local support files an app needs. |
 | `packages/brains-ops` | `@rizom/ops` — operator CLI for private fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, and multi-user deploy management.                                              |
+| `packages/ui`         | `@rizom/brain-ui` — React components for sites and plugin views. Its public entry is the stable set in the authoring ledger; `@rizom/brain-ui/internal` holds the first-party components and is not published.   |
 
 ## App instances (lightweight instance directories, NOT a workspace category)
 
