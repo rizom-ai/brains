@@ -10,10 +10,10 @@ import type {
   PublicHealthInfo,
   RuntimeReadiness,
 } from "@brains/plugins";
-import type {
-  RegisteredHandlerHttpRoute,
-  RegisteredHttpRoute,
-  RegisteredToolHttpRoute,
+import {
+  findHandlerRoute,
+  type RegisteredHttpRoute,
+  type RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
 import {
   SITE_SLOT_ATTRIBUTE,
@@ -457,22 +457,11 @@ export class ServerManager {
     const requestMethod = c.req.method.toUpperCase();
     const requestPath = c.req.path;
 
-    const handlerRoutes = this.routes.filter(
-      (route): route is RegisteredHandlerHttpRoute =>
-        route.kind === "handler" && route.method === requestMethod,
+    const handlerRoute = findHandlerRoute(
+      this.routes,
+      requestMethod,
+      requestPath,
     );
-    const handlerRoute =
-      handlerRoutes.find(
-        (route) => route.match === "exact" && route.fullPath === requestPath,
-      ) ??
-      handlerRoutes
-        .filter(
-          (route) =>
-            route.match === "prefix" &&
-            (requestPath === route.fullPath ||
-              requestPath.startsWith(`${route.fullPath.replace(/\/$/, "")}/`)),
-        )
-        .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
     if (handlerRoute) {
       if (!opts.healthEndpoint && handlerRoute.preview !== true) return null;
       if (handlerRoute.sharedHostAdmission === "deny") {

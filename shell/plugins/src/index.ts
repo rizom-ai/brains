@@ -279,6 +279,10 @@ export {
   type PluginPackageDefinition,
   type PluginPackageFamily,
 } from "./package-definition";
+// Runtime reads for a host that drives installed packages, such as the test
+// brain: definition-typed entity reads, and a job's status as a service reads it.
+export { createEntityReader } from "./entity/entity-reader";
+export { serviceJobStatus } from "./service/job-status";
 export {
   defineEntity,
   defineEntityAnalyticsReport,

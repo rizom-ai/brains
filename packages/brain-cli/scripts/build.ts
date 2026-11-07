@@ -210,10 +210,6 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "model.ts"),
   },
   {
-    name: "plugins",
-    source: join(import.meta.dir, "..", "src", "entries", "plugins.ts"),
-  },
-  {
     name: "entities",
     source: join(import.meta.dir, "..", "src", "entries", "entities.ts"),
   },
@@ -230,8 +226,8 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "chat.ts"),
   },
   {
-    name: "templates",
-    source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
+    name: "testing",
+    source: join(import.meta.dir, "..", "src", "entries", "testing.ts"),
   },
   {
     name: "deploy",
@@ -383,13 +379,10 @@ const cliBuild = bundle({
 
 // Removed alpha authoring subpaths must not survive from an earlier build in
 // the package-wide dist directory.
-for (const legacySiteArtifact of [
-  "site.js",
-  "site.js.map",
-  "site.d.ts",
-  "site.d.ts.map",
-]) {
-  rmSync(join(outdir, legacySiteArtifact), { force: true });
+for (const removedEntry of ["site", "plugins", "templates"]) {
+  for (const extension of [".js", ".js.map", ".d.ts", ".d.ts.map"]) {
+    rmSync(join(outdir, `${removedEntry}${extension}`), { force: true });
+  }
 }
 
 const libraryBuild = bundleLibraries();
