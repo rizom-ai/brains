@@ -143,18 +143,17 @@ export function defineBusContract<
   return defineAnyBusContract(definition);
 }
 
-/** What answering a contract is handed: the parsed request, and who asked. */
-export interface ServiceAnswerContext<
-  TRequest,
-  TOwned extends AnyEntityDefinition,
-> {
+/**
+ * What answering a contract is handed: the call's data, the parsed request
+ * and who asked. The package's capabilities are the `subscriptions` slot's.
+ */
+export interface ServiceAnswerContext<TRequest> {
   readonly request: TRequest;
   /**
-   * Reads and writes as the package: the bus carries the package that
-   * asked, not a person.
+   * The package that asked, as the runtime knows it; nothing in the request
+   * can name another. An answer authorizes by it and by what its contract
+   * permits.
    */
-  readonly entities: ServiceEntityAccess<TOwned>;
-  /** The package that asked. */
   readonly sender: string;
 }
 
@@ -178,13 +177,13 @@ export type ServiceSchemaValue<TSchema extends ServiceSchema> =
  * sees only a valid request, and its answer reaches the asker only when the
  * contract accepts it.
  */
-export type ServiceAnswer<TOwned extends AnyEntityDefinition> = <
+export type ServiceAnswer = <
   const TRequest extends z.ZodType,
   const TResponse extends z.ZodType,
 >(
   contract: BusContract<TRequest, TResponse, ServiceBusDelivery>,
   handler: (
-    context: ServiceAnswerContext<z.output<TRequest>, TOwned>,
+    context: ServiceAnswerContext<z.output<TRequest>>,
   ) => ServiceSchemaValue<TResponse> | Promise<ServiceSchemaValue<TResponse>>,
 ) => ServiceSubscriptionBinding;
 
@@ -202,12 +201,15 @@ export interface ServiceTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
 }
 
+/**
+ * What a job's handler is given: the call's own data. The package's
+ * capabilities (`entities`, `messaging`, `templates`) are the `jobs`
+ * slot's, which the handler closes over.
+ */
 export interface ServiceJobHandlerContext<TInput> {
   readonly input: TInput;
-  readonly messaging: ServiceMessaging;
   readonly progress: ServiceProgressReporter;
   readonly signal: AbortSignal;
-  readonly templates: ServiceTemplateFormatter;
 }
 
 export type ServiceJobHandler<TInput, TOutput> = (
@@ -604,6 +606,8 @@ export interface ServiceDefinitionBehavior<
         readonly state: TState;
         /** Reads and writes as the requester of the job that is running. */
         readonly entities: ServiceEntityAccess<TOwned>;
+        readonly messaging: ServiceMessaging;
+        readonly templates: ServiceTemplateFormatter;
       }) => readonly ServiceJobBinding[])
     | undefined;
   /**
@@ -614,9 +618,14 @@ export interface ServiceDefinitionBehavior<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /**
+         * Inside an answer, reads and writes as the package: the bus carries
+         * the package that asked, not a person.
+         */
+        readonly entities: ServiceEntityAccess<TOwned>;
         readonly jobs: ServiceJobs;
         readonly messaging: ServiceMessaging;
-        readonly answer: ServiceAnswer<TOwned>;
+        readonly answer: ServiceAnswer;
       }) => readonly ServiceSubscriptionBinding[])
     | undefined;
   readonly tools?:

@@ -176,8 +176,6 @@ function statusFor<TDefinition extends AnyServiceJobDefinition>(
 function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
-  templates: ServiceTemplateFormatter,
-  messaging: ServiceMessaging,
   withCall: <T>(call: ServiceCall, run: () => Promise<T>) => Promise<T>,
 ): JobHandler<string, ServiceJobData, unknown> {
   const definition = binding.definition;
@@ -206,13 +204,7 @@ function runtimeJobHandler(
         eventContext: { actor: authority.actor },
       };
       const output = await withCall(call, () =>
-        handler({
-          input,
-          signal,
-          progress,
-          templates,
-          messaging,
-        }),
+        handler({ input, signal, progress }),
       );
       const parsed = definition.output.safeParse(output);
       if (!parsed.success) {
@@ -339,6 +331,8 @@ class DeclarativeServicePlugin<
         config: this.config,
         state: this.state,
         entities: this.entityAccess(),
+        messaging: this.messaging(),
+        templates,
       }) ?? [];
     const names = new Set<string>();
     for (const binding of bindings) {
@@ -353,12 +347,8 @@ class DeclarativeServicePlugin<
       bindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
       context.jobs.registerHandler(
         job.name,
-        runtimeJobHandler(
-          binding,
-          context,
-          templates,
-          this.messaging(),
-          (call, run) => this.calls.run(call, run),
+        runtimeJobHandler(binding, context, (call, run) =>
+          this.calls.run(call, run),
         ),
       );
     }
@@ -673,7 +663,7 @@ class DeclarativeServicePlugin<
       ServiceSubscriptionBinding,
       () => () => void
     >();
-    const answer: ServiceAnswer<TEntities[number]> = (contract, handler) => {
+    const answer: ServiceAnswer = (contract, handler) => {
       const delivery: string = contract.delivery;
       if (delivery !== "request" && delivery !== "command") {
         throw new Error(
@@ -691,7 +681,7 @@ class DeclarativeServicePlugin<
       registrations.set(binding, () =>
         context.messaging.answer(erased, (request, { sender }) =>
           this.calls.run(this.packageCall(), async () =>
-            handler({ request, entities: this.entityAccess(), sender }),
+            handler({ request, sender }),
           ),
         ),
       );
@@ -700,6 +690,7 @@ class DeclarativeServicePlugin<
     const bindings = this.definition.subscriptions({
       config: this.config,
       state: this.requireState(),
+      entities: this.entityAccess(),
       jobs: this.jobs(),
       messaging: this.messaging(),
       answer,

@@ -264,8 +264,7 @@ search indexing, scheduling, and loop prevention stay runtime-owned.
 
 A declarative entity definition does **not** have a `templates` field. Entities
 own storage schemas, optional Markdown encoding, and projections. Put formatting
-or presentation in a separately composed service and read the entity from a job
-handler:
+or presentation in a separately composed service and read the entity from a job:
 
 <!-- public-authoring-example: external-template-service -->
 
@@ -289,21 +288,14 @@ const compileReadingDigest = defineJob({
   output: digestResult,
 });
 
-// A handler written outside the `jobs` slot is handed the slot's `entities`.
-function compileDigest(entities: EntityReader) {
-  return compileReadingDigest.handle(
-    async ({ input, messaging, templates }) => {
-      const saved = await entities.get(bookmark, input.bookmarkId);
-      if (!saved) throw new Error(`Bookmark not found: ${input.bookmarkId}`);
-
-      const result = { bookmarkId: saved.id, summary: saved.metadata.title };
-      await messaging.publish({
-        topic: "digest-ready",
-        data: { ...result, markdown: templates.format("digest", result) },
-      });
-      return result;
-    },
-  );
+// A helper written outside the `jobs` slot is handed the slot's `entities`.
+async function summarize(
+  entities: EntityReader,
+  bookmarkId: string,
+): Promise<z.output<typeof digestResult>> {
+  const saved = await entities.get(bookmark, bookmarkId);
+  if (!saved) throw new Error(`Bookmark not found: ${bookmarkId}`);
+  return { bookmarkId: saved.id, summary: saved.metadata.title };
 }
 
 export default defineServicePlugin(
@@ -316,7 +308,17 @@ export default defineServicePlugin(
           `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
       },
     },
-    jobs: ({ entities }) => [compileDigest(entities)],
+    // The slot carries the capabilities; the handler is given the call's data.
+    jobs: ({ entities, messaging, templates }) => [
+      compileReadingDigest.handle(async ({ input }) => {
+        const result = await summarize(entities, input.bookmarkId);
+        await messaging.publish({
+          topic: "digest-ready",
+          data: { ...result, markdown: templates.format("digest", result) },
+        });
+        return result;
+      }),
+    ],
   },
 );
 ```

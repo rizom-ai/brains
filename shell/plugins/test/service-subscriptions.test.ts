@@ -94,8 +94,11 @@ async function installReminders(shell: MockShell): Promise<Installed> {
   const definition = defineServicePlugin(
     { id: "reminders", config: z.object({}), entities: [reminder] },
     {
-      subscriptions: ({ answer }) => [
-        answer(reminderCount, async ({ request, entities, sender }) => {
+      subscriptions: ({ answer, entities }) => [
+        answer(reminderCount, async (context) => {
+          // Capabilities are the slot's; the handler is given the call's data.
+          expect(Object.keys(context).sort()).toEqual(["request", "sender"]);
+          const { request, sender } = context;
           senders.push(sender);
           const all = await entities.list(reminder);
           return {
@@ -103,7 +106,7 @@ async function installReminders(shell: MockShell): Promise<Installed> {
               .length,
           };
         }),
-        answer(remindLater, async ({ request, entities }) => {
+        answer(remindLater, async ({ request }) => {
           heard.push(request.id);
           await entities.create(reminder, {
             id: request.id,
@@ -112,8 +115,14 @@ async function installReminders(shell: MockShell): Promise<Installed> {
           });
         }),
       ],
-      jobs: () => [
-        askLater.handle(async ({ messaging }) => {
+      jobs: ({ messaging }) => [
+        askLater.handle(async (context) => {
+          // Capabilities are the slot's; the handler is given the call's data.
+          expect(Object.keys(context).sort()).toEqual([
+            "input",
+            "progress",
+            "signal",
+          ]);
           const asked = await messaging.request(reminderCount, {
             status: "open",
           });
@@ -220,6 +229,39 @@ describe("a service's subscriptions", () => {
     ).toEqual({ status: "answered", data: { count: 2 } });
     // The handler is told which package asked.
     expect(installed.senders).toEqual(["calendar"]);
+  });
+
+  it("are told the sending package by the runtime, never by the request", async () => {
+    const shell = createMockShell();
+    const vouched = defineBusContract({
+      channel: "@fixture/reminders:vouch",
+      // A request may carry a field named like the sender; it stays data.
+      request: z.object({ sender: z.string() }),
+      response: z.object({ sender: z.string(), claimed: z.string() }),
+      delivery: "request",
+    });
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "reminders", config: z.object({}) },
+        {
+          subscriptions: ({ answer }) => [
+            answer(vouched, ({ request, sender }) => ({
+              sender,
+              claimed: request.sender,
+            })),
+          ],
+        },
+      ),
+    );
+
+    const asker = createServicePluginContext(shell, "calendar");
+    expect(
+      await asker.messaging.request(vouched, { sender: "@brains/auth" }),
+    ).toEqual({
+      status: "answered",
+      data: { sender: "calendar", claimed: "@brains/auth" },
+    });
   });
 
   it("hear a command and write as the package, whoever sent it", async () => {

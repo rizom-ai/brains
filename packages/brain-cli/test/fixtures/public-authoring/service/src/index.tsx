@@ -167,8 +167,9 @@ export default defineServicePlugin(
     },
 
     // Binding with .handle() keeps the contract importable without its executor.
-    // One `entities` reads and writes as whoever started the running job.
-    jobs: ({ state, entities }) => [
+    // The slot carries the capabilities, `entities` reading and writing as
+    // whoever started the running job; a handler is given the call's data.
+    jobs: ({ state, entities, messaging, templates }) => [
       readGeneratedOutputs.handle(async ({ input }) => {
         const digest = await entities.get(readingDigest, input.digestId);
         const overview = await entities.get(bookmark, input.overviewId);
@@ -182,43 +183,41 @@ export default defineServicePlugin(
           overview: { content: overview.content, url: overview.metadata.url },
         };
       }),
-      compileReadingDigest.handle(
-        async ({ input, messaging, progress, signal, templates }) => {
-          signal.throwIfAborted();
-          await progress.report({
-            progress: 25,
-            total: 100,
-            message: "Loading bookmark",
-          });
+      compileReadingDigest.handle(async ({ input, progress, signal }) => {
+        signal.throwIfAborted();
+        await progress.report({
+          progress: 25,
+          total: 100,
+          message: "Loading bookmark",
+        });
 
-          const saved = await entities.get(bookmark, input.bookmarkId);
-          if (!saved) {
-            // The code reaches whoever reads the job's status; the message stays
-            // with the brain's diagnostics.
-            throw new SdkError("not_found", {
-              message: `Bookmark not found: ${input.bookmarkId}`,
-            });
-          }
-
-          const result = state.summarize(
-            saved.id,
-            saved.metadata.title,
-            saved.content,
-          );
-
-          await progress.report({
-            progress: 100,
-            total: 100,
-            message: "Digest ready",
+        const saved = await entities.get(bookmark, input.bookmarkId);
+        if (!saved) {
+          // The code reaches whoever reads the job's status; the message stays
+          // with the brain's diagnostics.
+          throw new SdkError("not_found", {
+            message: `Bookmark not found: ${input.bookmarkId}`,
           });
-          // Entity data reaches the template only through the declared render schema.
-          await messaging.publish({
-            topic: "digest-ready",
-            data: { ...result, markdown: templates.format("digest", result) },
-          });
-          return result;
-        },
-      ),
+        }
+
+        const result = state.summarize(
+          saved.id,
+          saved.metadata.title,
+          saved.content,
+        );
+
+        await progress.report({
+          progress: 100,
+          total: 100,
+          message: "Digest ready",
+        });
+        // Entity data reaches the template only through the declared render schema.
+        await messaging.publish({
+          topic: "digest-ready",
+          data: { ...result, markdown: templates.format("digest", result) },
+        });
+        return result;
+      }),
     ],
 
     // The contracts this service answers, registered with it and released

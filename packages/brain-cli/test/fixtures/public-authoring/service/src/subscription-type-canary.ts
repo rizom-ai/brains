@@ -85,11 +85,35 @@ export const subscriptionTypeCanary = defineServicePlugin(
         void request.missing;
         return { status: "open", tags: [] };
       }),
+      // An answer is given the call's data; entities are the slot's.
+      // @ts-expect-error The handler context carries no entity access.
+      answer(remindLater, async ({ entities: shadowed }) => {
+        void shadowed;
+      }),
     ],
-    jobs: () => [
-      askLater.handle(async ({ messaging }) => {
+    jobs: ({ messaging }) => [
+      askLater.handle(async () => {
         await messaging.command(remindLater, { when: "tomorrow" });
         return { asked: true };
+      }),
+      // A job handler is given the call's data; messaging is the slot's.
+      defineJob({
+        name: "no-handler-messaging",
+        input: z.object({}),
+        output: z.object({}),
+        // @ts-expect-error The handler context carries no messaging.
+      }).handle(async ({ messaging: shadowed }) => {
+        void shadowed;
+        return {};
+      }),
+      defineJob({
+        name: "no-handler-templates",
+        input: z.object({}),
+        output: z.object({}),
+        // @ts-expect-error The handler context carries no templates.
+      }).handle(async ({ templates: shadowed }) => {
+        void shadowed;
+        return {};
       }),
     ],
     tools: ({ messaging }) => [

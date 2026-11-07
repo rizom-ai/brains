@@ -281,8 +281,8 @@ describe("declarative service definitions", () => {
             format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
           },
         },
-        jobs: ({ state }) => [
-          digestJob.handle(async ({ input, templates }) => {
+        jobs: ({ state, templates }) => [
+          digestJob.handle(async ({ input }) => {
             const output = state.summarize(input.bookmarkId);
             expect(templates.format("digest", output)).toBe("saved: 3");
             return output;
@@ -565,8 +565,8 @@ describe("declarative service definitions", () => {
           config: z.object({}),
         },
         {
-          jobs: () => [
-            announceJob.handle(async ({ input, messaging }) => {
+          jobs: ({ messaging }) => [
+            announceJob.handle(async ({ input }) => {
               await messaging.publish({ topic: "digest-ready", data: input });
               return input;
             }),
