@@ -75,6 +75,7 @@ Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-no
 | + repaired by the deciding model instead                                     | 17/33 | 52%  | 60.8 s       |
 | `local:gpt-oss:120b` alone, with the repair                                  | 14/33 | 42%  | 56.5 s       |
 | Qwen pair, with the flat upload source and kind-free update operation (#841) | 19/33 | 58%  | 47.4 s       |
+| + `visionModel`, a required call on an empty turn, and #849, #855, #860–#862 | 26/33 | 79%  | 43.1 s       |
 
 - In the first run, 11 failures were the runtime refusing the request: Ollama's chat API takes no PDF parts and the Qwen3 models read no images. Uploads now reach a local model as text: a PDF as its extracted text, any other file as its name and type.
 - After any tool result, the answer model took every later step and made the retries; a tool it calls now hands the next step back to `model`. `system_get` asks for a fresh read whenever the user asks to read.
@@ -83,6 +84,7 @@ Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-no
 - What fails now is the models' own choices: 4 long-note edits patch without the read the user asked for; 3 verbatim and long-note updates pick a different operation; 4 image cases need a model that sees images; 2 multi-file saves never call `system_create`; 3 others choose the wrong entity type or save when they should only answer.
 - `gpt-oss:120b`, four times the size, makes the same first attempts: upload saves write `source: { kind: "upload", id }` and edits omit `operation.kind`. Its repairs return no output inside an agent conversation ("the model did not return a response") while the same repair outside one returns the right arguments (4 of 4, 8–23 s); the cause is not found, and no request reached the 32,768-token context. On the headless suite it matches the cloud model alone, at 37 tokens/s and 64.4 GB resident.
 - With #841's shapes (`source: { kind: "upload", id, transform }`, an operation named by its one field) no call fails validation. What fails is choice: 6 edits skip the read the user asked for, 4 image cases need a model that sees images, 2 multi-file saves never call `system_create`, and 2 pick a different operation or transform.
+- `visionModel` describes uploaded images, and the four image cases pass. A Qwen3 thinking turn that settles on a call in its reasoning and stops with no reply is run again with a call required; Ollama ignores `tool_choice: "required"`, so a local model's required step is constrained to a call of one of its tools, and multi-PDF notes passes 3 of 3. What fails: 4 stored-state reads answered from the conversation though the user asks for a read, keep-all saving the Markdown files and leaving the image out (about 1 in 3 passes), a bare label after an image upload acted on, and a link saved from the message instead of its URL.
 
 ## Goal
 
