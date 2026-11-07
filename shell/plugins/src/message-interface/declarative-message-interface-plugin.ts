@@ -15,6 +15,7 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import type {
+  MessageChannel,
   MessageInterfaceDefinitionInput,
   MessageOutput,
   ReceiveAuthenticatedInput,
@@ -235,12 +236,24 @@ class DeclarativeMessageInterfacePlugin<
   protected override async sendMessageWithId(
     request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
-    if (!request.channelId || !this.definition.send) return undefined;
+    if (!request.channelId) return undefined;
+    return this.reply({ id: request.channelId }, request.message);
+  }
+
+  /** Sends to a channel as the message came in, its thread included. */
+  private async reply(
+    channel: MessageChannel,
+    message: MessageInterfaceOutput,
+  ): Promise<string | undefined> {
+    if (!this.definition.send) return undefined;
     const id = await this.definition.send({
       config: this.config,
       state: this.requireState(),
-      channel: { id: request.channelId },
-      message: normalizedOutput(request.message),
+      channel: {
+        id: channel.id,
+        ...(channel.threadId ? { threadId: channel.threadId } : {}),
+      },
+      message: normalizedOutput(message),
     });
     return typeof id === "string" ? id : undefined;
   }
@@ -380,10 +393,7 @@ class DeclarativeMessageInterfacePlugin<
         })
       : { attachments: [], notices: [] };
     if (notices.length > 0) {
-      await this.sendMessageWithId({
-        channelId: input.channel.id,
-        message: skippedUploads(notices),
-      });
+      await this.reply(input.channel, skippedUploads(notices));
     }
     // Nothing left to answer: no words, and no file that could be taken.
     if (!input.text.trim() && attachments.length === 0) return;
@@ -422,10 +432,7 @@ class DeclarativeMessageInterfacePlugin<
         },
         signal,
       );
-      const messageId = await this.sendMessageWithId({
-        channelId: input.channel.id,
-        message: response.text,
-      });
+      const messageId = await this.reply(input.channel, response.text);
       if (messageId) {
         for (const result of response.toolResults ?? []) {
           if (result.jobId) {

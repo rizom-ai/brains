@@ -501,7 +501,11 @@ describe("declarative message interfaces", () => {
           }): Promise<void>;
         }
       | undefined;
-    const sent: Array<{ channelId: string; text: string }> = [];
+    const sent: Array<{
+      channelId: string;
+      threadId: string | undefined;
+      text: string;
+    }> = [];
     const edited: Array<{ messageId: string; text: string }> = [];
     const delivered: Array<{ roomId: string; text: string }> = [];
     const attachmentLookup = mock(async () => [
@@ -534,7 +538,11 @@ describe("declarative message interfaces", () => {
         },
         async send({ state, channel, message }) {
           expect(state.token).toBe("secret");
-          sent.push({ channelId: channel.id, text: message.text });
+          sent.push({
+            channelId: channel.id,
+            threadId: channel.threadId,
+            text: message.text,
+          });
           return `message-${sent.length}`;
         },
         edit({ messageId, message }) {
@@ -606,7 +614,10 @@ describe("declarative message interfaces", () => {
       }),
       expect.any(AbortSignal),
     );
-    expect(sent).toEqual([{ channelId: "room-1", text: "Digest accepted" }]);
+    // The reply goes to the thread the message came from.
+    expect(sent).toEqual([
+      { channelId: "room-1", threadId: "thread-1", text: "Digest accepted" },
+    ]);
 
     const edit = Reflect.get(plugin, "editMessage");
     if (typeof edit !== "function") throw new Error("Edit adapter is absent");
