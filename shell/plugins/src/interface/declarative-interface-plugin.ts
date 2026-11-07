@@ -155,7 +155,7 @@ class DeclarativeInterfacePlugin<
       declarationId: this.definition.id,
       permissions: context.permissions,
       anonymous: anonymousCaller(this.id),
-      runAs: (caller, run) => this.routeCaller.run(caller, run),
+      runAs: (caller, _request, run) => this.routeCaller.run(caller, run),
       logger: this.logger,
     });
   }

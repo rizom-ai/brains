@@ -99,6 +99,8 @@ const goldenPackages: GoldenPackageExpectation[] = [
     requiredVocabulary: [
       "messaging.request(fillReaderProfile",
       "entities.get(readerProfile",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
     ],
   },
   {

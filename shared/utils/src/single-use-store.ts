@@ -8,6 +8,14 @@ export interface SingleUseStoreOptions {
   now?: (() => number) | undefined;
 }
 
+/**
+ * How long a consent round trip's state lives, from sending a person to a
+ * provider to their return, and how many may wait at once.
+ */
+export const CONSENT_STATE_LIFETIME: Readonly<
+  Pick<SingleUseStoreOptions, "ttlMs" | "maxPending">
+> = Object.freeze({ ttlMs: 10 * 60 * 1000, maxPending: 20 });
+
 interface Pending<T> {
   value: T;
   expiresAt: number;

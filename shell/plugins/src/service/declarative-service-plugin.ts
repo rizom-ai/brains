@@ -33,6 +33,10 @@ import {
   type Template,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  CONSENT_STATE_LIFETIME,
+  SingleUseStore,
+} from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import { emptyPluginState } from "../base/empty-state";
@@ -71,6 +75,7 @@ import type {
   ServiceContentGeneration,
   ServiceContentGenerationResult,
   ServiceEntityAccess,
+  ServiceAccountSettings,
   ServiceAnswer,
   ServiceJobBinding,
   ServiceJobReference,
@@ -113,10 +118,40 @@ interface ServiceCall {
   access(): Promise<CallerAccess>;
   /** Who a job started now is admitted as; unset, the package itself. */
   readonly caller?: Caller | undefined;
+  /** The account the caller signed in as, when it has one. */
+  account?(): Promise<AccountHolder | undefined>;
   readonly eventContext: {
     readonly actor: ActorRef;
     readonly interfaceType?: string;
   };
+}
+
+/** An account the runtime vouches for, and the browser session it came through. */
+interface AccountHolder {
+  readonly userId: string;
+  /** Set when the caller came through a browser session of this account. */
+  readonly sessionUserId?: string | undefined;
+}
+
+/** What a claim names: the account, and the session it was made in. */
+type AccountClaim = AccountHolder;
+
+const schemaRefusalShape = z.object({
+  issues: z.array(
+    z.object({ path: z.array(z.union([z.string(), z.number()])) }),
+  ),
+});
+
+/** A schema's refusal of account settings, named by its fields alone. */
+function refusedSettingsFields(error: unknown): string[] | undefined {
+  if (!(error instanceof Error) || error.name !== "ZodError") return undefined;
+  const parsed = schemaRefusalShape.safeParse(error);
+  if (!parsed.success) return undefined;
+  return [
+    ...new Set(
+      parsed.data.issues.map((issue) => issue.path.join(".") || "(root)"),
+    ),
+  ];
 }
 
 /**
@@ -367,6 +402,7 @@ class DeclarativeServicePlugin<
         entities: this.entityAccess(),
         jobs: this.jobs(),
         messaging: this.messaging(),
+        accountSettings: this.accountSettingsWriter(),
       }) ?? []
     ).map((route) => this.runtimeRoute(route));
   }
@@ -387,7 +423,8 @@ class DeclarativeServicePlugin<
           permissions.isAnchor(declarationId, actorId),
       },
       anonymous: anonymousCaller(this.id),
-      runAs: (caller, run) => this.calls.run(this.routeCall(caller), run),
+      runAs: (caller, request, run) =>
+        this.calls.run(this.routeCall(caller, request), run),
       logger: this.logger,
     });
   }
@@ -493,6 +530,7 @@ class DeclarativeServicePlugin<
         entities: this.entityAccess(),
         jobs: this.jobs(),
         messaging: this.messaging(),
+        accountSettings: this.accountSettingsWriter(),
         templates: this.templateFormatter(),
         content: this.content(),
       }) ?? [];
@@ -648,9 +686,13 @@ class DeclarativeServicePlugin<
     const context = this.getContext();
     let admitted: Promise<CallerAccess> | undefined;
     const caller = toolCaller(toolContext);
+    const { actor } = toolContext;
     return {
       access: () => (admitted ??= context.jobAuthority.access(caller)),
       caller,
+      // A tool call carries no browser session, so its account is unbound.
+      account: async () =>
+        actor.kind === "user" ? { userId: actor.userId } : undefined,
       eventContext: {
         actor: toolContext.actor,
         interfaceType: toolContext.interfaceType,
@@ -659,13 +701,101 @@ class DeclarativeServicePlugin<
   }
 
   /** A route call acts as its caller; access is admitted once, when first used. */
-  private routeCall(caller: Caller): ServiceCall {
+  private routeCall(caller: Caller, request: Request): ServiceCall {
     const context = this.getContext();
     let admitted: Promise<CallerAccess> | undefined;
+    let session: Promise<AccountHolder | undefined> | undefined;
     return {
       access: () => (admitted ??= context.jobAuthority.access(caller)),
       caller,
+      // The browser session the request came with, resolved by the runtime;
+      // the package never sees sessions.
+      account: () =>
+        (session ??= (async (): Promise<AccountHolder | undefined> => {
+          const principal = await context.auth.get()?.resolveSession(request);
+          return principal
+            ? { userId: principal.userId, sessionUserId: principal.userId }
+            : undefined;
+        })()),
       eventContext: { actor: caller.actor },
+    };
+  }
+
+  /** Single-use claims on this package's account settings. */
+  private readonly accountClaims = new SingleUseStore<AccountClaim>(
+    CONSENT_STATE_LIFETIME,
+  );
+
+  /**
+   * This package's own account settings, written for an account the runtime
+   * vouches for: the current caller's, or the one a claim names.
+   */
+  private accountSettingsWriter(): ServiceAccountSettings<
+    NonNullable<TAccountSettings>
+  > {
+    const holder = async (): Promise<AccountHolder> => {
+      const account = await this.calls.getStore()?.account?.();
+      if (!account) {
+        throw new SdkError("permission_denied", {
+          publicMessage: "Account settings need a signed-in account",
+        });
+      }
+      return account;
+    };
+    const write = async (userId: string, values: unknown): Promise<void> => {
+      const registration = this.accountSettingsRegistration;
+      if (!registration) {
+        throw new SdkError("permission_denied", {
+          message: `Service "${this.publicId}" keeps no account settings here`,
+        });
+      }
+      const input = z.record(z.string(), z.unknown()).safeParse(values);
+      if (!input.success) {
+        throw new SdkError("invalid_input", {
+          publicMessage: "Account settings must be an object",
+        });
+      }
+      try {
+        await this.getContext().accountSettings.save(
+          registration.id,
+          userId,
+          input.data,
+        );
+      } catch (error) {
+        // A refused value is named by its field; the value itself, which may
+        // be a secret, reaches neither the caller nor the log.
+        const fields = refusedSettingsFields(error);
+        if (!fields) throw error;
+        const refusal = `Invalid account settings: ${fields.join(", ")}`;
+        throw new SdkError("invalid_input", {
+          message: refusal,
+          publicMessage: refusal,
+        });
+      }
+    };
+    return {
+      save: async (values) => write((await holder()).userId, values),
+      claim: async (): Promise<string> => {
+        const account = await holder();
+        return this.accountClaims.issue(account);
+      },
+      redeem: async (state, produce): Promise<void> => {
+        const redeemer = await this.calls.getStore()?.account?.();
+        // A claim made in a browser session is taken only by the same
+        // account's session; a refused one stays for its own.
+        const claim = this.accountClaims.take(
+          state,
+          (pending) =>
+            pending.sessionUserId === undefined ||
+            pending.sessionUserId === redeemer?.sessionUserId,
+        );
+        if (!claim) {
+          throw new SdkError("permission_denied", {
+            publicMessage: "This link has expired or was already used",
+          });
+        }
+        await write(claim.userId, await produce());
+      },
     };
   }
 

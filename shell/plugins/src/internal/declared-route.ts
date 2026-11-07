@@ -30,7 +30,11 @@ export interface DeclaredRouteOptions {
    * Runs a handler as the route's caller, so what it reads, writes and
    * starts is held to that caller.
    */
-  readonly runAs: <T>(caller: Caller, run: () => Promise<T>) => Promise<T>;
+  readonly runAs: <T>(
+    caller: Caller,
+    request: Request,
+    run: () => Promise<T>,
+  ) => Promise<T>;
   /** Where a failure's diagnostic goes; the caller is told its public form. */
   readonly logger: Logger;
 }
@@ -60,6 +64,7 @@ export function createDeclaredRoute(
           : undefined;
         const output = await options.runAs(
           caller ? callerFor(caller, options.declarationId) : options.anonymous,
+          request,
           async () => definition.handle({ request, body, caller }),
         );
         const answer = definition.response.safeParse(output);
