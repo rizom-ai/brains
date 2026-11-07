@@ -48,6 +48,7 @@ import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import type { EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
+import { withEntityRuntime, type EntityRuntimeBinding } from "./entity-runtime";
 import { createUploadSaveHandler } from "./upload-save";
 import { sharedUploadScope } from "../service/upload-registry";
 import {
@@ -900,13 +901,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       context.eval.registerHandler(id, (input) =>
         handler(
           input,
-          Object.freeze({
-            ai: createGenerationAI(context, (localName) =>
-              this.templateName(localName),
-            ),
-            entities: this.asPackage(context),
-            fixtures: createEvalFixtures(context, this.entityType),
-          }),
+          withEntityRuntime(
+            {
+              ai: createGenerationAI(context, (localName) =>
+                this.templateName(localName),
+              ),
+              entities: this.asPackage(context),
+              fixtures: createEvalFixtures(context, this.entityType),
+            },
+            // An eval runs with no caller, so its searches read as the
+            // package.
+            this.runtimeBinding(context, this.asPackage(context)),
+          ),
         ),
       );
     });
@@ -1432,14 +1438,38 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       read: (uploadId: string) => uploads.read(uploadId),
       readRecord: (uploadId: string) => uploads.readRecord(uploadId),
     });
-    return Object.freeze({
-      input: deepFrozen(structuredClone(input)),
-      entities: createEntityReader(
-        context.entityService,
-        this.callerScope(executionContext),
-      ),
-      uploads: reader,
-    });
+    const entities = createEntityReader(
+      context.entityService,
+      this.callerScope(executionContext),
+    );
+    return withEntityRuntime(
+      {
+        input: deepFrozen(structuredClone(input)),
+        entities,
+        uploads: reader,
+      },
+      this.runtimeBinding(context, entities),
+    );
+  }
+
+  /**
+   * The internal runtime a first-party definition reaches through
+   * entityRuntime(context): searches at the call's visibility, reads of the
+   * package's own types as the package, and free-form structured AI.
+   */
+  private runtimeBinding(
+    context: EntityPluginContext,
+    reader: EntityReader,
+  ): EntityRuntimeBinding {
+    return {
+      reader,
+      packageReader: this.asPackage(context),
+      ownsType: (entityType) => this.ownsType(entityType),
+      searchWithDistances: (request) =>
+        context.entityService.searchWithDistances(request),
+      generateObject: (prompt, schema) =>
+        context.ai.generateObject(prompt, schema),
+    };
   }
 
   private callerScope(

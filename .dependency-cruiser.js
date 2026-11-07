@@ -12,6 +12,24 @@ module.exports = {
       },
     },
     {
+      name: "public-entries-never-reach-the-first-party-entity-runtime",
+      severity: "error",
+      comment:
+        "entityRuntime(context) is internal to first-party packages: no public entry of @rizom/brain or the SDK may import it",
+      from: {
+        path: [
+          "^packages/brain-cli/src/entries/",
+          "^packages/brain-sdk/src/(index|entities|services|interfaces)\\.ts$",
+        ],
+      },
+      to: {
+        path: [
+          "^packages/brain-sdk/src/internal/",
+          "^shell/plugins/src/entity/entity-runtime\\.ts$",
+        ],
+      },
+    },
+    {
       name: "not-to-unresolvable",
       severity: "error",
       comment:

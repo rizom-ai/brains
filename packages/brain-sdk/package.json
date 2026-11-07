@@ -22,6 +22,7 @@
     ".": "./src/index.ts",
     "./internal/brain-config": "./src/brain-config.ts",
     "./internal/configured-plugin": "./src/configured-plugin.ts",
+    "./internal/entity-runtime": "./src/internal/entity-runtime.ts",
     "./entities": "./src/entities.ts",
     "./services": "./src/services.ts",
     "./interfaces": "./src/interfaces.ts"
