@@ -113,6 +113,14 @@ describe("long-note agent eval coverage", () => {
         testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
       ).toEqual({ success: true, "data.updated": id });
       for (const index of [0, 3]) {
+        // An edit needs no fresh read: the update matches its old text
+        // against the stored note and refuses a note changed since the
+        // model read it. Only the turns that report stored content must read.
+        expect(
+          testCase.turns[index]?.successCriteria?.expectedTools?.map(
+            (tool) => tool.toolName,
+          ),
+        ).toEqual(["system_update"]);
         const proposal = testCase.turns[
           index
         ]?.successCriteria?.expectedTools?.find(

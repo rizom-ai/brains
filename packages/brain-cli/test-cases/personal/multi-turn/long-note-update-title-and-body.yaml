@@ -16,6 +16,29 @@ turns:
   - userMessage: 'Read note ''long-note-update-title-and-body''. Change its title by replacing the H1 "Working Plan" with "Approved Plan", and replace the exact sentence "Review cadence: monthly." with "Review cadence: weekly." in the same proposed update. Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
     successCriteria: &proposal
       expectedTools:
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: long-note-update-title-and-body
+            operation:
+              kind: edits
+              edits:
+                &patch [
+                  { "oldText": "# Working Plan", "newText": "# Approved Plan" },
+                  {
+                    "oldText": "Review cadence: monthly.",
+                    "newText": "Review cadence: weekly.",
+                  },
+                ]
+          argsAbsent: ["operation.fields", "operation.content", "confirmed"]
+          resultContains:
+            needsConfirmation: true
+      responseContains: [Confirmation required]
+  - userMessage: Cancel that proposed update.
+    confirmPendingAction: false
+  - userMessage: "Read note 'long-note-update-title-and-body' from storage now. Do not change anything; briefly state its title and review cadence."
+    successCriteria:
+      expectedTools:
         - toolName: system_get
           argsContain:
             entityType: note
@@ -59,35 +82,6 @@ turns:
               - Status: awaiting review
 
               xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        - toolName: system_update
-          argsContain:
-            entityType: note
-            id: long-note-update-title-and-body
-            operation:
-              kind: edits
-              edits:
-                &patch [
-                  { "oldText": "# Working Plan", "newText": "# Approved Plan" },
-                  {
-                    "oldText": "Review cadence: monthly.",
-                    "newText": "Review cadence: weekly.",
-                  },
-                ]
-          argsAbsent: ["operation.fields", "operation.content", "confirmed"]
-          resultContains:
-            needsConfirmation: true
-      responseContains: [Confirmation required]
-  - userMessage: Cancel that proposed update.
-    confirmPendingAction: false
-  - userMessage: "Read note 'long-note-update-title-and-body' from storage now. Do not change anything; briefly state its title and review cadence."
-    successCriteria:
-      expectedTools:
-        - toolName: system_get
-          argsContain:
-            entityType: note
-            id: long-note-update-title-and-body
-          resultContains:
-            entity.content: *original
         - toolName: system_update
           shouldBeCalled: false
   - userMessage: 'Read note ''long-note-update-title-and-body''. Change its title by replacing the H1 "Working Plan" with "Approved Plan", and replace the exact sentence "Review cadence: monthly." with "Review cadence: weekly." in the same proposed update. Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
