@@ -55,7 +55,7 @@ Nothing in the brain is a generic "response".
 
 ### Quizzes share one result type
 
-A new `quiz` package owns `quiz-result`: which quiz, the outcome as shown, each answer as the visitor saw it (field id, label and the value or option text chosen), and the taker's name and email when the quiz asks for them. Later edits to a quiz never change what an older result says. A result appears in the Inbox as a to-do only when the taker left contact details. Every result is visible in Studio, grouped by quiz. `add: [quiz]` brings in `forms`. The brand test and Rizom's planned Team Type quiz both produce `quiz-result`. Each quiz's own outcomes give a result its meaning.
+A new `quiz` package owns `quiz-result`: which quiz, each scored dimension's result as shown, each answer as the visitor saw it (field id, label and the value or option text chosen), and the taker's name and email when the quiz asks for them. Later edits to a quiz never change what an older result says. A result appears in the Inbox as a to-do only when the taker left contact details. Every result is visible in Studio, grouped by quiz. `add: [quiz]` brings in `forms`. The brand test and Rizom's planned Team Type quiz both produce `quiz-result`. Each quiz's own outcomes give a result its meaning.
 
 ### A form is a definition
 
