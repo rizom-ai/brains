@@ -1,7 +1,7 @@
 {
   "name": "@brains/docs-chrome",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.649",
+  "version": "0.2.0-alpha.650",
   "description": "Docs page chrome shared by the doc and guide templates: styles, frame, and a configurable header and footer",
   "dependencies": {
     "@brains/utils": "workspace:*",

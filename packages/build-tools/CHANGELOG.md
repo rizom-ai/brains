@@ -1,5 +1,11 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- [#856](https://github.com/rizom-ai/brains/pull/856) [`eb649b0`](https://github.com/rizom-ai/brains/commit/eb649b00d6cbb591a531c07704e5f0d648544f21) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain builds while a core release has the publish manifests prepared. The release prepares every core-lane publish manifest before `changeset publish` and restores them afterwards, so `@rizom/brain`'s `prepublishOnly` build ran while `@rizom/brain-ui` exported only its published entry, and the entity templates' `@rizom/brain-ui/internal` imports no longer resolved. The alpha.649 release published `@rizom/brain-ui` and `@rizom/ops` but not `@rizom/brain`, so `@rizom/brain@0.2.0-alpha.649` will never exist; this release republishes the core group. The brain's bundle now reads first-party workspace packages from the exports their source declares, whatever state their manifest is in, and the packed compatibility run builds and packs the brain with the core-lane manifests prepared, as the release does.
+
 ## 0.2.0-alpha.649
 
 No changes in this release.
