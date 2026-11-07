@@ -15,6 +15,15 @@ Baileys installs about 77 MB, 37 MB of it its required `sharp` peer.
 
 Spike part 1 ran Baileys under Bun 1.4.0, from source and bundled with `bun build` (346 modules, 7.1 MB) with `sharp` and `jimp` external. In the bundled run no image library is importable, and WhatsApp issues a login QR in both runs. WhatsApp closes the connection with status 428 before the QR when the client presents a Desktop sub-platform (`Browsers.macOS("Desktop")`, `Browsers.windows("Desktop")`), under Node and Bun alike ([WhiskeySockets/Baileys#2677](https://github.com/WhiskeySockets/Baileys/issues/2677), [#2880](https://github.com/WhiskeySockets/Baileys/issues/2880)); a web-browser identity connects, with Baileys' built-in WhatsApp Web version or the latest one.
 
+Spike part 2 ran the bundled script under Bun, linked to one account and driven from that account's own "Message yourself" chat:
+
+- Pairing with a code links the script. WhatsApp then closes the stream with status 515 (restart required), and a new socket opens the session.
+- With the session in SQLite, two restarts reconnected without pairing again.
+- Text messages arrive and replies are delivered.
+- An image with a 704-byte `Bun.Image` thumbnail sends and shows its preview, with no image library importable.
+- A poll renders, and a vote reaches the linked device as a `pollUpdateMessage`. Baileys does not decrypt it into the chosen option on its own.
+- A native-flow card with two `quick_reply` buttons renders, but tapping a button on one's own card in one's own chat sends nothing. A tap from another account is untested.
+
 ## Goal
 
 A brain answers WhatsApp direct messages and takes part in WhatsApp groups through `@brains/chat`, with the same turn routing, mention gating, approvals, uploads and permissions as Discord and Slack.
@@ -28,7 +37,7 @@ A brain answers WhatsApp direct messages and takes part in WhatsApp groups throu
 - **Browser identity.** The socket presents `Browsers.ubuntu("Chrome")`, a web-browser sub-platform, because WhatsApp rejects the Desktop sub-platforms before login.
 - **Pairing-code login.** The config holds `phoneNumber` (country code, digits only), set from `WHATSAPP_PHONE_NUMBER`. While the session is unregistered, the adapter calls `requestPairingCode` and writes the code to the brain's log; the operator enters it on the primary phone under Linked devices → Link with phone number.
 - **The session lives in runtime state.** Baileys' `AuthenticationState` (credentials and signal keys) is stored in the interface's runtime state, not on disk, so restarts and redeploys keep the link.
-- **Connection.** A `WhatsAppConnectionLoop` on `RestartingListenerSupervisor`, like the Discord and Slack loops. A dropped connection reconnects. A logged-out close (`DisconnectReason.loggedOut`, 401) stops the loop and clears the session, and the daemon reports unhealthy until the number is paired again. There are no webhook routes.
+- **Connection.** A `WhatsAppConnectionLoop` on `RestartingListenerSupervisor`, like the Discord and Slack loops. A dropped connection reconnects, and so does the restart-required close (515) that follows pairing. A logged-out close (`DisconnectReason.loggedOut`, 401) stops the loop and clears the session, and the daemon reports unhealthy until the number is paired again. There are no webhook routes.
 - **Threads.** A thread ID is `whatsapp:<jid>` with the normalized JID: `<phone>@s.whatsapp.net` or `<lid>@lid` for a direct message, `<id>@g.us` for a group. WhatsApp has no threads inside a chat, so a chat's channel ID is its thread ID. `isDM()` is false for group JIDs.
 - **Mentions.** A message mentions the brain when `contextInfo.mentionedJid` holds the account's phone JID or LID. Groups default to `requireMention: true`.
 - **Who can add the brain to groups.** On connect, the adapter sets the account's group-add privacy to `contacts` (`updateGroupsAddPrivacy`), so only the account's contacts can add it to a group. `allowedChannels` takes group JIDs; empty allows every group, as it does for Slack channels.
@@ -38,6 +47,7 @@ A brain answers WhatsApp direct messages and takes part in WhatsApp groups throu
   - A card with buttons is sent as an interactive native-flow message with `quick_reply` buttons, relayed with the `biz` node WhatsApp expects.
   - A tap arrives as `interactiveResponseMessage.nativeFlowResponseMessage` and goes to `processAction`.
   - A card without buttons is sent as its fallback text.
+  - If a tap from another account does not arrive either, an approval card is sent as a poll with one option per button instead. The vote is decrypted with Baileys' `decryptPollVote`, using the poll's `messageSecret` from the sent message, and goes to `processAction`.
   - Typed yes/no keeps working; the confirmation coordinator already limits resolution to the requester or an administrator.
 - **Editing.** Edits and deletes use Baileys' `edit` and `delete` message keys. WhatsApp accepts an edit for 15 minutes; after that the edit fails. A failed completion edit posts the completion as a new message. This is a shared fix in the progress coordinator, because today a failed edit drops the completion on every platform.
 - **Media.** Inbound images, documents, audio and video are downloaded into a `whatsapp` upload store, as Slack's are. Generated artifacts go out as image or document messages.
@@ -46,13 +56,8 @@ A brain answers WhatsApp direct messages and takes part in WhatsApp groups throu
 
 ## Steps
 
-Step 0 is a spike. Steps 1–7 are one PR; each step is one commit, with its tests written first.
+One PR. Each step is one commit, with its tests written first.
 
-0. **Spike part 2.** A throwaway Bun script run against the dedicated number, never committed. Its findings join part 1's in Status, and a failure in any check is fixed or designed around before step 1 starts.
-   - The number pairs with a code; after a restart the script reconnects from a session kept in a non-file store, without pairing again.
-   - A DM arrives and the reply is delivered.
-   - A native-flow card with two `quick_reply` buttons renders on iPhone, Android and WhatsApp desktop, and each tap arrives.
-   - An image with a `Bun.Image` thumbnail sends and shows its preview, with no image library installed.
 1. **Direct messages, text in and out.** `WhatsAppAdapter` with DM threads, text parsing and `{ markdown }` posts; `adapters.whatsapp` config, `WHATSAPP_PHONE_NUMBER` and the regenerated canonical env schema; the session store; pairing-code login; the connection loop and daemon health; the channel descriptor; the `baileys` dependency, with `sharp` and `jimp` external to the brain bundle; the `whatsapp` test app and the `AGENTS.md` test-app list.
    - Tests: an inbound DM routes a turn, and the reply is sent to the sender's JID as WhatsApp-formatted text.
    - Tests: an unregistered session requests a pairing code and logs it; saved credentials are read back after a restart.
@@ -66,10 +71,11 @@ Step 0 is a spike. Steps 1–7 are one PR; each step is one commit, with its tes
    - Tests: a `whatsapp:<phone>` rule grants its level; an unmapped LID stays its own subject.
 4. **Completions after the edit window.** The shared fallback in the progress coordinator.
    - Tests: a completion whose edit fails posts once as a new message, on WhatsApp and on Slack.
-5. **Buttons.** Native-flow cards and tap routing.
-   - Tests: the approval card is relayed as an interactive message with Confirm and Cancel `quick_reply` buttons, and a native-flow tap resolves the confirmation.
+5. **Approval taps.** The step opens with a live check from a second account: the brain on the dedicated number sends a native-flow card, and the operator's phone taps it on iPhone, Android and WhatsApp desktop. If the taps arrive, approvals use native-flow buttons; if they do not, approvals use polls.
+   - Tests, buttons: the approval card is relayed as an interactive message with Confirm and Cancel `quick_reply` buttons, and a native-flow tap resolves the confirmation.
+   - Tests, polls: the approval card is sent as a poll with Confirm and Cancel, and a decrypted vote resolves the confirmation.
    - Tests: a card without buttons goes out as text.
-   - Live: an approval completes with a button tap on iPhone, Android and WhatsApp desktop.
+   - Live: an approval completes from the operator's phone.
 6. **Media.**
    - Tests: an inbound image is stored and its upload ref reaches the turn.
    - Tests: an outbound image carries a `Bun.Image` thumbnail, and no image library is loaded.
@@ -82,7 +88,7 @@ Exit: the test app, paired with a dedicated number, answers DMs and mentions in 
 
 - **Bans.** WhatsApp can ban the number at any time. The number is dedicated, so a ban costs only the brain's WhatsApp access; the setup docs say so.
 - **Protocol changes.** Baileys follows WhatsApp Web, so a WhatsApp change can break the connection or the buttons until Baileys catches up, as the Desktop sub-platform rejection did from 2026-06-30. Baileys 7 is still a release candidate.
-- **Bun.** Connecting and the login handshake run under Bun from source and bundled; pairing, a long-lived session and media are first run under Bun in spike part 2.
-- **Buttons from a linked device** depend on each WhatsApp client rendering them. Step 0 checks the three clients, and typed yes/no stays as the fallback.
+- **Bun.** Pairing, a stored session across restarts, text, polls and images ran under Bun from the bundle in minutes-long runs; a session lasting days has not.
+- **Buttons from a linked device** render, but a tap from another account is untested. Step 5's live check decides between buttons and polls, and typed yes/no stays as the fallback either way.
 - **An idle primary phone.** If the brain's phone goes 14 days without opening WhatsApp, the brain is logged out and the daemon reports unhealthy until the number is paired again.
 - **The authoring boundary re-apply** ([authoring-boundary-reapply.md](./authoring-boundary-reapply.md)) converts `@brains/chat`. Whichever lands second re-reads the other.
