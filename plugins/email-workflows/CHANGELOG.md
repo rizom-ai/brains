@@ -1,5 +1,24 @@
 # @brains/email-workflows
 
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/plugins@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The component library is published as `@rizom/brain-ui`, moved from the private `@brains/ui-library` workspace to `packages/ui`. It versions and releases with `@rizom/brain`. Its public entry holds the components a site or plugin view renders entities with: `Card`, `CardTitle`, `CardMetadata`, `TagsList`, `MarkdownContent` and `formatDate`, with their props and option types. It ships built JavaScript and declarations, with `react` and `react-dom` as peers and no private workspace dependency. The rest of the library stays first-party in `@rizom/brain-ui/internal`, which is not published, and every package in this repository now imports from one entry or the other. `@brains/email-workflows` and `@brains/unified-inbox` drop a dependency they never imported, and Dashboard keeps it for its tests only.
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/plugins@0.2.0-alpha.649
+
 ## 0.2.0-alpha.648
 
 ### Patch Changes

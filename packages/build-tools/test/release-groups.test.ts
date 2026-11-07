@@ -11,6 +11,7 @@ import {
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
+  preparedManifestPackageDirs,
   resolveReleaseVersionStrategy,
   resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
@@ -284,6 +285,31 @@ test("the public UI package releases with the brain in the core lane", async () 
   expect(
     (await publishedPackagesFor("@rizom/brain")).has("@rizom/brain-ui"),
   ).toBe(true);
+});
+
+test("each lane's publish prepares the manifests of its own publishable packages", async () => {
+  const packages = await getPackages(repositoryRoot);
+  const names = (lane: "core" | "site"): string[] =>
+    preparedManifestPackageDirs(packages.packages, lane)
+      .map(
+        (dir) =>
+          packages.packages.find((workspace) => workspace.dir === dir)
+            ?.packageJson.name ?? dir,
+      )
+      .sort();
+
+  expect(names("core")).toEqual(["@rizom/brain-ui"]);
+  expect(names("site")).toEqual([
+    "@rizom/site-books",
+    "@rizom/site-docs",
+    "@rizom/site-hub",
+    "@rizom/site-rizom-ai",
+    "@rizom/site-thefourth",
+    "@rizom/theme-books",
+    "@rizom/theme-default",
+    "@rizom/theme-rizom-ai",
+    "@rizom/theme-thefourth",
+  ]);
 });
 
 test("release lane is inferred from a changeset's own packages", () => {

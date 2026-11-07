@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parseJsonObject } from "./json";
@@ -84,6 +85,18 @@ export async function publishManifestFor(
     throw new Error(`Publish manifest for ${packageDir} is not an object`);
   }
   return Object.fromEntries(Object.entries(parsed));
+}
+
+/**
+ * The manifest a package's source declares, whatever state a publish has
+ * left it in: the backup while its publish manifest is prepared, the
+ * manifest itself otherwise.
+ */
+export function readSourceManifestText(packageDir: string): string {
+  const backupPath = join(packageDir, BACKUP_FILENAME);
+  return existsSync(backupPath)
+    ? readFileSync(backupPath, "utf8")
+    : readFileSync(join(packageDir, "package.json"), "utf8");
 }
 
 export async function restorePublishManifest(

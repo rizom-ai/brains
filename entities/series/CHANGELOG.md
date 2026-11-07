@@ -1,5 +1,30 @@
 # @brains/series
 
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies [[`eb649b0`](https://github.com/rizom-ai/brains/commit/eb649b00d6cbb591a531c07704e5f0d648544f21)]:
+  - @rizom/brain-ui@0.2.0-alpha.650
+  - @brains/atproto-contracts@0.2.0-alpha.650
+  - @brains/content-formatters@0.2.0-alpha.650
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/plugins@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The component library is published as `@rizom/brain-ui`, moved from the private `@brains/ui-library` workspace to `packages/ui`. It versions and releases with `@rizom/brain`. Its public entry holds the components a site or plugin view renders entities with: `Card`, `CardTitle`, `CardMetadata`, `TagsList`, `MarkdownContent` and `formatDate`, with their props and option types. It ships built JavaScript and declarations, with `react` and `react-dom` as peers and no private workspace dependency. The rest of the library stays first-party in `@rizom/brain-ui/internal`, which is not published, and every package in this repository now imports from one entry or the other. `@brains/email-workflows` and `@brains/unified-inbox` drop a dependency they never imported, and Dashboard keeps it for its tests only.
+- Updated dependencies [[`01e357f`](https://github.com/rizom-ai/brains/commit/01e357ff95c6f8ac80f7bedcd1feeac16ca1b5a6), [`64354f1`](https://github.com/rizom-ai/brains/commit/64354f10a28c2925bab8eecaaf471fae011d68c7), [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a), [`3737da6`](https://github.com/rizom-ai/brains/commit/3737da657d6bb6599f543347b45aa238f017a73a)]:
+  - @rizom/brain-ui@0.2.0-alpha.649
+  - @brains/atproto-contracts@0.2.0-alpha.649
+  - @brains/content-formatters@0.2.0-alpha.649
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/plugins@0.2.0-alpha.649
+
 ## 0.2.0-alpha.648
 
 ### Patch Changes

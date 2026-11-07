@@ -26,12 +26,17 @@ export {
 } from "./publish-manifest";
 export { runWithPreparedPublishManifests } from "./publish-workspace";
 export {
+  workspaceSourceExports,
+  type WorkspaceSourceExportsOptions,
+} from "./workspace-source-exports";
+export {
   assertCoordinatedStableReleasePlan,
   assertReleaseConfigReferencesWorkspacePackages,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
   packageMatchesReleaseLane,
+  preparedManifestPackageDirs,
   resolveReleaseVersionStrategy,
   resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
