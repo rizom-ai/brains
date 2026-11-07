@@ -57,6 +57,7 @@ describe("canonical professional posture", () => {
       "site-info",
       "site-content",
       "site-builder",
+      "form",
       "analytics",
     ]);
     expect(publishingBundle.members).toEqual([

@@ -16,6 +16,7 @@ import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
+import { formPlugin } from "@brains/form";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
@@ -149,6 +150,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["site-info", siteInfoPlugin, undefined],
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, undefined],
+    ["form", formPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
 
     ["blog", blogPlugin, undefined],

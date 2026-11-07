@@ -90,3 +90,6 @@ export {
 export type { FormEnginePolicy, FormPolicyOverrides } from "./policy";
 export { FormService } from "./service";
 export type { BuiltInForm, FormServiceOptions } from "./service";
+export { formFrontmatterSchema } from "./definition";
+export type { FormFrontmatter } from "./definition";
+export { formMarkdown, parseFormMarkdown } from "./form-markdown";

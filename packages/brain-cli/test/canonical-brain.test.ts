@@ -34,6 +34,7 @@ const expectedCatalogIds = [
   "site-info",
   "site-content",
   "site-builder",
+  "form",
   "analytics",
   "blog",
   "series",

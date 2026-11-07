@@ -332,6 +332,8 @@ describe("brain config migration preview", () => {
           "ask-content",
           "conversation-memory",
           "faq",
+          // Forms in content come with every site.
+          "form",
           "studio",
           "unified-inbox",
         ],
@@ -349,6 +351,7 @@ describe("brain config migration preview", () => {
           "action-board",
           "ask-content",
           "faq",
+          ...(preset === "core" ? [] : ["form"]),
           "studio",
           "unified-inbox",
         ],

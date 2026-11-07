@@ -98,6 +98,11 @@ type FormObjectSchema = z.ZodObject<
   },
   z.core.$strict
 >;
+/** A form as its content holds it: the entity id is its id, the body its intro. */
+type FormFrontmatterSchema = z.ZodObject<
+  Omit<FormObjectSchema["shape"], "id" | "intro">,
+  z.core.$strict
+>;
 
 const stepSchema: FormStepSchema = z.strictObject({
   title: labelSchema.optional(),
@@ -127,6 +132,10 @@ const formObjectSchema: FormObjectSchema = z.strictObject({
     })
     .default({ enabled: true }),
 });
+
+export const formFrontmatterSchema: FormFrontmatterSchema =
+  formObjectSchema.omit({ id: true, intro: true });
+export type FormFrontmatter = z.output<FormFrontmatterSchema>;
 
 export type FormDefinitionInput = z.input<FormObjectSchema>;
 type ParsedForm = z.output<FormObjectSchema>;

@@ -258,6 +258,23 @@
         "typescript": "^7.0.2",
       },
     },
+    "entities/form": {
+      "name": "@brains/form",
+      "version": "0.2.0-alpha.648",
+      "dependencies": {
+        "@brains/forms": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
     "entities/guide": {
       "name": "@brains/guide",
       "version": "0.2.0-alpha.648",
@@ -731,6 +748,7 @@
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/faq": "workspace:*",
+        "@brains/form": "workspace:*",
         "@brains/guide": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/image-plugin": "workspace:*",
@@ -2718,6 +2736,8 @@
     "@brains/eslint-config": ["@brains/eslint-config@workspace:shared/eslint-config"],
 
     "@brains/faq": ["@brains/faq@workspace:entities/faq"],
+
+    "@brains/form": ["@brains/form@workspace:entities/form"],
 
     "@brains/forms": ["@brains/forms@workspace:shared/forms"],
 
