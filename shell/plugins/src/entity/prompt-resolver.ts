@@ -40,6 +40,10 @@ function promptBody(content: string): string {
   return parsePrompt(content).body;
 }
 
+// Materialization reads a copy as stored (`source: true`): a declared prompt's
+// ordinary reads carry its body alone, and the copy's frontmatter, authored
+// keys included, is what it compares and writes back.
+
 /** Bodies compare trimmed: writing frontmatter may add or drop surrounding newlines. */
 function hashPromptBody(body: string): string {
   return computeContentHash(body.trim());
@@ -217,6 +221,7 @@ async function syncPromptDefault(
   const entity = await entityService.getEntity({
     entityType: "prompt",
     id: targetToEntityId(target),
+    source: true,
   });
   if (!entity) {
     await entityService.createEntity({
@@ -273,6 +278,7 @@ async function correctGeneratedTitle(
   const entity = await entityService.getEntity({
     entityType: "prompt",
     id: targetToEntityId(target),
+    source: true,
   });
   if (!entity) return false;
   const { body, frontmatter } = parsePrompt(entity.content);
@@ -293,7 +299,11 @@ async function removeShortNameCopy(
   id: string,
   shortName: string,
 ): Promise<boolean> {
-  const entity = await entityService.getEntity({ entityType: "prompt", id });
+  const entity = await entityService.getEntity({
+    entityType: "prompt",
+    id,
+    source: true,
+  });
   if (!entity) return false;
   if (parsePrompt(entity.content).frontmatter["target"] !== shortName) {
     return false;

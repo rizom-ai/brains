@@ -142,12 +142,12 @@ module.exports = {
       name: "entities-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Entity packages can only import from shell/* and shared/* packages, and the published component library (packages/ui, @rizom/brain-ui)",
+        "Entity packages can only import from shell/* and shared/* packages, the published component library (packages/ui, @rizom/brain-ui), and the authoring SDK (packages/brain-sdk, @brains/sdk) that converted packages are written against",
       from: {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|packages/ui/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/ui/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins

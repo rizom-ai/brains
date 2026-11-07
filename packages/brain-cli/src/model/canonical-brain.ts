@@ -1,8 +1,15 @@
 import {
   defineBrain,
   type BrainDefinition,
+  type CapabilityEntry,
   type PluginConfig,
 } from "@brains/app";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+  type PluginPackageDefinition,
+  type PluginPackageInstantiationOptions,
+} from "@brains/plugins";
 import { A2AInterface } from "@brains/a2a";
 import { adminPlugin } from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
@@ -43,7 +50,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
 import { profilePlugin } from "@brains/profile";
-import { promptPlugin } from "@brains/prompt";
+import promptPackage from "@brains/prompt";
 import { onboardingPlugin } from "@brains/onboarding";
 import { seriesPlugin } from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -105,6 +112,29 @@ export {
   WEB_BUNDLE_ID,
 };
 
+/**
+ * A capability whose package is a declarative definition. The canonical brain
+ * imports its members directly rather than resolving installed packages, so
+ * it names each definition's package itself; packages release in lockstep
+ * with the CLI, so they share its version. A converted first-party package
+ * keeps the plugin id its class had, and with it the template, data source,
+ * job and channel names brains, sites and queued jobs already use.
+ */
+function packageCapability(
+  id: string,
+  packageName: string,
+  definition: PluginPackageDefinition,
+  options: PluginPackageInstantiationOptions = {},
+): CapabilityEntry {
+  const metadata = { name: packageName, version: packageJson.version };
+  return [
+    id,
+    (config): Plugin[] =>
+      instantiatePluginPackageDefinition(definition, config, metadata, options),
+    undefined,
+  ];
+}
+
 /** Canonical catalog and active capability-bundle taxonomy. */
 export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
@@ -113,7 +143,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   model: "gpt-6-luna",
   reasoningEffort: "low",
   capabilities: [
-    ["prompt", promptPlugin, undefined],
+    packageCapability("prompt", "@brains/prompt", promptPackage, {
+      pluginId: "prompt",
+    }),
     ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
     ["ask-content", askContentPlugin, undefined],

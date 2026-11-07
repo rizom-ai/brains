@@ -284,6 +284,28 @@ export function defineProjection<
 
 const entityPackageConfig: z.ZodObject<Record<string, never>> = z.object({});
 
+/**
+ * Names under the plugin id a converted first-party package keeps from its
+ * class: the one entity plugin is that id, and every name scoped to it
+ * (data sources, projections) follows it, as the class's did.
+ */
+function legacyScope(
+  packageId: string,
+  entities: readonly AnyEntityDefinition[],
+  pluginId: string,
+): (localId: string) => string {
+  const [only, ...rest] = entities;
+  if (!only || rest.length > 0) {
+    throw new Error(
+      `Entity package "${packageId}" keeps a legacy plugin id only when it installs one plugin`,
+    );
+  }
+  return (localId) => {
+    assertLocalId(localId, "Local plugin id");
+    return localId === only.type ? pluginId : `${pluginId}:${localId}`;
+  };
+}
+
 export interface EntityPackageDefinition<
   TEntities extends readonly AnyEntityDefinition[] =
     readonly AnyEntityDefinition[],
@@ -376,12 +398,14 @@ export function defineEntityPackage(definition: {
     id: definition.id,
     config: entityPackageConfig,
     public: publicDefinition,
-    instantiate: ({ package: metadata, scope }) =>
+    instantiate: ({ package: metadata, scope, pluginId }) =>
       createEntityPackagePlugins(
         entities,
         projections,
         metadata,
-        scope,
+        pluginId === undefined
+          ? scope
+          : legacyScope(definition.id, entities, pluginId),
         dataSources,
       ),
   });

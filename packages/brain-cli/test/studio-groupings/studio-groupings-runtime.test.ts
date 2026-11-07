@@ -17,7 +17,7 @@ import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
-import { PromptPlugin } from "@brains/prompt";
+import promptPackage from "@brains/prompt";
 import { z } from "@brains/utils/zod";
 import {
   EntityPlugin,
@@ -25,8 +25,9 @@ import {
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
+  type EntityTypeConfig,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
   generateMarkdown,
@@ -42,6 +43,38 @@ import {
   createEditorRoutes,
   StudioWorkspaceRegistry,
 } from "@brains/studio/test";
+
+/** The entity plugin the prompt package installs, as a brain composes it. */
+function promptPlugin(): EntityPlugin<
+  BaseEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  const [plugin] = instantiatePluginPackageDefinition(
+    promptPackage,
+    {},
+    { name: "@brains/prompt", version: "0.0.0-test" },
+  );
+  if (!(plugin instanceof EntityPlugin)) throw new Error("No prompt plugin");
+  return plugin;
+}
+
+/** The type config a plugin registers, read from a registry it installs into. */
+async function registeredConfig(
+  plugin: EntityPlugin<
+    BaseEntity,
+    Record<string, never>,
+    Record<string, never>
+  >,
+): Promise<EntityTypeConfig> {
+  const harness = createPluginHarness({ logger: createSilentLogger() });
+  await harness.installPlugin(plugin);
+  const config = harness
+    .getEntityRegistry()
+    .getEntityTypeConfig(plugin.entityType);
+  await harness.reset();
+  return config;
+}
 
 const type = "grouping-definitions";
 const areas = { label: "Areas", multiple: true };
@@ -180,7 +213,8 @@ function content(values: string[], entityType = "note"): string {
 describe("document-backed runtime definitions with real adapters", () => {
   test("system classification removes real prompts from groupings without rewriting authored source", async () => {
     const dir = await directory();
-    const plugin = new PromptPlugin();
+    const plugin = promptPlugin();
+    const promptConfig = await registeredConfig(plugin);
     const legacy = await open(dir, (registry) =>
       registry.registerEntityType(
         plugin.entityType,
@@ -226,7 +260,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         plugin.entityType,
         plugin.schema,
         plugin.adapter,
-        plugin.getEntityTypeConfig(),
+        promptConfig,
       ),
     );
     const after = await current.service.getEntityRaw({
@@ -278,14 +312,13 @@ describe("document-backed runtime definitions with real adapters", () => {
         })
       ).status,
     ).toBe(200);
-    const edited = await current.service.getEntityRaw({
-      entityType: "prompt",
-      id: "guidance",
-      visibilityScope: "shared",
-    });
-    expect(parseMarkdown(edited?.content ?? "").frontmatter["areas"]).toEqual(
-      exact,
-    );
+    // A declared type reads back its body alone; the authored source is the
+    // stored markdown.
+    expect(
+      parseMarkdown(await storedContent(dir, "prompt", "guidance")).frontmatter[
+        "areas"
+      ],
+    ).toEqual(exact);
     expect(
       (
         await save(

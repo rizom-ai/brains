@@ -193,6 +193,21 @@
       "targetRelease": "0.3.0"
     },
     {
+      "id": "first-party-legacy-plugin-ids",
+      "paths": [
+        "shell/plugins/src/package-definition.ts",
+        "shell/plugins/src/public/entity-definition.ts"
+      ],
+      "symbol": "PluginPackageInstantiationOptions.pluginId",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Instantiates a first-party entity package converted from a class under the plugin id its class had, so its template, data source, job and channel names stay those sites, brains and queued jobs use. Only the canonical brain's composer names it; package source never does.",
+      "currentConsumers": "First-party entity packages converted to declarative definitions and composed by the canonical brain.",
+      "removalPrerequisite": "Decide whether first-party packages adopt package-scoped names; if they do, migrate site template references, brain configs and queued job types to the scoped names.",
+      "rollbackDependency": "A brain rolled back to a release with class plugins reads the same plugin, template, data source and job names.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "site-analytics-script-field",
       "paths": ["shared/site-engine/src/html-generator.ts"],
       "symbol": "analytics script fallback",

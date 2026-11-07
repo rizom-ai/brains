@@ -47,6 +47,21 @@ export interface PluginPackageInstantiationContext<TConfig extends object> {
   readonly config: TConfig;
   readonly package: InstalledPluginPackageMetadata;
   scope(localId: string): string;
+  /** The plugin id a first-party entity package keeps from its class. */
+  readonly pluginId?: string | undefined;
+}
+
+/**
+ * How a composer instantiates a definition. Internal: only the first-party
+ * composer names these, and package source never does.
+ */
+export interface PluginPackageInstantiationOptions {
+  /**
+   * The plugin id a converted first-party entity package keeps from its
+   * class, with every name derived from it (templates, data sources, jobs,
+   * channels). The package still owns its state and channels by name.
+   */
+  readonly pluginId?: string | undefined;
 }
 
 type PluginPackageRuntimeFactory<TConfig extends object> = (
@@ -233,7 +248,17 @@ export function instantiatePluginPackageDefinition(
   definition: PluginPackageDefinition,
   rawConfig: unknown,
   metadata: InstalledPluginPackageMetadata,
+  options: PluginPackageInstantiationOptions = {},
 ): Plugin[] {
+  const { pluginId } = options;
+  if (pluginId !== undefined) {
+    assertIdentifier(pluginId, "Legacy plugin id");
+    if (definition.family !== "entity") {
+      throw new Error(
+        `Plugin definition "" is not an entity package; only an entity package keeps a legacy plugin id`,
+      );
+    }
+  }
   if (!metadata.name || !metadata.version) {
     throw new Error(
       `Installed package metadata is incomplete for plugin definition "${definition.id}"`,
@@ -256,6 +281,7 @@ export function instantiatePluginPackageDefinition(
       assertIdentifier(localId, "Local plugin id");
       return `${metadata.name}:${localId}`;
     },
+    ...(pluginId !== undefined && { pluginId }),
   });
   const plugins = isSeveral(created) ? [...created] : [created];
   const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
