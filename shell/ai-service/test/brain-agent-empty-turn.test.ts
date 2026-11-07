@@ -20,19 +20,29 @@ function reply(text: string): ModelResponse {
   };
 }
 
-async function turn(
+function scripted(
   modelId: string,
   responses: ModelResponse[],
-): Promise<{ text: string; calls: number; inputTokens: number | undefined }> {
-  const model = new MockLanguageModelV3({
+): MockLanguageModelV3 {
+  return new MockLanguageModelV3({
+    modelId,
     doGenerate: async (): Promise<ModelResponse> => {
       const next = responses.shift();
       if (!next) throw new Error("No more responses");
       return next;
     },
   });
+}
+
+async function turn(
+  modelId: string,
+  responses: ModelResponse[],
+  answerModel?: MockLanguageModelV3,
+): Promise<{ text: string; calls: number; inputTokens: number | undefined }> {
+  const model = scripted("decider", responses);
   const agent = createBrainAgentFactory({
     model,
+    answerModel,
     modelId,
     messageBus: createMockMessageBus(),
   })({
@@ -64,6 +74,15 @@ describe("a turn that ends with no reply and no tool call", () => {
     ]);
 
     expect(outcome).toEqual({ text: "Saved.", calls: 2, inputTokens: 20 });
+  });
+
+  it("is run again by the answer model when one is set", async () => {
+    const answerModel = scripted("answer", [reply("Saved.")]);
+
+    const outcome = await turn("local:qwen3:30b-a3b", [reply("")], answerModel);
+
+    expect(outcome).toMatchObject({ text: "Saved.", calls: 1 });
+    expect(answerModel.doGenerateCalls).toHaveLength(1);
   });
 
   it("is left as it is for a cloud model", async () => {
