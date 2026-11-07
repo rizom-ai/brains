@@ -291,13 +291,35 @@ export function createBrainAgentFactory(
         assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
-          const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-            (onStepFinish) => agent.generate({ ...params, onStepFinish }),
-          );
+          const run = (): ReturnType<
+            typeof retryDeclinedTurnOnce<
+              Awaited<ReturnType<typeof agent.generate>>
+            >
+          > =>
+            retryDeclinedTurnOnce((onStepFinish) =>
+              agent.generate({ ...params, onStepFinish }),
+            );
+          const first = await run();
+          // A local thinking model can settle on a tool call in its
+          // reasoning and stop without making it, leaving no reply and no
+          // call; that turn is run once more.
+          const empty =
+            capabilities.provider === "local" &&
+            first.text.trim() === "" &&
+            first.result.steps.every((step) => step.toolCalls.length === 0);
+          const { result, text, retriedAfter } = empty ? await run() : first;
           return {
             text,
             steps: result.steps,
             usage: turnUsage([
+              ...(empty
+                ? [
+                    ...(first.retriedAfter
+                      ? [first.retriedAfter.totalUsage]
+                      : []),
+                    first.result.totalUsage,
+                  ]
+                : []),
               ...(retriedAfter ? [retriedAfter.totalUsage] : []),
               result.totalUsage,
             ]),
