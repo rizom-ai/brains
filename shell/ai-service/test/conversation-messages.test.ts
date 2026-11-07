@@ -629,7 +629,7 @@ describe("buildMessageWithAttachments", () => {
       const textPart = Array.isArray(content) ? content[0] : undefined;
       const text = textPart?.type === "text" ? textPart.text : "";
 
-      expect(text).toContain("keeping every file attached to this message");
+      expect(text).toContain("keeping all 2 files attached to this message");
       expect(text).not.toContain("saving the newest upload");
     });
   });
@@ -656,7 +656,7 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
 
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
+      'Available system_create candidate for keeping all 2 files attached to this message, each as itself: draft.md as a note, harbor.png as an image (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
     );
   });
 
@@ -690,10 +690,10 @@ describe("buildMessageWithAttachments", () => {
     const text = textPart?.type === "text" ? textPart.text : "";
 
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message, each as itself, text files as notes and PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "preserve" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
+      'Available system_create candidate for keeping all 3 files attached to this message, each as itself: report.pdf as a document, draft.md as a note, harbor.png as an image (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "preserve" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
     );
     expect(text).toContain(
-      'Available system_create candidate for keeping every file attached to this message as notes, each PDF\'s text extracted into its note, when the user asks for notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "extract-markdown" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
+      'Available system_create candidate for keeping all 3 files attached to this message as notes when the user asks for notes, each PDF\'s text extracted into its note: report.pdf as a note, draft.md as a note, harbor.png as an image (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "extract-markdown" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
     );
   });
 
