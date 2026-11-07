@@ -93,4 +93,5 @@ export const CONTACT_FORM: BuiltInForm = {
     storage: CONTACT_SLOTS.namespace,
   },
   endpoint: { label: "Contact", priority: 50 },
+  role: "contact-form",
 };

@@ -4,6 +4,7 @@ import { createMockServicePluginContext } from "@brains/plugins/test";
 import {
   findRouteByRole,
   type BaseEntity,
+  type RegisteredWebRoute,
   type ServicePluginContext,
 } from "@brains/plugins";
 import {
@@ -31,21 +32,32 @@ function entity(
     updated: "2026-09-21T10:00:00.000Z",
   };
 }
-function context(record: BaseEntity | null = entity()): ServicePluginContext {
-  const context = createMockServicePluginContext({
-    returns: { entityService: { getEntity: record } },
-  });
-  const routes = ["GET", "POST"].map((method) => ({
-    pluginId: "contact",
-    fullPath: "/contact",
+/** A contact form's GET and POST, claiming the role whichever plugin serves them. */
+function contactRoutes(
+  path = "/contact",
+  pluginId = "contact",
+  role: "contact-form" | null = "contact-form",
+): RegisteredWebRoute[] {
+  return ["GET", "POST"].map((method) => ({
+    pluginId,
+    fullPath: path,
     definition: {
-      path: "/contact",
+      path,
       method: method === "GET" ? ("GET" as const) : ("POST" as const),
       public: true,
       preview: true,
+      ...(role ? { role } : {}),
       handler: (): Response => new Response(),
     },
   }));
+}
+function context(
+  record: BaseEntity | null = entity(),
+  routes: RegisteredWebRoute[] = contactRoutes(),
+): ServicePluginContext {
+  const context = createMockServicePluginContext({
+    returns: { entityService: { getEntity: record } },
+  });
   return {
     ...context,
     siteUrl: origin,
@@ -211,6 +223,20 @@ describe("authored opening", () => {
     );
     expect(production?.title).toBe("A different opening");
     expect(production?.contactUrl).toBeNull();
+  });
+
+  it("finds the contact form by its role, whichever plugin serves it and wherever", async () => {
+    const elsewhere = await loadHomepageOpening(
+      { entityService: context().entityService },
+      context(entity(), contactRoutes("/write", "forms-elsewhere")),
+    );
+    expect(elsewhere?.contactUrl).toBe(`${origin}/write`);
+    // A /contact route that claims no role is not the form.
+    const unclaimed = await loadHomepageOpening(
+      { entityService: context().entityService },
+      context(entity(), contactRoutes("/contact", "contact", null)),
+    );
+    expect(unclaimed).toMatchObject({ contactUrl: null });
   });
 
   it("renders where a separate worker builds the site, which advertises no endpoints", async () => {

@@ -1,4 +1,7 @@
-import { notificationsSendContract } from "@brains/contracts";
+import {
+  notificationsSendContract,
+  type WebRouteRole,
+} from "@brains/contracts";
 import type {
   BaseEntity,
   IRuntimeStateStore,
@@ -45,6 +48,8 @@ export interface BuiltInForm {
   state?: { admission: string; storage: string } | undefined;
   /** Its entry in the brain's list of endpoints. */
   endpoint?: { label: string; priority: number } | undefined;
+  /** The well-known role its page and post claim. */
+  role?: WebRouteRole | undefined;
 }
 
 export interface FormServiceOptions<E extends BaseEntity> {
@@ -81,6 +86,7 @@ const siteThemeSchema = z.looseObject({
  * intake, delivery and pages. */
 interface RunningForm {
   definition: FormDefinition;
+  role: WebRouteRole | undefined;
   slots: FormStorageSlots;
   intake: FormIntake;
   delivery: FormDelivery;
@@ -290,6 +296,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     );
     return {
       definition,
+      role: form.role,
       slots: new FormStorageSlots(context.runtimeState, slots, Date.now),
       intake,
       delivery,
@@ -338,6 +345,9 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     return [...this.forms.values()].flatMap((form) =>
       form.http.routes(true).map((route) => ({
         ...route,
+        ...(form.role && route.path === form.definition.path
+          ? { role: form.role }
+          : {}),
         handler: async (request, transport): Promise<Response> => {
           if (!this.readyState || !(await this.maintenanceFresh()))
             return form.http.unavailable(request);

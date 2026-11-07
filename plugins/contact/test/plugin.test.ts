@@ -397,6 +397,12 @@ describe("contact runtime", () => {
       "GET /contact/thanks",
     ]);
     expect(routes.every((route) => route.public && route.preview)).toBe(true);
+    // The site finds the form by what it is, not by this plugin's id.
+    expect(
+      routes
+        .filter((route) => route.role === "contact-form")
+        .map((route) => `${route.method} ${route.path}`),
+    ).toEqual(["GET /contact", "POST /contact"]);
     const response = await routes[0]?.handler(
       new Request(`${origin}/contact`),
       {
