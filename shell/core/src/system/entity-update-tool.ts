@@ -7,7 +7,7 @@ import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import { updateInputSchema } from "./schemas";
+import { updateInputSchema, exactlyOneUpdateOperation } from "./schemas";
 import { applyContentEdits } from "./content-edits";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
@@ -69,17 +69,18 @@ async function normalizeOperation(
     );
 
   const requested = input.operation;
-  if ("fields" in requested)
+  if (requested.fields !== undefined)
     return { operation: { kind: "fields", fields: requested.fields } };
-  if ("edits" in requested)
+  if (requested.edits !== undefined)
     return {
       operation: {
         kind: "content",
         content: applyContentEdits(entity.content, requested.edits),
       },
     };
-  if ("content" in requested)
+  if (requested.content !== undefined)
     return withReplacementContent(services, entity, requested.content);
+  if (requested.source === undefined) return failure(exactlyOneUpdateOperation);
   const resolved = await resolveConversationMessageContent(
     services,
     requested.source,

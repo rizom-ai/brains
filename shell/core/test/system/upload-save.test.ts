@@ -147,6 +147,34 @@ describe("system_create upload preserve", () => {
     ).toBe(false);
   });
 
+  it("says where the upload id goes when a caller sends the removed nested shape", () => {
+    const single = createInputSchema.safeParse({
+      entityType: "document",
+      source: {
+        kind: "upload",
+        upload: { kind: "upload", id: uploadId },
+        transform: "preserve",
+      },
+    });
+    expect(single.success).toBe(false);
+    expect(
+      single.error?.issues.map((issue) => issue.message).join(" "),
+    ).toContain("The upload id goes in `source.id`");
+    const several = createInputSchema.safeParse({
+      entityType: "note",
+      source: {
+        kind: "uploads",
+        items: [
+          { upload: { kind: "upload", id: "upload-1" }, transform: "preserve" },
+          { upload: { kind: "upload", id: "upload-2" }, transform: "preserve" },
+        ],
+      },
+    });
+    expect(
+      several.error?.issues.map((issue) => issue.message).join(" "),
+    ).toContain("Each file is `{ id, transform }`");
+  });
+
   it("exposes preserve as an upload transform and removes system_upload_save", () => {
     expect(
       createInputSchema.safeParse({

@@ -320,6 +320,48 @@ describe("system_update tool", () => {
     },
   );
 
+  it.each([
+    {
+      operation: { edit: [{ oldText: "Woodchucks", newText: "Groundhogs" }] },
+      says: ["edit", "exactly one of `fields`, `content`, `edits` or `source`"],
+    },
+    {
+      operation: {
+        kind: "edits",
+        edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }],
+      },
+      says: ["has no `kind`", "{ edits: [...] }"],
+    },
+    {
+      operation: { fields: { title: "New" }, content: "replacement" },
+      says: ["exactly one of `fields`, `content`, `edits` or `source`"],
+    },
+  ])(
+    "says what an update operation should be: %j",
+    async ({ operation, says }) => {
+      const result = await exec({
+        entityType: "base",
+        id: "woodchuck-note",
+        operation,
+      });
+      expect(result).toMatchObject({ success: false });
+      const error = "error" in result ? String(result.error) : "";
+      for (const text of says) expect(error).toContain(text);
+    },
+  );
+
+  it("names only the field an operation got wrong", async () => {
+    const result = await exec({
+      entityType: "base",
+      id: "woodchuck-note",
+      operation: { edits: [{ oldText: "Woodchucks" }] },
+    });
+    const error = "error" in result ? String(result.error) : "";
+    expect(error).toContain("operation.edits.0.newText");
+    expect(error).not.toContain("fields");
+    expect(error).not.toContain("source");
+  });
+
   it("passes separate conversation, channel, run, and tool call provenance to confirmed entity updates", async () => {
     const tool = tools.find((candidate) => candidate.name === "system_update");
     if (!tool) throw new Error("system_update not found");

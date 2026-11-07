@@ -24,7 +24,7 @@ import type { UpdateOperationInput } from "./schemas";
 export type UpdateOperation =
   | {
       kind: "fields";
-      fields: Extract<UpdateOperationInput, { fields: unknown }>["fields"];
+      fields: NonNullable<UpdateOperationInput["fields"]>;
     }
   | { kind: "content"; content: string };
 
