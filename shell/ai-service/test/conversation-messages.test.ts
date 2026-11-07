@@ -586,6 +586,18 @@ describe("buildMessageWithAttachments", () => {
       },
     );
 
+    it("is offered for a PDF as a note too, its text extracted, for a request for a note", () => {
+      const content = buildMessageWithAttachments(
+        "turn it into a note",
+        undefined,
+        { uploadRefs: [ref("primer.pdf", "application/pdf", "upload-pdf")] },
+      );
+
+      expect(content).toContain(
+        'Available system_create candidate for saving the newest upload as a note, its text extracted, when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "upload-pdf", transform: "extract-markdown" } }',
+      );
+    });
+
     it("is not offered when the prior response can be saved", () => {
       const content = buildMessageWithAttachments("save it", undefined, {
         uploadRefs: [ref("beta-diagram.png", "image/png", "upload-newest")],
