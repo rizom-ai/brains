@@ -35,7 +35,6 @@ export type {
 } from "../operator/operator-definition-contract";
 export type {
   OperatorCaller,
-  OperatorEntityReader,
   OperatorQueryReader,
 } from "../operator/operator-context-contract";
 export { defineWorkspaceAction } from "../operator/workspace-action-definition-contract";

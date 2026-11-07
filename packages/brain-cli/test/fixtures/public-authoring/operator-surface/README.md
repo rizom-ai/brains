@@ -13,7 +13,13 @@ loaders/actions bind once inside the typed service factories after setup:
 - principal-owned reading-provider settings, including one write-only secret;
 - an independently declared schema-validated Dashboard widget; and
 - an independently declared schema-validated Studio workspace with typed query
-  state, an entity catalog, a durable-job action, and prepared confirmation.
+  state, an entity catalog, a durable-job action, prepared confirmation, and a
+  form action that writes the package's own `queued-reading` type as the
+  operator who submitted it.
+
+Every loader and action acts as its caller: loaders read at the caller's
+visibility, and `src/caller-type-canary.ts` pins that only an action writes,
+and only the package's own types.
 
 The source intentionally contains no package identity plumbing, registry call,
 host route, renderer name, UI-framework import, process role, or private

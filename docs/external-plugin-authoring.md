@@ -395,7 +395,10 @@ blocks for authenticated Studio operations. Studio-only capabilities include:
 - semantic view heads and status plus bounded `card` groups and primary/aside
   `columns`; cards contain panels, columns contain panels or cards, and nested
   containers are rejected;
-- typed `defineWorkspaceAction()` inputs/outputs and permission floors;
+- typed `defineWorkspaceAction()` inputs/outputs and permission floors; an
+  action's `execute` writes the service's own entity types through its
+  `entities`, as the operator who invoked it and held to the action policy,
+  while loaders read at the caller's visibility;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
 - closed external, entity, Account, Admin, Inbox, Publishing, Site, and Traffic launch

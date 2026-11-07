@@ -1,5 +1,6 @@
 import { bookmark, readingDigest } from "@fixture/reading-entities";
 import { compileReadingDigest } from "@fixture/reading-insights";
+import { defineEntity } from "@rizom/brain/entities";
 import {
   defineAccountSettings,
   defineStudioWorkspace,
@@ -30,6 +31,18 @@ const readingAccountSettings = defineAccountSettings({
       secret: true,
     },
   },
+});
+
+// A page a reader queued from Studio, owned by this package: a workspace
+// action writes it as the operator who queued it, held to the action policy.
+export const queuedReading = defineEntity({
+  type: "queued-reading",
+  purpose: "A page a reader queued from Studio to read later",
+  metadata: z.object({
+    title: z.string().min(1),
+    sourceUrl: z.url(),
+    notify: z.boolean(),
+  }),
 });
 
 const refreshDigest = defineWorkspaceAction({
@@ -267,6 +280,7 @@ export default defineServicePlugin(
     id: "reading-operator",
     config: z.object({}),
     accountSettings: readingAccountSettings,
+    entities: [queuedReading],
   },
   {
     // Contracts stay at module scope; executors bind once after setup. Only the
@@ -308,10 +322,20 @@ export default defineServicePlugin(
 
       const addReadingItemHandler = addReadingItem.bind(
         context,
-        async ({ input, signal }) => {
+        async ({ input, entities, signal }) => {
           signal.throwIfAborted();
+          const { id } = await entities.create(queuedReading, {
+            content: input.title,
+            metadata: {
+              title: input.title,
+              sourceUrl: input.sourceUrl,
+              notify: input.notify,
+            },
+            visibility:
+              input.visibility === "private" ? "restricted" : "shared",
+          });
           return {
-            status: `${input.title} queued as ${input.visibility}${input.notify ? " with notification" : ""}`,
+            status: `${input.title} queued as ${id}${input.notify ? " with notification" : ""}`,
             sourceUrl: input.sourceUrl,
           };
         },

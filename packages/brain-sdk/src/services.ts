@@ -27,7 +27,6 @@ export type {
   OperatorCardBlock,
   OperatorColumnsBlock,
   OperatorEntityCatalogDefinition,
-  OperatorEntityReader,
   OperatorQueryReader,
   OperatorRegionBlock,
   OperatorView,

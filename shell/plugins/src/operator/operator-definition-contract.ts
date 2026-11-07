@@ -199,8 +199,9 @@ export interface StudioWorkspaceDefinition<
     TConfig,
     TState extends object,
     TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+    TOwned extends AnyEntityDefinition = never,
   >(
-    context: OperatorBindingContext<TConfig, TState, TAccountSettings>,
+    context: OperatorBindingContext<TConfig, TState, TAccountSettings, TOwned>,
     input: {
       readonly authorize?:
         | ((
@@ -225,14 +226,16 @@ export interface StudioWorkspaceDefinition<
         TActions[number],
         TConfig,
         TState,
-        TAccountSettings
+        TAccountSettings,
+        TOwned
       >[];
     },
   ): BoundStudioWorkspace<
     StudioWorkspaceDefinition<TId, TDataSchema, TActions>,
     TConfig,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TOwned
   >;
 }
 
@@ -280,6 +283,7 @@ export interface StudioWorkspaceBinding<
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition = never,
 > {
   readonly kind: "rizom-studio-workspace-binding";
   readonly definition: TDefinition;
@@ -287,7 +291,8 @@ export interface StudioWorkspaceBinding<
     TDefinition["actions"][number],
     TConfig,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TOwned
   >[];
   readonly [studioWorkspaceExecutor]?:
     | StudioWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings>
@@ -301,7 +306,14 @@ export type BoundStudioWorkspace<
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
-> = StudioWorkspaceBinding<TDefinition, TConfig, TState, TAccountSettings> &
+  TOwned extends AnyEntityDefinition = never,
+> = StudioWorkspaceBinding<
+  TDefinition,
+  TConfig,
+  TState,
+  TAccountSettings,
+  TOwned
+> &
   OperatorBindingBrand<TConfig, TState, TAccountSettings>;
 
 export function getStudioWorkspaceExecutor<
@@ -309,8 +321,15 @@ export function getStudioWorkspaceExecutor<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
 >(
-  binding: BoundStudioWorkspace<TDefinition, TConfig, TState, TAccountSettings>,
+  binding: BoundStudioWorkspace<
+    TDefinition,
+    TConfig,
+    TState,
+    TAccountSettings,
+    TOwned
+  >,
 ): StudioWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings> {
   const executor = binding[studioWorkspaceExecutor];
   if (!executor) {

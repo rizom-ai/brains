@@ -48,6 +48,10 @@ import type { AccountSettingsRegistration } from "../operator/account-settings-r
 import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
 import type {
+  OperatorCallScope,
+  OperatorRunAs,
+} from "../operator/operator-context-runtime";
+import type {
   AnyStudioWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
   BoundStudioWorkspace,
@@ -284,7 +288,8 @@ class DeclarativeServicePlugin<
     AnyStudioWorkspaceDefinition,
     z.output<TConfigSchema>,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TEntities[number]
   >[] = [];
   private dashboardWidgetBindings: readonly BoundDashboardWidget<
     AnyDashboardWidgetDefinition,
@@ -450,6 +455,8 @@ class DeclarativeServicePlugin<
           binding,
           context,
           runtimeSignal: this.operatorAbortController.signal,
+          entities: this.entityAccess(),
+          runAs: this.asOperator,
         });
         try {
           const result = await context.studio.registerWorkspace(registration);
@@ -482,6 +489,8 @@ class DeclarativeServicePlugin<
           binding,
           context,
           runtimeSignal: this.operatorAbortController.signal,
+          entities: this.entityAccess(),
+          runAs: this.asOperator,
         });
         try {
           const registered =
@@ -684,6 +693,31 @@ class DeclarativeServicePlugin<
         actor: toolContext.actor,
         interfaceType: toolContext.interfaceType,
       },
+    };
+  }
+
+  /**
+   * An operator callback runs as the operator who called it, so every
+   * capability the package holds, its slots' `entities` included, acts as
+   * them; a Dashboard viewer nobody signed in is held to public.
+   */
+  private readonly asOperator: OperatorRunAs = (scope, run) =>
+    this.calls.run(this.operatorCall(scope), run);
+
+  /** An operator's call; access is admitted once, when first used. */
+  private operatorCall(scope: OperatorCallScope): ServiceCall {
+    const context = this.getContext();
+    const caller: Caller = scope.caller
+      ? {
+          actor: scope.actor ?? { kind: "user", userId: scope.caller.actor.id },
+          permissionLevel: scope.caller.permission,
+        }
+      : anonymousCaller(this.id);
+    let admitted: Promise<CallerAccess> | undefined;
+    return {
+      access: () => (admitted ??= context.jobAuthority.access(caller)),
+      caller,
+      eventContext: { actor: caller.actor, interfaceType: scope.interfaceType },
     };
   }
 

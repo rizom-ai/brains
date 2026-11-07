@@ -9,7 +9,17 @@ import {
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "./account-settings-registry";
 import { meetsPermission } from "./contract-assertions";
-import { createOperatorContext } from "./operator-context-runtime";
+import type {
+  AnyEntityDefinition,
+  EntityReader,
+} from "../entity/entity-definition-contract";
+import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
+import {
+  accessWithin,
+  createOperatorContext,
+  noOwnedWrites,
+  type OperatorRunAs,
+} from "./operator-context-runtime";
 import type {
   OperatorBaseContext,
   OperatorBindingContext,
@@ -128,8 +138,15 @@ async function prepareActionBinding<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
 >(
-  binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
+  binding: BoundWorkspaceAction<
+    TDefinition,
+    TConfig,
+    TState,
+    TAccountSettings,
+    TOwned
+  >,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
   input: z.output<TDefinition["input"]>,
 ): Promise<z.output<typeof preparedConfirmationSchema>> {
@@ -146,12 +163,24 @@ async function executeActionBinding<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
 >(
-  binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
+  binding: BoundWorkspaceAction<
+    TDefinition,
+    TConfig,
+    TState,
+    TAccountSettings,
+    TOwned
+  >,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
+  entities: EntityReader & OwnedEntityWriter<TOwned>,
   input: z.output<TDefinition["input"]>,
 ): Promise<unknown> {
-  return getWorkspaceActionExecutor(binding).execute({ ...context, input });
+  return getWorkspaceActionExecutor(binding).execute({
+    ...context,
+    entities,
+    input,
+  });
 }
 
 export function createDeclarativeStudioWorkspaceRegistration<
@@ -159,6 +188,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition = never,
 >(input: {
   readonly publicServiceId: string;
   readonly packageName: string;
@@ -173,10 +203,19 @@ export function createDeclarativeStudioWorkspaceRegistration<
     TDefinition,
     TConfig,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TOwned
   >;
   readonly context: BasePluginContext;
   readonly runtimeSignal: AbortSignal;
+  /**
+   * A service's own `entities`, which act as the current caller: callbacks
+   * read with it, and a workspace action writes the package's types with it.
+   * Without one, callbacks read at the caller's visibility and write nothing.
+   */
+  readonly entities?: (EntityReader & OwnedEntityWriter<TOwned>) | undefined;
+  /** Runs each callback as its caller, in the declaring package's context. */
+  readonly runAs?: OperatorRunAs | undefined;
 }): Omit<StudioWorkspaceRegistration, "pluginId"> {
   const definition = input.binding.definition;
   const executor = getStudioWorkspaceExecutor(input.binding);
@@ -218,11 +257,41 @@ export function createDeclarativeStudioWorkspaceRegistration<
         : {}),
       provider: { caller: operatorCaller(actor), signal },
       context: input.context,
+      entities: input.entities,
     });
     return Object.freeze({
       ...base,
       query: createOperatorQueryReader(definition.query, rawQuery, identity),
     });
+  }
+
+  /** The operator's request, run as them in the declaring package. */
+  function asOperator<T>(
+    actor: StudioWorkspaceActor,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    return input.runAs
+      ? input.runAs(
+          {
+            caller: operatorCaller(actor),
+            actor: actor.actor,
+            interfaceType: "studio",
+          },
+          run,
+        )
+      : run();
+  }
+
+  /** What an action writes with: the package's own types, as the operator. */
+  function actionEntities(
+    runtimeContext: OperatorBaseContext<TConfig, TState, TAccountSettings>,
+  ): EntityReader & OwnedEntityWriter<TOwned> {
+    return input.entities
+      ? accessWithin(input.entities, runtimeContext.signal)
+      : Object.freeze({
+          ...runtimeContext.entities,
+          ...noOwnedWrites<TOwned>(),
+        });
   }
 
   async function admitted(
@@ -377,6 +446,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
       rawOutput = await executeActionBinding(
         request.binding,
         runtimeContext,
+        actionEntities(runtimeContext),
         request.input,
       );
     } catch (error) {
@@ -417,132 +487,142 @@ export function createDeclarativeStudioWorkspaceRegistration<
     ...(input.aliases ? { aliases: input.aliases } : {}),
     ...(definition.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
     entityTypes: listEntityTypes
-      ? async (actor): Promise<string[]> => {
-          if (!(await admitted(actor, input.runtimeSignal))) return [];
-          return entityTypeCatalogSchema.parse(
-            await listEntityTypes(
-              await contextFor(actor, input.runtimeSignal, undefined),
-            ),
-          );
-        }
+      ? (actor): Promise<string[]> =>
+          asOperator(actor, async () => {
+            if (!(await admitted(actor, input.runtimeSignal))) return [];
+            return entityTypeCatalogSchema.parse(
+              await listEntityTypes(
+                await contextFor(actor, input.runtimeSignal, undefined),
+              ),
+            );
+          })
       : (definition.entities ?? []).map((entity) => entity.type),
-    accessHandler: (actor) => admitted(actor, input.runtimeSignal),
-    async dataProvider(
-      actor,
-      rawQuery,
-      signal,
-    ): Promise<RuntimeStudioWorkspaceData> {
-      const combinedSignal = requestSignal(input.runtimeSignal, signal);
-      combinedSignal.throwIfAborted();
-      if (!(await admitted(actor, combinedSignal))) {
-        throw runtimeError(
-          identity,
-          "was requested below its admission policy",
-        );
-      }
-      const runtimeContext = await contextFor(actor, combinedSignal, rawQuery);
-      let rawData: unknown;
-      try {
-        rawData = await executor.load(runtimeContext);
-      } catch (error) {
-        if (combinedSignal.aborted) {
-          throw combinedSignal.reason ?? error;
-        }
-        throw runtimeError(identity, "data loader failed");
-      }
-      combinedSignal.throwIfAborted();
-      const data = parseOperatorData(definition.data, rawData, identity);
-
-      let rawView: unknown;
-      try {
-        rawView = definition.view({ data });
-      } catch (error) {
-        if (combinedSignal.aborted) {
-          throw combinedSignal.reason ?? error;
-        }
-        throw runtimeError(identity, "view derivation failed");
-      }
-      const parsedView = safeParseRuntimeStudioOperatorView(rawView, {
-        actions: definition.actions,
-        permission: actor.userPermissionLevel,
-      });
-      if (!parsedView.success) {
-        throw runtimeError(
-          identity,
-          "returned an invalid view; use supported StudioWorkspaceView blocks and declared actions",
-          validationDetail(parsedView.issues),
-        );
-      }
-      const refreshAfterMs = definition.refresh?.({ data });
-      if (
-        refreshAfterMs !== undefined &&
-        (!Number.isInteger(refreshAfterMs) ||
-          refreshAfterMs < 500 ||
-          refreshAfterMs > 60_000)
-      ) {
-        throw runtimeError(
-          identity,
-          "returned an invalid refresh interval; use 500-60000 milliseconds",
-        );
-      }
-      return Object.freeze({
-        view: parsedView.data,
-        ...(refreshAfterMs === undefined ? {} : { refreshAfterMs }),
-      });
-    },
-    async actionHandler(rawRequest, actor, signal): Promise<JsonValue> {
-      const combinedSignal = requestSignal(input.runtimeSignal, signal);
-      combinedSignal.throwIfAborted();
-      if (!(await admitted(actor, combinedSignal))) {
-        throw runtimeError(
-          identity,
-          "action was requested below its admission policy",
-        );
-      }
-      const request = parseActionRequest(rawRequest, actor);
-      const runtimeContext = await contextFor(actor, combinedSignal, undefined);
-      const needsPreparedConfirmation = requiresPreparedConfirmation(
-        request.binding.definition,
-        request.input,
-      );
-      if (request.mode === "prepare") {
-        if (!needsPreparedConfirmation) {
-          throw runtimeError(
-            identity,
-            `action "${request.binding.definition.name}" does not support prepared confirmation`,
-          );
-        }
-        return issuePreparedConfirmation(request, actor, runtimeContext);
-      }
-      if (needsPreparedConfirmation) {
-        await confirmPreparedConfirmation(request, actor, runtimeContext);
-      }
-      return executeAction(request, runtimeContext, combinedSignal);
-    },
+    accessHandler: (actor) =>
+      asOperator(actor, () => admitted(actor, input.runtimeSignal)),
+    dataProvider: (actor, rawQuery, signal) =>
+      asOperator(actor, () => loadWorkspace(actor, rawQuery, signal)),
+    actionHandler: (rawRequest, actor, signal) =>
+      asOperator(actor, () => handleAction(rawRequest, actor, signal)),
     ...(definition.badge
       ? {
-          badgeProvider: async (
-            actor: StudioWorkspaceActor,
-          ): Promise<number> => {
-            const signal = input.runtimeSignal;
-            if (!(await admitted(actor, signal))) return 0;
-            const data = parseOperatorData(
-              definition.data,
-              await executor.load(await contextFor(actor, signal, undefined)),
-              identity,
-            );
-            const badge = definition.badge?.({ data }) ?? 0;
-            if (!Number.isInteger(badge) || badge < 0 || badge > 999_999) {
-              throw runtimeError(
-                identity,
-                "returned an invalid badge; use an integer from 0 to 999999",
-              );
-            }
-            return badge;
-          },
+          badgeProvider: (actor: StudioWorkspaceActor): Promise<number> =>
+            asOperator(actor, () => countBadge(actor)),
         }
       : {}),
   };
+
+  async function loadWorkspace(
+    actor: StudioWorkspaceActor,
+    rawQuery: unknown,
+    signal: AbortSignal | undefined,
+  ): Promise<RuntimeStudioWorkspaceData> {
+    const combinedSignal = requestSignal(input.runtimeSignal, signal);
+    combinedSignal.throwIfAborted();
+    if (!(await admitted(actor, combinedSignal))) {
+      throw runtimeError(identity, "was requested below its admission policy");
+    }
+    const runtimeContext = await contextFor(actor, combinedSignal, rawQuery);
+    let rawData: unknown;
+    try {
+      rawData = await executor.load(runtimeContext);
+    } catch (error) {
+      if (combinedSignal.aborted) {
+        throw combinedSignal.reason ?? error;
+      }
+      throw runtimeError(identity, "data loader failed");
+    }
+    combinedSignal.throwIfAborted();
+    const data = parseOperatorData(definition.data, rawData, identity);
+
+    let rawView: unknown;
+    try {
+      rawView = definition.view({ data });
+    } catch (error) {
+      if (combinedSignal.aborted) {
+        throw combinedSignal.reason ?? error;
+      }
+      throw runtimeError(identity, "view derivation failed");
+    }
+    const parsedView = safeParseRuntimeStudioOperatorView(rawView, {
+      actions: definition.actions,
+      permission: actor.userPermissionLevel,
+    });
+    if (!parsedView.success) {
+      throw runtimeError(
+        identity,
+        "returned an invalid view; use supported StudioWorkspaceView blocks and declared actions",
+        validationDetail(parsedView.issues),
+      );
+    }
+    const refreshAfterMs = definition.refresh?.({ data });
+    if (
+      refreshAfterMs !== undefined &&
+      (!Number.isInteger(refreshAfterMs) ||
+        refreshAfterMs < 500 ||
+        refreshAfterMs > 60_000)
+    ) {
+      throw runtimeError(
+        identity,
+        "returned an invalid refresh interval; use 500-60000 milliseconds",
+      );
+    }
+    return Object.freeze({
+      view: parsedView.data,
+      ...(refreshAfterMs === undefined ? {} : { refreshAfterMs }),
+    });
+  }
+
+  async function handleAction(
+    rawRequest: unknown,
+    actor: StudioWorkspaceActor,
+    signal: AbortSignal | undefined,
+  ): Promise<JsonValue> {
+    const combinedSignal = requestSignal(input.runtimeSignal, signal);
+    combinedSignal.throwIfAborted();
+    if (!(await admitted(actor, combinedSignal))) {
+      throw runtimeError(
+        identity,
+        "action was requested below its admission policy",
+      );
+    }
+    const request = parseActionRequest(rawRequest, actor);
+    const runtimeContext = await contextFor(actor, combinedSignal, undefined);
+    const needsPreparedConfirmation = requiresPreparedConfirmation(
+      request.binding.definition,
+      request.input,
+    );
+    if (request.mode === "prepare") {
+      if (!needsPreparedConfirmation) {
+        throw runtimeError(
+          identity,
+          `action "${request.binding.definition.name}" does not support prepared confirmation`,
+        );
+      }
+      return issuePreparedConfirmation(request, actor, runtimeContext);
+    }
+    if (needsPreparedConfirmation) {
+      await confirmPreparedConfirmation(request, actor, runtimeContext);
+    }
+    return executeAction(request, runtimeContext, combinedSignal);
+  }
+
+  async function countBadge(actor: StudioWorkspaceActor): Promise<number> {
+    const signal = input.runtimeSignal;
+    if (!(await admitted(actor, signal))) return 0;
+    const data = parseOperatorData(
+      definition.data,
+      await executor.load(await contextFor(actor, signal, undefined)),
+      identity,
+    );
+    const badge = definition.badge?.({ data }) ?? 0;
+    if (!Number.isInteger(badge) || badge < 0 || badge > 999_999) {
+      throw runtimeError(
+        identity,
+        "returned an invalid badge; use an integer from 0 to 999999",
+      );
+    }
+    return badge;
+  }
 }
 
 const builtInBindingContext = Object.freeze({

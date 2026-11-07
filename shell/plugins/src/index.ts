@@ -391,7 +391,6 @@ export {
   type OperatorCaller,
   type OperatorCapabilityDefinition,
   type OperatorEntityCatalogDefinition,
-  type OperatorEntityReader,
   type OperatorQueryReader,
   type OperatorView,
   type OperatorCardBlock,

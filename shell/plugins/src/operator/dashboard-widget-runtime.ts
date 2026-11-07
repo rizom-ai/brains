@@ -10,7 +10,9 @@ import type { AccountSettingsRegistration } from "./account-settings-registry";
 import {
   callerVisibilityScope,
   createOperatorContext,
+  type OperatorRunAs,
 } from "./operator-context-runtime";
+import type { EntityReader } from "../entity/entity-definition-contract";
 import type { ContentVisibility } from "@brains/entity-service";
 import {
   getDashboardWidgetLoader,
@@ -96,6 +98,10 @@ export function createDeclarativeDashboardWidgetRegistration<
    * stays exactly the semantic envelope.
    */
   readonly includeSource?: boolean | undefined;
+  /** A service's own `entities`, which act as the current caller. */
+  readonly entities?: EntityReader | undefined;
+  /** Runs the loader as its caller, in the declaring package's context. */
+  readonly runAs?: OperatorRunAs | undefined;
 }): DashboardWidgetRegistration {
   const definition = input.binding.definition;
   const identity: OperatorRuntimeIdentity = {
@@ -115,74 +121,13 @@ export function createDeclarativeDashboardWidgetRegistration<
     section: definition.placement,
     priority: definition.priority ?? 50,
     visibility: definition.permission,
-    async dataProvider(
-      provider,
-    ): Promise<RuntimeDashboardWidgetData & { readonly source?: unknown }> {
-      const runtimeProvider: DashboardWidgetProviderContext = {
-        ...provider,
-        signal: AbortSignal.any([provider.signal, input.runtimeSignal]),
-      };
-      const granted = runtimeProvider.caller?.permission ?? "public";
-      if (!meetsPermission(granted, definition.permission)) {
-        throw runtimeError(
-          identity,
-          "was requested below its minimum permission",
-        );
-      }
-      const runtimeContext = await createOperatorContext({
-        config: input.config,
-        state: input.state,
-        ...(input.accountSettingsRegistration
-          ? { accountSettingsRegistration: input.accountSettingsRegistration }
-          : {}),
-        provider: runtimeProvider,
-        context: input.context,
-      });
-      runtimeProvider.signal.throwIfAborted();
-
-      let rawData: unknown;
-      try {
-        rawData = await load(runtimeContext);
-      } catch (error) {
-        if (runtimeProvider.signal.aborted) {
-          throw runtimeProvider.signal.reason ?? error;
-        }
-        throw runtimeError(identity, "data loader failed");
-      }
-      runtimeProvider.signal.throwIfAborted();
-      const data = parseOperatorData(definition.data, rawData, identity);
-
-      let rawView: unknown;
-      try {
-        rawView = definition.view({ data });
-      } catch (error) {
-        if (runtimeProvider.signal.aborted) {
-          throw runtimeProvider.signal.reason ?? error;
-        }
-        throw runtimeError(identity, "view derivation failed");
-      }
-      const view = parseWidgetView(rawView, identity);
-
-      let digest: RuntimeDashboardDigest | undefined;
-      if (definition.digest) {
-        let rawDigest: unknown;
-        try {
-          rawDigest = definition.digest({ data });
-        } catch (error) {
-          if (runtimeProvider.signal.aborted) {
-            throw runtimeProvider.signal.reason ?? error;
-          }
-          throw runtimeError(identity, "digest derivation failed");
-        }
-        digest = parseWidgetDigest(rawDigest, identity);
-      }
-
-      return Object.freeze({
-        view,
-        ...(digest ? { digest } : {}),
-        ...(input.includeSource ? { source: data } : {}),
-      });
-    },
+    dataProvider: (provider) =>
+      input.runAs
+        ? input.runAs(
+            { caller: provider.caller, interfaceType: "dashboard" },
+            () => provideData(provider),
+          )
+        : provideData(provider),
     digestProvider(data): DashboardDigestProviderResult {
       const parsed = safeParseRuntimeDashboardWidgetData(data);
       if (!parsed.success) return {};
@@ -201,6 +146,76 @@ export function createDeclarativeDashboardWidgetRegistration<
       };
     },
   };
+
+  async function provideData(
+    provider: DashboardWidgetProviderContext,
+  ): Promise<RuntimeDashboardWidgetData & { readonly source?: unknown }> {
+    const runtimeProvider: DashboardWidgetProviderContext = {
+      ...provider,
+      signal: AbortSignal.any([provider.signal, input.runtimeSignal]),
+    };
+    const granted = runtimeProvider.caller?.permission ?? "public";
+    if (!meetsPermission(granted, definition.permission)) {
+      throw runtimeError(
+        identity,
+        "was requested below its minimum permission",
+      );
+    }
+    const runtimeContext = await createOperatorContext({
+      config: input.config,
+      state: input.state,
+      ...(input.accountSettingsRegistration
+        ? { accountSettingsRegistration: input.accountSettingsRegistration }
+        : {}),
+      provider: runtimeProvider,
+      context: input.context,
+      entities: input.entities,
+    });
+    runtimeProvider.signal.throwIfAborted();
+
+    let rawData: unknown;
+    try {
+      rawData = await load(runtimeContext);
+    } catch (error) {
+      if (runtimeProvider.signal.aborted) {
+        throw runtimeProvider.signal.reason ?? error;
+      }
+      throw runtimeError(identity, "data loader failed");
+    }
+    runtimeProvider.signal.throwIfAborted();
+    const data = parseOperatorData(definition.data, rawData, identity);
+
+    let rawView: unknown;
+    try {
+      rawView = definition.view({ data });
+    } catch (error) {
+      if (runtimeProvider.signal.aborted) {
+        throw runtimeProvider.signal.reason ?? error;
+      }
+      throw runtimeError(identity, "view derivation failed");
+    }
+    const view = parseWidgetView(rawView, identity);
+
+    let digest: RuntimeDashboardDigest | undefined;
+    if (definition.digest) {
+      let rawDigest: unknown;
+      try {
+        rawDigest = definition.digest({ data });
+      } catch (error) {
+        if (runtimeProvider.signal.aborted) {
+          throw runtimeProvider.signal.reason ?? error;
+        }
+        throw runtimeError(identity, "digest derivation failed");
+      }
+      digest = parseWidgetDigest(rawDigest, identity);
+    }
+
+    return Object.freeze({
+      view,
+      ...(digest ? { digest } : {}),
+      ...(input.includeSource ? { source: data } : {}),
+    });
+  }
 }
 
 const builtInBindingContext = Object.freeze({

@@ -1,5 +1,10 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type {
+  AnyEntityDefinition,
+  EntityReader,
+} from "../entity/entity-definition-contract";
+import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
 import { assertIdentifier } from "../package-definition";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import { assertPermission, assertText } from "./contract-assertions";
@@ -19,6 +24,22 @@ export interface WorkspacePreparedConfirmation {
   readonly revision: string;
 }
 
+/**
+ * What a workspace action's `execute` is handed with its call: the operator
+ * context, its parsed `input`, and `entities` that also write the entity
+ * types the package owns, as the operator and held to the action policy.
+ */
+export interface WorkspaceActionContext<
+  TConfig,
+  TState extends object,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
+  TInput,
+> extends OperatorBaseContext<TConfig, TState, TAccountSettings> {
+  readonly entities: EntityReader & OwnedEntityWriter<TOwned>;
+  readonly input: TInput;
+}
+
 export interface WorkspaceActionDefinition<
   TName extends string = string,
   TInputSchema extends OperatorSchema = OperatorSchema,
@@ -36,12 +57,17 @@ export interface WorkspaceActionDefinition<
     TConfig,
     TState extends object,
     TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+    TOwned extends AnyEntityDefinition = never,
   >(
-    context: OperatorBindingContext<TConfig, TState, TAccountSettings>,
+    context: OperatorBindingContext<TConfig, TState, TAccountSettings, TOwned>,
     execute: (
-      context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
-        readonly input: z.output<TInputSchema>;
-      },
+      context: WorkspaceActionContext<
+        TConfig,
+        TState,
+        TAccountSettings,
+        TOwned,
+        z.output<TInputSchema>
+      >,
     ) => z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>,
     prepare?: (
       context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
@@ -52,7 +78,8 @@ export interface WorkspaceActionDefinition<
     WorkspaceActionDefinition<TName, TInputSchema, TOutputSchema>,
     TConfig,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TOwned
   >;
 }
 
@@ -75,11 +102,16 @@ interface WorkspaceActionExecutor<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
 > {
   readonly execute: (
-    context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
-      readonly input: z.output<TDefinition["input"]>;
-    },
+    context: WorkspaceActionContext<
+      TConfig,
+      TState,
+      TAccountSettings,
+      TOwned,
+      z.output<TDefinition["input"]>
+    >,
   ) => z.input<TDefinition["output"]> | Promise<z.input<TDefinition["output"]>>;
   readonly prepare?:
     | ((
@@ -98,11 +130,18 @@ export interface WorkspaceActionBinding<
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition = never,
 > {
   readonly kind: "rizom-workspace-action-binding";
   readonly definition: TDefinition;
   readonly [workspaceActionExecutor]?:
-    | WorkspaceActionExecutor<TDefinition, TConfig, TState, TAccountSettings>
+    | WorkspaceActionExecutor<
+        TDefinition,
+        TConfig,
+        TState,
+        TAccountSettings,
+        TOwned
+      >
     | undefined;
 }
 
@@ -113,7 +152,14 @@ export type BoundWorkspaceAction<
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
-> = WorkspaceActionBinding<TDefinition, TConfig, TState, TAccountSettings> &
+  TOwned extends AnyEntityDefinition = never,
+> = WorkspaceActionBinding<
+  TDefinition,
+  TConfig,
+  TState,
+  TAccountSettings,
+  TOwned
+> &
   OperatorBindingBrand<TConfig, TState, TAccountSettings>;
 
 export function getWorkspaceActionExecutor<
@@ -121,9 +167,22 @@ export function getWorkspaceActionExecutor<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
 >(
-  binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
-): WorkspaceActionExecutor<TDefinition, TConfig, TState, TAccountSettings> {
+  binding: BoundWorkspaceAction<
+    TDefinition,
+    TConfig,
+    TState,
+    TAccountSettings,
+    TOwned
+  >,
+): WorkspaceActionExecutor<
+  TDefinition,
+  TConfig,
+  TState,
+  TAccountSettings,
+  TOwned
+> {
   const executor = binding[workspaceActionExecutor];
   if (!executor) {
     throw new Error(

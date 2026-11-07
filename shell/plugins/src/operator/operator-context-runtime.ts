@@ -3,12 +3,16 @@ import {
   type ContentVisibility,
 } from "@brains/entity-service";
 import type { JobInfo } from "@brains/job-queue";
+import { SdkError, type ActorRef } from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
-import { parseDefinitionEntity } from "../entity/entity-schema";
+import { createEntityReader } from "../entity/entity-reader";
 import type {
   AnyEntityDefinition,
+  DataSourceListOptions,
   EntityOf,
+  EntityReader,
 } from "../entity/entity-definition-contract";
+import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
 import type { BasePluginContext } from "../base/context";
 import type { Caller } from "@brains/content-service";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
@@ -32,6 +36,95 @@ import type {
 export interface OperatorRuntimeProvider {
   readonly caller: OperatorCaller | null;
   readonly signal: AbortSignal;
+}
+
+/** Who an operator callback runs as: the caller a host resolved. */
+export interface OperatorCallScope {
+  readonly caller: OperatorCaller | null;
+  /** The caller's actor as the host knows it, when it knows more than the id. */
+  readonly actor?: ActorRef | undefined;
+  readonly interfaceType: "studio" | "dashboard";
+}
+
+/**
+ * Runs an operator callback as its caller. A service runs it in its own call
+ * context, so every capability the package holds acts as that caller.
+ */
+export type OperatorRunAs = <T>(
+  scope: OperatorCallScope,
+  run: () => Promise<T>,
+) => Promise<T>;
+
+/** Reads that stop when the request does, before and after each read. */
+export function readerWithin(
+  reader: EntityReader,
+  signal: AbortSignal,
+): EntityReader {
+  return Object.freeze({
+    async get<TDefinition extends AnyEntityDefinition>(
+      definition: TDefinition,
+      id: string,
+    ): Promise<EntityOf<TDefinition> | null> {
+      signal.throwIfAborted();
+      const record = await reader.get(definition, id);
+      signal.throwIfAborted();
+      return record;
+    },
+    async list<TDefinition extends AnyEntityDefinition>(
+      definition: TDefinition,
+      options?: DataSourceListOptions,
+    ): Promise<readonly EntityOf<TDefinition>[]> {
+      signal.throwIfAborted();
+      const records = await reader.list(definition, options);
+      signal.throwIfAborted();
+      return records;
+    },
+    async count<TDefinition extends AnyEntityDefinition>(
+      definition: TDefinition,
+    ): Promise<number> {
+      signal.throwIfAborted();
+      const count = await reader.count(definition);
+      signal.throwIfAborted();
+      return count;
+    },
+  });
+}
+
+/** Writes that stop when the request does, beside the same bounded reads. */
+export function accessWithin<TOwned extends AnyEntityDefinition>(
+  access: EntityReader & OwnedEntityWriter<TOwned>,
+  signal: AbortSignal,
+): EntityReader & OwnedEntityWriter<TOwned> {
+  const settled = async <T>(write: () => Promise<T>): Promise<T> => {
+    signal.throwIfAborted();
+    const written = await write();
+    signal.throwIfAborted();
+    return written;
+  };
+  const writer: OwnedEntityWriter<TOwned> = {
+    create: (definition, input) =>
+      settled(() => access.create(definition, input)),
+    update: (definition, record, change) =>
+      settled(() => access.update(definition, record, change)),
+    delete: (definition, record) =>
+      settled(() => access.delete(definition, record)),
+  };
+  return Object.freeze({ ...readerWithin(access, signal), ...writer });
+}
+
+/**
+ * The writes of a binding that owns no entity types: the types refuse every
+ * call, and so does the runtime.
+ */
+export function noOwnedWrites<
+  TOwned extends AnyEntityDefinition,
+>(): OwnedEntityWriter<TOwned> {
+  const refuse = async (): Promise<never> => {
+    throw new SdkError("permission_denied", {
+      message: "This operator surface owns no entity types to write",
+    });
+  };
+  return Object.freeze({ create: refuse, update: refuse, delete: refuse });
 }
 
 function redactSettings<TDefinition extends AnyAccountSettingsDefinition>(
@@ -146,11 +239,15 @@ export async function createOperatorContext<
   >;
   readonly provider: OperatorRuntimeProvider;
   readonly context: BasePluginContext;
+  /**
+   * What the callback reads with: a service's own `entities`, which act as
+   * the current caller; without one, reads at the caller's visibility.
+   */
+  readonly entities?: EntityReader | undefined;
 }): Promise<OperatorBaseContext<TConfig, TState, TAccountSettings>> {
   const { caller, signal } = input.provider;
   signal.throwIfAborted();
   const permission = caller?.permission ?? "public";
-  const visibilityScope = callerVisibilityScope(caller);
   const fullSettings =
     caller && input.accountSettingsRegistration
       ? await input.context.accountSettings.getForActor(
@@ -171,50 +268,16 @@ export async function createOperatorContext<
     state: input.state,
     caller,
     settings,
-    entities: {
-      async get<TDefinition extends AnyEntityDefinition>(
-        definition: TDefinition,
-        id: string,
-      ): Promise<EntityOf<TDefinition> | null> {
-        signal.throwIfAborted();
-        // As stored, the same record `list` hands back: no read-time
-        // resolution of image references into their data.
-        const entity = await input.context.entityService.getEntityRaw({
-          entityType: definition.type,
-          id,
-          visibilityScope,
-        });
-        signal.throwIfAborted();
-        return entity ? parseDefinitionEntity(definition, entity) : null;
-      },
-      async list<TDefinition extends AnyEntityDefinition>(
-        definition: TDefinition,
-      ): Promise<readonly EntityOf<TDefinition>[]> {
-        signal.throwIfAborted();
-        const entities = await input.context.entityService.listEntities({
-          entityType: definition.type,
-          options: { filter: { visibilityScope } },
-        });
-        signal.throwIfAborted();
-        return entities.map((entity) =>
-          parseDefinitionEntity(definition, entity),
-        );
-      },
-      async search<TDefinition extends AnyEntityDefinition>(
-        definition: TDefinition,
-        query: string,
-      ): Promise<readonly EntityOf<TDefinition>[]> {
-        signal.throwIfAborted();
-        const results = await input.context.entityService.search({
-          query,
-          options: { types: [definition.type], visibilityScope },
-        });
-        signal.throwIfAborted();
-        return results.map(({ entity }) =>
-          parseDefinitionEntity(definition, entity),
-        );
-      },
-    },
+    // As stored: the same record `list` hands back, with no read-time
+    // resolution of image references into their data.
+    entities: readerWithin(
+      input.entities ??
+        createEntityReader(
+          input.context.entityService,
+          callerVisibilityScope(caller),
+        ),
+      signal,
+    ),
     jobs: createOperatorJobs(input.context, caller),
     permissions: {
       allows(definition, action): boolean {
