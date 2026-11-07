@@ -1,5 +1,17 @@
 # @rizom/brain-ui
 
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`01e357f`](https://github.com/rizom-ai/brains/commit/01e357ff95c6f8ac80f7bedcd1feeac16ca1b5a6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain-ui` is licensed under Apache-2.0, like `@rizom/site`, the published themes and the contract packages, under the repository's split licensing model; copyright Rizom B.V. A site or plugin package that installs or bundles it may be licensed however its author chooses.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`64354f1`](https://github.com/rizom-ai/brains/commit/64354f10a28c2925bab8eecaaf471fae011d68c7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `formatDate` formats in the UTC time zone as well as the `en-US` locale, so a site build renders the same dates wherever it runs. A date-only value such as `2026-03-14` was the day before on a machine west of UTC, and a time near midnight rolled over east of it. Deployed builds already ran in UTC and render as before.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The component library is published as `@rizom/brain-ui`, moved from the private `@brains/ui-library` workspace to `packages/ui`. It versions and releases with `@rizom/brain`. Its public entry holds the components a site or plugin view renders entities with: `Card`, `CardTitle`, `CardMetadata`, `TagsList`, `MarkdownContent` and `formatDate`, with their props and option types. It ships built JavaScript and declarations, with `react` and `react-dom` as peers and no private workspace dependency. The rest of the library stays first-party in `@rizom/brain-ui/internal`, which is not published, and every package in this repository now imports from one entry or the other. `@brains/email-workflows` and `@brains/unified-inbox` drop a dependency they never imported, and Dashboard keeps it for its tests only.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`3737da6`](https://github.com/rizom-ai/brains/commit/3737da657d6bb6599f543347b45aa238f017a73a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site or plugin package that installs or bundles its own copy of `@rizom/brain-ui` now reads the brain's image renderer and head collector. `MarkdownContent` in such a package renders `entity://image/<id>` references as the site build's optimized images, where it used to leave the unresolved reference, and its `Head` reaches the page head. Every copy shares the two contexts through a versioned global key.
+
 ## 0.2.0-alpha.648
 
 ### Patch Changes
