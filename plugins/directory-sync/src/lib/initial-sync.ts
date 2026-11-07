@@ -1,11 +1,12 @@
 import { getErrorMessage } from "@brains/utils/error";
 import {
-  JobProgressEventSchema,
   SYSTEM_CHANNELS,
+  initialSyncCompletedChannel,
+  jobProgressChannel,
+  type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type ServicePluginContext,
 } from "@brains/plugins";
-import { JOB_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type {
   BatchResult,
@@ -41,8 +42,6 @@ export interface InitialSyncOptions {
       >
     | undefined;
 }
-
-type InitialSyncOutcome = { success: true } | { success: false; error: string };
 
 const INITIAL_SYNC_SOURCE = "initial-sync";
 
@@ -241,13 +240,12 @@ function followBatches(
     };
 
     const unsubscribe = context.messaging.subscribe(
-      JOB_CHANNELS.progress,
-      async (message) => {
-        const event = JobProgressEventSchema.safeParse(message.payload);
-        if (event.success && event.data.type === "batch") {
-          if (event.data.status === "completed") settle(event.data.id, null);
-          if (event.data.status === "failed") {
-            settle(event.data.id, event.data.batchDetails?.errors ?? []);
+      jobProgressChannel,
+      async (event) => {
+        if (event.type === "batch") {
+          if (event.status === "completed") settle(event.id, null);
+          if (event.status === "failed") {
+            settle(event.id, event.batchDetails?.errors ?? []);
           }
         }
         return { success: true };
@@ -289,7 +287,7 @@ async function sendCompleted(
   outcome: InitialSyncOutcome,
 ): Promise<void> {
   await context.messaging.send({
-    type: SYSTEM_CHANNELS.initialSyncCompleted,
+    type: initialSyncCompletedChannel.name,
     payload: outcome,
     broadcast: true,
   });

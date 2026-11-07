@@ -1,5 +1,6 @@
 import { createMockBatchJobManager } from "../src/test/index";
 import { deferred } from "@brains/utils/deferred";
+import { z } from "@brains/utils/zod";
 import {
   describe,
   it,
@@ -10,7 +11,9 @@ import {
   spyOn,
 } from "bun:test";
 import type { Mock } from "bun:test";
+import { JOB_CHANNELS } from "@brains/contracts";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
+import { jobProgressChannel } from "../src/schemas";
 import type {
   IBatchJobManager,
   IJobQueueService,
@@ -406,6 +409,71 @@ describe("JobProgressMonitor", () => {
         sender: "job-progress-monitor",
         broadcast: true,
       });
+    });
+  });
+
+  // The channel is the contract between the monitor and every plugin that
+  // follows job progress: what the monitor sends must be what it takes.
+  describe("job progress channel", () => {
+    it("names the job progress event", () => {
+      expect(jobProgressChannel.name).toBe(JOB_CHANNELS.progress);
+    });
+
+    it("takes every event the monitor sends", async () => {
+      getStatusMock.mockResolvedValue(createMockJob());
+      await monitor
+        .createProgressReporter("job-123")
+        .report({ progress: 5, total: 10, message: "Halfway" });
+      getStatusMock.mockResolvedValue(
+        createMockJob({ status: "completed", completedAt: Date.now() }),
+      );
+      await monitor.emitJobCompletion("job-123");
+      getStatusMock.mockResolvedValue(
+        createMockJob({
+          status: "failed",
+          completedAt: Date.now(),
+          lastError: "Something went wrong",
+        }),
+      );
+      await monitor.emitJobFailure("job-123");
+      await monitor.emitBatchProgress(
+        "batch-456",
+        {
+          batchId: "batch-456",
+          totalOperations: 2,
+          completedOperations: 1,
+          failedOperations: 1,
+          errors: ["one failed"],
+          status: "processing",
+          currentOperation: "Second",
+        },
+        { rootJobId: testRootJobId, operationType: "batch_processing" },
+      );
+
+      const sent: unknown[] = messageBusSendMock.mock.calls.map(
+        ([request]) => request,
+      );
+      expect(sent).toHaveLength(4);
+      for (const request of sent) {
+        expect(request).toMatchObject({ type: jobProgressChannel.name });
+        const payload = z
+          .object({ payload: z.unknown() })
+          .parse(request).payload;
+        const parsed = jobProgressChannel.schema.safeParse(payload);
+        expect(parsed.success).toBe(true);
+        // Nothing the monitor sends is lost to the schema.
+        expect(payload).toEqual(parsed.success ? parsed.data : undefined);
+      }
+    });
+
+    it("refuses an event without the job's routing metadata", () => {
+      expect(
+        jobProgressChannel.schema.safeParse({
+          id: "job-123",
+          type: "job",
+          status: "completed",
+        }).success,
+      ).toBe(false);
     });
   });
 
