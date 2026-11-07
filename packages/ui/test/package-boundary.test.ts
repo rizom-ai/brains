@@ -13,6 +13,7 @@ const packageDir = join(import.meta.dir, "..");
 const manifestSchema = z.looseObject({
   name: z.string(),
   private: z.boolean().optional(),
+  license: z.string(),
   files: z.array(z.string()).optional(),
   scripts: z.record(z.string(), z.string()).optional(),
   publishConfig: z.looseObject({ access: z.string() }).optional(),
@@ -65,6 +66,16 @@ describe("@rizom/brain-ui package boundary", () => {
           name.startsWith("@brains/") || range.startsWith("workspace:"),
       ),
     ).toEqual([]);
+  });
+
+  test("is licensed Apache-2.0 like the site SDK it renders beside", async () => {
+    const manifest = await sourceManifest();
+    const siteSdk = join(packageDir, "../site");
+
+    expect(manifest.license).toBe("Apache-2.0");
+    expect(await readFile(join(packageDir, "LICENSE"), "utf8")).toBe(
+      await readFile(join(siteSdk, "LICENSE"), "utf8"),
+    );
   });
 
   test("ships the built public entry and nothing else", async () => {

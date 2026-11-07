@@ -68,7 +68,7 @@
     "url": "https://github.com/rizom-ai/brains.git",
     "directory": "packages/ui"
   },
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/ui#readme",
   "bugs": {
