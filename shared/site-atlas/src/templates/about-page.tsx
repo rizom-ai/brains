@@ -1,10 +1,6 @@
 import type { JSX } from "react";
-import {
-  Head,
-  LinkButton,
-  MarkdownContent,
-  tagVariants,
-} from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
+import { Head, LinkButton, tagVariants } from "@rizom/brain-ui/internal";
 
 /** One fact about the owner: a sentence, a set of tags, or a list of lines. */
 export type AboutFact =

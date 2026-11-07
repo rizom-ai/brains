@@ -600,6 +600,26 @@
         "RizomLink",
         "RizomSideNavItem"
       ]
+    },
+    "@rizom/brain-ui": {
+      "source": "packages/ui/src/index.ts",
+      "stable": [
+        "Card",
+        "CardMetadata",
+        "CardMetadataProps",
+        "CardProps",
+        "CardTitle",
+        "CardTitleProps",
+        "DateFormatStyle",
+        "FormatDateOptions",
+        "MarkdownContent",
+        "MarkdownContentProps",
+        "TagsList",
+        "TagsListProps",
+        "formatDate"
+      ],
+      "advanced-with-consumer": [],
+      "internal/removable": []
     }
   }
 }

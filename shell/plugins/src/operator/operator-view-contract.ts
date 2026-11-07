@@ -681,8 +681,6 @@ export interface OperatorListItem<
   readonly id: string;
   readonly title: string;
   readonly description?: string | undefined;
-  /** @deprecated Use metadata for multiple semantic values. */
-  readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
   /** When the item happened, as an ISO timestamp; a log groups rows by it. */
   readonly at?: string | undefined;

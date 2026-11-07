@@ -1,15 +1,15 @@
 {
   "name": "@brains/topics",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.647",
+  "version": "0.2.0-alpha.648",
   "description": "Extract and manage topics from conversations",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/entity-service": "workspace:*",
