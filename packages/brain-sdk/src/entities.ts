@@ -97,15 +97,5 @@ export type {
   PublishResult,
 } from "@brains/contracts";
 
-export type {
-  BaseEntity,
-  EntityInput,
-  EntityMutationResult,
-  SearchResult,
-  ListOptions,
-  SearchOptions,
-  PaginationInfo,
-  PaginateOptions,
-  PaginateResult,
-  FrontmatterConfig,
-} from "@brains/entity-service";
+// Kept for packages written against the alpha class API until it is removed.
+export type { BaseEntity } from "@brains/entity-service";

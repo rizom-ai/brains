@@ -324,18 +324,7 @@
         "defineProjectionRule",
         "z"
       ],
-      "advanced-with-consumer": [
-        "BaseEntity",
-        "EntityInput",
-        "EntityMutationResult",
-        "FrontmatterConfig",
-        "ListOptions",
-        "PaginateOptions",
-        "PaginateResult",
-        "PaginationInfo",
-        "SearchOptions",
-        "SearchResult"
-      ],
+      "advanced-with-consumer": ["BaseEntity"],
       "internal/removable": [
         "BaseDataSourceContext",
         "BaseEntityAdapter",
@@ -355,7 +344,16 @@
         "generateMarkdownWithFrontmatter",
         "paginateItems",
         "paginationInfoSchema",
-        "parseMarkdownWithFrontmatter"
+        "parseMarkdownWithFrontmatter",
+        "EntityInput",
+        "EntityMutationResult",
+        "FrontmatterConfig",
+        "ListOptions",
+        "PaginateOptions",
+        "PaginateResult",
+        "PaginationInfo",
+        "SearchOptions",
+        "SearchResult"
       ]
     },
     "@rizom/brain/services": {
