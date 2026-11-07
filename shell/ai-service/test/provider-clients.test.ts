@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { AIService } from "../src/aiService";
 import {
+  createLocalRuntimeClient,
   createProviderClients,
   getLanguageModel,
 } from "../src/provider-clients";
@@ -22,17 +23,12 @@ describe("language models", () => {
   });
 
   it("asks the runtime for output in the requested schema", () => {
-    const clients = createProviderClients({
-      model: "local:qwen3:4b",
-      modelRuntimeUrl: "http://models:11434",
-    });
-
-    const model = getLanguageModel(clients, "local:qwen3:4b");
+    const model = createLocalRuntimeClient("http://models:11434").chatModel(
+      "qwen3:4b",
+    );
 
     expect(
-      typeof model !== "string" &&
-        "supportsStructuredOutputs" in model &&
-        model.supportsStructuredOutputs,
+      "supportsStructuredOutputs" in model && model.supportsStructuredOutputs,
     ).toBe(true);
   });
 
