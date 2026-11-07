@@ -11,9 +11,11 @@ import {
   ChatInterface,
   MockChatSdk,
   createMessage,
+  createSentMessage,
   createThread,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
+import type { MockPostMessage } from "./harness/chat-interface-harness";
 
 const whatsappConfig: WhatsAppChatAdapterConfig = {
   phoneNumber: "31600000001",
@@ -345,5 +347,47 @@ describe("ChatInterface WhatsApp", () => {
       ([, , context]) => context?.userPermissionLevel,
     );
     expect(levels).toEqual(["admin", "public"]);
+  });
+
+  it("posts a job's completion as a new message once the edit window has closed", async () => {
+    suite.agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-whatsapp" }],
+    });
+    const sentMessage = createSentMessage();
+    sentMessage.edit.mockImplementation(() =>
+      Promise.reject(new Error("WhatsApp edit window closed")),
+    );
+    const thread = createThread({
+      id: DM_THREAD,
+      channelId: DM_THREAD,
+      isDM: true,
+      adapter: { name: "whatsapp" },
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    await suite.harness.installPlugin(
+      createWhatsAppPlugin(createFakeWhatsApp()),
+    );
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.directMessages[0]?.(thread, createMessage(), thread);
+    thread.post.mockClear();
+    await suite.harness.sendMessage("job-progress", {
+      id: "job-whatsapp",
+      type: "job",
+      status: "completed",
+      message: "Site built",
+      metadata: {
+        rootJobId: "job-whatsapp",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "whatsapp",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledTimes(1);
   });
 });
