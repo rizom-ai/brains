@@ -1,5 +1,15 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- Updated dependencies [[`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/job-queue@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/runtime-state@0.2.0-alpha.644
+  - @brains/scheduler@0.2.0-alpha.644
+
 ## 0.2.0-alpha.643
 
 ### Patch Changes
