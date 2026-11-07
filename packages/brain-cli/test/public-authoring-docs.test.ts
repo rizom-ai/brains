@@ -16,6 +16,7 @@ const expectedExampleIds = [
   "external-calendar-brain",
   "external-calendar-service",
   "external-site-definition",
+  "external-site-ui-section",
   "external-template-service",
   "external-theme-definition",
   "migration-brain-composition",
