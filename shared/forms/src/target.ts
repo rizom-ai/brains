@@ -15,6 +15,8 @@ export interface FormSubmission {
   notify: boolean;
   /** A scored form's result in each dimension it scored. */
   results: FormResult[];
+  /** The language it was answered in, when not the one the form is written in. */
+  language?: string | undefined;
 }
 
 /** A record as its package writes it: markdown and the metadata queried. */

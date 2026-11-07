@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { languageTagSchema } from "@brains/site-composition";
 import { formAdmissionPolicyShape } from "./admission-state";
 
 type AdmissionShape = (typeof formAdmissionPolicyShape)["shape"];
@@ -176,6 +177,98 @@ const scoringSchema: FormScoringSchema = z.strictObject({
   dimensions: z.array(dimensionSchema).min(1).max(20),
 });
 
+type Optional = z.ZodOptional<z.ZodString>;
+type FormTranslationSchema = z.ZodObject<
+  {
+    title: Optional;
+    pageTitle: Optional;
+    intro: Optional;
+    submitLabel: Optional;
+    thanks: z.ZodOptional<
+      z.ZodObject<{ title: Optional; body: Optional }, z.core.$strict>
+    >;
+    steps: z.ZodOptional<
+      z.ZodArray<z.ZodObject<{ title: Optional }, z.core.$strict>>
+    >;
+    fields: z.ZodOptional<
+      z.ZodRecord<
+        z.ZodString,
+        z.ZodObject<
+          {
+            label: Optional;
+            options: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+          },
+          z.core.$strict
+        >
+      >
+    >;
+    dimensions: z.ZodOptional<
+      z.ZodRecord<
+        z.ZodString,
+        z.ZodObject<
+          {
+            title: Optional;
+            outcomes: z.ZodOptional<
+              z.ZodRecord<
+                z.ZodString,
+                z.ZodObject<{ title: Optional; body: Optional }, z.core.$strict>
+              >
+            >;
+          },
+          z.core.$strict
+        >
+      >
+    >;
+  },
+  z.core.$strict
+>;
+/** A form's words in another language, by the ids of what they translate;
+ * whatever it leaves out stays as written. */
+const translationSchema: FormTranslationSchema = z.strictObject({
+  title: labelSchema.optional(),
+  pageTitle: labelSchema.optional(),
+  intro: copySchema.optional(),
+  submitLabel: labelSchema.optional(),
+  thanks: z
+    .strictObject({
+      title: labelSchema.optional(),
+      body: copySchema.optional(),
+    })
+    .optional(),
+  /** By position, one for each step translated. */
+  steps: z
+    .array(z.strictObject({ title: labelSchema.optional() }))
+    .max(20)
+    .optional(),
+  fields: z
+    .record(
+      z.string(),
+      z.strictObject({
+        label: labelSchema.optional(),
+        options: z.record(z.string(), labelSchema).optional(),
+      }),
+    )
+    .optional(),
+  dimensions: z
+    .record(
+      z.string(),
+      z.strictObject({
+        title: labelSchema.optional(),
+        outcomes: z
+          .record(
+            z.string(),
+            z.strictObject({
+              title: labelSchema.optional(),
+              body: copySchema.optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .optional(),
+});
+export type FormTranslation = z.output<FormTranslationSchema>;
+
 type FormStepSchema = z.ZodObject<
   {
     title: z.ZodOptional<z.ZodString>;
@@ -215,6 +308,9 @@ type FormObjectSchema = z.ZodObject<
       >
     >;
     scoring: z.ZodOptional<FormScoringSchema>;
+    translations: z.ZodOptional<
+      z.ZodRecord<typeof languageTagSchema, FormTranslationSchema>
+    >;
   },
   z.core.$strict
 >;
@@ -254,6 +350,8 @@ const formObjectSchema: FormObjectSchema = z.strictObject({
   /** Its own admission limits, over the plugin's. */
   limits: formAdmissionPolicyShape.partial().optional(),
   scoring: scoringSchema.optional(),
+  /** Its words in each other language it is served in, at `/<lang>/<path>`. */
+  translations: z.record(languageTagSchema, translationSchema).optional(),
 });
 
 export const formFrontmatterSchema: FormFrontmatterSchema =
@@ -302,6 +400,49 @@ export const formDefinitionSchema: z.ZodType<
           path: ["scoring"],
           message: `Each outcome of "${dimension.id}" needs its own id`,
         });
+    const fieldsById = new Map(
+      form.steps
+        .flatMap((step) => step.fields)
+        .map((field) => [field.id, field]),
+    );
+    for (const [language, translation] of Object.entries(
+      form.translations ?? {},
+    )) {
+      const issue = (message: string): void =>
+        context.addIssue({
+          code: "custom",
+          path: ["translations", language],
+          message,
+        });
+      if ((translation.steps?.length ?? 0) > form.steps.length)
+        issue("It translates more steps than the form has");
+      for (const [id, field] of Object.entries(translation.fields ?? {})) {
+        const asked = fieldsById.get(id);
+        if (!asked)
+          issue(`It translates a field "${id}" the form does not have`);
+        for (const value of Object.keys(field.options ?? {}))
+          if (
+            !asked ||
+            !("options" in asked) ||
+            !asked.options.some((option) => option.value === value)
+          )
+            issue(
+              `It translates an option "${id}/${value}" the form does not have`,
+            );
+      }
+      for (const [id, dimension] of Object.entries(
+        translation.dimensions ?? {},
+      )) {
+        const outcomes = dimensions.get(id);
+        if (!outcomes)
+          issue(`It translates a dimension "${id}" the form does not score`);
+        for (const outcome of Object.keys(dimension.outcomes ?? {}))
+          if (!outcomes?.has(outcome))
+            issue(
+              `It translates an outcome "${id}/${outcome}" the form does not have`,
+            );
+      }
+    }
     for (const field of form.steps.flatMap((step) => step.fields)) {
       if (!("options" in field)) continue;
       for (const score of field.options.flatMap(

@@ -22,7 +22,7 @@ import { z } from "@brains/utils/zod";
 import { FormAdmission } from "./admission";
 import { formAdmissionPolicySchema } from "./admission-state";
 import { formAlertText } from "./alert";
-import { FORM_COPY, type FormCopy } from "./copy";
+import { FORM_COPY, formCopyFor, type FormCopy } from "./copy";
 import {
   formDefinitionSchema,
   type FormDefinition,
@@ -30,6 +30,7 @@ import {
 } from "./definition";
 import { FormDelivery, type FormAlertOutcome } from "./delivery";
 import { parseFormMarkdown } from "./form-markdown";
+import { formLanguages, localizeForm } from "./localize";
 import { FormHttpHandlers, previewOriginFor } from "./http";
 import { FormIntake, type FormMaintenanceReport } from "./intake";
 import { formPageTemplate, formSitePages } from "./page";
@@ -99,6 +100,8 @@ interface RunningForm {
   intake: FormIntake;
   delivery: FormDelivery;
   http: FormHttpHandlers;
+  /** The form in each language it is translated to, at its own path. */
+  translated: FormHttpHandlers[];
 }
 
 /**
@@ -116,8 +119,9 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     [];
   /** The forms served now, by id. */
   private forms = new Map<string, RunningForm>();
-  /** Content's forms by the paths they claim: theirs and their thanks page. */
-  private claimed = new Map<string, RunningForm>();
+  /** What claim routes serve, by path: content's forms and every form's
+   * translations, each with its thanks page. */
+  private claimed = new Map<string, FormHttpHandlers>();
   /** Forms no longer served in this process; their alerts still settle. */
   private readonly retired = new Map<string, RunningForm>();
   private refreshing: Promise<void> = Promise.resolve();
@@ -368,19 +372,23 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         this.run(context, policy, records, form, current),
       );
     }
-    const claimed = new Map<string, RunningForm>();
     for (const definition of content) {
       if (this.isBuiltIn(definition.id)) continue;
-      const running = this.run(
-        context,
-        policy,
-        records,
-        { definition },
-        definition,
+      next.set(
+        definition.id,
+        this.run(context, policy, records, { definition }, definition),
       );
-      next.set(definition.id, running);
-      claimed.set(definition.path, running);
-      claimed.set(`${definition.path}/thanks`, running);
+    }
+    const claimed = new Map<string, FormHttpHandlers>();
+    for (const running of next.values()) {
+      const served = [
+        ...(this.isBuiltIn(running.definition.id) ? [] : [running.http]),
+        ...running.translated,
+      ];
+      for (const http of served) {
+        claimed.set(http.path, http);
+        claimed.set(`${http.path}/thanks`, http);
+      }
     }
     for (const [id, running] of this.forms)
       if (!next.has(id)) this.retired.set(id, running);
@@ -423,57 +431,81 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     );
     // Jobs for the first built-in form name no form, as before forms did.
     const first = this.builtIns[0]?.definition.id === definition.id;
-    const intake = new FormIntake({
-      form: definition,
-      target: this.options.target,
-      admission,
-      entities: context.entityService,
-      state: context.runtimeState,
-      slots,
-      messages: copy.fields,
-      enqueueNotification: async (id): Promise<void> => {
-        await context.jobs.enqueue({
-          type: "notify",
-          data: first ? { id } : { form: definition.id, id },
-          toolContext: null,
-          options: {
-            source: definition.id,
-            metadata: { operationType: "data_processing", silent: true },
-            deduplication: "skip",
-            deduplicationKey: `${definition.id}-notification:${id}`,
-            maxRetries: policy.delivery.maxAttempts,
-          },
-        });
-      },
-    });
-    const http = new FormHttpHandlers(
-      definition,
-      admission,
-      intake,
-      policy.http,
-      {
-        themeCSS: context.themeCSS,
-        // The deployment's own preview host is served beside the origin.
-        previewOrigin: previewOriginFor(policy.http.origin, context.previewUrl),
-        owner: (): string => context.identity.getProfile().name,
-        defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
-        copy,
-        prefill: form.prefill,
-        receipts: definition.scoring
-          ? new FormReceipts(
-              context.runtimeState,
-              `forms.${definition.id}.receipts`,
-              policy.admission.receiptTtlSeconds,
-            )
-          : undefined,
-      },
-    );
+    const enqueueNotification = async (id: string): Promise<void> => {
+      await context.jobs.enqueue({
+        type: "notify",
+        data: first ? { id } : { form: definition.id, id },
+        toolContext: null,
+        options: {
+          source: definition.id,
+          metadata: { operationType: "data_processing", silent: true },
+          deduplication: "skip",
+          deduplicationKey: `${definition.id}-notification:${id}`,
+          maxRetries: policy.delivery.maxAttempts,
+        },
+      });
+    };
+    const receipts = definition.scoring
+      ? new FormReceipts(
+          context.runtimeState,
+          `forms.${definition.id}.receipts`,
+          policy.admission.receiptTtlSeconds,
+        )
+      : undefined;
+    /** The form in one language: its own words, one admission for all. */
+    const serve = (
+      served: FormDefinition,
+      words: FormCopy,
+      language?: string,
+    ): { intake: FormIntake; http: FormHttpHandlers } => {
+      const intake = new FormIntake({
+        form: served,
+        target: this.options.target,
+        admission,
+        entities: context.entityService,
+        state: context.runtimeState,
+        slots,
+        messages: words.fields,
+        language,
+        enqueueNotification,
+      });
+      const http = new FormHttpHandlers(
+        served,
+        admission,
+        intake,
+        policy.http,
+        {
+          themeCSS: context.themeCSS,
+          // The deployment's own preview host is served beside the origin.
+          previewOrigin: previewOriginFor(
+            policy.http.origin,
+            context.previewUrl,
+          ),
+          owner: (): string => context.identity.getProfile().name,
+          defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
+          copy: words,
+          prefill: form.prefill,
+          receipts,
+          language,
+        },
+      );
+      return { intake, http };
+    };
+    const written = serve(definition, copy);
     return {
       definition,
       slots: new FormStorageSlots(context.runtimeState, slots, Date.now),
-      intake,
+      intake: written.intake,
       delivery,
-      http,
+      http: written.http,
+      translated: formLanguages(definition).map(
+        (language) =>
+          serve(
+            localizeForm(definition, language),
+            formCopyFor(language),
+            language,
+          ).http,
+      ),
     };
   }
 
@@ -526,7 +558,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         request: Request,
         transport?: WebRouteTransportContext,
       ): Promise<Response> =>
-        this.serve(this.forms.get(definition.id), request, transport);
+        this.serve(this.forms.get(definition.id)?.http, request, transport);
       const role = form.role ? { role: form.role } : {};
       return [
         { path: definition.path, method: "GET" as const, ...role },
@@ -546,11 +578,8 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       public: true,
       preview: true,
       claims: (path: string): boolean => {
-        const form = this.claimed.get(path);
-        return (
-          form !== undefined &&
-          (method === "GET" || path === form.definition.path)
-        );
+        const http = this.claimed.get(path);
+        return http !== undefined && (method === "GET" || path === http.path);
       },
       handler: (request, transport) =>
         this.serve(
@@ -563,14 +592,14 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   }
 
   private async serve(
-    form: RunningForm | undefined,
+    http: FormHttpHandlers | undefined,
     request: Request,
     transport?: WebRouteTransportContext,
   ): Promise<Response> {
-    if (!form) return new Response("Not found", { status: 404 });
+    if (!http) return new Response("Not found", { status: 404 });
     if (!this.readyState || !(await this.maintenanceFresh()))
-      return form.http.unavailable(request);
-    return form.http.handle(request, transport);
+      return http.unavailable(request);
+    return http.handle(request, transport);
   }
 
   /** Every form whose submissions may still need work in this process. */

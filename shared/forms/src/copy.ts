@@ -58,3 +58,54 @@ export const FORM_COPY: FormCopy = {
   fields: FORM_FIELD_MESSAGES,
   steps: { next: "Next", back: "Back", step: "Step {n} of {total}" },
 };
+
+/** The engine's words in Traditional Chinese, drafted to be read and
+ * corrected by native speakers. */
+const FORM_COPY_ZH_TW: FormCopy = {
+  optional: "（選填）",
+  trap: "請留空",
+  denials: {
+    "invalid-network": "無法從這個連線送出。",
+    "invalid-submission": "請檢查標示的欄位後再試一次。",
+    "invalid-token": "這份表單已失效或過期。請先複製你的回答，再開啟新的表單。",
+    "submission-conflict":
+      "這份表單已送出不同的回答。若要再送一次，請開啟新的表單。",
+    "rate-limited": "請求次數太多，請稍候再試。",
+    capacity: "目前無法接收新的回答，請稍後用同一份表單再試一次。",
+    unavailable:
+      "無法確認你的回答已儲存。請再次送出同一份表單，不要開啟新的表單。",
+  },
+  denied: "請求遭拒。",
+  notFound: "找不到頁面。",
+  methodNotAllowed: "不允許的請求方式。",
+  mediaType: "表單需以網址編碼送出，不接受附件。",
+  paused: {
+    title: "表單暫停中",
+    body: "目前無法接收回答，請稍後用同一份表單再試一次。",
+  },
+  refusedTitle: "表單無法使用",
+  newForm: "開啟新的表單",
+  ownerFallback: "網站主人",
+  fields: {
+    required: (label) => `${label}為必填。`,
+    tooLong: (label, max) => `${label}太長了：最多 ${max} 個字。`,
+    email: () => "請輸入電子郵件地址。",
+    choose: (label) => `請選擇「${label}」的答案。`,
+    offList: (label) => `請從「${label}」的選項中選擇。`,
+    tooMany: (label, max) => `「${label}」最多只能選 ${max} 個。`,
+  },
+  steps: { next: "下一步", back: "上一步", step: "第 {n} 步，共 {total} 步" },
+};
+
+const FORM_COPY_BY_LANGUAGE: ReadonlyMap<string, FormCopy> = new Map([
+  ["en", FORM_COPY],
+  ["zh-tw", FORM_COPY_ZH_TW],
+]);
+
+/** What the engine says in a page's language; English for a language it
+ * does not speak. */
+export function formCopyFor(language: string | undefined): FormCopy {
+  return (
+    FORM_COPY_BY_LANGUAGE.get((language ?? "en").toLowerCase()) ?? FORM_COPY
+  );
+}

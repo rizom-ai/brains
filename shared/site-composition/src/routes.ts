@@ -115,6 +115,7 @@ export const RouteDefinitionSchema: z.ZodObject<{
   translations: z.ZodOptional<
     z.ZodRecord<typeof languageTagSchema, typeof routeTranslationSchema>
   >;
+  languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
 }> = z.object({
   id: z.string(),
   path: z.string(),
@@ -130,6 +131,12 @@ export const RouteDefinitionSchema: z.ZodObject<{
   external: z.boolean().optional(),
   navigation: NavigationMetadataSchema,
   translations: z.record(languageTagSchema, routeTranslationSchema).optional(),
+  /**
+   * Languages its plugin fills this page in per request, such as a form's
+   * translations: built in each without saved copy, its sections as they
+   * are. Other routes are translated by their saved copy.
+   */
+  languages: z.array(languageTagSchema).optional(),
 });
 
 /** Message payload schemas for route operations. */

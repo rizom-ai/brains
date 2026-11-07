@@ -26,6 +26,8 @@ export interface FormIntakeDependencies<E extends BaseEntity = BaseEntity> {
   /** Durable enqueue only, with a request-derived deduplication key. Never send email inline. */
   enqueueNotification: (id: string) => Promise<void>;
   messages?: FormFieldMessages | undefined;
+  /** The language this intake's form is served in, when translated. */
+  language?: string | undefined;
   now?: () => number;
 }
 export type FormSaveResult =
@@ -96,6 +98,7 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
         receivedAt,
         notify: this.deps.form.notify.enabled,
         results: scoreAnswers(this.deps.form, validation.answers),
+        ...(this.deps.language ? { language: this.deps.language } : {}),
       };
       const record = this.deps.target.record(submission);
       // Reserve canonical UTF-8 content plus bounded room for operational status changes.

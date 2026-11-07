@@ -4,6 +4,7 @@ import { escapeHtml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createElement, type ReactElement } from "react";
 import type { FormDefinition } from "./definition";
+import { formLanguages, localizeForm } from "./localize";
 
 /**
  * The fallback page for a brain without the site's own page for a form: the
@@ -52,6 +53,9 @@ export interface FormSitePage {
   title: string;
   sections: { id: string; template: string; content: { slot: string } }[];
   navigation: { show: false };
+  /** The languages the form is translated to, its pages built in each. */
+  languages?: string[];
+  translations?: Record<string, { title: string }>;
 }
 
 /** A form's two site pages, the form's and its thanks page, on the template
@@ -60,17 +64,37 @@ export function formSitePages(
   form: FormDefinition,
   pluginId: string,
 ): FormSitePage[] {
-  const page = (id: string, path: string, title: string): FormSitePage => ({
+  const languages = formLanguages(form);
+  const page = (
+    id: string,
+    path: string,
+    title: (served: FormDefinition) => string,
+  ): FormSitePage => ({
     id,
     path,
-    title,
+    title: title(form),
     sections: [
       { id: "form", template: `${pluginId}:page`, content: { slot: form.id } },
     ],
     navigation: { show: false },
+    ...(languages.length > 0
+      ? {
+          languages,
+          translations: Object.fromEntries(
+            languages.map((language) => [
+              language,
+              { title: title(localizeForm(form, language)) },
+            ]),
+          ),
+        }
+      : {}),
   });
   return [
-    page(form.id, form.path, form.pageTitle),
-    page(`${form.id}-thanks`, `${form.path}/thanks`, form.thanks.title),
+    page(form.id, form.path, (served) => served.pageTitle),
+    page(
+      `${form.id}-thanks`,
+      `${form.path}/thanks`,
+      (served) => served.thanks.title,
+    ),
   ];
 }

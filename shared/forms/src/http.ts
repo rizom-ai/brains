@@ -98,6 +98,8 @@ export interface FormHttpOptions {
   prefill?: ((url: URL) => FormDraft) | undefined;
   /** Where a scored form keeps the receipts its thanks page reads. */
   receipts?: FormReceipts | undefined;
+  /** The page's language, when not English. */
+  language?: string | undefined;
 }
 
 const headers = {
@@ -126,6 +128,7 @@ export class FormHttpHandlers {
   private readonly copy: FormCopy;
   private readonly prefill: (url: URL) => FormDraft;
   private readonly receipts: FormReceipts | undefined;
+  private readonly language: string | undefined;
   private readonly origins: readonly string[];
   /** Every name the form posts: its fields, the token and the honeypot. */
   private readonly fields: ReadonlySet<string>;
@@ -145,6 +148,7 @@ export class FormHttpHandlers {
     this.copy = options.copy ?? FORM_COPY;
     this.prefill = options.prefill ?? ((): FormDraft => ({}));
     this.receipts = options.receipts;
+    this.language = options.language;
     this.admission = admission;
     this.intake = intake;
     this.policy = formHttpPolicySchema.parse(policy);
@@ -163,6 +167,11 @@ export class FormHttpHandlers {
         .filter((field) => field.kind === "choices")
         .map((field) => field.id),
     );
+  }
+
+  /** Where this form is served; its thanks page is beneath it. */
+  get path(): string {
+    return this.form.path;
   }
 
   private get thanksPath(): string {
@@ -208,6 +217,7 @@ export class FormHttpHandlers {
         themeCSS: this.themeCSS,
         theme: presentation.theme,
         title: this.form.pageTitle,
+        language: this.language,
       }),
       { status, headers, slot: { name: this.form.id, html: section } },
     );

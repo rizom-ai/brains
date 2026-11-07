@@ -100,3 +100,6 @@ export { scoreAnswers } from "./score";
 export type { FormResult } from "./score";
 export { FormReceipts } from "./receipts";
 export type { FormDimension, FormOutcome } from "./definition";
+export { formCopyFor } from "./copy";
+export { formLanguages, localizeForm } from "./localize";
+export type { FormTranslation } from "./definition";
