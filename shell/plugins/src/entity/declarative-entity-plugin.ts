@@ -1869,13 +1869,16 @@ export function createEntityPackagePlugins(
   metadata: InstalledPluginPackageMetadata,
   scope: (localId: string) => string,
   dataSources: readonly AnyDataSourceDeclaration[] = [],
+  // Each entity with the slots its package's `configure` bound, keyed by
+  // the declared definition, which projections and data sources name.
+  bound: ReadonlyMap<AnyEntityDefinition, AnyEntityDefinition> = new Map(),
 ): DeclarativeEntityPlugin[] {
   const packageDataSourceIds = new Set(dataSources.map(({ id }) => id));
   const packageTypes = new Set(entities.map(({ type }) => type));
   return entities.map(
     (definition) =>
       new DeclarativeEntityPlugin(
-        definition,
+        bound.get(definition) ?? definition,
         projections.filter(({ source }) => source === definition),
         metadata,
         scope,
