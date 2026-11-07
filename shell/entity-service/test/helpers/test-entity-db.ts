@@ -6,7 +6,7 @@ import { createClient } from "@libsql/client";
 import { createSilentLogger, createTestDatabase } from "@brains/test-utils";
 import type { TestDatabase } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { MOCK_DIMENSIONS } from "./mock-services";
+import { mockEmbeddingService } from "./mock-services";
 import { entities } from "../../src/schema/entities";
 import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
@@ -38,7 +38,10 @@ export async function createTestEntityDatabase(): Promise<TestEntityDatabase> {
   const embeddingClient = database.track(
     createClient({ url: embeddingConfig.url }),
   );
-  await migrateEmbeddingDatabase(embeddingClient, MOCK_DIMENSIONS);
+  await migrateEmbeddingDatabase(
+    embeddingClient,
+    mockEmbeddingService.identity,
+  );
 
   return {
     ...database,

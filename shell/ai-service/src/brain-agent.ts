@@ -23,7 +23,7 @@ import {
 } from "./guest-execution";
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
-import { openAIReasoningOptions } from "./generation-options";
+import { reasoningProviderOptions } from "./generation-options";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -40,6 +40,8 @@ import { buildAgentInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 import { retryDeclinedTurnOnce } from "./provider-declined";
+import { textOnlyMessages } from "./text-only-messages";
+import { createToolCallRepair } from "./tool-call-repair";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
@@ -104,6 +106,11 @@ export function shouldStopToolLoop(input: {
  */
 export interface BrainAgentFactoryOptions {
   model: LanguageModel;
+  /**
+   * Answers a tool result in place of `model`, which keeps choosing tools:
+   * a fast model writes the answer while a reasoning one makes the calls.
+   */
+  answerModel?: LanguageModel | undefined;
   modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
@@ -126,6 +133,7 @@ export function createBrainAgentFactory(
 ): BrainAgentFactory {
   const {
     model,
+    answerModel,
     modelId,
     webSearch,
     temperature,
@@ -134,6 +142,21 @@ export function createBrainAgentFactory(
     messageBus,
   } = options;
   const capabilities = resolveTextModelCapabilities(modelId);
+  const reasoning = reasoningProviderOptions(
+    capabilities.provider,
+    reasoningEffort,
+    capabilities.supportsTemperature,
+  );
+
+  // A local model's call that fails validation is generated again by the
+  // same model, reasoning as it does when choosing tools, with the tool's
+  // schema constraining the arguments: without reasoning, a constrained model
+  // picks a valid but different operation. A cloud model retries from the
+  // validation error itself.
+  const repairToolCall =
+    capabilities.provider === "local"
+      ? createToolCallRepair(model, reasoning)
+      : undefined;
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -155,12 +178,36 @@ export function createBrainAgentFactory(
     const agent = new ToolLoopAgent({
       model,
       callOptionsSchema: brainCallOptionsSchema,
+      // A tool result is answered by the answer model when one is set;
+      // otherwise a local model answers it without thinking. On a runtime that
+      // generates ~20 tokens/s, answer reasoning cost most of a turn, while
+      // tool choice is where reasoning pays.
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+      prepareStep: ({ steps }) => {
+        const last = steps.at(-1);
+        if (!last?.toolResults.length) return {};
+        // A tool the answer model calls hands the next step back to the
+        // model that chooses tools: retries and follow-up calls need it.
+        if (answerModel)
+          return last.model.modelId === modelIdOf(answerModel)
+            ? {}
+            : { model: answerModel };
+        return capabilities.provider === "local" && reasoning
+          ? { providerOptions: { local: { reasoningEffort: "none" } } }
+          : {};
+      },
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: async ({ options: callOptions, ...settings }) => {
         assertGuestPermission(callOptions);
         assertGuestCallOptions(callOptions);
         const guest = callOptions.interfaceType === guestInterfaceType;
+        // The local runtime serves text-only models: an upload reaches them
+        // as text, never as a file part the runtime rejects.
+        const messages =
+          capabilities.provider === "local" && settings.messages
+            ? await textOnlyMessages(settings.messages)
+            : settings.messages;
         // Get tools available for this permission level, unless this bounded
         // model turn is intentionally text-only (for example, after executing
         // an already-confirmed action).
@@ -194,10 +241,11 @@ export function createBrainAgentFactory(
 
         return {
           ...settings,
+          ...(messages && { messages }),
           // A visitor is a public user of the same agent: text-only history,
           // no system messages from the conversation.
           ...(guest && {
-            messages: guestModelMessages(settings.messages),
+            messages: guestModelMessages(messages),
             allowSystemInMessages: false,
             // Only the options set below reach the provider for a guest.
             providerOptions: {},
@@ -212,18 +260,9 @@ export function createBrainAgentFactory(
             capabilities.supportsTemperature && { temperature }),
           ...(maxTokens !== undefined && { maxTokens }),
           // Guests answer from the brain, never from provider web search.
-          ...((capabilities.provider === "openai" &&
-          reasoningEffort !== undefined
-            ? true
-            : webSearch && !guest) && {
+          ...((reasoning !== undefined || (webSearch && !guest)) && {
             providerOptions: {
-              ...(capabilities.provider === "openai" &&
-                reasoningEffort && {
-                  openai: openAIReasoningOptions(
-                    reasoningEffort,
-                    capabilities.supportsTemperature,
-                  ),
-                }),
+              ...reasoning,
               ...(webSearch &&
                 !guest && {
                   anthropic: { webSearch: true },
@@ -234,6 +273,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
+      ...(repairToolCall && { experimental_repairToolCall: repairToolCall }),
       stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
     });
     return {
@@ -307,6 +347,11 @@ export function createBrainAgentFactory(
     };
   };
   return factory;
+}
+
+/** The model ID a step reports for the model that generated it. */
+function modelIdOf(model: LanguageModel): string {
+  return typeof model === "string" ? model : model.modelId;
 }
 
 /**

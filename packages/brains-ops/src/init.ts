@@ -11,6 +11,7 @@ import {
   renderDockerfile,
   stripDeployVolumes,
   renderKamalDeploy,
+  withoutDeployModelRuntime,
   renderPreDeployHook,
   type DeployScriptName,
 } from "@brains/deploy-support";
@@ -37,6 +38,7 @@ const starterFilePaths = [
   "deploy/scripts/create-predeploy-backup.ts",
   "deploy/scripts/install-health-watchdog.ts",
   "deploy/scripts/provision-server.ts",
+  "deploy/scripts/pull-local-models.ts",
   "deploy/scripts/update-dns.ts",
   "deploy/scripts/write-ssh-key.ts",
   "deploy/scripts/decrypt-user-secrets.ts",
@@ -159,7 +161,9 @@ function isStalePilotDeploySecrets(current: string): boolean {
     normalizePilotDeploySecretList(current),
   );
   const normalizedTemplate = stripDeployVolumes(
-    normalizePilotDeploySecretList(renderKamalDeploy({ serviceName: "rover" })),
+    normalizePilotDeploySecretList(
+      withoutDeployModelRuntime(renderKamalDeploy({ serviceName: "rover" })),
+    ),
   );
 
   return normalizedCurrent === normalizedTemplate;

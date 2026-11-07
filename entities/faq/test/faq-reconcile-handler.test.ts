@@ -31,19 +31,20 @@ describe("FaqReconcileHandler", () => {
 
   function handler(
     entityService: FaqReconcileDeps["entityService"] = context.entityService,
+    ai: FaqReconcileDeps["ai"] = {
+      generateObject: async <T>(
+        _prompt: string,
+        schema: { parse(value: unknown): T },
+      ): Promise<{ object: T }> => ({
+        object: schema.parse({ same: sameVerdict }),
+      }),
+    },
   ): FaqReconcileHandler {
     return new FaqReconcileHandler(createSilentLogger(), {
       entityService,
       sameQuestionDistance: 0.2,
       searchWithDistances: async (): Promise<DistanceResult[]> => distances,
-      ai: {
-        generateObject: async <T>(
-          _prompt: string,
-          schema: { parse(value: unknown): T },
-        ): Promise<{ object: T }> => ({
-          object: schema.parse({ same: sameVerdict }),
-        }),
-      },
+      ai,
     });
   }
 
@@ -55,6 +56,7 @@ describe("FaqReconcileHandler", () => {
       { entityId },
       "job-1",
       createMockProgressReporter(),
+      new AbortController().signal,
     );
   }
 
@@ -129,6 +131,41 @@ describe("FaqReconcileHandler", () => {
     expect(parsed.answer).toBe("Answer older.");
     expect(remaining[0]?.metadata.asked).toBe(3);
     expect(parsed.alternatives).toEqual([{ answer: "Answer newer." }]);
+  });
+
+  it("stops when its job is cancelled, folding nothing", async () => {
+    await seed("older", { created: "2026-09-01T00:00:00.000Z" });
+    await seed("newer", { created: "2026-09-02T00:00:00.000Z" });
+    near("newer", "older");
+    // A same-question check that only ends when it is cancelled, as a slow
+    // model call past the job's deadline.
+    const asked = Promise.withResolvers<void>();
+    const hanging = handler(context.entityService, {
+      generateObject: (_prompt, _schema, signal) => {
+        asked.resolve();
+        return new Promise((_, reject) => {
+          signal?.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        });
+      },
+    });
+    const job = new AbortController();
+    const reason = new Error("deadline exceeded");
+
+    const result = hanging
+      .process(
+        { entityId: "newer" },
+        "job-1",
+        createMockProgressReporter(),
+        job.signal,
+      )
+      .catch((error: unknown) => error);
+    await asked.promise;
+    job.abort(reason);
+
+    expect(await result).toBe(reason);
+    expect(await faqs()).toHaveLength(2);
   });
 
   it("keeps the older FAQ; the newer one folds itself", async () => {

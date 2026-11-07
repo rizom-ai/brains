@@ -37,6 +37,10 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
       reasoningEffort: config.ai.reasoningEffort,
     }),
     ...(config.ai.imageApiKey ? { imageApiKey: config.ai.imageApiKey } : {}),
+    ...(config.ai.modelRuntimeUrl
+      ? { modelRuntimeUrl: config.ai.modelRuntimeUrl }
+      : {}),
+    ...(config.ai.answerModel ? { answerModel: config.ai.answerModel } : {}),
   };
 }
 

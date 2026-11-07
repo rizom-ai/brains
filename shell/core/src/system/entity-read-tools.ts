@@ -10,9 +10,20 @@ import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
 import { markdownBody } from "./markdown-body";
 import { assertGuestReader } from "./guest-read-context";
-import { MAX_SEARCH_CONTENT_CHARS, matchingSections } from "./search-excerpt";
+import { matchingSections, type SearchBudget } from "./search-excerpt";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
+
+/** The hits a search asks for: the model's limit within the budget. */
+function searchLimit(
+  requested: number | undefined,
+  budget: SearchBudget,
+): number {
+  const limit = requested ?? budget.limit;
+  return budget.maxLimit === undefined
+    ? limit
+    : Math.min(limit, budget.maxLimit);
+}
 
 /**
  * One search hit as the agent reads it: whole when short; a long entity's
@@ -24,18 +35,19 @@ function searchHit(
     Partial<Pick<SearchResult, "score" | "excerpt">>,
   query: string,
   registry: SystemServices["entityRegistry"],
+  excerptChars: number,
 ): Record<string, unknown> {
   const entity = sanitizeEntity(hit.entity, registry);
   if (entity !== hit.entity) {
     return { ...hit, entity, excerpt: entity.content };
   }
   const body = markdownBody(entity.content);
-  if (body.length <= MAX_SEARCH_CONTENT_CHARS) return { ...hit, entity };
+  if (body.length <= excerptChars) return { ...hit, entity };
   const { content: _content, ...withoutContent } = entity;
   return {
     ...hit,
     entity: withoutContent,
-    excerpt: matchingSections(body, query),
+    excerpt: matchingSections(body, query, excerptChars),
     excerpted: true,
   };
 }
@@ -107,7 +119,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           const entries = await entityService.listEntities({
             entityType,
             options: {
-              limit: input.limit ?? services.searchLimit,
+              limit: searchLimit(input.limit, services.searchBudget),
               filter: { visibilityScope },
               ...publishedOnlyFor(visibilityScope),
             },
@@ -116,7 +128,12 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
             success: true,
             data: {
               results: entries.map((entity) =>
-                searchHit({ entity }, input.query, services.entityRegistry),
+                searchHit(
+                  { entity },
+                  input.query,
+                  services.entityRegistry,
+                  services.searchBudget.excerptChars,
+                ),
               ),
               notSearchable: {
                 entityType,
@@ -132,7 +149,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         const candidates = await entityService.search({
           query: input.query,
           options: {
-            limit: input.limit ?? services.searchLimit,
+            limit: searchLimit(input.limit, services.searchBudget),
             ...(input.scope.kind === "type" && {
               types: [input.scope.entityType],
             }),
@@ -154,7 +171,12 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           success: true,
           data: {
             results: results.map((r) =>
-              searchHit(r, input.query, services.entityRegistry),
+              searchHit(
+                r,
+                input.query,
+                services.entityRegistry,
+                services.searchBudget.excerptChars,
+              ),
             ),
             ...(belowThreshold && { belowThreshold }),
           },
@@ -172,7 +194,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "get",
-      "Retrieve a specific entity by type and identifier (ID, slug, or title). If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
+      "Retrieve a specific entity by type and identifier (ID, slug, or title). When the user asks to read an entity, call this tool in that turn even if it was read earlier in the conversation: stored content changes. If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
       getInputSchema,
       async (input, context) => {
         assertGuestReader(context);

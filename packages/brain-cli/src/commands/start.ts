@@ -135,7 +135,7 @@ export async function start(
   }
 
   if (hasCanonicalDefinition()) {
-    const keyCheck = checkApiKey(process.env);
+    const keyCheck = checkApiKey(process.env, config);
     if (flags.mode !== "startup-check" && !keyCheck.ok) {
       return {
         success: false,
