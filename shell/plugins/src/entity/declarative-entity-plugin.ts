@@ -40,7 +40,17 @@ import type {
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
 import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
-import { entityActionPolicyRuleSchema, type Template } from "@brains/templates";
+import {
+  entityActionPolicyRuleSchema,
+  type EntityActionRequiredLevel,
+  type PermissionService,
+  type Template,
+} from "@brains/templates";
+import type {
+  IShell,
+  PluginCapabilities,
+  PluginRegistrationContext,
+} from "../interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
@@ -551,6 +561,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly projectionRules: readonly ProjectionRule[];
   /** The types the declaring package owns: its own, when it acts as itself. */
   private readonly packageTypes: ReadonlySet<string>;
+  private permissions: PermissionService | undefined;
   private releases: readonly (() => void)[] = [];
   private readonly dashboardWidgetIds: string[] = [];
   private readonly widgetAbort: AbortController = new AbortController();
@@ -840,6 +851,25 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     );
   }
 
+  /** The brain's action policy, read when a job writes. */
+  private requiredLevel(
+    entityType: string,
+    action: "create" | "update" | "delete",
+  ): EntityActionRequiredLevel | undefined {
+    if (!this.permissions) {
+      throw new Error(`Entity type "${this.entityType}" is not registered`);
+    }
+    return this.permissions.getEntityActionRequiredLevel(entityType, action);
+  }
+
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    this.permissions = shell.getPermissionService();
+    return super.register(shell, registrationContext);
+  }
+
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
@@ -864,8 +894,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         name,
         "generate" in declaration
           ? this.generationHandler(context, declaration, name)
-          : entityJobHandler(declaration, context, (entityType) =>
-              this.ownsType(entityType),
+          : entityJobHandler(
+              declaration,
+              context,
+              (entityType) => this.ownsType(entityType),
+              {
+                declaring: this.definition,
+                requiredLevel: (entityType, action) =>
+                  this.requiredLevel(entityType, action),
+              },
             ),
       );
     });

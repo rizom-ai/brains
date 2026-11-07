@@ -63,6 +63,7 @@ export type {
   EntityInboxEdits,
   EntityInboxListContext,
   EntityJobContext,
+  EntityJobHandleContext,
   EntityJobDeclaration,
   EntityTypeClassification,
   EntityMarkdownCodec,

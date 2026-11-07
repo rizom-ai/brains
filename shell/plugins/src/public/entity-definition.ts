@@ -18,8 +18,8 @@ import type {
   EntityGenerationContext,
   EntityGenerationDeclaration,
   EntityGenerationResult,
-  EntityJobContext,
   EntityJobDeclaration,
+  EntityJobHandleContext,
   EntityAttachmentDeclaration,
   EntityCreateRouting,
   EntityDefinition,
@@ -75,6 +75,7 @@ export type {
   EntityGenerationResult,
   EntityJobContext,
   EntityJobDeclaration,
+  EntityJobHandleContext,
   EntityJobMessaging,
   EntityJobProgress,
   EntityAttachmentDeclaration,
@@ -248,7 +249,9 @@ export function defineEntityAnalyticsReport<TParams extends z.ZodObject>(
  */
 export function defineEntityJob<TInputSchema extends z.ZodType>(declaration: {
   readonly input: TInputSchema;
-  handle(context: EntityJobContext<z.output<TInputSchema>>): Promise<unknown>;
+  handle(
+    context: EntityJobHandleContext<z.output<TInputSchema>>,
+  ): Promise<unknown>;
 }): EntityJobDeclaration<TInputSchema>;
 export function defineEntityJob<TInputSchema extends z.ZodType>(declaration: {
   readonly input: TInputSchema;

@@ -310,6 +310,7 @@ export {
   type EntityGenerationRequest,
   type EntityGenerationResult,
   type EntityJobContext,
+  type EntityJobHandleContext,
   type EntityJobDeclaration,
   type EntityJobMessaging,
   type EntityJobProgress,
