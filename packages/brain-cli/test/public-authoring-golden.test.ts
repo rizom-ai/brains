@@ -140,7 +140,12 @@ const goldenPackages: GoldenPackageExpectation[] = [
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
     publicEntryPoints: ["@rizom/brain/interfaces"],
-    requiredVocabulary: ["defineMessageInterface", "runtimeState(", "z"],
+    requiredVocabulary: [
+      "defineMessageInterface",
+      "defineMessageInterfacePackage",
+      "runtimeState(",
+      "z",
+    ],
   },
   {
     directory: "brain-definition",

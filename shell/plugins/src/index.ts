@@ -429,6 +429,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineRoute,
   protocol,
 } from "./public/interface-definition";

@@ -485,6 +485,7 @@ Definitions and schema vocabulary:
 - `defineDaemon`
 - `defineInterface`
 - `defineMessageInterface`
+- `defineMessageInterfacePackage`
 - `defineRoute`
 - `protocol`
 - `z`
@@ -509,6 +510,8 @@ Permission contract:
 `setup` is given what a service's is: the parsed `config`, `lifecycle.onCleanup`, whose cleanups run last first when the interface shuts down, in the worker as in the web process, and `runtimeState({ namespace, schema })`. The namespace is local to the package and qualified by the owning package, the owner a service's state is kept under, so two packages declaring the same interface id never share a record; the store is a service's, with the same reads and writes.
 
 The slot rule is the service's. A slot is given the interface's capabilities once, `config`, `state` and, for a generic interface's `routes` and `daemons`, `jobs`, and the handlers it returns are given only their call's data: a route's `request`, `body` and `caller`, a daemon's `signal` and `health`, and an account daemon's `account` besides. A message interface's `listen`, `send`, `edit` and `deliver` are called once per call rather than returning handlers, so each is given `config` and `state` beside its call's data: `listen` its `signal`, `health` and `messages`, `send` the `channel` and the `message`, `edit` the `messageId` too, and `deliver` the parsed `recipient` and the `message`. `jobs.enqueue(definition, input)` queues another package's declared job: inside a route the job is admitted as the route's caller, and from a daemon as the interface itself, which reads public entries unless the brain grants it more. A generic interface's routes are a service's declared routes, held to their schemas and answering failures in the same public form.
+
+`defineMessageInterfacePackage({ id, config, interfaces })` declares one package that runs several message interfaces, chosen from one config: `interfaces({ config })` returns the `defineMessageInterface` definitions the parsed config enables, so an interface without credentials is not declared. Each is its own plugin under the package, with its own channel type, and every one is declared over the package's own `config` schema, which is parsed once; one declared over another schema, one that is not a message interface, an id declared twice and a package nested in another are refused. The package is the owner of every interface in it, so they keep their runtime state under one owner, and one that keeps something apart from the others names its own namespace or key.
 
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 

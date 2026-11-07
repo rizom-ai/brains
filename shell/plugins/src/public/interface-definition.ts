@@ -23,9 +23,12 @@ import {
   assertTwoStageSlots,
   type TwoStageSlots,
 } from "../internal/two-stage-declaration";
+import type { z } from "@brains/utils/zod";
 import {
   assertIdentifier,
   createPluginPackageDefinition,
+  instantiateWithinPackage,
+  type PluginPackageDefinition,
 } from "../package-definition";
 
 export { defineAccountSettings } from "../operator/account-settings-definition-contract";
@@ -248,4 +251,85 @@ export function defineMessageInterface<
         scope(definition.id),
       ),
   });
+}
+
+/**
+ * The types admit only message interfaces into a package; this tells an
+ * untyped author too.
+ */
+function isMessageInterface(definition: PluginPackageDefinition): boolean {
+  return definition.family === "message-interface";
+}
+
+/** The packages `defineMessageInterfacePackage` returned, so one is not nested in another. */
+const messageInterfacePackages = new WeakSet<PluginPackageDefinition>();
+
+/**
+ * One package, several message interfaces, chosen from one config.
+ *
+ * Each interface is a `defineMessageInterface` declared over the package's
+ * own config schema, and which of them run is a fact about that config, so
+ * the list is a function of it: an interface without credentials is not
+ * declared. Every interface is its own plugin under the package, with its own
+ * channel, and keeps its state under the package that owns them all.
+ */
+export function defineMessageInterfacePackage<
+  TConfigSchema extends InterfaceConfigSchema,
+>(definition: {
+  readonly id: string;
+  readonly config: TConfigSchema;
+  // The schema is inferred from the package's own config alone, so an
+  // interface declared over another schema is the one refused.
+  readonly interfaces: (context: {
+    readonly config: z.output<TConfigSchema>;
+  }) => readonly {
+    readonly kind: "rizom-plugin-package";
+    readonly family: "message-interface";
+    readonly id: string;
+    readonly config: NoInfer<TConfigSchema>;
+  }[];
+}): {
+  readonly kind: "rizom-plugin-package";
+  readonly family: "message-interface";
+  readonly id: string;
+  readonly config: TConfigSchema;
+} {
+  const label = `Message interface package "${definition.id}"`;
+  const declared = createPluginPackageDefinition({
+    family: "message-interface",
+    id: definition.id,
+    config: definition.config,
+    instantiate: (context) => {
+      const interfaces = definition.interfaces({ config: context.config });
+      const ids = new Set<string>();
+      for (const declaration of interfaces) {
+        if (messageInterfacePackages.has(declaration)) {
+          throw new Error(
+            `${label} declares package "${declaration.id}"; list its interfaces instead`,
+          );
+        }
+        if (!isMessageInterface(declaration)) {
+          throw new Error(
+            `${label} declares "${declaration.id}", which is not a message interface`,
+          );
+        }
+        // The package's config is parsed once, by its own schema; an
+        // interface declared over another would read a config it never saw.
+        if (declaration.config !== definition.config) {
+          throw new Error(
+            `${label} declares "${declaration.id}" over a config schema other than its own`,
+          );
+        }
+        if (ids.has(declaration.id)) {
+          throw new Error(`${label} declares "${declaration.id}" twice`);
+        }
+        ids.add(declaration.id);
+      }
+      return interfaces.flatMap((declaration) =>
+        instantiateWithinPackage(declaration, context),
+      );
+    },
+  });
+  messageInterfacePackages.add(declared);
+  return declared;
 }

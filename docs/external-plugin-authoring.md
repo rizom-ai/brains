@@ -431,7 +431,9 @@ workers.
 
 `defineMessageInterface(header, behavior)` takes two arguments too: the channel
 and `setup` belong to the header, and `listen`, `send`, `edit`, `deliver` and
-`daemons` to the behavior. Declare the channel and recipient schema once. A conversational listener calls
+`daemons` to the behavior. A package that runs several message interfaces from one
+config declares them with `defineMessageInterfacePackage()`. Declare the channel and
+recipient schema once. A conversational listener calls
 `messages.receiveAuthenticated()` with normalized sender/channel/text and a
 lazy attachment function. Implement `send` and optional `edit`; implement
 `deliver` for manual outbound delivery. Conversation mapping, permissions,

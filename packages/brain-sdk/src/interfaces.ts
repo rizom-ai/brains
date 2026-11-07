@@ -5,6 +5,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineRoute,
   protocol,
 } from "@brains/plugins";

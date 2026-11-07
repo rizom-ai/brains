@@ -453,6 +453,7 @@
         "defineDaemon",
         "defineInterface",
         "defineMessageInterface",
+        "defineMessageInterfacePackage",
         "defineRoute",
         "protocol",
         "z"
