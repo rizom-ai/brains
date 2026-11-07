@@ -12,13 +12,20 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
 import { PromptPlugin } from "@brains/prompt";
-import { createServicePluginContext } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import {
+  EntityPlugin,
+  createServicePluginContext,
+  defineEntity,
+  defineEntityPackage,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
@@ -1994,5 +2001,181 @@ describe("document-backed runtime definitions with real adapters", () => {
         })
       ).total,
     ).toBe(2);
+  });
+});
+
+// Declared types, as packages written with defineEntity install them: a read
+// hands back the body alone, and the frontmatter is the metadata.
+const guidance = defineEntity({
+  type: "guidance",
+  classification: "system",
+  purpose: "Instructions the brain follows",
+  metadata: z.object({ title: z.string(), target: z.string() }),
+});
+const card = defineEntity({
+  type: "card",
+  purpose: "A card with a heading and a tone",
+  metadata: z.object({ title: z.string(), tone: z.enum(["plain", "warm"]) }),
+});
+
+function declaredPlugins(): Array<
+  EntityPlugin<BaseEntity, Record<string, never>, Record<string, never>>
+> {
+  return instantiatePluginPackageDefinition(
+    defineEntityPackage({ id: "declared", entities: [guidance, card] }),
+    {},
+    { name: "@fixture/declared", version: "0.1.0" },
+  ).flatMap((plugin) => (plugin instanceof EntityPlugin ? [plugin] : []));
+}
+
+function registerDeclared(registry: EntityRegistry): void {
+  for (const plugin of declaredPlugins()) {
+    registry.registerEntityType(
+      plugin.entityType,
+      plugin.schema,
+      plugin.adapter,
+      plugin.entityType === "guidance" ? { classification: "system" } : {},
+    );
+  }
+}
+
+/** An entity's stored markdown, as the database row holds it. */
+async function storedContent(
+  dir: string,
+  entityType: string,
+  id: string,
+): Promise<string> {
+  const database = createClient({ url: `file:${dir}/entities.db` });
+  try {
+    const result = await database.execute({
+      sql: "SELECT content FROM entities WHERE entityType = ? AND id = ?",
+      args: [entityType, id],
+    });
+    return String(result.rows[0]?.["content"] ?? "");
+  } finally {
+    database.close();
+  }
+}
+
+describe("declared types in the editor", () => {
+  test("system classification removes declared types from groupings without rewriting authored source", async () => {
+    const dir = await directory();
+    const fixture = await open(dir, registerDeclared);
+    const exact = [" Ka21, exact ", " Ka21, exact ", "Stray"];
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "guidance",
+        id: "guidance",
+        markdown: generateMarkdown(
+          {
+            title: "Guidance",
+            target: "note:test",
+            areas: exact,
+            visibility: "shared",
+          },
+          "Keep these instructions.",
+        ),
+      },
+    });
+    await fixture.service.createEntityFromMarkdown({
+      input: { entityType: "note", id: "content", markdown: content(["Acme"]) },
+    });
+    expect(
+      (
+        await save(fixture, {
+          areas: { ...areas, multiple: false, values: ["Acme"] },
+        })
+      ).status,
+    ).toBe(201);
+
+    expect(
+      (
+        await fixture.request("PUT", "entities", {
+          entityType: "guidance",
+          id: "guidance",
+          frontmatter: {
+            title: "Guidance",
+            target: "note:test",
+            visibility: "shared",
+          },
+          body: "Edited instructions.",
+        })
+      ).status,
+    ).toBe(200);
+    const edited = parseMarkdown(
+      await storedContent(dir, "guidance", "guidance"),
+    );
+    expect(edited.frontmatter["areas"]).toEqual(exact);
+    expect(edited.frontmatter["title"]).toBe("Guidance");
+    expect(edited.content.trim()).toBe("Edited instructions.");
+  });
+
+  test("opens a declared entry with its frontmatter and saves it keeping what it does not own", async () => {
+    const dir = await directory();
+    const fixture = await open(dir, registerDeclared);
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "card",
+        id: "tide",
+        markdown:
+          "---\ntitle: Tide\ntone: warm\nowner: Ana\n---\nA card about tides.\n",
+      },
+    });
+
+    const opened = await (
+      await fixture.request("GET", "entities?type=card&id=tide")
+    ).json();
+    expect(opened.entity).toMatchObject({
+      frontmatter: {
+        title: "Tide",
+        tone: "warm",
+        owner: "Ana",
+        visibility: "public",
+      },
+      displayTitle: "Tide",
+    });
+    expect(opened.entity.body.trim()).toBe("A card about tides.");
+
+    const listed = await (
+      await fixture.request("GET", "entities?type=card")
+    ).json();
+    expect(listed.entities).toEqual([
+      expect.objectContaining({
+        id: "tide",
+        frontmatter: expect.objectContaining({ title: "Tide", tone: "warm" }),
+        displayTitle: "Tide",
+      }),
+    ]);
+
+    expect(
+      (
+        await fixture.request("PUT", "entities", {
+          entityType: "card",
+          id: "tide",
+          frontmatter: { title: "Ebb", tone: "plain", visibility: "public" },
+          body: "A card about the ebb.",
+          baseContentHash: opened.entity.contentHash,
+        })
+      ).status,
+    ).toBe(200);
+
+    const stored = parseMarkdown(await storedContent(dir, "card", "tide"));
+    expect(stored.frontmatter).toEqual({
+      title: "Ebb",
+      tone: "plain",
+      owner: "Ana",
+    });
+    expect(stored.content.trim()).toBe("A card about the ebb.");
+    const reopened = await (
+      await fixture.request("GET", "entities?type=card&id=tide")
+    ).json();
+    expect(reopened.entity.frontmatter).toMatchObject({
+      title: "Ebb",
+      tone: "plain",
+    });
+    expect(
+      (await fixture.service.getEntity({ entityType: "card", id: "tide" }))
+        ?.metadata,
+    ).toEqual({ title: "Ebb", tone: "plain" });
   });
 });
