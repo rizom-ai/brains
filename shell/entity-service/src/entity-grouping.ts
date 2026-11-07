@@ -77,10 +77,13 @@ export const queryGroupingMembersSchema: z.ZodObject<{
   value: z.ZodString;
   q: z.ZodOptional<z.ZodString>;
   sort: z.ZodDefault<typeof groupingSortSchema>;
+  source: z.ZodOptional<z.ZodBoolean>;
 }> = queryGroupingCatalogSchema.extend({
   value: groupingValueSchema,
   q: groupingSearchSchema.optional(),
   sort: groupingSortSchema.default("updated-desc"),
+  /** Members read as stored, as `source` reads elsewhere. */
+  source: z.boolean().optional(),
 });
 
 /** Usage is a distinct entry total plus counts for a bounded set of exact values. */

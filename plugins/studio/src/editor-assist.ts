@@ -70,6 +70,7 @@ async function resolveStudioAssistEntity(
     entityType,
     id,
     visibilityScope: access.visibilityScope,
+    source: true,
   });
   if (!entity) {
     return jsonResponse({ error: `Entity not found: ${id}` }, 404);
