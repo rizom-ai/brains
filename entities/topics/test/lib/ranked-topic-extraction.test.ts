@@ -790,6 +790,17 @@ describe("topic extraction lease", () => {
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });
 
+  it("leaves a job woken during a run queued until that run ends", () => {
+    // Claimed while the run holds the lease, it would defer the next run by
+    // the held-lease delay instead of following the run as it ends.
+    const handler = createRankedTopicJobHandler(
+      setup().context,
+      topicsPluginConfigSchema.parse({}),
+      createSilentLogger(),
+    );
+    expect(handler.exclusive).toBe(true);
+  });
+
   it("does not release a lease another worker took over", async () => {
     const { context, leases } = setup();
     const lease = await acquireExtractionLease(context, leases);
