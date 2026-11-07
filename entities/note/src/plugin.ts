@@ -25,11 +25,7 @@ import {
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
-import {
-  NOTE_CAPTURE_MESSAGE,
-  noteCaptureRequestSchema,
-  type NoteCaptureResponse,
-} from "@brains/contracts";
+import { noteCaptureContract } from "@brains/contracts";
 
 const webChatUploadsScope = {
   namespace: "upload",
@@ -216,20 +212,15 @@ export class NotePlugin extends EntityPlugin<
     });
 
     // Another plugin keeps text as a note; always private to the owner.
-    context.messaging.subscribe<unknown, NoteCaptureResponse>(
-      NOTE_CAPTURE_MESSAGE,
-      async (message) => {
-        const request = noteCaptureRequestSchema.safeParse(message.payload);
-        if (!request.success)
-          return { success: false, error: "Invalid note capture request" };
-        const { id, title, body } = request.data;
+    context.messaging.answer(
+      noteCaptureContract,
+      async ({ id, title, body }) => {
         const existing = await context.entityService.getEntity({
           entityType: "note",
           id,
           visibilityScope: internalFullScope("note capture idempotency check"),
         });
-        if (existing)
-          return { success: true, data: { noteId: id, created: false } };
+        if (existing) return { noteId: id, created: false };
         await context.entityService.createEntityFromMarkdown({
           input: {
             entityType: "note",
@@ -239,7 +230,7 @@ export class NotePlugin extends EntityPlugin<
           },
           options: { conditionalWrite: { expectedRevision: null } },
         });
-        return { success: true, data: { noteId: id, created: true } };
+        return { noteId: id, created: true };
       },
     );
 

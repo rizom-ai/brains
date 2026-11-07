@@ -30,7 +30,7 @@ describe("process peer channel", () => {
     processPeerChannel(process).onEvent((relayed) => received.push(relayed));
 
     process.emit("message", { type: "peer-event", event });
-    process.emit("message", { type: "broker-close-admission" });
+    process.emit("message", { type: "runtime-ready" });
     process.emit("message", { type: "peer-event", event: { payload: {} } });
 
     expect(received).toEqual([event]);

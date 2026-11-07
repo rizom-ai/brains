@@ -1,5 +1,198 @@
 # @brains/studio
 
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- Updated dependencies [[`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620), [`e2c6e83`](https://github.com/rizom-ai/brains/commit/e2c6e8328fb9ba84dfed78bd63933ed33efd50b0), [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff), [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573), [`0e95b92`](https://github.com/rizom-ai/brains/commit/0e95b92f0a40a3b0943d8650c77321431a04b5e9)]:
+  - @brains/plugins@0.2.0-alpha.646
+  - @brains/operator-view-react@0.2.0-alpha.646
+  - @brains/app-ui-react@0.2.0-alpha.646
+  - @brains/console-theme@0.2.0-alpha.646
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.645
+  - @brains/console-theme@0.2.0-alpha.645
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/operator-view-react@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/plugins@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bus contract's failure reaches the asker in its public form. `BusResult`'s `failed` carries `error: SdkErrorData` (`{ code, message }`) and `BusCollection.failures` is `SdkErrorData[]`: an owner that throws an `SdkError` keeps its code and public message, any other error is `handler_failed`, an answer outside the contract is `invalid_response` and an invalid request `invalid_input`. The message a failure was thrown with stays in the owner's log. Askers that pass a failure on raise it again with `sdkErrorFrom`, keeping its code. The A2A ask and call owners report a directory refusal as `permission_denied`, a timeout as `deadline_exceeded` and a peer's refusal in its own words, cut to the public bound with `clipPublicMessage`; Studio's workspace host refuses a reserved id as `invalid_input` and a taken one as `conflict`. Studio's ask-agent route answers a failure with `{ error, code }` and the code's HTTP status, and `network_ask` gives each unanswered peer's public message as its reason.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98), [`fbee77b`](https://github.com/rizom-ai/brains/commit/fbee77b9444be83e8f1282a249430da4c907ced7), [`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b), [`c33189f`](https://github.com/rizom-ai/brains/commit/c33189f0b2527fbf7419a17fca015ff418652639), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`ec7c939`](https://github.com/rizom-ai/brains/commit/ec7c939a4b4389478ac4b0fe0fc7c73347356db1), [`29ac442`](https://github.com/rizom-ai/brains/commit/29ac442e4f090c25f28b1e87228a2a5fb8f467bc), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`e18c7c2`](https://github.com/rizom-ai/brains/commit/e18c7c25309f4c489f295c00890d6af9a61828e9), [`a7178d0`](https://github.com/rizom-ai/brains/commit/a7178d0d135ba4222d8d5c62736786550e1e0403), [`8e4928d`](https://github.com/rizom-ai/brains/commit/8e4928d751ff6addabfbb4b463e20dcc5543aa06), [`2302529`](https://github.com/rizom-ai/brains/commit/230252986476b8752489a681a87da122ebd6eb51), [`04b829a`](https://github.com/rizom-ai/brains/commit/04b829a4586ac2cf75a0e48d7175e73307346c30), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0), [`b46228c`](https://github.com/rizom-ai/brains/commit/b46228cfa648da9e988fe4e66ad1c21876fcd135)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/plugins@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/operator-view-react@0.2.0-alpha.644
+  - @brains/app-ui-react@0.2.0-alpha.644
+  - @brains/console-theme@0.2.0-alpha.644
+
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.643
+  - @brains/console-theme@0.2.0-alpha.643
+  - @brains/contracts@0.2.0-alpha.643
+  - @brains/operator-view-react@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/plugins@0.2.0-alpha.643
+
+## 0.2.0-alpha.642
+
+### Patch Changes
+
+- Updated dependencies [[`53da557`](https://github.com/rizom-ai/brains/commit/53da557991ad676545a4674600f0aca4c00fa1ba), [`fa7dd0e`](https://github.com/rizom-ai/brains/commit/fa7dd0e07df1d9d4fd74c8e9d9255220a5cfb628), [`2e10c13`](https://github.com/rizom-ai/brains/commit/2e10c1388c32a44d301dbf115dd169a4328b5acf), [`72403d7`](https://github.com/rizom-ai/brains/commit/72403d7d7ff7422f0a59db708955c267225ab7a3), [`386fc50`](https://github.com/rizom-ai/brains/commit/386fc505b04e29932e70cbda82171dacd915d494), [`821fdf7`](https://github.com/rizom-ai/brains/commit/821fdf7451ec6fb80ff3cd70d7164cd672aee288)]:
+  - @brains/plugins@0.2.0-alpha.642
+  - @brains/operator-view-react@0.2.0-alpha.642
+  - @brains/app-ui-react@0.2.0-alpha.642
+  - @brains/console-theme@0.2.0-alpha.642
+  - @brains/contracts@0.2.0-alpha.642
+  - @brains/utils@0.2.0-alpha.642
+
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.641
+  - @brains/console-theme@0.2.0-alpha.641
+  - @brains/contracts@0.2.0-alpha.641
+  - @brains/operator-view-react@0.2.0-alpha.641
+  - @brains/utils@0.2.0-alpha.641
+  - @brains/plugins@0.2.0-alpha.641
+
+## 0.2.0-alpha.640
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.640
+  - @brains/console-theme@0.2.0-alpha.640
+  - @brains/contracts@0.2.0-alpha.640
+  - @brains/operator-view-react@0.2.0-alpha.640
+  - @brains/utils@0.2.0-alpha.640
+  - @brains/plugins@0.2.0-alpha.640
+
+## 0.2.0-alpha.639
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.639
+  - @brains/console-theme@0.2.0-alpha.639
+  - @brains/contracts@0.2.0-alpha.639
+  - @brains/operator-view-react@0.2.0-alpha.639
+  - @brains/utils@0.2.0-alpha.639
+  - @brains/plugins@0.2.0-alpha.639
+
+## 0.2.0-alpha.638
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.638
+  - @brains/console-theme@0.2.0-alpha.638
+  - @brains/contracts@0.2.0-alpha.638
+  - @brains/operator-view-react@0.2.0-alpha.638
+  - @brains/utils@0.2.0-alpha.638
+  - @brains/plugins@0.2.0-alpha.638
+
+## 0.2.0-alpha.637
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.637
+  - @brains/console-theme@0.2.0-alpha.637
+  - @brains/contracts@0.2.0-alpha.637
+  - @brains/operator-view-react@0.2.0-alpha.637
+  - @brains/utils@0.2.0-alpha.637
+  - @brains/plugins@0.2.0-alpha.637
+
+## 0.2.0-alpha.636
+
+### Patch Changes
+
+- Updated dependencies [[`11b7280`](https://github.com/rizom-ai/brains/commit/11b72805aacd377e1ea1db3b36109c57c541eca5)]:
+  - @brains/contracts@0.2.0-alpha.636
+  - @brains/plugins@0.2.0-alpha.636
+  - @brains/operator-view-react@0.2.0-alpha.636
+  - @brains/app-ui-react@0.2.0-alpha.636
+  - @brains/console-theme@0.2.0-alpha.636
+  - @brains/utils@0.2.0-alpha.636
+
+## 0.2.0-alpha.635
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.635
+  - @brains/console-theme@0.2.0-alpha.635
+  - @brains/contracts@0.2.0-alpha.635
+  - @brains/operator-view-react@0.2.0-alpha.635
+  - @brains/utils@0.2.0-alpha.635
+  - @brains/plugins@0.2.0-alpha.635
+
+## 0.2.0-alpha.634
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.634
+  - @brains/console-theme@0.2.0-alpha.634
+  - @brains/contracts@0.2.0-alpha.634
+  - @brains/operator-view-react@0.2.0-alpha.634
+  - @brains/utils@0.2.0-alpha.634
+  - @brains/plugins@0.2.0-alpha.634
+
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/plugins@0.2.0-alpha.633
+  - @brains/operator-view-react@0.2.0-alpha.633
+  - @brains/app-ui-react@0.2.0-alpha.633
+  - @brains/console-theme@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.632
+  - @brains/console-theme@0.2.0-alpha.632
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/operator-view-react@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/plugins@0.2.0-alpha.632
+
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.631
+  - @brains/console-theme@0.2.0-alpha.631
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/operator-view-react@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/plugins@0.2.0-alpha.631
+
 ## 0.2.0-alpha.630
 
 ### Patch Changes

@@ -178,7 +178,7 @@ async function readStoredUpload(
 
 function validateStoredUpload(
   record: RuntimeUploadRecord,
-  content: Buffer,
+  content: Uint8Array,
 ): ValidatedWebChatUpload | Response {
   const validated = validateWebChatUpload({
     filename: record.filename,

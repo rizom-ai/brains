@@ -71,6 +71,22 @@ describe("SiteBuilder - URL Enrichment", () => {
     expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
   });
 
+  it("prepares the image an anchor profile's photo names", async () => {
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "anchor-profile",
+    ]);
+    spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
+      createTestEntity("anchor-profile", {
+        id: "anchor-profile",
+        content:
+          "---\nname: The Fourth\nphoto: '![Sam and Becca among books](entity://image/sam-x-becca)'\n---\n",
+      }),
+    ]);
+    expect(await collectAllImageIds(mockContext.entityService, logger)).toEqual(
+      ["sam-x-becca"],
+    );
+  });
+
   it("scans a large type a page at a time", async () => {
     const posts = Array.from({ length: 2500 }, (_, index) =>
       createTestEntity("post", {

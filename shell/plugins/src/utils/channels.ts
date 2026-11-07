@@ -35,13 +35,14 @@ const channelSchema = z.object({
  *   return { success: true };
  * });
  *
- * // Send with type checking
+ * // Broadcast the event
  * context.messaging.send({
  *   type: PublishCompletedChannel.name,
  *   payload: {
  *     entityId: "123",
  *     entityType: "note"
- *   }
+ *   },
+ *   broadcast: true,
  * });
  * ```
  */

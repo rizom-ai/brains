@@ -3,10 +3,10 @@ import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
   type DashboardWidgetProviderContext,
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorColumnsBlock,
@@ -570,7 +570,7 @@ async function registerContribution(
   registration: StudioOverviewContributionRegistration,
 ): Promise<unknown> {
   return shell.getMessageBus().send({
-    type: STUDIO_OVERVIEW_REGISTER_MESSAGE,
+    type: studioOverviewContributionRegisterContract.name,
     sender: registration.pluginId,
     payload: registration,
   });
@@ -845,7 +845,7 @@ describe("Studio Overview workspace", () => {
 
     expect(
       await shell.getMessageBus().send({
-        type: STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+        type: studioOverviewContributionUnregisterContract.name,
         sender: "content-pipeline",
         payload: {
           pluginId: "content-pipeline",
@@ -855,7 +855,7 @@ describe("Studio Overview workspace", () => {
     ).toMatchObject({ success: true });
 
     await shell.getMessageBus().send({
-      type: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+      type: studioWorkspaceUnregisterContract.name,
       sender: "external",
       payload: { pluginId: "studio" },
     });
@@ -881,7 +881,7 @@ describe("Studio Overview workspace", () => {
     };
     expect(
       await shell.getMessageBus().send({
-        type: STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        type: studioWorkspaceRegisterContract.name,
         sender: "external",
         payload: external,
       }),
@@ -889,5 +889,75 @@ describe("Studio Overview workspace", () => {
       success: false,
       error: expect.stringContaining("reserved by the host"),
     });
+  });
+});
+
+describe("Dashboard namespace on the Overview contracts", () => {
+  it("answers the contribution contracts as their one owner", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    await studioPlugin().register(shell);
+    const imposter = createServicePluginContext(shell, "imposter");
+
+    expect(() =>
+      imposter.messaging.answer(
+        studioOverviewContributionRegisterContract,
+        async () => undefined,
+      ),
+    ).toThrow("already has an owner");
+    expect(() =>
+      imposter.messaging.answer(
+        studioOverviewContributionUnregisterContract,
+        async () => undefined,
+      ),
+    ).toThrow("already has an owner");
+  });
+
+  it("re-homes a non-public semantic widget into Overview and withdraws it", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const cookie = await createSession(shell, "trusted");
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+    const { pluginId: _pluginId, ...widget } = contribution();
+    const badge = async (): Promise<unknown> => {
+      const navigation = await findRoute(plugin, "/studio/api/types").handler(
+        request("/studio/api/types", cookie),
+      );
+      const body: unknown = await navigation.json();
+      if (!isRecord(body) || !Array.isArray(body["workspaces"])) return null;
+      const overview: unknown = body["workspaces"][0];
+      return isRecord(overview) ? overview["badge"] : null;
+    };
+
+    expect(context.dashboard.isAvailable()).toBe(true);
+    // Overview draws the semantic view; a widget with its own renderer is refused.
+    expect(
+      context.dashboard.registerWidget({
+        ...widget,
+        id: "own-renderer",
+        renderer: { component: () => null },
+      }),
+    ).rejects.toThrow("Unrecognized key");
+    expect(await context.dashboard.registerWidget(widget)).toBe(true);
+    expect(await badge()).toBe(2);
+
+    expect(
+      await context.dashboard.unregisterWidget("publication-pipeline"),
+    ).toBe(true);
+    expect(await badge()).toBe(0);
+  });
+
+  it("keeps a public widget out of Overview", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    await studioPlugin().register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+    const { pluginId: _pluginId, ...widget } = contribution();
+
+    expect(
+      await context.dashboard.registerWidget({
+        ...widget,
+        visibility: "public",
+      }),
+    ).toBe(false);
   });
 });

@@ -1,11 +1,9 @@
 import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
-import type { Logger } from "@brains/utils/logger";
-import type { PublishProvider } from "@brains/contracts";
 import {
-  PublishExecuteHandler,
-  type PublishExecutePayload,
-} from "../handlers/publishExecuteHandler";
+  publishRegisterContract,
+  type PublishProvider,
+} from "@brains/contracts";
+import type { Logger } from "@brains/utils/logger";
 
 export function registerWithPublishPipeline(
   context: EntityPluginContext,
@@ -24,41 +22,13 @@ export function registerWithPublishPipeline(
   context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
     const provider = providers.values().next().value;
 
-    await context.messaging.send({
-      type: PUBLISH_CHANNELS.register,
-      payload: {
-        entityType: "social-post",
-        provider: provider,
-        config: { publishResultIdField: "platformPostId" },
-      },
+    await context.messaging.command(publishRegisterContract, {
+      entityType: "social-post",
+      provider: provider,
+      config: { publishResultIdField: "platformPostId" },
     });
 
     logger.info("Registered social-post with publish-pipeline");
     return { success: true };
   });
-}
-
-export function subscribeToPublishExecute(
-  context: EntityPluginContext,
-  providers: Map<string, PublishProvider>,
-  logger: Logger,
-): void {
-  const executeHandler = new PublishExecuteHandler({
-    sendMessage: context.messaging.send,
-    logger: logger.child("PublishExecuteHandler"),
-    entityService: context.entityService,
-    providers,
-    permissions: context.permissions,
-    resolveAttachment: context.attachments.resolve,
-  });
-
-  context.messaging.subscribe<PublishExecutePayload, { success: boolean }>(
-    PUBLISH_CHANNELS.execute,
-    async (msg) => {
-      await executeHandler.handle(msg.payload);
-      return { success: true };
-    },
-  );
-
-  logger.debug("Subscribed to publish:execute messages");
 }

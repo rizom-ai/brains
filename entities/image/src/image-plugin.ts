@@ -5,7 +5,6 @@ import type {
   CreateInterceptionResult,
   EntityPluginContext,
   EntityTypeConfig,
-  JobHandler,
   JobOptions,
   Plugin,
 } from "@brains/plugins";
@@ -21,6 +20,12 @@ import {
   type ImageAdapter,
   imageSchema,
 } from "@brains/image";
+import {
+  imageAspectRatioSchema,
+  imageGenerateJobContract,
+  imageRenderSourceJobContract,
+  type ImageAspectRatio,
+} from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
@@ -40,8 +45,6 @@ import { getErrorMessage } from "@brains/utils/error";
 
 const PENDING_IMAGE_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
-type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
 function createAttributionJobOptions(
   executionContext: CreateExecutionContext,
@@ -69,8 +72,7 @@ interface ImageConfigInput {
 }
 
 const imageConfigSchema: z.ZodType<ImageConfig, ImageConfigInput> = z.object({
-  defaultAspectRatio: z
-    .enum(["1:1", "16:9", "9:16", "4:3", "3:4"])
+  defaultAspectRatio: imageAspectRatioSchema
     .default("16:9")
     .describe("Default aspect ratio for generated images"),
 });
@@ -254,12 +256,9 @@ export class ImagePlugin extends EntityPlugin<
           ? { visibility: input.visibility }
           : {}),
       });
-      const jobId = await context.jobs.enqueue({
-        type: "image-generate",
-        data: {
-          prompt,
-          ...(title && { title }),
-        },
+      const jobId = await context.jobs.enqueue(imageGenerateJobContract, {
+        prompt,
+        ...(title && { title }),
       });
       return {
         kind: "handled",
@@ -314,19 +313,16 @@ export class ImagePlugin extends EntityPlugin<
       sourceEntityType: targetEntityType,
       sourceEntityId: resolved.entity.id,
     });
-    const jobId = await context.jobs.enqueue({
-      type: "image-generate",
-      data: {
-        prompt,
-        ...(input.title && { title: input.title }),
-        targetEntityType,
-        targetEntityId: resolved.entity.id,
-        entityTitle:
-          typeof resolved.entity.metadata["title"] === "string"
-            ? resolved.entity.metadata["title"]
-            : resolved.entity.id,
-        ...(entityContent && { entityContent }),
-      },
+    const jobId = await context.jobs.enqueue(imageGenerateJobContract, {
+      prompt,
+      ...(input.title && { title: input.title }),
+      targetEntityType,
+      targetEntityId: resolved.entity.id,
+      entityTitle:
+        typeof resolved.entity.metadata["title"] === "string"
+          ? resolved.entity.metadata["title"]
+          : resolved.entity.id,
+      ...(entityContent && { entityContent }),
     });
     return {
       kind: "handled",
@@ -510,17 +506,14 @@ export class ImagePlugin extends EntityPlugin<
         ? { visibility: input.visibility }
         : {}),
     });
-    const jobId = await context.jobs.enqueue({
-      type: "image-render-source",
-      data: {
-        ...sourceInput,
-        imageId,
-        dedupKey,
-        ...(input.replace === true && { replace: true }),
-        ...(targetEntityType && { targetEntityType }),
-        ...(resolvedTargetId && { targetEntityId: resolvedTargetId }),
-        ...(attachmentType === "og-image" && { targetImageField: "ogImageId" }),
-      },
+    const jobId = await context.jobs.enqueue(imageRenderSourceJobContract, {
+      ...sourceInput,
+      imageId,
+      dedupKey,
+      ...(input.replace === true && { replace: true }),
+      ...(targetEntityType && { targetEntityType }),
+      ...(resolvedTargetId && { targetEntityId: resolvedTargetId }),
+      ...(attachmentType === "og-image" && { targetImageField: "ogImageId" }),
     });
 
     return {
@@ -608,15 +601,10 @@ export class ImagePlugin extends EntityPlugin<
     return "Image entities store durable images. system_generate standalone-image or cover-image makes a new image; never use it to describe, analyze, or discuss an existing uploaded image. Answer that from the attachment/context, and if the user later asks to save the discussion, create entityType note from prior-response or exact text.";
   }
 
-  protected override createGenerationHandler(
-    context: EntityPluginContext,
-  ): JobHandler {
-    return new ImageGenerationJobHandler(context, this.logger);
-  }
-
   /**
-   * Also register the legacy "image-generate" handler name for backward
-   * compatibility — existing enqueued jobs use this type.
+   * Image generation and source renders are registered under their job
+   * contracts, which other packages enqueue. Prompt generation reaches the
+   * create interceptor, never the `image:generation` job, so there is none.
    */
   protected override async onRegister(
     context: EntityPluginContext,
@@ -632,10 +620,12 @@ export class ImagePlugin extends EntityPlugin<
       ),
     });
 
-    const handler = new ImageGenerationJobHandler(context, this.logger);
-    context.jobs.registerHandler("image-generate", handler);
     context.jobs.registerHandler(
-      "image-render-source",
+      imageGenerateJobContract.type,
+      new ImageGenerationJobHandler(context, this.logger),
+    );
+    context.jobs.registerHandler(
+      imageRenderSourceJobContract.type,
       new SourceImageRenderJobHandler(context, this.logger),
     );
     context.jobs.registerHandler(

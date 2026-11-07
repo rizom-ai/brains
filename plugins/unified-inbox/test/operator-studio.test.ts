@@ -1,7 +1,7 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   InboxRegistry,
   createServicePluginContext,
   type StudioWorkspaceActor,
@@ -102,7 +102,7 @@ async function setup(options?: {
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         workspace = message.payload;
         return {

@@ -16,10 +16,8 @@ import {
 } from "./generation-submission";
 import { planContentGeneration } from "./generation-planner";
 import { createGenerationReadContext } from "./generation-read-context";
-import type {
-  GenerationAccess,
-  GenerationAuthorizer,
-} from "./generation-authorization";
+import type { CallerAccess } from "./caller-authority";
+import type { GenerationAuthorizer } from "./generation-authorization";
 import { authorizeGenerationWrite } from "./generation-write-authorization";
 import { scopeTemplateName } from "./template-scope";
 import type { BaseEntity, IEntityService } from "@brains/entity-service";
@@ -87,7 +85,7 @@ export class ContentService implements IContentService {
   authorizeGenerationWrite(
     data: ContentGenerationJobData,
     persisted?: Readonly<BaseEntity>,
-  ): Promise<GenerationAccess> {
+  ): Promise<CallerAccess> {
     return authorizeGenerationWrite(
       {
         ...this.dependencies,

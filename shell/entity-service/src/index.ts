@@ -162,6 +162,7 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateResultAttachment,
   CreateQuestion,
   CreateCheck,
   CreateCheckResult,

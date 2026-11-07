@@ -10,10 +10,10 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
 import { imageAdapter } from "@brains/image";
+import { toDataUrl } from "@brains/utils/bytes";
 import {
   getUploadImageIdentity,
   isSupportedImageMediaType,
-  toDataUrl,
   webChatUploadsScope,
 } from "../lib/upload-promotion";
 

@@ -99,6 +99,28 @@ const rawFullScope = {
     "Use internalFullScope(reason) from @brains/plugins for a deliberate full-scope read, or pass the caller's scope.",
 };
 
+/**
+ * A raw `messaging.send` answers with whichever subscriber replies first and
+ * leaves the reply untyped. Entities, plugins and interfaces send events with
+ * `broadcast: true` and make every other cross-package call through a bus
+ * contract.
+ */
+const busContractMessage =
+  "Use context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send is only for an event sent with broadcast: true.";
+const messagingObject =
+  ":matches([object.name='messaging'], [object.property.name='messaging'])";
+const rawBusSend = [
+  {
+    selector: `MemberExpression[property.name='send']${messagingObject}:not(CallExpression:has(> ObjectExpression:has(> Property[key.name='broadcast'][value.value=true])) > .callee)`,
+    message: busContractMessage,
+  },
+  {
+    selector:
+      "VariableDeclarator:matches([init.name='messaging'], [init.property.name='messaging']) > ObjectPattern > Property[key.name='send']",
+    message: busContractMessage,
+  },
+];
+
 module.exports = {
   extends: [
     "eslint:recommended",
@@ -179,6 +201,32 @@ module.exports = {
       ],
       rules: {
         "no-restricted-syntax": ["error", ...restrictedSyntax, rawFullScope],
+      },
+    },
+    {
+      // Entity, plugin and interface production code sends no raw requests.
+      // Listed last: it restates the restrictions above for these files.
+      files: [
+        "**/entities/*/src/**/*.ts",
+        "**/entities/*/src/**/*.tsx",
+        "**/plugins/*/src/**/*.ts",
+        "**/plugins/*/src/**/*.tsx",
+        "**/interfaces/*/src/**/*.ts",
+        "**/interfaces/*/src/**/*.tsx",
+      ],
+      excludedFiles: [
+        "**/shell/plugins/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+      ],
+      rules: {
+        "no-restricted-syntax": [
+          "error",
+          ...restrictedSyntax,
+          rawFullScope,
+          ...rawBusSend,
+        ],
       },
     },
   ],

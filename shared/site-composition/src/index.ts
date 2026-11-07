@@ -1,39 +1,43 @@
 export type { SiteCompositionPlugin } from "./plugin";
 export {
   entityDisplaySchema,
-  GetRoutePayloadSchema,
   languagePath,
   languageTagSchema,
   routeTranslationSchema,
-  ListRoutesPayloadSchema,
   NavigationItemSchema,
   NavigationMetadataSchema,
   NavigationSlots,
   RegisterRoutesPayloadSchema,
   RouteDefinitionSchema,
   SectionDefinitionSchema,
-  UnregisterRoutesPayloadSchema,
+  siteBuilderRouteRegisterContract,
+  siteBuilderRoutesContract,
+  siteBuilderRoutesRequestSchema,
+  siteBuilderRoutesResponseSchema,
 } from "./routes";
+export {
+  siteBuilderSlotsContract,
+  siteBuilderSlotsRequestSchema,
+  siteBuilderSlotsResponseSchema,
+  siteSlotContributionSchema,
+  type SiteSlotContribution,
+  type SiteSlotRender,
+} from "./slots";
 export type {
   EntityDisplayEntry,
-  GetRoutePayload,
-  GetRouteResponse,
-  ListRoutesPayload,
-  ListRoutesResponse,
   NavigationItem,
   NavigationMetadata,
   NavigationSlot,
   RegisterRoutesPayload,
   RouteDefinition,
   RouteDefinitionInput,
-  RouteOperationResponse,
   SectionDefinition,
   RouteTranslation,
   SiteAlternate,
-  UnregisterRoutesPayload,
 } from "./routes";
 export {
-  SITE_METADATA_GET_CHANNEL,
+  siteMetadataContract,
+  siteMetadataRequestSchema,
   SITE_METADATA_UPDATED_CHANNEL,
   siteLayoutInfoSchema,
   siteMetadataCTASchema,
@@ -86,3 +90,5 @@ export type { EntityDisplayMap } from "./entity-url-generator";
 export { extendSite, sitePackageSchema, themeCssSchema } from "./package";
 export { PageLanguageContext } from "./page-language";
 export type { SitePackage, SitePackageOverrides } from "./package";
+export { feedItemSchema, renderRssFeed } from "./feed";
+export type { FeedChannel, FeedItem, ValidFeedItem } from "./feed";

@@ -14,8 +14,10 @@ import type {
   UserPermissionLevel,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
-import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
+import {
+  MCP_INTERACTION_ID,
+  directorySyncStatusContract,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
@@ -77,26 +79,7 @@ const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 export function resolveStudioChatApiPath(
   context: ServicePluginContext,
 ): string | undefined {
-  if (!context.plugins.has("web-chat")) return undefined;
-  const routes = context.webRoutes
-    .getRoutes()
-    .filter((route) => route.pluginId === "web-chat");
-  const actionsRoute = routes.find(
-    (route) =>
-      route.fullPath.endsWith("/actions") &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  );
-  if (!actionsRoute) return DEFAULT_CHAT_API_PATH;
-  const apiPath = actionsRoute.fullPath.slice(0, -"/actions".length);
-  return routes.some(
-    (route) =>
-      route.fullPath === apiPath &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  )
-    ? apiPath
-    : DEFAULT_CHAT_API_PATH;
+  return context.webRoutes.findByRole("chat-api")?.fullPath;
 }
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
@@ -117,21 +100,6 @@ async function readStudioAssetManifest(): Promise<
 const workspaceActionPayloadSchema = z.object({
   id: z.string().trim().min(1),
   action: z.unknown(),
-});
-
-const syncStatusMessageSchema = z.object({
-  watchEnabled: z.boolean(),
-  lastSync: z.string().nullable(),
-  git: z
-    .object({
-      branch: z.string(),
-      hasChanges: z.boolean(),
-      ahead: z.number(),
-      behind: z.number(),
-      lastCommit: z.string().nullable(),
-      remote: z.string().nullable(),
-    })
-    .nullable(),
 });
 
 function isSafeStudioAssetPath(value: string): boolean {
@@ -275,11 +243,7 @@ export function createEditorRoutes(
       return new Response("Chat is not configured", { status: 404 });
     }
     const context = getContext();
-    const dashboardHref = context.webRoutes
-      .getRoutes()
-      .filter((route) => route.pluginId === "dashboard")
-      .map((route) => route.fullPath)
-      .sort((left, right) => left.length - right.length)[0];
+    const dashboardHref = context.webRoutes.findByRole("dashboard")?.fullPath;
     const profileName = context.identity.getProfile().name.trim();
     const mcpUrl = await resolveMcpUrl(
       context,
@@ -325,12 +289,14 @@ export function createEditorRoutes(
       path: STUDIO_CHAT_ROUTE_PATH,
       method: "GET",
       public: true,
+      role: "studio-chat",
       handler: serveShell,
     },
     {
       path: shellPath,
       method: "GET",
       public: true,
+      role: "studio",
       handler: serveShell,
     },
     {
@@ -352,6 +318,7 @@ export function createEditorRoutes(
       match: "prefix",
       method: "GET",
       public: true,
+      role: "studio-workspaces",
       handler: serveShell,
     },
     {
@@ -607,26 +574,20 @@ export function createEditorRoutes(
 async function handleSyncStatus(
   context: ServicePluginContext,
 ): Promise<Response> {
-  const unavailable = { directorySync: null, git: null };
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.statusRequest,
-    payload: {},
-  });
-  if (!("success" in response) || !response.success) {
-    return jsonResponse(unavailable);
-  }
-
-  const parsed = syncStatusMessageSchema.safeParse(response.data);
-  if (!parsed.success) {
-    return jsonResponse(unavailable);
+  const result = await context.messaging.request(
+    directorySyncStatusContract,
+    {},
+  );
+  if (result.status !== "answered") {
+    return jsonResponse({ directorySync: null, git: null });
   }
 
   return jsonResponse({
     directorySync: {
-      lastSync: parsed.data.lastSync,
-      watching: parsed.data.watchEnabled,
+      lastSync: result.data.lastSync,
+      watching: result.data.watchEnabled,
     },
-    git: parsed.data.git,
+    git: result.data.git,
   });
 }
 

@@ -52,6 +52,20 @@ export interface RuntimeUploadScopeOptions {
   now?: (() => Date) | undefined;
 }
 
+/**
+ * The runtime's shared upload store: the interfaces that accept a file write
+ * it, and an `upload` reference anywhere in the brain points into it — a
+ * create request's, a conversation's prior upload the agent restores, an
+ * entity promoted from an upload. Writers and readers name it here, so they
+ * cannot drift apart.
+ */
+export const sharedUploadScope: Readonly<RuntimeUploadScopeOptions> =
+  Object.freeze({
+    namespace: "upload",
+    refKind: "upload",
+    routePath: "/api/chat/uploads",
+  });
+
 export interface RuntimeUploadRegistryOptions {
   dataDir: string;
   /** Reports pruning faults, which must not fail a save but must be seen. */
@@ -61,13 +75,13 @@ export interface RuntimeUploadRegistryOptions {
 export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
-  content: Buffer;
+  content: Uint8Array;
   metadata?: Record<string, unknown> | undefined;
 }
 
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;
-  content: Buffer;
+  content: Uint8Array;
 }
 
 export type RuntimeUploadStoreErrorCode =

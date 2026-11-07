@@ -46,11 +46,16 @@ import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import { defaultQueryResponseSchema } from "@brains/contracts";
 import { type IEntityService, type BaseEntity } from "@brains/entity-service";
+import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import { createMockEntityStore } from "./mock-entity-store";
 import { createMockMessageBus } from "./mock-message-bus";
 import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockJobQueue } from "./mock-job-queue";
 import { createMockContentServices } from "./mock-content";
+import {
+  CallerAuthorizer,
+  type PrincipalResolver,
+} from "@brains/content-service";
 import { createMockDaemonRegistry } from "./mock-daemon-registry";
 import { createMockAnalyticsRegistry } from "./mock-analytics-registry";
 import { createMockEntityService } from "./mock-entity-service";
@@ -60,6 +65,8 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
+import { isDeepStrictEqual } from "node:util";
 import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import { z } from "@brains/utils/zod";
@@ -92,6 +99,8 @@ export interface MockShell extends IShell {
   setAgentService(agentService: IAgentService): void;
   setConversationService(conversationService: IConversationService): void;
   getDaemonRegistry(): IDaemonRegistry;
+  /** A registered recurring check, by its `pluginId:checkId`. */
+  getRecurringCheck(checkId: string): RecurringCheckDefinition | undefined;
 }
 
 export interface MockShellOptions {
@@ -117,6 +126,8 @@ export interface MockShellOptions {
   themeCSS?: string;
   /** Replace the stateful in-memory entity fake with canned reads. */
   entityService?: IEntityService;
+  /** Account lookup for requester authority; default: no auth runtime. */
+  resolvePrincipal?: PrincipalResolver;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -140,23 +151,23 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
   >();
 
   return {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => {
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => {
       if (!namespaces.has(options.namespace)) {
         namespaces.set(options.namespace, new Map());
       }
       const records = namespaces.get(options.namespace);
       if (!records) throw new Error("Runtime state namespace missing");
 
-      return {
+      return Object.freeze<IRuntimeStateStore<T, TInput>>({
         get: async (key): Promise<T | null> => {
           const record = records.get(key);
           return record ? options.schema.parse(record.value) : null;
         },
         has: async (key): Promise<boolean> => records.has(key),
         set: async (key, value): Promise<void> => {
-          const parsed = options.schema.parse(value);
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           const now = new Date();
           records.set(key, {
@@ -166,19 +177,18 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           });
         },
         setIfNotExists: async (key, value): Promise<boolean> => {
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           if (records.has(key)) return false;
-          const parsed = options.schema.parse(value);
           const now = new Date();
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
         },
         compareAndSet: async (key, expected, value): Promise<boolean> => {
-          const parsedExpected = options.schema.parse(expected);
-          const parsedValue = options.schema.parse(value);
+          const parsedValue = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           if (
             !existing ||
-            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+            !isDeepStrictEqual(options.schema.parse(existing.value), expected)
           )
             return false;
           records.set(key, {
@@ -217,7 +227,7 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           for (const key of keys) records.delete(key);
           return keys.length;
         },
-      };
+      });
     },
   };
 }
@@ -306,6 +316,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // --- Daemon and Analytics registries ---
   const analyticsRegistry = createMockAnalyticsRegistry();
   const daemonRegistry = createMockDaemonRegistry();
+  // Recorded, not scheduled, so a test can run a check by hand.
+  const recurringChecks = new Map<string, RecurringCheckDefinition>();
 
   // Advertised by the shell itself, not by either registry.
   const endpoints: EndpointInfo[] = [];
@@ -361,6 +373,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     // Core services
     getMessageBus: () => messageBus,
     getContentService: () => contentService,
+    // Built per call over the current permission service, which tests may
+    // reassign after a plugin registered.
+    getCallerAuthorizer: () =>
+      new CallerAuthorizer(
+        shell.getPermissionService(),
+        options.resolvePrincipal ?? (async (): Promise<null> => null),
+      ),
     getLogger: () => logger,
     getEntityService: () => entityService,
     getEntityRegistry: () => entityRegistry,
@@ -370,7 +389,19 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getRuntimeState: () => runtimeState,
-    getRecurringChecks: () => ({ register: () => () => {} }),
+    getRecurringChecks: (pluginId: string) => ({
+      register: (check: RecurringCheckDefinition): (() => void) => {
+        const checkId = `${pluginId}:${check.id}`;
+        if (recurringChecks.has(checkId)) {
+          throw new Error(`Recurring check already registered: ${checkId}`);
+        }
+        recurringChecks.set(checkId, check);
+        return (): void => {
+          recurringChecks.delete(checkId);
+        };
+      },
+    }),
+    getRecurringCheck: (checkId: string) => recurringChecks.get(checkId),
     getConversationService: () => conversationService,
     getMCPService: () => mcpTransport,
     listToolsForPermissionLevel: (_level: unknown): ToolInfo[] => [],

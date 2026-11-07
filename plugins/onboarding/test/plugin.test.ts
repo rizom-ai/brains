@@ -1,5 +1,7 @@
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   playbookAdapter,
   playbookPlugin,
@@ -7,7 +9,11 @@ import {
 } from "@brains/playbooks";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { onboardingPlugin } from "../src";
+
+/** The `playbooks:lifecycle-starters` answer, as the plugin builds it. */
+const startersAnswerSchema = z.object({ starters: z.array(z.unknown()) });
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-onboarding-");
@@ -42,21 +48,16 @@ describe("OnboardingPlugin", () => {
       id: "onboarding",
       visibilityScope: "restricted",
     });
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      { starters: Array<{ id: string }> }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
     expect(setup).toBeNull();
-    expect(response?.starters).toEqual([]);
+    expect(response.starters).toEqual([]);
   });
 
   it("seeds bundled onboarding playbooks once startup content has settled", async () => {
@@ -116,7 +117,16 @@ describe("OnboardingPlugin", () => {
 
   it("does not overwrite existing onboarding playbooks", async () => {
     const harness = await installHarness();
-    const existingContent = "---\ntitle: Custom Onboarding\n---\n\n# Custom";
+    // A playbook the owner rewrote: still one the playbook type can read.
+    const bundled = await readFile(
+      join(import.meta.dir, "..", "content", "playbook", "onboarding.md"),
+      "utf8",
+    );
+    const existingContent = bundled.replace(
+      "title: Brain Onboarding",
+      "title: Custom Onboarding",
+    );
+    expect(existingContent).not.toBe(bundled);
     harness.addEntities([
       {
         id: "onboarding",
@@ -149,29 +159,15 @@ describe("OnboardingPlugin", () => {
     await plugin.ready?.();
     await settleStartupContent(harness);
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       {
         id: "onboarding",
         title: "Set up your brain",

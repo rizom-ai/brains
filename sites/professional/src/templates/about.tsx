@@ -21,12 +21,15 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => (
       [profile.description, profile.intro].find((value) => value) ??
       "About page"
     }
+    headline={profile.headline}
     description={profile.description}
     story={profile.story}
     facts={[
       { heading: "Expertise", kind: "tags", values: profile.expertise },
       { heading: "Current Focus", kind: "text", value: profile.currentFocus },
       { heading: "Availability", kind: "text", value: profile.availability },
+      { heading: "Industry", kind: "text", value: profile.industry },
+      { heading: "Location", kind: "text", value: profile.location },
     ]}
     contact={{
       email: profile.email,

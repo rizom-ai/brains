@@ -5,11 +5,16 @@ import {
   findEntityByIdentifier,
   saveProcessedEntity,
 } from "@brains/plugins";
+import { bufferView } from "@brains/utils/bytes";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { z } from "@brains/utils/zod";
-import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
+import {
+  PROGRESS_STEPS,
+  JobResult,
+  imageRenderSourceJobInputSchema,
+  type ImageRenderSourceJobInput,
+} from "@brains/contracts";
 import {
   createDataUrl,
   imageAdapter,
@@ -18,31 +23,6 @@ import {
   setOgImageId,
   type Image,
 } from "@brains/image";
-
-export interface SourceImageRenderJobData {
-  sourceEntityType: string;
-  sourceEntityId: string;
-  attachmentType: string;
-  imageId: string;
-  dedupKey?: string | undefined;
-  replace?: boolean | undefined;
-  targetEntityType?: string | undefined;
-  targetEntityId?: string | undefined;
-  targetImageField?: "coverImageId" | "ogImageId" | undefined;
-}
-
-export const sourceImageRenderJobDataSchema: z.ZodType<SourceImageRenderJobData> =
-  z.object({
-    sourceEntityType: z.string().min(1),
-    sourceEntityId: z.string().min(1),
-    attachmentType: z.string().min(1),
-    imageId: z.string().min(1),
-    dedupKey: z.string().min(1).optional(),
-    replace: z.boolean().optional(),
-    targetEntityType: z.string().min(1).optional(),
-    targetEntityId: z.string().min(1).optional(),
-    targetImageField: z.enum(["coverImageId", "ogImageId"]).optional(),
-  });
 
 interface SourceImageRenderResult {
   success: boolean;
@@ -53,20 +33,20 @@ interface SourceImageRenderResult {
 
 export class SourceImageRenderJobHandler extends BaseJobHandler<
   "image-render-source",
-  SourceImageRenderJobData,
+  ImageRenderSourceJobInput,
   SourceImageRenderResult
 > {
   private readonly context: EntityPluginContext;
   constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
-      schema: sourceImageRenderJobDataSchema,
+      schema: imageRenderSourceJobInputSchema,
       jobTypeName: "image-render-source",
     });
     this.context = context;
   }
 
   async process(
-    data: SourceImageRenderJobData,
+    data: ImageRenderSourceJobInput,
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<SourceImageRenderResult> {
@@ -126,7 +106,10 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       // emit another image format.
       const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
+        dataUrl: createDataUrl(
+          bufferView(attachment.data).toString("base64"),
+          imageFormat,
+        ),
         title: data.imageId,
         status: "draft",
         sourceEntityType: data.sourceEntityType,
@@ -182,7 +165,7 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
   }
 
   private async updateTarget(
-    data: SourceImageRenderJobData,
+    data: ImageRenderSourceJobInput,
     imageId: string,
   ): Promise<void> {
     if (!data.targetEntityType || !data.targetEntityId) return;

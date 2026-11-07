@@ -2,7 +2,7 @@ import { createMockShell } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
@@ -169,7 +169,7 @@ export async function createWorkViewFixtures(
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         inbox = message.payload;
         return {

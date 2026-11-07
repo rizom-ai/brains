@@ -8,7 +8,12 @@ import {
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { imageAdapter, setCoverImageId } from "@brains/image";
-import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
+import {
+  fetchStyleGuide,
+  formatVisualGuidance,
+  imageGenerateJobInputSchema,
+  type ImageGenerateJobInput,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
@@ -26,39 +31,6 @@ const imagePromptSchema = z.object({
       "A concise, vivid image prompt capturing the core visual concept",
     ),
 });
-
-/**
- * Schema for image generation job data
- */
-export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-
-export interface ImageGenerationJobData {
-  prompt: string;
-  title?: string | undefined;
-  aspectRatio?: ImageAspectRatio | undefined;
-  targetEntityType?: string | undefined;
-  targetEntityId?: string | undefined;
-  entityTitle?: string | undefined;
-  entityContent?: string | undefined;
-}
-
-export const imageGenerationJobDataSchema: z.ZodType<ImageGenerationJobData> =
-  z.object({
-    /** Text prompt for image generation (used directly when provided without entityContent) */
-    prompt: z.string(),
-    /** Title for the generated image (derived from prompt if omitted) */
-    title: z.string().optional(),
-    /** Aspect ratio for the generated image */
-    aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
-    /** Target entity type to update with coverImageId (optional) */
-    targetEntityType: z.string().optional(),
-    /** Target entity ID to update with coverImageId (required if targetEntityType is set) */
-    targetEntityId: z.string().optional(),
-    /** Entity title for AI prompt distillation (optional) */
-    entityTitle: z.string().optional(),
-    /** Entity content for AI prompt distillation (optional, triggers AI prompt generation) */
-    entityContent: z.string().optional(),
-  });
 
 interface ImageGenerationResult {
   success: boolean;
@@ -78,21 +50,21 @@ interface ImageGenerationResult {
  */
 export class ImageGenerationJobHandler extends BaseJobHandler<
   "image-generate",
-  ImageGenerationJobData,
+  ImageGenerateJobInput,
   ImageGenerationResult
 > {
   private readonly context: EntityPluginContext;
 
   constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
-      schema: imageGenerationJobDataSchema,
+      schema: imageGenerateJobInputSchema,
       jobTypeName: "image-generate",
     });
     this.context = context;
   }
 
   async process(
-    data: ImageGenerationJobData,
+    data: ImageGenerateJobInput,
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<ImageGenerationResult> {
@@ -276,7 +248,7 @@ ${entityContent}`,
   }
 
   protected override summarizeDataForLog(
-    data: ImageGenerationJobData,
+    data: ImageGenerateJobInput,
   ): Record<string, unknown> {
     return {
       title: data.title,

@@ -1,4 +1,5 @@
 import { createTestPipelineContext } from "../pipeline-context";
+import { siteBuildStagingContract } from "@brains/contracts";
 import { describe, expect, it, mock } from "bun:test";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
@@ -175,10 +176,12 @@ describe("runSiteBuild preflight", () => {
             return resolutionOptions?.fallback;
           },
         );
-        pipelineContext.services.sendMessage = mock(async (request) => {
-          if (request.type === "site:build:staging") events.push("staging");
-          return { success: true };
-        });
+        pipelineContext.services.command = mock(
+          async (contract: { name: string }): Promise<void> => {
+            if (contract.name === siteBuildStagingContract.name)
+              events.push("staging");
+          },
+        );
       },
     );
 

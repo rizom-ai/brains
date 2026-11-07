@@ -49,14 +49,29 @@ export {
   type SourceBrain,
 } from "./ask-box";
 export {
-  AGENT_ACTION_REQUEST_CHANNEL,
+  a2aAgentsContract,
+  a2aAgentsRequestSchema,
+  a2aAgentsResponseSchema,
+  a2aAskContract,
+  a2aAskRequestSchema,
+  a2aCallContract,
+  a2aCallRequestSchema,
+  a2aPeerAnswerSchema,
+  type A2ADirectoryAgent,
+  type A2APeerAnswer,
+} from "./a2a";
+export {
+  agentActionContract,
   agentActionRequestSchema,
+  agentActionResponseSchema,
+  type AgentActionResponse,
   agentEventActionSchema,
   type AgentActionRequest,
   type AgentEventAction,
 } from "./agent-action";
 export {
   AgentResponseSchema,
+  agentResponseAnswerSchema,
   parseAgentResponse,
   ToolApprovalCardStateSchema,
   ToolApprovalCardSchema,
@@ -91,22 +106,21 @@ export {
   type ToolResultData,
 } from "./agent-response";
 export {
-  GUEST_ASKED_BEFORE_CHANNEL,
+  askedBeforeContract,
   askedBeforeRequestSchema,
   askedBeforeHitSchema,
   askedBeforeResponseSchema,
-  firstAskedBeforeHit,
   type AskedBeforeRequest,
   type AskedBeforeHit,
   type AskedBeforeResponse,
 } from "./asked-before";
 export {
-  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextAnswerSchema,
+  agentContextContract,
   agentContextPermissionLevelSchema,
   agentContextRequestSchema,
   agentContextItemSchema,
   agentContextResponseSchema,
-  parseAgentContextItems,
   type AgentContextRequest,
   type AgentContextItem,
   type AgentContextResponse,
@@ -126,7 +140,7 @@ export {
   type LegacyActorIdentity,
 } from "./actor-ref";
 export {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   authPrincipalAttributionSchema,
   authPrincipalResolveRequestSchema,
   authPrincipalResolveResponseSchema,
@@ -214,14 +228,15 @@ export {
   type AuthAccountSnapshot,
 } from "./auth-account";
 export {
-  EMAIL_INBOUND,
+  inboundEmailAckSchema,
+  inboundEmailContract,
   inboundEmailSchema,
   type InboundEmail,
   type InboundEmailAddress,
   type InboundEmailSender,
 } from "./inbound-email";
 export {
-  EMAIL_SOURCE_READ,
+  emailSourceReadContract,
   emailSourceReadRequestSchema,
   emailSourceReadResponseSchema,
   type EmailSourceMessage,
@@ -244,6 +259,18 @@ export {
 } from "./generation-result";
 export { JobResult } from "./job-result";
 export {
+  SDK_ERROR_MESSAGE_MAX_LENGTH,
+  SdkError,
+  clipPublicMessage,
+  sdkErrorFrom,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  toSdkError,
+  sdkErrorHttpStatus,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "./sdk-error";
+export {
   jsonObjectSchema,
   jsonValueSchema,
   type IsJsonValue,
@@ -262,7 +289,10 @@ export {
 export {
   SPACE_NOTICE_ITEM_LIMIT,
   SPACE_NOTICE_VALUE_LIMIT,
+  spaceNoticeActionAnswerSchema,
+  spaceNoticeActionContract,
   spaceNoticeActionSchema,
+  spaceNoticeContract,
   spaceNoticeContentSchema,
   spaceNoticeRequestSchema,
   spaceNoticeResultSchema,
@@ -272,35 +302,32 @@ export {
   type SpaceNoticeResult,
 } from "./space-notice";
 export {
-  A2A_CHANNELS,
-  BUTTONDOWN_CHANNELS,
-  CHAT_CHANNELS,
-  DASHBOARD_CHANNELS,
-  DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,
-  GENERATE_CHANNELS,
-  IMAGE_CHANNELS,
   JOB_CHANNELS,
   NEWSLETTER_CHANNELS,
   PLUGIN_CHANNELS,
-  PROJECT_CHANNELS,
-  PROJECTION_CHANNELS,
-  PUBLISH_ASSET_CHANNELS,
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
-  SITE_BUILDER_CHANNELS,
-  CONSOLE_CHANNELS,
   SITE_CHANNELS,
-  SOCIAL_CHANNELS,
 } from "./message-channels";
 export {
+  directorySyncPathContract,
   directorySyncPathRequestSchema,
   directorySyncPathResponseSchema,
   type DirectorySyncPathRequest,
 } from "./directory-sync-path";
+export {
+  directorySyncGitStatusSchema,
+  directorySyncStatusContract,
+  directorySyncStatusRequestSchema,
+  directorySyncStatusResponseSchema,
+  type DirectorySyncStatusResponse,
+} from "./directory-sync-status";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,
+  projectionWaveAckSchema,
+  projectionWaveReadyContract,
   type ProjectionWaveReady,
 } from "./projection-wave";
 export {
@@ -324,16 +351,52 @@ export {
   type StyleGuideVoice,
 } from "./style-guide";
 export {
+  siteHeadScriptResponseSchema,
+  siteHeadScriptsContract,
+  siteHeadScriptsRequestSchema,
+} from "./site-head-scripts";
+export {
   SITE_BUILD_MANIFEST_FILE,
   SITE_BUILD_MANIFEST_PATH,
+  siteBuildStagingContract,
+  siteBuildStagingSchema,
   type SiteBuildCompletedPayload,
   type SiteBuildStagingPayload,
 } from "./site-build";
 export {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  lifecycleStarterRegistrationSchema,
+  lifecycleStarterRegistrationContract,
+  type LifecycleStarterRegistrationResult,
   type LifecycleStarterRegistration,
 } from "./playbook-lifecycle-starter";
+export {
+  publishAssetDefinitionSchema,
+  publishAssetRegisterContract,
+  publishAssetTargetFieldSchema,
+  publishConfigSchema,
+  publishExecutionModeSchema,
+  publishProviderSchema,
+  publishRegisterContract,
+  publishRegisterSchema,
+  type PublishAssetDefinition,
+  type PublishAssetFieldReference,
+  type PublishAssetRequirement,
+  type PublishAssetTargetField,
+  type PublishConfig,
+  type PublishConfigInput,
+  type PublishExecutionMode,
+  type PublishRegisterPayload,
+} from "./publish-register";
+export {
+  generateExecuteContract,
+  generateExecuteSchema,
+  generateReportFailureContract,
+  generateReportFailureSchema,
+  generateReportSuccessContract,
+  generateReportSuccessSchema,
+  type GenerateExecutePayload,
+  type GenerateReportFailurePayload,
+  type GenerateReportSuccessPayload,
+} from "./generation-commands";
 export type {
   PublishResult,
   PublishProvider,
@@ -351,9 +414,11 @@ export {
   type UpdateEntityResponse,
 } from "./response-types";
 export {
-  NOTIFICATIONS_SEND,
+  notificationsSendContract,
   NOTIFICATION_FAILURES,
-  notificationFailureCode,
+  notificationFailureSchema,
+  notificationTransportCodeSchema,
+  type NotificationFailure,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,
@@ -365,22 +430,41 @@ export {
   type SendNotificationResult,
 } from "./notification";
 export {
-  TOPIC_TITLES_MESSAGE,
+  topicTitlesContract,
+  topicTitlesRequestSchema,
   topicTitlesResponseSchema,
   type TopicTitlesResponse,
 } from "./topic-titles";
 export {
-  TOPIC_SOURCE_TYPES_MESSAGE,
+  topicSourceTypesContract,
+  topicSourceTypesRequestSchema,
   topicSourceTypesResponseSchema,
   type TopicSourceTypesResponse,
 } from "./topic-source-types";
 export {
-  NOTE_CAPTURE_MESSAGE,
+  noteCaptureContract,
   noteCaptureRequestSchema,
   noteCaptureResponseSchema,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "./note-capture";
+export {
+  OAUTH_BROKER_PATHS,
+  oauthBrokerAuthorizationRequestSchema,
+  oauthBrokerAuthorizationResponseSchema,
+  oauthBrokerCallbackPath,
+  oauthBrokerGrantRedemptionRequestSchema,
+  oauthBrokerGrantRedemptionResponseSchema,
+  oauthBrokerProviderIdSchema,
+  oauthBrokerReturnSchema,
+  type OAuthBrokerAuthorizationRequest,
+  type OAuthBrokerAuthorizationResponse,
+  type OAuthBrokerGrantRedemptionRequest,
+  type OAuthBrokerGrantRedemptionResponse,
+  type OAuthBrokerProvider,
+  type OAuthBrokerReturn,
+  type OAuthBrokerReturnError,
+} from "./oauth-broker";
 export type {
   HeadCollectorInterface,
   HeadProps,
@@ -393,7 +477,12 @@ export type {
   ConsoleSurface,
   SurfacePermissionLevel,
 } from "./console";
-export { consoleJumpDestinationSchema } from "./console";
+export {
+  consoleJumpDestinationSchema,
+  consoleJumpDestinationsContract,
+  consoleJumpDestinationsRequestSchema,
+  consoleJumpDestinationsResponseSchema,
+} from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
 export {
   CHAT_INTERACTION_ID,
@@ -408,3 +497,34 @@ export {
   DEFAULT_FAVICON_PATH,
   DEFAULT_FAVICON_SVG,
 } from "./favicon";
+export { WEB_ROUTE_ROLES, type WebRouteRole } from "./web-route-role";
+export {
+  SOCIAL_LINK_PLATFORM_LABELS,
+  socialLinkPlatformSchema,
+  socialLinkSchema,
+  type SocialLink,
+  type SocialLinkPlatform,
+} from "./social-link";
+export {
+  defineBusContract,
+  type BusAnswerMeta,
+  type BusCollection,
+  type BusContract,
+  type BusDelivery,
+  type BusResult,
+} from "./bus-contract";
+export { defineJobContract, type JobContract } from "./job-contract";
+export {
+  imageAspectRatioSchema,
+  imageGenerateJobContract,
+  imageGenerateJobInputSchema,
+  imageRenderSourceJobContract,
+  imageRenderSourceJobInputSchema,
+  type ImageAspectRatio,
+  type ImageGenerateJobInput,
+  type ImageRenderSourceJobInput,
+} from "./image-jobs";
+export {
+  reasoningEffortSchema,
+  type ReasoningEffort,
+} from "./reasoning-effort";

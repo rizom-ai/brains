@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { EMAIL_SOURCE_READ } from "@brains/contracts";
+import { emailSourceReadContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockLogger } from "@brains/test-utils";
 
@@ -342,7 +342,10 @@ describe("EmailInterface", () => {
       harness.getMockShell().getDaemonRegistry().getByPlugin("email"),
     ).toHaveLength(0);
     expect(
-      harness.getMockShell().getMessageBus().getHandlerCount(EMAIL_SOURCE_READ),
+      harness
+        .getMockShell()
+        .getMessageBus()
+        .getHandlerCount(emailSourceReadContract.name),
     ).toBe(0);
     expect(imapClientFactory).not.toHaveBeenCalled();
   });

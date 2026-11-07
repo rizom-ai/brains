@@ -1,13 +1,5 @@
-import type { SiteLayoutInfo } from "@rizom/site";
+import { SOCIAL_LINK_PLATFORM_LABELS, type SiteLayoutInfo } from "@rizom/site";
 import type { RizomLink } from "./types";
-
-const DEFAULT_LABELS: Record<string, string> = {
-  github: "GitHub",
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
-  email: "Email",
-  website: "Website",
-};
 
 export function socialLinksToRizomLinks(
   siteInfo: Pick<SiteLayoutInfo, "socialLinks">,
@@ -19,6 +11,6 @@ export function socialLinksToRizomLinks(
     .filter((link) => (allowed ? allowed.has(link.platform) : true))
     .map((link) => ({
       href: link.url,
-      label: link.label ?? DEFAULT_LABELS[link.platform] ?? link.platform,
+      label: link.label ?? SOCIAL_LINK_PLATFORM_LABELS[link.platform],
     }));
 }

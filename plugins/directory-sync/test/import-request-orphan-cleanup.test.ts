@@ -11,16 +11,15 @@ import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 
 /**
- * Regression test: entity:import:request should clean up orphaned entities.
+ * Regression test: an import of changed paths is followed by orphan cleanup.
  *
  * Production bug:
- * 1. git-sync pulls, which deletes a file from disk
- * 2. git-sync sends entity:import:request with the changed paths
- * 3. importEntities() imports new/changed files but ignores missing ones
- * 4. Orphaned DB entity persists because cleanup never runs
- * 5. Deleted entity keeps reappearing (e.g., on Studio, in exports)
+ * 1. A git pull deletes a file from disk
+ * 2. importEntities() imports new/changed files but ignores missing ones
+ * 3. Orphaned DB entity persists because cleanup never runs
+ * 4. Deleted entity keeps reappearing (e.g., on Studio, in exports)
  *
- * The fix: run removeOrphanedEntities() after import in the message handler.
+ * The fix: run removeOrphanedEntities() after the import.
  */
 describe("Import then orphan cleanup", () => {
   let dirSync: DirectorySync;

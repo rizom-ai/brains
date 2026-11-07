@@ -1,27 +1,19 @@
 import type {
-  DashboardWidgetProviderContext,
   Tool,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   PermissionService,
   ServicePlugin,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
 } from "@brains/plugins";
-import {
-  CONSOLE_CHANNELS,
-  DASHBOARD_CHANNELS,
-  consoleJumpDestinationSchema,
-} from "@brains/contracts";
+import { consoleJumpDestinationsContract } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { DashboardWidgetRegistry } from "./widget-registry";
-import type {
-  RegisteredWidget,
-  WidgetComponent,
-  WidgetDigestProvider,
-} from "./widget-registry";
+import type { RegisteredWidget } from "./widget-registry";
 import { DashboardAssetRegistry } from "./dashboard-assets";
 import { DashboardDataSource } from "./dashboard-datasource";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
@@ -53,58 +45,8 @@ const dashboardConfigSchema: z.ZodObject<{
 export type DashboardConfig = z.output<typeof dashboardConfigSchema>;
 export type DashboardConfigInput = z.input<typeof dashboardConfigSchema>;
 
-const registerWidgetPayloadSchema = z
-  .object({
-    id: z.string(),
-    pluginId: z.string(),
-    title: z.string(),
-    description: z.string().optional(),
-    group: z.string().min(1),
-    priority: z.number().default(50),
-    section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
-    rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
-    visibility: z.enum(["public", "trusted", "admin"]).default("public"),
-    needsAttention: z.number().int().nonnegative().optional(),
-    digest: z
-      .array(
-        z.object({
-          label: z.string(),
-          value: z.string(),
-          tone: z.enum(["plain", "good", "warn"]).optional(),
-        }),
-      )
-      .max(4)
-      .optional(),
-    dataProvider: z.custom<
-      (context: DashboardWidgetProviderContext) => Promise<unknown>
-    >((value) => typeof value === "function", {
-      message: "Expected dashboard widget data provider function",
-    }),
-    digestProvider: z
-      .custom<WidgetDigestProvider>((value) => typeof value === "function", {
-        message: "Expected dashboard widget digest provider function",
-      })
-      .optional(),
-    renderer: z
-      .object({
-        component: z.custom<WidgetComponent>(
-          (value) => typeof value === "function",
-          { message: "Expected dashboard widget component function" },
-        ),
-        clientStyles: z.string().optional(),
-        clientScript: z.string().optional(),
-      })
-      .optional(),
-  })
-  .strict();
-
-const unregisterWidgetPayloadSchema = z.object({
-  pluginId: z.string(),
-  widgetId: z.string().optional(),
-});
-
 function createRegisteredWidget(
-  payload: z.output<typeof registerWidgetPayloadSchema>,
+  payload: z.output<typeof dashboardWidgetRegisterContract.schema>,
 ): RegisteredWidget {
   return {
     id: payload.id,
@@ -173,47 +115,35 @@ export class DashboardPlugin extends ServicePlugin<
       visibility: "public",
     });
 
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
-      async (message) => {
+    context.messaging.answer(
+      dashboardWidgetRegisterContract,
+      async (payload) => {
         try {
-          const payload = registerWidgetPayloadSchema.parse(message.payload);
-          const widget = createRegisteredWidget(payload);
-          this.widgetRegistry?.register(widget);
-          this.logger.debug("Widget registered via messaging", {
-            widgetId: payload.id,
-            pluginId: payload.pluginId,
-            rendererName: payload.rendererName,
-          });
-          return { success: true };
+          this.widgetRegistry?.register(createRegisteredWidget(payload));
         } catch (error) {
           this.logger.error("Failed to register widget", {
             error: getErrorMessage(error),
-            payload: message.payload,
+            widgetId: payload.id,
+            pluginId: payload.pluginId,
           });
-          return { success: false, error: "Widget registration failed" };
+          throw new Error("Widget registration failed", { cause: error });
         }
+        this.logger.debug("Widget registered via messaging", {
+          widgetId: payload.id,
+          pluginId: payload.pluginId,
+          rendererName: payload.rendererName,
+        });
       },
     );
 
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.unregisterWidget,
-      async (message) => {
-        try {
-          const payload = unregisterWidgetPayloadSchema.parse(message.payload);
-          this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
-          this.logger.debug("Widget unregistered via messaging", {
-            pluginId: payload.pluginId,
-            widgetId: payload.widgetId,
-          });
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to unregister widget", {
-            error: getErrorMessage(error),
-            payload: message.payload,
-          });
-          return { success: false, error: "Widget unregistration failed" };
-        }
+    context.messaging.answer(
+      dashboardWidgetUnregisterContract,
+      async (payload) => {
+        this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
+        this.logger.debug("Widget unregistered via messaging", {
+          pluginId: payload.pluginId,
+          widgetId: payload.widgetId,
+        });
       },
     );
 
@@ -226,6 +156,7 @@ export class DashboardPlugin extends ServicePlugin<
         path: this.config.routePath,
         method: "GET",
         public: true,
+        role: "dashboard",
         handler: async (request: Request): Promise<Response> => {
           if (!this.datasource || !this.ctx) {
             return new Response("Dashboard unavailable", {
@@ -237,14 +168,7 @@ export class DashboardPlugin extends ServicePlugin<
           const ctx = this.ctx;
           const principal = await ctx.auth.get()?.resolveSession(request);
           const requestUrl = new URL(request.url);
-          const registeredRoutes = ctx.webRoutes.getRoutes();
-          const studioPath = registeredRoutes
-            .filter(
-              (route) =>
-                route.pluginId === "studio" && route.fullPath !== "/chat",
-            )
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
+          const studioPath = ctx.webRoutes.findByRole("studio")?.fullPath;
           if (
             principal &&
             studioPath &&
@@ -258,10 +182,7 @@ export class DashboardPlugin extends ServicePlugin<
               },
             });
           }
-          const askHref = registeredRoutes
-            .filter((route) => route.pluginId === "web-chat")
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
+          const askHref = ctx.webRoutes.findByRole("ask")?.fullPath;
           // The card is invariant across sessions. Public providers always see
           // an anonymous Public caller, and non-public providers never run.
           const visibleWidgets =
@@ -334,12 +255,7 @@ export class DashboardPlugin extends ServicePlugin<
             widgetScripts: resolved.widgetScripts,
             assetUrls: this.assetUrls,
             dashboardPath: this.config.routePath,
-            askEnabled:
-              this.config.ask &&
-              registeredRoutes.some(
-                (route) =>
-                  route.pluginId === "web-chat" && route.fullPath === "/ask",
-              ),
+            askEnabled: this.config.ask && askHref !== undefined,
             ...(askHref ? { askHref } : {}),
             character,
             profile,
@@ -420,17 +336,12 @@ export class DashboardPlugin extends ServicePlugin<
           const studioPath = surfaces.find(
             (surface) => surface.id === "studio",
           )?.href;
-          const answers = await ctx.messaging.collect({
-            type: CONSOLE_CHANNELS.jumpDestinations,
-            payload: { permissionLevel: principal.permissionLevel },
-          });
-          const destinations = answers.flatMap((answer) => {
-            const parsed =
-              "data" in answer
-                ? z.array(consoleJumpDestinationSchema).safeParse(answer.data)
-                : null;
-            return parsed?.success ? parsed.data : [];
-          });
+          const offered = await ctx.messaging.gather(
+            consoleJumpDestinationsContract,
+            { permissionLevel: principal.permissionLevel },
+          );
+          const destinations =
+            offered.status === "answered" ? offered.answers.flat() : [];
           return Response.json({
             groups: buildConsoleJumpGroups({
               query,

@@ -1,23 +1,35 @@
-import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
 } from "../operator/account-settings-definition-contract";
-import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
+import type {
+  AnyServiceJobDefinition,
+  ServiceSetupContext,
+} from "../service/service-definition-contract";
+import type { InboundMessageAttachment } from "../message-interface/inbound-attachment";
 
-export const routeMethods = [
-  "GET",
-  "POST",
-  "PUT",
-  "DELETE",
-  "OPTIONS",
-] as const;
-export type RouteMethod = (typeof routeMethods)[number];
-export type InterfaceSchema = z.ZodType<unknown, unknown>;
+import {
+  routeMethods,
+  type AnyInterfaceRouteDefinition,
+} from "./route-definition-contract";
+export { routeMethods };
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
-
+export type {
+  AnyInterfaceRouteDefinition,
+  InterfaceActor,
+  InterfaceCaller,
+  InterfaceRouteDefinition,
+  InterfaceRouteInput,
+  InterfaceSchema,
+  ProtocolSecurityDefinition,
+  PublicSecurityDefinition,
+  RouteBody,
+  RouteCaller,
+  RouteMethod,
+  RouteSecurity,
+} from "./route-definition-contract";
 export interface InterfaceJobReference {
   readonly id: string;
 }
@@ -28,74 +40,6 @@ export interface InterfaceJobs {
     input: z.input<TDefinition["input"]>,
   ): Promise<InterfaceJobReference>;
 }
-
-export interface InterfaceActor {
-  readonly id: string;
-  readonly displayName?: string | undefined;
-}
-
-export interface InterfaceCaller {
-  readonly actor: InterfaceActor;
-  readonly permission: UserPermissionLevel;
-  readonly isAnchor: boolean;
-}
-
-export interface ProtocolSecurityDefinition {
-  readonly kind: "protocol";
-  authenticate(context: {
-    readonly request: Request;
-  }): InterfaceActor | null | Promise<InterfaceActor | null>;
-}
-
-export interface PublicSecurityDefinition {
-  readonly kind: "public";
-}
-
-export type RouteSecurity =
-  PublicSecurityDefinition | ProtocolSecurityDefinition;
-export type RouteCaller<TSecurity extends RouteSecurity> =
-  TSecurity extends ProtocolSecurityDefinition ? InterfaceCaller : null;
-export type RouteBody<TSchema extends InterfaceSchema | undefined> =
-  TSchema extends InterfaceSchema ? z.output<TSchema> : undefined;
-
-export interface InterfaceRouteInput<
-  TMethod extends RouteMethod = RouteMethod,
-  TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
-  TSecurity extends RouteSecurity = RouteSecurity,
-> {
-  readonly method: TMethod;
-  readonly path: string;
-  readonly security: TSecurity;
-  readonly body?: TBodySchema | undefined;
-  readonly response: TResponseSchema;
-  handle(context: {
-    readonly request: Request;
-    readonly body: RouteBody<TBodySchema>;
-    readonly caller: RouteCaller<TSecurity>;
-  }): unknown | Promise<unknown>;
-}
-
-export interface InterfaceRouteDefinition<
-  TMethod extends RouteMethod = RouteMethod,
-  TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
-  TSecurity extends RouteSecurity = RouteSecurity,
-> extends InterfaceRouteInput<
-  TMethod,
-  TBodySchema,
-  TResponseSchema,
-  TSecurity
-> {
-  readonly kind: "rizom-interface-route";
-}
-
-export type AnyInterfaceRouteDefinition = InterfaceRouteDefinition<
-  RouteMethod,
-  InterfaceSchema | undefined,
-  InterfaceSchema,
-  RouteSecurity
->;
 
 export interface InterfaceDaemonHealth {
   ready(): void;
@@ -134,31 +78,78 @@ export interface AccountInterfaceDaemonDefinition<
 export type AnyInterfaceDaemonDefinition =
   InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition;
 
-export interface InterfaceDefinitionInput<
+/**
+ * What an interface's `setup` is given once, when it registers: the parsed
+ * config, cleanup at shutdown, and runtime state kept under the owning
+ * package, exactly as a service's setup is given them.
+ */
+export type InterfaceSetupContext<TConfig> = ServiceSetupContext<TConfig>;
+
+/** The daemons an interface's `daemons` slot may return. */
+export type InterfaceDaemons<
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = readonly (
+  | InterfaceDaemonDefinition
+  | (TAccountSettings extends AnyAccountSettingsDefinition
+      ? AccountInterfaceDaemonDefinition<TAccountSettings>
+      : never)
+)[];
+
+/**
+ * What an interface is and what it sets up, once, before anything runs. The
+ * first of `defineInterface`'s two arguments, so the state `setup` returns is
+ * known before any behavior slot is checked, in whatever order those are
+ * written.
+ */
+export interface InterfaceDefinitionHeader<
   TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
   readonly accountSettings?: TAccountSettings | undefined;
+  /** Builds the `state` every behavior slot reads, once, at registration. */
+  readonly setup?:
+    | ((
+        context: InterfaceSetupContext<z.output<TConfigSchema>>,
+      ) => TState | Promise<TState>)
+    | undefined;
+}
+
+/**
+ * What the interface does with what it set up: the second argument. Each slot
+ * is given the interface's capabilities once, and the handlers it returns are
+ * given only their own call's data.
+ */
+export interface InterfaceDefinitionBehavior<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> {
   readonly routes?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
         readonly jobs: InterfaceJobs;
       }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   readonly daemons?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
         readonly jobs: InterfaceJobs;
-      }) => readonly (
-        | InterfaceDaemonDefinition
-        | (TAccountSettings extends AnyAccountSettingsDefinition
-            ? AccountInterfaceDaemonDefinition<TAccountSettings>
-            : never)
-      )[])
+      }) => InterfaceDaemons<TAccountSettings>)
     | undefined;
 }
+
+/** The header and the behavior, as the runtime reads them. */
+export type InterfaceDefinitionInput<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = InterfaceDefinitionHeader<TConfigSchema, TState, TAccountSettings> &
+  InterfaceDefinitionBehavior<TConfigSchema, TState, TAccountSettings>;
 
 export interface MessageChannelDefinition<
   TRecipientSchema extends MessageRecipientSchema,
@@ -183,11 +174,7 @@ export interface InboundMessageSender {
   readonly displayName?: string | undefined;
 }
 
-export interface InboundMessageAttachment {
-  readonly name: string;
-  readonly mediaType: string;
-  readonly url: string;
-}
+export type { InboundMessageAttachment } from "../message-interface/inbound-attachment";
 
 export interface ReceiveAuthenticatedInput {
   readonly sender: InboundMessageSender;
@@ -201,7 +188,12 @@ export interface MessageReceiver {
   receiveAuthenticated(input: ReceiveAuthenticatedInput): Promise<void>;
 }
 
-export interface MessageInterfaceDefinitionInput<
+/**
+ * What a message interface is — its channel — and what it sets up: the first
+ * of `defineMessageInterface`'s two arguments, so the state `setup` returns
+ * and the channel's recipient are known before any behavior slot is checked.
+ */
+export interface MessageInterfaceDefinitionHeader<
   TConfigSchema extends InterfaceConfigSchema,
   TState extends object,
   TRecipientSchema extends MessageRecipientSchema,
@@ -212,26 +204,35 @@ export interface MessageInterfaceDefinitionInput<
   readonly accountSettings?: TAccountSettings | undefined;
   readonly channel: MessageChannelDefinition<TRecipientSchema>;
   /**
-   * Prepares the state the interface's other functions receive. It also runs
-   * in the queue worker, so `deliver` can send from background jobs there:
-   * build clients, but leave connecting and listening to `listen` and
+   * Builds the `state` every behavior slot reads, once, at registration. It
+   * also runs in the queue worker, so `deliver` can send from background jobs
+   * there: build clients, but leave connecting and listening to `listen` and
    * `daemons`.
    */
   readonly setup?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-      }) => TState | Promise<TState>)
+    | ((
+        context: InterfaceSetupContext<z.output<TConfigSchema>>,
+      ) => TState | Promise<TState>)
     | undefined;
+}
+
+/**
+ * How the message interface talks: the second argument. `daemons` returns
+ * handlers as a generic interface's does; `listen`, `send`, `edit` and
+ * `deliver` are each called once per call, and given the interface's
+ * capabilities beside that call's data.
+ */
+export interface MessageInterfaceDefinitionBehavior<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
+  TRecipientSchema extends MessageRecipientSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> {
   readonly daemons?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
-      }) => readonly (
-        | InterfaceDaemonDefinition
-        | (TAccountSettings extends AnyAccountSettingsDefinition
-            ? AccountInterfaceDaemonDefinition<TAccountSettings>
-            : never)
-      )[])
+      }) => InterfaceDaemons<TAccountSettings>)
     | undefined;
   readonly listen?:
     | ((context: {
@@ -268,3 +269,22 @@ export interface MessageInterfaceDefinitionInput<
       }) => string | void | Promise<string | void>)
     | undefined;
 }
+
+/** The header and the behavior, as the runtime reads them. */
+export type MessageInterfaceDefinitionInput<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
+  TRecipientSchema extends MessageRecipientSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = MessageInterfaceDefinitionHeader<
+  TConfigSchema,
+  TState,
+  TRecipientSchema,
+  TAccountSettings
+> &
+  MessageInterfaceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  >;

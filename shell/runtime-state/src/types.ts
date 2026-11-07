@@ -7,13 +7,13 @@ export interface RuntimeStateDbConfig {
 
 export type RuntimeStateServiceConfig = RuntimeStateDbConfig;
 
-export type RuntimeStateValueSchema<T> = ZodType<T, unknown>;
+export type RuntimeStateValueSchema<T, TInput = unknown> = ZodType<T, TInput>;
 
-export interface RuntimeStateScopeOptions<T> {
+export interface RuntimeStateScopeOptions<T, TInput = T> {
   /** Stable consumer namespace, e.g. "chat.discord.subscriptions". */
   namespace: string;
   /** Schema used to validate values crossing the persistence boundary. */
-  schema: RuntimeStateValueSchema<T>;
+  schema: RuntimeStateValueSchema<T, TInput>;
 }
 
 export interface RuntimeStateRecordValue<T> {
@@ -31,16 +31,17 @@ export interface RuntimeStateListOptions {
   limit?: number | undefined;
 }
 
-export interface IRuntimeStateStore<T> {
+export interface IRuntimeStateStore<T, TInput = T> {
   get(key: string): Promise<T | null>;
   has(key: string): Promise<boolean>;
-  set(key: string, value: T): Promise<void>;
-  setIfNotExists(key: string, value: T): Promise<boolean>;
-  /** Atomically replace an existing value only if its schema-serialized value matches.
-   * Use a revision field when the consumer must distinguish an ABA change.
-   * Independent processes must use the same backing database to coordinate.
+  /** Persist JSON wire input; reads return the schema's parsed output. */
+  set(key: string, value: TInput): Promise<void>;
+  setIfNotExists(key: string, value: TInput): Promise<boolean>;
+  /** Atomically replace an existing value whose parsed snapshot equals expected.
+   * Persist JSON wire input, just like set. Use a revision field to distinguish
+   * ABA changes. Independent processes must share a backing database.
    */
-  compareAndSet(key: string, expected: T, value: T): Promise<boolean>;
+  compareAndSet(key: string, expected: T, value: TInput): Promise<boolean>;
   delete(key: string): Promise<boolean>;
   list(
     options?: RuntimeStateListOptions,
@@ -49,7 +50,9 @@ export interface IRuntimeStateStore<T> {
 }
 
 export interface IRuntimeStateNamespace {
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T>;
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput>;
 }
 
 export interface IRuntimeStateService extends IRuntimeStateNamespace {

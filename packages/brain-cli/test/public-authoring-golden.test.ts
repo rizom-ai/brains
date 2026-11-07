@@ -46,7 +46,7 @@ interface ExportLedger {
 interface GoldenPackageExpectation {
   directory: string;
   packageName: string;
-  publicEntryPoint: string;
+  publicEntryPoints: string[];
   requiredVocabulary: string[];
 }
 
@@ -59,7 +59,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "entity",
     packageName: "@fixture/reading-entities",
-    publicEntryPoint: "@rizom/brain/entities",
+    publicEntryPoints: ["@rizom/brain/entities"],
     requiredVocabulary: [
       "defineEntity",
       "defineEntityPackage",
@@ -71,37 +71,87 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "service",
     packageName: "@fixture/reading-insights",
-    publicEntryPoint: "@rizom/brain/services",
-    requiredVocabulary: ["defineJob", "defineServicePlugin", "defineTool", "z"],
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineEntity",
+      "defineJob",
+      "defineServicePlugin",
+      "defineTool",
+      "entities: [readingRequest]",
+      "z",
+    ],
+  },
+  {
+    directory: "profile-steward",
+    packageName: "@fixture/reader-profile",
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineBusContract",
+      "entities: [readerProfile]",
+      "answer(fillReaderProfile",
+      "sender",
+    ],
+  },
+  {
+    directory: "profile-import",
+    packageName: "@fixture/reader-import",
+    publicEntryPoints: ["@rizom/brain/services"],
+    requiredVocabulary: [
+      "messaging.request(fillReaderProfile",
+      "entities.get(readerProfile",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
+    ],
+  },
+  {
+    directory: "reminders",
+    packageName: "@fixture/reminders",
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "entities: [reminder]",
+      "runtimeState(",
+      "answer(dueCount",
+      "fireReminder.handle(",
+      "defineRoute(",
+      "templates.format(",
+    ],
   },
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoint: "@rizom/site",
+    publicEntryPoints: ["@rizom/site"],
     requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
   },
   {
     directory: "interface",
     packageName: "@fixture/reading-webhook",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: [
       "defineDaemon",
       "defineInterface",
       "defineRoute",
       "protocol",
+      "runtimeState(",
+      'new SdkError("conflict"',
       "z",
     ],
   },
   {
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
-    publicEntryPoint: "@rizom/brain/interfaces",
-    requiredVocabulary: ["defineMessageInterface", "z"],
+    publicEntryPoints: ["@rizom/brain/interfaces"],
+    requiredVocabulary: [
+      "defineMessageInterface",
+      "defineMessageInterfacePackage",
+      "runtimeState(",
+      "read: (): Promise<Uint8Array>",
+      "z",
+    ],
   },
   {
     directory: "brain-definition",
     packageName: "@fixture/reader-brain",
-    publicEntryPoint: "@rizom/brain",
+    publicEntryPoints: ["@rizom/brain"],
     requiredVocabulary: ["defineBrain", "defineBundle", "use"],
   },
 ];
@@ -253,11 +303,72 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity, service and interface canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
+      {
+        directory: "entity",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+        },
+      },
+      {
+        directory: "service",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+        },
+      },
+      {
+        directory: "reminders",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-steward",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-import",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reader-profile": [
+            "./packages/brain-cli/test/fixtures/public-authoring/profile-steward/src/index.ts",
+          ],
+        },
+      },
       {
         directory: "operator-surface",
         paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
           ],
@@ -277,49 +388,86 @@ describe("public authoring 0.2 golden packages", () => {
           ],
         },
       },
+      {
+        directory: "interface",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+        },
+      },
+      {
+        directory: "message-interface",
+        paths: {
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+        },
+      },
     ] as const;
 
-    for (const fixture of cases) {
-      const tsconfigPath = join(
-        repositoryRoot,
-        `.public-authoring-${fixture.directory}.tsconfig.json`,
-      );
-      try {
-        writeFileSync(
-          tsconfigPath,
-          JSON.stringify({
-            extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
-            compilerOptions: {
-              rootDir: ".",
-              declaration: false,
-              jsx: "react-jsx",
-              jsxImportSource: "react",
-              types: ["bun"],
-              noUnusedLocals: false,
-              noUnusedParameters: false,
-              paths: fixture.paths,
+    // Each case is a whole tsc run over the public entries, and none reads
+    // another's tsconfig, so they run side by side; the bound covers the
+    // slowest CI runner rather than the sum of the cases.
+    const compiled = await Promise.all(
+      cases.map(async (fixture) => {
+        const tsconfigPath = join(
+          repositoryRoot,
+          `.public-authoring-${fixture.directory}.tsconfig.json`,
+        );
+        try {
+          writeFileSync(
+            tsconfigPath,
+            JSON.stringify({
+              extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
+              compilerOptions: {
+                rootDir: ".",
+                declaration: false,
+                jsx: "react-jsx",
+                jsxImportSource: "react",
+                types: ["bun"],
+                noUnusedLocals: false,
+                noUnusedParameters: false,
+                paths: fixture.paths,
+              },
+              include: [
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
+              ],
+            }),
+          );
+          const result = await runProcess(
+            ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
+            {
+              cwd: repositoryRoot,
+              env: process.env,
             },
-            include: [
-              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
-            ],
-          }),
-        );
-        const result = await runProcess(
-          ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
-          {
-            cwd: repositoryRoot,
-            env: process.env,
-          },
-        );
-        expect(
-          result.exitCode,
-          `${fixture.directory} failed to compile:\n${result.stdout}${result.stderr}`,
-        ).toBe(0);
-      } finally {
-        rmSync(tsconfigPath, { force: true });
-      }
+          );
+          return { directory: fixture.directory, result };
+        } finally {
+          rmSync(tsconfigPath, { force: true });
+        }
+      }),
+    );
+    for (const { directory, result } of compiled) {
+      expect(
+        result.exitCode,
+        `${directory} failed to compile:\n${result.stdout}${result.stderr}`,
+      ).toBe(0);
     }
-  }, 15_000);
+  }, 120_000);
 
   it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");
@@ -403,7 +551,10 @@ describe("public authoring 0.2 golden packages", () => {
       expect(manifest.dependencies?.zod).toBeUndefined();
       expect(manifest.devDependencies?.zod).toBeUndefined();
       expect(manifest.peerDependencies?.zod).toBeUndefined();
-      expect(publicImports).toEqual([fixture.publicEntryPoint]);
+      // An import inventory, independent of source file traversal order.
+      expect(publicImports.sort()).toEqual(
+        [...fixture.publicEntryPoints].sort(),
+      );
 
       for (const symbol of fixture.requiredVocabulary) {
         expect(source).toContain(symbol);
@@ -472,9 +623,11 @@ describe("public authoring 0.2 golden packages", () => {
       "resources:",
       "prompts:",
       "templates:",
-      "views:",
+      "renderers:",
       "jobs:",
       "tools:",
+      "subscriptions:",
+      "routes:",
     ]) {
       expect(service).toContain(capability);
     }
@@ -498,7 +651,7 @@ describe("public authoring 0.2 golden packages", () => {
 describe("public authoring 0.2 export ledger", () => {
   it("exposes only Studio-named workspace authoring contracts", () => {
     const exports = exportedNames(
-      join(repositoryRoot, "packages/brain-cli/src/entries/services.ts"),
+      join(repositoryRoot, "packages/brain-sdk/src/services.ts"),
     );
 
     expect(exports).toEqual(

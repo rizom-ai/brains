@@ -23,7 +23,7 @@ interface RegisterInboxDigestOptions {
 interface InboxDigestContext {
   siteUrl: ServicePluginContext["siteUrl"];
   recurringChecks: ServicePluginContext["recurringChecks"];
-  webRoutes: Pick<ServicePluginContext["webRoutes"], "getRoutes">;
+  webRoutes: Pick<ServicePluginContext["webRoutes"], "findByRole">;
 }
 
 interface DigestSourceGroup {
@@ -140,13 +140,7 @@ function resolveDestinationUrl(
 ): string {
   const path =
     workspaceUrl ??
-    context.webRoutes
-      .getRoutes()
-      .find(
-        (route) =>
-          route.pluginId === "dashboard" &&
-          (route.definition.method ?? "GET") === "GET",
-      )?.fullPath ??
+    context.webRoutes.findByRole("dashboard")?.fullPath ??
     "/dashboard";
   return resolveUrl(path, context.siteUrl);
 }

@@ -1,23 +1,17 @@
-import type { ActorRef } from "@brains/contracts";
-import type { ContentVisibility } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
+import type {
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  StudioWorkspaceAlias,
+} from "../contracts/studio-workspace-contracts";
 
-export const STUDIO_WORKSPACE_REGISTER_MESSAGE = "studio:register-workspace";
-export const STUDIO_WORKSPACE_UNREGISTER_MESSAGE =
-  "studio:unregister-workspace";
-export const DECLARATIVE_STUDIO_WORKSPACE_RENDERER =
-  "DeclarativeOperatorWorkspace";
-
-export interface StudioWorkspaceActor {
-  interfaceType: "studio";
-  userId: string;
-  /** The signed-in person's name, for providers that record who acted. */
-  displayName?: string | undefined;
-  actor: ActorRef;
-  userPermissionLevel: UserPermissionLevel;
-  visibilityScope: ContentVisibility;
-  isAnchor: boolean;
-}
+export {
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceAlias,
+  type StudioWorkspaceRegistration,
+  type StudioWorkspaceRegistrationResult,
+  type StudioWorkspaceUnregistration,
+} from "../contracts/studio-workspace-contracts";
 
 /**
  * Source-owned authorization for workspace providers: capabilities enforce
@@ -36,59 +30,6 @@ export function assertStudioWorkspaceAdmin(
 export type StudioWorkspaceRendererName =
   typeof DECLARATIVE_STUDIO_WORKSPACE_RENDERER;
 
-/** One retired workspace id and the stable query state of its replacement. */
-export interface StudioWorkspaceAlias {
-  id: string;
-  query: Readonly<Record<string, string>>;
-}
-
-export interface StudioWorkspaceRegistration {
-  id: string;
-  pluginId: string;
-  label: string;
-  rendererName: StudioWorkspaceRendererName;
-  priority: number;
-  /**
-   * Host-enforced permission floor. The Studio registry defaults omitted floors
-   * to Trusted so a permissive source handler cannot widen existing access.
-   */
-  permission?: UserPermissionLevel | undefined;
-  /** Allow the Studio container to hydrate stable renderer-owned filters from the URL. */
-  urlQuery?: true | undefined;
-  /** Retired workspace ids that the browser resolves to this workspace. */
-  aliases?: readonly StudioWorkspaceAlias[] | undefined;
-  /**
-   * Entity types the workspace covers. Providers whose coverage depends on
-   * the caller's permissions supply a resolver so descriptors never disclose
-   * types the actor cannot act on.
-   */
-  entityTypes?:
-    | string[]
-    | ((actor: StudioWorkspaceActor) => string[] | Promise<string[]>)
-    | undefined;
-  /** Studio sends publication actions for the covered entity types here. */
-  publishesEntityTypes?: true | undefined;
-  accessHandler: (actor: StudioWorkspaceActor) => boolean | Promise<boolean>;
-  dataProvider: (
-    actor: StudioWorkspaceActor,
-    query?: unknown,
-    signal?: AbortSignal,
-  ) => Promise<unknown>;
-  actionHandler?:
-    | ((
-        request: unknown,
-        actor: StudioWorkspaceActor,
-        signal?: AbortSignal,
-      ) => Promise<unknown>)
-    | undefined;
-  /** Bounded attention count shown in the workspace rail. */
-  badgeProvider?:
-    | ((
-        actor: StudioWorkspaceActor,
-      ) => number | undefined | Promise<number | undefined>)
-    | undefined;
-}
-
 /** Serializable registration fields exposed to the Studio browser. */
 export interface StudioWorkspaceDescriptor {
   id: string;
@@ -103,13 +44,4 @@ export interface StudioWorkspaceDescriptor {
   /** Studio sends publication actions for the covered entity types here. */
   publishesEntityTypes?: true | undefined;
   badge?: number | undefined;
-}
-
-export interface StudioWorkspaceRegistrationResult {
-  workspaceUrl: string;
-}
-
-export interface StudioWorkspaceUnregistration {
-  pluginId: string;
-  workspaceId?: string | undefined;
 }

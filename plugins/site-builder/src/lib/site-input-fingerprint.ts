@@ -26,7 +26,7 @@ export interface SiteInputFingerprintOptions {
   layouts: Record<string, LayoutComponent>;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
-  sendMessage: SiteBuilderServices["sendMessage"];
+  command: SiteBuilderServices["command"];
   rendererIdentity: string;
 }
 
@@ -69,7 +69,7 @@ export function computeSiteInputFingerprint(
       ),
       rendererRuntime: {
         staticSiteBuilderFactory: String(options.staticSiteBuilderFactory),
-        stagingMessageSender: String(options.sendMessage),
+        stagingMessageSender: String(options.command),
       },
       templates: Object.fromEntries(
         templateNames.map((name) => {

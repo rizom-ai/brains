@@ -5,7 +5,7 @@ import {
 } from "@brains/plugins/test";
 import {
   SitePageResponse,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type IRuntimeStateNamespace,
   type IRuntimeStateStore,
   type StudioWorkspaceRegistration,
@@ -98,7 +98,7 @@ async function fixture(
     .getMockShell()
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       (registration) => {
         workspaces.push(registration.payload);
         return { success: true, data: { workspaceUrl: "/studio" } };
@@ -113,6 +113,7 @@ async function fixture(
         definition: {
           path: "/chat",
           method: "GET",
+          role: "studio-chat",
           handler: async (): Promise<Response> => new Response("Studio"),
         },
       },

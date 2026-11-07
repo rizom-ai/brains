@@ -1,9 +1,10 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import type {
-  NavigationItem,
-  SiteLayoutInfo,
-  SiteLayoutProps,
+import {
+  SOCIAL_LINK_PLATFORM_LABELS,
+  type NavigationItem,
+  type SiteLayoutInfo,
+  type SiteLayoutProps,
 } from "@rizom/site";
 
 /* The docs' own sections. The brain also generates an index for every other
@@ -15,14 +16,6 @@ const DOCS_SECTIONS = ["/", "/guides"];
 /* The site-info entity always carries a copyright, but the framework fills
    an empty one with this placeholder; the footer shows a real one or none. */
 const COPYRIGHT_FALLBACK = "Powered by Rizom";
-
-const PLATFORM_LABELS: Record<string, string> = {
-  github: "GitHub",
-  instagram: "Instagram",
-  linkedin: "LinkedIn",
-  email: "Email",
-  website: "Website",
-};
 
 function signature(info: SiteLayoutInfo): string | null {
   const value = info.copyright.trim();
@@ -92,7 +85,7 @@ export function DocsSiteLayout({
             ))}
             {(siteInfo.socialLinks ?? []).map((link) => (
               <a key={link.url} href={link.url}>
-                {link.label ?? PLATFORM_LABELS[link.platform] ?? link.platform}
+                {link.label ?? SOCIAL_LINK_PLATFORM_LABELS[link.platform]}
               </a>
             ))}
           </nav>

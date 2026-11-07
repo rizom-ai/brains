@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  TOPIC_TITLES_MESSAGE,
+  topicTitlesContract,
   topicTitlesResponseSchema,
 } from "../src/topic-titles";
 import { guestScreeningSchema } from "../src/guest-execution";
@@ -9,7 +9,7 @@ import { guestScreeningSchema } from "../src/guest-execution";
 // published topics and the owner's own introduction.
 describe("the site's subjects for screening", () => {
   it("asks the topics plugin for its public topic titles, bounded", () => {
-    expect(TOPIC_TITLES_MESSAGE).toBe("topics:public-titles");
+    expect(topicTitlesContract.name).toBe("topics:public-titles");
     expect(
       topicTitlesResponseSchema.parse({ titles: ["Ecosystem Architecture"] }),
     ).toEqual({ titles: ["Ecosystem Architecture"] });

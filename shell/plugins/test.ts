@@ -10,6 +10,7 @@ export {
   type MockShellOptions,
 } from "./src/test/mock-shell";
 export { createMockAppInfo } from "./src/test/mock-app-info";
+export { MemoryAccountSettingsBackend } from "./src/test/memory-account-settings-backend";
 export { createMockAuthBackend } from "./src/test/mock-auth-backend";
 export {
   createMockServicePluginContext,

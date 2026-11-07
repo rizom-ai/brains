@@ -1,15 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { NOTIFICATION_FAILURES } from "@brains/contracts";
+import { notificationsSendContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type {
   ChannelDeliveryInput,
   ChannelDeliveryResult,
 } from "@brains/plugins";
-import {
-  NOTIFICATIONS_SEND,
-  NotificationsPlugin,
-  type SendNotificationResult,
-} from "../src";
+import { NotificationsPlugin } from "../src";
 
 /**
  * Registers an email transport the way a message interface would, so the
@@ -64,16 +60,13 @@ describe("NotificationsPlugin", () => {
     await harness.installPlugin(new NotificationsPlugin());
     await harness.finalizeRegistration();
 
-    const result = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
-      {
-        recipient: { type: "email", address: "user@example.com" },
-        title: "Set up your Rover",
-        body: "Open the secret setup link.",
-        sensitivity: "secret",
-        idempotencyKey: "invitation_attempt_1",
-      },
-    );
+    const result = await harness.sendMessage(notificationsSendContract.name, {
+      recipient: { type: "email", address: "user@example.com" },
+      title: "Set up your Rover",
+      body: "Open the secret setup link.",
+      sensitivity: "secret",
+      idempotencyKey: "invitation_attempt_1",
+    });
 
     expect(result).toEqual({ status: "sent", deliveryId: "email_123" });
     expect(sent).toEqual([
@@ -96,15 +89,12 @@ describe("NotificationsPlugin", () => {
       defaultRecipient: { type: "email", address: "operator@example.com" },
     }).register(harness.getMockShell(), { executionOnly: true });
     harness.getMockShell().getChannelRegistry().finalize();
-    const result = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
-      {
-        title: "Contact request",
-        body: "Open the authenticated Inbox.",
-        sensitivity: "secret",
-        idempotencyKey: "contact-notification:test",
-      },
-    );
+    const result = await harness.sendMessage(notificationsSendContract.name, {
+      title: "Contact request",
+      body: "Open the authenticated Inbox.",
+      sensitivity: "secret",
+      idempotencyKey: "contact-notification:test",
+    });
     expect(result).toEqual({ status: "sent" });
     expect(sent).toHaveLength(1);
     expect(sent[0]?.idempotencyKey).toBe("contact-notification:test");
@@ -123,10 +113,10 @@ describe("NotificationsPlugin", () => {
     );
     await harness.finalizeRegistration();
 
-    const result = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
-      { title: "New sightings", body: "Two agents sighted." },
-    );
+    const result = await harness.sendMessage(notificationsSendContract.name, {
+      title: "New sightings",
+      body: "Two agents sighted.",
+    });
 
     expect(result).toEqual({ status: "sent" });
     expect(sent[0]?.recipient).toBe("operator@example.com");
@@ -150,14 +140,14 @@ describe("NotificationsPlugin", () => {
       sensitivity: "secret",
     };
 
-    const first = await harness.sendMessage<
-      typeof payload,
-      SendNotificationResult
-    >(NOTIFICATIONS_SEND, payload);
-    const second = await harness.sendMessage<
-      typeof payload,
-      SendNotificationResult
-    >(NOTIFICATIONS_SEND, payload);
+    const first = await harness.sendMessage(
+      notificationsSendContract.name,
+      payload,
+    );
+    const second = await harness.sendMessage(
+      notificationsSendContract.name,
+      payload,
+    );
 
     expect(first).toEqual({ status: "sent", deliveryId: "email_1" });
     expect(second).toEqual({ status: "sent", deliveryId: "email_2" });
@@ -166,7 +156,7 @@ describe("NotificationsPlugin", () => {
     expect(sent[0]?.idempotencyKey).not.toBe(sent[1]?.idempotencyKey);
   });
 
-  it("names the transport's failure code when delivery fails, never the message", async () => {
+  it("answers a failed delivery with its transport's code, never the message", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     installEmailProvider(harness, async () => ({
       status: "failed",
@@ -179,7 +169,7 @@ describe("NotificationsPlugin", () => {
       .getMockShell()
       .getMessageBus()
       .send({
-        type: NOTIFICATIONS_SEND,
+        type: notificationsSendContract.name,
         payload: {
           recipient: { type: "email", address: "user@example.com" },
           title: "New contact request",
@@ -190,26 +180,37 @@ describe("NotificationsPlugin", () => {
       });
 
     expect(response).toEqual({
-      success: false,
-      error: "Notification delivery failed: resend_validation_error",
+      success: true,
+      data: {
+        status: "failed",
+        failure: "delivery-failed",
+        transportCode: "resend_validation_error",
+      },
     });
   });
 
-  it("reports failure when no transport is registered for the recipient", async () => {
+  it("answers that no transport is available for the recipient", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     await harness.installPlugin(new NotificationsPlugin());
     await harness.finalizeRegistration();
 
-    const response = await harness.sendMessage<unknown, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
-      {
-        recipient: { type: "email", address: "user@example.com" },
-        title: "Set up your Rover",
-        body: "Open the secret setup link.",
-      },
-    );
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: notificationsSendContract.name,
+        payload: {
+          recipient: { type: "email", address: "user@example.com" },
+          title: "Set up your Rover",
+          body: "Open the secret setup link.",
+        },
+        sender: "contact",
+      });
 
-    expect(response).toBeUndefined();
+    expect(response).toEqual({
+      success: true,
+      data: { status: "failed", failure: "transport-missing" },
+    });
   });
 });
 
@@ -235,14 +236,14 @@ describe("unset recipient env interpolation", () => {
         .getMockShell()
         .getMessageBus()
         .send({
-          type: NOTIFICATIONS_SEND,
+          type: notificationsSendContract.name,
           payload: { title: "Contact request", body: "Open the Inbox." },
           sender: "contact",
         });
 
       expect(response).toEqual({
-        success: false,
-        error: NOTIFICATION_FAILURES.recipientMissing,
+        success: true,
+        data: { status: "failed", failure: "recipient-missing" },
       });
       expect(sent).toEqual([]);
     });

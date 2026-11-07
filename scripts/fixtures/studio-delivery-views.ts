@@ -274,6 +274,7 @@ export async function createDeliveryViewFixtures(
             retryCount: 0,
             maxRetries: 3,
             lastError: null,
+            lastErrorPublic: null,
             createdAt: 0,
             scheduledFor: 0,
             startedAt: null,

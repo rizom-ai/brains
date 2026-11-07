@@ -6,6 +6,7 @@ import type {
   ToolContext,
 } from "./types";
 import { getErrorMessage } from "@brains/utils/error";
+import { formatZodIssues } from "@brains/utils/zod-issues";
 import { ConsoleLogger } from "@brains/utils/logger";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 
@@ -99,15 +100,6 @@ export function toolError(error: string, code?: string): ToolResult<never> {
  * );
  * ```
  */
-function formatZodError(error: z.ZodError): string {
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
-      return `${path}: ${issue.message}`;
-    })
-    .join(", ");
-}
-
 export function createTool<
   TSchema extends z.ZodObject<ZodRawShape>,
   TOutput = unknown,
@@ -160,7 +152,7 @@ export function createTool<
         // Auto-validate input
         const parseResult = inputSchema.safeParse(input);
         if (!parseResult.success) {
-          const errorMessage = formatZodError(parseResult.error);
+          const errorMessage = formatZodIssues(parseResult.error);
           logger?.debug(`Tool ${name} validation failed: ${errorMessage}`);
           return {
             success: false,

@@ -313,15 +313,17 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
-   * Send a message through the message bus
+   * Send a message through the message bus. The reply's data comes back
+   * unchecked; a test reading a contract's answer parses it with the
+   * contract's response schema.
    */
-  async sendMessage<T = unknown, R = unknown>(
+  async sendMessage<T = unknown>(
     channel: string,
     payload: T,
     source = "test",
     broadcast?: boolean,
-  ): Promise<R | undefined> {
-    const response = await this.mockShell.getMessageBus().send<T, R>({
+  ): Promise<unknown> {
+    const response = await this.mockShell.getMessageBus().send<T>({
       type: channel,
       payload,
       sender: source,

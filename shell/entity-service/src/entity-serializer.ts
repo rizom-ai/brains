@@ -1,4 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { BaseEntity, EntityRegistry } from "./types";
 import {
   applyVisibilityToMarkdown,
@@ -201,6 +206,46 @@ export class EntitySerializer {
     );
 
     return { markdown, metadata };
+  }
+
+  /**
+   * An update to a type whose metadata is its frontmatter, with the
+   * frontmatter it writes carried into its metadata. Reads hand such a type
+   * back its body alone, so frontmatter on an update is one the caller
+   * wrote: it is laid over the metadata the caller read and decoded through
+   * the type's adapter, so the stored metadata matches the stored
+   * frontmatter at once rather than at the next import.
+   */
+  public withFrontmatterWrites<T extends BaseEntity>(entity: T): T {
+    const adapter = this.entityRegistry.getAdapter(entity.entityType);
+    if (adapter.metadataFromFrontmatter !== true) return entity;
+    const written = readMarkdownFrontmatter(entity.content);
+    if (!isPlainRecord(written.data)) return entity;
+    if (Object.keys(written.data).length === 0) return entity;
+    const encoded = readMarkdownFrontmatter(
+      adapter.toMarkdown({ ...entity, content: written.content }),
+    );
+    let decoded: Partial<BaseEntity>;
+    try {
+      decoded = adapter.fromMarkdown(
+        generateMarkdown(
+          {
+            ...(isPlainRecord(encoded.data) ? encoded.data : {}),
+            ...written.data,
+          },
+          written.content,
+        ),
+      );
+    } catch (error) {
+      throw toEntityValidationError(entity.entityType, error) ?? error;
+    }
+    return {
+      ...entity,
+      metadata: this.stripPolicyMetadata(
+        decoded.metadata ?? entity.metadata,
+        entity.entityType,
+      ),
+    };
   }
 
   /**

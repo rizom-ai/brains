@@ -1,6 +1,6 @@
 import { type MockShell } from "@brains/plugins/test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
@@ -32,7 +32,7 @@ export async function captureAdminWorkspaces(
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         registrations.push(message.payload);
         return {

@@ -42,7 +42,9 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
     return [...this.values.values()];
   }
 
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput> {
     const prefix = `${options.namespace}:`;
     return {
       get: async (key): Promise<T | null> => {
@@ -304,6 +306,30 @@ describe("RecurringCheckService", () => {
       deduplicationKey: "agent:directory-scan",
     });
     expect(scheduler.getCronExpressions()).toHaveLength(1);
+  });
+
+  it("accepts a package-scoped plugin id, as declared plugins have", async () => {
+    const { service, queue } = createService();
+    service.namespace("@fixture/reading-entities:bookmark").register({
+      id: "stale-pages",
+      cadence: "weekly",
+      run: async () => ({}),
+    });
+    await service.start();
+
+    expect(queue.enqueued[0]?.options).toMatchObject({
+      deduplicationKey: "@fixture/reading-entities:bookmark:stale-pages",
+    });
+    for (const invalid of ["", "has space", "@scope/name", "name:Upper"]) {
+      expect(() =>
+        service.namespace(invalid).register({
+          id: "check",
+          cadence: "daily",
+          run: async () => ({}),
+        }),
+      ).toThrow("Invalid recurring-check plugin ID");
+    }
+    await service.stop();
   });
 
   it("does not enqueue another catch-up after a successful occurrence", async () => {

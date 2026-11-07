@@ -3,6 +3,7 @@ import {
   createTestEntity,
   spyOnEntityCreate,
   spyOnEntityGet,
+  spyOnEntityGetRaw,
 } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { AnchorProfileService } from "../src/anchor-profile-service";
@@ -20,7 +21,7 @@ describe("AnchorProfileService", () => {
 
   let mockEntityService: IEntityService;
   let profileService: AnchorProfileService;
-  let getEntitySpy: ReturnType<typeof spyOnEntityGet>;
+  let getEntitySpy: ReturnType<typeof spyOnEntityGetRaw>;
   let createEntitySpy: ReturnType<typeof spyOnEntityCreate>;
 
   beforeEach(() => {
@@ -34,7 +35,7 @@ describe("AnchorProfileService", () => {
 
     // Create mock using factory, then override implementations
     mockEntityService = createMockEntityService();
-    getEntitySpy = spyOnEntityGet(mockEntityService);
+    getEntitySpy = spyOnEntityGetRaw(mockEntityService);
     createEntitySpy = spyOnEntityCreate(mockEntityService);
 
     getEntitySpy.mockImplementation(async () => mockGetEntityImpl());
@@ -60,6 +61,28 @@ describe("AnchorProfileService", () => {
       const profile = profileService.getProfile();
 
       expect(profile).toEqual(AnchorProfileService.getDefaultProfile());
+    });
+
+    it("hands out the photo as the image reference it is stored as", async () => {
+      spyOnEntityGet(mockEntityService).mockResolvedValue(
+        createTestEntity<AnchorProfileEntity>("anchor-profile", {
+          id: "anchor-profile",
+          content:
+            "---\nname: The Fourth\nphoto: '![Sam and Becca](data:image/webp;base64,AAAA)'\n---\n",
+        }),
+      );
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity> =>
+        createTestEntity<AnchorProfileEntity>("anchor-profile", {
+          id: "anchor-profile",
+          content:
+            "---\nname: The Fourth\nphoto: '![Sam and Becca](entity://image/sam-x-becca)'\n---\n",
+        });
+
+      await profileService.initialize();
+
+      expect(profileService.getProfile().photo).toBe(
+        "![Sam and Becca](entity://image/sam-x-becca)",
+      );
     });
 
     it("should parse and return profile from cache when entity exists", async () => {
@@ -249,7 +272,7 @@ socialLinks:
 
       // Create fresh mock for this test
       const freshMockEntityService = createMockEntityService();
-      spyOn(freshMockEntityService, "getEntity").mockResolvedValue(null);
+      spyOn(freshMockEntityService, "getEntityRaw").mockResolvedValue(null);
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
         entityId: "anchor-profile",
         jobId: "job-123",

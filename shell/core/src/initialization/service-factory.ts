@@ -6,8 +6,11 @@ import {
   OnlineEmbeddingProvider,
   resolveEmbeddingProfile,
 } from "@brains/ai-service";
-import { ContentService as ContentServiceClass } from "@brains/content-service";
-import { createGenerationAuthorizer } from "./generation-authorization";
+import {
+  ContentService as ContentServiceClass,
+  GenerationAuthorizer,
+} from "@brains/content-service";
+import { createCallerAuthorizer } from "./caller-authorization";
 import {
   ConversationServiceTag,
   createConversationServiceLayer,
@@ -319,6 +322,11 @@ export function createShellServices(options: {
     }
   });
 
+  // One requester authorizer: generation and package jobs share it.
+  const callerAuthorizer = createCallerAuthorizer(
+    permissionService,
+    messageBus,
+  );
   const contentService =
     dependencies?.contentService ??
     new ContentServiceClass({
@@ -327,9 +335,9 @@ export function createShellServices(options: {
       aiService,
       templateRegistry,
       dataSourceRegistry,
-      generationAuthorizer: createGenerationAuthorizer(
+      generationAuthorizer: new GenerationAuthorizer(
         permissionService,
-        messageBus,
+        callerAuthorizer,
       ),
     });
 
@@ -373,6 +381,7 @@ export function createShellServices(options: {
     aiService,
     conversationService,
     contentService,
+    callerAuthorizer,
     jobQueueService,
     jobQueueWorker,
     batchJobManager,

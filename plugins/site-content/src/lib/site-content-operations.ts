@@ -1,28 +1,10 @@
-import {
-  formatVoiceGuidance,
-  parseStyleGuideContent,
-  SITE_BUILDER_CHANNELS,
-} from "@brains/contracts";
+import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  siteBuilderRoutesContract,
+  type RouteDefinition,
+} from "@brains/site-composition";
 import type { GenerateOptions } from "../schemas/generate-options";
-
-const routeSectionSchema = z.looseObject({
-  id: z.string(),
-  template: z.string().optional(),
-  content: z.unknown().optional(),
-});
-
-const routeSchema = z.looseObject({
-  id: z.string(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  sections: z.array(routeSectionSchema),
-});
-
-const routesResponseSchema = z.array(routeSchema);
-
-type SiteContentRoute = z.output<typeof routeSchema>;
 
 export class SiteContentOperations {
   private readonly context: ServicePluginContext;
@@ -41,24 +23,15 @@ export class SiteContentOperations {
       : "";
   }
 
-  private async fetchRoutes(): Promise<SiteContentRoute[]> {
-    const response = await this.context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.routesList,
-      payload: {},
-    });
-    if ("noop" in response) {
-      throw new Error(
-        "No handler for site-builder:routes:list — is site-builder plugin loaded?",
-      );
-    }
-    if (!response.success || !response.data) {
+  private async fetchRoutes(): Promise<RouteDefinition[]> {
+    const result = await this.context.messaging.request(
+      siteBuilderRoutesContract,
+      {},
+    );
+    if (result.status !== "answered") {
       throw new Error("Failed to fetch routes from site-builder");
     }
-    const parsed = routesResponseSchema.safeParse(response.data);
-    if (!parsed.success) {
-      throw new Error("Failed to parse routes from site-builder");
-    }
-    return parsed.data;
+    return result.data;
   }
 
   /** Discovers site targets; the tool context carries the caller and cancellation. */
@@ -131,10 +104,8 @@ export class SiteContentOperations {
             data: {
               routeId: route.id,
               sectionId: section.id,
-              ...(route.title !== undefined && { routeTitle: route.title }),
-              ...(route.description !== undefined && {
-                routeDescription: route.description,
-              }),
+              routeTitle: route.title,
+              routeDescription: route.description,
             },
             ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
           },

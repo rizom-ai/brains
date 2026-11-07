@@ -1,7 +1,7 @@
 {
   "name": "@brains/contact",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.630",
+  "version": "0.2.0-alpha.646",
   "description": "Private contact intake for a Brain's public pages",
   "dependencies": {
     "@brains/console-theme": "workspace:*",
@@ -13,8 +13,10 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/runtime-state": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",

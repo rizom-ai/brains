@@ -1,6 +1,7 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
+import type { SocialLinkPlatform } from "@brains/contracts";
 import { definedFields } from "@brains/utils/strip-undefined";
 import {
   parseYamlDocument,
@@ -40,7 +41,7 @@ export interface ResolvedCohort {
 }
 
 export interface ResolvedAnchorProfileSocialLink {
-  platform: "github" | "instagram" | "linkedin" | "email" | "website";
+  platform: SocialLinkPlatform;
   url: string;
   label?: string;
 }

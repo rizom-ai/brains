@@ -1,6 +1,8 @@
+import { toSdkError } from "@brains/contracts";
 import type {
   IJobQueueService,
   IJobsNamespace,
+  JobHandler,
   JobInfo,
   JobQueueEnqueueRequest,
 } from "@brains/job-queue";
@@ -24,6 +26,12 @@ export function createMockJobQueue(): MockJobQueue {
   // every fresh job as pruned.
   const enqueuedJobs = new Map<string, JobInfo>();
   let enqueuedJobCount = 0;
+  // Registrations are remembered so a job contract finds its owner; a queue
+  // that forgot them would report every owner as missing.
+  const handlers = new Map<
+    string,
+    { handler: JobHandler; pluginId: string | undefined }
+  >();
 
   function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
     const id = `job-${++enqueuedJobCount}`;
@@ -41,6 +49,7 @@ export function createMockJobQueue(): MockJobQueue {
       retryCount: 0,
       maxRetries: request.options?.maxRetries ?? 3,
       lastError: null,
+      lastErrorPublic: null,
       createdAt: now,
       scheduledFor: now,
       startedAt: null,
@@ -103,9 +112,36 @@ export function createMockJobQueue(): MockJobQueue {
   const jobQueueService: IJobQueueService = {
     enqueue: async (request) => recordEnqueuedJob(request),
     // The real service reports whether the job was still claimable; the fake
-    // has no attempt bookkeeping, so it reports success.
-    complete: async () => true,
-    fail: async () => true,
+    // has no attempt bookkeeping, so it reports success. A settled job is
+    // recorded as the real queue records it: the diagnostic beside the
+    // failure's public form, both cleared on completion.
+    complete: async (jobId, result) => {
+      const job = enqueuedJobs.get(jobId);
+      if (job) {
+        enqueuedJobs.set(jobId, {
+          ...job,
+          status: "completed",
+          result,
+          lastError: null,
+          lastErrorPublic: null,
+          completedAt: Date.now(),
+        });
+      }
+      return true;
+    },
+    fail: async (jobId, error) => {
+      const job = enqueuedJobs.get(jobId);
+      if (job) {
+        enqueuedJobs.set(jobId, {
+          ...job,
+          status: "failed",
+          lastError: error.message,
+          lastErrorPublic: toSdkError(error).toJSON(),
+          completedAt: Date.now(),
+        });
+      }
+      return true;
+    },
     update: async () => true,
     getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
     getJobsByRootJobId: async (rootJobId) =>
@@ -119,12 +155,20 @@ export function createMockJobQueue(): MockJobQueue {
     }),
     cleanup: async () => 0,
     getRuntimeUpdates: async () => [],
-    registerHandler: () => {},
-    unregisterHandler: () => {},
-    unregisterPluginHandlers: () => {},
-    getRegisteredTypes: () => [],
-    getHandler: () => undefined,
-    getValidator: () => undefined,
+    registerHandler: (type, handler, pluginId) => {
+      handlers.set(type, { handler, pluginId });
+    },
+    unregisterHandler: (type) => {
+      handlers.delete(type);
+    },
+    unregisterPluginHandlers: (pluginId) => {
+      [...handlers]
+        .filter(([, registration]) => registration.pluginId === pluginId)
+        .forEach(([type]) => handlers.delete(type));
+    },
+    getRegisteredTypes: () => [...handlers.keys()],
+    getHandler: (type) => handlers.get(type)?.handler,
+    getValidator: (type) => handlers.get(type)?.handler,
     finalizeHandlerRegistrations: () => [],
     getExecutionRegistrations: () => [],
     getActiveJobs: async (types) =>

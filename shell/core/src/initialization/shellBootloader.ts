@@ -1,4 +1,5 @@
-import { PROJECTION_CHANNELS } from "@brains/contracts";
+import { collectContract } from "@brains/messaging-service";
+import { projectionWaveReadyContract } from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
   materializePrompts,
@@ -156,22 +157,14 @@ export class ShellBootloader {
         reconcileTargets: (targets) =>
           this.services.entityService.reconcileProjectionTargets(targets),
         beforeWaveCompletion: async (summary): Promise<void> => {
-          if (
-            !this.services.messageBus.hasHandlers(PROJECTION_CHANNELS.waveReady)
-          ) {
-            return;
-          }
-          const responses = await this.services.messageBus.collect({
-            type: PROJECTION_CHANNELS.waveReady,
-            payload: summary,
-            sender: "shell",
-          });
-          if (
-            responses.length === 0 ||
-            responses.some(
-              (response) => "noop" in response || !response.success,
-            )
-          ) {
+          const acks = await collectContract(
+            this.services.messageBus,
+            projectionWaveReadyContract,
+            summary,
+            "shell",
+          );
+          if (acks.status === "unavailable") return;
+          if (acks.failures.length > 0 || acks.answers.length === 0) {
             throw new Error(
               `Projection wave ${summary.waveId} completion was not acknowledged`,
             );

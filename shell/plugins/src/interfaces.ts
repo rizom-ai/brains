@@ -6,7 +6,10 @@ import type {
 import type { DefaultQueryResponse } from "@brains/contracts";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Daemon } from "./manager/daemon-types";
-import type { IContentService } from "@brains/content-service";
+import type {
+  CallerAuthorizer,
+  IContentService,
+} from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
@@ -197,6 +200,8 @@ export interface IShell {
   // Core service accessors
   getMessageBus(): IMessageBus;
   getContentService(): IContentService;
+  /** Requester authority for durable work, shared with generation. */
+  getCallerAuthorizer(): CallerAuthorizer;
   getLogger(): Logger;
   getEntityService(): IEntityService;
   getEntityRegistry(): IEntityRegistry;

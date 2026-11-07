@@ -1,6 +1,6 @@
 import { createTestPipelineContext } from "../pipeline-context";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { SITE_CHANNELS } from "@brains/contracts";
+import { siteBuildStagingContract } from "@brains/contracts";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
@@ -550,12 +550,11 @@ describe("runSiteBuild transactional output", () => {
       ...baseContext,
       services: {
         ...baseContext.services,
-        sendMessage: async (request) => {
-          if (request.type === SITE_CHANNELS.buildStaging) {
+        command: async (contract, payload) => {
+          if (contract.name === siteBuildStagingContract.name) {
             // Checked rather than asserted: the staging payload carries a
             // callback, and a build that stopped supplying one would otherwise
             // fail here with "not a function" rather than saying so.
-            const payload = request.payload;
             if (typeof payload !== "object" || payload === null) {
               throw new Error("Expected a staging payload object");
             }
@@ -565,7 +564,7 @@ describe("runSiteBuild transactional output", () => {
             }
             reportFailure("RSS feed generation failed: ENOENT");
           }
-          return baseContext.services.sendMessage(request);
+          return baseContext.services.command(contract, payload);
         },
       },
     };

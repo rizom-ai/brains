@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
@@ -35,7 +36,7 @@ describe("publish:register ordering", () => {
 
     // Subscribe AFTER plugin registered (late subscriber)
     const received: Array<{ entityType: string; provider: unknown }> = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       received.push(publishRegistrationSchema.parse(msg.payload));
       return { success: true };
     });
@@ -55,7 +56,7 @@ describe("publish:register ordering", () => {
   it("should deliver publish:register to an early subscriber after plugins-registered", async () => {
     // Subscribe BEFORE plugin registered (early subscriber)
     const received: Array<{ entityType: string; provider: unknown }> = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       received.push(publishRegistrationSchema.parse(msg.payload));
       return { success: true };
     });
@@ -79,7 +80,7 @@ describe("publish:register ordering", () => {
 
   it("should not send publish:register when no providers are configured", async () => {
     const received: Array<unknown> = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       received.push(msg.payload);
       return { success: true };
     });

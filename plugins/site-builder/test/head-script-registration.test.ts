@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { siteHeadScriptsContract } from "@brains/contracts";
 import { SiteBuilderPlugin } from "../src/plugin";
 
 // The site builds in the worker process, which registers plugins but takes
@@ -25,10 +25,10 @@ describe("Head scripts at build time", () => {
   function contribute(pluginId: string, data: unknown): void {
     createServicePluginContext(harness.getMockShell(), pluginId, {
       executionOnly: true,
-    }).messaging.subscribeExecution(
-      SITE_BUILDER_CHANNELS.headScripts,
-      async () => ({ success: true, data }),
-    );
+    }).messaging.subscribeExecution(siteHeadScriptsContract.name, async () => ({
+      success: true,
+      data,
+    }));
   }
 
   it("collects contributed scripts in the worker, after the site package's own", async () => {

@@ -1,5 +1,4 @@
 import { internalFullScope } from "@brains/entity-service";
-import { IMAGE_CHANNELS } from "@brains/contracts";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
@@ -16,6 +15,7 @@ import {
 import {
   PROGRESS_STEPS,
   JobResult,
+  imageGenerateJobContract,
   type GenerationResult,
 } from "@brains/contracts";
 import type { EntityPluginContext } from "../entity/context";
@@ -532,9 +532,9 @@ export abstract class BaseGenerationJobHandler<
     const title = generated.title ?? entityId;
     await this.enqueueFollowUp(
       () =>
-        this.context.jobs.enqueue({
-          type: IMAGE_CHANNELS.generate,
-          data: {
+        this.context.jobs.enqueue(
+          imageGenerateJobContract,
+          {
             prompt:
               coverImage.prompt ?? `Editorial cover image for: ${title}. `,
             title: `${title} Cover`,
@@ -544,11 +544,13 @@ export abstract class BaseGenerationJobHandler<
             entityTitle: title,
             entityContent: generated.content,
           },
-          toolContext: {
-            interfaceType: "job",
-            actor: { kind: "service", serviceId: "generation-job-handler" },
+          {
+            toolContext: {
+              interfaceType: "job",
+              actor: { kind: "service", serviceId: "generation-job-handler" },
+            },
           },
-        }),
+        ),
       `queue the cover image for ${this.entityType}:${entityId}`,
       `cover-image:${this.entityType}:${entityId}`,
     );

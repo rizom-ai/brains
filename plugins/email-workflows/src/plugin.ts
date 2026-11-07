@@ -1,4 +1,4 @@
-import { EMAIL_INBOUND, type InboundEmail } from "@brains/contracts";
+import { inboundEmailContract } from "@brains/contracts";
 import {
   ServicePlugin,
   type ServicePluginContext,
@@ -72,9 +72,16 @@ export class EmailWorkflowsPlugin extends ServicePlugin<
       logger: this.logger,
     });
 
-    context.messaging.subscribe<InboundEmail>(EMAIL_INBOUND, async (message) =>
-      processor.process(message.payload),
-    );
+    // Only an acknowledgement advances the mailbox cursor; a failure leaves
+    // the email to be read again.
+    context.messaging.answer(inboundEmailContract, async (email) => {
+      const outcome = await processor.process(email);
+      if ("success" in outcome && outcome.success) return {};
+      throw new Error(
+        ("error" in outcome ? outcome.error : undefined) ??
+          "Inbound email was not triaged",
+      );
+    });
   }
 
   protected override async onReady(

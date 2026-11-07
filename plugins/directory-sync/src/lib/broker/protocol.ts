@@ -22,11 +22,8 @@ export interface StatusMessage {
   requestId: string;
   brokerId: string;
   checkouts: string[];
-  activeRequestIds: string[];
-  queuedRequestIds: string[];
   ambiguousRequestIds: string[];
   evidenceComplete: boolean;
   recoveryPending: boolean;
   admitsMutations: boolean;
-  oldestActiveProgressAt: number | null;
 }

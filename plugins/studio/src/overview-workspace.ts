@@ -1,10 +1,9 @@
 import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   PermissionService,
   safeParseRuntimeDashboardWidgetData,
-  type DashboardWidgetProviderContext,
-  type DashboardWidgetRegistration,
+  studioOverviewContributionSchema,
+  type DashboardDigestLine,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
   type RuntimeOperatorLinkTarget,
@@ -36,105 +35,12 @@ export {
   STUDIO_OVERVIEW_WORKSPACE_ID,
 } from "./overview-constants";
 
-type DashboardDigestLine = NonNullable<
-  DashboardWidgetRegistration["digest"]
->[number];
 type RuntimeStudioOperatorListItem = Extract<
   RuntimeStudioOperatorPanelBlock,
   { type: "list" }
 >["items"][number];
 
-type ContributionDataProvider = (
-  context: DashboardWidgetProviderContext,
-) => Promise<unknown>;
-type ContributionDigestProvider = NonNullable<
-  DashboardWidgetRegistration["digestProvider"]
->;
-
-const contributionSchema: z.ZodObject<
-  {
-    id: z.ZodString;
-    pluginId: z.ZodString;
-    title: z.ZodString;
-    description: z.ZodOptional<z.ZodString>;
-    group: z.ZodString;
-    rendererName: z.ZodLiteral<typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER>;
-    priority: z.ZodDefault<z.ZodNumber>;
-    section: z.ZodDefault<
-      z.ZodEnum<{
-        primary: "primary";
-        secondary: "secondary";
-        sidebar: "sidebar";
-      }>
-    >;
-    visibility: z.ZodEnum<{ trusted: "trusted"; admin: "admin" }>;
-    needsAttention: z.ZodOptional<z.ZodNumber>;
-    digest: z.ZodOptional<
-      z.ZodArray<
-        z.ZodObject<{
-          label: z.ZodString;
-          value: z.ZodString;
-          tone: z.ZodOptional<
-            z.ZodEnum<{ plain: "plain"; good: "good"; warn: "warn" }>
-          >;
-        }>
-      >
-    >;
-    dataProvider: z.ZodCustom<
-      ContributionDataProvider,
-      ContributionDataProvider
-    >;
-    digestProvider: z.ZodOptional<
-      z.ZodCustom<ContributionDigestProvider, ContributionDigestProvider>
-    >;
-  },
-  z.core.$strict
-> = z
-  .object({
-    id: z.string().trim().min(1).max(120),
-    pluginId: z.string().trim().min(1).max(120),
-    title: z.string().trim().min(1).max(160),
-    description: z.string().max(500).optional(),
-    group: z.string().trim().min(1).max(120),
-    rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
-    priority: z.number().int().default(50),
-    section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
-    visibility: z.enum(["trusted", "admin"]),
-    needsAttention: z.number().int().nonnegative().optional(),
-    digest: z
-      .array(
-        z.object({
-          label: z.string().trim().min(1).max(160),
-          value: z.string().max(500),
-          tone: z.enum(["plain", "good", "warn"]).optional(),
-        }),
-      )
-      .max(4)
-      .optional(),
-    dataProvider: z.custom<ContributionDataProvider>(
-      (value) => typeof value === "function",
-      { message: "Expected Overview contribution data provider function" },
-    ),
-    digestProvider: z
-      .custom<ContributionDigestProvider>(
-        (value) => typeof value === "function",
-        {
-          message: "Expected Overview contribution digest provider function",
-        },
-      )
-      .optional(),
-  })
-  .strict();
-
-type StoredContribution = z.output<typeof contributionSchema>;
-
-/** Registrations arrive typed by the plugin contract; the schema must accept every one. */
-function expectContributionInput(
-  value: StudioOverviewContributionRegistration,
-): z.input<typeof contributionSchema> {
-  return value;
-}
-void expectContributionInput;
+type StoredContribution = z.output<typeof studioOverviewContributionSchema>;
 
 const entityActivityPayloadSchema = z.object({
   entityType: z.string().trim().min(1).max(120),
@@ -558,7 +464,7 @@ export class StudioOverviewRegistry {
   }
 
   register(input: StudioOverviewContributionRegistration): void {
-    const contribution = contributionSchema.parse(input);
+    const contribution = studioOverviewContributionSchema.parse(input);
     this.contributions.set(
       `${contribution.pluginId}:${contribution.id}`,
       contribution,

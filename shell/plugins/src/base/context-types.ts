@@ -4,9 +4,14 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
-import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
-import type { ENTITY_CHANNELS } from "@brains/contracts";
+import type {
+  BusAnswerMeta,
+  BusCollection,
+  BusContract,
+  BusResult,
+  ENTITY_CHANNELS,
+} from "@brains/contracts";
 import type {
   GetMessagesOptions,
   ListConversationsOptions,
@@ -51,15 +56,57 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
 
 export interface IMessagingNamespace {
-  /** Send a message to other plugins */
+  /**
+   * Send an event with `broadcast: true`: every subscriber hears it and its
+   * reply data comes back unchecked. A request or command to another plugin
+   * goes through `request`, `gather` or `command` and a bus contract.
+   */
   send: MessageSender;
 
   /**
-   * Send a message and gather one answer from every subscriber. For
-   * contributions read when they are used, such as the head scripts a site
-   * build asks for: it works in every process and in any registration order.
+   * Ask a contract's owner and get its validated answer, or `unavailable`
+   * when no plugin answers the contract. The request is validated before it
+   * is sent; an invalid one is the caller's bug and throws.
    */
-  collect: MessageCollector;
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    payload: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
+
+  /**
+   * Ask every owner of a collect contract: their validated answers in
+   * registration order, what went wrong with the rest, or `unavailable`.
+   */
+  gather<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "collect">,
+    payload: z.input<TRequest>,
+  ): Promise<BusCollection<z.output<TResponse>>>;
+
+  /**
+   * Send a command to every plugin that hears it; nobody answers. An invalid
+   * command is the caller's bug and throws.
+   */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    payload: z.input<TRequest>,
+  ): Promise<void>;
+
+  /**
+   * Own a request contract, answer a collect contract among others, or hear
+   * a command: the handler sees only valid requests, with the plugin that
+   * sent them, and its reply leaves only when the contract accepts it. A
+   * request contract has one owner; a second throws.
+   * An execution-only process answers only with `everyProcess`, as
+   * `subscribeExecution` does.
+   */
+  answer<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse>,
+    handler: (
+      request: z.output<TRequest>,
+      meta: BusAnswerMeta,
+    ) => Promise<z.input<TResponse>>,
+    options?: { everyProcess?: boolean },
+  ): () => void;
 
   /**
    * Subscribe to messages on a channel in this process.

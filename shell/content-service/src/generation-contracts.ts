@@ -13,10 +13,10 @@ import {
   assertGenerationRequestLimits,
   generationLimitPreprocessor,
 } from "./generation-limits";
+import type { Caller } from "./caller-authority";
 import {
   generationAuthoritySchema,
   type GenerationAuthority,
-  type GenerationCaller,
 } from "./generation-authorization";
 import {
   generationContextSchema,
@@ -67,7 +67,7 @@ export interface ParsedContentGenerationOptions {
 }
 
 export interface ContentGenerationRequestInput {
-  caller: GenerationCaller;
+  caller: Caller;
   targets: ContentGenerationTargetInput[];
   options?: ContentGenerationOptions;
   /** Template names are local to this plugin and scoped by the runtime. */

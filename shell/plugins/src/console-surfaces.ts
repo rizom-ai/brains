@@ -1,5 +1,6 @@
 import type { ConsoleSurface, SurfacePermissionLevel } from "@brains/contracts";
-import type { RegisteredWebRoute } from "./types/web-routes";
+import type { WebRouteRole } from "@brains/contracts";
+import { findRouteByRole, type RegisteredWebRoute } from "./types/web-routes";
 
 export type { ConsoleSurface, SurfacePermissionLevel } from "@brains/contracts";
 
@@ -10,45 +11,40 @@ const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
 };
 
 /**
- * Console surfaces in strip order. A surface's link exists exactly when its
- * plugin registered a web route — a brain without the Studio plugin shows no Studio
- * door, mirroring how dashboard tabs derive from widget groups. `visibility`
- * is the minimum permission level a caller needs to see the door, matching the
- * permission each surface enforces on its own route.
- *
- * This table names the console plugins and their permission tiers in one
- * place; the eventual end state is each plugin declaring its own surface
- * descriptor at route registration, which is HTTP-route-registry work and
- * governed by that plan — until then, the table lives here, next to the
- * route registry it reads, rather than in the theme package.
+ * Console surfaces in strip order. A surface's door is the route claiming one
+ * of its roles, the first role that any route claims; a brain whose plugins
+ * claim none of them shows no such door. `visibility` is the minimum
+ * permission level a caller needs to see the door, matching the permission
+ * each surface enforces on its own route.
  */
-/** Studio routes that are not its door: Chat's own, and its redirect aliases. */
-const STUDIO_NON_DOORS = new Set(["/chat", "/cms", "/admin", "/account"]);
-
-const SURFACE_PLUGINS: ReadonlyArray<{
+const SURFACES: ReadonlyArray<{
   id: string;
-  pluginId: string;
+  roles: readonly WebRouteRole[];
+  /** A route the surface cannot work without; absent, it has no door. */
+  requiresRole?: WebRouteRole;
   label: string;
   visibility: SurfacePermissionLevel;
   requiresActiveSession: boolean;
 }> = [
   {
     id: "dashboard",
-    pluginId: "dashboard",
+    roles: ["dashboard"],
     label: "Dashboard",
     visibility: "public",
     requiresActiveSession: false,
   },
   {
     id: "web-chat",
-    pluginId: "web-chat",
+    // Studio's native chat, else the Ask page; either needs a chat backend.
+    roles: ["studio-chat", "ask"],
+    requiresRole: "chat-api",
     label: "Chat",
     visibility: "trusted",
     requiresActiveSession: true,
   },
   {
     id: "studio",
-    pluginId: "studio",
+    roles: ["studio"],
     label: "Studio",
     visibility: "public",
     requiresActiveSession: true,
@@ -56,7 +52,7 @@ const SURFACE_PLUGINS: ReadonlyArray<{
 ];
 
 export function deriveConsoleSurfaces(
-  routes: Pick<RegisteredWebRoute, "pluginId" | "fullPath">[],
+  routes: readonly Pick<RegisteredWebRoute, "fullPath" | "definition">[],
   options: {
     /** Plugin id of the surface rendering the strip (gets `is-active`). */
     activeId: string;
@@ -81,11 +77,12 @@ export function deriveConsoleSurfaces(
 
   for (const {
     id,
-    pluginId,
+    roles,
+    requiresRole,
     label,
     visibility,
     requiresActiveSession,
-  } of SURFACE_PLUGINS) {
+  } of SURFACES) {
     const isSelf = options.self?.id === id;
     if (
       !isSelf &&
@@ -94,24 +91,13 @@ export function deriveConsoleSurfaces(
     ) {
       continue;
     }
-    const pluginDoors = routes
-      .filter(
-        (route) =>
-          route.pluginId === pluginId &&
-          !(id === "studio" && STUDIO_NON_DOORS.has(route.fullPath)),
-      )
-      .map((route) => route.fullPath)
-      .sort((a, b) => a.length - b.length);
-    const nativeChatDoor =
-      id === "web-chat" && pluginDoors.length > 0
-        ? routes.find(
-            (route) =>
-              route.pluginId === "studio" && route.fullPath === "/chat",
-          )?.fullPath
-        : undefined;
     const door = isSelf
       ? options.self?.href
-      : (nativeChatDoor ?? pluginDoors[0]);
+      : requiresRole && !findRouteByRole(routes, requiresRole)
+        ? undefined
+        : roles
+            .map((role) => findRouteByRole(routes, role)?.fullPath)
+            .find((path) => path !== undefined);
     if (door !== undefined) {
       surfaces.push({
         id,

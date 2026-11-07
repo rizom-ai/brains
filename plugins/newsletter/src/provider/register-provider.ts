@@ -1,4 +1,5 @@
-import { PUBLISH_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { PUBLISH_CHANNELS, publishRegisterContract } from "@brains/contracts";
+import { siteBuilderSlotsContract } from "@brains/site-composition";
 import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
 import { NewsletterSignup } from "@brains/ui-library";
 import type { Logger } from "@brains/utils/logger";
@@ -24,13 +25,10 @@ export function registerNewsletterProvider(
   logger: Logger,
 ): void {
   context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-    await context.messaging.send({
-      type: PUBLISH_CHANNELS.register,
-      payload: {
-        entityType: "newsletter",
-        provider,
-        config: { publishTimestampField: "sentAt" },
-      },
+    await context.messaging.command(publishRegisterContract, {
+      entityType: "newsletter",
+      provider,
+      config: { publishTimestampField: "sentAt" },
     });
 
     logger.info("Newsletter provider registered", {
@@ -41,23 +39,21 @@ export function registerNewsletterProvider(
 
   // Site builds run in the worker and ask for slots as they render; that
   // process never emits pluginsRegistered, so the signup answers there.
-  context.messaging.subscribeExecution(
-    SITE_BUILDER_CHANNELS.slots,
-    async () => ({
-      success: true,
-      data: [
-        {
-          pluginId: options.pluginId,
-          slotName: "footer-top",
-          render: (): ReactElement =>
-            h(NewsletterSignup, {
-              variant: "inline",
-              action: options.signupAction,
-              successMessage: options.signupSuccessMessage,
-            }),
-        },
-      ],
-    }),
+  context.messaging.answer(
+    siteBuilderSlotsContract,
+    async () => [
+      {
+        pluginId: options.pluginId,
+        slotName: "footer-top",
+        render: (): ReactElement =>
+          h(NewsletterSignup, {
+            variant: "inline",
+            action: options.signupAction,
+            successMessage: options.signupSuccessMessage,
+          }),
+      },
+    ],
+    { everyProcess: true },
   );
 
   if (!options.autoSendOnPublish) return;

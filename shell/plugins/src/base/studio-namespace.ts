@@ -1,11 +1,11 @@
+import { sdkErrorFrom } from "@brains/contracts";
 import type { IMessagingNamespace } from "./context-types";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
   type StudioWorkspaceRegistration,
   type StudioWorkspaceRegistrationResult,
-  type StudioWorkspaceUnregistration,
-} from "../types/studio-workspace";
+} from "../contracts/studio-workspace-contracts";
 
 export interface IStudioNamespace {
   /** Whether a Studio host is currently mounted. */
@@ -20,59 +20,44 @@ export interface IStudioNamespace {
   unregisterWorkspace(workspaceId?: string): Promise<boolean>;
 }
 
-function hostError(
-  operation: "register" | "unregister",
-  error: string | undefined,
-): Error {
-  return new Error(
-    `Studio workspace ${operation} failed: ${error ?? "unknown host error"}`,
-  );
-}
-
 export function createStudioNamespace(
   messaging: IMessagingNamespace,
   pluginId: string,
   hasHandler: (channel: string) => boolean,
 ): IStudioNamespace {
   return {
-    isAvailable: (): boolean => hasHandler(STUDIO_WORKSPACE_REGISTER_MESSAGE),
+    isAvailable: (): boolean =>
+      hasHandler(studioWorkspaceRegisterContract.name),
     async registerWorkspace(
       workspace,
     ): Promise<StudioWorkspaceRegistrationResult | false> {
-      if (!hasHandler(STUDIO_WORKSPACE_REGISTER_MESSAGE)) return false;
-      const response = await messaging.send<
-        StudioWorkspaceRegistration,
-        StudioWorkspaceRegistrationResult
-      >({
-        type: STUDIO_WORKSPACE_REGISTER_MESSAGE,
-        payload: { ...workspace, pluginId },
+      if (!hasHandler(studioWorkspaceRegisterContract.name)) return false;
+      const result = await messaging.request(studioWorkspaceRegisterContract, {
+        ...workspace,
+        pluginId,
       });
-      if ("noop" in response) {
-        throw hostError("register", undefined);
+      if (result.status === "failed") {
+        throw sdkErrorFrom(
+          result.error,
+          `Studio workspace register failed: ${result.error.message}`,
+        );
       }
-      if (!response.success || response.data === undefined) {
-        throw hostError("register", response.error);
-      }
-      return response.data;
+      return result.status === "answered" ? result.data : false;
     },
 
     async unregisterWorkspace(workspaceId): Promise<boolean> {
-      if (!hasHandler(STUDIO_WORKSPACE_UNREGISTER_MESSAGE)) return false;
-      const payload: StudioWorkspaceUnregistration = {
-        pluginId,
-        ...(workspaceId ? { workspaceId } : {}),
-      };
-      const response = await messaging.send<StudioWorkspaceUnregistration>({
-        type: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
-        payload,
-      });
-      if ("noop" in response) {
-        throw hostError("unregister", undefined);
+      if (!hasHandler(studioWorkspaceUnregisterContract.name)) return false;
+      const result = await messaging.request(
+        studioWorkspaceUnregisterContract,
+        { pluginId, ...(workspaceId ? { workspaceId } : {}) },
+      );
+      if (result.status === "failed") {
+        throw sdkErrorFrom(
+          result.error,
+          `Studio workspace unregister failed: ${result.error.message}`,
+        );
       }
-      if (!response.success) {
-        throw hostError("unregister", response.error);
-      }
-      return true;
+      return result.status === "answered";
     },
   };
 }

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  EMAIL_SOURCE_READ,
-  emailSourceReadResponseSchema,
+  emailSourceReadContract,
   type EmailSourceReadResponse,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -71,20 +70,17 @@ async function sendRead(
   permissionLevel: "admin" | "trusted" | "public",
   signal?: AbortSignal,
 ): Promise<EmailSourceReadResponse> {
-  const response = await harness
+  const result = await harness
     .getServiceContext("source-read-test")
-    .messaging.send({
-      type: EMAIL_SOURCE_READ,
-      payload: {
-        sourceRef,
-        actor: { permissionLevel },
-        ...(signal ? { signal } : {}),
-      },
+    .messaging.request(emailSourceReadContract, {
+      sourceRef,
+      actor: { permissionLevel },
+      ...(signal ? { signal } : {}),
     });
-  if ("noop" in response || !response.success) {
+  if (result.status !== "answered") {
     throw new Error("Email source read was not handled");
   }
-  return emailSourceReadResponseSchema.parse(response.data);
+  return result.data;
 }
 
 describe("email source read", () => {

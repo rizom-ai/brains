@@ -1,30 +1,24 @@
 import {
   CHAT_INTERACTION_ID,
-  CONSOLE_CHANNELS,
   STUDIO_INTERACTION_ID,
-  type ConsoleJumpDestination,
+  SdkError,
+  consoleJumpDestinationsContract,
 } from "@brains/contracts";
 import type {
-  StudioOverviewContributionRegistration,
-  StudioOverviewContributionUnregistration,
-  StudioWorkspaceRegistration,
-  StudioWorkspaceRegistrationResult,
-  StudioWorkspaceUnregistration,
   ServicePluginContext,
   UserPermissionLevel,
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   ServicePlugin,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
 import {
-  normalizeStudioBasePath,
   studioCreatePath,
   studioEntityPath,
   studioWorkspacePath,
@@ -38,10 +32,6 @@ import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 
-const jumpDestinationsRequestSchema = z.object({
-  permissionLevel: z.enum(["public", "trusted", "admin"]),
-});
-import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
@@ -76,19 +66,7 @@ const studioPluginConfigSchema: z.ZodObject<
   z.core.$strict
 > = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
-  routePath: z
-    .string()
-    .default("/studio")
-    .refine(
-      (routePath) =>
-        !["/cms", "/account", "/admin"].includes(
-          normalizeStudioBasePath(routePath),
-        ),
-      {
-        message:
-          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
-      },
-    ),
+  routePath: z.string().default("/studio"),
 });
 
 type StudioPluginConfig = z.output<typeof studioPluginConfigSchema>;
@@ -248,48 +226,30 @@ export class StudioPlugin extends ServicePlugin<
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),
     );
-    context.messaging.subscribe<unknown, ConsoleJumpDestination[]>(
-      CONSOLE_CHANNELS.jumpDestinations,
-      (message) => {
-        const request = jumpDestinationsRequestSchema.safeParse(
-          message.payload,
-        );
-        if (!request.success) return { success: false, error: "Bad request" };
-        return {
-          success: true,
-          data: studioJumpDestinations({
-            context,
-            routePath: this.config.routePath,
-            permissionLevel: request.data.permissionLevel,
-            workspaceRegistry: this.workspaceRegistry,
-            hasChat: resolveStudioChatApiPath(context) !== undefined,
-            entityDisplay:
-              this.config.entityDisplay ??
-              parseEntityDisplay(context.entityDisplay),
-          }),
-        };
+    context.messaging.answer(
+      consoleJumpDestinationsContract,
+      async ({ permissionLevel }) =>
+        studioJumpDestinations({
+          context,
+          routePath: this.config.routePath,
+          permissionLevel,
+          workspaceRegistry: this.workspaceRegistry,
+          hasChat: resolveStudioChatApiPath(context) !== undefined,
+          entityDisplay:
+            this.config.entityDisplay ??
+            parseEntityDisplay(context.entityDisplay),
+        }),
+    );
+    context.messaging.answer(
+      studioOverviewContributionRegisterContract,
+      async (contribution) => {
+        this.overviewRegistry.register(contribution);
       },
     );
-    context.messaging.subscribe<StudioOverviewContributionRegistration>(
-      STUDIO_OVERVIEW_REGISTER_MESSAGE,
-      (message) => {
-        try {
-          this.overviewRegistry.register(message.payload);
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
-      },
-    );
-    context.messaging.subscribe<StudioOverviewContributionUnregistration>(
-      STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-      (message) => {
-        try {
-          this.overviewRegistry.unregister(message.payload);
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
+    context.messaging.answer(
+      studioOverviewContributionUnregisterContract,
+      async (request) => {
+        this.overviewRegistry.unregister(request);
       },
     );
 
@@ -335,47 +295,33 @@ export class StudioPlugin extends ServicePlugin<
           : undefined,
     });
 
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      StudioWorkspaceRegistrationResult
-    >(STUDIO_WORKSPACE_REGISTER_MESSAGE, async (message) => {
-      try {
+    context.messaging.answer(
+      studioWorkspaceRegisterContract,
+      async (registration) => {
         if (
-          message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
-          message.payload.id === STUDIO_CHAT_WORKSPACE_ID ||
-          message.payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
+          registration.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
+          registration.id === STUDIO_CHAT_WORKSPACE_ID ||
+          registration.id === STUDIO_OVERVIEW_WORKSPACE_ID
         ) {
-          throw new Error(
-            `Studio workspace id is reserved by the host: ${message.payload.id}`,
-          );
+          throw new SdkError("invalid_input", {
+            publicMessage: `Studio workspace id is reserved by the host: ${registration.id}`,
+          });
         }
-        const workspace = this.workspaceRegistry.register(message.payload);
+        const workspace = this.workspaceRegistry.register(registration);
         return {
-          success: true,
-          data: {
-            workspaceUrl: studioWorkspacePath(
-              this.config.routePath,
-              workspace.id,
-            ),
-          },
+          workspaceUrl: studioWorkspacePath(
+            this.config.routePath,
+            workspace.id,
+          ),
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error),
-        };
-      }
-    });
-    context.messaging.subscribe<StudioWorkspaceUnregistration>(
-      STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
-      (message) => {
-        if (message.payload.pluginId !== "studio") {
-          this.workspaceRegistry.unregister(
-            message.payload.pluginId,
-            message.payload.workspaceId,
-          );
+      },
+    );
+    context.messaging.answer(
+      studioWorkspaceUnregisterContract,
+      async ({ pluginId, workspaceId }) => {
+        if (pluginId !== "studio") {
+          this.workspaceRegistry.unregister(pluginId, workspaceId);
         }
-        return { success: true };
       },
     );
   }
@@ -402,54 +348,8 @@ export class StudioPlugin extends ServicePlugin<
       },
       listMembers: () => this.getContext().auth.listAssignableMembers(),
     });
-    return [...legacySurfaceRedirects(this.config.routePath), ...editorRoutes];
+    return editorRoutes;
   }
-}
-
-function permanentRedirect(location: string): Response {
-  return new Response(null, {
-    status: 308,
-    headers: { Location: location, "Cache-Control": "no-store" },
-  });
-}
-
-function legacySurfaceRedirects(routePath: string): WebRouteDefinition[] {
-  const studioBase = normalizeStudioBasePath(routePath);
-  const studioHome = studioBase || "/";
-  return [
-    {
-      path: "/cms",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Response => {
-        const source = new URL(request.url);
-        const suffix =
-          source.pathname === "/cms" ? "" : source.pathname.slice(4);
-        const destinationPath = `${studioBase}${suffix}` || "/";
-        return permanentRedirect(`${destinationPath}${source.search}`);
-      },
-    },
-    {
-      path: "/account",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Response => {
-        const source = new URL(request.url);
-        return permanentRedirect(
-          `${studioWorkspacePath(studioHome, STUDIO_ACCOUNT_WORKSPACE_ID)}${source.search}`,
-        );
-      },
-    },
-    {
-      path: "/admin",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (): Response => permanentRedirect(studioHome),
-    },
-  ];
 }
 
 function safeInboxSummary(summary: string | undefined): string | undefined {

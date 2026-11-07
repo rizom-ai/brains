@@ -2,8 +2,8 @@ import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioOverviewContributionRegisterContract,
+  studioWorkspaceRegisterContract,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
@@ -45,7 +45,7 @@ describe("administration workspace provider", () => {
     shell
       .getMessageBus()
       .subscribe<StudioOverviewContributionRegistration>(
-        STUDIO_OVERVIEW_REGISTER_MESSAGE,
+        studioOverviewContributionRegisterContract.name,
         (message) => {
           overviewContributions.push(message.payload);
           return { success: true };
@@ -54,7 +54,7 @@ describe("administration workspace provider", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         async (message) => {
           registrations.push(message.payload);
           return {

@@ -1,4 +1,10 @@
-import { CONSOLE_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
+import {
+  MCP_INTERACTION_ID,
+  a2aAgentsContract,
+  a2aCallContract,
+  consoleJumpDestinationsContract,
+  directorySyncStatusContract,
+} from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 
 async function readAssetManifest(): Promise<
@@ -139,11 +145,6 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
 
 function createEditorTestShell(): MockShell {
   const shell = createMockShell({ domain: "yeehaa.io" });
-  shell.getMessageBus().subscribe("git-sync:get-repo-info", async () => ({
-    success: true,
-    data: { repo: "owner/repo", branch: "main" },
-  }));
-
   const registry = shell.getEntityRegistry();
   registry.registerEntityType(
     "post",
@@ -418,6 +419,7 @@ describe("studio editor shell", () => {
         definition: {
           path: "/api/chat",
           method: "POST",
+          role: "chat-api",
           public: true,
           handler: (_request: Request): Response => new Response(),
         },
@@ -886,7 +888,7 @@ describe("studio editor api", () => {
   it("lists approved agents only when the a2a interface answers", async () => {
     const shell = createEditorTestShell();
     await seedPost(shell, { id: "hello-world", body: "The original body." });
-    shell.getMessageBus().subscribe("a2a:call:agents", async () => ({
+    shell.getMessageBus().subscribe(a2aAgentsContract.name, async () => ({
       success: true,
       data: {
         agents: [
@@ -916,11 +918,15 @@ describe("studio editor api", () => {
     const cookie = await createSessionCookie(shell);
     await seedPost(shell, { id: "hello-world", body: "The original body." });
     const calls: unknown[] = [];
-    shell.getMessageBus().subscribe("a2a:call:request", async (message) => {
+    shell.getMessageBus().subscribe(a2aCallContract.name, async (message) => {
       calls.push(message.payload);
       return {
         success: true,
-        data: { state: "completed", response: "The claim is accurate." },
+        data: {
+          state: "completed",
+          response: "The claim is accurate.",
+          sources: [],
+        },
       };
     });
     const plugin = await registerPlugin(shell);
@@ -967,12 +973,13 @@ describe("studio editor api", () => {
     expect(stored?.content).not.toContain("The claim is accurate.");
   });
 
-  it("returns a clear 4xx when the a2a handler refuses an agent", async () => {
+  it("answers an agent the a2a handler refuses with the refusal's code and status", async () => {
     const shell = createEditorTestShell();
     await seedPost(shell, { id: "hello-world", body: "Text" });
-    shell.getMessageBus().subscribe("a2a:call:request", async () => ({
+    shell.getMessageBus().subscribe(a2aCallContract.name, async () => ({
       success: false,
       error: "Agent unknown.example is not saved or approved.",
+      code: "permission_denied",
     }));
     const cookie = await createSessionCookie(shell);
     const plugin = await registerPlugin(shell);
@@ -995,9 +1002,45 @@ describe("studio editor api", () => {
       }),
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     expect(await response.json()).toEqual({
       error: "Agent unknown.example is not saved or approved.",
+      code: "permission_denied",
+    });
+  });
+
+  it("keeps an a2a failure's diagnostic out of the author's answer", async () => {
+    const shell = createEditorTestShell();
+    await seedPost(shell, { id: "hello-world", body: "Text" });
+    shell.getMessageBus().subscribe(a2aCallContract.name, async () => ({
+      success: false,
+      error: "socket hang up at 10.0.0.7:443",
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/studio/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          entityType: "post",
+          id: "hello-world",
+          agent: "approved.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "The operation failed",
+      code: "handler_failed",
     });
   });
 
@@ -1065,7 +1108,7 @@ describe("studio editor api", () => {
     ): Promise<unknown> =>
       (
         await shell.getMessageBus().collect({
-          type: CONSOLE_CHANNELS.jumpDestinations,
+          type: consoleJumpDestinationsContract.name,
           sender: "test",
           payload: { permissionLevel },
         })
@@ -2194,6 +2237,8 @@ describe("studio editor sync status", () => {
     isInitialized: true,
     watchEnabled: true,
     lastSync: "2026-07-09T10:00:00.000Z",
+    totalFiles: 3,
+    byEntityType: { post: 3 },
     git: {
       branch: "main",
       hasChanges: false,
@@ -2217,10 +2262,12 @@ describe("studio editor sync status", () => {
 
   it("maps the directory-sync status onto the save-pipeline payload", async () => {
     const shell = createEditorTestShell();
-    shell.getMessageBus().subscribe("sync:status:request", async () => ({
-      success: true,
-      data: syncStatusData,
-    }));
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncStatusContract.name, async () => ({
+        success: true,
+        data: syncStatusData,
+      }));
     const cookie = await createSessionCookie(shell);
     const plugin = await registerPlugin(shell);
 
@@ -2261,10 +2308,12 @@ describe("studio editor sync status", () => {
 
   it("degrades to nulls when the status payload is malformed", async () => {
     const shell = createEditorTestShell();
-    shell.getMessageBus().subscribe("sync:status:request", async () => ({
-      success: true,
-      data: { unexpected: true },
-    }));
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncStatusContract.name, async () => ({
+        success: true,
+        data: { unexpected: true },
+      }));
     const cookie = await createSessionCookie(shell);
     const plugin = await registerPlugin(shell);
 

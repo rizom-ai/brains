@@ -1,5 +1,134 @@
 # @brains/runtime-state
 
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineServicePlugin` now takes two arguments: a header with the package's `id`, `config`, `accountSettings` and `setup`, and the behavior that reads the state `setup` returns, whose slots may be written in any order; a behavior slot written into the header is refused. `setup` is given `runtimeState({ namespace, schema })`, a store qualified by the owning package so two packages naming the same namespace never share a record. `@rizom/brain/services` exports `SdkError`, `SdkErrorCode`, `SdkErrorData`, `sdkErrorCodeSchema` and `sdkErrorSchema`: a coded failure whose code survives every boundary and whose diagnostic message stays local. Runtime state now stores the schema's input and parses it at every read, so a transforming schema no longer fails on a stored value; a value that does not survive a JSON round trip is refused before it is written, and `compareAndSet` compares the expected value with the stored value as read, answering `false` rather than throwing for one the schema would refuse. Namespaces may be up to 512 characters, and a scoped store is a frozen handle that exposes no storage internals.
+- Updated dependencies [[`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6)]:
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/db@0.2.0-alpha.644
+
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+
+## 0.2.0-alpha.642
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.642
+  - @brains/utils@0.2.0-alpha.642
+
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.641
+  - @brains/utils@0.2.0-alpha.641
+
+## 0.2.0-alpha.640
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.640
+  - @brains/utils@0.2.0-alpha.640
+
+## 0.2.0-alpha.639
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.639
+  - @brains/utils@0.2.0-alpha.639
+
+## 0.2.0-alpha.638
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.638
+  - @brains/utils@0.2.0-alpha.638
+
+## 0.2.0-alpha.637
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.637
+  - @brains/utils@0.2.0-alpha.637
+
+## 0.2.0-alpha.636
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.636
+  - @brains/utils@0.2.0-alpha.636
+
+## 0.2.0-alpha.635
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.635
+  - @brains/utils@0.2.0-alpha.635
+
+## 0.2.0-alpha.634
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.634
+  - @brains/utils@0.2.0-alpha.634
+
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/db@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+
 ## 0.2.0-alpha.630
 
 ### Patch Changes

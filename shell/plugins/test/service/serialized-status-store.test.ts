@@ -47,9 +47,9 @@ function createMemoryNamespace(): MemoryNamespace {
   let writes = 0;
 
   const runtimeState: IRuntimeStateNamespace = {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => ({
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => ({
       get: async (key): Promise<T | null> => {
         reads += 1;
         const record = records.get(`${options.namespace}:${key}`);

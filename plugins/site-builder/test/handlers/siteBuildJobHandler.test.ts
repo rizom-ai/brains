@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
+import { messagingFor } from "../test-helpers";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
@@ -35,12 +36,16 @@ describe("SiteBuildJobHandler", () => {
       description: "Test Description",
     };
 
-    handler = new SiteBuildJobHandler(createSilentLogger("test"), sendMessage, {
-      siteBuilder: mockSiteBuilder,
-      layouts: {},
-      defaultSiteConfig,
-      sharedImagesDir: "./dist/images",
-    });
+    handler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      messagingFor(sendMessage),
+      {
+        siteBuilder: mockSiteBuilder,
+        layouts: {},
+        defaultSiteConfig,
+        sharedImagesDir: "./dist/images",
+      },
+    );
   });
 
   it("builds one site at a time, with room for a large site", () => {
@@ -150,7 +155,7 @@ describe("SiteBuildJobHandler", () => {
 
       const handlerWithSlots = new SiteBuildJobHandler(
         createSilentLogger("test"),
-        slotsSendMessage,
+        messagingFor(slotsSendMessage),
         {
           siteBuilder: mockSiteBuilderWithSlots,
           layouts: {},
@@ -190,7 +195,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage } = createMockMessageSender();
     const bilingualHandler = new SiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(sendMessage),
       {
         siteBuilder,
         layouts: {},
@@ -242,7 +247,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage, sentMessages } = createMockMessageSender();
     const cancelledHandler = new SiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(sendMessage),
       {
         siteBuilder: cancelledBuilder,
         layouts: {},
@@ -302,7 +307,7 @@ describe("SiteBuildJobHandler", () => {
       const { sendMessage } = createMockMessageSender();
       const handler = new SiteBuildJobHandler(
         createSilentLogger("test"),
-        sendMessage,
+        messagingFor(sendMessage),
         {
           siteBuilder: builder,
           layouts: {},
@@ -341,7 +346,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage } = createMockMessageSender();
     const handler = new SiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(sendMessage),
       {
         siteBuilder: builder,
         layouts: {},
@@ -391,7 +396,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage, sentMessages } = createMockMessageSender();
     const unchangedHandler = new SiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(sendMessage),
       {
         siteBuilder: unchangedBuilder,
         layouts: {},
@@ -439,7 +444,7 @@ describe("SiteBuildJobHandler", () => {
       }));
       const retryHandler = new SiteBuildJobHandler(
         createSilentLogger("test"),
-        createMockMessageSender().sendMessage,
+        messagingFor(createMockMessageSender().sendMessage),
         {
           siteBuilder: { build },
           layouts: {},
@@ -482,7 +487,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage, sentMessages } = createMockMessageSender();
     const failingWriteHandler = new SiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(sendMessage),
       {
         siteBuilder: mockSiteBuilder,
         layouts: {},

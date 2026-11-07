@@ -552,6 +552,10 @@ describe("JobQueueRepository fenced attempts", () => {
       workerSessionId: "session-b",
       retryCount: 1,
       lastError: "Attempt lease expired",
+      lastErrorPublic: {
+        code: "deadline_exceeded",
+        message: "The execution deadline was exceeded",
+      },
     });
   });
 
@@ -884,6 +888,10 @@ describe("JobQueueRepository fenced attempts", () => {
       status: JOB_STATUS.FAILED,
       retryCount: 1,
       lastError: "Attempt lease expired",
+      lastErrorPublic: {
+        code: "deadline_exceeded",
+        message: "The execution deadline was exceeded",
+      },
       completedAt: first.now + 1,
     });
     expect(stored?.runtimeUpdatedAt).not.toBeNull();
@@ -1520,6 +1528,10 @@ describe("JobQueueRepository fenced attempts", () => {
       id: job.id,
       type: "skill:project",
       status: JOB_STATUS.FAILED,
+      lastErrorPublic: {
+        code: "no_handler",
+        message: "No handler is available for this capability",
+      },
       retryCount: 0,
       completedAt: 20_000,
       runtimeUpdatedAt: 20_000,

@@ -24,11 +24,8 @@ export {
   GIT_BROKER_SOCKET_ENV,
 } from "./lib/broker/connect";
 export {
-  BROKER_PROGRESS_TIMEOUT_MS,
-  GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
   createBrokerHealthCheck,
   probeBrokerActivity,
-  resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
 export { getGitRemoteFingerprint } from "./lib/git-options";
 

@@ -12,12 +12,10 @@ import {
   type IAIService,
 } from "@brains/ai-service";
 import {
-  AGENT_CONTEXT_REQUEST_CHANNEL,
-  GUEST_ASKED_BEFORE_CHANNEL,
-  firstAskedBeforeHit,
   ENTITY_CHANNELS,
-  parseAgentContextItems,
   type AgentContextRequest,
+  agentContextContract,
+  askedBeforeContract,
 } from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
 import type {
@@ -33,10 +31,15 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import {
   SYSTEM_CHANNELS,
+  sharedUploadScope,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRegistry,
 } from "@brains/plugins";
-import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
+import {
+  collectContract,
+  type IMessageBus,
+  type MessageBus,
+} from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
@@ -163,7 +166,9 @@ async function resolveRuntimeUploadAttachment(
 }
 
 function getRuntimeUploadNamespace(refKind: string): string | null {
-  return refKind === "upload" ? "upload" : null;
+  return refKind === sharedUploadScope.refKind
+    ? sharedUploadScope.namespace
+    : null;
 }
 
 function toChatAttachment(
@@ -311,27 +316,26 @@ export function initializeIdentityAndAgentServices(
       // A visitor's question a published FAQ already answers, asked of the
       // plugins that keep FAQs; the hit's data is an answer only when it parses.
       guestAskedBefore: async (request) => {
-        const responses = await messageBus.collect({
-          type: GUEST_ASKED_BEFORE_CHANNEL,
-          sender: "shell:agent-service",
-          payload: request,
-        });
-        return firstAskedBeforeHit(
-          responses.flatMap((response) =>
-            "noop" in response || !response.success ? [] : [response.data],
-          ),
+        const asked = await collectContract(
+          messageBus,
+          askedBeforeContract,
+          request,
+          "shell:agent-service",
         );
+        return asked.status === "answered"
+          ? asked.answers.find((answer) => answer.hit)?.hit
+          : undefined;
       },
       agentContextProvider: async (request: AgentContextRequest) => {
-        const responses = await messageBus.collect({
-          type: AGENT_CONTEXT_REQUEST_CHANNEL,
-          sender: "shell:agent-service",
-          payload: request,
-        });
-        return responses.flatMap((response) => {
-          if ("noop" in response || !response.success) return [];
-          return parseAgentContextItems(response.data);
-        });
+        const context = await collectContract(
+          messageBus,
+          agentContextContract,
+          request,
+          "shell:agent-service",
+        );
+        return context.status === "answered"
+          ? context.answers.flatMap((answer) => answer.items)
+          : [];
       },
       ...(assistantAgentId ? { assistantAgentId } : {}),
       ...(config.agentInstructions && {

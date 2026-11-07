@@ -12,10 +12,6 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { PublishResult } from "@brains/contracts";
 import { sendPublishCompleted, sendPublishFailed } from "./scheduler-publish";
 import type { PublishDeps } from "./scheduler-publish";
-import {
-  sendGenerationCompleted,
-  sendGenerationFailed,
-} from "./scheduler-generation";
 import type { GenerationDeps } from "./scheduler-generation";
 import type {
   SchedulerConfig,
@@ -107,18 +103,6 @@ export class ContentScheduler {
     error: string,
   ): void {
     sendPublishFailed(entityType, entityId, error, this.publishDeps);
-  }
-
-  // -------------------------------------------------------------------
-  // Generation scheduling
-  // -------------------------------------------------------------------
-
-  public completeGeneration(entityType: string, entityId: string): void {
-    sendGenerationCompleted(entityType, entityId, this.config.messageBus);
-  }
-
-  public failGeneration(entityType: string, error: string): void {
-    sendGenerationFailed(entityType, error, this.config.messageBus);
   }
 
   // -------------------------------------------------------------------

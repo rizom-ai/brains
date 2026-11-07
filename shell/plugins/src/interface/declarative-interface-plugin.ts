@@ -1,4 +1,5 @@
-import type { UserPermissionLevel } from "@brains/templates";
+import { AsyncLocalStorage } from "node:async_hooks";
+import type { Caller } from "@brains/content-service";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
@@ -9,35 +10,45 @@ import {
 } from "../package-definition";
 import type {
   AnyInterfaceRouteDefinition,
-  InterfaceCaller,
   InterfaceDefinitionInput,
   InterfaceJobs,
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
-import {
-  jsonError,
-  jsonResponse,
-  type WebRouteDefinition,
-} from "../types/web-routes";
+import { emptyPluginState } from "../base/empty-state";
+import { packageRuntimeState } from "../internal/state-namespace";
+import { anonymousCaller } from "../service/job-authority";
+import type { WebRouteDefinition } from "../types/web-routes";
+import { createDeclaredRoute } from "../internal/declared-route";
 import { createDeclarativeDaemon } from "./declarative-daemon";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: InterfaceDefinitionInput<
     TConfigSchema,
+    TState,
     TAccountSettings
   >;
   private accountSettingsRegistration: AccountSettingsRegistration | undefined;
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
+  private state: TState | undefined;
+  /** What setup acquired, released last first at shutdown. */
+  private readonly cleanups: Array<() => void | Promise<void>> = [];
+  /** The caller of the route being handled; unset outside a route (daemons). */
+  private readonly routeCaller = new AsyncLocalStorage<Caller>();
 
   constructor(
-    definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+    definition: InterfaceDefinitionInput<
+      TConfigSchema,
+      TState,
+      TAccountSettings
+    >,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
     id: string,
@@ -58,15 +69,30 @@ class DeclarativeInterfacePlugin<
         definition: this.definition.accountSettings,
       });
     }
+    this.state = this.definition.setup
+      ? await this.definition.setup({
+          config: this.config,
+          lifecycle: {
+            onCleanup: (cleanup): void => {
+              this.cleanups.push(cleanup);
+            },
+          },
+          runtimeState: packageRuntimeState(
+            context.runtimeState,
+            this.packageName,
+          ),
+        })
+      : emptyPluginState<TState>();
+    const state = this.state;
     const jobs = this.jobs(context);
     const routeDefinitions =
-      this.definition.routes?.({ config: this.config, jobs }) ?? [];
+      this.definition.routes?.({ config: this.config, state, jobs }) ?? [];
     this.routes = routeDefinitions.map((route) =>
       this.runtimeRoute(route, context),
     );
 
     const daemonDefinitions =
-      this.definition.daemons?.({ config: this.config, jobs }) ?? [];
+      this.definition.daemons?.({ config: this.config, state, jobs }) ?? [];
     const daemonIds = new Set<string>();
     for (const daemon of daemonDefinitions) {
       if (daemonIds.has(daemon.id)) {
@@ -123,6 +149,10 @@ class DeclarativeInterfacePlugin<
     this.accountSettingsRegistration = undefined;
     this.routes = [];
     this.hasRequiredDaemon = false;
+    this.state = undefined;
+    for (const cleanup of this.cleanups.splice(0).reverse()) {
+      await cleanup();
+    }
     await super.onShutdown();
   }
 
@@ -132,10 +162,15 @@ class DeclarativeInterfacePlugin<
         definition: TDefinition,
         input: z.input<TDefinition["input"]>,
       ): Promise<{ readonly id: string }> => {
-        const data = definition.input.parse(input);
+        const type = getServiceJobRuntimeType(definition);
+        const parsed = definition.input.parse(input);
+        // A route's caller starts the job; outside a route, this interface.
+        const authority = await context.jobAuthority.admit(
+          this.routeCaller.getStore(),
+        );
         const id = await context.jobs.enqueue({
-          type: getServiceJobRuntimeType(definition),
-          data,
+          type,
+          data: { authority, input: parsed },
         });
         return Object.freeze({ id });
       },
@@ -146,66 +181,22 @@ class DeclarativeInterfacePlugin<
     definition: AnyInterfaceRouteDefinition,
     context: InterfacePluginContext,
   ): WebRouteDefinition {
-    return {
-      method: definition.method,
-      path: definition.path,
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const caller = await this.resolveCaller(definition, request, context);
-        if (definition.security.kind === "protocol" && !caller) {
-          return jsonError("Unauthorized", 401);
-        }
-
-        let body: unknown;
-        if (definition.body) {
-          let payload: unknown;
-          try {
-            payload = await request.json();
-          } catch {
-            return jsonError("Request body must be valid JSON", 400);
-          }
-          const parsed = definition.body.safeParse(payload);
-          if (!parsed.success) {
-            return jsonError("Request body is invalid", 400);
-          }
-          body = parsed.data;
-        }
-
-        const output = await definition.handle({
-          request,
-          body,
-          caller,
-        });
-        return jsonResponse(definition.response.parse(output));
-      },
-    };
-  }
-
-  private async resolveCaller(
-    definition: AnyInterfaceRouteDefinition,
-    request: Request,
-    context: InterfacePluginContext,
-  ): Promise<InterfaceCaller | null> {
-    if (definition.security.kind === "public") return null;
-    const actor = await definition.security.authenticate({ request });
-    if (!actor?.id.trim()) return null;
-    const permission: UserPermissionLevel = context.permissions.getUserLevel(
-      this.definition.id,
-      actor.id,
-    );
-    return Object.freeze({
-      actor: Object.freeze({ ...actor }),
-      permission,
-      isAnchor: context.permissions.isAnchor(this.definition.id, actor.id),
+    return createDeclaredRoute(definition, {
+      declarationId: this.definition.id,
+      permissions: context.permissions,
+      anonymous: anonymousCaller(this.id),
+      runAs: (caller, _request, run) => this.routeCaller.run(caller, run),
+      logger: this.logger,
     });
   }
 }
 
 export function createDeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+  definition: InterfaceDefinitionInput<TConfigSchema, TState, TAccountSettings>,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,
