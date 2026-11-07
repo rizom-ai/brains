@@ -560,3 +560,78 @@ export function applyUpdateOperation(
     ? applyContentUpdate(entity, operation.content, entityRegistry)
     : applyFieldUpdates(entity, operation.fields, entityRegistry);
 }
+
+const storedLinesShown = 5;
+const storedLineLength = 160;
+
+function clipStoredLine(line: string): string {
+  return line.length > storedLineLength
+    ? `${line.slice(0, storedLineLength)}…`
+    : line;
+}
+
+function formatStoredValue(value: unknown): string {
+  if (value === undefined) return "(removed)";
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function nonBlank(line: string): boolean {
+  return line.trim().length > 0;
+}
+
+/** Lines under a heading, quoted: the first few, then how many more. */
+function quoteStored(heading: string, lines: string[]): string | undefined {
+  if (lines.length === 0) return undefined;
+  const hidden = lines.length - storedLinesShown;
+  return [
+    heading,
+    ...lines
+      .slice(0, storedLinesShown)
+      .map((line) => `> ${clipStoredLine(line)}`),
+    ...(hidden > 0 ? [`… and ${hidden} more changed lines`] : []),
+  ].join("\n");
+}
+
+/** The metadata fields that moved, as storage now holds them. */
+function changedFieldLines(before: BaseEntity, stored: BaseEntity): string[] {
+  return [
+    ...new Set([
+      ...Object.keys(before.metadata),
+      ...Object.keys(stored.metadata),
+    ]),
+  ]
+    .filter(
+      (key) => !isDeepStrictEqual(before.metadata[key], stored.metadata[key]),
+    )
+    .map((key) => `${key}: ${formatStoredValue(stored.metadata[key])}`);
+}
+
+/**
+ * What storage holds after an update, read back once it was written: the
+ * changed lines of the stored Markdown, the lines an edit removed, or
+ * the changed fields when only metadata moved. Undefined when the read-back
+ * shows no change.
+ */
+export function describeStoredChange(
+  before: BaseEntity,
+  stored: BaseEntity,
+): string | undefined {
+  if (stored.content === before.content)
+    return quoteStored("Stored now:", changedFieldLines(before, stored));
+  const parts = diffArrays(
+    before.content.split("\n"),
+    stored.content.split("\n"),
+  );
+  const added = parts
+    .filter((part) => part.added)
+    .flatMap((part) => part.value)
+    .filter(nonBlank);
+  if (added.length > 0) return quoteStored("Stored now:", added);
+  return quoteStored(
+    "No longer stored:",
+    parts
+      .filter((part) => part.removed)
+      .flatMap((part) => part.value)
+      .filter(nonBlank),
+  );
+}
