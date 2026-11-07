@@ -549,6 +549,8 @@ A `TestBrain` drives the packages through the brain's own surfaces:
 - `entities` is an `EntityReader` over everything the brain stores, at every visibility. Records are written through tools, a package's own or the brain's.
 - `jobs.wait(definition, id)` waits for a job the packages queued, which the brain's worker runs, and answers its `ServiceJobStatus` once the job is neither running nor due: completed, failed, or waiting to be retried after an attempt failed, with that attempt's `code`. It answers `null` when no package queued a job of that definition with that id.
 
+A test brain does not yet cover three things. It calls every tool as the operator, an admin, so a tool's refusal of a lesser caller is not exercised. It asks every contract as the brain itself, with the sender `shell`, so a steward's decision by another package's sender is not exercised. It has no AI provider, so generation and agent turns are refused rather than run. A tool that waits for approval answers with its summary and cannot be approved through it.
+
 ## `@rizom/site`
 
 Definitions and schema vocabulary:
