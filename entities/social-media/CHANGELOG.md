@@ -1,5 +1,16 @@
 # @brains/social-media
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.658
+  - @brains/atproto-contracts@0.2.0-alpha.658
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+
 ## 0.2.0-alpha.657
 
 ### Patch Changes

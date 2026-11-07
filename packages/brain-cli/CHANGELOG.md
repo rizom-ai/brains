@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- [#871](https://github.com/rizom-ai/brains/pull/871) [`20a1e64`](https://github.com/rizom-ai/brains/commit/20a1e6414d3c1747a736a1b2860690d14aacd658) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The topics plugin no longer has the deprecated `includeEntityTypes`, `sourceWeights`, `mintableEntityTypes` and `mergeSimilarityThreshold` config fields. Topics are drawn from every projection source not named in `excludeEntityTypes`, each weighted and given mint authority by its source role (`sourceRolePolicies`, `sourceRoleOverrides`), and automatic merging uses `semanticMergeDistance`. A brain config that still sets one of the four fields boots, and the field has no effect.
+
 ## 0.2.0-alpha.657
 
 ### Patch Changes
