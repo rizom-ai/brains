@@ -1,15 +1,18 @@
 # Public authoring `0.2` reference packages
 
-The six original standalone packages plus the two additive operator packages
-are the executable reference for the external `0.2.x` authoring API. They are deliberately one cohesive example rather than
-six unrelated snippets: a Brain that saves bookmarks, derives reading digests,
-accepts webhook and Campfire events, and renders a reading-library site.
+These eleven standalone packages are the executable reference for the external
+`0.2.x` authoring API. They are one cohesive example rather than unrelated
+snippets: a Brain that saves bookmarks, derives reading digests, keeps a reader
+profile under one steward, keeps reminders, accepts webhook and Campfire events,
+and renders a reading-library site.
 
-> **Last exact eight-package registry baseline:** `@rizom/brain@0.2.0-alpha.313`
-> and `@rizom/site@0.2.0-alpha.233`. These are review candidates, not stable release
-> recommendations. The original six fixtures retain their proven
-> `>=0.2.0-alpha.272` compatibility floor; account settings retains
-> `>=0.2.0-alpha.304`, and operator composition requires `>=0.2.0-alpha.313`.
+Each package's `@rizom/brain` peer floor is the first release containing the
+contract it was written for: `>=0.2.0-alpha.272` for the original packages,
+`>=0.2.0-alpha.304` for account settings and `>=0.2.0-alpha.339` for
+operator composition. Floors move to the first published release containing
+every contract a package uses when a stable release is nominated. The npm
+registry matrix last ran against `@rizom/brain@0.2.0-alpha.313` and
+`@rizom/site@0.2.0-alpha.233`.
 
 Start with the practical guide at `docs/external-plugin-authoring.md`. Use this
 directory when you want complete source, manifests, and TypeScript
@@ -54,7 +57,7 @@ configuration that have actually passed the package boundary.
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                 |
 | 9    | [`profile-steward`](./profile-steward/src/index.ts)                       | Stewardship: the one package that writes the reader profile, and the contract it answers for changes         |
 | 10   | [`profile-import`](./profile-import/src/index.ts)                         | An importer that asks the steward through its contract instead of writing the profile itself                 |
-| 11   | [`reminders`](./reminders/src/index.ts)                                   | One service end to end: owned type, runtime state, tools, a job, a template, a contract it answers, a route  |
+| 11   | [`reminders`](./reminders/src/index.ts)                                   | One service end to end, and [its own test](./reminders/test/reminders.exercise.ts) on `@rizom/brain/testing` |
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split
@@ -71,11 +74,9 @@ owns inbound connection lifecycle. Their approved exports are classified in
 the stable ledger, and the Phase 6 packed consumer installs both with the
 entity/service dependencies from one immutable Brain tarball. The operator
 fixture compiles typed Dashboard and Studio profiles, host-owned query state,
-dynamic entity catalogs, prepared confirmation, and bounded view composition
-without UI code. The account-settings fixture retains its
-`>=0.2.0-alpha.304` floor; the operator fixture requires
-`>=0.2.0-alpha.313`, the first release containing its complete card/columns
-contract. The operator fixture's
+prepared confirmation, and bounded view composition without UI code. The
+account-settings fixture's floor is `>=0.2.0-alpha.304`, and the operator
+fixture's `>=0.2.0-alpha.339`. The operator fixture's
 [capability inventory](./operator-surface/CAPABILITY_INVENTORY.md) records the
 checked built-in equivalence boundary.
 
@@ -140,8 +141,7 @@ Every reference package has:
 - one default definition export;
 - generated JavaScript/declaration export paths;
 - a self-contained strict `tsconfig.json` with no monorepo `extends`;
-- the applicable proven Brain peer lower bound: alpha.272 for the original six,
-  alpha.304 for account settings, and alpha.313 for operator composition;
+- the Brain peer floor for the contract it was written for;
 - only public family imports in author source.
 
 The test harness injects exact SDK development dependencies while building the
@@ -150,10 +150,10 @@ fixtures. A real external package should declare both:
 ```json
 {
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.313 <0.3.0"
+    "@rizom/brain": ">=0.2.0 <0.3.0"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.313"
+    "@rizom/brain": "0.2.0"
   }
 }
 ```
@@ -194,7 +194,7 @@ each scenario keeps isolated mutable state:
 bun run test:packed:compat
 ```
 
-The six local packed files are intentionally skipped by ordinary `bun test`
+The packed files the matrix runs are skipped by ordinary `bun test`
 unless `RIZOM_PUBLIC_API_PACKED_EVIDENCE=1`; use the command above rather than
 setting the flag directly. The canonical packed consumer remains in ordinary
 tests.
@@ -209,7 +209,8 @@ bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
 ```
 
 It verifies installed versions, licenses, declarations, export maps, removed
-entry points, all eight fixture builds, and standalone startup. It refuses
+entry points, the builds of the eight fixtures it covers, and standalone
+startup. It refuses
 ranges and preserves each fixture's first-containing-release floor while
 requiring the nominated alpha to satisfy every peer range.
 
@@ -228,7 +229,9 @@ bun test packages/brain-cli/test/public-authoring-live-packed.test.ts
 ## Contract files
 
 - [`export-ledger.json`](./export-ledger.json) classifies every authoring export
-  as stable, advanced-with-consumer, or internal/removable.
+  as stable, advanced-with-consumer, or internal/removable. It lists as stable
+  or advanced only names its entry exports; internal/removable names are not
+  exported.
 - `docs/public-release/AUTHORING_API_0.2.md` is the human-readable patch-stable
   symbol ledger.
 - `docs/public-release/AUTHORING_0.2_MIGRATION.md` maps removed alpha signatures
