@@ -97,7 +97,7 @@ export function protocol(
 export function defineRoute<
   const TMethod extends RouteMethod,
   TBodySchema extends InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema,
+  const TResponseSchema extends InterfaceSchema,
   const TSecurity extends RouteSecurity,
 >(
   definition: InterfaceRouteInput<

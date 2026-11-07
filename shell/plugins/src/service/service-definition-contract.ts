@@ -19,9 +19,9 @@ export type {
 } from "./content-generation-contract";
 import type { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import type { SchemaValue } from "../internal/schema-value";
 import type {
   AnyEntityDefinition,
-  ReadonlyInput,
   EntityMetadataInput,
   EntityOf,
   EntityReader,
@@ -198,12 +198,12 @@ export interface ServiceSubscriptionBinding {
 
 /**
  * What a tool returns or an answer gives: its schema's input, also accepted
- * read-only. Spelled through the schema's own input slot so that, with the
- * schema taken as a `const` parameter, a literal written inline keeps its
- * literal type, from a callback with parameters or without.
+ * read-only, so that with the schema taken as a `const` parameter a literal
+ * written inline keeps its literal type, from a callback with parameters or
+ * without.
  */
 export type ServiceSchemaValue<TSchema extends ServiceSchema> =
-  TSchema["_zod"]["input"] | ReadonlyInput<z.input<TSchema>>;
+  SchemaValue<TSchema>;
 
 /**
  * Answer a request contract, or hear a command: contract first. The handler

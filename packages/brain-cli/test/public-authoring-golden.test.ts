@@ -131,6 +131,8 @@ const goldenPackages: GoldenPackageExpectation[] = [
       "defineInterface",
       "defineRoute",
       "protocol",
+      "runtimeState(",
+      'new SdkError("conflict"',
       "z",
     ],
   },

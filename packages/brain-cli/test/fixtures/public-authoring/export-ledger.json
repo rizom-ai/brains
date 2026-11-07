@@ -446,6 +446,7 @@
         "AccountSettingsDefinition",
         "AccountSettingsFieldDefinition",
         "AccountSettingsValue",
+        "SdkError",
         "UserPermissionLevel",
         "UserPermissionLevelSchema",
         "defineAccountSettings",

@@ -45,6 +45,7 @@ import type {
   EntityDefinitionConfig,
   EntityScheduledGenerationDeclaration,
 } from "./entity-definition-config";
+import type { SchemaValue } from "../internal/schema-value";
 
 export type {
   EntityDefinitionConfig,
@@ -54,24 +55,14 @@ export type {
 export type EntityVisibility = "public" | "shared" | "restricted";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
 
-export type ReadonlyInput<T> = T extends Date | ((...args: never[]) => unknown)
-  ? T
-  : { readonly [K in keyof T]: ReadonlyInput<T[K]> };
-
 /**
  * Metadata a definition writes — a seed, a stub, a decoded document, a
  * create or a generation result: the schema's input, also accepted
- * read-only.
- *
- * Spelled through the schema's own input slot so that, with `defineEntity`
- * taking its schema as a `const` parameter, a literal written inline is in a
- * const context. It then keeps its literal type even before the schema is
- * inferred, which TypeScript has not yet done when it checks a callback
- * without parameters. A const context makes arrays read-only, hence the
- * read-only form.
+ * read-only, so that with `defineEntity` taking its schema as a `const`
+ * parameter a literal written inline keeps its literal type.
  */
 export type EntityMetadataInput<TMetadataSchema extends EntityMetadataSchema> =
-  TMetadataSchema["_zod"]["input"] | ReadonlyInput<z.input<TMetadataSchema>>;
+  SchemaValue<TMetadataSchema>;
 
 export interface EntityMarkdownDocument<TMetadata> {
   readonly content: string;

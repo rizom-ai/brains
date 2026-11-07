@@ -1,5 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type { SchemaValue } from "../internal/schema-value";
 
 /**
  * The vocabulary every family declares HTTP routes with: an interface's and a
@@ -55,11 +56,15 @@ export interface InterfaceRouteInput<
   readonly security: TSecurity;
   readonly body?: TBodySchema | undefined;
   readonly response: TResponseSchema;
+  /**
+   * Answers with the response schema's input, which the runtime parses before
+   * sending; written inline, an answer keeps its literal types.
+   */
   handle(context: {
     readonly request: Request;
     readonly body: RouteBody<TBodySchema>;
     readonly caller: RouteCaller<TSecurity>;
-  }): unknown | Promise<unknown>;
+  }): SchemaValue<TResponseSchema> | Promise<SchemaValue<TResponseSchema>>;
 }
 
 export interface InterfaceRouteDefinition<

@@ -45,7 +45,7 @@ configuration that have actually passed the package boundary.
 | ---- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | 1    | [`entity`](./entity/src/index.ts)                                         | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                        |
 | 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates, reusable job contract, handler, tools                |
-| 3    | [`interface`](./interface/src/index.ts)                                   | Two-stage definition, public and protocol routes, runtime-derived caller, cross-package job enqueue, daemon  |
+| 3    | [`interface`](./interface/src/index.ts)                                   | Two-stage definition, protocol routes, idempotent deliveries in runtime state, cross-package jobs, daemon    |
 | 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, a resume cursor in runtime state, authenticated inbound, normalized transport |
 | 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset     |
 | 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                       |

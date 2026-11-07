@@ -1,6 +1,7 @@
 import { compileReadingDigest } from "@fixture/reading-insights";
 import { EventSource } from "eventsource";
 import {
+  SdkError,
   defineDaemon,
   defineInterface,
   defineRoute,
@@ -16,10 +17,19 @@ export default defineInterface(
       webhookToken: z.string().min(1),
       eventFeedUrl: z.url().default("http://127.0.0.1:4010/events"),
     }),
+    // Setup builds what every behavior slot reads, once, at registration.
+    setup: ({ runtimeState }) => ({
+      // The deliveries already accepted, by the sender's idempotency key and
+      // kept under this package, so a retried delivery is compiled once.
+      deliveries: runtimeState({
+        namespace: "deliveries",
+        schema: z.object({ acceptedFor: z.string() }),
+      }),
+    }),
   },
   {
     // Route schemas are both the TypeScript contract and the HTTP boundary.
-    routes: ({ config, jobs }) => [
+    routes: ({ config, state, jobs }) => [
       defineRoute({
         method: "GET",
         path: "/reading-digest/health",
@@ -48,8 +58,28 @@ export default defineInterface(
           permission: UserPermissionLevelSchema,
           anchor: z.boolean(),
         }),
-        async handle({ body, caller }) {
-          const job = await jobs.enqueue(compileReadingDigest, body);
+        async handle({ request, body, caller }) {
+          const key = request.headers.get("idempotency-key");
+          // Claimed before the job is queued, so a retry racing the first
+          // delivery is refused rather than compiled twice.
+          if (
+            key &&
+            !(await state.deliveries.setIfNotExists(key, {
+              acceptedFor: caller.actor.id,
+            }))
+          ) {
+            // Answered as { error, code } with the status the code names.
+            throw new SdkError("conflict", {
+              publicMessage: "This delivery was already accepted",
+            });
+          }
+          const job = await jobs
+            .enqueue(compileReadingDigest, body)
+            .catch(async (error: unknown) => {
+              // Nothing was queued, so the sender's retry must be accepted.
+              if (key) await state.deliveries.delete(key);
+              throw error;
+            });
           return {
             jobId: job.id,
             acceptedFor: caller.actor.id,

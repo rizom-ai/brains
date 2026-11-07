@@ -54,6 +54,14 @@ export const routeTypeCanary = defineServicePlugin(
       }),
       defineRoute({
         method: "GET",
+        path: "/route-canary/wrong-answer",
+        security: { kind: "public" },
+        response: z.object({ greeting: z.string() }),
+        // @ts-expect-error A route answers what its response schema accepts.
+        handle: () => ({ greeting: 1 }),
+      }),
+      defineRoute({
+        method: "GET",
         path: "/route-canary/no-entities",
         security: { kind: "public" },
         response: z.object({}),
