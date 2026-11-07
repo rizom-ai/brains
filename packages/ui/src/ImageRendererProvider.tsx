@@ -1,14 +1,19 @@
-import { createContext, createElement as h, type JSX } from "react";
+import { createElement as h, type JSX } from "react";
 import { useContext } from "react";
 import type { ReactNode } from "react";
 import { markdownToHtml, type ImageRenderer } from "./markdown-html";
+import { sharedContext } from "./shared-context";
 
 /**
  * Context for sharing the ImageRenderer during SSR.
  * Same pattern as HeadProvider — the site builder provides the renderer
- * during build-time rendering, and templates access it via hooks.
+ * during build-time rendering, and templates access it via hooks, from
+ * whichever copy of this library they import.
  */
-const ImageRendererContext = createContext<ImageRenderer | null>(null);
+const ImageRendererContext = sharedContext<ImageRenderer | null>(
+  "image-renderer@1",
+  null,
+);
 
 export interface ImageRendererProviderProps {
   imageRenderer: ImageRenderer | null | undefined;

@@ -8,7 +8,7 @@ or theme package, and a site release cannot publish core runtime packages.
 Run `bun changeset`. The wrapper infers the lane from the packages the
 changeset touches and adds a `core--` or `site--` filename prefix:
 
-- core — `@brains/*`, `@rizom/brain`, `@rizom/ops`, `@rizom/ui`, and other
+- core — `@brains/*`, `@rizom/brain`, `@rizom/brain-ui`, `@rizom/ops`, and other
   non-site packages.
 - site — public `@rizom/site*` and `@rizom/theme*` packages.
 

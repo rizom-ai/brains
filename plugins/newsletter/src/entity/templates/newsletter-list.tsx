@@ -6,15 +6,8 @@ import {
   paginationInfoSchema,
   type Template,
 } from "@brains/plugins";
-import {
-  Head,
-  Pagination,
-  formatDate,
-  StatusBadge,
-  Card,
-  CardTitle,
-  CardMetadata,
-} from "@brains/ui-library";
+import { formatDate, Card, CardTitle, CardMetadata } from "@rizom/brain-ui";
+import { Head, Pagination, StatusBadge } from "@rizom/brain-ui/internal";
 import { newsletterStatusSchema } from "../schemas/newsletter";
 
 /**
