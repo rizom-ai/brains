@@ -1,9 +1,15 @@
 import {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   PermissionService,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  jobProgressChannel,
   safeParseRuntimeDashboardWidgetData,
   studioOverviewContributionSchema,
   type DashboardDigestLine,
+  type EntityChangePayload,
+  type JobProgressEvent,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
   type RuntimeOperatorLinkTarget,
@@ -19,10 +25,8 @@ import {
   type StudioWorkspaceRegistration,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
-import { isRecord } from "@brains/utils/is-record";
-import { displayTitleFrom } from "@brains/utils/string-utils";
+import type { z } from "@brains/utils/zod";
+import { displayTitleFrom, truncateText } from "@brains/utils/string-utils";
 import { entityDisplayTitle } from "./editor-entities";
 import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import {
@@ -42,16 +46,10 @@ type RuntimeStudioOperatorListItem = Extract<
 
 type StoredContribution = z.output<typeof studioOverviewContributionSchema>;
 
-const entityActivityPayloadSchema = z.object({
-  entityType: z.string().trim().min(1).max(120),
-  entityId: z.string().trim().min(1).max(300),
-  entity: z.looseObject({}).optional(),
-});
-
 /** How the activity feed names an entry and its type. */
 export type DescribeEntityActivity = (
   entityType: string,
-  entity: Record<string, unknown> | undefined,
+  entity: EntityChangePayload["entity"],
   entityId: string,
 ) => EntityActivityDescription | Promise<EntityActivityDescription>;
 
@@ -63,27 +61,6 @@ interface EntityActivityDescription {
 const describeByType: DescribeEntityActivity = (entityType) => ({
   title: undefined,
   typeLabel: entityTypeLabels(entityType).label,
-});
-
-const jobProgressPayloadSchema = z.object({
-  id: z.string().trim().min(1).max(300),
-  type: z.enum(["job", "batch"]),
-  status: z.enum(["pending", "processing", "completed", "failed"]),
-  message: z.string().max(500).optional(),
-  progress: z
-    .object({
-      current: z.number(),
-      total: z.number(),
-      percentage: z.number(),
-    })
-    .optional(),
-  jobDetails: z
-    .object({
-      jobType: z.string().trim().min(1).max(160),
-      priority: z.number(),
-      retryCount: z.number(),
-    })
-    .optional(),
 });
 
 interface OverviewActivity {
@@ -132,6 +109,8 @@ function boundedId(prefix: string, value: string): string {
 
 const ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const JOB_ACTIVITY = "Job activity";
+/** A job message's length in the feed, ellipsis included. */
+const JOB_MESSAGE_LIMIT = 497;
 const MAX_ACTIVITY = 200;
 
 /** "site:build" reads as "Site build". */
@@ -490,24 +469,22 @@ export class StudioOverviewRegistry {
 
   async recordEntity(
     action: "created" | "updated" | "deleted",
-    payload: unknown,
+    change: EntityChangePayload,
     describe: DescribeEntityActivity = describeByType,
   ): Promise<void> {
-    const parsed = entityActivityPayloadSchema.safeParse(payload);
-    if (!parsed.success) return;
     const timestamp = new Date(this.now()).toISOString();
     const { title, typeLabel } = await describe(
-      parsed.data.entityType,
-      parsed.data.entity,
-      parsed.data.entityId,
+      change.entityType,
+      change.entity,
+      change.entityId,
     );
     const next: OverviewActivity = {
       id: boundedId(
         "entity",
-        `${timestamp}-${action}-${parsed.data.entityType}-${parsed.data.entityId}`,
+        `${timestamp}-${action}-${change.entityType}-${change.entityId}`,
       ),
       at: timestamp,
-      title: title ?? parsed.data.entityId,
+      title: title ?? change.entityId,
       metadata: [`${typeLabel} ${action}`, timestamp],
       tone:
         action === "deleted"
@@ -517,31 +494,32 @@ export class StudioOverviewRegistry {
             : "neutral",
       link: {
         kind: "entity",
-        entityType: parsed.data.entityType,
-        id: parsed.data.entityId,
+        entityType: change.entityType,
+        id: change.entityId,
       },
     };
     this.keep([next, ...this.activity]);
   }
 
-  recordJob(payload: unknown): void {
-    const parsed = jobProgressPayloadSchema.safeParse(payload);
-    if (!parsed.success) return;
+  recordJob(event: JobProgressEvent): void {
     const timestamp = new Date(this.now()).toISOString();
-    const jobType = parsed.data.jobDetails?.jobType ?? parsed.data.type;
-    const progress = parsed.data.progress
-      ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
+    const jobType = event.jobDetails?.jobType ?? event.type;
+    const progress = event.progress
+      ? `${event.progress.current}/${event.progress.total}`
       : undefined;
     const next: OverviewActivity = {
-      id: boundedId("job", `${parsed.data.type}-${parsed.data.id}`),
+      id: boundedId("job", `${event.type}-${event.id}`),
       at: timestamp,
-      title: `${jobName(jobType)} ${parsed.data.status}`,
-      ...(parsed.data.message ? { description: parsed.data.message } : {}),
+      title: `${jobName(jobType)} ${event.status}`,
+      // A feed line, so a long message is cut rather than shown whole.
+      ...(event.message
+        ? { description: truncateText(event.message, JOB_MESSAGE_LIMIT) }
+        : {}),
       metadata: [JOB_ACTIVITY, timestamp, ...(progress ? [progress] : [])],
       tone:
-        parsed.data.status === "failed"
+        event.status === "failed"
           ? "error"
-          : parsed.data.status === "completed"
+          : event.status === "completed"
             ? "good"
             : "warn",
     };
@@ -793,30 +771,29 @@ export function registerStudioOverviewActivity(
     entity,
     entityId,
   ) => ({
-    title:
-      entity && isRecord(entity["metadata"])
-        ? displayTitleFrom(entity["metadata"])
-        : // A projection's write announces only the id; read the entry once.
-          await storedTitle(context, entityType, entityId),
+    title: entity
+      ? displayTitleFrom(entity.metadata)
+      : // A projection's write announces only the id; read the entry once.
+        await storedTitle(context, entityType, entityId),
     typeLabel: entityTypeLabels(entityType, getEntityDisplay()?.[entityType])
       .label,
   });
   // Observed: the feed shows changes from either process, such as the
   // worker syncing content from git.
-  context.messaging.observe(ENTITY_CHANNELS.created, async (message) => {
-    await registry.recordEntity("created", message.payload, describe);
+  context.messaging.observe(entityCreatedChannel, async (change) => {
+    await registry.recordEntity("created", change, describe);
     return { success: true };
   });
-  context.messaging.observe(ENTITY_CHANNELS.updated, async (message) => {
-    await registry.recordEntity("updated", message.payload, describe);
+  context.messaging.observe(entityUpdatedChannel, async (change) => {
+    await registry.recordEntity("updated", change, describe);
     return { success: true };
   });
-  context.messaging.observe(ENTITY_CHANNELS.deleted, async (message) => {
-    await registry.recordEntity("deleted", message.payload, describe);
+  context.messaging.observe(entityDeletedChannel, async (change) => {
+    await registry.recordEntity("deleted", change, describe);
     return { success: true };
   });
-  context.messaging.subscribe(JOB_CHANNELS.progress, (message) => {
-    registry.recordJob(message.payload);
+  context.messaging.subscribe(jobProgressChannel, (event) => {
+    registry.recordJob(event);
     return { success: true };
   });
 }

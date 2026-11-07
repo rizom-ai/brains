@@ -1,72 +1,80 @@
-import { z } from "@brains/utils/zod";
+import {
+  toolCompletedChannel,
+  toolFailedChannel,
+  toolInvokingChannel,
+  type TOOL_EVENT_CHANNELS,
+  type ToolCompletionEvent,
+  type ToolFailureEvent,
+  type ToolInvocationEvent,
+} from "@brains/ai-service";
 import type { InterfacePluginContext } from "../interface/context";
 
-const toolActivityEventTypeSchema = z.enum([
-  "tool:invoking",
-  "tool:completed",
-  "tool:failed",
-]);
-
-const toolActivityPayloadSchema = z.object({
-  toolName: z.string().min(1),
-  conversationId: z.string().min(1),
-  interfaceType: z.string().min(1),
-  channelId: z.string().min(1).optional(),
-  channelName: z.string().min(1).optional(),
-  toolCallId: z.string().min(1).optional(),
-  error: z.string().optional(),
-});
-
 export type ToolActivityEventType =
-  "tool:invoking" | "tool:completed" | "tool:failed";
+  (typeof TOOL_EVENT_CHANNELS)[keyof typeof TOOL_EVENT_CHANNELS];
 
-export interface ToolActivityEvent {
+/** What an interface shows of a tool event: which tool, where, and how it ended. */
+export interface ToolActivityEvent
+  extends
+    Pick<
+      ToolFailureEvent,
+      | "toolName"
+      | "conversationId"
+      | "interfaceType"
+      | "channelId"
+      | "channelName"
+      | "toolCallId"
+    >,
+    Partial<Pick<ToolFailureEvent, "error">> {
   type: ToolActivityEventType;
-  toolName: string;
-  conversationId: string;
-  interfaceType: string;
-  channelId?: string | undefined;
-  channelName?: string | undefined;
-  error?: string | undefined;
 }
 
 export interface ToolActivityHandlers {
   onToolActivity: (event: ToolActivityEvent) => Promise<void>;
   onError: (error: unknown) => void;
-  onInvalidSchema: () => void;
 }
 
-const toolActivityEventTypes: ToolActivityEventType[] = [
-  "tool:invoking",
-  "tool:completed",
-  "tool:failed",
-];
+function toActivity(
+  type: ToolActivityEventType,
+  event: ToolInvocationEvent | ToolCompletionEvent | ToolFailureEvent,
+): ToolActivityEvent {
+  return {
+    type,
+    toolName: event.toolName,
+    conversationId: event.conversationId,
+    interfaceType: event.interfaceType,
+    channelId: event.channelId,
+    channelName: event.channelName,
+    toolCallId: event.toolCallId,
+    ...("error" in event ? { error: event.error } : {}),
+  };
+}
 
+/**
+ * Follow the tool events through their channels, which refuse a malformed
+ * event, and hand each valid one to the interface.
+ */
 export function setupToolActivityHandler(
   context: InterfacePluginContext,
   handlers: ToolActivityHandlers,
 ): void {
-  for (const type of toolActivityEventTypes) {
-    context.messaging.subscribe(type, async (message) => {
-      try {
-        const parsedType = toolActivityEventTypeSchema.safeParse(message.type);
-        const parsedPayload = toolActivityPayloadSchema.safeParse(
-          message.payload,
-        );
-        if (!parsedType.success || !parsedPayload.success) {
-          handlers.onInvalidSchema();
-          return { success: false };
-        }
-
-        await handlers.onToolActivity({
-          type: parsedType.data,
-          ...parsedPayload.data,
-        });
-        return { success: true };
-      } catch (error) {
-        handlers.onError(error);
-        return { success: false };
-      }
-    });
-  }
+  const forward = async (
+    event: ToolActivityEvent,
+  ): Promise<{ success: boolean }> => {
+    try {
+      await handlers.onToolActivity(event);
+      return { success: true };
+    } catch (error) {
+      handlers.onError(error);
+      return { success: false };
+    }
+  };
+  context.messaging.subscribe(toolInvokingChannel, (event) =>
+    forward(toActivity(toolInvokingChannel.name, event)),
+  );
+  context.messaging.subscribe(toolCompletedChannel, (event) =>
+    forward(toActivity(toolCompletedChannel.name, event)),
+  );
+  context.messaging.subscribe(toolFailedChannel, (event) =>
+    forward(toActivity(toolFailedChannel.name, event)),
+  );
 }

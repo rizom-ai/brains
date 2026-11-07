@@ -167,11 +167,14 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  initialSyncCompletedChannel,
+  initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
 } from "./system-channels";
-export { defineChannel, type Channel } from "./utils/channels";
+export { defineChannel, type Channel } from "@brains/contracts";
 export {
   createAdminListTool,
   createListToolOutputSchema,
@@ -552,6 +555,14 @@ export {
   BaseEntityAdapter,
   baseEntityParserSchema,
   baseEntitySchema,
+  embeddingReadyChannel,
+  embeddingReadyPayloadSchema,
+  entityChangePayloadSchema,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type EmbeddingReadyPayload,
+  type EntityChangePayload,
   entityIdPathSchema,
   entityGroupingSchema,
   groupingSortSchema,
@@ -611,7 +622,11 @@ export { paginationInfoSchema } from "@brains/entity-service";
 // Job System & Generation
 // ============================================================================
 
-export { BaseJobHandler, JobProgressEventSchema } from "@brains/job-queue";
+export {
+  BaseJobHandler,
+  JobProgressEventSchema,
+  jobProgressChannel,
+} from "@brains/job-queue";
 export type { JobHandler } from "@brains/job-queue";
 export {
   BaseGenerationJobHandler,
@@ -759,11 +774,27 @@ export {
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
+  conversationGuestMessageAddedChannel,
+  conversationMessageAddedChannel,
 } from "@brains/conversation-service";
-export type { ConversationMessageActor } from "@brains/conversation-service";
+export type {
+  ConversationGuestMessageAddedPayload,
+  ConversationMessageActor,
+  ConversationMessageAddedPayload,
+} from "@brains/conversation-service";
 
-export type { IAgentService } from "@brains/ai-service";
-export { resolveTextProvider } from "@brains/ai-service";
+export type {
+  IAgentService,
+  ToolCompletionEvent,
+  ToolFailureEvent,
+  ToolInvocationEvent,
+} from "@brains/ai-service";
+export {
+  resolveTextProvider,
+  toolCompletedChannel,
+  toolFailedChannel,
+  toolInvokingChannel,
+} from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
