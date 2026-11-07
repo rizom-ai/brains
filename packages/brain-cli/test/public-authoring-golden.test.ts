@@ -24,6 +24,9 @@ const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
 const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
 const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
 const nominatedSiteVersion = "0.2.0-alpha.233";
+// The first release that publishes the component library. It versions with
+// @rizom/brain, so its floor is a Brain release number.
+const nominatedBrainUiVersion = "0.2.0-alpha.648";
 
 const categories = [
   "stable",
@@ -119,8 +122,19 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoints: ["@rizom/site"],
-    requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
+    publicEntryPoints: ["@rizom/site", "@rizom/brain-ui"],
+    requiredVocabulary: [
+      "defineSection",
+      "defineSite",
+      "sectionGroup",
+      "z",
+      "<Card",
+      "<CardTitle",
+      "<CardMetadata",
+      "<TagsList",
+      "<MarkdownContent",
+      "formatDate(",
+    ],
   },
   {
     directory: "interface",
@@ -201,7 +215,7 @@ function publicNamedImports(source: string): Map<string, string[]> {
   const imports = new Map<string, string[]>();
 
   for (const match of source.matchAll(
-    /import\s+\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
+    /import\s+\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain-ui|brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
   )) {
     const specifier = match[2];
     if (!specifier) continue;
@@ -312,7 +326,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the entity, service and interface canaries and the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity, service, interface and site canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "entity",
@@ -423,6 +437,13 @@ describe("public authoring 0.2 golden packages", () => {
           "@rizom/brain/interfaces": [
             "./packages/brain-cli/src/entries/interfaces.ts",
           ],
+        },
+      },
+      {
+        directory: "site",
+        paths: {
+          "@rizom/site": ["./packages/site/src/index.ts"],
+          "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
         },
       },
     ] as const;
@@ -552,6 +573,9 @@ describe("public authoring 0.2 golden packages", () => {
         expect(manifest.dependencies?.["@rizom/site"]).toBe(
           nominatedSiteVersion,
         );
+        expect(manifest.dependencies?.["@rizom/brain-ui"]).toBe(
+          nominatedBrainUiVersion,
+        );
       }
       expect(
         tsconfig.extends,
@@ -579,6 +603,7 @@ describe("public authoring 0.2 golden packages", () => {
     for (const forbidden of [
       "@brains/",
       "@rizom/brain/site",
+      "@rizom/brain-ui/internal",
       "@rizom/site-sections",
       'from "zod',
       "package.json",
