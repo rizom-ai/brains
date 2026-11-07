@@ -36,6 +36,7 @@ import {
 import { entities } from "./schema/entities";
 import { withoutFrontmatterFields } from "./frontmatter-extensions";
 import { entityRevision } from "./entity-revision";
+import { canonicalProjectionJson } from "./projection-write-intent-applier";
 import { embeddings } from "./schema/embeddings";
 import {
   eq,
@@ -50,6 +51,7 @@ import {
   getTableColumns,
   type SQL,
 } from "drizzle-orm";
+import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { EntitySerializer } from "./entity-serializer";
@@ -764,6 +766,67 @@ export class EntityQueries {
           )),
         ]
       : carrying;
+  }
+
+  /**
+   * Re-derive one declared type's stored metadata from its stored markdown,
+   * page by page, writing the metadata column alone: content, hash and
+   * `updated` stay, so no export, re-import or embedding follows. A row
+   * whose markdown does not decode is logged and left. Returns how many
+   * rows it wrote.
+   */
+  public async reconcileDeclaredMetadata(
+    entityType: string,
+    after?: string,
+  ): Promise<number> {
+    const rows = await this.db
+      .select({
+        id: entities.id,
+        content: entities.content,
+        metadata: entities.metadata,
+      })
+      .from(entities)
+      .where(
+        and(
+          eq(entities.entityType, entityType),
+          after === undefined ? undefined : gt(entities.id, after),
+        ),
+      )
+      .orderBy(asc(entities.id))
+      .limit(STORED_FIELD_SCAN_PAGE);
+    const stale = rows.flatMap((row) => {
+      try {
+        const decoded =
+          this.serializer.deserializeEntity(row.content, entityType).metadata ??
+          {};
+        return canonicalProjectionJson(decoded) ===
+          canonicalProjectionJson(row.metadata)
+          ? []
+          : [{ id: row.id, metadata: decoded }];
+      } catch (error) {
+        // A row whose stored markdown no longer decodes keeps its metadata:
+        // reads already leave it out, and an edit or import that fixes the
+        // file writes the metadata with it. Logged so the row can be found.
+        this.logger.warn("Stored entity metadata could not be re-derived", {
+          entityType,
+          id: row.id,
+          error: getErrorMessage(error),
+        });
+        return [];
+      }
+    });
+    await stale.reduce<Promise<void>>(async (previous, { id, metadata }) => {
+      await previous;
+      await this.db
+        .update(entities)
+        .set({ metadata })
+        .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
+    }, Promise.resolve());
+    const tail = rows.at(-1);
+    return tail && rows.length === STORED_FIELD_SCAN_PAGE
+      ? stale.length +
+          (await this.reconcileDeclaredMetadata(entityType, tail.id))
+      : stale.length;
   }
 
   public async listStoredIds(entityType: string): Promise<string[]> {

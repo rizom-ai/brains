@@ -1,12 +1,16 @@
-import { parseAskContent, type AskContent } from "@brains/contracts";
+import { askContentFromRecord, type AskContent } from "@brains/contracts";
 import type { InterfacePluginContext } from "@brains/plugins";
 
 export function publicAskContent(
-  entity: { visibility: string; content: string } | null,
+  entity: {
+    visibility: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+  } | null,
 ): AskContent | undefined {
   if (entity?.visibility !== "public") return undefined;
   try {
-    return parseAskContent(entity.content);
+    return askContentFromRecord(entity);
   } catch {
     // Malformed optional copy is omitted, never replaced with fallback prose.
     return undefined;

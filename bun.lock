@@ -1269,6 +1269,7 @@
       "name": "@brains/profile",
       "version": "0.2.0-alpha.649",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },

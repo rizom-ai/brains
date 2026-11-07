@@ -1396,6 +1396,8 @@ export interface EntityServiceClient extends ICoreEntityService {
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
   /** Rewrite stored entities whose content still carries a retired frontmatter field. */
   rewriteRetiredFields(): Promise<{ rewritten: number }>;
+  /** Re-derive declared types' stored metadata from their stored markdown, the metadata column alone. */
+  reconcileDeclaredMetadata(): Promise<{ reconciled: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

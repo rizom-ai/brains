@@ -5,7 +5,7 @@ import {
   type ProjectionRule,
   type ProjectionWriteIntent,
 } from "@brains/plugins";
-import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
+import { formatVoiceGuidance, styleGuideFromRecord } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createSeriesBodyFormatter } from "../schemas/series";
@@ -99,7 +99,7 @@ async function selectSeriesInput(
     id: "style-guide",
   });
   const voiceGuidance = styleGuideEntity
-    ? formatVoiceGuidance(parseStyleGuideContent(styleGuideEntity.content))
+    ? formatVoiceGuidance(styleGuideFromRecord(styleGuideEntity))
     : "";
   return { members, existingSeries, voiceGuidance };
 }
