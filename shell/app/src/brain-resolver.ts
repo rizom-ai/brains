@@ -451,6 +451,7 @@ function resolveRuntimeDefinition(
       }),
       ...(overrides?.answerModel && { answerModel: overrides.answerModel }),
       ...(overrides?.visionModel && { visionModel: overrides.visionModel }),
+      ...(overrides?.imageModel && { imageModel: overrides.imageModel }),
       ...(effectiveReasoningEffort && {
         reasoningEffort: effectiveReasoningEffort,
       }),

@@ -168,6 +168,13 @@ describe("parseInstanceOverrides", () => {
     expect(result.visionModel).toBe("local:qwen3-vl:8b");
   });
 
+  test("should parse the image model", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nimageModel: local:z-image-turbo',
+    );
+    expect(result.imageModel).toBe("local:z-image-turbo");
+  });
+
   test("should parse the model runtime URL", () => {
     const result = parseInstanceOverrides(
       'brain: "brain"\nmodelRuntime:\n  url: http://models:11434',

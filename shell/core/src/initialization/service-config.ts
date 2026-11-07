@@ -42,6 +42,7 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
       : {}),
     ...(config.ai.answerModel ? { answerModel: config.ai.answerModel } : {}),
     ...(config.ai.visionModel ? { visionModel: config.ai.visionModel } : {}),
+    ...(config.ai.imageModel ? { imageModel: config.ai.imageModel } : {}),
   };
 }
 

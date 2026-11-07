@@ -2,6 +2,7 @@ import {
   DEFAULT_EMBEDDING_MODEL,
   findEmbeddingProfile,
   isSupportedTextModel,
+  selectImageProvider,
   selectTextProvider,
   unsupportedEmbeddingModelMessage,
 } from "@brains/ai-service";
@@ -93,6 +94,7 @@ export const shellConfigSchema: z.ZodObject<{
     modelRuntimeUrl: z.ZodOptional<z.ZodString>;
     answerModel: z.ZodOptional<z.ZodString>;
     visionModel: z.ZodOptional<z.ZodString>;
+    imageModel: z.ZodOptional<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
@@ -158,6 +160,8 @@ export const shellConfigSchema: z.ZodObject<{
       answerModel: z.string().optional(),
       /** A `local:` model that describes images for a model reading only text. */
       visionModel: z.string().optional(),
+      /** The image model, `provider:model`; `local:` runs on the model runtime. */
+      imageModel: z.string().optional(),
       temperature: z.number().min(0).max(2).default(0.7),
       maxTokens: z.number().positive().default(1000),
       webSearch: z.boolean().default(true),
@@ -185,6 +189,10 @@ export const shellConfigSchema: z.ZodObject<{
           (role): role is string =>
             role !== undefined && selectTextProvider(role) === "local",
         ),
+        ...(ai.imageModel &&
+        selectImageProvider(ai.imageModel).provider === "local"
+          ? [ai.imageModel]
+          : []),
         ...(findEmbeddingProfile(ai.embeddingModel)?.provider === "local"
           ? [ai.embeddingModel]
           : []),

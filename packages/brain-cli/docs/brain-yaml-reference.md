@@ -203,6 +203,16 @@ modelRuntime:
   url: http://localhost:11434
 ```
 
+### `imageModel`
+
+The model that generates images, as `provider:model`: `openai:` and `google:` models use the provider's key, and a `local:` model runs on the model runtime's OpenAI-compatible images API, which needs `modelRuntime.url`. Without `imageModel`, images are generated with OpenAI's default image model. The deploy does not pull a `local:` image model: the runtime's image backend loads its own model.
+
+```yaml
+imageModel: local:z-image-turbo
+modelRuntime:
+  url: http://localhost:11434
+```
+
 ### `embedding`
 
 Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.

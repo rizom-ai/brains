@@ -260,7 +260,7 @@ export class AIService implements IAIService {
    * Check if image generation is available
    */
   public canGenerateImages(): boolean {
-    return canGenerateImages(this.providers);
+    return canGenerateImages(this.providers, this.config.imageModel);
   }
 
   /**

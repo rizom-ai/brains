@@ -6,6 +6,7 @@ import {
   reasoningEffortSchema,
   shellConfigSchema,
 } from "../src/config";
+import { createAIModelConfig } from "../src/initialization/service-config";
 
 describe("shell config schema", () => {
   it("exposes the log level and reasoning effort enums it validates with", () => {
@@ -222,6 +223,31 @@ describe("shell config", () => {
         },
       }),
     ).toThrow(/qwen3-vl:8b needs modelRuntime\.url/);
+  });
+
+  it("takes an image model and hands it to the AI service", () => {
+    const config = createShellConfig({
+      ai: {
+        model: "local:qwen3:30b-a3b",
+        imageModel: "local:z-image-turbo",
+        embeddingModel: "local:embeddinggemma-2:270m",
+        modelRuntimeUrl: "http://models:11434",
+      },
+    });
+
+    expect(createAIModelConfig(config).imageModel).toBe("local:z-image-turbo");
+  });
+
+  it("rejects a local image model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          imageModel: "local:z-image-turbo",
+        },
+      }),
+    ).toThrow(/z-image-turbo needs modelRuntime\.url/);
   });
 
   it("rejects a text model of an unknown provider", () => {

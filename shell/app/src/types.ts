@@ -38,6 +38,7 @@ type AppConfigSchema = z.ZodObject<{
   aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
   aiAnswerModel: z.ZodOptional<z.ZodString>;
   aiVisionModel: z.ZodOptional<z.ZodString>;
+  aiImageModel: z.ZodOptional<z.ZodString>;
   aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
@@ -62,6 +63,7 @@ export const appConfigSchema: AppConfigSchema = z.object({
   aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models
   aiAnswerModel: z.string().optional(), // Local model answering tool results
   aiVisionModel: z.string().optional(), // Local model describing images
+  aiImageModel: z.string().optional(), // Image model, "provider:model"
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file
