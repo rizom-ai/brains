@@ -1,18 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createClient } from "@libsql/client";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
-import { migrateEntities } from "@brains/entity-service/migrate";
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  materializePrompts,
-} from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import type { EntityService } from "@brains/entity-service";
+import { materializePrompts } from "@brains/plugins";
 import promptPackage from "@brains/prompt";
 import type { Template, TemplateRegistry } from "@brains/templates";
-import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
+import {
+  declaredEntityStore,
+  type DeclaredEntityStore,
+} from "./helpers/declared-entity-store";
 
 /**
  * Prompt copies kept in step with their defaults on the brain's own entity
@@ -22,11 +18,9 @@ import { z } from "@brains/utils/zod";
  * compares and writes back.
  */
 
-const services: EntityService[] = [];
-const cleanups: Array<() => Promise<void>> = [];
+const stores: DeclaredEntityStore[] = [];
 afterEach(async () => {
-  for (const service of services.splice(0)) service.close();
-  for (const cleanup of cleanups.splice(0)) await cleanup();
+  for (const store of stores.splice(0)) await store.close();
 });
 
 interface StoredPrompt {
@@ -39,56 +33,25 @@ async function promptStore(): Promise<{
   service: EntityService;
   stored(id: string): Promise<StoredPrompt>;
 }> {
-  const temporary = await createTestDirectory();
-  cleanups.push(temporary.cleanup);
-  const logger = createSilentLogger();
-  const dbConfig = { url: `file:${temporary.dir}/entities.db` };
-  await migrateEntities(dbConfig, logger);
-  const [plugin] = instantiatePluginPackageDefinition(
+  const store = await declaredEntityStore(
     promptPackage,
-    {},
-    { name: "@brains/prompt", version: "0.0.0-test" },
+    "@brains/prompt",
+    "prompt",
   );
-  if (!(plugin instanceof EntityPlugin)) throw new Error("No prompt plugin");
-  const registry = EntityRegistry.createFresh(logger);
-  registry.registerEntityType(plugin.entityType, plugin.schema, plugin.adapter);
-  const service = EntityService.createFresh({
-    dbConfig,
-    embeddingDbConfig: { url: `file:${temporary.dir}/embeddings.db` },
-    entityRegistry: registry,
-    logger,
-    jobQueueService: createMockShell().getJobQueueService(),
-    embeddingsEnabled: false,
-    embeddingService: {
-      dimensions: 1536,
-      generateEmbedding: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      generateEmbeddings: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
-  });
-  services.push(service);
-  await service.initialize();
-  const db = createClient(dbConfig);
+  stores.push(store);
   return {
-    service,
+    service: store.service,
     // The stored markdown is the file directory-sync exports.
     async stored(id): Promise<StoredPrompt> {
-      const result = await db.execute({
-        sql: "SELECT content, metadata FROM entities WHERE entityType = 'prompt' AND id = ?",
-        args: [id],
-      });
-      const row = result.rows[0];
+      const row = await store.stored("prompt", id);
       if (!row) throw new Error(`Missing prompt ${id}`);
-      const parsed = parseMarkdown(String(row["content"]));
+      const parsed = parseMarkdown(row.content);
       return {
         body: parsed.content.trim(),
         frontmatter: parsed.frontmatter,
         metadata: z
           .record(z.string(), z.unknown())
-          .parse(JSON.parse(String(row["metadata"]))),
+          .parse(JSON.parse(row.metadata)),
       };
     },
   };
