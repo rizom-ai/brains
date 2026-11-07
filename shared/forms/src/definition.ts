@@ -52,19 +52,76 @@ function textField<K extends string>(
   });
 }
 
+type FormOptionSchema = z.ZodObject<
+  { value: z.ZodString; label: z.ZodString },
+  z.core.$strict
+>;
+/** One answer a choice offers: what it posts, and what the visitor reads. */
+const optionSchema: FormOptionSchema = z.strictObject({
+  value: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/),
+  label: labelSchema,
+});
+type ChoiceFieldSchema = z.ZodObject<
+  {
+    kind: z.ZodLiteral<"choice">;
+    id: z.ZodString;
+    label: z.ZodString;
+    required: z.ZodDefault<z.ZodBoolean>;
+    options: z.ZodArray<FormOptionSchema>;
+  },
+  z.core.$strict
+>;
+type ChoicesFieldSchema = z.ZodObject<
+  {
+    kind: z.ZodLiteral<"choices">;
+    id: z.ZodString;
+    label: z.ZodString;
+    required: z.ZodDefault<z.ZodBoolean>;
+    options: z.ZodArray<FormOptionSchema>;
+    max: z.ZodOptional<z.ZodNumber>;
+  },
+  z.core.$strict
+>;
+const optionsSchema = z.array(optionSchema).min(1).max(50);
+/** One of a list, asked as radio buttons. */
+const choiceFieldSchema: ChoiceFieldSchema = z.strictObject({
+  kind: z.literal("choice"),
+  id: fieldIdSchema,
+  label: labelSchema,
+  required: z.boolean().default(false),
+  options: optionsSchema,
+});
+/** Any of a list, asked as checkboxes; at most `max` of them. */
+const choicesFieldSchema: ChoicesFieldSchema = z.strictObject({
+  kind: z.literal("choices"),
+  id: fieldIdSchema,
+  label: labelSchema,
+  required: z.boolean().default(false),
+  options: optionsSchema,
+  max: z.number().int().min(1).max(50).optional(),
+});
+
 type FormFieldSchema = z.ZodDiscriminatedUnion<
   [
     TextFieldSchema<"text">,
     TextFieldSchema<"email">,
     TextFieldSchema<"longText">,
+    ChoiceFieldSchema,
+    ChoicesFieldSchema,
   ]
 >;
 export const formFieldSchema: FormFieldSchema = z.discriminatedUnion("kind", [
   textField("text", 1000, 200),
   textField("email", 254, 254),
   textField("longText", 4000, 4000),
+  choiceFieldSchema,
+  choicesFieldSchema,
 ]);
 export type FormField = z.output<typeof formFieldSchema>;
+/** A field answered in text: its answer is one string of bounded length. */
+export type FormTextField = Extract<FormField, { maxLength: number }>;
+/** A field answered from a list of options. */
+export type FormChoiceField = Extract<FormField, { options: unknown }>;
 
 type FormStepSchema = z.ZodObject<
   {
@@ -171,6 +228,26 @@ export const formDefinitionSchema: z.ZodType<
         path: ["steps"],
         message: "Each field needs its own id",
       });
+    for (const field of form.steps.flatMap((step) => step.fields)) {
+      if (!("options" in field)) continue;
+      const values = field.options.map((option) => option.value);
+      if (new Set(values).size !== values.length)
+        context.addIssue({
+          code: "custom",
+          path: ["steps"],
+          message: `Each option of "${field.id}" needs its own value`,
+        });
+      if (
+        "max" in field &&
+        field.max !== undefined &&
+        field.max > values.length
+      )
+        context.addIssue({
+          code: "custom",
+          path: ["steps"],
+          message: `"${field.id}" allows more choices than it offers`,
+        });
+    }
   })
   .transform((form): FormDefinition => ({
     ...form,

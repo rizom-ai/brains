@@ -1,4 +1,5 @@
 import {
+  answerText,
   formFields,
   type FormDefinition,
   type FormField,
@@ -66,13 +67,13 @@ export const contactRequestTarget: FormTarget<ContactRequest> = {
   record({ answers, receivedAt }: FormSubmission): FormRecord {
     return record(
       {
-        name: answers["name"] ?? "",
-        email: answers["email"] ?? "",
+        name: answerText(answers, "name"),
+        email: answerText(answers, "email"),
         receivedAt: new Date(receivedAt).toISOString(),
         status: "new",
         notification: "pending",
       },
-      answers["message"] ?? "",
+      answerText(answers, "message"),
     );
   },
 
@@ -84,9 +85,9 @@ export const contactRequestTarget: FormTarget<ContactRequest> = {
       entity.content,
     );
     return (
-      frontmatter.name === answers["name"] &&
-      frontmatter.email === answers["email"] &&
-      message === (answers["message"] ?? "") &&
+      frontmatter.name === answerText(answers, "name") &&
+      frontmatter.email === answerText(answers, "email") &&
+      message === answerText(answers, "message") &&
       Date.parse(frontmatter.receivedAt) === receivedAt
     );
   },

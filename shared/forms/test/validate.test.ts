@@ -66,3 +66,61 @@ describe("answers to a form", () => {
     });
   });
 });
+
+describe("answers to choice fields", () => {
+  const options = [
+    { value: "a", label: "Seeking" },
+    { value: "b", label: "Play" },
+    { value: "c", label: "Care" },
+  ];
+  const quiz = formDefinitionSchema.parse({
+    id: "quiz",
+    target: "quiz-result",
+    title: "Quiz",
+    steps: [
+      {
+        fields: [
+          { kind: "choice", id: "q1", label: "One", options, required: true },
+          { kind: "choices", id: "q2", label: "Some", options, max: 2 },
+        ],
+      },
+    ],
+  });
+
+  it("takes an option on the list, and a set of them once each", () => {
+    expect(validateAnswers(quiz, { q1: "b", q2: ["a", "c", "a"] })).toEqual({
+      ok: true,
+      answers: { q1: "b", q2: ["a", "c"] },
+    });
+    expect(validateAnswers(quiz, { q1: "a" })).toEqual({
+      ok: true,
+      answers: { q1: "a", q2: [] },
+    });
+  });
+
+  it("names a missing choice, an option not on the list and too many chosen", () => {
+    expect(validateAnswers(quiz, { q2: ["a", "z"] })).toEqual({
+      ok: false,
+      errors: {
+        q1: "Choose an answer to One.",
+        q2: "Choose from the options given for Some.",
+      },
+    });
+    expect(validateAnswers(quiz, { q1: "z", q2: ["a", "b", "c"] })).toEqual({
+      ok: false,
+      errors: {
+        q1: "Choose from the options given for One.",
+        q2: "Choose at most 2 for Some.",
+      },
+    });
+    // A text answer to a list, or a list to a text field, is not this form's post.
+    expect(validateAnswers(quiz, { q1: ["a", "b"] })).toEqual({
+      ok: false,
+      errors: {},
+    });
+    expect(validateAnswers(form, { name: ["Ada"], email: "a@b.co" })).toEqual({
+      ok: false,
+      errors: {},
+    });
+  });
+});

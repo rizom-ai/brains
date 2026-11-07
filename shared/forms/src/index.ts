@@ -93,3 +93,5 @@ export type { BuiltInForm, FormServiceOptions } from "./service";
 export { formFrontmatterSchema } from "./definition";
 export type { FormFrontmatter } from "./definition";
 export { formMarkdown, parseFormMarkdown } from "./form-markdown";
+export { answerText } from "./validate";
+export type { FormChoiceField, FormTextField } from "./definition";

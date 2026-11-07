@@ -59,7 +59,7 @@ export class FormIntake<E extends BaseEntity = BaseEntity> {
 
   async submit(
     token: string,
-    posted: Record<string, string>,
+    posted: Record<string, string | string[]>,
     peer: string | undefined,
     signal: AbortSignal,
   ): Promise<FormSaveResult> {

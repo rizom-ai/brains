@@ -6,13 +6,43 @@ export class FormHttpError extends Error {
   }
 }
 
-/** Bound the stream before URL/form parsing; Content-Length alone is not a cap. */
+/** Every chunk of a body, refusing it once it passes `maxBytes`. */
+async function readChunks(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal: AbortSignal,
+  maxBytes: number,
+  cancel: () => void,
+  chunks: Uint8Array[] = [],
+  size = 0,
+): Promise<Uint8Array[]> {
+  const chunk = await reader.read();
+  signal.throwIfAborted();
+  if (chunk.done) return chunks;
+  const total = size + chunk.value.byteLength;
+  if (total > maxBytes) {
+    cancel();
+    throw new FormHttpError(413, "The request is too large.");
+  }
+  return readChunks(
+    reader,
+    signal,
+    maxBytes,
+    cancel,
+    [...chunks, chunk.value],
+    total,
+  );
+}
+
+/** Bound the stream before URL/form parsing; Content-Length alone is not a
+ * cap. A field in `repeatable`, such as a set of checkboxes, is a list of
+ * every value it was posted with; any other may come once. */
 export async function readForm(
   request: Request,
   maxBytes: number,
   timeoutMs: number,
   allowedFields: ReadonlySet<string>,
-): Promise<Record<string, string>> {
+  repeatable: ReadonlySet<string> = new Set(),
+): Promise<Record<string, string | string[]>> {
   const length = request.headers.get("content-length");
   if (length !== null && !/^\d+$/.test(length))
     throw new FormHttpError(400, "Invalid request body.");
@@ -31,29 +61,26 @@ export async function readForm(
   signal.addEventListener("abort", cancel, { once: true });
   try {
     signal.throwIfAborted();
-    let size = 0;
-    const chunks: Uint8Array[] = [];
-    for (;;) {
-      const chunk = await reader.read();
-      signal.throwIfAborted();
-      if (chunk.done) break;
-      size += chunk.value.byteLength;
-      if (size > maxBytes) {
-        cancel();
-        throw new FormHttpError(413, "The request is too large.");
-      }
-      chunks.push(chunk.value);
-    }
+    const chunks = await readChunks(reader, signal, maxBytes, cancel);
     const text = new TextDecoder("utf-8", { fatal: true }).decode(
       Buffer.concat(chunks),
     );
-    const fields: Record<string, string> = {};
-    for (const [key, value] of new URLSearchParams(text)) {
-      if (Object.hasOwn(fields, key) || !allowedFields.has(key))
+    return [...new URLSearchParams(text)].reduce<
+      Record<string, string | string[]>
+    >((fields, [key, value]) => {
+      const current = fields[key];
+      if (
+        !allowedFields.has(key) ||
+        (!repeatable.has(key) && current !== undefined)
+      )
         throw new FormHttpError(400, "Invalid form fields.");
-      fields[key] = value;
-    }
-    return fields;
+      return {
+        ...fields,
+        [key]: repeatable.has(key)
+          ? [...(Array.isArray(current) ? current : []), value]
+          : value,
+      };
+    }, {});
   } catch (error) {
     if (signal.aborted)
       throw new FormHttpError(

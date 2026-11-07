@@ -125,6 +125,8 @@ export class FormHttpHandlers {
   private readonly origins: readonly string[];
   /** Every name the form posts: its fields, the token and the honeypot. */
   private readonly fields: ReadonlySet<string>;
+  /** Fields posted once per value chosen. */
+  private readonly repeatable: ReadonlySet<string>;
   constructor(
     form: FormDefinition,
     admission: FormAdmission,
@@ -151,6 +153,11 @@ export class FormHttpHandlers {
       ...RESERVED_FIELD_IDS,
       ...formFields(form).map((field) => field.id),
     ]);
+    this.repeatable = new Set(
+      formFields(form)
+        .filter((field) => field.kind === "choices")
+        .map((field) => field.id),
+    );
   }
 
   private get thanksPath(): string {
@@ -288,10 +295,14 @@ export class FormHttpHandlers {
         this.policy.maxBodyBytes,
         this.policy.readTimeoutMs,
         this.fields,
+        this.repeatable,
       );
       const { token: credential = "", ...answers } = posted;
       draft = answers;
-      token = /^[a-f0-9]{64}$/.test(credential) ? credential : "";
+      token =
+        typeof credential === "string" && /^[a-f0-9]{64}$/.test(credential)
+          ? credential
+          : "";
       if (!token) throw this.denial("invalid-submission");
       const result = await this.intake.submit(
         token,

@@ -138,3 +138,37 @@ describe("a form's page", () => {
     );
   });
 });
+
+describe("choice fields on the page", () => {
+  const options = [
+    { value: "a", label: "Seeking" },
+    { value: "b", label: "Play & fun" },
+  ];
+  const quiz = formDefinitionSchema.parse({
+    id: "quiz",
+    target: "quiz-result",
+    title: "Quiz",
+    steps: [
+      {
+        fields: [
+          { kind: "choice", id: "q1", label: "One", options, required: true },
+          { kind: "choices", id: "q2", label: "Some", options },
+        ],
+      },
+    ],
+  });
+
+  it("asks one as radio buttons and several as checkboxes, keeping what was chosen", () => {
+    const html = renderForm(quiz, {
+      token,
+      draft: { q1: "b", q2: ["a", "b"] },
+      errors: { q2: "Choose at most 1 for Some." },
+    });
+    expect(html).toContain(
+      '<fieldset class="form__field form__field--choice"><legend>One</legend><label class="form__choice"><input type="radio" name="q1" value="a" required> Seeking</label><label class="form__choice"><input type="radio" name="q1" value="b" required checked> Play &amp; fun</label></fieldset>',
+    );
+    expect(html).toContain(
+      '<fieldset class="form__field form__field--choice" aria-describedby="form-quiz-q2-error"><legend>Some <span class="form__optional">(optional)</span></legend><label class="form__choice"><input type="checkbox" name="q2" value="a" checked> Seeking</label><label class="form__choice"><input type="checkbox" name="q2" value="b" checked> Play &amp; fun</label><p class="form__error" id="form-quiz-q2-error">Choose at most 1 for Some.</p></fieldset>',
+    );
+  });
+});

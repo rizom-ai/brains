@@ -1,6 +1,6 @@
 import { escapeHtml } from "@brains/utils/string-utils";
 import { FORM_COPY, type FormCopy } from "./copy";
-import type { FormDefinition, FormField } from "./definition";
+import type { FormChoiceField, FormDefinition, FormField } from "./definition";
 
 /** How a page shows a form: in whose name, in which theme. */
 export interface FormPresentation {
@@ -8,8 +8,8 @@ export interface FormPresentation {
   owner?: string | undefined;
   theme?: "light" | "dark" | undefined;
 }
-/** What the visitor typed, by field id. */
-export type FormDraft = Record<string, string>;
+/** What the visitor typed or chose, by field id. */
+export type FormDraft = Record<string, string | string[]>;
 
 /**
  * The form's own look, drawn from the active theme's tokens. Every rule
@@ -24,6 +24,7 @@ const FORM_STYLES = `:where(.form){max-width:38rem;margin:clamp(1.5rem,6vw,4.5re
 :where(.form) input,:where(.form) textarea{width:100%;min-width:0;font:400 1rem/1.5 var(--font-sans);color:var(--color-text);background:var(--color-bg-subtle,var(--color-bg));border:1px solid var(--color-border);border-radius:.5rem;padding:.75rem .85rem}:where(.form) [aria-invalid="true"]{border-color:var(--color-error)}
 :where(.form) textarea{resize:vertical;min-height:9rem}:where(.form) button{justify-self:start;cursor:pointer;font:600 1rem/1 var(--font-sans);border:0;border-radius:.5rem;padding:1rem 1.5rem;background:var(--color-accent);color:var(--color-on-accent)}:where(.form) button:hover{filter:brightness(1.08)}
 :where(.form) a{color:var(--color-accent);text-underline-offset:.2em}:where(.form) :focus-visible{outline:2px solid var(--color-accent);outline-offset:4px}:where(.form) .form__trap{position:absolute;left:-10000px}:where(.form) .form__error{margin:0;font-weight:400;color:var(--color-error)}
+:where(.form) .form__field--choice{grid-column:1/-1;border:0;padding:0;margin:0;min-width:0}:where(.form) .form__field--choice legend{font:inherit;font-size:.9rem;font-weight:500;margin-bottom:.4rem}:where(.form) .form__choice{display:flex;gap:.6rem;align-items:baseline;font-weight:400;color:var(--color-text);padding:.2rem 0}:where(.form) .form__choice input{width:auto;accent-color:var(--color-accent)}
 :where(.form) .form__notice{border-inline-start:2px solid var(--color-error);border-radius:.25rem;padding:1rem 1.25rem;background:var(--color-bg-subtle,var(--color-bg));color:var(--color-text);margin-block:1.5rem}
 @media(max-width:540px){:where(.form) .form__step{grid-template-columns:1fr}:where(.form) button{width:100%}}`;
 
@@ -63,6 +64,35 @@ export function formSection(form: FormDefinition, body: string): string {
   return `<div class="form" data-form="${escapeHtml(form.id)}"><style>${FORM_STYLES}</style>${body}</div>`;
 }
 
+/** A choice of one or several: its options under its label, as radio
+ * buttons or checkboxes, with what was chosen checked. */
+function choiceHtml(
+  id: string,
+  field: FormChoiceField,
+  draft: FormDraft,
+  error: string | undefined,
+  optional: string,
+): string {
+  const posted = draft[field.id];
+  const chosen = new Set(
+    posted === undefined ? [] : Array.isArray(posted) ? posted : [posted],
+  );
+  const type = field.kind === "choice" ? "radio" : "checkbox";
+  // A group of checkboxes cannot require one of them; the server does.
+  const required = field.kind === "choice" && field.required ? " required" : "";
+  const options = field.options
+    .map(
+      (option) =>
+        `<label class="form__choice"><input type="${type}" name="${escapeHtml(field.id)}" value="${escapeHtml(option.value)}"${required}${chosen.has(option.value) ? " checked" : ""}> ${escapeHtml(option.label)}</label>`,
+    )
+    .join("");
+  const described = error ? ` aria-describedby="${id}-error"` : "";
+  const message = error
+    ? `<p class="form__error" id="${id}-error">${escapeHtml(error)}</p>`
+    : "";
+  return `<fieldset class="form__field form__field--choice"${described}><legend>${escapeHtml(field.label)}${optional}</legend>${options}${message}</fieldset>`;
+}
+
 function fieldHtml(
   form: FormDefinition,
   field: FormField,
@@ -71,10 +101,15 @@ function fieldHtml(
   copy: FormCopy,
 ): string {
   const id = `form-${form.id}-${field.id}`;
-  const value = escapeHtml((draft[field.id] ?? "").slice(0, field.maxLength));
   const optional = field.required
     ? ""
     : ` <span class="form__optional">${escapeHtml(copy.optional)}</span>`;
+  if (field.kind === "choice" || field.kind === "choices")
+    return choiceHtml(id, field, draft, error, optional);
+  const posted = draft[field.id];
+  const value = escapeHtml(
+    (typeof posted === "string" ? posted : "").slice(0, field.maxLength),
+  );
   const attributes = [
     `id="${id}"`,
     `name="${escapeHtml(field.id)}"`,

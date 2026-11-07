@@ -127,3 +127,56 @@ describe("a form's own limits and alert", () => {
       ).toBe(false);
   });
 });
+
+describe("choice fields", () => {
+  const options = [
+    { value: "a", label: "Seeking" },
+    { value: "b", label: "Play" },
+  ];
+  it("asks one of a list, or several, each option with a value of its own", () => {
+    const form = formDefinitionSchema.parse({
+      ...minimal,
+      steps: [
+        {
+          fields: [
+            { kind: "choice", id: "q1", label: "One", options, required: true },
+            { kind: "choices", id: "q2", label: "Some", options, max: 2 },
+          ],
+        },
+      ],
+    });
+    expect(formFields(form)).toEqual([
+      { kind: "choice", id: "q1", label: "One", options, required: true },
+      {
+        kind: "choices",
+        id: "q2",
+        label: "Some",
+        options,
+        required: false,
+        max: 2,
+      },
+    ]);
+    for (const field of [
+      { kind: "choice", id: "q1", label: "One", options: [] },
+      {
+        kind: "choice",
+        id: "q1",
+        label: "One",
+        options: [options[0], options[0]],
+      },
+      {
+        kind: "choice",
+        id: "q1",
+        label: "One",
+        options: [{ value: "A b", label: "x" }],
+      },
+      { kind: "choices", id: "q2", label: "Some", options, max: 3 },
+    ])
+      expect(
+        formDefinitionSchema.safeParse({
+          ...minimal,
+          steps: [{ fields: [field] }],
+        }).success,
+      ).toBe(false);
+  });
+});
