@@ -1,1 +1,1 @@
-export * from "@brains/sdk/plugins";
+export type * from "@brains/sdk/plugins";

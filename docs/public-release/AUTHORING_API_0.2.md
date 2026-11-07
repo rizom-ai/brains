@@ -144,7 +144,7 @@ Shared package-definition contract:
 
 - `PluginPackageDefinition`
 
-Every other export from this subpath remains an advanced consumer-backed alpha contract.
+The root entry exports the same type. `Resource` and `Tool` stay on this subpath, outside the stable commitment, for packages written against the alpha class API.
 
 ## `@rizom/brain/entities`
 
@@ -656,7 +656,7 @@ Props and options:
 
 ## Exported but not stable
 
-`@rizom/brain/plugins`, `@rizom/brain/templates`, and the advanced names classified in `export-ledger.json` remain consumer-backed alpha contracts. They are not part of the patch-stable authoring commitment unless listed above. Pin an exact version when using them.
+The advanced names classified in `export-ledger.json` are alpha contracts outside the patch-stable commitment; pin an exact version when using them. `@rizom/brain/plugins` (`Resource`, `Tool`), `@rizom/brain/templates` (`createTemplate`) and `BaseEntity` from `@rizom/brain/entities` remain only for packages written against the alpha class API, and go when it is removed.
 
 Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed site entry points are not public authoring contracts.
 

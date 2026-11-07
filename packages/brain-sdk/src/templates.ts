@@ -1,26 +1,3 @@
-/** Curated public template and render authoring surface. */
+/** Kept for packages written against the alpha class API until it is removed. */
 
-export {
-  createTemplate,
-  createTypedComponent,
-  TemplateSchema,
-  ViewTemplateSchema,
-  SiteBuilderOptionsSchema,
-  BuildResultSchema,
-  SiteContentEntityTypeSchema,
-} from "@brains/templates";
-
-export type {
-  Template,
-  TemplateInput,
-  ComponentType,
-  RuntimeScript,
-  ViewTemplate,
-  ViewTemplateRegistry,
-  WebRenderer,
-  OutputFormat,
-  SiteBuilder,
-  SiteBuilderOptions,
-  BuildResult,
-  SiteContentEntityType,
-} from "@brains/templates";
+export { createTemplate } from "@brains/templates";

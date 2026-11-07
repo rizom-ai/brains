@@ -25,7 +25,11 @@ function code(file: string): string {
 describe("@rizom/brain authoring entries", () => {
   it("re-export the SDK and nothing else", () => {
     for (const [file, specifier] of Object.entries(AUTHORING_ENTRIES)) {
-      expect(code(file)).toBe(`export * from "${specifier}";`);
+      // An SDK subpath that exports only types is re-exported as types.
+      expect([
+        `export * from "${specifier}";`,
+        `export type * from "${specifier}";`,
+      ]).toContain(code(file));
     }
   });
 
