@@ -65,14 +65,15 @@ Proof-of-concept chat turns, 2026-11-05, on the separate brain holding the yeeha
 
 Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-note edits, verbatim saves), judge `gpt-5.4-mini`, same runtime:
 
-| Model                                                                    | Pass  | Rate | Avg duration |
-| ------------------------------------------------------------------------ | ----- | ---- | ------------ |
-| `gpt-6-luna` (default)                                                   | 33/33 | 100% | 7.6 s        |
-| `qwen3:30b-a3b` deciding, `qwen3:30b-a3b-instruct-2507` as `answerModel` | 8/33  | 24%  | 76.3 s       |
-| the same, uploads as text and tools handed back to the deciding model    | 7/33  | 21%  | 130.5 s      |
-| + invalid tool calls repaired by the answer model, output constrained    | 17/33 | 52%  | 56.4 s       |
-| + repaired by the deciding model instead                                 | 17/33 | 52%  | 60.8 s       |
-| `local:gpt-oss:120b` alone, with the repair                              | 14/33 | 42%  | 56.5 s       |
+| Model                                                                        | Pass  | Rate | Avg duration |
+| ---------------------------------------------------------------------------- | ----- | ---- | ------------ |
+| `gpt-6-luna` (default)                                                       | 33/33 | 100% | 7.6 s        |
+| `qwen3:30b-a3b` deciding, `qwen3:30b-a3b-instruct-2507` as `answerModel`     | 8/33  | 24%  | 76.3 s       |
+| the same, uploads as text and tools handed back to the deciding model        | 7/33  | 21%  | 130.5 s      |
+| + invalid tool calls repaired by the answer model, output constrained        | 17/33 | 52%  | 56.4 s       |
+| + repaired by the deciding model instead                                     | 17/33 | 52%  | 60.8 s       |
+| `local:gpt-oss:120b` alone, with the repair                                  | 14/33 | 42%  | 56.5 s       |
+| Qwen pair, with the flat upload source and kind-free update operation (#841) | 19/33 | 58%  | 47.4 s       |
 
 - In the first run, 11 failures were the runtime refusing the request: Ollama's chat API takes no PDF parts and the Qwen3 models read no images. Uploads now reach a local model as text: a PDF as its extracted text, any other file as its name and type.
 - After any tool result, the answer model took every later step and made the retries; a tool it calls now hands the next step back to `model`. `system_get` asks for a fresh read whenever the user asks to read.
@@ -80,6 +81,7 @@ Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-no
 - Constrained, the answer model repaired an exact edit as a source replacement with an invented message id in every probe (3 of 3) and in the eval; the deciding model, reasoning as when it chooses tools, kept the edit (3 of 3, 11–15 s). The repair runs on `model`.
 - What fails now is the models' own choices: 4 long-note edits patch without the read the user asked for; 3 verbatim and long-note updates pick a different operation; 4 image cases need a model that sees images; 2 multi-file saves never call `system_create`; 3 others choose the wrong entity type or save when they should only answer.
 - `gpt-oss:120b`, four times the size, makes the same first attempts: upload saves write `source: { kind: "upload", id }` and edits omit `operation.kind`. Its repairs return no output inside an agent conversation ("the model did not return a response") while the same repair outside one returns the right arguments (4 of 4, 8–23 s); the cause is not found, and no request reached the 32,768-token context. On the headless suite it matches the cloud model alone, at 37 tokens/s and 64.4 GB resident.
+- With #841's shapes (`source: { kind: "upload", id, transform }`, an operation named by its one field) no call fails validation. What fails is choice: 6 edits skip the read the user asked for, 4 image cases need a model that sees images, 2 multi-file saves never call `system_create`, and 2 pick a different operation or transform.
 
 **Deadline: 2026-11-20.** The Mozilla Foundation Human-Scale AI Incubator closes that day at 23:59 PST. Its form asks whether the project's core functionality depends on a frontier-model API and the largest parameter count of any core model, and the call excludes projects whose core depends on a frontier model or a slimmed-down one. The answers are fixed at submission, so the proof of concept must work and be measured before then.
 
