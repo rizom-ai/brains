@@ -412,6 +412,9 @@ export class ProgressMessageCoordinator {
     const completionMessage = this.transport.formatCompletionOutput(event);
     const progressTracking = this.progressMessageTracking.get(rootJobId);
     const agentTracking = this.agentResponseTracking.get(event.id);
+    // The job is over: nothing that stood for it is edited again.
+    this.agentResponseTracking.delete(event.id);
+    this.progressMessageTracking.delete(rootJobId);
 
     this.transport.logger().debug("Completion event received", {
       eventId: event.id,
@@ -421,56 +424,26 @@ export class ProgressMessageCoordinator {
       supportsEditing: this.transport.supportsMessageEditing(),
     });
 
-    if (this.transport.supportsMessageEditing()) {
-      await this.updateTrackedCompletion(
-        event,
-        completionMessage,
-        progressTracking,
-        agentTracking,
-        rootJobId,
-      );
-    }
-
-    // If no tracked messages to edit, send as new message.
-    // Only send if we have a target channel (jobs without explicit channelId are silent).
-    if (!progressTracking && !agentTracking && targetChannelId) {
-      this.sendOrBufferCompletionMessage(completionMessage, targetChannelId);
+    // The completion reaches the chat once: by editing the message that stood
+    // for the job (the agent's "queued" reply before a progress message), or
+    // as a new message when there was none, the interface cannot edit, or the
+    // edit failed, as when a platform's edit window closes while a job runs.
+    // A job with no channel and nothing tracked stays silent.
+    const tracked = agentTracking ?? progressTracking;
+    const edited =
+      tracked !== undefined &&
+      this.transport.supportsMessageEditing() &&
+      (await this.transport.editMessage({
+        channelId: tracked.channelId,
+        messageId: tracked.messageId,
+        newMessage: completionMessage,
+      }));
+    const channelId = tracked?.channelId ?? targetChannelId;
+    if (!edited && channelId) {
+      this.sendOrBufferCompletionMessage(completionMessage, channelId);
     }
 
     this.scheduleProgressCleanup(event.id);
-  }
-
-  private async updateTrackedCompletion(
-    event: JobProgressEvent,
-    completionMessage: MessageInterfaceOutput,
-    progressTracking: ProgressMessageTracking | undefined,
-    agentTracking: ProgressMessageTracking | undefined,
-    rootJobId: string,
-  ): Promise<void> {
-    // Prefer editing the agent response message (for async jobs).
-    // This updates "queued" messages to show actual completion.
-    if (agentTracking) {
-      await this.transport.editMessage({
-        channelId: agentTracking.channelId,
-        messageId: agentTracking.messageId,
-        newMessage: completionMessage,
-      });
-      this.agentResponseTracking.delete(event.id);
-      // Also clean up any progress tracking without sending duplicate.
-      if (progressTracking) {
-        this.progressMessageTracking.delete(rootJobId);
-      }
-      return;
-    }
-
-    if (progressTracking) {
-      await this.transport.editMessage({
-        channelId: progressTracking.channelId,
-        messageId: progressTracking.messageId,
-        newMessage: completionMessage,
-      });
-      this.progressMessageTracking.delete(rootJobId);
-    }
   }
 
   private sendOrBufferCompletionMessage(

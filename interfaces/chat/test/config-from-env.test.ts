@@ -43,3 +43,27 @@ describe("chatConfigFromEnv", () => {
     expect(chatConfigFromEnv({})).toEqual({});
   });
 });
+
+describe("chatConfigFromEnv WhatsApp", () => {
+  it("wires the WhatsApp adapter from the phone number, digits only", () => {
+    const config = chatConfigSchema.parse(
+      chatConfigFromEnv({ WHATSAPP_PHONE_NUMBER: "+31 6 0000 0001" }),
+    );
+
+    expect(config.adapters.whatsapp?.phoneNumber).toBe("31600000001");
+    expect(config.adapters.discord).toBeUndefined();
+  });
+
+  it("wires WhatsApp beside Discord", () => {
+    const config = chatConfigSchema.parse(
+      chatConfigFromEnv({ ...fullEnv, WHATSAPP_PHONE_NUMBER: "31600000001" }),
+    );
+
+    expect(config.adapters.discord?.botToken).toBe("discord-token");
+    expect(config.adapters.whatsapp?.phoneNumber).toBe("31600000001");
+  });
+
+  it("leaves WhatsApp off when the phone number is empty", () => {
+    expect(chatConfigFromEnv({ WHATSAPP_PHONE_NUMBER: " " })).toEqual({});
+  });
+});

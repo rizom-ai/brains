@@ -8,7 +8,7 @@ description: "Connect MCP, web chat, Discord, Slack, A2A and local chat"
 
 # Interface Setup Guide
 
-Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, the webserver and operator web chat, multi-platform chat through Discord or Slack, A2A, and the local chat REPL.
+Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, the webserver and operator web chat, multi-platform chat through Discord, Slack or WhatsApp, A2A, and the local chat REPL.
 
 Interfaces are selected by the active capability bundles, then refined with `add` / `remove` and configured under `plugins:` in `brain.yaml`.
 
@@ -19,7 +19,7 @@ Interfaces are selected by the active capability bundles, then refined with `add
 | MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
 | Webserver | `webserver` | `http://localhost:8080`              | Site, Studio, dashboard, Admin, shared HTTP routes  |
 | Web chat  | `web-chat`  | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
-| Chat      | `chat`      | Discord and/or Slack                 | Community, team, and authenticated chat             |
+| Chat      | `chat`      | Discord, Slack and/or WhatsApp       | Community, team, and authenticated chat             |
 | A2A       | `a2a`       | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
 | Chat REPL | command     | `brain chat`                         | Local terminal chat                                 |
 
@@ -205,7 +205,7 @@ The old separate internal preview/API listener model has converged on the shared
 
 ## Multi-platform chat
 
-The `chat` interface hosts Discord and Slack adapters in one Chat SDK runtime. Either adapter can run by itself, or both can run together.
+The `chat` interface hosts Discord, Slack and WhatsApp adapters in one Chat SDK runtime. Each adapter can run by itself or beside the others.
 
 Shared features include mentions, DMs, channel allowlists, subscribed-thread follow-ups, URL capture, confirmations, suggested actions, progress updates, permission-gated uploads, and native generated-artifact delivery.
 
@@ -268,6 +268,47 @@ POST /api/webhooks/chat/slack
 
 Slack requires the configured app scopes for mentions, channel/DM history, users, file reads, file writes, and messages. Reinstall the app after changing its scopes.
 
+### WhatsApp adapter
+
+WhatsApp connects through [Baileys](https://github.com/WhiskeySockets/Baileys), which links the brain as a device of an ordinary WhatsApp account, the way WhatsApp Web does. This route is unofficial: WhatsApp's terms do not allow it, and WhatsApp can ban a number that uses it.
+
+Give the brain a number that serves nothing else:
+
+- Run WhatsApp or WhatsApp Business with that number on a phone. The phone stays the account's primary device; the brain is a linked device.
+- Open WhatsApp on that phone at least every 14 days. WhatsApp logs out every linked device once the primary phone has not used WhatsApp for 14 days.
+- Keep your own number for talking to the brain.
+
+Set the brain's number, country code and digits only. The canonical brain enables the adapter whenever it is set:
+
+```bash
+WHATSAPP_PHONE_NUMBER=31612345678
+```
+
+```yaml
+plugins:
+  chat:
+    adapters:
+      whatsapp:
+        phoneNumber: ${WHATSAPP_PHONE_NUMBER}
+        requireMention: true
+        allowDMs: true
+        allowedChannels: []
+```
+
+On its first start the brain logs a pairing code:
+
+```text
+WhatsApp pairing code: ABCD1234. On the brain's phone: WhatsApp → Settings → Linked devices → Link a device → Link with phone number instead.
+```
+
+Enter it on the brain's phone within a few minutes. The session lives in the brain's runtime state, so restarts and redeploys stay linked. Until the code is entered, the chat daemon's health reports that WhatsApp is waiting for pairing. If WhatsApp unlinks the brain, health reports it as logged out; restart the brain for a new code.
+
+Anyone who messages the number reaches the brain in a direct message. Set `allowDMs: false` to turn direct messages off.
+
+In a group, the brain answers when it is @-mentioned. On connect it sets its account so that only the account's contacts can add it to groups. To limit it further, list group JIDs in `allowedChannels`, such as `120363000000000000@g.us`; a group's conversation is recorded under the channel `whatsapp:<jid>`.
+
+Images, video, audio and documents from trusted senders reach the brain as uploads, and files the brain sends arrive as images or documents. Approvals ask for a typed yes or no. WhatsApp accepts an edit for 15 minutes, so a job that finishes later posts its result as a new message.
+
 ### Chat permissions and safety
 
 Permissions remain platform-scoped:
@@ -279,7 +320,11 @@ permissions:
       level: trusted
     - pattern: "slack:*"
       level: trusted
+    - pattern: "whatsapp:31612345678"
+      level: admin
 ```
+
+WhatsApp rules name people by phone number, country code and digits only. A sender who hides their number, and whom the brain's account cannot map back to one, appears as `whatsapp:<lid>@lid`.
 
 Recommended production settings:
 

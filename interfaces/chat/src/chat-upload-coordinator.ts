@@ -41,12 +41,14 @@ export class ChatUploadCoordinator {
     this.continuity = {
       discord: this.createContinuity("discord"),
       slack: this.createContinuity("slack"),
+      whatsapp: this.createContinuity("whatsapp"),
     };
   }
 
   clear(): void {
     this.continuity.discord.clear();
     this.continuity.slack.clear();
+    this.continuity.whatsapp.clear();
   }
 
   getCanonicalStore(): ScopedRuntimeUploadStore | undefined {
@@ -61,8 +63,10 @@ export class ChatUploadCoordinator {
     const scope =
       platform === "discord"
         ? createDiscordChatUploadStoreScope()
-        : createSlackChatUploadStoreScope();
-    return this.deps.getContext()?.uploads.scoped(scope);
+        : platform === "slack"
+          ? createSlackChatUploadStoreScope()
+          : undefined;
+    return scope ? this.deps.getContext()?.uploads.scoped(scope) : undefined;
   }
 
   async selectPriorUploads(input: {
@@ -103,11 +107,13 @@ export class ChatUploadCoordinator {
   private createContinuity(platform: ChatPlatform): MessageUploadContinuity {
     return new MessageUploadContinuity({
       sourceKind: canonicalChatUploadRefKind,
-      legacySourceKinds: [
+      // Upload refs from before the canonical store; WhatsApp never had any.
+      legacySourceKinds:
         platform === "discord"
-          ? discordChatUploadRefKind
-          : slackChatUploadRefKind,
-      ],
+          ? [discordChatUploadRefKind]
+          : platform === "slack"
+            ? [slackChatUploadRefKind]
+            : [],
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
         return (
           (await this.deps

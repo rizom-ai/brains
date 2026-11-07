@@ -27,6 +27,14 @@ export const discordThreadSubscriptionStateSchema: typeof chatThreadSubscription
 
 export const discordThreadSubscriptionNamespace = "chat.discord.subscriptions";
 export const slackThreadSubscriptionNamespace = "chat.slack.subscriptions";
+export const whatsappThreadSubscriptionNamespace =
+  "chat.whatsapp.subscriptions";
+
+const subscriptionNamespaces: Readonly<Record<ChatPlatform, string>> = {
+  discord: discordThreadSubscriptionNamespace,
+  slack: slackThreadSubscriptionNamespace,
+  whatsapp: whatsappThreadSubscriptionNamespace,
+};
 
 export interface ChatThreadSubscriptionStore {
   set(key: string, value: ChatThreadSubscriptionState): Promise<void>;
@@ -38,9 +46,7 @@ export interface ChatThreadSubscriptionStore {
 export type DiscordThreadSubscriptionStore = ChatThreadSubscriptionStore;
 
 function getSubscriptionNamespace(platform: ChatPlatform): string {
-  return platform === "discord"
-    ? discordThreadSubscriptionNamespace
-    : slackThreadSubscriptionNamespace;
+  return subscriptionNamespaces[platform];
 }
 
 export function createThreadSubscriptionStore(

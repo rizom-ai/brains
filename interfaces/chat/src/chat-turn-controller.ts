@@ -9,6 +9,7 @@ import type {
   ChatConfig,
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
+  WhatsAppChatAdapterConfig,
 } from "./config";
 import type { ChatInputBuilder } from "./chat-input-builder";
 import { resolveChatIdentity } from "./chat-identity";
@@ -633,10 +634,15 @@ export class ChatTurnController {
 
   private getPlatformConfig(
     thread: ChatThread,
-  ): DiscordChatAdapterConfig | SlackChatAdapterConfig | undefined {
+  ):
+    | DiscordChatAdapterConfig
+    | SlackChatAdapterConfig
+    | WhatsAppChatAdapterConfig
+    | undefined {
     const platform = this.getPlatform(thread);
     if (platform === "discord") return this.deps.config.adapters.discord;
     if (platform === "slack") return this.deps.config.adapters.slack;
+    if (platform === "whatsapp") return this.deps.config.adapters.whatsapp;
     return undefined;
   }
 }
@@ -648,5 +654,6 @@ export function isEnabledChatPlatform(
   const enabledPlatforms = new Set<ChatPlatform>();
   if (config.adapters.discord) enabledPlatforms.add("discord");
   if (config.adapters.slack) enabledPlatforms.add("slack");
+  if (config.adapters.whatsapp) enabledPlatforms.add("whatsapp");
   return ownsChatPlatform(interfaceType, enabledPlatforms);
 }

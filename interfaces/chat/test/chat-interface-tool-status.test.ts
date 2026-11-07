@@ -295,6 +295,46 @@ describe("ChatInterface tool status and progress", () => {
     expect(thread.post).not.toHaveBeenCalled();
   });
 
+  it("posts a Slack job's completion as a new message when the edit is refused", async () => {
+    suite.agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-slack-done" }],
+    });
+    const sentMessage = createSentMessage();
+    sentMessage.edit.mockImplementation(() =>
+      Promise.reject(new Error("edit refused")),
+    );
+    const thread = createThread({
+      id: "slack:C123:1712345678.000100",
+      channelId: "slack:C123",
+      adapter: { name: "slack" },
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    await suite.harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    thread.post.mockClear();
+    await suite.harness.sendMessage("job-progress", {
+      id: "job-slack-done",
+      type: "job",
+      status: "completed",
+      message: "Site built",
+      metadata: {
+        rootJobId: "job-slack-done",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "slack",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledTimes(1);
+  });
+
   it("edits tracked Slack responses with text progress fallbacks", async () => {
     suite.agentService.chat.mockResolvedValueOnce({
       text: "Queued build.",

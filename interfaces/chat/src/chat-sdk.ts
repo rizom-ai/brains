@@ -19,6 +19,8 @@ interface CreateChatSdkAppOptions {
   userName: string;
   discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
+  /** Built by the interface, which loads the WhatsApp modules on demand. */
+  whatsapp: Adapter | undefined;
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
   gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
   slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
@@ -84,6 +86,7 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
   const adapters = {
     ...(compatibleDiscordAdapter ? { discord: compatibleDiscordAdapter } : {}),
     ...(compatibleSlackAdapter ? { slack: compatibleSlackAdapter } : {}),
+    ...(options.whatsapp ? { whatsapp: options.whatsapp } : {}),
   } satisfies ChatAdapterMap;
   const enabledPlatforms = [
     ...(discord ? (["discord"] as const) : []),
@@ -100,7 +103,7 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
   return new Chat({
     userName: options.userName,
     adapters,
-    ...(discord || slack
+    ...(discord || slack || options.whatsapp
       ? {
           concurrency: {
             strategy: "queue" as const,

@@ -92,20 +92,29 @@ export function isBotCreatedDiscordThread(
   return rawChannelId !== undefined && rawChannelId !== ids.threadId;
 }
 
+/**
+ * The platform's own channel id inside a thread id: Slack's channel id, or
+ * the WhatsApp chat's JID. Operators list these in `allowedChannels`.
+ */
+function getPlatformChannelId(threadId: string): string | undefined {
+  const [platform, ...rest] = threadId.split(":");
+  if (platform === "slack") return rest[0];
+  if (platform === "whatsapp") return rest.join(":");
+  return undefined;
+}
+
 export function isAllowedChannel(
   thread: RoutedThread,
   config: Pick<RoutingPolicyConfig, "allowedChannels">,
 ): boolean {
   if (config.allowedChannels.length === 0 || thread.isDM) return true;
   const ids = getThreadIdParts(thread.id);
-  const slackChannelId =
-    thread.id.split(":")[0] === "slack" ? thread.id.split(":")[1] : undefined;
   return [
     thread.id,
     thread.channelId,
     ids.channelId,
     ids.threadId,
-    slackChannelId,
+    getPlatformChannelId(thread.id),
   ].some((id) => typeof id === "string" && config.allowedChannels.includes(id));
 }
 
@@ -134,10 +143,9 @@ export function getPermissionContext(
   message: Pick<RoutedMessage, "author">,
 ): PermissionLookupContext {
   const ids = getThreadIdParts(thread.id);
-  const slackChannelId =
-    thread.id.split(":")[0] === "slack" ? thread.id.split(":")[1] : undefined;
   return {
-    channelId: ids.channelId ?? slackChannelId ?? thread.channelId,
+    channelId:
+      ids.channelId ?? getPlatformChannelId(thread.id) ?? thread.channelId,
     isBot: Boolean(message.author.isBot),
   };
 }

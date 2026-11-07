@@ -101,12 +101,40 @@ const slackAdapterConfigSchema: SlackChatAdapterConfigSchema = z
 
 export type SlackChatAdapterConfig = z.output<typeof slackAdapterConfigSchema>;
 
+type WhatsAppChatAdapterConfigSchema = z.ZodObject<{
+  phoneNumber: z.ZodString;
+  allowedChannels: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  requireMention: z.ZodDefault<z.ZodBoolean>;
+  allowDMs: z.ZodDefault<z.ZodBoolean>;
+  showTypingIndicator: z.ZodDefault<z.ZodBoolean>;
+  captureUrls: z.ZodDefault<z.ZodBoolean>;
+  blockedUrlDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}>;
+
+const whatsappAdapterConfigSchema: WhatsAppChatAdapterConfigSchema = z.object({
+  phoneNumber: z
+    .string()
+    .regex(/^[0-9]{7,15}$/, "Country code and number, digits only")
+    .describe("The brain's WhatsApp number, linked as a device by pairing"),
+  allowedChannels: z.array(z.string()).default([]),
+  requireMention: z.boolean().default(true),
+  allowDMs: z.boolean().default(true),
+  showTypingIndicator: z.boolean().default(true),
+  captureUrls: z.boolean().default(false),
+  blockedUrlDomains: z.array(z.string()).default(blockedUrlDomainsDefault),
+});
+
+export type WhatsAppChatAdapterConfig = z.output<
+  typeof whatsappAdapterConfigSchema
+>;
+
 type ChatConfigSchema = z.ZodObject<{
   userName: z.ZodDefault<z.ZodString>;
   adapters: z.ZodDefault<
     z.ZodObject<{
       discord: z.ZodOptional<DiscordChatAdapterConfigSchema>;
       slack: z.ZodOptional<SlackChatAdapterConfigSchema>;
+      whatsapp: z.ZodOptional<WhatsAppChatAdapterConfigSchema>;
     }>
   >;
   gatewayRunMs: z.ZodDefault<z.ZodNumber>;
@@ -120,6 +148,7 @@ export const chatConfigSchema: ChatConfigSchema = z
       .object({
         discord: discordAdapterConfigSchema.optional(),
         slack: slackAdapterConfigSchema.optional(),
+        whatsapp: whatsappAdapterConfigSchema.optional(),
       })
       .default({}),
     gatewayRunMs: z
@@ -133,7 +162,11 @@ export const chatConfigSchema: ChatConfigSchema = z
     // An adapterless interface would register webhook routes that only ever
     // 404. Marked missing, the resolver skips the interface, which is what a
     // brain with no chat credentials wants.
-    if (!config.adapters.discord && !config.adapters.slack) {
+    if (
+      !config.adapters.discord &&
+      !config.adapters.slack &&
+      !config.adapters.whatsapp
+    ) {
       context.addIssue({
         code: "custom",
         message: "At least one chat adapter must be configured",

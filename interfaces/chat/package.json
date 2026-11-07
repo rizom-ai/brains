@@ -10,6 +10,7 @@
     "@chat-adapter/discord": "^4.41.1",
     "@chat-adapter/slack": "^4.41.1",
     "@chat-adapter/state-memory": "^4.41.1",
+    "baileys": "^7.0.0-rc14",
     "chat": "^4.41.1"
   },
   "devDependencies": {
@@ -28,7 +29,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "slack:preflight": "bun scripts/slack-preflight.ts",
-    "test": "bun test",
+    "test": "bun test --isolate",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"
