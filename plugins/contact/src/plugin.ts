@@ -9,10 +9,7 @@ import {
   type RuntimeHealthCheck,
 } from "@brains/plugins";
 import { createElement, type ReactElement } from "react";
-import {
-  notificationsSendContract,
-  notificationFailureCode,
-} from "@brains/contracts";
+import { notificationsSendContract } from "@brains/contracts";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
   siteBuilderRouteRegisterContract,
@@ -158,14 +155,15 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         );
         if (result.status === "unavailable")
           return { sent: false, failure: "no-notifier" };
+        // A fault answering, unlike a refusal, says nothing of the outcome.
         if (result.status === "failed")
-          return {
-            sent: false,
-            failure: notificationFailureCode(result.error),
-          };
-        return result.data.status === "sent"
-          ? { sent: true }
-          : { sent: false, failure: "unconfirmed" };
+          return { sent: false, failure: "unconfirmed" };
+        if (result.data.status === "sent") return { sent: true };
+        // A refusal names its reason; a failed delivery, its transport's code.
+        return {
+          sent: false,
+          failure: result.data.transportCode ?? result.data.failure,
+        };
       },
     });
     context.jobs.registerHandler("notify", {

@@ -414,7 +414,9 @@ export {
 export {
   notificationsSendContract,
   NOTIFICATION_FAILURES,
-  notificationFailureCode,
+  notificationFailureSchema,
+  notificationTransportCodeSchema,
+  type NotificationFailure,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,
