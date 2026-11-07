@@ -255,11 +255,20 @@ describe("public authoring 0.2 golden packages", () => {
       operatorCompositionBrainPeerRange,
     );
     expect(tsconfig.extends).toBeUndefined();
-    expect([...publicNamedImports(source).keys()]).toEqual([
+    expect([...publicNamedImports(source).keys()].sort()).toEqual([
+      "@rizom/brain/entities",
       "@rizom/brain/services",
     ]);
 
     for (const symbol of [
+      "entities: [queuedReading]",
+      "entities.create(queuedReading",
+      "launch: { origins: [READING_PROVIDER] }",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
+      "returnTo: readingWorkspace",
+      "accountSettings.read()",
+      "accessToken.reveal()",
       "defineAccountSettings",
       "defineStudioWorkspace",
       "defineDashboardWidget",

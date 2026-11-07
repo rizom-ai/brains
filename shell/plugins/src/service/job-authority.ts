@@ -85,25 +85,29 @@ export function createJobAuthorityNamespace(
   };
 }
 
-type ServiceJobDataSchema<TInput extends ServiceSchema> = z.ZodObject<{
+type ServiceJobDataSchema = z.ZodObject<{
   authority: typeof callerAuthoritySchema;
-  input: TInput;
+  input: z.ZodUnknown;
   byPackage: z.ZodOptional<z.ZodLiteral<true>>;
 }>;
 
 /**
- * A package job's queued data: who started it, and its parsed input.
- * `byPackage` marks a job the package queued acting as itself, which runs as
- * the package too; the runtime alone writes it.
+ * A package job's queued data: who started it, and its input as written.
+ * The queue checks the input against the job's schema when the job is
+ * queued and again when it runs, but keeps it as written: the job's handler
+ * parses it, once. `byPackage` marks a job the package queued acting as
+ * itself, which runs as the package too; the runtime alone writes it.
  */
-export function serviceJobDataSchema<TInput extends ServiceSchema>(
-  input: TInput,
-): ServiceJobDataSchema<TInput> {
+export function serviceJobDataSchema(
+  input: ServiceSchema,
+): ServiceJobDataSchema {
   return z.object({
     authority: callerAuthoritySchema,
-    input,
+    input: z.unknown().refine((value) => input.safeParse(value).success, {
+      message: "Job input does not match its schema",
+    }),
     byPackage: z.literal(true).optional(),
   });
 }
 
-export type ServiceJobData = z.output<ServiceJobDataSchema<ServiceSchema>>;
+export type ServiceJobData = z.output<ServiceJobDataSchema>;

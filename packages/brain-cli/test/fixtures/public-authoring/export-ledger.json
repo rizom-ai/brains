@@ -363,6 +363,7 @@
       "stable": [
         "AccountSettingsDefinition",
         "AccountSettingsFieldDefinition",
+        "AccountSettingsSecret",
         "AccountSettingsValue",
         "StudioWorkspaceDefinition",
         "StudioWorkspaceView",
@@ -376,7 +377,6 @@
         "OperatorCardBlock",
         "OperatorColumnsBlock",
         "OperatorEntityCatalogDefinition",
-        "OperatorEntityReader",
         "OperatorQueryReader",
         "OperatorRegionBlock",
         "OperatorView",

@@ -373,9 +373,13 @@ writes only the entity types its header's `entities` declares.
 ### Account settings and operator surfaces
 
 A service or interface can declare `defineAccountSettings()`. Secret fields are
-encrypted by the host and full values enter only the principal-specific
-`forAccounts` callback. Dashboard and Studio callbacks receive only the current
-caller's redacted settings.
+encrypted by the host; full values enter the principal-specific `forAccounts`
+callback, and a service's own `accountSettings.read()` with each secret sealed.
+Dashboard and Studio callbacks receive the current caller's redacted `settings`
+for view data. When a server-side call needs the
+full value, `accountSettings.read()` returns the caller's own settings with each
+secret sealed: `reveal()` gives the value, and serialized, printed or
+interpolated it is `[secret]`.
 
 A service can independently declare `defineDashboardWidget()` and
 `defineStudioWorkspace()`. Both return schema-validated semantic data: authors do
@@ -395,7 +399,16 @@ blocks for authenticated Studio operations. Studio-only capabilities include:
 - semantic view heads and status plus bounded `card` groups and primary/aside
   `columns`; cards contain panels, columns contain panels or cards, and nested
   containers are rejected;
-- typed `defineWorkspaceAction()` inputs/outputs and permission floors;
+- typed `defineWorkspaceAction()` inputs/outputs and permission floors; an
+  action's `execute` writes the service's own entity types through its
+  `entities`, as the operator who invoked it and held to the action policy,
+  while loaders read at the caller's visibility;
+- a launch action, `launch: { origins }`, whose `execute` answers `{ url }`:
+  Studio sends the operator's browser there once the runtime has checked it is
+  an absolute https URL on a declared origin; with `accountSettings.claim()`
+  it starts a consent flow whose `protocol` callback route redeems the claim
+  and, declared with `returnTo: workspace`, answers the workspace's query input
+  so the runtime sends the browser back there;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
 - closed external, entity, Account, Admin, Inbox, Publishing, Site, and Traffic launch

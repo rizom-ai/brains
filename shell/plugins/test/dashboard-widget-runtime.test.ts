@@ -134,7 +134,14 @@ describe("declarative dashboard widget runtime", () => {
     );
 
     const logger = createSilentLogger("declarative-dashboard-runtime");
-    const shell = createMockShell({ logger });
+    // The viewer signed in to the Dashboard with a trusted account.
+    const shell = createMockShell({
+      logger,
+      resolvePrincipal: async (actor) =>
+        actor.kind === "user" && actor.userId === "actor-1"
+          ? { userId: "actor-1", permissionLevel: "trusted" }
+          : null,
+    });
     shell.getAccountSettingsRegistry().bindBackend(
       accountBackend({
         "actor-1": {

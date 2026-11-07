@@ -2,6 +2,13 @@ import { createDeclarativeInterfacePlugin } from "../interface/declarative-inter
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { routeMethods } from "../interface/interface-definition-contract";
 import { freeze } from "@brains/utils/freeze";
+import {
+  isReturnToRoute,
+  type AnyDeclaredRouteDefinition,
+  type ReturnToRouteDefinition,
+  type ReturnToRouteInput,
+  type ReturnToWorkspace,
+} from "../interface/route-definition-contract";
 import type {
   AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
@@ -97,6 +104,18 @@ export function protocol(
   return Object.freeze({ kind: "protocol", ...definition });
 }
 
+/**
+ * A browser navigation that ends in one of the package's own Studio
+ * workspaces: the handler answers with the workspace's query input, and the
+ * runtime answers 303 to the workspace's URL with that query.
+ */
+export function defineRoute<
+  const TSecurity extends RouteSecurity,
+  const TWorkspace extends ReturnToWorkspace,
+>(
+  definition: ReturnToRouteInput<TSecurity, TWorkspace>,
+): ReturnToRouteDefinition<TSecurity, TWorkspace>;
+/** A route that answers with its response schema's input, as JSON. */
 export function defineRoute<
   const TMethod extends RouteMethod,
   TBodySchema extends InterfaceSchema | undefined,
@@ -109,7 +128,10 @@ export function defineRoute<
     TResponseSchema,
     TSecurity
   >,
-): InterfaceRouteDefinition<TMethod, TBodySchema, TResponseSchema, TSecurity> {
+): InterfaceRouteDefinition<TMethod, TBodySchema, TResponseSchema, TSecurity>;
+export function defineRoute(
+  definition: InterfaceRouteInput | ReturnToRouteInput,
+): AnyDeclaredRouteDefinition {
   if (!routeMethods.includes(definition.method)) {
     throw new Error(
       `Unsupported interface route method "${definition.method}"`,
@@ -119,6 +141,23 @@ export function defineRoute<
     throw new Error(
       `Interface route path "${definition.path}" must be absolute`,
     );
+  }
+  if (isReturnToRoute(definition)) {
+    const { returnTo } = definition;
+    // Read as declared: the types say what kind it is, a caller past them may not.
+    const kind: string = returnTo.kind;
+    // Read as declared: the types say GET, but a caller past them may not.
+    const method: string = definition.method;
+    if (method !== "GET") {
+      throw new Error(
+        `Route ${method} ${definition.path} returns the browser, which only a GET navigation does`,
+      );
+    }
+    if (kind !== "rizom-studio-workspace" || !returnTo.query) {
+      throw new Error(
+        `Route ${definition.path} returns to a Studio workspace that declares no query to come back with`,
+      );
+    }
   }
   return Object.freeze({ kind: "rizom-interface-route", ...definition });
 }
