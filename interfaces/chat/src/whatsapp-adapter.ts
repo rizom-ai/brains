@@ -13,6 +13,7 @@ import {
   defaultEmojiResolver,
   type Adapter,
   type AdapterPostableMessage,
+  type ChannelInfo,
   type ChatInstance,
   type EmojiValue,
   type FetchResult,
@@ -24,6 +25,9 @@ import {
 import { WhatsAppFormatConverter } from "./whatsapp-format";
 
 const THREAD_PREFIX = "whatsapp:";
+
+/** Group messages whose sender a reaction may still need, newest last. */
+const MAX_REMEMBERED_SENDERS = 1000;
 
 export interface WhatsAppThreadId {
   jid: string;
@@ -41,6 +45,7 @@ export interface WhatsAppSocket {
     options?: MiscMessageGenerationOptions,
   ): Promise<WAMessage | undefined>;
   sendPresenceUpdate(type: WAPresence, toJid?: string): Promise<void>;
+  groupMetadata(jid: string): Promise<{ subject: string }>;
 }
 
 /** The part of the Chat SDK the adapter delivers incoming messages to. */
@@ -70,16 +75,30 @@ function textOf(message: WAMessage): string | undefined {
   return text;
 }
 
+/** The JIDs a message @-mentions; WhatsApp sends them beside the text. */
+function mentionedJidsOf(message: WAMessage): string[] {
+  const content = normalizeMessageContent(message.message);
+  return (content?.extendedTextMessage?.contextInfo?.mentionedJid ?? []).map(
+    (jid) => jidNormalizedUser(jid),
+  );
+}
+
+function userPartOf(jid: string): string {
+  return jid.split("@")[0] ?? jid;
+}
+
 /**
  * The sender as a permission subject: the phone number in digits when
- * WhatsApp exposes it, otherwise the LID it keys the chat by.
+ * WhatsApp exposes it, otherwise the LID it keys the sender by. In a group
+ * the sender is the participant; in a direct message, the chat itself.
  */
 function senderIdOf(key: WAMessageKey): string {
-  const phoneJid = [key.remoteJidAlt, key.remoteJid].find((jid) =>
-    jid?.endsWith("@s.whatsapp.net"),
-  );
-  const jid = jidNormalizedUser(phoneJid ?? key.remoteJid ?? "");
-  return phoneJid ? (jid.split("@")[0] ?? jid) : jid;
+  const candidates = key.participant
+    ? [key.participantAlt, key.participant]
+    : [key.remoteJidAlt, key.remoteJid];
+  const phoneJid = candidates.find((jid) => jid?.endsWith("@s.whatsapp.net"));
+  if (phoneJid) return userPartOf(jidNormalizedUser(phoneJid));
+  return jidNormalizedUser(key.participant ?? key.remoteJid ?? "");
 }
 
 function dateOf(timestamp: WAMessage["messageTimestamp"]): Date {
@@ -102,6 +121,8 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
   private readonly converter = new WhatsAppFormatConverter();
   private chat: MessageReceiver | undefined;
   private socket: WhatsAppSocket | undefined;
+  /** A reaction in a group names the sender of the message it reacts to. */
+  private readonly groupSenders = new Map<string, string>();
 
   constructor(options: WhatsAppAdapterOptions) {
     this.userName = options.userName;
@@ -132,6 +153,7 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
       upsert.messages
         .filter((raw) => this.isIncomingText(raw))
         .map((raw) => {
+          this.rememberGroupSender(raw.key);
           const message = this.parseMessage(raw);
           return chat.processMessage(this, message.threadId, message, options);
         }),
@@ -142,7 +164,8 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
     const threadId = this.encodeThreadId({
       jid: jidNormalizedUser(raw.key.remoteJid ?? ""),
     });
-    const text = textOf(raw) ?? "";
+    const ownJids = this.ownJids();
+    const text = this.withOwnName(textOf(raw) ?? "", ownJids);
     const userId = senderIdOf(raw.key);
     return new Message({
       id: raw.key.id ?? "",
@@ -150,6 +173,7 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
       text,
       formatted: this.converter.toAst(text),
       raw,
+      isMention: mentionedJidsOf(raw).some((jid) => ownJids.includes(jid)),
       author: {
         userId,
         userName: raw.pushName ?? userId,
@@ -211,6 +235,16 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
     return { messages: [] };
   }
 
+  /** A group is named after its subject; a direct message has no name. */
+  async fetchChannelInfo(channelId: string): Promise<ChannelInfo> {
+    if (this.isDM(channelId)) {
+      return { id: channelId, isDM: true, metadata: {} };
+    }
+    const { jid } = this.decodeThreadId(channelId);
+    const { subject } = await this.connected().groupMetadata(jid);
+    return { id: channelId, name: subject, isDM: false, metadata: {} };
+  }
+
   async fetchThread(threadId: string): Promise<ThreadInfo> {
     return {
       id: threadId,
@@ -248,12 +282,32 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
     return !isGroupJid(this.decodeThreadId(threadId).jid);
   }
 
-  /** Direct text messages from other people; groups arrive in a later step. */
+  /** Text from other people, in direct messages and groups. */
   private isIncomingText(raw: WAMessage): boolean {
     const jid = raw.key.remoteJid;
     if (!jid || raw.key.fromMe) return false;
-    if (!isConversationJid(jid) || isGroupJid(jid)) return false;
+    if (!isConversationJid(jid)) return false;
     return textOf(raw) !== undefined;
+  }
+
+  /** The brain's account by phone number and by LID, once connected. */
+  private ownJids(): string[] {
+    const user = this.socket?.user;
+    return [user?.id, user?.lid].flatMap((jid) =>
+      jid ? [jidNormalizedUser(jid)] : [],
+    );
+  }
+
+  /** WhatsApp writes a mention as the number; the brain reads its name. */
+  private withOwnName(text: string, ownJids: string[]): string {
+    return ownJids.reduce(
+      (renamed, jid) =>
+        renamed.replace(
+          new RegExp(`@${userPartOf(jid)}(?![0-9])`, "g"),
+          `@${this.userName}`,
+        ),
+      text,
+    );
   }
 
   private async react(
@@ -262,9 +316,28 @@ export class WhatsAppAdapter implements Adapter<WhatsAppThreadId, WAMessage> {
     text: string,
   ): Promise<void> {
     const { jid } = this.decodeThreadId(threadId);
+    const participant = this.groupSenders.get(messageId);
     await this.send(threadId, {
-      react: { text, key: { remoteJid: jid, fromMe: false, id: messageId } },
+      react: {
+        text,
+        key: {
+          remoteJid: jid,
+          fromMe: false,
+          id: messageId,
+          ...(participant ? { participant } : {}),
+        },
+      },
     });
+  }
+
+  private rememberGroupSender(key: WAMessageKey): void {
+    if (!key.id || !key.participant) return;
+    this.groupSenders.delete(key.id);
+    this.groupSenders.set(key.id, key.participant);
+    const oldest = this.groupSenders.keys().next().value;
+    if (this.groupSenders.size > MAX_REMEMBERED_SENDERS && oldest) {
+      this.groupSenders.delete(oldest);
+    }
   }
 
   private async send(

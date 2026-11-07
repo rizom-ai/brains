@@ -5,6 +5,8 @@ import { WhatsAppAdapter, type WhatsAppSocket } from "../src/whatsapp-adapter";
 
 const DM_JID = "31612345678@s.whatsapp.net";
 const DM_THREAD = `whatsapp:${DM_JID}`;
+const GROUP_JID = "120363000000000000@g.us";
+const GROUP_THREAD = `whatsapp:${GROUP_JID}`;
 
 interface ProcessedMessage {
   threadId: string;
@@ -36,6 +38,7 @@ function createSocket(): WhatsAppSocket & {
   sendPresenceUpdate: ReturnType<
     typeof mock<WhatsAppSocket["sendPresenceUpdate"]>
   >;
+  groupMetadata: ReturnType<typeof mock<WhatsAppSocket["groupMetadata"]>>;
 } {
   return {
     user: { id: "31600000001:5@s.whatsapp.net", lid: "1234567890:5@lid" },
@@ -45,6 +48,7 @@ function createSocket(): WhatsAppSocket & {
       }),
     ),
     sendPresenceUpdate: mock(async (): Promise<void> => {}),
+    groupMetadata: mock(async () => ({ subject: "Rizom team" })),
   };
 }
 
@@ -133,7 +137,7 @@ describe("WhatsAppAdapter inbound", () => {
     expect(chat.processed[0]?.message.text).toBe("Quietly hello");
   });
 
-  it("ignores its own messages, status updates, groups, history and empty content", async () => {
+  it("ignores its own messages, status updates, history and empty content", async () => {
     const { adapter, chat } = await connectedAdapter();
 
     await adapter.handleUpsert({
@@ -143,20 +147,111 @@ describe("WhatsAppAdapter inbound", () => {
         inbound({
           key: { remoteJid: "status@broadcast", fromMe: false, id: "STATUS" },
         }),
-        inbound({
-          key: {
-            remoteJid: "120363000000000000@g.us",
-            participant: DM_JID,
-            fromMe: false,
-            id: "GROUP",
-          },
-        }),
         inbound({ message: { reactionMessage: { text: "👍" } } }),
       ],
     });
     await adapter.handleUpsert({ type: "append", messages: [inbound()] });
 
     expect(chat.processed).toHaveLength(0);
+  });
+});
+
+describe("WhatsAppAdapter groups", () => {
+  function groupMessage(text: string, mentionedJid: string[] = []): WAMessage {
+    return inbound({
+      key: {
+        remoteJid: GROUP_JID,
+        participant: "987654321@lid",
+        participantAlt: DM_JID,
+        fromMe: false,
+        id: "GROUP-1",
+      },
+      message: {
+        extendedTextMessage: { text, contextInfo: { mentionedJid } },
+      },
+    });
+  }
+
+  it("hands a group message to the group's thread, from its participant", async () => {
+    const { adapter, chat } = await connectedAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [groupMessage("Morning all")],
+    });
+
+    expect(chat.processed[0]?.threadId).toBe(GROUP_THREAD);
+    expect(chat.processed[0]?.message).toMatchObject({
+      text: "Morning all",
+      isMention: false,
+      author: { userId: "31612345678", userName: "Mira" },
+    });
+  });
+
+  it.each([
+    ["phone number", "31600000001@s.whatsapp.net"],
+    ["LID", "1234567890@lid"],
+  ])("treats a mention of the brain's %s as a mention", async (_, jid) => {
+    const { adapter, chat } = await connectedAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [groupMessage("@31600000001 what is next?", [jid])],
+    });
+
+    expect(chat.processed[0]?.message.isMention).toBe(true);
+  });
+
+  it("does not treat a mention of someone else as a mention", async () => {
+    const { adapter, chat } = await connectedAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [
+        groupMessage("@31699999999 hi", ["31699999999@s.whatsapp.net"]),
+      ],
+    });
+
+    expect(chat.processed[0]?.message.isMention).toBe(false);
+  });
+
+  it("reacts to a group message as its sender's message", async () => {
+    const { adapter, socket } = await connectedAdapter();
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [groupMessage("Ship it?")],
+    });
+
+    await adapter.addReaction(GROUP_THREAD, "GROUP-1", "👍");
+
+    expect(socket.sendMessage).toHaveBeenCalledWith(GROUP_JID, {
+      react: {
+        text: "👍",
+        key: {
+          remoteJid: GROUP_JID,
+          fromMe: false,
+          id: "GROUP-1",
+          participant: "987654321@lid",
+        },
+      },
+    });
+  });
+
+  it("shows the brain's mention by its name", async () => {
+    const { adapter, chat } = await connectedAdapter();
+
+    await adapter.handleUpsert({
+      type: "notify",
+      messages: [
+        groupMessage("@31600000001 and @1234567890, what is next?", [
+          "31600000001@s.whatsapp.net",
+        ]),
+      ],
+    });
+
+    expect(chat.processed[0]?.message.text).toBe(
+      "@brain and @brain, what is next?",
+    );
   });
 });
 
@@ -231,6 +326,28 @@ describe("WhatsAppAdapter threads", () => {
     expect(adapter.isDM(DM_THREAD)).toBe(true);
     expect(adapter.isDM("whatsapp:987654321@lid")).toBe(true);
     expect(adapter.isDM("whatsapp:120363000000000000@g.us")).toBe(false);
+  });
+
+  it("names a group channel after its subject", async () => {
+    const { adapter } = await connectedAdapter();
+
+    expect(await adapter.fetchChannelInfo(GROUP_THREAD)).toEqual({
+      id: GROUP_THREAD,
+      name: "Rizom team",
+      isDM: false,
+      metadata: {},
+    });
+  });
+
+  it("describes a direct message channel without asking WhatsApp", async () => {
+    const { adapter, socket } = await connectedAdapter();
+
+    expect(await adapter.fetchChannelInfo(DM_THREAD)).toEqual({
+      id: DM_THREAD,
+      isDM: true,
+      metadata: {},
+    });
+    expect(socket.groupMetadata).not.toHaveBeenCalled();
   });
 
   it("rejects a thread id from another platform", () => {

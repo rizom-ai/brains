@@ -29,6 +29,10 @@ class FakeSocket implements WhatsAppConnectionSocket {
     key: { remoteJid: jid, fromMe: true, id: "sent" },
   }));
   readonly sendPresenceUpdate = mock(async (): Promise<void> => {});
+  readonly groupMetadata = mock(async () => ({ subject: "Group" }));
+  readonly updateGroupsAddPrivacy = mock(
+    async (_value: string): Promise<void> => {},
+  );
 
   constructor(config: WhatsAppSocketConfig) {
     this.auth = config.auth;
@@ -164,6 +168,31 @@ describe("WhatsAppConnectionLoop connection", () => {
 
     expect(fixture.adapter.attach).toHaveBeenCalledWith(socket);
     expect(fixture.loop.status()).toBe("connected");
+  });
+
+  it("lets only the account's contacts add the brain to groups", async () => {
+    const fixture = createLoop();
+    const socket = await started(fixture);
+
+    socket.update({ connection: "open" });
+
+    expect(socket.updateGroupsAddPrivacy).toHaveBeenCalledWith("contacts");
+  });
+
+  it("stays connected when the group privacy cannot be set", async () => {
+    const fixture = createLoop();
+    const socket = await started(fixture);
+    socket.updateGroupsAddPrivacy.mockImplementation(async () => {
+      throw new Error("privacy rejected");
+    });
+
+    socket.update({ connection: "open" });
+    await waitUntil(() => fixture.logger.warn.mock.calls.length > 0);
+
+    expect(fixture.loop.status()).toBe("connected");
+    expect(String(fixture.logger.warn.mock.calls[0]?.[0])).toContain(
+      "group privacy",
+    );
   });
 
   it("saves the credentials whenever Baileys updates them", async () => {

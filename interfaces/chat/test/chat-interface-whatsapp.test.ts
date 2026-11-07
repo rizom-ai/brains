@@ -25,6 +25,8 @@ const whatsappConfig: WhatsAppChatAdapterConfig = {
 };
 
 const DM_THREAD = "whatsapp:31612345678@s.whatsapp.net";
+const GROUP_JID = "120363000000000000@g.us";
+const GROUP_THREAD = `whatsapp:${GROUP_JID}`;
 
 function unused(): never {
   throw new Error("Not used by the interface tests");
@@ -96,9 +98,10 @@ function createFakeWhatsApp(): FakeWhatsApp {
 
 function createWhatsAppPlugin(
   whatsapp: FakeWhatsApp,
+  config: Partial<WhatsAppChatAdapterConfig> = {},
 ): InstanceType<typeof ChatInterface> {
   return new ChatInterface(
-    { adapters: { whatsapp: whatsappConfig } },
+    { adapters: { whatsapp: { ...whatsappConfig, ...config } } },
     undefined,
     { createWhatsApp: whatsapp.createWhatsApp },
   );
@@ -218,5 +221,84 @@ describe("ChatInterface WhatsApp", () => {
     expect(thread.post).toHaveBeenCalledWith({
       markdown: "Agent response text.",
     });
+  });
+
+  function groupThread(id = GROUP_THREAD): ReturnType<typeof createThread> {
+    return createThread({
+      id,
+      channelId: id,
+      isDM: false,
+      adapter: { name: "whatsapp" },
+    });
+  }
+
+  function groupMessage(isMention: boolean): ReturnType<typeof createMessage> {
+    return createMessage({
+      text: "What is next?",
+      threadId: GROUP_THREAD,
+      isMention,
+      author: {
+        userId: "31612345678",
+        userName: "Mira",
+        fullName: "Mira",
+        isBot: false,
+        isMe: false,
+      },
+    });
+  }
+
+  it("answers a mention in a group without taking over the group", async () => {
+    await suite.harness.installPlugin(
+      createWhatsAppPlugin(createFakeWhatsApp()),
+    );
+    const chat = MockChatSdk.instances[0];
+    const thread = groupThread();
+
+    await chat?.handlers.mentions[0]?.(thread, groupMessage(true));
+
+    expect(suite.agentService.chat).toHaveBeenCalledWith(
+      "What is next?",
+      `whatsapp-${GROUP_THREAD}`,
+      expect.objectContaining({ interfaceType: "whatsapp" }),
+    );
+    expect(thread.post).toHaveBeenCalledWith({
+      markdown: "Agent response text.",
+    });
+    expect(thread.subscribe).not.toHaveBeenCalled();
+  });
+
+  it("leaves plain group messages alone while mentions are required", async () => {
+    await suite.harness.installPlugin(
+      createWhatsAppPlugin(createFakeWhatsApp()),
+    );
+    const chat = MockChatSdk.instances[0];
+    const message = groupMessage(false);
+
+    await Promise.all(
+      (chat?.handlers.messagePatterns ?? [])
+        .filter(({ pattern }) => pattern.test(message.text))
+        .map(({ handler }) => handler(groupThread(), message)),
+    );
+
+    expect(suite.agentService.chat).not.toHaveBeenCalled();
+  });
+
+  it("answers only in the groups it is allowed in", async () => {
+    const allowedGroup = "120363000000000001@g.us";
+    await suite.harness.installPlugin(
+      createWhatsAppPlugin(createFakeWhatsApp(), {
+        allowedChannels: [allowedGroup],
+      }),
+    );
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(groupThread(), groupMessage(true));
+    expect(suite.agentService.chat).not.toHaveBeenCalled();
+
+    await chat?.handlers.mentions[0]?.(
+      groupThread(`whatsapp:${allowedGroup}`),
+      groupMessage(true),
+    );
+    expect(suite.agentService.chat).toHaveBeenCalledTimes(1);
   });
 });

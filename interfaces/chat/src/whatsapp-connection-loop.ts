@@ -5,6 +5,7 @@ import {
   type AuthenticationState,
   type BaileysEventMap,
   type SocketConfig,
+  type WAPrivacyGroupAddValue,
 } from "baileys";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
@@ -36,6 +37,7 @@ export interface WhatsAppConnectionSocket extends WhatsAppSocket {
     ): unknown;
   };
   requestPairingCode(phoneNumber: string): Promise<string>;
+  updateGroupsAddPrivacy(value: WAPrivacyGroupAddValue): Promise<void>;
   end(error: Error | undefined): void;
 }
 
@@ -221,12 +223,30 @@ export class WhatsAppConnectionLoop implements WhatsAppConnection {
           this.deps.logger.info("WhatsApp connected", {
             id: socket.user?.id,
           });
+          void this.restrictGroupAdds(socket);
         }
         if (update.connection === "close") {
           resolve(statusCodeOf(update.lastDisconnect?.error));
         }
       });
     });
+  }
+
+  /**
+   * Only the account's contacts may add the brain to a group, so a stranger
+   * who has the number cannot pull it into theirs.
+   */
+  private async restrictGroupAdds(
+    socket: WhatsAppConnectionSocket,
+  ): Promise<void> {
+    try {
+      await socket.updateGroupsAddPrivacy("contacts");
+    } catch (error: unknown) {
+      this.deps.logger.warn(
+        "Could not limit WhatsApp group privacy to contacts",
+        { error },
+      );
+    }
   }
 
   private async requestPairingCode(
