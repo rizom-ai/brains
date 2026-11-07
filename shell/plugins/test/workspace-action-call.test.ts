@@ -9,6 +9,7 @@ import {
   defineStudioWorkspace,
   defineWorkspaceAction,
   instantiatePluginPackageDefinition,
+  safeParseRuntimeStudioOperatorView,
   studioWorkspaceRegisterContract,
   type Plugin,
   type StudioWorkspaceActor,
@@ -468,5 +469,151 @@ describe("a workspace's failure", () => {
     });
     expect(logged()).toContain(SECRET);
     await installed.plugin.shutdown?.();
+  });
+});
+
+describe("an external launch", () => {
+  const consent = "https://consent.example";
+  const connect = defineWorkspaceAction({
+    name: "connect",
+    label: "Connect",
+    permission: "trusted",
+    input: z.object({ to: z.string() }),
+    launch: { origins: [consent] },
+  });
+  const connections = defineStudioWorkspace({
+    id: "connections",
+    label: "Connections",
+    permission: "trusted",
+    data: z.object({}),
+    actions: [connect],
+    view: () => ({
+      blocks: [
+        { type: "action", action: connect, input: { to: "/authorize" } },
+      ],
+    }),
+  });
+
+  async function installLaunch(): Promise<InstalledWorkspace> {
+    return installWorkspace(
+      defineServicePlugin(
+        { id: "connector", config: z.object({}) },
+        {
+          studioWorkspaces: (context) => [
+            connections.bind(context, {
+              load: () => ({}),
+              actions: [
+                connect.bind(context, ({ input }) => ({
+                  url: input.to.startsWith("/")
+                    ? `${consent}${input.to}`
+                    : input.to,
+                })),
+              ],
+            }),
+          ],
+        },
+      ),
+    );
+  }
+
+  it("sends the browser where the action computes, once the runtime checked it", async () => {
+    const installed = await installLaunch();
+
+    expect(
+      await installed.registration.dataProvider(operator(), {}),
+    ).toMatchObject({
+      view: {
+        blocks: [{ type: "action", actionId: "connect", launch: true }],
+      },
+    });
+    expect(
+      await act(installed, {
+        actionId: "connect",
+        input: { to: "/authorize?state=one" },
+      }),
+    ).toEqual({ kind: "launch", url: `${consent}/authorize?state=one` });
+    await installed.plugin.shutdown?.();
+  });
+
+  it("refuses a destination off its declared origins, without https, or carrying credentials", async () => {
+    const installed = await installLaunch();
+    const launched = (to: string): Promise<unknown> =>
+      act(installed, { actionId: "connect", input: { to } }).then(
+        () => "launched",
+        (error: unknown) => toSdkError(error).code,
+      );
+
+    for (const to of [
+      "https://elsewhere.example/authorize",
+      "http://consent.example/authorize",
+      "https://reader:secret@consent.example/authorize",
+      "javascript:alert(document.cookie)",
+      "data:text/html,<script>alert(1)</script>",
+      "https://consent.example.elsewhere.example/authorize",
+      "https://consent.example@elsewhere.example/authorize",
+      "not a url",
+      `${consent}/${"x".repeat(2_048)}`,
+    ]) {
+      expect(await launched(to)).toBe("invalid_response");
+    }
+    await installed.plugin.shutdown?.();
+  });
+
+  it("declares only absolute https origins, and no result for the browser to show", () => {
+    for (const origins of [
+      [],
+      ["http://consent.example"],
+      ["https://consent.example/path"],
+      ["https://reader@consent.example"],
+      ["consent.example"],
+    ]) {
+      expect(() =>
+        defineWorkspaceAction({
+          name: "connect",
+          label: "Connect",
+          input: z.object({}),
+          launch: { origins },
+        }),
+      ).toThrow("origin");
+    }
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "action",
+              action: connect,
+              input: { to: "/x" },
+              result: { title: "Sent", fields: {} },
+            },
+          ],
+        },
+        { actions: [connect], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+    expect(() =>
+      defineWorkspaceAction({
+        name: "connect",
+        label: "Connect",
+        input: z.object({}),
+        // @ts-expect-error A launch computes a destination, not an output.
+        output: z.object({}),
+        launch: { origins: [consent] },
+      }),
+    ).toThrow("declares no output");
+    defineServicePlugin(
+      { id: "connector", config: z.object({}) },
+      {
+        studioWorkspaces: (context) => [
+          connections.bind(context, {
+            load: () => ({}),
+            actions: [
+              // @ts-expect-error A launch answers with the URL to send the browser to.
+              connect.bind(context, () => ({ href: `${consent}/authorize` })),
+            ],
+          }),
+        ],
+      },
+    );
   });
 });

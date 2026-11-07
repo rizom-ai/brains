@@ -399,6 +399,10 @@ blocks for authenticated Studio operations. Studio-only capabilities include:
   action's `execute` writes the service's own entity types through its
   `entities`, as the operator who invoked it and held to the action policy,
   while loaders read at the caller's visibility;
+- a launch action, `launch: { origins }`, whose `execute` answers `{ url }`:
+  Studio sends the operator's browser there once the runtime has checked it is
+  an absolute https URL on a declared origin; with `accountSettings.claim()`
+  it starts a consent flow whose `protocol` callback route redeems the claim;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
 - closed external, entity, Account, Admin, Inbox, Publishing, Site, and Traffic launch

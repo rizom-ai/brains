@@ -95,3 +95,53 @@ export const unownedCanary = defineServicePlugin(
     ],
   },
 );
+
+const go = defineWorkspaceAction({
+  name: "go",
+  label: "Go",
+  permission: "trusted",
+  input: z.object({}),
+  launch: { origins: ["https://reading.example"] },
+});
+
+const departures = defineStudioWorkspace({
+  id: "departures",
+  label: "Departures",
+  permission: "trusted",
+  data: z.object({}),
+  actions: [go],
+  view: () => ({ blocks: [{ type: "action", action: go, input: {} }] }),
+});
+
+export const launchCanary = defineServicePlugin(
+  { id: "launch-canary", config: z.object({}) },
+  {
+    studioWorkspaces: (context) => [
+      departures.bind(context, {
+        load: () => ({}),
+        actions: [
+          go.bind(context, async ({ accountSettings }) => {
+            // @ts-expect-error The header declares no account settings.
+            await accountSettings.claim();
+            return { url: "https://reading.example/consent" };
+          }),
+        ],
+      }),
+    ],
+  },
+);
+
+export const launchAnswerCanary = defineServicePlugin(
+  { id: "launch-answer-canary", config: z.object({}) },
+  {
+    studioWorkspaces: (context) => [
+      departures.bind(context, {
+        load: () => ({}),
+        actions: [
+          // @ts-expect-error A launch answers with the URL to send the browser to.
+          go.bind(context, () => ({ href: "https://reading.example/consent" })),
+        ],
+      }),
+    ],
+  },
+);

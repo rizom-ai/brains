@@ -3,10 +3,12 @@ import { compileReadingDigest } from "@fixture/reading-insights";
 import { defineEntity } from "@rizom/brain/entities";
 import {
   defineAccountSettings,
+  defineRoute,
   defineStudioWorkspace,
   defineDashboardWidget,
   defineServicePlugin,
   defineWorkspaceAction,
+  protocol,
   z,
   type DashboardOperatorViewBlock,
   type OperatorViewBlock,
@@ -44,6 +46,30 @@ export const queuedReading = defineEntity({
     notify: z.boolean(),
   }),
 });
+
+const READING_PROVIDER = "https://reading.example";
+
+// Connecting the provider sends the reader's browser to its consent page. The
+// runtime checks the destination against the declared origins before the
+// browser moves.
+const connectProvider = defineWorkspaceAction({
+  name: "connect-provider",
+  label: "Connect reading provider",
+  permission: "trusted",
+  input: z.object({}),
+  launch: { origins: [READING_PROVIDER] },
+});
+
+/** The provider's half of consent: a code becomes a token. Stubbed here. */
+async function exchangeCode(
+  code: string,
+): Promise<{ feedUrl: string; accessToken: string }> {
+  if (!code) throw new Error("The provider returned no code");
+  return {
+    feedUrl: `${READING_PROVIDER}/feeds/${encodeURIComponent(code)}`,
+    accessToken: `token-for-${code}`,
+  };
+}
 
 const refreshDigest = defineWorkspaceAction({
   name: "refresh-digest",
@@ -86,7 +112,8 @@ const readingWorkspaceData = z.object({
   digestCount: z.number().int().nonnegative(),
 });
 
-type ReadingWorkspaceAction = typeof refreshDigest | typeof addReadingItem;
+type ReadingWorkspaceAction =
+  typeof refreshDigest | typeof addReadingItem | typeof connectProvider;
 
 const readingWorkspace = defineStudioWorkspace({
   id: "reading-library",
@@ -97,7 +124,7 @@ const readingWorkspace = defineStudioWorkspace({
   entities: [bookmark, readingDigest],
   query: readingWorkspaceQuery,
   data: readingWorkspaceData,
-  actions: [refreshDigest, addReadingItem],
+  actions: [refreshDigest, addReadingItem, connectProvider],
 
   view({ data }) {
     const tagQuery = {
@@ -212,10 +239,12 @@ const readingWorkspace = defineStudioWorkspace({
     ];
     return {
       title: "Reading library",
-      primaryAction: {
-        action: refreshDigest,
-        input: { bookmarkId: data.bookmarks[0]?.id ?? "all" },
-      },
+      primaryAction: data.connected
+        ? {
+            action: refreshDigest,
+            input: { bookmarkId: data.bookmarks[0]?.id ?? "all" },
+          }
+        : { action: connectProvider, input: {} },
       blocks,
     };
   },
@@ -283,6 +312,32 @@ export default defineServicePlugin(
     entities: [queuedReading],
   },
   {
+    // The provider sends the reader's browser back here with the state the
+    // connect action claimed. Redeeming it writes that reader's settings, and
+    // only from a session of the account that started: the runtime checks
+    // the session, so the package never sees one.
+    routes: ({ accountSettings }) => [
+      defineRoute({
+        method: "GET",
+        path: "/reading-operator/consent/return",
+        security: protocol({
+          authenticate: ({ request }) =>
+            new URL(request.url).searchParams.has("state")
+              ? { id: "reading-provider" }
+              : null,
+        }),
+        response: z.object({ connected: z.boolean() }),
+        async handle({ request }) {
+          const params = new URL(request.url).searchParams;
+          // A bad state is refused before the code is exchanged.
+          await accountSettings.redeem(params.get("state") ?? "", () =>
+            exchangeCode(params.get("code") ?? ""),
+          );
+          return { connected: true };
+        },
+      }),
+    ],
+
     // Contracts stay at module scope; executors bind once after setup. Only the
     // current caller's parsed settings reach loaders/actions at request time.
     dashboardWidgets: (context) => [
@@ -341,9 +396,24 @@ export default defineServicePlugin(
         },
       );
 
+      // The claim names the operator's account and the Studio session they
+      // act in; the consent URL carries it to the provider and back.
+      const connectProviderHandler = connectProvider.bind(
+        context,
+        async ({ accountSettings }) => {
+          const consent = new URL("/consent", READING_PROVIDER);
+          consent.searchParams.set("state", await accountSettings.claim());
+          return { url: consent.href };
+        },
+      );
+
       return [
         readingWorkspace.bind(context, {
-          actions: [refreshDigestHandler, addReadingItemHandler],
+          actions: [
+            refreshDigestHandler,
+            addReadingItemHandler,
+            connectProviderHandler,
+          ],
           async load({ entities, settings, signal, query }) {
             signal.throwIfAborted();
             const selected = query.get(readingWorkspaceQuery);

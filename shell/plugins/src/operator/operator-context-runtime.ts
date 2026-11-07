@@ -22,6 +22,7 @@ import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
   RedactedAccountSettingsValue,
+  ServiceAccountSettings,
 } from "./account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "./account-settings-registry";
 import type {
@@ -44,6 +45,11 @@ export interface OperatorCallScope {
   /** The caller's actor as the host knows it, when it knows more than the id. */
   readonly actor?: ActorRef | undefined;
   readonly interfaceType: "studio" | "dashboard";
+  /**
+   * Set when the caller acts through a browser session of their own account,
+   * as Studio's always does: a settings claim made there binds that session.
+   */
+  readonly browserSession?: true | undefined;
 }
 
 /**
@@ -110,6 +116,21 @@ export function accessWithin<TOwned extends AnyEntityDefinition>(
       settled(() => access.delete(definition, record)),
   };
   return Object.freeze({ ...readerWithin(access, signal), ...writer });
+}
+
+/**
+ * The account settings writes of a binding that keeps none of its own, such
+ * as a first-party workspace: the runtime refuses every call.
+ */
+export function noAccountSettingsWrites<
+  TSettings extends AnyAccountSettingsDefinition,
+>(): ServiceAccountSettings<TSettings> {
+  const refuse = async (): Promise<never> => {
+    throw new SdkError("permission_denied", {
+      message: "This operator surface keeps no account settings to write",
+    });
+  };
+  return Object.freeze({ save: refuse, claim: refuse, redeem: refuse });
 }
 
 /**

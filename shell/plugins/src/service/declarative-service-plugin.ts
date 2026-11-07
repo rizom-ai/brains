@@ -456,6 +456,7 @@ class DeclarativeServicePlugin<
           context,
           runtimeSignal: this.operatorAbortController.signal,
           entities: this.entityAccess(),
+          accountSettings: this.accountSettingsWriter(),
           runAs: this.asOperator,
         });
         try {
@@ -714,9 +715,16 @@ class DeclarativeServicePlugin<
         }
       : anonymousCaller(this.id);
     let admitted: Promise<CallerAccess> | undefined;
+    const userId = scope.caller?.actor.id;
     return {
       access: () => (admitted ??= context.jobAuthority.access(caller)),
       caller,
+      // A Studio operator acts through a browser session of their own
+      // account, so a claim they make binds that session.
+      account: async () =>
+        scope.browserSession && userId !== undefined
+          ? { userId, sessionUserId: userId }
+          : undefined,
       eventContext: { actor: caller.actor, interfaceType: scope.interfaceType },
     };
   }

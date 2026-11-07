@@ -137,3 +137,35 @@ export function defineAccountSettings<
     fields,
   });
 }
+
+/**
+ * Writes this package's own account settings, through the definition its
+ * header declares, for one account the runtime vouches for; the package never
+ * names an account. Values are checked by the definition's schema, and a
+ * refused one is named by its field alone.
+ */
+export interface ServiceAccountSettings<
+  TSettings extends AnyAccountSettingsDefinition,
+> {
+  /** Writes the settings of the current caller's own account. */
+  save(values: z.input<TSettings["schema"]>): Promise<void>;
+  /**
+   * A single-use, short-lived state naming the current caller's account and,
+   * when the caller came through a browser session, that session's account.
+   */
+  claim(
+    ...declared: [TSettings] extends [never] ? [never] : []
+  ): Promise<string>;
+  /**
+   * Consumes a claim, then writes what `produce` returns for the account it
+   * names. A claim made through a browser session is redeemed only from a
+   * session of the same account. A refused claim is refused before
+   * `produce` runs; if `produce` fails, nothing is written and the claim
+   * stays used.
+   */
+  redeem(
+    state: string,
+    produce: () =>
+      z.input<TSettings["schema"]> | Promise<z.input<TSettings["schema"]>>,
+  ): Promise<void>;
+}

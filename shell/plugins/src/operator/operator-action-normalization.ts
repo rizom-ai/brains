@@ -431,6 +431,13 @@ export function normalizeActionControls(
       });
       continue;
     }
+    if (control.action.launch && control.result) {
+      issues.push({
+        path: [...actionPath, "result"],
+        message: `Action "${control.action.name}" sends the browser elsewhere, so it has no result to show`,
+      });
+      continue;
+    }
     const normalizedForm = normalizeActionForm(control, actionPath);
     const normalizedResult = normalizeActionResult(control, actionPath);
     issues.push(...normalizedForm.issues, ...normalizedResult.issues);
@@ -490,6 +497,7 @@ export function normalizeActionControls(
         ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
         ...(control.disabled ? { disabled: true } : {}),
         ...(confirmation ? { confirmation } : {}),
+        ...(control.action.launch ? { launch: true } : {}),
         ...(control.dropTarget ? { dropTarget: control.dropTarget } : {}),
       }),
     );

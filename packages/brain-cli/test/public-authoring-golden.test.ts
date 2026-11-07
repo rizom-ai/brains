@@ -263,6 +263,9 @@ describe("public authoring 0.2 golden packages", () => {
     for (const symbol of [
       "entities: [queuedReading]",
       "entities.create(queuedReading",
+      "launch: { origins: [READING_PROVIDER] }",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
       "defineAccountSettings",
       "defineStudioWorkspace",
       "defineDashboardWidget",

@@ -6,7 +6,10 @@ import {
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "../types/studio-workspace";
-import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
+import type {
+  AnyAccountSettingsDefinition,
+  ServiceAccountSettings,
+} from "./account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "./account-settings-registry";
 import { meetsPermission } from "./contract-assertions";
 import type {
@@ -17,6 +20,7 @@ import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
 import {
   accessWithin,
   createOperatorContext,
+  noAccountSettingsWrites,
   noOwnedWrites,
   type OperatorRunAs,
 } from "./operator-context-runtime";
@@ -48,8 +52,10 @@ import {
 } from "./operator-runtime-errors";
 import {
   getWorkspaceActionExecutor,
+  isLaunchDestination,
   type AnyWorkspaceActionDefinition,
   type BoundWorkspaceAction,
+  type WorkspaceActionLaunch,
 } from "./workspace-action-definition-contract";
 
 const actionRequestSchema = z
@@ -74,6 +80,7 @@ const preparedConfirmationSchema = z.object({
   revision: z.string().trim().min(1).max(500),
 });
 const jsonValueSchema: ReturnType<typeof z.json> = z.json();
+const launchOutputSchema = z.object({ url: z.string() });
 
 function requiresPreparedConfirmation(
   action: AnyWorkspaceActionDefinition,
@@ -172,12 +179,17 @@ async function executeActionBinding<
     TOwned
   >,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  entities: EntityReader & OwnedEntityWriter<TOwned>,
+  writes: {
+    readonly entities: EntityReader & OwnedEntityWriter<TOwned>;
+    readonly accountSettings: ServiceAccountSettings<
+      NonNullable<TAccountSettings>
+    >;
+  },
   input: z.output<TDefinition["input"]>,
 ): Promise<unknown> {
   return getWorkspaceActionExecutor(binding).execute({
     ...context,
-    entities,
+    ...writes,
     input,
   });
 }
@@ -213,6 +225,12 @@ export function createDeclarativeStudioWorkspaceRegistration<
    * Without one, callbacks read at the caller's visibility and write nothing.
    */
   readonly entities?: (EntityReader & OwnedEntityWriter<TOwned>) | undefined;
+  /**
+   * A service's own account settings writes, which act for the current
+   * caller's account; without them, an action writes no settings.
+   */
+  readonly accountSettings?:
+    ServiceAccountSettings<NonNullable<TAccountSettings>> | undefined;
   /** Runs each callback as its caller, in the declaring package's context. */
   readonly runAs?: OperatorRunAs | undefined;
 }): Omit<StudioWorkspaceRegistration, "pluginId"> {
@@ -275,6 +293,8 @@ export function createDeclarativeStudioWorkspaceRegistration<
             caller: operatorCaller(actor),
             actor: actor.actor,
             interfaceType: "studio",
+            // Studio resolves every request's caller from its browser session.
+            browserSession: true,
           },
           run,
         )
@@ -517,7 +537,12 @@ export function createDeclarativeStudioWorkspaceRegistration<
       rawOutput = await executeActionBinding(
         request.binding,
         runtimeContext,
-        actionEntities(runtimeContext),
+        {
+          entities: actionEntities(runtimeContext),
+          accountSettings:
+            input.accountSettings ??
+            noAccountSettingsWrites<NonNullable<TAccountSettings>>(),
+        },
         request.input,
       );
     } catch (error) {
@@ -538,6 +563,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
         { code: "invalid_response", cause: parsedOutput.error },
       );
     }
+    if (action.launch) return launchFor(action.name, action.launch, rawOutput);
     const jsonOutput = jsonValueSchema.safeParse(parsedOutput.data);
     if (!jsonOutput.success) {
       throw runtimeError(
@@ -548,6 +574,30 @@ export function createDeclarativeStudioWorkspaceRegistration<
       );
     }
     return jsonOutput.data;
+  }
+
+  /**
+   * Where a launch sends the browser, checked before it moves: an absolute
+   * https URL on an origin the action declares, carrying no credentials.
+   */
+  function launchFor(
+    actionName: string,
+    launch: WorkspaceActionLaunch,
+    output: unknown,
+  ): JsonValue {
+    const destination = launchOutputSchema.safeParse(output);
+    if (
+      !destination.success ||
+      !isLaunchDestination(launch, destination.data.url)
+    ) {
+      throw runtimeError(
+        identity,
+        `action "${actionName}" launched outside its declared origins (${launch.origins.join(", ")})`,
+        undefined,
+        { code: "invalid_response" },
+      );
+    }
+    return { kind: "launch", url: new URL(destination.data.url).href };
   }
   const listEntityTypes = executor.listEntityTypes;
 

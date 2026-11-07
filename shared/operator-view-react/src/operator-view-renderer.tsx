@@ -28,6 +28,11 @@ export interface OperatorViewRendererProps {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch?: ((launch: RuntimeOperatorLaunchIntent) => void) | undefined;
+  /**
+   * Where a launch action sends the browser; without one, the page itself
+   * goes there, as a consent flow expects.
+   */
+  onExternalLaunch?: ((url: string) => void) | undefined;
   query?: OperatorViewQuery | undefined;
   onQueryChange?: ((query: OperatorViewQuery) => void) | undefined;
   resolveLink?:
@@ -77,6 +82,7 @@ export function OperatorViewRenderer(
     <OperatorRendererHostContext.Provider
       value={{
         resolveLink: props.resolveLink,
+        onExternalLaunch: props.onExternalLaunch,
         onDetachedActionResult: setActionReceipt,
         renderAllTabs: props.renderAllTabs === true,
         components,
