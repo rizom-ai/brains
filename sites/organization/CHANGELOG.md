@@ -1,5 +1,20 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies [[`92b3bb7`](https://github.com/rizom-ai/brains/commit/92b3bb74eeffc14b522eb91f55e9fe9f159af195)]:
+  - @rizom/brain-ui@0.2.0-alpha.652
+  - @brains/agent-discovery@0.2.0-alpha.652
+  - @brains/faq@0.2.0-alpha.652
+  - @brains/site-atlas@0.2.0-alpha.652
+  - @brains/profile@0.2.0-alpha.652
+  - @brains/site-composition@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/plugins@0.2.0-alpha.652
+  - @brains/templates@0.2.0-alpha.652
+
 ## 0.2.0-alpha.651
 
 ### Patch Changes
