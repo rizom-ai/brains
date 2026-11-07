@@ -83,6 +83,7 @@ Plans:
 - [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
 - [moving-in-guides.md](./plans/moving-in-guides.md) — a `guide` entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from `docs/guides/` with the docs.
 - [linkedin-import.md](./plans/linkedin-import.md) — an opt-in plugin that imports the owner's LinkedIn profile, skills and history into `anchor-profile` from Studio, through LinkedIn's DMA portability API (EEA) or an uploaded data export, merging without overwriting what the owner wrote.
+- [forms-plugin.md](./plans/forms-plugin.md) — one `forms` plugin for every public form on a brain's site, defined in the brain, with steps, scoring and outcomes; `contact` folds in as its first form, and The Fourth's brand test replaces its Tally form.
 
 ### 2. The collective posture
 
