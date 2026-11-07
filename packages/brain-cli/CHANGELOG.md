@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- [#858](https://github.com/rizom-ai/brains/pull/858) [`2f1d6c7`](https://github.com/rizom-ai/brains/commit/2f1d6c74de007a302062739772e015c415eb6488) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity package's jobs and generations now read entries with the access of the person whose request started them, as a service package's jobs already do, and a generation writes only what that person may write. Before this, they read every entry. A generation the package starts on its own, such as a scheduled one, reads the package's own types at every visibility and other types with the package's configured grant, which is public unless the brain grants more. Checks, evals and the Inbox listing, which run with no caller behind them, now read the same way instead of reading every entry. A job whose requester's account is revoked before it runs is refused, and entity jobs queued before the upgrade fail rather than run. An AT Protocol record a package declares is built from public entries only, since it is published to a public PDS. A projection's new entry takes its source's visibility unless the package sets one, and so does a generation written from a source, such as a scheduled one: a restricted entry no longer becomes a public one. A generation can set its entry's visibility in its result; one with no source writes as before.
+
 ## 0.2.0-alpha.650
 
 ### Patch Changes

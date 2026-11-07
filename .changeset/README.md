@@ -27,6 +27,8 @@ The workflows use lane-scoped commands:
 - `bun run changeset:version:core` / `bun run changeset:publish:core`
 - `bun run changeset:version:site` / `bun run changeset:publish:site`
 
+Every package either lane publishes lands on the `latest` npm dist-tag, prerelease or not: the wrapper sets `.changeset/pre.json` aside for `changeset publish`, which otherwise picks `latest` or `alpha` per package from its registry history. CI publishes through trusted publishing, which covers `npm publish` only, so it cannot move a dist-tag afterwards.
+
 Unscoped publish commands are intentionally not exposed. The site pipeline also
 verifies prepared package metadata before npm publish and registry metadata
 after publish.
