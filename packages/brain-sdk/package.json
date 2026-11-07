@@ -1,7 +1,7 @@
 {
   "name": "@brains/sdk",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.644",
+  "version": "0.2.0-alpha.645",
   "description": "Layer 1 authoring surface: the plugin, entity and interface contract that @rizom/brain re-exports and in-repo packages import directly",
   "dependencies": {
     "@brains/contracts": "workspace:*",

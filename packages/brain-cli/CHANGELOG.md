@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- [#844](https://github.com/rizom-ai/brains/pull/844) [`0f57861`](https://github.com/rizom-ai/brains/commit/0f57861e865e9a741b2b87e7e15a74851c3d29a6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Run topic extraction jobs one at a time. A note added or edited while topic extraction was running could wait about 30 seconds for its topic vote instead of being read as soon as the running extraction finished.
+
 ## 0.2.0-alpha.644
 
 ### Patch Changes
