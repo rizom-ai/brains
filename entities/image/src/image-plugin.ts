@@ -193,9 +193,9 @@ function buildUploadedImageAttachment(input: {
  * Image EntityPlugin — manages image entities with AI generation.
  *
  * Zero tools. Image operations go through:
- * - system_create { entityType: "image", source: { kind: "upload", transform: "preserve" } } — upload
+ * - system_create { entityType: "image", source: { kind: "upload", id, transform: "preserve" } } — upload
  * - system_generate { entityType: "image", source: { kind: "prompt", prompt: "..." } } — AI generation
- * - system_update { operation: { kind: "fields", fields: { coverImageId } } } — set cover image references
+ * - system_update { operation: { fields: { coverImageId } } } — set cover image references
  */
 export class ImagePlugin extends EntityPlugin<
   Image,

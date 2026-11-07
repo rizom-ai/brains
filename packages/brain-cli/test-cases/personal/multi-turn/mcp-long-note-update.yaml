@@ -20,7 +20,6 @@ turns:
             entityType: note
             id: mcp-long-note-update
             operation:
-              kind: edits
               edits: &a2
                 - oldText: "# Working Plan"
                   newText: "# Approved Plan"
@@ -594,7 +593,6 @@ turns:
             entityType: note
             id: mcp-long-note-update
             operation:
-              kind: edits
               edits: *a2
           argsAbsent: ["operation.fields", "operation.content"]
           resultContains:

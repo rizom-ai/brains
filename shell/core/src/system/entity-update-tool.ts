@@ -69,34 +69,30 @@ async function normalizeOperation(
     );
 
   const requested = input.operation;
-  switch (requested.kind) {
-    case "fields":
-      return { operation: requested };
-    case "edits":
-      return {
-        operation: {
-          kind: "content",
-          content: applyContentEdits(entity.content, requested.edits),
-        },
-      };
-    case "content":
-      return withReplacementContent(services, entity, requested.content);
-    case "source": {
-      const resolved = await resolveConversationMessageContent(
-        services,
-        requested.source,
-        context,
-        { confirmed: input.confirmed === true },
-      );
-      if (!resolved.success) return resolved;
-      return withReplacementContent(
-        services,
-        entity,
-        resolved.content,
-        freezeUserMessageSource(requested.source, resolved),
-      );
-    }
-  }
+  if ("fields" in requested)
+    return { operation: { kind: "fields", fields: requested.fields } };
+  if ("edits" in requested)
+    return {
+      operation: {
+        kind: "content",
+        content: applyContentEdits(entity.content, requested.edits),
+      },
+    };
+  if ("content" in requested)
+    return withReplacementContent(services, entity, requested.content);
+  const resolved = await resolveConversationMessageContent(
+    services,
+    requested.source,
+    context,
+    { confirmed: input.confirmed === true },
+  );
+  if (!resolved.success) return resolved;
+  return withReplacementContent(
+    services,
+    entity,
+    resolved.content,
+    freezeUserMessageSource(requested.source, resolved),
+  );
 }
 
 function withReplacementContent(
@@ -179,7 +175,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       preview: buildUpdateDiff(entity, operation, entityRegistry),
       args: confirmationGate.buildArgs((confirmationToken) => ({
         ...input,
-        ...(source ? { operation: { kind: "source", source } } : {}),
+        ...(source ? { operation: { source } } : {}),
         id: entity.id,
         confirmed: true,
         confirmationToken,
