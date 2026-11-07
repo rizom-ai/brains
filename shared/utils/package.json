@@ -62,6 +62,7 @@
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",
     "./yaml": "./src/yaml.ts",
+    "./zod-issues": "./src/zod-issues.ts",
     "./zod": "./src/zod.ts",
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",

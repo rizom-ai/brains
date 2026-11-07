@@ -1,8 +1,10 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import {
+  SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
   sdkErrorSchema,
+  toSdkError,
   type ActorRef,
   type JsonObject,
   type SdkErrorCode,
@@ -10,6 +12,7 @@ import {
 import type { CallerAccess } from "@brains/content-service";
 import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import { definedFields } from "@brains/utils/strip-undefined";
+import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -676,8 +679,10 @@ class DeclarativeServicePlugin<
     ) {
       return;
     }
+    const refusal = `Writing ${entityType} (${action}) requires ${required} permission; the caller has ${access.permissionLevel}`;
     throw new SdkError("permission_denied", {
-      message: `Writing ${entityType} (${action}) requires ${required} permission; the caller has ${access.permissionLevel}`,
+      message: refusal,
+      publicMessage: refusal,
     });
   }
 
@@ -1120,7 +1125,12 @@ class DeclarativeServicePlugin<
       sideEffects:
         definition.sideEffects ?? (definition.confirmation ? "writes" : "none"),
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
+        // What a failure is, if nothing more specific says: refused input
+        // until the tool runs, a failed handler while it does, and an
+        // invalid response once it has answered.
+        let stage: SdkErrorCode = "invalid_input";
         try {
+          if (toolContext.signal?.aborted) throw new SdkError("cancelled");
           const token = toolConfirmationToken(rawInput);
           if (token !== undefined) {
             const gateError = confirmations.validateConfirmed(token, rawInput);
@@ -1131,12 +1141,26 @@ class DeclarativeServicePlugin<
             delete record[confirmationTokenField];
             rawInput = record;
           }
-          const input = definition.input.parse(rawInput);
+          // Refused input says what to fix: the issues describe the caller's
+          // own call against the tool's published schema.
+          const parsedInput = definition.input.safeParse(rawInput);
+          if (!parsedInput.success) {
+            throw new SdkError("invalid_input", {
+              cause: parsedInput.error,
+              publicMessage: formatZodIssues(parsedInput.error, {
+                maxLength: SDK_ERROR_MESSAGE_MAX_LENGTH,
+              }),
+            });
+          }
+          const input = parsedInput.data;
           if (token === undefined && definition.confirmation) {
             return {
               needsConfirmation: true,
               toolName: name,
-              summary: definition.confirmation,
+              summary:
+                typeof definition.confirmation === "function"
+                  ? definition.confirmation(input)
+                  : definition.confirmation,
               args: confirmations.buildArgs((confirmationToken) => ({
                 ...z.record(z.string(), z.unknown()).parse(input),
                 [confirmationTokenField]: confirmationToken,
@@ -1144,6 +1168,7 @@ class DeclarativeServicePlugin<
             };
           }
 
+          stage = "handler_failed";
           const output = await this.toolContext.run(toolContext, () =>
             this.calls.run(this.toolCall(toolContext), () =>
               Promise.resolve(
@@ -1154,12 +1179,24 @@ class DeclarativeServicePlugin<
               ),
             ),
           );
+          stage = "invalid_response";
           return {
             success: true,
             data: definition.output.parse(output),
           };
         } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
+          // The caller is told the failure's public form, as an SdkError
+          // publishes it; the diagnostic stays with the brain.
+          const failure = toSdkError(
+            error,
+            toolContext.signal?.aborted ? "cancelled" : stage,
+          ).toJSON();
+          this.logger.debug("Declared tool failed", {
+            tool: name,
+            code: failure.code,
+            error: getErrorMessage(error),
+          });
+          return { success: false, error: failure.message, code: failure.code };
         }
       },
     };

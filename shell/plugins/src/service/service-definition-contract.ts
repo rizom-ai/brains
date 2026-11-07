@@ -19,6 +19,7 @@ import type { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import type {
   AnyEntityDefinition,
+  ReadonlyInput,
   EntityMetadataInput,
   EntityOf,
   EntityReader,
@@ -264,14 +265,30 @@ export interface ServiceToolDefinition<
   readonly description: string;
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
-  readonly confirmation?: string | undefined;
+  /**
+   * What the person is asked to approve before the tool runs: the same
+   * every time, or written from the parsed input when the act depends on it.
+   */
+  readonly confirmation?:
+    string | ((input: z.output<TInputSchema>) => string) | undefined;
   readonly permission?: UserPermissionLevel | undefined;
   readonly sideEffects?: "none" | "writes" | "external" | undefined;
   execute(context: {
     readonly input: z.output<TInputSchema>;
     readonly signal: AbortSignal;
-  }): z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>;
+  }):
+    | ServiceToolOutput<TOutputSchema>
+    | Promise<ServiceToolOutput<TOutputSchema>>;
 }
+
+/**
+ * What a tool returns: its output schema's input, also accepted read-only.
+ * Spelled through the schema's own input slot so that, with `defineTool`
+ * taking its output schema as a `const` parameter, a literal returned inline
+ * keeps its literal type, from a callback with parameters or without.
+ */
+export type ServiceToolOutput<TOutputSchema extends ServiceSchema> =
+  TOutputSchema["_zod"]["input"] | ReadonlyInput<z.input<TOutputSchema>>;
 
 export type AnyServiceToolDefinition = ServiceToolDefinition<
   string,
@@ -282,7 +299,7 @@ export type AnyServiceToolDefinition = ServiceToolDefinition<
 export function defineTool<
   const TName extends string,
   TInputSchema extends ServiceInputSchema,
-  TOutputSchema extends ServiceSchema,
+  const TOutputSchema extends ServiceSchema,
 >(
   definition: Omit<
     ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,

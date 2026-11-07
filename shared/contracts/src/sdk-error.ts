@@ -27,10 +27,16 @@ export const sdkErrorCodeSchema: z.ZodEnum<{
 
 export type SdkErrorCode = z.output<typeof sdkErrorCodeSchema>;
 
+/** The longest public message an SdkError carries. */
+export const SDK_ERROR_MESSAGE_MAX_LENGTH = 1024;
+
 export const sdkErrorSchema: z.ZodObject<{
   code: typeof sdkErrorCodeSchema;
   message: z.ZodString;
-}> = z.object({ code: sdkErrorCodeSchema, message: z.string().max(1024) });
+}> = z.object({
+  code: sdkErrorCodeSchema,
+  message: z.string().max(SDK_ERROR_MESSAGE_MAX_LENGTH),
+});
 export type SdkErrorData = z.output<typeof sdkErrorSchema>;
 
 const messages: Record<SdkErrorCode, string> = {

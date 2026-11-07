@@ -259,6 +259,7 @@ export {
 } from "./generation-result";
 export { JobResult } from "./job-result";
 export {
+  SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
   sdkErrorCodeSchema,
   sdkErrorSchema,

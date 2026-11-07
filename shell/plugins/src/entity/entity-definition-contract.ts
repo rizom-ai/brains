@@ -54,7 +54,7 @@ export type {
 export type EntityVisibility = "public" | "shared" | "restricted";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
 
-type ReadonlyInput<T> = T extends Date | ((...args: never[]) => unknown)
+export type ReadonlyInput<T> = T extends Date | ((...args: never[]) => unknown)
   ? T
   : { readonly [K in keyof T]: ReadonlyInput<T[K]> };
 
