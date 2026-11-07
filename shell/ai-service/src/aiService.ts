@@ -41,6 +41,7 @@ export class AIService implements IAIService {
   private capabilities: TextModelCapabilities;
   private cachedModel: LanguageModel | null = null;
   private cachedAnswerModel: LanguageModel | null = null;
+  private cachedVisionModel: LanguageModel | null = null;
 
   public static createFresh(
     config: AIModelConfig,
@@ -79,6 +80,14 @@ export class AIService implements IAIService {
     if (!answerModel) return undefined;
     this.cachedAnswerModel ??= getLanguageModel(this.providers, answerModel);
     return this.cachedAnswerModel;
+  }
+
+  /** The model that describes images, when one is configured. */
+  public getVisionModel(): LanguageModel | undefined {
+    const visionModel = this.config.visionModel;
+    if (!visionModel) return undefined;
+    this.cachedVisionModel ??= getLanguageModel(this.providers, visionModel);
+    return this.cachedVisionModel;
   }
 
   /**
@@ -228,6 +237,9 @@ export class AIService implements IAIService {
     }
     if (keyFieldsChanged || config.answerModel !== undefined) {
       this.cachedAnswerModel = null;
+    }
+    if (keyFieldsChanged || config.visionModel !== undefined) {
+      this.cachedVisionModel = null;
     }
     if (modelChanged) {
       this.capabilities = resolveTextModelCapabilities(this.config.model);

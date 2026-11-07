@@ -1,15 +1,18 @@
 import { extractPdfMarkdown } from "@brains/document";
 import { getErrorMessage } from "@brains/utils/error";
 import type { FilePart, ModelMessage, TextPart } from "ai";
+import type { ImageDescriber } from "./image-description";
 
 /**
  * The messages a model that reads only text can take: each uploaded file
- * becomes text, a PDF its extracted text and any other file its name and
- * type, so the model still knows what was uploaded and can save it by its
- * upload reference.
+ * becomes text, a PDF its extracted text, an image its description when a
+ * vision model can give one, and any other file its name and type, so the
+ * model still knows what was uploaded and can save it by its upload
+ * reference.
  */
 export async function textOnlyMessages(
   messages: ModelMessage[],
+  describeImage?: ImageDescriber,
 ): Promise<ModelMessage[]> {
   return Promise.all(
     messages.map(async (message) => {
@@ -17,7 +20,7 @@ export async function textOnlyMessages(
         return message;
       const content = await Promise.all(
         message.content.map(async (part) =>
-          part.type === "file" ? describeFile(part) : part,
+          part.type === "file" ? describeFile(part, describeImage) : part,
         ),
       );
       return { ...message, content };
@@ -25,8 +28,20 @@ export async function textOnlyMessages(
   );
 }
 
-async function describeFile(part: FilePart): Promise<TextPart> {
+async function describeFile(
+  part: FilePart,
+  describeImage: ImageDescriber | undefined,
+): Promise<TextPart> {
   const name = `"${part.filename ?? "an unnamed file"}"`;
+  const description = part.mediaType.toLowerCase().startsWith("image/")
+    ? await describeImage?.(part)
+    : undefined;
+  if (description !== undefined) {
+    return {
+      type: "text",
+      text: `User uploaded an image ${name} (${part.mediaType}). It shows: ${description}`,
+    };
+  }
   if (part.mediaType.toLowerCase() !== "application/pdf") {
     return {
       type: "text",
@@ -53,7 +68,7 @@ async function describeFile(part: FilePart): Promise<TextPart> {
   }
 }
 
-function fileBytes(data: FilePart["data"]): Buffer | undefined {
+export function fileBytes(data: FilePart["data"]): Buffer | undefined {
   if (typeof data === "string") return Buffer.from(data, "base64");
   if (data instanceof URL) return undefined;
   return Buffer.from(data instanceof ArrayBuffer ? new Uint8Array(data) : data);

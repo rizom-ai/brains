@@ -41,6 +41,7 @@ import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 import { retryDeclinedTurnOnce } from "./provider-declined";
 import { textOnlyMessages } from "./text-only-messages";
+import { createImageDescriber } from "./image-description";
 import { createToolCallRepair } from "./tool-call-repair";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
@@ -111,6 +112,8 @@ export interface BrainAgentFactoryOptions {
    * a fast model writes the answer while a reasoning one makes the calls.
    */
   answerModel?: LanguageModel | undefined;
+  /** Describes uploaded images as text for a local model that reads only text. */
+  visionModel?: LanguageModel | undefined;
   modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
@@ -134,6 +137,7 @@ export function createBrainAgentFactory(
   const {
     model,
     answerModel,
+    visionModel,
     modelId,
     webSearch,
     temperature,
@@ -156,6 +160,11 @@ export function createBrainAgentFactory(
   const repairToolCall =
     capabilities.provider === "local"
       ? createToolCallRepair(model, reasoning)
+      : undefined;
+
+  const describeImage =
+    capabilities.provider === "local" && visionModel
+      ? createImageDescriber(visionModel)
       : undefined;
 
   // Create event emitter backed by message bus
@@ -206,7 +215,7 @@ export function createBrainAgentFactory(
         // as text, never as a file part the runtime rejects.
         const messages =
           capabilities.provider === "local" && settings.messages
-            ? await textOnlyMessages(settings.messages)
+            ? await textOnlyMessages(settings.messages, describeImage)
             : settings.messages;
         // Get tools available for this permission level, unless this bounded
         // model turn is intentionally text-only (for example, after executing

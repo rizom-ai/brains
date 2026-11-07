@@ -96,3 +96,110 @@ describe("uploads for a model that reads only text", () => {
     expect(parts.map((part) => part.type)).toEqual(["text", "file", "file"]);
   });
 });
+
+function textModel(): MockLanguageModelV3 {
+  return new MockLanguageModelV3({
+    doGenerate: async (): Promise<ModelResponse> => ({
+      content: [{ type: "text", text: "Done." }],
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
+        outputTokens: { total: 1, text: 1, reasoning: 0 },
+      },
+      warnings: [],
+    }),
+  });
+}
+
+/** A vision model that describes what it is shown, or fails. */
+function visionModel(description: string | Error): MockLanguageModelV3 {
+  return new MockLanguageModelV3({
+    modelId: "vision",
+    doGenerate: async (): Promise<ModelResponse> => {
+      if (description instanceof Error) throw description;
+      return {
+        content: [{ type: "text", text: description }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        },
+        warnings: [],
+      };
+    },
+  });
+}
+
+async function turnsWithVision(
+  vision: MockLanguageModelV3,
+  turns: number,
+): Promise<MockLanguageModelV3> {
+  const model = textModel();
+  const agent = createBrainAgentFactory({
+    model,
+    visionModel: vision,
+    modelId: "local:qwen3:30b-a3b",
+    messageBus: createMockMessageBus(),
+  })({
+    identity: {
+      name: "Brain",
+      role: "Researcher",
+      purpose: "Help",
+      values: [],
+    },
+    tools: [],
+    getToolsForPermission: () => [],
+  });
+  for (const _turn of Array.from({ length: turns })) {
+    await agent.generate({
+      messages: [uploads],
+      options: {
+        conversationId: "conv-1",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+      },
+    });
+  }
+  return model;
+}
+
+function imagePart(model: MockLanguageModelV3): string | undefined {
+  const [call] = model.doGenerateCalls;
+  if (!call) throw new Error("The model was not called");
+  return userParts(call.prompt).find((part) =>
+    part.text?.includes("harbor.png"),
+  )?.text;
+}
+
+describe("images for a local model with a vision model", () => {
+  it("gives the model the vision model's description of the image", async () => {
+    const vision = visionModel("A harbor at dawn, with two fishing boats.");
+
+    const model = await turnsWithVision(vision, 1);
+
+    expect(imagePart(model)).toContain(
+      "It shows: A harbor at dawn, with two fishing boats.",
+    );
+    const [described] = vision.doGenerateCalls;
+    const shown = userParts(described?.prompt ?? []);
+    expect(shown.some((part) => part.type === "file")).toBe(true);
+  });
+
+  it("describes each image once", async () => {
+    const vision = visionModel("A harbor at dawn.");
+
+    await turnsWithVision(vision, 2);
+
+    expect(vision.doGenerateCalls).toHaveLength(1);
+  });
+
+  it("names the image without a description when the vision model fails", async () => {
+    const model = await turnsWithVision(
+      visionModel(new Error("runtime down")),
+      1,
+    );
+
+    expect(imagePart(model)).toContain("Its contents are not shown to you.");
+  });
+});

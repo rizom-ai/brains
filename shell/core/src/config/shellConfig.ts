@@ -92,6 +92,7 @@ export const shellConfigSchema: z.ZodObject<{
     embeddingModel: z.ZodDefault<z.ZodString>;
     modelRuntimeUrl: z.ZodOptional<z.ZodString>;
     answerModel: z.ZodOptional<z.ZodString>;
+    visionModel: z.ZodOptional<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
@@ -155,6 +156,8 @@ export const shellConfigSchema: z.ZodObject<{
       modelRuntimeUrl: z.string().url().optional(),
       /** A `local:` model that answers tool results in place of `model`. */
       answerModel: z.string().optional(),
+      /** A `local:` model that describes images for a model reading only text. */
+      visionModel: z.string().optional(),
       temperature: z.number().min(0).max(2).default(0.7),
       maxTokens: z.number().positive().default(1000),
       webSearch: z.boolean().default(true),
@@ -168,12 +171,20 @@ export const shellConfigSchema: z.ZodObject<{
           message: `answerModel must be a local: model, not ${ai.answerModel}`,
         });
       }
+      if (ai.visionModel && selectTextProvider(ai.visionModel) !== "local") {
+        context.addIssue({
+          code: "custom",
+          path: ["visionModel"],
+          message: `visionModel must be a local: model, not ${ai.visionModel}`,
+        });
+      }
       if (ai.modelRuntimeUrl) return;
       const localModels = [
         ...(selectTextProvider(ai.model) === "local" ? [ai.model] : []),
-        ...(ai.answerModel && selectTextProvider(ai.answerModel) === "local"
-          ? [ai.answerModel]
-          : []),
+        ...[ai.answerModel, ai.visionModel].filter(
+          (role): role is string =>
+            role !== undefined && selectTextProvider(role) === "local",
+        ),
         ...(findEmbeddingProfile(ai.embeddingModel)?.provider === "local"
           ? [ai.embeddingModel]
           : []),

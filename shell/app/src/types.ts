@@ -37,6 +37,7 @@ type AppConfigSchema = z.ZodObject<{
   aiEmbeddingModel: z.ZodOptional<z.ZodString>;
   aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
   aiAnswerModel: z.ZodOptional<z.ZodString>;
+  aiVisionModel: z.ZodOptional<z.ZodString>;
   aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
@@ -60,6 +61,7 @@ export const appConfigSchema: AppConfigSchema = z.object({
   aiEmbeddingModel: z.string().optional(), // Embedding model, "provider:model"
   aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models
   aiAnswerModel: z.string().optional(), // Local model answering tool results
+  aiVisionModel: z.string().optional(), // Local model describing images
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file

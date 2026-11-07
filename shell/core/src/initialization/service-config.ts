@@ -41,6 +41,7 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
       ? { modelRuntimeUrl: config.ai.modelRuntimeUrl }
       : {}),
     ...(config.ai.answerModel ? { answerModel: config.ai.answerModel } : {}),
+    ...(config.ai.visionModel ? { visionModel: config.ai.visionModel } : {}),
   };
 }
 

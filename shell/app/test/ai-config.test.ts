@@ -60,6 +60,12 @@ describe("resolveAIConfig", () => {
     ).toBe("local:qwen3:30b-a3b-instruct");
   });
 
+  it("passes the vision model through", () => {
+    expect(
+      resolveAIConfig({}, { visionModel: "local:qwen3-vl:8b" }).aiVisionModel,
+    ).toBe("local:qwen3-vl:8b");
+  });
+
   it("does not set an embedding model when none is configured", () => {
     expect(
       resolveAIConfig({ AI_API_KEY: "sk-test" }).aiEmbeddingModel,

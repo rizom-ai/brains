@@ -131,6 +131,7 @@ function applyAIConfig(
     !config.aiEmbeddingModel &&
     !config.aiModelRuntimeUrl &&
     !config.aiAnswerModel &&
+    !config.aiVisionModel &&
     !config.aiReasoningEffort &&
     !isStartupCheck
   ) {
@@ -153,6 +154,7 @@ function applyAIConfig(
       modelRuntimeUrl: config.aiModelRuntimeUrl,
     }),
     ...(config.aiAnswerModel && { answerModel: config.aiAnswerModel }),
+    ...(config.aiVisionModel && { visionModel: config.aiVisionModel }),
     ...(config.aiReasoningEffort && {
       reasoningEffort: config.aiReasoningEffort,
     }),

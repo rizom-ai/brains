@@ -187,6 +187,43 @@ describe("shell config", () => {
     ).toThrow(/qwen3:30b-a3b-instruct-2507-q4_K_M needs modelRuntime\.url/);
   });
 
+  it("takes a local vision model", () => {
+    expect(
+      createShellConfig({
+        ai: {
+          model: "local:qwen3:30b-a3b",
+          visionModel: "local:qwen3-vl:8b",
+          embeddingModel: "local:embeddinggemma-2:270m",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.visionModel,
+    ).toBe("local:qwen3-vl:8b");
+  });
+
+  it("rejects a vision model that is not local", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          visionModel: "openai:gpt-5.4-mini",
+        },
+      }),
+    ).toThrow(/visionModel must be a local: model/);
+  });
+
+  it("rejects a local vision model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          visionModel: "local:qwen3-vl:8b",
+        },
+      }),
+    ).toThrow(/qwen3-vl:8b needs modelRuntime\.url/);
+  });
+
   it("rejects a text model of an unknown provider", () => {
     expect(() =>
       createShellConfig({

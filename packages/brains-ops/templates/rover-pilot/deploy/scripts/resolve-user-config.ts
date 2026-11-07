@@ -31,7 +31,7 @@ const localModels = [
   ...new Set(
     [
       ...brainYaml.matchAll(
-        /^(?:embeddingModel|answerModel|model):\s*['"]?local:([^'"\s]+)/gm,
+        /^(?:embeddingModel|answerModel|visionModel|model):\s*['"]?local:([^'"\s]+)/gm,
       ),
     ]
       .map((match) => match[1] ?? "")

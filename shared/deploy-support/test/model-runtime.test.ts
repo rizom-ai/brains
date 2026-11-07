@@ -119,6 +119,7 @@ describe("the standalone deploy", () => {
     const script = renderExtractBrainConfigScript();
     expect(script).toContain('config["embeddingModel"]');
     expect(script).toContain('config["answerModel"]');
+    expect(script).toContain('config["visionModel"]');
     expect(script).toContain('file.puts("LOCAL_MODELS=#{local_models}")');
   });
 

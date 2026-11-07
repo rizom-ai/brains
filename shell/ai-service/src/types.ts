@@ -25,6 +25,8 @@ export interface AIModelConfig {
   modelRuntimeUrl?: string;
   /** A `local:` model that answers tool results in place of `model`. */
   answerModel?: string;
+  /** A `local:` model that describes images for a model that reads only text. */
+  visionModel?: string;
 }
 
 export type AIModelConfigUpdate = Partial<AIModelConfig>;
@@ -87,6 +89,8 @@ export interface IAIService {
 
   /** The model that answers tool results, when one is configured. */
   getAnswerModel?(): LanguageModel | undefined;
+  /** The model that describes images for a model reading only text. */
+  getVisionModel?(): LanguageModel | undefined;
 
   /**
    * Generate an image from a text prompt

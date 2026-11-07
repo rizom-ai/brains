@@ -192,6 +192,17 @@ modelRuntime:
 
 Without `answerModel`, a local `model` answers tool results with its reasoning switched off.
 
+### `visionModel`
+
+A `local:` model that describes uploaded images for a local `model` that reads only text. The vision model describes each image once, and the description reaches `model` in place of the image; without `visionModel`, an image reaches a local `model` as its name and type only. It must be a `local:` model, and the deploy pulls it with the others.
+
+```yaml
+model: local:qwen3:30b-a3b
+visionModel: local:qwen3-vl:8b
+modelRuntime:
+  url: http://localhost:11434
+```
+
 ### `embedding`
 
 Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.
