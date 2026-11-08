@@ -121,6 +121,18 @@ const rawBusSend = [
   },
 ];
 
+/**
+ * A type argument on a messaging subscription casts a payload nobody checked:
+ * a malformed one is read as whatever fields it lacks. Entities, plugins and
+ * interfaces subscribe through the event's typed channel, which validates the
+ * payload and refuses a malformed one.
+ */
+const castSubscription = {
+  selector: `CallExpression[typeArguments] > MemberExpression.callee[property.name=/^(subscribe|observe|subscribeExecution)$/]${messagingObject}`,
+  message:
+    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins) instead of type arguments, which cast a payload nobody validated.",
+};
+
 module.exports = {
   extends: [
     "eslint:recommended",
@@ -204,8 +216,9 @@ module.exports = {
       },
     },
     {
-      // Entity, plugin and interface production code sends no raw requests.
-      // Listed last: it restates the restrictions above for these files.
+      // Entity, plugin and interface production code sends no raw requests
+      // and casts no subscription's payload. Listed last: it restates the
+      // restrictions above for these files.
       files: [
         "**/entities/*/src/**/*.ts",
         "**/entities/*/src/**/*.tsx",
@@ -226,6 +239,34 @@ module.exports = {
           ...restrictedSyntax,
           rawFullScope,
           ...rawBusSend,
+          castSubscription,
+        ],
+      },
+    },
+    {
+      // Shared and shell production code that subscribes through a plugin
+      // context's messaging casts no payload either. The message bus itself is
+      // exempt: it is what the typed channels are built on. Restates the
+      // `**/src/**` restrictions above for these files.
+      files: [
+        "**/shared/*/src/**/*.ts",
+        "**/shared/*/src/**/*.tsx",
+        "**/shell/*/src/**/*.ts",
+        "**/shell/*/src/**/*.tsx",
+      ],
+      excludedFiles: [
+        "**/shell/messaging-service/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+        "**/entity-service/src/internal-scope.ts",
+      ],
+      rules: {
+        "no-restricted-syntax": [
+          "error",
+          ...restrictedSyntax,
+          rawFullScope,
+          castSubscription,
         ],
       },
     },

@@ -2,6 +2,7 @@ import {
   type BaseEntity,
   type CreateCheck,
   type CreateInterceptor,
+  type GenerationEnqueuer,
   type EntityAdapter,
   type IEntityRegistry,
   type UploadSaveHandlerRegistration,
@@ -20,6 +21,7 @@ export function createMockEntityRegistry(
 ): IEntityRegistry {
   const createInterceptors = new Map<string, CreateInterceptor>();
   const createChecks = new Map<string, CreateCheck>();
+  const generationEnqueuers = new Map<string, GenerationEnqueuer>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   // The types registered here, apart from the store's, which the service
   // double also fills when a test writes an entity of a type nobody registered.
@@ -45,6 +47,7 @@ export function createMockEntityRegistry(
       store.typeConfigs.delete(type);
       createInterceptors.delete(type);
       createChecks.delete(type);
+      generationEnqueuers.delete(type);
     },
     getSchema: (): never => {
       throw new Error("Not implemented");
@@ -89,6 +92,10 @@ export function createMockEntityRegistry(
       createChecks.set(type, check);
     },
     getCreateCheck: (type) => createChecks.get(type),
+    registerGenerationEnqueuer: (type, enqueuer) => {
+      generationEnqueuers.set(type, enqueuer);
+    },
+    getGenerationEnqueuer: (type) => generationEnqueuers.get(type),
     registerUploadSaveHandler: (registration): void => {
       uploadSaveHandlers.push(registration);
     },

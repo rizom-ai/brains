@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { markdownToHtml } from "@brains/ui-library";
+import { markdownToHtml } from "@rizom/brain-ui/internal";
 import { z } from "@brains/utils/zod";
 
 /** A book as an EPUB carries it: its title and its sections in reading order. */

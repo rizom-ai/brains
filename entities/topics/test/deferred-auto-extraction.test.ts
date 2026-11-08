@@ -36,7 +36,7 @@ async function install(
   });
   const plugin = new TopicsPlugin({
     enableAutoExtraction: enabled,
-    includeEntityTypes: ["post"],
+    excludeEntityTypes: ["note"],
   });
   const capabilities = executionOnly
     ? await plugin.register(harness.getMockShell(), { executionOnly: true })
@@ -135,7 +135,6 @@ describe("ranked topic extraction triggers", () => {
     await harness.installPlugin(
       new TopicsPlugin({
         enableAutoExtraction: true,
-        includeEntityTypes: ["post"],
       }),
     );
 

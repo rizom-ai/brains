@@ -32,7 +32,7 @@ All Turbo commands complete successfully despite the warning.
 ### Packages Affected
 
 - `@brains/site-builder-plugin` (uses Tailwind CSS v4)
-- `@brains/ui-library` (uses Tailwind CSS v4)
+- `@rizom/brain-ui` (uses Tailwind CSS v4)
 
 ### Resolution Status
 

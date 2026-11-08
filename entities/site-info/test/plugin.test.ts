@@ -3,6 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
   siteMetadataContract,
+  siteMetadataUpdatedChannel,
 } from "@brains/site-composition";
 import { SiteInfoPlugin } from "../src/plugin";
 
@@ -114,9 +115,9 @@ describe("SiteInfoPlugin", () => {
     const plugin = new SiteInfoPlugin();
     await harness.installPlugin(plugin);
 
-    let updateCount = 0;
-    harness.subscribe(SITE_METADATA_UPDATED_CHANNEL, () => {
-      updateCount++;
+    const updates: unknown[] = [];
+    harness.subscribe(SITE_METADATA_UPDATED_CHANNEL, (message) => {
+      updates.push(message.payload);
       return { success: true };
     });
 
@@ -125,7 +126,29 @@ describe("SiteInfoPlugin", () => {
       entityId: "site-info",
     });
 
-    expect(updateCount).toBe(1);
+    expect(updates).toHaveLength(1);
+    // What site-info announces is what the channel's subscribers take.
+    expect(
+      siteMetadataUpdatedChannel.schema.safeParse(updates[0]).success,
+    ).toBe(true);
+  });
+
+  it("ignores a change to another entity type", async () => {
+    const plugin = new SiteInfoPlugin();
+    await harness.installPlugin(plugin);
+
+    let updateCount = 0;
+    harness.subscribe(SITE_METADATA_UPDATED_CHANNEL, () => {
+      updateCount++;
+      return { success: true };
+    });
+
+    await harness.sendMessage("entity:updated", {
+      entityType: "note",
+      entityId: "site-info",
+    });
+
+    expect(updateCount).toBe(0);
   });
 
   it("re-announces site metadata when the worker syncs a site-info change", async () => {

@@ -1,5 +1,15 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.284
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site bundles its components from `@rizom/brain-ui`, the published name of the component library that was `@brains/ui-library`. Its pages render the same.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`3737da6`](https://github.com/rizom-ai/brains/commit/3737da657d6bb6599f543347b45aa238f017a73a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Answers in the "Asked before" chapter render the images they reference through the brain's image pipeline, as the brain's own pages do, on a brain at this release or later.
+- Updated dependencies [[`60bd903`](https://github.com/rizom-ai/brains/commit/60bd90309108aaa24bf8597d8245260dbc479e39)]:
+  - @rizom/site@0.2.0-alpha.244
+
 ## 0.2.0-alpha.283
 
 ### Patch Changes

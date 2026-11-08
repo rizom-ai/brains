@@ -1,168 +1,47 @@
-import type {
-  AgentBody,
-  EntityPluginContext,
-  IShell,
-  Plugin,
-  PluginCapabilities,
-} from "@brains/plugins";
 import {
-  BaseEntityAdapter,
-  agentBodySkillSchema,
-  anchorProfileKindSchema,
-  baseEntitySchema,
-  createEntityPluginContext,
-  formatAgentBody,
+  AgentAdapter,
+  SkillAdapter,
+  agentEntitySchema,
+  agentFrontmatterSchema,
+  agentSkillSchema,
+  skillEntitySchema,
+  skillFrontmatterSchema,
+} from "@brains/agent-discovery";
+import type {
+  EntityPluginContext,
+  EntityTypeConfig,
+  Plugin,
 } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import { generateIdFromText, slugifyUrl } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";
-import { swotEntitySchema, type SwotFrontmatter } from "../schemas/swot";
+import {
+  swotEntitySchema,
+  type SwotEntity,
+  type SwotFrontmatter,
+} from "../schemas/swot";
 
+const agentAdapter = new AgentAdapter();
+const skillAdapter = new SkillAdapter();
 const swotAdapter = new SwotAdapter();
 
-const evalAgentStatusSchema = z.enum(["discovered", "approved"]);
-
-const evalAgentFrontmatterSchema = z.object({
-  name: z.string(),
-  kind: anchorProfileKindSchema,
-  organization: z.string().optional(),
-  brainName: z.string(),
-  url: z.string().url(),
-  did: z.string().optional(),
-  status: evalAgentStatusSchema,
-  discoveredAt: z.string().datetime(),
-});
-
-const evalAgentEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("agent"),
-  metadata: z.object({
-    name: z.string(),
-    url: z.string().url(),
-    status: evalAgentStatusSchema,
-    slug: z.string(),
-  }),
-});
-
-const evalSkillDataSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  examples: z.array(z.string()),
-});
-
-type EvalSkillData = z.infer<typeof evalSkillDataSchema>;
-
-const evalSkillEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("skill"),
-  metadata: evalSkillDataSchema,
-});
-
-type EvalAgentFrontmatter = z.infer<typeof evalAgentFrontmatterSchema>;
-
-class EvalAgentAdapter extends BaseEntityAdapter<
-  z.infer<typeof evalAgentEntitySchema>,
-  z.infer<typeof evalAgentEntitySchema>["metadata"],
-  z.infer<typeof evalAgentFrontmatterSchema>
-> {
-  constructor() {
-    super({
-      entityType: "agent",
-      purpose: "An agent entity used for SWOT evaluation.",
-      schema: evalAgentEntitySchema,
-      frontmatterSchema: evalAgentFrontmatterSchema,
-    });
-  }
-
-  public fromMarkdown(
-    markdown: string,
-  ): Partial<z.infer<typeof evalAgentEntitySchema>> {
-    return { content: markdown, entityType: "agent" };
-  }
-
-  public createAgentContent(input: EvalAgentFrontmatter & AgentBody): string {
-    const body = formatAgentBody({
-      about: input.about,
-      skills: input.skills,
-      notes: input.notes,
-    });
-
-    return this.buildMarkdown(body, {
-      name: input.name,
-      kind: input.kind,
-      ...(input.organization ? { organization: input.organization } : {}),
-      brainName: input.brainName,
-      url: input.url,
-      ...(input.did ? { did: input.did } : {}),
-      status: input.status,
-      discoveredAt: input.discoveredAt,
-    });
-  }
-}
-
-class EvalSkillAdapter extends BaseEntityAdapter<
-  z.infer<typeof evalSkillEntitySchema>,
-  z.infer<typeof evalSkillEntitySchema>["metadata"]
-> {
-  constructor() {
-    super({
-      entityType: "skill",
-      purpose: "A skill entity used for SWOT evaluation.",
-      schema: evalSkillEntitySchema,
-      frontmatterSchema: evalSkillDataSchema,
-    });
-  }
-
-  public fromMarkdown(
-    markdown: string,
-  ): Partial<z.infer<typeof evalSkillEntitySchema>> {
-    const frontmatter = this.parseFrontMatter(markdown, evalSkillDataSchema);
-    return { content: markdown, entityType: "skill", metadata: frontmatter };
-  }
-
-  public createSkillContent(input: EvalSkillData): string {
-    return this.buildMarkdown("", input);
-  }
-}
-
-const agentAdapter = new EvalAgentAdapter();
-const skillAdapter = new EvalSkillAdapter();
-
-const swotEvalSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  examples: z.array(z.string()),
+/** An agent a test case seeds: its saved frontmatter and body sections. */
+const swotEvalAgentSchema = agentFrontmatterSchema.extend({
+  id: z.string().optional(),
+  discoveredAt: agentFrontmatterSchema.shape.discoveredAt.optional(),
+  about: z.string(),
+  skills: z.array(agentSkillSchema),
+  notes: z.string().default(""),
 });
 
 const swotEvalInputSchema = z.object({
-  skills: z.array(swotEvalSkillSchema),
-  agents: z.array(
-    z.object({
-      id: z.string().optional(),
-      name: z.string(),
-      kind: anchorProfileKindSchema,
-      organization: z.string().optional(),
-      brainName: z.string(),
-      url: z.url(),
-      did: z.string().optional(),
-      status: z.enum(["discovered", "approved"]),
-      discoveredAt: z.string().datetime().optional(),
-      about: z.string(),
-      skills: z.array(agentBodySkillSchema),
-      notes: z.string().default(""),
-    }),
-  ),
+  skills: z.array(skillFrontmatterSchema),
+  agents: z.array(swotEvalAgentSchema),
 });
-
-function slugFromUrl(url: string): string {
-  return url
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 async function deleteAllEntities(
   context: EntityPluginContext,
@@ -185,6 +64,10 @@ async function deleteAllEntities(
   );
 }
 
+/**
+ * Replace the directory with a test case's: each skill and agent is written
+ * as agent-discovery writes it and read back through its adapter.
+ */
 async function seedSwotEvalEntities(
   context: EntityPluginContext,
   input: z.output<typeof swotEvalInputSchema>,
@@ -195,50 +78,29 @@ async function seedSwotEvalEntities(
 
   await Promise.all(
     input.skills.map((skill) =>
-      context.entityService.createEntity({
-        entity: {
-          id: skill.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, ""),
+      context.entityService.createEntityFromMarkdown({
+        input: {
           entityType: "skill",
-          content: skillAdapter.createSkillContent(skill),
-          metadata: skill,
+          id: generateIdFromText(skill.name),
+          markdown: skillAdapter.createSkillContent(skill),
         },
       }),
     ),
   );
 
   await Promise.all(
-    input.agents.map((agent) => {
-      const discoveredAt = agent.discoveredAt ?? new Date().toISOString();
-      const slug = slugFromUrl(agent.url);
-      return context.entityService.createEntity({
-        entity: {
-          id: agent.id ?? slug,
+    input.agents.map(({ id, discoveredAt, ...agent }) =>
+      context.entityService.createEntityFromMarkdown({
+        input: {
           entityType: "agent",
-          content: agentAdapter.createAgentContent({
-            name: agent.name,
-            kind: agent.kind,
-            ...(agent.organization ? { organization: agent.organization } : {}),
-            brainName: agent.brainName,
-            url: agent.url,
-            ...(agent.did ? { did: agent.did } : {}),
-            status: agent.status,
-            discoveredAt,
-            about: agent.about,
-            skills: agent.skills,
-            notes: agent.notes,
+          id: id ?? slugifyUrl(agent.url),
+          markdown: agentAdapter.createAgentContent({
+            ...agent,
+            discoveredAt: discoveredAt ?? new Date().toISOString(),
           }),
-          metadata: {
-            name: agent.name,
-            url: agent.url,
-            status: agent.status,
-            slug,
-          },
         },
-      });
-    }),
+      }),
+    ),
   );
 }
 
@@ -246,8 +108,7 @@ async function deriveSwot(
   context: EntityPluginContext,
   input: unknown,
 ): Promise<SwotFrontmatter> {
-  const parsed = swotEvalInputSchema.parse(input);
-  await seedSwotEvalEntities(context, parsed);
+  await seedSwotEvalEntities(context, swotEvalInputSchema.parse(input));
 
   const handler = new SwotDerivationHandler(context.logger, context);
   const progressReporter = CallbackProgressReporter.from(async () => {});
@@ -272,38 +133,46 @@ async function deriveSwot(
   return swotAdapter.parseSwotContent(entity.content).frontmatter;
 }
 
-async function registerSwotEvalPlugin(
-  shell: IShell,
-): Promise<PluginCapabilities> {
-  const context = createEntityPluginContext(shell, "assessment");
+/**
+ * The SWOT entity type beside agent-discovery's own agent and skill types,
+ * with a `deriveSwot` eval handler that seeds a test case's directory before
+ * deriving. Its id is the one the test cases address (`plugin: assessment`).
+ *
+ * Eval-only: served from `@brains/assessment/eval`, which `evals/eval.yaml`
+ * names, and never from the package entry production brains load.
+ */
+export class SwotEvalPlugin extends EntityPlugin<
+  SwotEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  readonly entityType: SwotEntity["entityType"] = "swot";
+  readonly schema: typeof swotEntitySchema = swotEntitySchema;
+  readonly adapter: SwotAdapter = swotAdapter;
 
-  context.entities.register("agent", evalAgentEntitySchema, agentAdapter, {
-    classification: "system",
-  });
-  context.entities.register("skill", evalSkillEntitySchema, skillAdapter, {
-    classification: "system",
-  });
-  context.entities.register("swot", swotEntitySchema, swotAdapter, {
-    classification: "system",
-  });
+  constructor() {
+    super("assessment", packageJson, {}, emptyEntityPluginConfigSchema);
+  }
 
-  context.eval.registerHandler("deriveSwot", async (input: unknown) => {
-    return deriveSwot(context, input);
-  });
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { classification: "system" };
+  }
 
-  return {
-    tools: [],
-    resources: [],
-  };
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    context.entities.register("agent", agentEntitySchema, agentAdapter, {
+      classification: "system",
+    });
+    context.entities.register("skill", skillEntitySchema, skillAdapter, {
+      classification: "system",
+    });
+    context.eval.registerHandler("deriveSwot", (input: unknown) =>
+      deriveSwot(context, input),
+    );
+  }
 }
 
-export function createSwotEvalPlugin(): Plugin {
-  return {
-    id: "assessment",
-    packageName: packageJson.name,
-    version: packageJson.version,
-    description: packageJson.description,
-    type: "service",
-    register: registerSwotEvalPlugin,
-  };
+export function swotEvalPlugin(): Plugin {
+  return new SwotEvalPlugin();
 }

@@ -17,9 +17,11 @@ import type {
   UpdateConversationMetadataRequest,
 } from "./types";
 import {
-  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_STARTED_CHANNEL,
+  conversationGuestMessageAddedChannel,
+  conversationMessageAddedChannel,
+  type ConversationGuestMessageAddedPayload,
+  type ConversationMessageAddedPayload,
 } from "./types";
 import type {
   Conversation,
@@ -301,14 +303,15 @@ export class ConversationService implements IConversationService {
       }
       // Where the message is, never what it says; its position is its
       // place in the conversation once written.
+      const payload: ConversationGuestMessageAddedPayload = {
+        conversationId,
+        messageId,
+        role,
+        position: await this.countMessages(conversationId),
+      };
       await this.messageBus.send({
-        type: CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
-        payload: {
-          conversationId,
-          messageId,
-          role,
-          position: await this.countMessages(conversationId),
-        },
+        type: conversationGuestMessageAddedChannel.name,
+        payload,
         sender: "conversation-service",
         broadcast: true,
       });
@@ -340,16 +343,17 @@ export class ConversationService implements IConversationService {
     });
 
     // Emit event for plugins (non-blocking)
+    const payload: ConversationMessageAddedPayload = {
+      conversationId,
+      messageId,
+      role,
+      content,
+      metadata,
+      timestamp: now,
+    };
     await this.messageBus.send({
-      type: CONVERSATION_MESSAGE_ADDED_CHANNEL,
-      payload: {
-        conversationId,
-        messageId,
-        role,
-        content,
-        metadata,
-        timestamp: now,
-      },
+      type: conversationMessageAddedChannel.name,
+      payload,
       sender: "conversation-service",
       broadcast: true,
     });

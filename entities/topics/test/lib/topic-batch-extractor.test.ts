@@ -507,10 +507,13 @@ describe("extractTopicsBatched", () => {
       expect(result.skipped).toBe(0);
     });
 
-    it("applies source weights to the creation cutoff", async () => {
+    it("applies source role weights to the creation cutoff", async () => {
       const logger = createSilentLogger();
       const mockShell = createMockShell({ logger });
       const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockReturnValue({
+        projectionSourceRole: "secondary",
+      });
 
       spyOn(context.ai, "generate").mockResolvedValue({
         topics: [
@@ -526,45 +529,47 @@ describe("extractTopicsBatched", () => {
         [makeEntity("pr1", "project", "Project 1", "Project content")],
         context,
         logger,
-        {
-          autoMerge: false,
-          sourceWeights: { project: 0.8 },
-          mintableEntityTypes: ["project"],
-        },
+        { autoMerge: false },
       );
 
       expect(result.created).toBe(0);
       expect(result.skipped).toBe(1);
     });
 
-    it("keeps role-policy minting when only legacy source weights are set", async () => {
+    it("weighs a mixed batch by its strongest source and lets any minting source mint", async () => {
       const logger = createSilentLogger();
       const mockShell = createMockShell({ logger });
       const context = createEntityPluginContext(mockShell, "topics");
+      spyOn(context.entityService, "getEntityTypeConfig").mockImplementation(
+        (entityType: string) => ({
+          projectionSourceRole:
+            entityType === "project" ? "secondary" : "supporting",
+        }),
+      );
 
       spyOn(context.ai, "generate").mockResolvedValue({
         topics: [
           {
-            title: "Post Operations",
-            content: "Post content with a strong signal.",
+            title: "Delivery Practice",
+            content: "A theme shared by a link and a project.",
             relevanceScore: 0.9,
           },
         ],
       });
 
-      // Legacy sourceWeights without a mintableEntityTypes list must only
-      // override weights — minting still follows the role policy, so a
-      // primary source can mint.
+      // Alone, the supporting link weighs 0.9 × 0.55 and cannot mint; the
+      // secondary project lifts the batch to 0.9 × 0.8 with mint authority.
       const result = await extractTopicsBatched(
-        [makeEntity("p1", "post", "Post 1", "Post content")],
+        [
+          makeEntity("l1", "link", "Link 1", "Link content"),
+          makeEntity("pr1", "project", "Project 1", "Project content"),
+        ],
         context,
         logger,
-        {
-          autoMerge: false,
-          sourceWeights: { link: 0.5 },
-        },
+        { autoMerge: false },
       );
 
+      expect(result.batches).toBe(1);
       expect(result.created).toBe(1);
       expect(result.skipped).toBe(0);
     });

@@ -892,7 +892,10 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const entity = await this.entitySerializer.convertToEntity(
+      entityData,
+      request.source,
+    );
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }

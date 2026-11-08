@@ -1,4 +1,5 @@
 import { AuthServicePlugin } from "@brains/auth-service";
+import { createTestEntity } from "@brains/entity-service/test";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
@@ -8,6 +9,7 @@ import {
   studioWorkspaceRegisterContract,
   studioWorkspaceUnregisterContract,
   type DashboardWidgetProviderContext,
+  type JobProgressEvent,
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioWorkspaceData,
@@ -31,6 +33,12 @@ import {
   createStudioOverviewWorkspace,
   overviewStatusFacts,
 } from "../src/overview-workspace";
+
+/** The routing the job queue gives every job it reports on. */
+const JOB_METADATA: JobProgressEvent["metadata"] = {
+  rootJobId: "root-job",
+  operationType: "data_processing",
+};
 
 it("combines an empty attention/activity state without hiding standing runtime information", async () => {
   const registry = new StudioOverviewRegistry();
@@ -176,6 +184,7 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "preview-build",
       type: "job",
+      metadata: JOB_METADATA,
       status: "failed",
       message: "Preview render failed.",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
@@ -202,6 +211,7 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "preview-build",
       type: "job",
+      metadata: JOB_METADATA,
       status: "failed",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
@@ -227,6 +237,7 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "sync",
       type: "job",
+      metadata: JOB_METADATA,
       status: "completed",
       jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
     });
@@ -259,11 +270,27 @@ describe("Overview composition", () => {
     ]);
   });
 
+  it("cuts a long job message to a feed line instead of dropping the event", () => {
+    const registry = new StudioOverviewRegistry();
+    registry.recordJob({
+      id: "import-1",
+      type: "job",
+      metadata: JOB_METADATA,
+      status: "failed",
+      message: "word ".repeat(200),
+    });
+
+    const description = registry.listActivity()[0]?.description ?? "";
+    expect(description.length).toBeLessThanOrEqual(500);
+    expect(description.endsWith("...")).toBe(true);
+  });
+
   it("names jobs in words rather than by their job type", () => {
     const registry = new StudioOverviewRegistry();
     registry.recordJob({
       id: "dispatch-1",
       type: "job",
+      metadata: JOB_METADATA,
       status: "completed",
       jobDetails: {
         jobType: "newsletter:dispatch",
@@ -353,6 +380,7 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "preview-build",
       type: "job",
+      metadata: JOB_METADATA,
       status: "failed",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
@@ -444,7 +472,10 @@ it("names entity activity by its title and readable type", async () => {
     {
       entityType: "post",
       entityId: "resilience-in-distributed-systems",
-      entity: { metadata: { title: "Resilience Is Not Redundancy" } },
+      entity: createTestEntity("post", {
+        id: "resilience-in-distributed-systems",
+        metadata: { title: "Resilience Is Not Redundancy" },
+      }),
     },
     (entityType, entity) => ({
       title: entity ? "Resilience Is Not Redundancy" : undefined,
@@ -765,6 +796,7 @@ describe("Studio Overview workspace", () => {
       payload: {
         id: "build-1",
         type: "job",
+        metadata: JOB_METADATA,
         status: "completed",
         message: "Preview built",
         jobDetails: { jobType: "site:build", priority: 0, retryCount: 0 },
@@ -776,6 +808,7 @@ describe("Studio Overview workspace", () => {
       payload: {
         id: "dispatch-1",
         type: "job",
+        metadata: JOB_METADATA,
         status: "failed",
         message: "Transport rejected the payload",
         jobDetails: {

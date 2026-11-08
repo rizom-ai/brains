@@ -13,14 +13,16 @@ import {
   buildStarterCharacterPrompt,
   deriveStarterIdentity,
   generatedStarterCharacterSchema,
-  isLegacyAnchorProfileContent,
-  isLegacyBrainCharacterContent,
   ProfilePlugin,
   resolveStarterIdentityIdentifier,
   type GeneratedStarterCharacter,
   type ProfileConfigInput,
   type StarterCharacterBrief,
 } from "../src";
+import {
+  isLegacyAnchorProfileContent,
+  isLegacyBrainCharacterContent,
+} from "../src/starter-identity";
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 

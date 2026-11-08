@@ -21,7 +21,6 @@ export { ContentScheduler } from "./scheduler";
 export type {
   SchedulerConfig,
   PublishSuccessEvent,
-  PublishFailedEvent,
   GenerateExecuteEvent,
   GenerationConditionResult,
 } from "./types/scheduler";

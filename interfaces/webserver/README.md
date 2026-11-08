@@ -99,9 +99,11 @@ GET    /health/operate        # Full worker, queue, projection, daemon, and app 
 routing or enqueue admission unsafe. Worker-session, attempt-lease, projection
 circuit, and daemon failures remain visible as `degraded` checks while routing
 readiness stays 200. `/health/operate` returns 503 for any such degradation and
-is the endpoint for operator alerting. Responses include app version and entity
-counts plus memory, file descriptor, process/zombie, queue, and durable
-worker-session signals.
+is the endpoint for operator alerting. Responses include memory, file
+descriptor, process/zombie, queue, and durable worker-session signals;
+`/health/operate` adds app version, uptime and daemon state. It answers
+without a session, so entity counts, totals, endpoints and daemon messages stay
+on authenticated surfaces such as `system_status` over MCP.
 `/health/live` remains minimal so external supervision can still observe a
 process when dependency checks are unavailable.
 

@@ -1,4 +1,8 @@
-import type { BusContract, PublishResult } from "@brains/contracts";
+import type {
+  BusContract,
+  PublishFailedPayload,
+  PublishResult,
+} from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
@@ -45,14 +49,6 @@ export interface PublishSuccessEvent {
   result: PublishResult;
 }
 
-export interface PublishFailedEvent {
-  entityType: string;
-  entityId: string;
-  error: string;
-  retryCount: number;
-  willRetry: boolean;
-}
-
 export interface SchedulerConfig {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
@@ -85,7 +81,7 @@ export interface SchedulerConfig {
   /** Callback on successful publish */
   onPublish?: (event: PublishSuccessEvent) => void;
   /** Callback on failed publish (provider mode) */
-  onFailed?: (event: PublishFailedEvent) => void;
+  onFailed?: (event: PublishFailedPayload) => void;
   /** Callback to check generation conditions */
   onCheckGenerationConditions?: (
     entityType: string,

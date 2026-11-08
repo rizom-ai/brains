@@ -70,6 +70,7 @@ async function resolveStudioAssistEntity(
     entityType,
     id,
     visibilityScope: access.visibilityScope,
+    source: true,
   });
   if (!entity) {
     return jsonResponse({ error: `Entity not found: ${id}` }, 404);
@@ -244,6 +245,7 @@ export async function handleListAgents(
     entityId: entityContext.entity.id,
     actor: access.actor,
     interfaceType: "studio",
+    userPermissionLevel: access.permissionLevel,
   });
   // No a2a interface (or no directory) means the client keeps the existing
   // model-only assist bar.
@@ -288,6 +290,7 @@ export async function handleAskAgent(
     entityId: entityContext.entity.id,
     actor: access.actor,
     interfaceType: "studio",
+    userPermissionLevel: access.permissionLevel,
   });
   if (result.status === "unavailable") {
     return jsonResponse({ error: "Agent asking is unavailable" }, 503);

@@ -10,10 +10,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
-import {
-  imageRenderSourceJobContract,
-  publishAssetRegisterContract,
-} from "@brains/contracts";
+import { publishAssetRegisterContract } from "@brains/contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import type { BlogConfig, BlogConfigInput } from "./config";
@@ -134,7 +131,6 @@ export class BlogPlugin extends EntityPlugin<
         targetEntityField: { location: "frontmatter", field: "ogImageId" },
         requiredWhen: { status: "published" },
         autoGenerate: true,
-        jobType: imageRenderSourceJobContract.type,
       });
       return { success: true };
     });

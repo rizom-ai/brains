@@ -1,5 +1,8 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import {
+  atprotoProvenance,
+  defineAtprotoProjection,
+} from "@brains/atproto-contracts";
 import type {
   AtprotoBrainNoteRecord,
   AtprotoProjection,
@@ -23,22 +26,14 @@ export async function buildNoteAtprotoRecord({
     title: note.metadata.title,
     body: parsed.content,
     format: "text/markdown",
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "note",
-    sourceEntityId: note.id,
-    createdAt: note.created,
-    ...(note.updated && { updatedAt: note.updated }),
+    ...atprotoProvenance({ config, pageUrl }, note),
   };
 }
 
 export function createNoteAtprotoProjection(): AtprotoProjection<AtprotoBrainNoteRecord> {
-  return {
+  return defineAtprotoProjection({
     entityType: "note",
     collection: "ai.rizom.brain.note",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.note"],
-    validate: false,
     buildRecord: buildNoteAtprotoRecord,
-  };
+  });
 }

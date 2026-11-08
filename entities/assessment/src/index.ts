@@ -12,7 +12,6 @@ export {
   type AssessmentConfig,
   type AssessmentConfigInput,
 } from "./plugin";
-export { createSwotEvalPlugin } from "./eval/swot-eval-plugin";
 
 export function assessment(config: AssessmentConfigInput = {}): Plugin[] {
   return [swotAssessmentPlugin(assessmentConfigSchema.parse(config))];

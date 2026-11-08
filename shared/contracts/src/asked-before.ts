@@ -30,8 +30,6 @@ export const askedBeforeHitSchema: AskedBeforeHitSchema = z.object({
   sources: z.array(SourceCitationSchema).default([]),
 });
 
-export type AskedBeforeHit = z.output<typeof askedBeforeHitSchema>;
-
 type AskedBeforeResponseSchema = z.ZodObject<{
   hit: z.ZodOptional<AskedBeforeHitSchema>;
 }>;

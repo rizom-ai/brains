@@ -1,15 +1,13 @@
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { createTemplate, type Template } from "@brains/plugins";
+import { MarkdownContent, formatDate, Card } from "@rizom/brain-ui";
 import {
   Head,
   Breadcrumb,
-  MarkdownContent,
-  formatDate,
   StatusBadge,
-  Card,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 import { newsletterStatusSchema } from "../schemas/newsletter";
 
 /**

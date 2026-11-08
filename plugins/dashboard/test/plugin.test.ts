@@ -52,6 +52,15 @@ describe("DashboardPlugin", () => {
       expect(Object.hasOwn(plugin, "dependencies")).toBe(false);
     });
 
+    it("keeps its dashboard data off the shared data-source registry", () => {
+      expect(
+        harness
+          .getMockShell()
+          .getDataSourceRegistry()
+          .has("dashboard:dashboard"),
+      ).toBe(false);
+    });
+
     it("should expose no tools", async () => {
       const fresh = createPluginHarness({ dataDir: "/tmp/test-datadir" });
       const capabilities = await fresh.installPlugin(new DashboardPlugin());

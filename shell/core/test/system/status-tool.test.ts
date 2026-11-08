@@ -27,42 +27,57 @@ describe("system_status tool", () => {
     expect(tools.some((t) => t.name === "system_status")).toBe(true);
   });
 
-  it("should return app info on success", async () => {
+  it.each(["trusted", "admin"] as const)(
+    "gives a %s caller model, totals and background work",
+    async (userPermissionLevel) => {
+      const tool = findTool("system_status");
+      const result = await tool.handler(
+        {},
+        { ...toolContext, userPermissionLevel },
+      );
+
+      expect("success" in result && result.success).toBe(true);
+      if (!("success" in result) || !result.success) return;
+
+      const data = z.record(z.string(), z.unknown()).parse(result.data);
+      expect(data["model"]).toBe("test");
+      expect(data["version"]).toBe("1.0.0");
+      expect(typeof data["uptime"]).toBe("number");
+      expect(data["entities"]).toBeDefined();
+      expect(data["embeddings"]).toBeDefined();
+      expect(data["backgroundWork"]).toEqual(
+        expect.objectContaining({
+          status: "operational",
+          worker: expect.objectContaining({ state: "active" }),
+          queue: expect.objectContaining({ duePending: 0 }),
+        }),
+      );
+      expect(data["ai"]).toBeDefined();
+    },
+  );
+
+  it.each([
+    ["a public caller", { userPermissionLevel: "public" as const }],
+    ["a caller with no permission level", {}],
+  ])("gives %s health fields only", async (_label, level) => {
     const tool = findTool("system_status");
-    const result = await tool.handler({}, toolContext);
+    const result = await tool.handler({}, { ...toolContext, ...level });
 
     expect("success" in result && result.success).toBe(true);
     if (!("success" in result) || !result.success) return;
 
     const data = z.record(z.string(), z.unknown()).parse(result.data);
-    expect(data["model"]).toBe("test");
+    expect(Object.keys(data).sort()).toEqual([
+      "backgroundWork",
+      "endpoints",
+      "uptime",
+      "version",
+    ]);
     expect(data["version"]).toBe("1.0.0");
-    expect(typeof data["uptime"]).toBe("number");
-    expect(data["entities"]).toBeDefined();
+    expect(data["uptime"]).toBe(42);
     expect(data["backgroundWork"]).toEqual(
-      expect.objectContaining({
-        status: "operational",
-        worker: expect.objectContaining({ state: "active" }),
-        queue: expect.objectContaining({ duePending: 0 }),
-      }),
+      expect.objectContaining({ status: "operational" }),
     );
-    expect(data["ai"]).toBeDefined();
-  });
-
-  it("returns a compact public payload", async () => {
-    const tool = findTool("system_status");
-    const result = await tool.handler(
-      {},
-      { ...toolContext, userPermissionLevel: "public" },
-    );
-
-    expect("success" in result && result.success).toBe(true);
-    if (!("success" in result) || !result.success) return;
-
-    const data = z.record(z.string(), z.unknown()).parse(result.data);
-    expect(data["entityCounts"]).toBeUndefined();
-    expect(data["daemons"]).toBeUndefined();
-    expect(data["interactions"]).toBeUndefined();
   });
 
   it.each([

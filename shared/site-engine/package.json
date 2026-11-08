@@ -1,15 +1,15 @@
 {
   "name": "@brains/site-engine",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.648",
+  "version": "0.2.0-alpha.658",
   "description": "Renderer-agnostic site build engine utilities",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/site-composition": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "@tailwindcss/oxide": "^4.1.4",
     "@tailwindcss/postcss": "^4.3.1",
     "postcss": "^8.5.29",

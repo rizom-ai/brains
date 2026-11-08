@@ -210,5 +210,27 @@ describe("Newsletter Auto-Send on Publish", () => {
       expect(failure.error).toContain("not found");
       await harness.reset();
     });
+
+    it("refuses a publish event without its entity instead of looking up undefined", async () => {
+      const harness = createPluginHarness();
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", autoSendOnPublish: true }),
+      );
+
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: "publish:completed",
+          payload: { entityType: "post", result: { id: "remote" } },
+          sender: "test",
+        });
+
+      expect(response).toEqual({
+        success: false,
+        error: "Invalid publish:completed payload",
+      });
+      await harness.reset();
+    });
   });
 });

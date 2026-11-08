@@ -43,7 +43,12 @@ import {
   type StressCommandRunner,
 } from "./stress-command";
 import { GitCheckout } from "./stress-git-checkout";
-import { noteCount, StressHealthMonitor } from "./stress-health-monitor";
+import {
+  noteCount,
+  StressHealthMonitor,
+  stressEntityCountsSchema,
+  type StressEntityCounts,
+} from "./stress-health-monitor";
 
 export {
   runStressCommand,
@@ -89,6 +94,20 @@ const stressQueueHealthPayloadSchema = z.object({
     }),
   }),
 });
+
+/**
+ * Counts entities by type in the runtime's database the way the runtime's
+ * operator view does: every row, no visibility filter. The database lives in
+ * the container's data directory (XDG_DATA_HOME, else ./data under /app). The
+ * remote shell receives it single-quoted, so it must contain no single quote.
+ */
+const ENTITY_COUNT_PROGRAM = [
+  'import { Database } from "bun:sqlite";',
+  'const path = (process.env.XDG_DATA_HOME || "./data") + "/brain.db";',
+  "const db = new Database(path, { readonly: true });",
+  'const rows = db.query(`SELECT "entityType" AS "entityType", COUNT(*) AS "count" FROM entities GROUP BY "entityType"`).all();',
+  "process.stdout.write(JSON.stringify(rows));",
+].join(" ");
 
 interface StressQueueSnapshot {
   pending: number;
@@ -423,6 +442,8 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       sleep: options.sleep,
       sampleRuntime: (): Promise<StressRuntimeSample | undefined> =>
         this.#sampleRuntime(),
+      readEntityCounts: (): Promise<StressEntityCounts | undefined> =>
+        this.#readEntityCounts(),
     });
   }
 
@@ -949,6 +970,31 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       await this.#options.sleep(5_000);
     }
     return false;
+  }
+
+  /**
+   * Entity counts by type, read inside the runtime container from its own
+   * database: the unauthenticated /health/operate carries no counts, and SSH
+   * is the harness's authenticated way in. A failed command is a normal "not
+   * yet" for the polling caller; output we cannot read raises.
+   */
+  async #readEntityCounts(): Promise<StressEntityCounts | undefined> {
+    const container = this.#container;
+    if (!container) {
+      throw new Error("Directory-sync stress container is not prepared");
+    }
+    const result = await this.#ssh(
+      ["docker", "exec", container, "bun", "-e", `'${ENTITY_COUNT_PROGRAM}'`],
+      false,
+    );
+    if (result.exitCode !== 0) return undefined;
+    try {
+      return stressEntityCountsSchema.parse(JSON.parse(result.stdout));
+    } catch (error) {
+      throw new Error(`Could not read entity counts from ${container}`, {
+        cause: error,
+      });
+    }
   }
 
   async #sampleRuntime(): Promise<StressRuntimeSample | undefined> {

@@ -113,6 +113,13 @@ docs:
     description: A checklist for choosing a declarative extension family
     source: docs/plugin-quick-reference.md
 
+  - id: package-quickstart
+    title: Package Quickstart
+    section: Extend a brain
+    order: 245
+    description: Write, test and compose one package with the two-stage definition
+    source: docs/package-quickstart.md
+
   - id: external-plugin-authoring
     title: External Plugin Authoring
     section: Extend a brain
