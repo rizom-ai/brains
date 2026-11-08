@@ -2315,27 +2315,34 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         publishedOnly: payload.environment === "production",
       },
     });
+    const build = Object.freeze({ environment: payload.environment });
     const items = stored.flatMap((entity) => {
-      const item = feed.toItem(parseDefinitionEntity(this.definition, entity));
+      const item = feed.toItem(
+        parseDefinitionEntity(this.definition, entity),
+        build,
+      );
       return item ? [feedItemSchema.parse(item)] : [];
     });
     if (items.length === 0) return;
 
-    const siteUrl = (payload.siteConfig.url ?? "https://example.com").replace(
-      /\/+$/u,
-      "",
-    );
+    // The channel links the site as configured and the feed hangs off it;
+    // item links join the site and the route with one slash. This is the
+    // feed the blog plugin class wrote, byte for byte.
+    const siteUrl = payload.siteConfig.url ?? "https://example.com";
+    const siteRoot = siteUrl.replace(/\/+$/u, "");
     const xml = renderRssFeed(
       items,
       {
-        title: payload.siteConfig.title ?? "Feed",
-        description: payload.siteConfig.description ?? "Latest updates",
-        link: `${siteUrl}/${feed.routePrefix.replace(/^\/+/u, "")}`,
+        title: payload.siteConfig.title ?? feed.title ?? "Feed",
+        description:
+          payload.siteConfig.description ??
+          feed.description ??
+          "Latest updates",
+        link: siteUrl,
         selfLink: `${siteUrl}/${feed.path}`,
-        copyright: payload.siteConfig.copyright,
       },
       (item) =>
-        `${siteUrl}/${payload
+        `${siteRoot}/${payload
           .generateEntityUrl(this.entityType, item.slug)
           .replace(/^\/+/u, "")}`,
     );

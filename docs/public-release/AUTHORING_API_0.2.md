@@ -192,6 +192,7 @@ Types:
 - `EntityEvalContext`
 - `EntityEvalDeclaration`
 - `EntityEvalFixtures`
+- `EntityFeedBuild`
 - `EntityFeedDeclaration`
 - `EntityGenerationContext`
 - `EntityGenerationDeclaration`
@@ -281,7 +282,7 @@ Presentation on `defineEntity` and `defineEntityPackage`:
   - **Entity** (`EntityDataSourceDefinition`): `entity` names a definition in the same package, and the runtime derives its full schema from it, as `EntityOf` does; authors never declare the runtime-owned base fields. `defaultSort` (`{ field, direction, nullsFirst?, nullsLast? }`), `defaultLimit` (default 100), `lookupField` (`"slug"` by default, or `"id"`), `enableNavigation` and `navigationLimit` (default 1000) configure the reads. `transform(entity)` receives the definition-typed entity; `list(items, pagination, query)` returns a JSON object, with `pagination` set when the query names a `page`; `filter(query)` may narrow the list to an exact match on the type's own metadata, applied before paging; `detail({ item, navigation, siblings, entities })` answers a query naming an `id`, and a source without one refuses such a query.
   - Reads see public records, and only published ones in a production build; a fetching source reads `context.publishedOnly` to know which. The runtime validates what either form returns against the caller's schema.
 - `templates` registers templates keyed by local name under the type's scope. A template whose `dataSourceId` names one of its package's data sources follows it to the scoped id; any other id is kept as written.
-- `feed` (`EntityFeedDeclaration`) syndicates the type: `path` (relative to the build output, no parent steps), `routePrefix` for the channel link, and `toItem(entity)`, which returns a `FeedItem` (`title`, `slug`, `description`, `content`, `author`, ISO `publishedAt`, optional `category`) or `null` to leave a record out. Every site build writes the feed into its staged output: a preview carries every record, a production build only those the type counts as published. A malformed item fails the build, which keeps the previous generation.
+- `feed` (`EntityFeedDeclaration`) syndicates the type: `path` (relative to the build output, no parent steps), an optional channel `title` and `description` for a site config that gives none, and `toItem(entity, { environment })`, which returns a `FeedItem` (`title`, `slug`, `description`, `content`, `author`, ISO `publishedAt`, optional `category`) or `null` to leave a record out of that build. Every site build writes the feed into its staged output: a preview carries every record, a production build only those the type counts as published, which `toItem` may narrow. The channel links the site URL as configured; the feed's self link is that URL, a slash and the path. A malformed item fails the build, which keeps the previous generation.
 
 Creating and deriving on `defineEntity`:
 

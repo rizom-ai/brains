@@ -348,6 +348,7 @@ export {
   type EntityAtprotoRecordInput,
   type EntityDefinition,
   type EntityDefinitionConfig,
+  type EntityFeedBuild,
   type EntityFeedDeclaration,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,

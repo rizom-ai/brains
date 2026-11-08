@@ -93,6 +93,7 @@ export type {
   EncodedEntityMarkdown,
   EntityDefinition,
   EntityDefinitionConfig,
+  EntityFeedBuild,
   EntityFeedDeclaration,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
