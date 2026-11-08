@@ -127,7 +127,6 @@ describe("prompt materialization on the declared prompt type", () => {
       retitled: [],
       staleOverrides: [],
       unverifiedOverrides: [],
-      removedLegacy: [],
       failed: [],
     });
   });
@@ -222,7 +221,7 @@ describe("prompt materialization on the declared prompt type", () => {
     expect(after.body).toBe("My own post rules.");
   });
 
-  test("removes a copy materialized under the template's short name", async () => {
+  test("leaves a copy stored under the template's short name", async () => {
     const { service } = await promptStore();
     await service.createEntity({
       entity: {
@@ -234,7 +233,7 @@ describe("prompt materialization on the declared prompt type", () => {
       },
     });
 
-    const report = await materializePrompts(
+    await materializePrompts(
       templates([
         [
           "professional-site:about-highlights",
@@ -245,9 +244,8 @@ describe("prompt materialization on the declared prompt type", () => {
       service,
     );
 
-    expect(report.removedLegacy).toEqual(["about-highlights"]);
     expect(
       await service.getEntity({ entityType: "prompt", id: "about-highlights" }),
-    ).toBeNull();
+    ).not.toBeNull();
   });
 });

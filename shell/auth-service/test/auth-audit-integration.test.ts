@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AuthService } from "../src";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 
@@ -96,6 +97,7 @@ describe("AuthService audit integration", () => {
 
   it("records the authenticated actor for management mutations", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
@@ -169,6 +171,7 @@ describe("AuthService audit integration", () => {
 
   it("audits user and identity mutations", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });

@@ -14,7 +14,6 @@ import sitePkg from "../../../site/package.json" with { type: "json" };
 import {
   isStaleDeployDockerfile,
   isStaleDeployScript,
-  legacyStandaloneDeployYmlContents,
   matchesLegacyStandaloneDeployYml,
   renderDeployWorkflow,
   renderDockerfile,
@@ -167,7 +166,6 @@ function writeReconcilableScaffoldFile(options: {
   path: string;
   content: string;
   executable?: boolean;
-  legacyContents?: readonly string[];
   shouldReconcile?: (current: string) => boolean;
   regen?: boolean;
 }): void {
@@ -175,7 +173,6 @@ function writeReconcilableScaffoldFile(options: {
     path,
     content,
     executable = false,
-    legacyContents = [],
     shouldReconcile,
     regen = false,
   } = options;
@@ -202,9 +199,7 @@ function writeReconcilableScaffoldFile(options: {
     return;
   }
 
-  const matchesLegacyContent = legacyContents.includes(current);
-  const matchesLegacyPredicate = shouldReconcile?.(current) ?? false;
-  if (!matchesLegacyContent && !matchesLegacyPredicate) {
+  if (!(shouldReconcile?.(current) ?? false)) {
     return;
   }
 
@@ -304,34 +299,12 @@ function writeRecipeSeedContent(dir: string, recipe: BrainRecipeName): void {
  * All instance-specific values come from env vars that CI
  * extracts from brain.yaml.
  */
-const legacyEnvExampleContents = [
-  `# Required
-AI_API_KEY=
-
-# Optional: separate key for image generation (defaults to AI_API_KEY)
-# AI_IMAGE_KEY=
-
-GIT_SYNC_TOKEN=
-
-# Optional
-MCP_AUTH_TOKEN=
-DISCORD_BOT_TOKEN=
-
-# Deploy (only needed with --deploy)
-KAMAL_REGISTRY_PASSWORD=
-SERVER_IP=
-CLOUDFLARE_API_TOKEN=
-CLOUDFLARE_ZONE_ID=
-`,
-];
-
 function writeDeployYml(dir: string, regen = false): void {
   const content = renderKamalDeploy({ serviceName: "brain" });
 
   writeReconcilableScaffoldFile({
     path: join(dir, "config", "deploy.yml"),
     content,
-    legacyContents: legacyStandaloneDeployYmlContents,
     shouldReconcile: matchesLegacyStandaloneDeployYml,
     regen,
   });
@@ -346,7 +319,7 @@ AI_API_KEY=
 
 GIT_SYNC_TOKEN=
 
-# Optional deprecated static fallback for MCP HTTP clients that cannot use OAuth/passkeys
+# Optional static token for MCP HTTP clients in local development only; deployed brains use OAuth/passkeys
 MCP_AUTH_TOKEN=
 
 # Optional
@@ -367,11 +340,7 @@ HCLOUD_LOCATION=
 KAMAL_SSH_PRIVATE_KEY=
 `;
 
-  writeReconcilableScaffoldFile({
-    path: join(dir, ".env.example"),
-    content,
-    legacyContents: legacyEnvExampleContents,
-  });
+  writeScaffoldFile(join(dir, ".env.example"), content);
 }
 
 function writeEnvSchema(dir: string, backend?: string): void {

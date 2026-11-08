@@ -26,8 +26,9 @@ turns:
     context:
       userPermissionLevel: admin
       actor:
-        actorId: eval-admin-alice
-        canonicalId: eval-admin-alice
+        identity:
+          kind: external
+          externalActorId: eval-admin-alice
         interfaceType: evaluation
         role: user
         displayName: Alice Admin
@@ -46,8 +47,9 @@ turns:
     context:
       userPermissionLevel: public
       actor:
-        actorId: eval-public-bob
-        canonicalId: eval-public-bob
+        identity:
+          kind: external
+          externalActorId: eval-public-bob
         interfaceType: evaluation
         role: user
         displayName: Bob Public

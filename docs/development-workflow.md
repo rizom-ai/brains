@@ -138,7 +138,7 @@ AI_API_KEY=your-api-key-here
 # Optional: git-backed sync of brain content
 GIT_SYNC_TOKEN=ghp_...
 
-# Optional deprecated static fallback for MCP HTTP clients that cannot use OAuth/passkeys
+# Optional static token for MCP HTTP clients in local development only; deployed brains use OAuth/passkeys
 MCP_AUTH_TOKEN=...
 
 # Optional: Discord interface

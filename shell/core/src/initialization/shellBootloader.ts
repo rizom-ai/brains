@@ -427,14 +427,6 @@ export class ShellBootloader {
         { targets: prompts.unverifiedOverrides },
       );
     }
-    if (prompts.removedLegacy.length > 0) {
-      logger.info(
-        "Removed prompt copies stored under ids generation never read",
-        {
-          ids: prompts.removedLegacy,
-        },
-      );
-    }
     for (const { target, error } of prompts.failed) {
       logger.warn(`Could not sync prompt ${target}: ${error}`);
     }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import {
-  actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
   authenticatedUserId,
@@ -59,50 +58,6 @@ describe("ActorRef", () => {
       }),
     ).toBeUndefined();
     expect(authenticatedUserId({})).toBeUndefined();
-  });
-
-  it("normalizes legacy identities at compatibility boundaries", () => {
-    expect(
-      actorRefFromLegacy({
-        actorId: "discord:123",
-        userId: "usr_mira",
-        canonicalId: "user:mira",
-        interfaceType: "discord",
-        role: "user",
-      }),
-    ).toEqual({
-      kind: "user",
-      userId: "usr_mira",
-      canonicalId: "user:mira",
-    });
-    expect(
-      actorRefFromLegacy({
-        actorId: "mcp:mira",
-        canonicalId: "person:mira",
-        interfaceType: "mcp",
-        role: "user",
-      }),
-    ).toEqual({
-      kind: "external",
-      externalActorId: createExternalActorId("canonical", "person:mira"),
-    });
-    expect(
-      actorRefFromLegacy({
-        actorId: "brain:relay",
-        interfaceType: "agent",
-        role: "assistant",
-      }),
-    ).toEqual({ kind: "agent", agentId: "brain:relay" });
-    expect(
-      actorRefFromLegacy({
-        actorId: "discord:123",
-        interfaceType: "discord",
-        role: "user",
-      }),
-    ).toEqual({
-      kind: "external",
-      externalActorId: createExternalActorId("discord", "discord:123"),
-    });
   });
 
   it("uses ActorRef for auth principal resolution requests", () => {

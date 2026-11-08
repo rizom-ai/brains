@@ -28,27 +28,30 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** The nested person shape stored before the trim; any other key is not one. */
+const nestedPersonSchema = z.strictObject({
+  identity: z.unknown().optional(),
+  identityAliases: z.unknown().optional(),
+  displayName: z.unknown().optional(),
+});
+
 /**
- * A person stored as a nested identity or a legacy actor id, read flat:
- * `{ name, id, aliases }`. `normalize` turns legacy actor ids into identities.
+ * A person stored as a nested identity, read flat: `{ name, id, aliases }`.
+ * Any other shape is left for the flat schema to accept or refuse.
  */
-export function flattenStoredPerson(
-  value: unknown,
-  normalize: (value: unknown) => unknown,
-): unknown {
-  if (!isRecord(value) || "name" in value) return value;
-  if ("id" in value && !("identity" in value)) return value;
-  const stored = normalize(value);
-  if (!isRecord(stored)) return stored;
-  const identity = actorRefSchema.safeParse(stored["identity"]);
+export function flattenStoredPerson(value: unknown): unknown {
+  if (!isRecord(value) || !nestedPersonSchema.safeParse(value).success) {
+    return value;
+  }
+  const identity = actorRefSchema.safeParse(value["identity"]);
   const id = identity.success ? actorRefKey(identity.data) : undefined;
   const aliases = z
     .array(actorRefSchema)
     .catch([])
-    .parse(stored["identityAliases"] ?? [])
+    .parse(value["identityAliases"] ?? [])
     .map(actorRefKey)
     .filter((alias) => alias !== id);
-  const name = stored["displayName"];
+  const name = value["displayName"];
   return {
     ...(typeof name === "string" && name.length > 0 ? { name } : {}),
     ...(id ? { id } : {}),
