@@ -31,7 +31,7 @@ import { directorySync } from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
-import { documentPlugin } from "@brains/document-plugin";
+import documentPackage from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
@@ -156,7 +156,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("image", "@brains/image-plugin", imagePackage, {
       pluginId: "image",
     }),
-    ["document", documentPlugin, undefined],
+    packageCapability("document", "@brains/document-plugin", documentPackage, {
+      pluginId: "document",
+    }),
     ["note", notePlugin, undefined],
     ["link", linkPlugin, undefined],
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
