@@ -971,6 +971,7 @@ export {
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,
+  type EntityRuntimeIdentity,
   type EntityRuntimeImages,
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,

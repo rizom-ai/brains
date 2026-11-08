@@ -56,7 +56,7 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
-import { withEntityRuntime } from "./entity-runtime";
+import { withEntityRuntime, type EntityRuntimeBinding } from "./entity-runtime";
 import { sharedUploadScope } from "../service/upload-registry";
 import type { AttachmentResolveRequest } from "../service/attachment-registry";
 import {
@@ -375,6 +375,7 @@ export function entityJobHandler(
   context: EntityPluginContext,
   ownsType: (entityType: string) => boolean,
   writes: EntityJobWrites,
+  runtime: (authority: EntityRunAuthority) => EntityRuntimeBinding,
 ): JobHandler<string, ServiceJobData, unknown> {
   // Queued data names who started the job; data without it is invalid.
   const dataSchema = serviceJobDataSchema(declaration.input);
@@ -398,13 +399,16 @@ export function entityJobHandler(
         authority.entities,
       );
       return declaration.handle(
-        Object.freeze({
-          ...base,
-          entities: Object.freeze({
-            ...authority.entities,
-            ...entityJobWriter(context, call, authority, ownsType, writes),
-          }),
-        }),
+        withEntityRuntime(
+          {
+            ...base,
+            entities: Object.freeze({
+              ...authority.entities,
+              ...entityJobWriter(context, call, authority, ownsType, writes),
+            }),
+          },
+          runtime(authority),
+        ),
       );
     },
   };
@@ -695,6 +699,8 @@ export interface GenerationTarget {
   readonly retries?: RetryScope | undefined;
   /** Tell the content pipeline how each run went: the type is scheduled. */
   readonly reportsToPipeline?: boolean | undefined;
+  /** The internal runtime a run reaches, at the run's authority. */
+  readonly runtime: (authority: EntityRunAuthority) => EntityRuntimeBinding;
 }
 
 /**
@@ -810,18 +816,19 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         `Pre-allocated entity stub not found: ${this.entityType}/${entityId}`,
       );
     }
+    const generationContext = {
+      ...jobContext(
+        this.context,
+        parseWithSchema(this.declaration.input, input),
+        progressReporter,
+        signal,
+        authority.entities,
+      ),
+      entityId,
+      ai: this.generationAI(signal),
+    } satisfies EntityGenerationContext<unknown>;
     const result = await this.declaration.generate(
-      Object.freeze({
-        ...jobContext(
-          this.context,
-          parseWithSchema(this.declaration.input, input),
-          progressReporter,
-          signal,
-          authority.entities,
-        ),
-        entityId,
-        ai: this.generationAI(signal),
-      }) satisfies EntityGenerationContext<unknown>,
+      withEntityRuntime(generationContext, this.target.runtime(authority)),
     );
     if (!result.success) this.failEarly(result.error);
 

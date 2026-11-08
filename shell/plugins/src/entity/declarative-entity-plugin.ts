@@ -85,6 +85,7 @@ import {
   contractJobHandler,
   entityJobHandler,
   type EntityJobWrites,
+  type EntityRunAuthority,
   generationSource,
 } from "./declarative-jobs";
 import type { JobHandler, JobOptions } from "@brains/job-queue";
@@ -791,6 +792,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ownsType: (entityType) => this.ownsType(entityType),
       retries: this.retries,
       reportsToPipeline,
+      runtime: (authority) =>
+        this.runBinding(context, authority, "a generation"),
     });
   }
 
@@ -1015,7 +1018,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         name,
         "generate" in declaration
           ? this.generationHandler(context, declaration, name)
-          : entityJobHandler(declaration, context, ownsType, writes),
+          : entityJobHandler(
+              declaration,
+              context,
+              ownsType,
+              writes,
+              (authority) => this.runBinding(context, authority, "a job"),
+            ),
       );
     });
 
@@ -1679,7 +1688,26 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         context.entityService.searchWithDistances(request),
       generateObject: (prompt, schema) =>
         context.ai.generateObject(prompt, schema),
+      logger: context.logger,
+      identity: Object.freeze({
+        getProfile: () => context.identity.getProfile(),
+      }),
     };
+  }
+
+  /**
+   * The internal runtime a declared job or generation reaches: reads at the
+   * run's authority, untyped ones at the scope the run reads each type at.
+   */
+  private runBinding(
+    context: EntityPluginContext,
+    authority: EntityRunAuthority,
+    where: string,
+  ): EntityRuntimeBinding {
+    return this.runtimeBinding(context, authority.entities, where, {
+      service: context.entityService,
+      scope: (entityType) => authority.scope(entityType),
+    });
   }
 
   private callerScope(

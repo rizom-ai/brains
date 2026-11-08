@@ -14,6 +14,7 @@ import {
 } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
+import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type {
   AnyEntityDefinition,
@@ -100,8 +101,10 @@ export interface EntityRuntime {
   readonly attachments: EntityRuntimeAttachments;
   /** The runtime's shared upload store. Contract jobs only. */
   readonly uploads: EntityCreateUploadReader;
-  /** The package's logger, as its entity plugin class logged. Contract jobs only. */
+  /** The package's logger, as its entity plugin class logged. */
   readonly logger: Logger;
+  /** The anchor's profile, as the shell's identity holds it now, read-only. */
+  readonly identity: EntityRuntimeIdentity;
   /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
@@ -136,6 +139,10 @@ export interface AnyEntityReads {
   }): Promise<BaseEntity | null>;
   /** A record by its id, else its slug, else its title. */
   find(entityType: string, identifier: string): Promise<BaseEntity | null>;
+}
+
+export interface EntityRuntimeIdentity {
+  getProfile(): AnchorProfile;
 }
 
 export interface EntityRuntimeImages {
@@ -237,6 +244,9 @@ export interface EntityRuntimeBinding {
     schema: AIGenerationSchema<T>,
   ) => Promise<{ object: T }>;
   readonly anyEntities?: AnyEntityBinding | undefined;
+  /** The package's logger; unset, a contract job's, else refused. */
+  readonly logger?: Logger | undefined;
+  readonly identity?: EntityRuntimeIdentity | undefined;
   readonly job?: ContractJobRuntimeBinding | undefined;
 }
 
@@ -569,7 +579,10 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     images: job.images,
     attachments: job.attachments,
     uploads: job.uploads,
-    logger: job.logger,
+    logger: binding.logger ?? job.logger,
+    identity:
+      binding.identity ??
+      Object.freeze({ getProfile: unavailable("identity", binding.where) }),
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),
   });
