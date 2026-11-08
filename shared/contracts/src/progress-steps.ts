@@ -12,5 +12,3 @@ export const PROGRESS_STEPS = {
   SAVE: 80,
   COMPLETE: 100,
 } as const;
-
-export type ProgressStep = (typeof PROGRESS_STEPS)[keyof typeof PROGRESS_STEPS];

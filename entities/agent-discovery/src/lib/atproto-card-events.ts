@@ -1,11 +1,10 @@
 import {
-  ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_CARD_DISCOVERED,
-  ATPROTO_BRAIN_CARD_REFRESHED,
-  ATPROTO_BRAIN_CARD_UNAVAILABLE,
-  ATPROTO_BRAIN_DISCOVERED,
+  atprotoBrainCardConflictChannel,
+  atprotoBrainCardDiscoveredChannel,
   atprotoBrainCardDiscoveredPayloadSchema,
-  atprotoBrainCardUnavailablePayloadSchema,
+  atprotoBrainCardRefreshedChannel,
+  atprotoBrainCardUnavailableChannel,
+  atprotoBrainDiscoveredChannel,
   type AtprotoBrainCardRecord,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
@@ -152,11 +151,13 @@ function buildEventPayload(input: {
 
 async function emitDiscoveryEvent(
   context: EntityPluginContext,
-  type: typeof ATPROTO_BRAIN_DISCOVERED | typeof ATPROTO_BRAIN_CARD_REFRESHED,
+  channel:
+    | typeof atprotoBrainDiscoveredChannel
+    | typeof atprotoBrainCardRefreshedChannel,
   payload: AtprotoBrainDiscoveryEventPayload,
 ): Promise<void> {
   await context.messaging.send({
-    type,
+    type: channel.name,
     payload,
     broadcast: true,
   });
@@ -205,7 +206,7 @@ export async function upsertAgentFromCard(
     existing.metadata.repoDid !== input.repoDid
   ) {
     await context.messaging.send({
-      type: ATPROTO_BRAIN_CARD_CONFLICT,
+      type: atprotoBrainCardConflictChannel.name,
       payload: {
         domain: agentId,
         existingRepoDid: existing.metadata.repoDid,
@@ -548,11 +549,8 @@ export function registerAtprotoBrainCardHandlers(
   context: EntityPluginContext,
 ): void {
   context.messaging.subscribe(
-    ATPROTO_BRAIN_CARD_DISCOVERED,
-    async (message) => {
-      const parsed = atprotoBrainCardDiscoveredPayloadSchema.parse(
-        message.payload,
-      );
+    atprotoBrainCardDiscoveredChannel,
+    async (parsed) => {
       const result = await upsertAgentFromCard(context, parsed);
       if (result.conflict || result.skipped) return { success: true };
       const eventPayload = buildEventPayload({
@@ -565,8 +563,8 @@ export function registerAtprotoBrainCardHandlers(
       await emitDiscoveryEvent(
         context,
         result.created
-          ? ATPROTO_BRAIN_DISCOVERED
-          : ATPROTO_BRAIN_CARD_REFRESHED,
+          ? atprotoBrainDiscoveredChannel
+          : atprotoBrainCardRefreshedChannel,
         eventPayload,
       );
       return { success: true, data: eventPayload };
@@ -574,11 +572,8 @@ export function registerAtprotoBrainCardHandlers(
   );
 
   context.messaging.subscribe(
-    ATPROTO_BRAIN_CARD_UNAVAILABLE,
-    async (message) => {
-      const parsed = atprotoBrainCardUnavailablePayloadSchema.parse(
-        message.payload,
-      );
+    atprotoBrainCardUnavailableChannel,
+    async (parsed) => {
       const agents = await context.entityService.listEntities(
         {
           entityType: "agent",

@@ -54,7 +54,6 @@ export const sourceBrainSchema: z.ZodObject<{
   name: z.string().trim().min(1).max(200),
   url: z.string().url().optional(),
 });
-export type SourceBrain = z.output<typeof sourceBrainSchema>;
 
 /**
  * "Rizom, with Becca and Jo": who answered, then the brains whose published
