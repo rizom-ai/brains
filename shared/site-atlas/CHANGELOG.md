@@ -1,5 +1,174 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/site-composition@0.2.0-alpha.660
+  - @brains/site-engine@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.659
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/site-composition@0.2.0-alpha.659
+  - @brains/site-engine@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/plugins@0.2.0-alpha.659
+
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.658
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/site-composition@0.2.0-alpha.658
+  - @brains/site-engine@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.657
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/site-composition@0.2.0-alpha.657
+  - @brains/site-engine@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/plugins@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.656
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/site-composition@0.2.0-alpha.656
+  - @brains/site-engine@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/plugins@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.655
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/site-composition@0.2.0-alpha.655
+  - @brains/site-engine@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/plugins@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.654
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/site-composition@0.2.0-alpha.654
+  - @brains/site-engine@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/plugins@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/site-engine@0.2.0-alpha.653
+  - @rizom/brain-ui@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/site-composition@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies [[`92b3bb7`](https://github.com/rizom-ai/brains/commit/92b3bb74eeffc14b522eb91f55e9fe9f159af195)]:
+  - @rizom/brain-ui@0.2.0-alpha.652
+  - @brains/site-engine@0.2.0-alpha.652
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/site-composition@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/plugins@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.651
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/site-composition@0.2.0-alpha.651
+  - @brains/site-engine@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/plugins@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies [[`eb649b0`](https://github.com/rizom-ai/brains/commit/eb649b00d6cbb591a531c07704e5f0d648544f21)]:
+  - @rizom/brain-ui@0.2.0-alpha.650
+  - @brains/site-engine@0.2.0-alpha.650
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/site-composition@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/plugins@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The component library is published as `@rizom/brain-ui`, moved from the private `@brains/ui-library` workspace to `packages/ui`. It versions and releases with `@rizom/brain`. Its public entry holds the components a site or plugin view renders entities with: `Card`, `CardTitle`, `CardMetadata`, `TagsList`, `MarkdownContent` and `formatDate`, with their props and option types. It ships built JavaScript and declarations, with `react` and `react-dom` as peers and no private workspace dependency. The rest of the library stays first-party in `@rizom/brain-ui/internal`, which is not published, and every package in this repository now imports from one entry or the other. `@brains/email-workflows` and `@brains/unified-inbox` drop a dependency they never imported, and Dashboard keeps it for its tests only.
+- Updated dependencies [[`01e357f`](https://github.com/rizom-ai/brains/commit/01e357ff95c6f8ac80f7bedcd1feeac16ca1b5a6), [`64354f1`](https://github.com/rizom-ai/brains/commit/64354f10a28c2925bab8eecaaf471fae011d68c7), [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a), [`3737da6`](https://github.com/rizom-ai/brains/commit/3737da657d6bb6599f543347b45aa238f017a73a)]:
+  - @rizom/brain-ui@0.2.0-alpha.649
+  - @brains/site-engine@0.2.0-alpha.649
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/site-composition@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/plugins@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/site-composition@0.2.0-alpha.648
+  - @brains/site-engine@0.2.0-alpha.648
+  - @brains/ui-library@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/plugins@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- Updated dependencies [[`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710), [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476), [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57), [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242), [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de), [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b)]:
+  - @brains/plugins@0.2.0-alpha.647
+  - @brains/ui-library@0.2.0-alpha.647
+  - @brains/site-engine@0.2.0-alpha.647
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/site-composition@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+
 ## 0.2.0-alpha.646
 
 ### Patch Changes

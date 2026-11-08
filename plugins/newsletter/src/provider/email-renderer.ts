@@ -1,4 +1,4 @@
-import { markdownToHtml } from "@brains/ui-library";
+import { markdownToHtml } from "@rizom/brain-ui/internal";
 import { stripMarkdown } from "@brains/utils/markdown";
 
 export interface RenderNewsletterEmailInput {

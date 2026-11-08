@@ -140,6 +140,11 @@ describe("public operator definitions", () => {
       actions: [actionBinding],
       load: ({ state }) => ({ count: state.offset }),
     });
+    // A binding that owns no types writes none.
+    const refuse = async (): Promise<never> => {
+      throw new Error("owns no types");
+    };
+    const refusedWrites = { create: refuse, update: refuse, delete: refuse };
     const runtimeContext: OperatorBaseContext<
       { prefix: string },
       { offset: number },
@@ -152,13 +157,14 @@ describe("public operator definitions", () => {
       entities: {
         get: async () => null,
         list: async () => [],
-        search: async () => [],
+        count: async () => 0,
       },
       jobs: {
         enqueue: async () => ({ id: "job-1", status: async () => null }),
         status: async () => null,
       },
       permissions: { allows: () => true },
+      accountSettings: { read: refuse },
       signal: new AbortController().signal,
     };
 
@@ -168,6 +174,13 @@ describe("public operator definitions", () => {
     expect(
       await getWorkspaceActionExecutor(actionBinding).execute({
         ...runtimeContext,
+        entities: { ...runtimeContext.entities, ...refusedWrites },
+        accountSettings: {
+          read: refuse,
+          save: refuse,
+          claim: refuse,
+          redeem: refuse,
+        },
         input: { id: "saved" },
       }),
     ).toEqual({ refreshed: "saved" });

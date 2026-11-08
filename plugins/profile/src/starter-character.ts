@@ -8,6 +8,7 @@ import type {
   IEntityAINamespace,
   ServiceEntityService,
 } from "@brains/plugins";
+import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 const MAX_CAPABILITIES = 50;
@@ -158,6 +159,23 @@ function parseFrontmatter(content: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * A record's frontmatter fields: from its content as an entity plugin class
+ * reads it, or its metadata as a declared type does.
+ */
+function recordFrontmatter(
+  entity: Pick<BaseEntity, "content" | "metadata">,
+): Record<string, unknown> | null {
+  try {
+    const { fields } = frontmatterRecordFields(entity);
+    return isUnknownRecord(fields) ? fields : null;
+  } catch {
+    // Unparseable authored frontmatter gives no signals, as parseFrontmatter
+    // treats it.
+    return null;
+  }
+}
+
 function isUnknownRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -291,9 +309,7 @@ export async function buildStarterCharacterBrief(options: {
       "starter character brief reads the owner's style guide",
     ),
   });
-  const styleMetadata = styleEntity
-    ? parseFrontmatter(styleEntity.content)
-    : null;
+  const styleMetadata = styleEntity ? recordFrontmatter(styleEntity) : null;
   const styleSignals = styleMetadata
     ? collectPathSignals(styleMetadata, STYLE_SIGNAL_PATHS)
     : [];

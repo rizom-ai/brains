@@ -1,5 +1,6 @@
 import type { JSX } from "react";
-import { Head, MarkdownContent, Card, CoverImage } from "@brains/ui-library";
+import { MarkdownContent, Card } from "@rizom/brain-ui";
+import { Head, CoverImage } from "@rizom/brain-ui/internal";
 import type { ProjectView } from "./project-view";
 
 export interface ProjectDetailProps {

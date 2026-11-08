@@ -134,6 +134,7 @@ export async function handleGroupingRead(
   const page = await context.entityService.queryGroupingMembers({
     ...input,
     ...pagination,
+    source: true,
     value: query.data.value ?? "",
     q: query.data.q,
     sort: query.data.sort,

@@ -349,7 +349,7 @@ describe("InboxDataSource", () => {
 
     expect(
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
-    ).toBe(true);
+    ).toBe(false);
     expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
     expect(harness.getMockShell().hasPlugin("studio")).toBe(false);
     expect(harness.getMockShell().hasPlugin("dashboard")).toBe(false);

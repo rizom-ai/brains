@@ -517,6 +517,21 @@ export class EntityMutations {
     return this.afterUpdateCommit(plan);
   }
 
+  /** The markdown an update replaces, when it is stored. */
+  private async storedContent(entity: BaseEntity): Promise<string | undefined> {
+    const rows = await this.db
+      .select({ content: entities.content })
+      .from(entities)
+      .where(
+        and(
+          eq(entities.id, entity.id),
+          eq(entities.entityType, entity.entityType),
+        ),
+      )
+      .limit(1);
+    return rows.at(0)?.content;
+  }
+
   /**
    * Validate and serialize an update, read the row it replaces, and settle
    * every check that can refuse or skip it before a transaction opens.
@@ -567,10 +582,14 @@ export class EntityMutations {
     await validatePersist(this.entityRegistry, validatedEntity, "update");
     options?.signal?.throwIfAborted();
 
+    const stored = this.entitySerializer.keepsStoredFrontmatter(validatedEntity)
+      ? await this.storedContent(validatedEntity)
+      : undefined;
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
         validatedEntity,
         validatedEntity.entityType,
+        stored,
       );
 
     const contentHash = computeContentHash(markdown);

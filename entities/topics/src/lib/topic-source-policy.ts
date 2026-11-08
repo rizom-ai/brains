@@ -23,8 +23,6 @@ export function includesTopicSourceType(
   return (
     entityType !== TOPIC_ENTITY_TYPE &&
     !config.excludeEntityTypes.includes(entityType) &&
-    (config.includeEntityTypes.includes("*") ||
-      config.includeEntityTypes.includes(entityType)) &&
     entityTypeConfig.projectionSource !== false
   );
 }
@@ -57,26 +55,48 @@ export function topicSourceTypes(
     .sort();
 }
 
+/** The config a source policy reads: role policies and per-type overrides. */
+export type TopicSourcePolicyConfig = Pick<
+  TopicsPluginConfig,
+  "sourceRoleOverrides" | "sourceRolePolicies"
+>;
+
+/** The weight and mint authority of one source type's role. */
 export function topicSourcePolicy(
   entityType: string,
-  config: TopicsPluginConfig,
+  config: TopicSourcePolicyConfig,
   entityTypeConfig: EntityTypeConfig,
 ): TopicSourceRolePolicy {
   const role =
     config.sourceRoleOverrides[entityType] ??
     entityTypeConfig.projectionSourceRole ??
     (entityTypeConfig.projectionSource === false ? "excluded" : "primary");
-  const policy = config.sourceRolePolicies[role];
-  return {
-    weight:
-      Object.keys(config.sourceWeights).length > 0
-        ? (config.sourceWeights[entityType] ?? 1)
-        : policy.weight,
-    canMint:
-      config.mintableEntityTypes.length > 0
-        ? config.mintableEntityTypes.includes(entityType)
-        : policy.canMint,
-  };
+  return config.sourceRolePolicies[role];
+}
+
+/**
+ * The policy for one extraction prompt over several sources: its strongest
+ * source's weight, and mint authority when any source may mint.
+ */
+export function topicBatchSourcePolicy(
+  entityTypes: readonly string[],
+  config: TopicSourcePolicyConfig,
+  getEntityTypeConfig: (entityType: string) => EntityTypeConfig,
+): TopicSourceRolePolicy {
+  return entityTypes.reduce<TopicSourceRolePolicy>(
+    (batch, entityType) => {
+      const policy = topicSourcePolicy(
+        entityType,
+        config,
+        getEntityTypeConfig(entityType),
+      );
+      return {
+        weight: Math.max(batch.weight, policy.weight),
+        canMint: batch.canMint || policy.canMint,
+      };
+    },
+    { weight: 0, canMint: false },
+  );
 }
 
 export function isTopicSourceEligible(

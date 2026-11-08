@@ -87,3 +87,79 @@ export type AnyInterfaceRouteDefinition = InterfaceRouteDefinition<
   InterfaceSchema,
   RouteSecurity
 >;
+
+/**
+ * A Studio workspace a route returns the browser to, stated by its shape so
+ * the route contract does not depend on the operator one. The runtime checks
+ * it is one the declaring package binds.
+ */
+export interface ReturnToWorkspace {
+  readonly kind: "rizom-studio-workspace";
+  readonly id: string;
+  readonly query?: InterfaceSchema | undefined;
+}
+
+/** The workspace's query schema, whose input a returning route answers with. */
+export type ReturnToQuery<TWorkspace extends ReturnToWorkspace> = NonNullable<
+  TWorkspace["query"]
+>;
+
+/** A workspace without a query has no URL state to come back with. */
+type ReturnToQueryDeclared<TWorkspace extends ReturnToWorkspace> = [
+  TWorkspace["query"],
+] extends [undefined]
+  ? { readonly query: InterfaceSchema }
+  : unknown;
+
+/**
+ * A browser navigation that ends in one of the package's own Studio
+ * workspaces, such as a provider's consent callback: the handler answers with
+ * the workspace's query input, and the runtime sends the browser there.
+ */
+export interface ReturnToRouteInput<
+  TSecurity extends RouteSecurity = RouteSecurity,
+  TWorkspace extends ReturnToWorkspace = ReturnToWorkspace,
+> {
+  readonly method: "GET";
+  readonly path: string;
+  readonly security: TSecurity;
+  /** One of this package's Studio workspaces; it must declare a query. */
+  readonly returnTo: TWorkspace & ReturnToQueryDeclared<TWorkspace>;
+  readonly body?: undefined;
+  readonly response?: undefined;
+  /**
+   * Answers with the workspace's query input; written inline, it keeps its
+   * literal types. The runtime checks it against the query schema.
+   */
+  handle(context: {
+    readonly request: Request;
+    readonly body: undefined;
+    readonly caller: RouteCaller<TSecurity>;
+  }):
+    | SchemaValue<ReturnToQuery<TWorkspace>>
+    | Promise<SchemaValue<ReturnToQuery<TWorkspace>>>;
+}
+
+export interface ReturnToRouteDefinition<
+  TSecurity extends RouteSecurity = RouteSecurity,
+  TWorkspace extends ReturnToWorkspace = ReturnToWorkspace,
+> extends ReturnToRouteInput<TSecurity, TWorkspace> {
+  readonly kind: "rizom-interface-route";
+}
+
+export type AnyReturnToRouteDefinition = ReturnToRouteDefinition<
+  RouteSecurity,
+  ReturnToWorkspace
+>;
+
+/** Every route a service declares: answering in JSON, or returning the browser. */
+export type AnyDeclaredRouteDefinition =
+  AnyInterfaceRouteDefinition | AnyReturnToRouteDefinition;
+
+/** Whether a route returns the browser to a workspace, rather than answer JSON. */
+export function isReturnToRoute(
+  definition:
+    AnyDeclaredRouteDefinition | InterfaceRouteInput | ReturnToRouteInput,
+): definition is AnyReturnToRouteDefinition | ReturnToRouteInput {
+  return "returnTo" in definition;
+}

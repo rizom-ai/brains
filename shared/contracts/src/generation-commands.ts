@@ -7,8 +7,6 @@ export const generateExecuteSchema: GenerateExecuteSchema = z.object({
   entityType: z.string(),
 });
 
-export type GenerateExecutePayload = z.output<typeof generateExecuteSchema>;
-
 /**
  * Content-pipeline's schedule asks for a draft of one entity type. Every
  * type's generator hears it and acts only on its own type.

@@ -5,11 +5,9 @@ import { join } from "node:path";
 /** The published authoring entries and the SDK subpath each one re-exports. */
 const AUTHORING_ENTRIES = {
   index: "@brains/sdk",
-  plugins: "@brains/sdk/plugins",
   entities: "@brains/sdk/entities",
   services: "@brains/sdk/services",
   interfaces: "@brains/sdk/interfaces",
-  templates: "@brains/sdk/templates",
 } as const;
 
 function code(file: string): string {

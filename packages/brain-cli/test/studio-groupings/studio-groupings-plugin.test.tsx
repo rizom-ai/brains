@@ -7,7 +7,12 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
-import { imageAdapter, imageSchema } from "@brains/image";
+import { createImageEntity } from "@brains/image";
+import imagePackage from "@brains/image-plugin";
+import {
+  EntityPlugin,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
 import {
   PermissionService,
   type EntityActionPolicyRule,
@@ -100,7 +105,15 @@ async function fixture(): Promise<{
   // Contributors may register after Studio, but before the finalization barrier.
   registry.registerEntityType("note", noteSchema, noteAdapter);
   registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
-  registry.registerEntityType("image", imageSchema, imageAdapter);
+  // The image type as the canonical brain installs it.
+  const [images] = instantiatePluginPackageDefinition(
+    imagePackage,
+    {},
+    { name: "@brains/image-plugin", version: "0.0.0-test" },
+    { pluginId: "image" },
+  );
+  if (!(images instanceof EntityPlugin)) throw new Error("No image plugin");
+  registry.registerEntityType("image", images.schema, images.adapter);
   await plugin.finalizeRegistration();
   await service.reprojectRegisteredGroupings();
   const routes = plugin.getWebRoutes();
@@ -150,7 +163,7 @@ test("preview image reads require a session and cannot widen its visibility scop
     entity: {
       id: "private-image",
       visibility: "public",
-      ...imageAdapter.createImageEntity({ dataUrl, title: "Private image" }),
+      ...createImageEntity({ dataUrl, title: "Private image" }),
     },
   });
   // Set the fixture row's system visibility without rewriting binary content
@@ -208,7 +221,7 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
   await runtime.service.createEntity({
     entity: {
       id: "reference",
-      ...imageAdapter.createImageEntity({ dataUrl, title: "Reference" }),
+      ...createImageEntity({ dataUrl, title: "Reference" }),
       visibility: "public",
     },
   });

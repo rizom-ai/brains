@@ -82,7 +82,7 @@ test("a content replacement stores the new anchor name, email, and website", asy
     await exec({
       entityType: "anchor-profile",
       id: "anchor-profile",
-      operation: { kind: "content", content: replacement },
+      operation: { content: replacement },
     }),
   );
   expect(await exec(proposal.args)).toMatchObject({ success: true });

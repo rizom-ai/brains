@@ -1,14 +1,11 @@
 import type { JSX } from "react";
 import type { LinkListData } from "./schema";
+import { Card, CardTitle, CardMetadata, formatDate } from "@rizom/brain-ui";
 import {
-  Card,
-  CardTitle,
-  CardMetadata,
   ListPageHeader,
   EmptyState,
-  formatDate,
   LinkButton,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 
 export const LinkListLayout = ({
   links,

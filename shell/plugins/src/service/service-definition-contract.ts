@@ -22,12 +22,15 @@ import { parseWithSchema } from "@brains/utils/parse-schema";
 import type { SchemaValue } from "../internal/schema-value";
 import type {
   AnyEntityDefinition,
-  EntityMetadataInput,
-  EntityOf,
   EntityReader,
-  EntityVisibility,
 } from "../entity/entity-definition-contract";
-import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
+export type { OwnedEntityWriter } from "../entity/owned-entity-writer";
+import type {
+  AnyAccountSettingsDefinition,
+  ServiceAccountSettings,
+} from "../operator/account-settings-definition-contract";
+export type { ServiceAccountSettings } from "../operator/account-settings-definition-contract";
 import type {
   AnyStudioWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
@@ -36,49 +39,12 @@ import type {
 } from "../operator/operator-definition-contract";
 import type { OperatorBindingContext } from "../operator/operator-context-contract";
 import { assertIdentifier } from "../package-definition";
-import type { AnyInterfaceRouteDefinition } from "../interface/route-definition-contract";
+import type { AnyDeclaredRouteDefinition } from "../interface/route-definition-contract";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
 export type ServiceSchemaMap = Record<string, ServiceSchema>;
 export type ServiceDeadline = `${number}ms` | `${number}s` | `${number}m`;
-
-/**
- * Writes to the entity types the header's `entities` declares, as the
- * current caller: the tool caller inside a tool, the requester inside a
- * running job, and the package's own grant anywhere else. A write is held to
- * the type's action policy at that permission level; `update` and `delete`
- * refuse a record that changed after it was read, or that the caller cannot
- * see.
- */
-export interface OwnedEntityWriter<TOwned extends AnyEntityDefinition> {
-  /** Creates a record; one with that id at any visibility is refused. */
-  create<TDefinition extends TOwned>(
-    definition: TDefinition,
-    input: NoInfer<{
-      /** Omitted, the runtime picks one. */
-      readonly id?: string | undefined;
-      readonly content: string;
-      readonly metadata: EntityMetadataInput<TDefinition["metadata"]>;
-      readonly visibility?: EntityVisibility | undefined;
-    }>,
-  ): Promise<{ readonly id: string }>;
-  /** Changes the content, the metadata or both of a record as it was read. */
-  update<TDefinition extends TOwned>(
-    definition: TDefinition,
-    record: NoInfer<EntityOf<TDefinition>>,
-    change: NoInfer<{
-      readonly content?: string | undefined;
-      readonly metadata?:
-        EntityMetadataInput<TDefinition["metadata"]> | undefined;
-    }>,
-  ): Promise<void>;
-  /** Deletes a record as it was read. */
-  delete<TDefinition extends TOwned>(
-    definition: TDefinition,
-    record: NoInfer<EntityOf<TDefinition>>,
-  ): Promise<void>;
-}
 
 /** What a slot reads and writes entities with: one `entities`, as the current caller. */
 export type ServiceEntityAccess<TOwned extends AnyEntityDefinition> =
@@ -142,38 +108,6 @@ export function defineBusContract<
     );
   }
   return defineAnyBusContract(definition);
-}
-
-/**
- * Writes this package's own account settings, through the definition its
- * header declares, for one account the runtime vouches for; the package never
- * names an account. Values are checked by the definition's schema, and a
- * refused one is named by its field alone.
- */
-export interface ServiceAccountSettings<
-  TSettings extends AnyAccountSettingsDefinition,
-> {
-  /** Writes the settings of the current caller's own account. */
-  save(values: z.input<TSettings["schema"]>): Promise<void>;
-  /**
-   * A single-use, short-lived state naming the current caller's account and,
-   * when the caller came through a browser session, that session's account.
-   */
-  claim(
-    ...declared: [TSettings] extends [never] ? [never] : []
-  ): Promise<string>;
-  /**
-   * Consumes a claim, then writes what `produce` returns for the account it
-   * names. A claim made through a browser session is redeemed only from a
-   * session of the same account. A refused claim is refused before
-   * `produce` runs; if `produce` fails, nothing is written and the claim
-   * stays used.
-   */
-  redeem(
-    state: string,
-    produce: () =>
-      z.input<TSettings["schema"]> | Promise<z.input<TSettings["schema"]>>,
-  ): Promise<void>;
 }
 
 /**
@@ -678,7 +612,7 @@ export interface ServiceDefinitionBehavior<
         readonly accountSettings: ServiceAccountSettings<
           NonNullable<TAccountSettings>
         >;
-      }) => readonly AnyInterfaceRouteDefinition[])
+      }) => readonly AnyDeclaredRouteDefinition[])
     | undefined;
   readonly tools?:
     | ((context: {
@@ -712,18 +646,24 @@ export interface ServiceDefinitionBehavior<
         TAccountSettings
       >[])
     | undefined;
+  /**
+   * Studio workspaces, bound to the package: their workspace actions write
+   * the header's own types as the operator who invoked them.
+   */
   readonly studioWorkspaces?:
     | ((
         context: OperatorBindingContext<
           z.output<TConfigSchema>,
           TState,
-          TAccountSettings
+          TAccountSettings,
+          TOwned
         >,
       ) => readonly BoundStudioWorkspace<
         AnyStudioWorkspaceDefinition,
         z.output<TConfigSchema>,
         TState,
-        TAccountSettings
+        TAccountSettings,
+        TOwned
       >[])
     | undefined;
 }

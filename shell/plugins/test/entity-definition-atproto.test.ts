@@ -172,31 +172,50 @@ describe("declared AT Protocol projection", () => {
     }
   });
 
-  it("reads as its package, not through the caller's context", async () => {
+  it("reads public entries only, not through the caller's context", async () => {
     const harness = await install([cover, clipDefinition({})]);
     try {
-      await harness.getEntityService().createEntity({
-        entity: {
-          id: "gull",
-          entityType: "cover",
-          content: "png-bytes",
-          metadata: { alt: "A gull" },
-          visibility: "restricted",
-        },
-      });
-      const entity = await rawClip(harness, {
-        title: "Tides",
-        coverId: "gull",
-      });
-      const record = await registered(harness).buildRecord({
-        entity,
-        context: callerContext,
-        config: {},
-        dryRun: true,
-      });
+      const covers: { id: string; visibility: BaseEntity["visibility"] }[] = [
+        { id: "gull", visibility: "restricted" },
+        { id: "tern", visibility: "shared" },
+        { id: "heron", visibility: "public" },
+      ];
+      for (const { id, visibility } of covers) {
+        await harness.getEntityService().createEntity({
+          entity: {
+            id,
+            entityType: "cover",
+            content: "png-bytes",
+            metadata: { alt: `A ${id}` },
+            visibility,
+          },
+        });
+      }
+      const recordWith = async (
+        coverId: string,
+      ): Promise<Record<string, unknown>> => {
+        const entity = await rawClip(harness, { title: "Tides", coverId });
+        await harness
+          .getEntityService()
+          .deleteEntity({ entityType: "clip", id: "tide" });
+        return registered(harness).buildRecord({
+          entity,
+          context: callerContext,
+          config: {},
+          dryRun: true,
+        });
+      };
 
-      // A restricted cover is visible, so the projection can refuse it.
-      expect(record["coverVisibility"]).toBe("restricted");
+      // The record goes to a public PDS, so it is built from public entries.
+      expect(await recordWith("gull")).toEqual({
+        $type: clipLexicon.id,
+        title: "Tides",
+      });
+      expect(await recordWith("tern")).toEqual({
+        $type: clipLexicon.id,
+        title: "Tides",
+      });
+      expect((await recordWith("heron"))["coverVisibility"]).toBe("public");
     } finally {
       await harness.reset();
     }

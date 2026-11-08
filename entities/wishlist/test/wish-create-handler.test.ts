@@ -1,25 +1,42 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { WishlistPlugin } from "../src";
-import { WishCreateHandler } from "../src/handlers/wish-create-handler";
-import type { EntityPluginContext } from "@brains/plugins";
-import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
+import type { CreateInput, CreateInterceptionResult } from "@brains/plugins";
+import type { WishlistConfigInput } from "../src";
+import { wishlistPlugin } from "./wishlist-plugin";
 
-const noopProgress = createMockProgressReporter();
-
-describe("WishCreateHandler", () => {
+// Wishes arrive through system_create: every shape reaches the wish's create
+// route, which raises the count of a wish asked for again.
+describe("wish creation", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let handler: WishCreateHandler;
-  let context: EntityPluginContext;
+
+  async function install(config: WishlistConfigInput = {}): Promise<void> {
+    harness = createPluginHarness({ dataDir: "/tmp/test-wishlist" });
+    await harness.installPlugin(wishlistPlugin(config));
+  }
+
+  async function create(
+    input: Omit<CreateInput, "entityType">,
+  ): Promise<CreateInterceptionResult | undefined> {
+    return harness.getEntityRegistry().getCreateInterceptor("wish")?.(
+      { entityType: "wish", ...input },
+      {
+        interfaceType: "discord",
+        actor: { kind: "user", userId: "yeehaa" },
+      },
+    );
+  }
+
+  async function wishes(): Promise<
+    Array<{ id: string; metadata: Record<string, unknown> }>
+  > {
+    return harness.getEntityService().listEntities({
+      entityType: "wish",
+      options: {},
+    });
+  }
 
   beforeEach(async () => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-wishlist" });
-    await harness.installPlugin(new WishlistPlugin({}));
-    context = harness.getEntityContext("wishlist");
-    handler = new WishCreateHandler(createSilentLogger(), context);
+    await install();
   });
 
   it("should not expose any tools (all moved to system)", () => {
@@ -28,88 +45,44 @@ describe("WishCreateHandler", () => {
   });
 
   it("should create a new wish", async () => {
-    const result = await handler.process(
-      { title: "Send emails", content: "User wants email integration" },
-      "job-1",
-      noopProgress,
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.existed).toBe(false);
-    expect(result.requested).toBe(1);
-
-    const wishes = await context.entityService.listEntities({
-      entityType: "wish",
-      options: {},
+    const result = await create({
+      title: "Send emails",
+      content: "User wants email integration",
     });
-    expect(wishes.length).toBe(1);
-    expect(wishes[0]?.metadata["title"]).toBe("Send emails");
-    expect(wishes[0]?.metadata["status"]).toBe("new");
+
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: { success: true, data: { status: "created" } },
+    });
+    const stored = await wishes();
+    expect(stored.length).toBe(1);
+    expect(stored[0]?.metadata["title"]).toBe("Send emails");
+    expect(stored[0]?.metadata["status"]).toBe("new");
+    expect(stored[0]?.metadata["requested"]).toBe(1);
   });
 
   it("should default priority to medium", async () => {
-    await handler.process(
-      { title: "Water my plants", content: "User wants plant watering" },
-      "job-2",
-      noopProgress,
-    );
-
-    const wishes = await context.entityService.listEntities({
-      entityType: "wish",
-      options: {},
+    await create({
+      title: "Water my plants",
+      content: "User wants plant watering",
     });
-    expect(wishes[0]?.metadata["priority"]).toBe("medium");
-  });
 
-  it("should accept priority via options", async () => {
-    await handler.process(
-      {
-        title: "Water my plants",
-        content: "User wants plant watering",
-        options: { priority: "high" },
-      },
-      "job-3",
-      noopProgress,
-    );
-
-    const wishes = await context.entityService.listEntities({
-      entityType: "wish",
-      options: {},
-    });
-    expect(wishes[0]?.metadata["priority"]).toBe("high");
+    expect((await wishes())[0]?.metadata["priority"]).toBe("medium");
   });
 
   it("should use prompt as title fallback", async () => {
-    await handler.process(
-      { prompt: "I want to send emails" },
-      "job-5",
-      noopProgress,
-    );
+    await create({ prompt: "I want to send emails" });
 
-    const wishes = await context.entityService.listEntities({
-      entityType: "wish",
-      options: {},
-    });
-    expect(wishes[0]?.metadata["title"]).toBe("I want to send emails");
+    expect((await wishes())[0]?.metadata["title"]).toBe(
+      "I want to send emails",
+    );
   });
 
   it("should intercept system_create for wish and populate required metadata", async () => {
-    const interceptor = harness
-      .getEntityRegistry()
-      .getCreateInterceptor("wish");
-    expect(interceptor).toBeDefined();
-
-    const result = await interceptor?.(
-      {
-        entityType: "wish",
-        title: "Make lasagna",
-        content: "User wants the assistant to physically make lasagna.",
-      },
-      {
-        interfaceType: "discord",
-        actor: { kind: "user", userId: "yeehaa" },
-      },
-    );
+    const result = await create({
+      title: "Make lasagna",
+      content: "User wants the assistant to physically make lasagna.",
+    });
 
     expect(result).toEqual({
       kind: "handled",
@@ -119,7 +92,7 @@ describe("WishCreateHandler", () => {
       },
     });
 
-    const wish = await context.entityService.getEntity({
+    const wish = await harness.getEntityService().getEntity({
       entityType: "wish",
       id: "make-lasagna",
     });
@@ -130,39 +103,77 @@ describe("WishCreateHandler", () => {
     expect(wish?.metadata["slug"]).toBe("make-lasagna");
   });
 
-  it("counts a reworded wish within the configured distance", async () => {
-    await handler.process(
-      { title: "Water my plants", content: "User wants plants watered" },
-      "job-a",
-      noopProgress,
-    );
-    context.ai.generateObject = async <T>(
-      _prompt: string,
-      schema: { parse(value: unknown): T },
-    ): Promise<{ object: T }> => ({ object: schema.parse({ same: true }) });
-    context.entityService.searchWithDistances = async (): Promise<
-      Array<{ entityId: string; entityType: string; distance: number }>
-    > => [{ entityId: "water-my-plants", entityType: "wish", distance: 0.35 }];
+  it("refuses a wish that is not public", async () => {
+    expect(
+      await create({
+        title: "Private wish",
+        content: "Only for me",
+        visibility: "shared",
+      }),
+    ).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error:
+          "Wish creation currently supports public visibility only; use a note for shared or restricted capture.",
+      },
+    });
+  });
 
-    const strict = await handler.process(
-      { title: "Garden watering", content: "User wants the garden watered" },
-      "job-b",
-      noopProgress,
-    );
-    const loose = await new WishCreateHandler(
-      createSilentLogger(),
-      context,
-      0.4,
-    ).process(
-      { title: "Houseplant care", content: "User wants houseplants watered" },
-      "job-c",
-      noopProgress,
-    );
+  it("raises the count of a wish asked for again by its title", async () => {
+    await create({ title: "Send emails", content: "First ask" });
+
+    const again = await create({ title: "Send emails", content: "Again" });
+
+    expect(again).toMatchObject({
+      result: {
+        success: true,
+        data: { entityId: "send-emails", status: "updated" },
+      },
+    });
+    const stored = await wishes();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.metadata["requested"]).toBe(2);
+  });
+
+  it("counts a reworded wish within the configured distance", async () => {
+    const shell = harness.getMockShell();
+    spyOn(shell, "generateObject").mockResolvedValue({
+      object: { same: true },
+    });
+    spyOn(harness.getEntityService(), "searchWithDistances").mockResolvedValue([
+      { entityId: "water-my-plants", entityType: "wish", distance: 0.35 },
+    ]);
+    await create({
+      title: "Water my plants",
+      content: "User wants plants watered",
+    });
+
+    const strict = await create({
+      title: "Garden watering",
+      content: "User wants the garden watered",
+    });
+    await install({ sameWishDistance: 0.4 });
+    spyOn(harness.getMockShell(), "generateObject").mockResolvedValue({
+      object: { same: true },
+    });
+    spyOn(harness.getEntityService(), "searchWithDistances").mockResolvedValue([
+      { entityId: "water-my-plants", entityType: "wish", distance: 0.35 },
+    ]);
+    await create({
+      title: "Water my plants",
+      content: "User wants plants watered",
+    });
+    const loose = await create({
+      title: "Houseplant care",
+      content: "User wants houseplants watered",
+    });
 
     expect(strict).toMatchObject({
-      existed: false,
-      entityId: "garden-watering",
+      result: { data: { entityId: "garden-watering", status: "created" } },
     });
-    expect(loose).toMatchObject({ existed: true, entityId: "water-my-plants" });
+    expect(loose).toMatchObject({
+      result: { data: { entityId: "water-my-plants", status: "updated" } },
+    });
   });
 });

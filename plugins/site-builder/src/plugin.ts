@@ -24,9 +24,8 @@ import { registerConfigRoutes } from "./lib/route-helpers";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import {
-  SITE_METADATA_UPDATED_CHANNEL,
   siteBuilderSlotsContract,
-  type SiteMetadata,
+  siteMetadataUpdatedChannel,
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
@@ -199,16 +198,13 @@ export class SiteBuilderPlugin extends ServicePlugin<
     );
 
     // Re-register instructions when site metadata changes so the prompt stays fresh.
-    context.messaging.subscribe<SiteMetadata, { success: boolean }>(
-      SITE_METADATA_UPDATED_CHANNEL,
-      async () => {
-        const instructions = await this.getInstructions();
-        if (instructions) {
-          context.registerInstructions(instructions);
-        }
-        return { success: true };
-      },
-    );
+    context.messaging.subscribe(siteMetadataUpdatedChannel, async () => {
+      const instructions = await this.getInstructions();
+      if (instructions) {
+        context.registerInstructions(instructions);
+      }
+      return { success: true };
+    });
   }
 
   protected override async onReady(

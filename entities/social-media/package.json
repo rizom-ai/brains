@@ -1,14 +1,14 @@
 {
   "name": "@brains/social-media",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.646",
+  "version": "0.2.0-alpha.660",
   "description": "Multi-provider social media posting with queue-based publishing",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/entity-service": "workspace:*",

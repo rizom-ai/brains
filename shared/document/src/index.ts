@@ -11,10 +11,9 @@ export type {
   DocumentMimeType,
 } from "./schemas/document";
 export {
-  DocumentAdapter,
-  documentAdapter,
+  createDocumentEntity,
   type CreateDocumentInput,
-} from "./adapters/document-adapter";
+} from "./lib/document-entity";
 export {
   countPdfPages,
   createPdfDataUrl,

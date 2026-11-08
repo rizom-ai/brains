@@ -26,7 +26,6 @@ describe("normalizeStudioListItem", () => {
       id: "a",
       title: "First",
       description: "About it",
-      meta: "Yesterday",
       metadata: ["one"],
       tags: ["tag"],
       count: 0,
@@ -170,6 +169,15 @@ describe("studio list and matrix items", () => {
         ],
       },
     });
+  });
+
+  it("refuse the retired meta field; detail lines go in metadata", () => {
+    const result = safeParseRuntimeStudioOperatorView(
+      listAndMatrix({ id: "a", title: "First", meta: "Yesterday" }),
+      { actions: [], permission: "trusted" },
+    );
+
+    expect(result.success).toBe(false);
   });
 
   it("report action issues under their own paths", () => {

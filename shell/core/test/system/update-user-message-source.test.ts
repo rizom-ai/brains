@@ -66,7 +66,7 @@ function input(): Record<string, unknown> {
   return {
     entityType: "note",
     id: "working-plan",
-    operation: { kind: "source", source },
+    operation: { source },
   };
 }
 
@@ -96,7 +96,6 @@ describe("system_update user-message source", () => {
       id: "working-plan",
       contentHash: "hash-working-plan",
       operation: {
-        kind: "source",
         source: {
           ...source,
           messageId: "user-source",
@@ -168,7 +167,6 @@ describe("system_update user-message source", () => {
           {
             ...input(),
             operation: {
-              kind: "source",
               source: { ...source, contentHash: "sha256:9e1b6b9af2" },
             },
           },
@@ -197,7 +195,6 @@ describe("system_update user-message source", () => {
         {
           ...input(),
           operation: {
-            kind: "source",
             source: {
               kind: "user-message",
               boundaryMode: "literal",
@@ -246,7 +243,6 @@ describe("system_update user-message source", () => {
       entityType: "note",
       id: "working-plan",
       operation: {
-        kind: "source",
         source: { kind: "user-message", startAfter: instruction },
       },
     };
@@ -263,7 +259,7 @@ describe("system_update user-message source", () => {
     const { services, tool } = fixture([message(pasted("Body.\n"))]);
     for (const request of [
       { ...input(), ...extra },
-      { ...input(), operation: { kind: "source", source, ...extra } },
+      { ...input(), operation: { source, ...extra } },
     ]) {
       expect(await tool.handler(request, context)).toMatchObject({
         success: false,

@@ -131,6 +131,39 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     ).toMatchObject({ status: "failed", error: "Provider unavailable" });
   });
 
+  it.each([
+    [
+      PUBLISH_CHANNELS.failed,
+      { entityType: "social-post", entityId: "post-1" },
+    ],
+    [
+      PUBLISH_CHANNELS.completed,
+      { entityType: "social-post", entityId: "post-1" },
+    ],
+  ])("refuses a malformed %s and keeps the queue", async (channel, payload) => {
+    await manage({
+      action: "queue-add",
+      entityType: "social-post",
+      entityId: "post-1",
+    });
+
+    await harness.sendMessage(channel, payload, "test", true);
+
+    expect(
+      (await plugin.getPublicationQueueService().listStored("social-post")).map(
+        (entry) => entry.entityId,
+      ),
+    ).toEqual(["post-1"]);
+    expect(
+      (
+        await harness.getEntityService().getEntity({
+          entityType: "social-post",
+          id: "post-1",
+        })
+      )?.metadata["status"],
+    ).toBe("queued");
+  });
+
   it("routes publishing_manage queue-add through the same storage boundary", async () => {
     await manage({
       action: "queue-add",

@@ -13,14 +13,16 @@ import {
   buildStarterCharacterPrompt,
   deriveStarterIdentity,
   generatedStarterCharacterSchema,
-  isLegacyAnchorProfileContent,
-  isLegacyBrainCharacterContent,
   ProfilePlugin,
   resolveStarterIdentityIdentifier,
   type GeneratedStarterCharacter,
   type ProfileConfigInput,
   type StarterCharacterBrief,
 } from "../src";
+import {
+  isLegacyAnchorProfileContent,
+  isLegacyBrainCharacterContent,
+} from "../src/starter-identity";
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -243,6 +245,34 @@ describe("starter character generation", () => {
     expect(serialized).not.toContain("PRIVATE CONTENT BODY");
     expect(serialized).not.toContain("PRIVATE ANCHOR BODY");
     expect(serialized).not.toContain("PRIVATE STYLE BODY");
+  });
+
+  test("reads a declared style guide's signals from its metadata", async () => {
+    const harness = createHarness();
+    harness.addEntities([
+      {
+        id: "style-guide",
+        entityType: "style-guide",
+        content: "PRIVATE STYLE BODY",
+        metadata: {
+          name: "House style",
+          messaging: { positioning: "Evidence before assertion" },
+        },
+      },
+    ]);
+
+    const brief = await buildStarterCharacterBrief({
+      entityService: harness.getEntityService(),
+      profileKind: "team",
+      profileCategory: "team",
+      anchorEntity: null,
+      includeAnchor: false,
+    });
+
+    expect(brief.styleSignals).toContain(
+      "messaging.positioning: Evidence before assertion",
+    );
+    expect(JSON.stringify(brief)).not.toContain("PRIVATE STYLE BODY");
   });
 
   test("builds the public character from public content only", async () => {

@@ -2,7 +2,7 @@ import { createTemplate } from "@brains/plugins";
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { BlogPostTemplate } from "./blog-post";
-import { Head, useMarkdownToHtml } from "@brains/ui-library";
+import { Head, useMarkdownToHtml } from "@rizom/brain-ui/internal";
 import {
   blogRenderSchema,
   blogViewSchema,

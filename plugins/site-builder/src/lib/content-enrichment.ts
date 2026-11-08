@@ -314,6 +314,9 @@ async function forEachEntityPage(
       limit: SCAN_PAGE_SIZE,
       offset,
       sortFields: [{ field: "id", direction: "asc" }],
+      // The stored record: a declared type reads back its body alone, and
+      // its cover and OG images are named in its frontmatter.
+      source: true,
     },
   });
   visit(page);

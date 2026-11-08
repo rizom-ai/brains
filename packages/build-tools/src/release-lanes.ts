@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseJsonObject } from "./json";
+import { isJsonObject, parseJsonObject } from "./json";
 
 export type ReleaseLane = "core" | "site";
 export type ReleaseWorkflowMode = "standard" | "stable-exit" | "stable-version";
@@ -256,4 +256,28 @@ export async function runWithScopedReleasePackages<T>(
   }
 
   return operationResult.value;
+}
+
+/**
+ * The packages a lane's publish prepares manifests for: public packages of
+ * that lane that publish a prepared manifest (`prepack: publish-manifest
+ * prepare`). The publish wrapper prepares them all before `changeset
+ * publish` runs, so every `prepublishOnly` build in the lane runs with them
+ * prepared.
+ */
+export function preparedManifestPackageDirs(
+  packages: readonly WorkspacePackageLike[],
+  lane: ReleaseLane,
+): string[] {
+  return packages
+    .filter(({ packageJson }) => {
+      const scripts: unknown = Reflect.get(packageJson, "scripts");
+      return (
+        packageJson.private !== true &&
+        packageMatchesReleaseLane(packageJson.name, lane) &&
+        isJsonObject(scripts) &&
+        scripts["prepack"] === "publish-manifest prepare"
+      );
+    })
+    .map(({ dir }) => dir);
 }

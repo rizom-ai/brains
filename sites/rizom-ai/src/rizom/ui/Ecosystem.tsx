@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { Section } from "./Section";
 import { Wordmark } from "./Wordmark";
-import { renderHighlightedText } from "@brains/ui-library";
+import { renderHighlightedText } from "@rizom/brain-ui/internal";
 import type { RizomBrandSuffix } from "./types";
 
 const HIGHLIGHT_CLS = "italic text-accent font-normal";

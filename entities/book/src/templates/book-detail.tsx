@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { MarkdownContent } from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
 import type {
   BookDetailPage,
   BookFields,

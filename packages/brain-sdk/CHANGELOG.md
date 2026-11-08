@@ -1,5 +1,167 @@
 # @brains/sdk
 
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/entity-service@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+  - @brains/templates@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/entity-service@0.2.0-alpha.659
+  - @brains/plugins@0.2.0-alpha.659
+  - @brains/templates@0.2.0-alpha.659
+
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/entity-service@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+  - @brains/templates@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/entity-service@0.2.0-alpha.657
+  - @brains/plugins@0.2.0-alpha.657
+  - @brains/templates@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/entity-service@0.2.0-alpha.656
+  - @brains/plugins@0.2.0-alpha.656
+  - @brains/templates@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/entity-service@0.2.0-alpha.655
+  - @brains/plugins@0.2.0-alpha.655
+  - @brains/templates@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/entity-service@0.2.0-alpha.654
+  - @brains/plugins@0.2.0-alpha.654
+  - @brains/templates@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`66f7e59`](https://github.com/rizom-ai/brains/commit/66f7e59f4f21cb0f906bab83bcd097ad1f0cac87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain` no longer exports `BrainMode`, which no author signature names. The brain-definition fixture's canary writes every field a brain definition freezes through its own exported type, and the fixture now compiles with the other public-authoring packages.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`5d99cf6`](https://github.com/rizom-ai/brains/commit/5d99cf6632894eacc4667ab54a5a1da5fb5c9665) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/entities` no longer exports the alpha entity-service types `BaseEntity`, `EntityInput`, `EntityMutationResult`, `FrontmatterConfig`, `ListOptions`, `PaginateOptions`, `PaginateResult`, `PaginationInfo`, `SearchOptions` and `SearchResult`, which no declarative package uses; a definition's records are `EntityOf` the definition. Every stable entity name now has a fixture that uses it.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`b6a6d9e`](https://github.com/rizom-ai/brains/commit/b6a6d9e85930701eb12c7fea557253eb871f2721) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `@rizom/brain/plugins` and `@rizom/brain/templates` subpaths are removed. No declarative package used their advanced alpha names: the agent, app-info, runtime-readiness, conversation, identity, extension-metadata, messaging and channel contracts, and the template and site-builder types. `PluginPackageDefinition` stays on the root entry. The packages written against the alpha class API that still imported `Resource`, `Tool` and `createTemplate` already stopped working when the class bases left the public entries.
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/entity-service@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/entity-service@0.2.0-alpha.652
+  - @brains/plugins@0.2.0-alpha.652
+  - @brains/templates@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/entity-service@0.2.0-alpha.651
+  - @brains/plugins@0.2.0-alpha.651
+  - @brains/templates@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/entity-service@0.2.0-alpha.650
+  - @brains/plugins@0.2.0-alpha.650
+  - @brains/templates@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/entity-service@0.2.0-alpha.649
+  - @brains/plugins@0.2.0-alpha.649
+  - @brains/templates@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/entity-service@0.2.0-alpha.648
+  - @brains/plugins@0.2.0-alpha.648
+  - @brains/templates@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service reads its own account settings for the current caller with `accountSettings.read()`, in its tools and routes and in every operator callback, loaders and `prepare` included: the caller's own settings, or `null` for a caller without an account or one who has none. Each field the definition marks `secret` comes back as an `AccountSettingsSecret`, whose `reveal()` returns the value and whose `toJSON()`, `toString()`, interpolation and inspection give `[secret]`, so a secret placed by accident in view data, a route answer, a tool result or a log line leaves as the marker. Writes stay with `execute`, tools and routes, and an operator callback's `settings` stays redacted.
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An operator surface acts as its caller. Its callbacks read through an `EntityReader` (`get`, `list` with paging and sort, `count`) at the caller's visibility, in place of `OperatorEntityReader`, whose `search` had no consumer. Inside a service, every operator callback runs as the operator or viewer who called it, so a slot's `entities` captured elsewhere reads and writes as them too, never as the package. A workspace action's `execute` writes the service's own entity types through its `entities`, attributed to the operator and held to the action policy.
+- Updated dependencies [[`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710), [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476), [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57), [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242), [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de), [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b)]:
+  - @brains/plugins@0.2.0-alpha.647
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+  - @brains/entity-service@0.2.0-alpha.647
+  - @brains/templates@0.2.0-alpha.647
+
 ## 0.2.0-alpha.646
 
 ### Patch Changes

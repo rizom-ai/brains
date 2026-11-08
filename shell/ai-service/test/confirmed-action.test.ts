@@ -50,6 +50,18 @@ describe("buildConfirmedActionResult", () => {
     });
   });
 
+  test("shows what the action verified after its completion", () => {
+    const result = buildConfirmedActionResult(pending, {
+      success: true,
+      data: { updated: "my-note" },
+      completionDetail: "Stored now:\n> Review cadence: weekly.",
+    });
+
+    expect(result.resultText).toBe(
+      'Completed: Update "My Note"\n\nStored now:\n> Review cadence: weekly.',
+    );
+  });
+
   test("strips internal confirmation fields from the approval card input", () => {
     const result = buildConfirmedActionResult(pending, {
       success: true,
