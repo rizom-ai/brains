@@ -583,3 +583,232 @@ describe("a first-party service's read-only view of the entity service", () => {
     ]);
   });
 });
+
+describe("a first-party service claiming a shell system type", () => {
+  /** A shell with its identity types registered, as the shell registers them first. */
+  function identityShell(): MockShell {
+    const shell = createMockShell();
+    const registry = shell.getEntityRegistry();
+    for (const type of ["anchor-profile", "brain-character"]) {
+      registry.registerEntityType(
+        type,
+        baseEntitySchema,
+        createTestEntityAdapter(type, { isSingleton: true }),
+      );
+    }
+    return shell;
+  }
+
+  function claiming(
+    type: string,
+    captured: ReturnType<ReturnType<typeof serviceRuntime>["claim"]>[],
+    id = "probe",
+  ): Parameters<typeof instantiatePluginPackageDefinition>[0] {
+    return defineServicePlugin(
+      { id, config: z.object({}) },
+      {
+        subscriptions: (context) => {
+          captured.push(serviceRuntime(context).claim(type));
+          return [];
+        },
+      },
+    );
+  }
+
+  it("reads and writes the claimed type's stored records, as the package", async () => {
+    const shell = identityShell();
+    const captured: ReturnType<ReturnType<typeof serviceRuntime>["claim"]>[] =
+      [];
+    await install(shell, claiming("anchor-profile", captured));
+    const [anchor] = captured;
+    if (!anchor) throw new Error("No claim");
+
+    await anchor.createEntity({
+      entity: {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content: "---\nname: Ada\n---\n",
+        metadata: {},
+      },
+    });
+    const stored = await anchor.getEntity({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      visibilityScope: "restricted",
+    });
+    if (!stored) throw new Error("Nothing stored");
+    expect(stored.content).toBe("---\nname: Ada\n---\n");
+    expect(
+      (await anchor.listEntities({ entityType: "anchor-profile" })).map(
+        ({ id }) => id,
+      ),
+    ).toEqual(["anchor-profile"]);
+
+    await anchor.updateEntity({
+      entity: { ...stored, content: "---\nname: Ada Lovelace\n---\n" },
+    });
+    expect(
+      (
+        await shell.getEntityService().getEntity({
+          entityType: "anchor-profile",
+          id: "anchor-profile",
+        })
+      )?.content,
+    ).toBe("---\nname: Ada Lovelace\n---\n");
+  });
+
+  it("writes only while the record still has the hash it was read with", async () => {
+    const shell = identityShell();
+    const captured: ReturnType<ReturnType<typeof serviceRuntime>["claim"]>[] =
+      [];
+    await install(shell, claiming("anchor-profile", captured));
+    const [anchor] = captured;
+    if (!anchor) throw new Error("No claim");
+    await anchor.createEntity({
+      entity: {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content: "---\nname: Ada\n---\n",
+        metadata: {},
+      },
+    });
+    const stored = await anchor.getEntity({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+    });
+    if (!stored) throw new Error("Nothing stored");
+
+    const written = await anchor.updateEntity({
+      entity: { ...stored, content: "---\nname: Changed\n---\n" },
+      options: { expectedContentHash: "not-the-stored-hash" },
+    });
+    expect(written.skipReason).toBe("content-conflict");
+  });
+
+  it("refuses a record of another type", async () => {
+    const shell = identityShell();
+    const captured: ReturnType<ReturnType<typeof serviceRuntime>["claim"]>[] =
+      [];
+    await install(shell, claiming("anchor-profile", captured));
+    const [anchor] = captured;
+    if (!anchor) throw new Error("No claim");
+
+    expect(
+      anchor.createEntity({
+        entity: {
+          id: "brain-character",
+          entityType: "brain-character",
+          content: "",
+          metadata: {},
+        },
+      }),
+    ).rejects.toMatchObject({ code: "permission_denied" });
+    expect(
+      anchor.getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+      }),
+    ).rejects.toMatchObject({ code: "permission_denied" });
+  });
+
+  it("extends the claimed type's frontmatter and validates its writes", async () => {
+    const shell = identityShell();
+    const extended: string[] = [];
+    shell.getEntityRegistry().extendFrontmatterSchema = (
+      type,
+      schema,
+    ): void => {
+      extended.push(`${type}:${Object.keys(schema.shape).join(",")}`);
+    };
+    const captured: ReturnType<ReturnType<typeof serviceRuntime>["claim"]>[] =
+      [];
+    await install(shell, claiming("anchor-profile", captured));
+    const [anchor] = captured;
+    if (!anchor) throw new Error("No claim");
+
+    anchor.extendFrontmatterSchema(z.object({ tagline: z.string() }));
+    anchor.registerPersistValidator(async (entity) => {
+      if (entity.content.includes("forbidden")) throw new Error("Refused");
+    });
+
+    expect(extended).toEqual(["anchor-profile:tagline"]);
+    expect(
+      shell.getEntityRegistry().getPersistValidator("anchor-profile")?.(
+        {
+          id: "anchor-profile",
+          entityType: "anchor-profile",
+          content: "forbidden",
+          contentHash: "x",
+          metadata: {},
+          visibility: "public",
+          created: "",
+          updated: "",
+        },
+        { operation: "update" },
+      ),
+    ).rejects.toThrow("Refused");
+  });
+
+  it("is refused for a second claim of the same type", async () => {
+    const shell = identityShell();
+    await install(shell, claiming("anchor-profile", []));
+
+    const [second] = instantiatePluginPackageDefinition(
+      claiming("anchor-profile", [], "importer"),
+      {},
+      { name: "@brains/importer", version: "0.1.0" },
+      { pluginId: "importer" },
+    );
+    if (!second) throw new Error("No plugin");
+    expect(second.register(shell)).rejects.toThrow(
+      /already claimed by "probe"/,
+    );
+  });
+
+  it("is refused for a type a plugin registers", async () => {
+    const shell = identityShell();
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "note",
+        baseEntitySchema,
+        createTestEntityAdapter("note"),
+      );
+    const [plugin] = instantiatePluginPackageDefinition(
+      claiming("note", []),
+      {},
+      metadata,
+      { pluginId: "probe" },
+    );
+    if (!plugin) throw new Error("No plugin");
+    expect(plugin.register(shell)).rejects.toThrow(/not a shell system type/);
+  });
+
+  it("is refused for a shell system type nobody registered", async () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      claiming("anchor-profile", []),
+      {},
+      metadata,
+      { pluginId: "probe" },
+    );
+    if (!plugin) throw new Error("No plugin");
+    expect(plugin.register(createMockShell())).rejects.toThrow(
+      /not registered/,
+    );
+  });
+
+  it("is released when the package shuts down", async () => {
+    const shell = identityShell();
+    const first = await install(shell, claiming("anchor-profile", []));
+    await first.shutdown?.();
+
+    const [second] = instantiatePluginPackageDefinition(
+      claiming("anchor-profile", [], "importer"),
+      {},
+      { name: "@brains/importer", version: "0.1.0" },
+      { pluginId: "importer" },
+    );
+    if (!second) throw new Error("No plugin");
+    expect(await second.register(shell)).toBeDefined();
+  });
+});

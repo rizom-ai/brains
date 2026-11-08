@@ -13,6 +13,7 @@ import {
 import type { Caller, CallerAccess } from "@brains/content-service";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
+import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -69,7 +70,9 @@ import {
 } from "../entity/owned-entity-writer-runtime";
 import { packageRuntimeState } from "../internal/state-namespace";
 import {
+  claimableSystemTypes,
   withServiceRuntime,
+  type ClaimedSystemType,
   type ServiceEntityReads,
   type ServiceEntityShapes,
 } from "./service-runtime";
@@ -1043,7 +1046,72 @@ class DeclarativeServicePlugin<
       }),
       domain: context.domain,
       entityReads: entityReadsOf(context),
+      claim: (type) => this.claimSystemType(context, type),
     });
+  }
+
+  /**
+   * Claim a shell system type for this package, as the class kept it: one
+   * package per type, released when it shuts down.
+   */
+  private claimSystemType(
+    context: ServicePluginContext,
+    type: string,
+  ): ClaimedSystemType {
+    if (!claimableSystemTypes.has(type)) {
+      throw new Error(
+        `Service "${this.publicId}" cannot claim entity type "${type}": it is not a shell system type`,
+      );
+    }
+    const { entityService } = context;
+    if (!entityService.hasEntityType(type)) {
+      throw new Error(
+        `Service "${this.publicId}" cannot claim shell system type "${type}": it is not registered`,
+      );
+    }
+    const claims = claimsOf(this.requireShell());
+    const owner = claims.get(type);
+    if (owner !== undefined && owner !== this.id) {
+      throw new Error(
+        `Service "${this.publicId}" cannot claim shell system type "${type}": it is already claimed by "${owner}"`,
+      );
+    }
+    claims.set(type, this.id);
+    this.answered.push(() => {
+      if (claims.get(type) === this.id) claims.delete(type);
+    });
+    const claimed = (requested: string): void => {
+      if (requested !== type) {
+        throw new SdkError("permission_denied", {
+          message: `Service "${this.publicId}" claimed "${type}", not "${requested}"`,
+        });
+      }
+    };
+    return Object.freeze({
+      type,
+      getEntity: async (request): Promise<BaseEntity | null> => {
+        claimed(request.entityType);
+        return entityService.getEntity(request);
+      },
+      listEntities: async (request): Promise<BaseEntity[]> => {
+        claimed(request.entityType);
+        return entityService.listEntities(request);
+      },
+      createEntity: async (request): Promise<EntityMutationResult> => {
+        claimed(request.entity.entityType);
+        return entityService.createEntity(request);
+      },
+      updateEntity: async (request): Promise<EntityMutationResult> => {
+        claimed(request.entity.entityType);
+        return entityService.updateEntity(request);
+      },
+      extendFrontmatterSchema: (extension): void => {
+        context.entities.extendFrontmatterSchema(type, extension);
+      },
+      registerPersistValidator: (validator): void => {
+        context.entities.registerPersistValidator(type, validator);
+      },
+    } satisfies ClaimedSystemType);
   }
 
   /** The declaration that grants a write, or a refusal. */
@@ -1467,6 +1535,17 @@ class DeclarativeServicePlugin<
       },
     };
   }
+}
+
+/** Which package claimed each shell system type, per shell. */
+const systemTypeClaims = new WeakMap<IShell, Map<string, string>>();
+
+function claimsOf(shell: IShell): Map<string, string> {
+  const existing = systemTypeClaims.get(shell);
+  if (existing) return existing;
+  const claims = new Map<string, string>();
+  systemTypeClaims.set(shell, claims);
+  return claims;
 }
 
 /** The entity service's reads, each bound on its own so no write rides along. */

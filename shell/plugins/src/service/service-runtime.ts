@@ -7,8 +7,12 @@ import type { ChannelDeliveryProvider } from "../channel-registry";
 import type {
   BaseEntity,
   ContentVisibility,
+  CreateEntityRequest,
+  EntityMutationResult,
   GetEntityRequest,
   ListEntitiesRequest,
+  PersistValidator,
+  UpdateEntityRequest,
 } from "@brains/entity-service";
 import type { SchemaValue } from "../internal/schema-value";
 import {
@@ -148,6 +152,13 @@ export interface ServiceRuntime {
    * writes nothing.
    */
   readonly entityReads: ServiceEntityReads;
+  /**
+   * Claim a shell system type for this package: it alone keeps the type's
+   * records, as the class kept them. A type that is not one of the shell's
+   * own, one nobody registered, and one another package claimed are
+   * refused. Released when the package shuts down.
+   */
+  claim(type: string): ClaimedSystemType;
 }
 
 /** The entity service's reads a first-party class made, and nothing that writes. */
@@ -186,6 +197,7 @@ export interface ServiceRuntimeBinding {
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
   readonly entityReads: ServiceEntityReads;
+  readonly claim: (type: string) => ClaimedSystemType;
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
@@ -200,6 +212,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     identity: binding.identity,
     domain: binding.domain,
     entityReads: binding.entityReads,
+    claim: binding.claim,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
     },
@@ -311,4 +324,36 @@ export function serviceRuntime(context: object): ServiceRuntime {
     );
   }
   return runtime;
+}
+
+/**
+ * The shell's own entity types a first-party package may claim: the brain's
+ * character and its anchor's profile, which the shell registers before any
+ * plugin and no plugin owns.
+ */
+export const claimableSystemTypes: ReadonlySet<string> = new Set([
+  "anchor-profile",
+  "brain-character",
+]);
+
+/**
+ * A shell system type one first-party package claims, as profile claims the
+ * anchor profile and the brain character: its stored records, read and
+ * written as the package as the class read and wrote them, past the action
+ * policy and with `expectedContentHash` honored, and its frontmatter
+ * extension and persist validator. Every call names the claimed type; any
+ * other is refused.
+ */
+export interface ClaimedSystemType {
+  readonly type: string;
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  createEntity(
+    request: CreateEntityRequest<BaseEntity>,
+  ): Promise<EntityMutationResult>;
+  updateEntity(
+    request: UpdateEntityRequest<BaseEntity>,
+  ): Promise<EntityMutationResult>;
+  extendFrontmatterSchema(extension: z.ZodObject<z.ZodRawShape>): void;
+  registerPersistValidator(validator: PersistValidator): void;
 }

@@ -983,6 +983,7 @@ export { withOwnedDataSources } from "./public/service-definition";
 export {
   firstPartyTool,
   serviceRuntime,
+  type ClaimedSystemType,
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceIdentity,
