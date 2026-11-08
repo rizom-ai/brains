@@ -475,7 +475,11 @@ describe("AIService", () => {
       expect(generateTextSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           providerOptions: {
-            openai: { reasoningEffort: "low", forceReasoning: true },
+            openai: {
+              reasoningEffort: "low",
+              forceReasoning: true,
+              reasoningSummary: null,
+            },
           },
         }),
       );
@@ -717,7 +721,11 @@ describe("AIService", () => {
       expect(generateObjectSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           providerOptions: {
-            openai: { reasoningEffort: "low", forceReasoning: true },
+            openai: {
+              reasoningEffort: "low",
+              forceReasoning: true,
+              reasoningSummary: null,
+            },
             anthropic: { structuredOutputMode: "jsonTool" },
           },
         }),

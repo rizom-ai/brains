@@ -20,7 +20,8 @@ const inputSchema = z.array(
 const requestSchema = z.discriminatedUnion("model", [
   z.object({
     model: z.literal("gpt-6-luna"),
-    reasoning: z.object({ effort: z.literal("low") }),
+    // Exactly the effort: no reasoning summary the brain never reads.
+    reasoning: z.strictObject({ effort: z.literal("low") }),
     temperature: z.never().optional(),
     input: inputSchema,
   }),
