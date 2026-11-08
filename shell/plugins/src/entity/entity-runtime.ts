@@ -12,6 +12,7 @@ import {
   type IEntityService,
   type SearchWithDistancesRequest,
 } from "@brains/entity-service";
+import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { AIGenerationSchema } from "./ai-types";
 import type {
@@ -99,6 +100,8 @@ export interface EntityRuntime {
   readonly attachments: EntityRuntimeAttachments;
   /** The runtime's shared upload store. Contract jobs only. */
   readonly uploads: EntityCreateUploadReader;
+  /** The package's logger, as its entity plugin class logged. Contract jobs only. */
+  readonly logger: Logger;
   /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
@@ -211,6 +214,7 @@ export interface ContractJobRuntimeBinding {
   readonly images: EntityRuntimeImages;
   readonly attachments: EntityRuntimeAttachments;
   readonly uploads: EntityCreateUploadReader;
+  readonly logger: Logger;
   linkInto(entityId: string, link: EntityGenerationLink): Promise<void>;
 }
 
@@ -415,7 +419,23 @@ function unavailableJob(where: string): ContractJobRuntimeBinding {
       readRecord: unavailable("uploads", where),
     }),
     linkInto: unavailable("linkInto", where),
+    logger: unavailableLogger(where),
   };
+}
+
+/** A logger that refuses, where the call has none to offer. */
+function unavailableLogger(where: string): Logger {
+  const refuse = unavailable("logger", where);
+  return Object.freeze({
+    silly: refuse,
+    verbose: refuse,
+    debug: refuse,
+    info: refuse,
+    warn: refuse,
+    error: refuse,
+    child: refuse,
+    setUseStderr: refuse,
+  });
 }
 
 /**
@@ -549,6 +569,7 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     images: job.images,
     attachments: job.attachments,
     uploads: job.uploads,
+    logger: job.logger,
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),
   });

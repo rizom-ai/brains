@@ -470,6 +470,7 @@ export function contractJobHandler(
               scope: () => "public",
             },
             job: {
+              logger: context.logger,
               images: Object.freeze({
                 canGenerate: (): boolean => context.ai.canGenerateImages(),
                 generate: async (

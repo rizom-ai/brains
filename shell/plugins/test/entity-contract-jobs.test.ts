@@ -14,8 +14,8 @@ import { migrateEntities } from "@brains/entity-service/migrate";
 import type { JobHandler } from "@brains/job-queue";
 import { PermissionService } from "@brains/templates";
 import {
+  createMockLogger,
   createMockProgressReporter,
-  createSilentLogger,
   createTestDirectory,
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -119,6 +119,7 @@ const render: EntityDefinition<"render", typeof renderMetadata> = defineEntity({
         });
         if (input.link)
           await runtime.linkInto(input.renderId, linkOf(input.link));
+        runtime.logger.info("Rendered", { renderId: input.renderId });
         return { renderId: input.renderId };
       },
     }),
@@ -182,9 +183,10 @@ const note = defineEntity({
 async function install(): Promise<{
   shell: MockShell;
   service: EntityService;
+  logger: ReturnType<typeof createMockLogger>;
 }> {
   const directory = await createTestDirectory();
-  const logger = createSilentLogger();
+  const logger = createMockLogger();
   const registry = EntityRegistry.createFresh(logger);
   const plugins = [
     ...instantiatePluginPackageDefinition(
@@ -272,7 +274,7 @@ async function install(): Promise<{
       metadata: { title: "plain-note" },
     },
   });
-  return { shell, service };
+  return { shell, service, logger };
 }
 
 function handler(shell: MockShell, type: string): JobHandler {
@@ -318,6 +320,14 @@ describe("a contract job", () => {
       title: "first",
       status: "draft",
     });
+  });
+
+  it("logs as its package, as the entity plugin classes' handlers did", async () => {
+    const { shell, logger } = await install();
+
+    await run(shell, { renderId: "first" });
+
+    expect(logger.info).toHaveBeenCalledWith("Rendered", { renderId: "first" });
   });
 
   it("refuses queued data its contract does not accept", async () => {
