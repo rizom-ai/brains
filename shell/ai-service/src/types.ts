@@ -17,7 +17,6 @@ export interface AIModelConfig {
   /** Optional separate key for image generation (defaults to apiKey) */
   imageApiKey?: string;
   temperature?: number;
-  maxTokens?: number;
   webSearch?: boolean;
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */
   reasoningEffort?: ReasoningEffort;

@@ -159,12 +159,14 @@ async function captureSurface(
       page,
       `${surface}-${viewport.width}x${viewport.height}-${climate}`,
     );
-  // Focus last: the keyboard and accessibility checks above move it.
+  await settleVisualCapture(page);
+  await verifyDisabledPrimaries(page);
+  // Focus last, once motion is frozen: the keyboard and accessibility checks
+  // above move focus, and a ring focused before the freeze starts its
+  // transition, so the capture would catch whichever frame of it was drawn.
   if (surface === "studio-board-focus")
     await focusSelector(page, "[data-matrix-cell] li [data-row-link]");
   if (surface === "studio-inbox-open") await focusSelector(page, "main select");
-  await settleVisualCapture(page);
-  await verifyDisabledPrimaries(page);
   const image = await screenshot(page);
   if (surface === "studio-editor") await captureEditorProperties(visualCase);
   if (surface === "studio-system" || surface === "studio-system-anchor-profile")

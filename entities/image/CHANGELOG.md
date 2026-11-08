@@ -1,5 +1,155 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.661
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/image@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/image@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.659
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/image@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/image@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/image@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/plugins@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/image@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/plugins@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/image@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/plugins@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/image@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/plugins@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/image@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/image@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/plugins@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/image@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/plugins@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/image@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/plugins@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/image@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/plugins@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/image@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/plugins@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- Updated dependencies [[`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710), [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476), [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57), [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242), [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de), [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b)]:
+  - @brains/plugins@0.2.0-alpha.647
+  - @brains/image@0.2.0-alpha.647
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+
 ## 0.2.0-alpha.646
 
 ### Patch Changes

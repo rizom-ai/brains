@@ -214,7 +214,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           logger,
           undefined,
           visibilityScope,
-          publishedOnlyFor(visibilityScope),
+          // The stored document, as for every type: a declared type's ordinary
+          // reads carry its body alone.
+          { ...publishedOnlyFor(visibilityScope), source: true },
         );
         if (!result.ok) {
           return { success: false, error: result.error };

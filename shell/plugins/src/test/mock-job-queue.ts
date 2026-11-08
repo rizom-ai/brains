@@ -33,16 +33,33 @@ export function createMockJobQueue(): MockJobQueue {
     { handler: JobHandler; pluginId: string | undefined }
   >();
 
+  /**
+   * What the queue keeps of a job's data. As the real queue does, a declared
+   * type's validator checks it and the queue stores what the validator
+   * answers; a type this fake was never told about keeps its data as given.
+   */
+  function storedData(request: JobQueueEnqueueRequest): string {
+    const validator = handlers.get(request.type)?.handler;
+    if (!validator) {
+      return typeof request.data === "string"
+        ? request.data
+        : JSON.stringify(request.data ?? {});
+    }
+    const parsed = validator.validateAndParse(request.data);
+    if (parsed === null) {
+      throw new Error(`Invalid job data for type: ${request.type}`);
+    }
+    return JSON.stringify(parsed);
+  }
+
   function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
+    const data = storedData(request);
     const id = `job-${++enqueuedJobCount}`;
     const now = Date.now();
     enqueuedJobs.set(id, {
       id,
       type: request.type,
-      data:
-        typeof request.data === "string"
-          ? request.data
-          : JSON.stringify(request.data ?? {}),
+      data,
       status: "pending",
       source: request.options?.source ?? null,
       priority: 0,

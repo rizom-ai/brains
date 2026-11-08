@@ -2,17 +2,15 @@ import type { JsonValue } from "@brains/contracts";
 import type { JSX } from "react";
 import type { SeriesListItem } from "../schemas/series";
 import { readString } from "@brains/utils/record-fields";
+import { Card, CardTitle, CardMetadata } from "@rizom/brain-ui";
 import {
-  Card,
-  CardTitle,
-  CardMetadata,
   CoverImage,
   ListPageHeader,
   EmptyState,
   Head,
   Breadcrumb,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 
 /**
  * A member entity in the series — generic, not blog-specific.

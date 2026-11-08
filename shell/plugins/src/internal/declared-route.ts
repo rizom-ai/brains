@@ -10,10 +10,16 @@ import type { UserPermissionLevel } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { formatZodIssues } from "@brains/utils/zod-issues";
-import type {
-  AnyInterfaceRouteDefinition,
-  InterfaceCaller,
+import { z } from "@brains/utils/zod";
+import {
+  isReturnToRoute,
+  type AnyDeclaredRouteDefinition,
+  type AnyInterfaceRouteDefinition,
+  type AnyReturnToRouteDefinition,
+  type InterfaceCaller,
+  type ReturnToWorkspace,
 } from "../interface/route-definition-contract";
+import { setSameOriginSearchParams } from "../http/same-origin-path";
 import { jsonResponse, type WebRouteDefinition } from "../types/web-routes";
 
 /** How a declaration's routes resolve their callers and run their handlers. */
@@ -37,6 +43,13 @@ export interface DeclaredRouteOptions {
   ) => Promise<T>;
   /** Where a failure's diagnostic goes; the caller is told its public form. */
   readonly logger: Logger;
+  /**
+   * The URL of one of the declaring package's Studio workspaces, for a route
+   * that returns the browser there; undefined while no Studio hosts it.
+   * Without it, a route that returns the browser cannot be declared.
+   */
+  readonly workspaceUrl?:
+    ((workspace: ReturnToWorkspace) => string | undefined) | undefined;
 }
 
 /**
@@ -46,9 +59,12 @@ export interface DeclaredRouteOptions {
  * names, never with the message it was thrown with.
  */
 export function createDeclaredRoute(
-  definition: AnyInterfaceRouteDefinition,
+  definition: AnyDeclaredRouteDefinition,
   options: DeclaredRouteOptions,
 ): WebRouteDefinition {
+  const answer = isReturnToRoute(definition)
+    ? returnAnswer(definition, options)
+    : jsonAnswer(definition);
   return {
     method: definition.method,
     path: definition.path,
@@ -65,16 +81,12 @@ export function createDeclaredRoute(
         const output = await options.runAs(
           caller ? callerFor(caller, options.declarationId) : options.anonymous,
           request,
-          async () => definition.handle({ request, body, caller }),
+          async () =>
+            isReturnToRoute(definition)
+              ? definition.handle({ request, body: undefined, caller })
+              : definition.handle({ request, body, caller }),
         );
-        const answer = definition.response.safeParse(output);
-        if (!answer.success) {
-          throw new SdkError("invalid_response", {
-            message: `Route ${definition.method} ${definition.path} answered outside its response schema`,
-            cause: answer.error,
-          });
-        }
-        return jsonResponse(answer.data);
+        return answer(output);
       } catch (error) {
         // Every failure is answered in its public form; the diagnostic
         // stays in the declaring package's log.
@@ -96,6 +108,81 @@ export function createDeclaredRoute(
         );
       }
     },
+  };
+}
+
+/** A JSON route answers what its response schema accepts. */
+function jsonAnswer(
+  definition: AnyInterfaceRouteDefinition,
+): (output: unknown) => Response {
+  return (output) => {
+    const parsed = definition.response.safeParse(output);
+    if (!parsed.success) {
+      throw new SdkError("invalid_response", {
+        message: `Route ${definition.method} ${definition.path} answered outside its response schema`,
+        cause: parsed.error,
+      });
+    }
+    return jsonResponse(parsed.data);
+  };
+}
+
+const queryScalarSchema = z.union([z.string(), z.number(), z.boolean()]);
+const returnQuerySchema = z.record(z.string(), queryScalarSchema.optional());
+
+/**
+ * A route that returns the browser answers 303 to its workspace, with the
+ * query its handler answered: checked by the workspace's query schema as the
+ * URL will carry it, so Studio opens the state the handler named.
+ */
+function returnAnswer(
+  definition: AnyReturnToRouteDefinition,
+  options: DeclaredRouteOptions,
+): (output: unknown) => Response {
+  const { workspaceUrl } = options;
+  const { returnTo } = definition;
+  const query = returnTo.query;
+  if (!workspaceUrl || !query) {
+    throw new Error(
+      `Route ${definition.method} ${definition.path} returns to Studio workspace "${returnTo.id}", which only a service that declares it can do`,
+    );
+  }
+  const outside = (cause?: unknown): SdkError =>
+    new SdkError("invalid_response", {
+      message: `Route ${definition.method} ${definition.path} answered outside Studio workspace "${returnTo.id}"'s query`,
+      cause,
+    });
+  return (output) => {
+    const answered = query.safeParse(output);
+    const scalars = returnQuerySchema.safeParse(output);
+    if (!answered.success) throw outside(answered.error);
+    if (!scalars.success) throw outside(scalars.error);
+    const entries = Object.entries(scalars.data).flatMap(
+      ([key, value]): [string, string][] =>
+        value === undefined ? [] : [[key, String(value)]],
+    );
+    // Studio reads the query back from the URL's strings.
+    const carried = query.safeParse(Object.fromEntries(entries));
+    if (!carried.success) throw outside(carried.error);
+    const base = workspaceUrl(returnTo);
+    if (base === undefined) {
+      throw new SdkError("no_handler", {
+        message: `Studio workspace "${returnTo.id}" is not hosted, so route ${definition.path} has nowhere to return the browser`,
+        publicMessage: "Studio is not available to return to",
+      });
+    }
+    const location = setSameOriginSearchParams(base, entries, {
+      replace: true,
+    });
+    if (!location) {
+      throw new SdkError("handler_failed", {
+        message: `Studio workspace "${returnTo.id}" has no same-origin URL to return to: ${base}`,
+      });
+    }
+    return new Response(null, {
+      status: 303,
+      headers: { Location: location, "Cache-Control": "no-store" },
+    });
   };
 }
 
@@ -134,7 +221,7 @@ function callerFor(caller: InterfaceCaller, declarationId: string): Caller {
 }
 
 async function resolveCaller(
-  definition: AnyInterfaceRouteDefinition,
+  definition: AnyDeclaredRouteDefinition,
   request: Request,
   options: DeclaredRouteOptions,
 ): Promise<InterfaceCaller | null> {

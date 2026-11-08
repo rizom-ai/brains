@@ -4,8 +4,13 @@ import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
-export const runtimeUploadIdPattern: RegExp =
-  /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** An upload id as the registry mints it: `upload-` and a UUID. */
+export const runtimeUploadIdSource: string =
+  "upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+export const runtimeUploadIdPattern: RegExp = new RegExp(
+  `^${runtimeUploadIdSource}$`,
+  "i",
+);
 export const defaultRuntimeUploadRetentionMs: number = 24 * 60 * 60 * 1000;
 export const defaultRuntimeUploadMaxCount: number = 200;
 

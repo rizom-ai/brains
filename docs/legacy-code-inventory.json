@@ -193,6 +193,38 @@
       "targetRelease": "0.3.0"
     },
     {
+      "id": "first-party-legacy-plugin-ids",
+      "paths": [
+        "shell/ai-evaluation/src/eval-yaml-loader.ts",
+        "shell/plugins/src/package-definition.ts",
+        "shell/plugins/src/public/entity-definition.ts"
+      ],
+      "symbol": "PluginPackageInstantiationOptions.pluginId",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Instantiates a first-party entity package converted from a class under the plugin id its class had, so its template, data source, job and channel names stay those sites, brains and queued jobs use. Only the canonical brain's composer and a plugin eval's eval.yaml (`pluginId`) name it; package source never does.",
+      "currentConsumers": "First-party entity packages converted to declarative definitions and composed by the canonical brain, and their plugin evals (wishlist).",
+      "removalPrerequisite": "Decide whether first-party packages adopt package-scoped names; if they do, migrate site template references, brain configs and queued job types to the scoped names.",
+      "rollbackDependency": "A brain rolled back to a release with class plugins reads the same plugin, template, data source and job names.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "first-party-entity-runtime",
+      "paths": [
+        "packages/brain-sdk/src/internal/entity-runtime.ts",
+        "packages/brain-sdk/src/internal/presentation.ts",
+        "shell/plugins/src/entity/entity-runtime.ts"
+      ],
+      "symbol": "entityRuntime(context)",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Gives a first-party entity definition internal capabilities bound to the create route, eval, data source fetch or contract job it was handed: nearest records by embedding distance at the call's visibility, a free-form structured AI answer, reads of the package's own types at every visibility, read-only untyped reads of every type at the call's scope (a data source fetch's build scope, a create route's public scope, a contract job's run), a create route's hand-off to the ordinary create (with the target it resolved), its pending placeholder with a queued contract job, and its complete record under the next free id; contract jobs (`contractJob`), which other packages queue by their contract's type with the input as written and which run as the package, with the image model, attachment resolution, the shared upload store, and links into a target under the generation-link rules and its visibility, past its action policy, as the entity plugin classes' job handlers wrote them; the entity-text helpers; and the template builder and record schemas a definition's rendered templates use. The public context types never name them; a context the runtime did not build is refused.",
+      "currentConsumers": "First-party entity packages converted to declarative definitions whose create routes or evals need search, structured checks or package-wide placement (wishlist, doc), whose data sources read across types (series), or whose jobs other packages queue by contract and whose routes queue them (image, document).",
+      "removalPrerequisite": "Promote each capability to the public entity contract once a third-party package needs it, or retire it when no first-party package does.",
+      "rollbackDependency": "None: the capabilities are bound per call and store nothing.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "site-analytics-script-field",
       "paths": ["shared/site-engine/src/html-generator.ts"],
       "symbol": "analytics script fallback",

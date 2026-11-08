@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type {
-  TestAgentEntity as AgentEntity,
-  TestSkillEntity as SkillEntity,
-} from "./helpers";
-import { AgentAdapter, SkillAdapter } from "./helpers";
+import {
+  AgentAdapter,
+  SkillAdapter,
+  type AgentEntity,
+  type SkillEntity,
+} from "@brains/agent-discovery";
 import { buildSwotContextFromEntities } from "../src";
 
 const agentAdapter = new AgentAdapter();

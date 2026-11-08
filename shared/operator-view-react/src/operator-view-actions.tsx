@@ -49,6 +49,35 @@ function isPreparedConfirmation(
   );
 }
 
+/**
+ * A launch action's destination, held to https before the browser moves: the
+ * runtime checked it against the action's declared origins, and the host
+ * refuses anything that could run in this page.
+ */
+function launchDestination(value: unknown): string | null {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("kind" in value) ||
+    value.kind !== "launch" ||
+    !("url" in value) ||
+    typeof value.url !== "string"
+  ) {
+    return null;
+  }
+  try {
+    const url = new URL(value.url);
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    // An address that does not parse is not one to open.
+    return null;
+  }
+}
+
+function openExternally(url: string): void {
+  window.location.assign(url);
+}
+
 interface AwaitingConfirmation {
   readonly summary: string;
   readonly invocation: RuntimeOperatorActionControl;
@@ -109,6 +138,16 @@ export function OperatorActionButton(props: {
     setResult(null);
     try {
       const output = await props.onAction(invocation);
+      if (invocation.launch) {
+        const destination = launchDestination(output);
+        if (!destination) {
+          throw new Error(
+            "This action did not answer with a safe address to open",
+          );
+        }
+        (host.onExternalLaunch ?? openExternally)(destination);
+        return;
+      }
       const presented = presentedActionResult(invocation, output);
       if (mounted.current) {
         setResult(presented);

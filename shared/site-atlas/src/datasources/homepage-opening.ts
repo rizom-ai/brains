@@ -2,7 +2,7 @@ import type {
   BaseDataSourceContext,
   ServicePluginContext,
 } from "@brains/plugins";
-import { parseAskContent, type AskContent } from "@brains/contracts";
+import { askContentFromRecord, type AskContent } from "@brains/contracts";
 
 type OpeningRuntime = Pick<
   ServicePluginContext,
@@ -59,7 +59,7 @@ export async function loadAskContent(
       visibilityScope: "public",
     });
     if (entity?.visibility !== "public") return null;
-    const content = parseAskContent(entity.content);
+    const content = askContentFromRecord(entity);
     return content.title || content.introduction || content.topics?.length
       ? content
       : null;

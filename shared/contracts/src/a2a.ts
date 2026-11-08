@@ -30,8 +30,9 @@ export const a2aAskRequestSchema: A2AAskRequestSchema = z.object({
 
 /**
  * Ask one saved, approved peer a question within the network-ask budget. The
- * A2A interface owns it; a peer that does not complete its answer is a
- * failure with the reason.
+ * request carries no level, so only peers saved public are asked. The A2A
+ * interface owns it; a peer that does not complete its answer is a failure
+ * with the reason.
  */
 export const a2aAskContract: BusContract<
   A2AAskRequestSchema,
@@ -49,14 +50,24 @@ type A2AAgentsRequestSchema = z.ZodObject<{
   entityId: z.ZodOptional<z.ZodString>;
   actor: z.ZodOptional<typeof actorRefSchema>;
   interfaceType: z.ZodOptional<z.ZodString>;
+  userPermissionLevel: z.ZodEnum<{
+    admin: "admin";
+    trusted: "trusted";
+    public: "public";
+  }>;
 }>;
 
-/** The entity and person a Studio call is about, carried for the record. */
+/**
+ * The entity and person a Studio call is about, carried for the record, and
+ * the author's level: the saved agents listed and called are the ones it can
+ * see.
+ */
 export const a2aAgentsRequestSchema: A2AAgentsRequestSchema = z.object({
   entityType: z.string().optional(),
   entityId: z.string().optional(),
   actor: actorRefSchema.optional(),
   interfaceType: z.string().optional(),
+  userPermissionLevel: z.enum(["admin", "trusted", "public"]),
 });
 
 type A2ACallRequestSchema = z.ZodObject<

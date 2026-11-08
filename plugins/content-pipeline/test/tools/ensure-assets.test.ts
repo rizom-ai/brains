@@ -35,7 +35,6 @@ describe("publish asset reconciliation", () => {
       targetEntityField: { location: "frontmatter", field: "ogImageId" },
       requiredWhen: { status: "published" },
       autoGenerate: true,
-      jobType: "image:image-render-source",
     });
     const posts = [
       createPost("post-1"),

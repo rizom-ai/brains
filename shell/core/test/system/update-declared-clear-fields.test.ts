@@ -134,7 +134,7 @@ async function fixture(): Promise<{
       const input = {
         entityType,
         id: "tide",
-        operation: { kind: "fields", fields },
+        operation: { fields },
       };
       const proposed = await exec(input);
       // A refused proposal is the answer: nothing was confirmed or written.

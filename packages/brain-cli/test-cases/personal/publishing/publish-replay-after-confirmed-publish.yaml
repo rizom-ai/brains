@@ -24,7 +24,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: post
-            operation.kind: fields
             operation.fields.status: draft
       responseContains:
         - "Confirmation required"

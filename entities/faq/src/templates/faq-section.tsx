@@ -1,6 +1,6 @@
 import { createTemplate, type Template } from "@brains/plugins";
 import type { JSX } from "react";
-import { MarkdownContent } from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
 import {
   FAQ_DATASOURCE_ID,
   faqSectionSchema,

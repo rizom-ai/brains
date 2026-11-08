@@ -254,7 +254,6 @@ describe("ContentPipelinePlugin", () => {
         targetEntityField: { location: "frontmatter", field: "ogImageId" },
         requiredWhen: { status: "published" },
         autoGenerate: true,
-        jobType: "image:image-render-source",
       });
 
       expect(
@@ -293,7 +292,6 @@ describe("ContentPipelinePlugin", () => {
         targetEntityField: { location: "frontmatter", field: "ogImageId" },
         requiredWhen: { status: "published" },
         autoGenerate: true,
-        jobType: "image:image-render-source",
       });
       return { localHarness, localPlugin, enqueue };
     }

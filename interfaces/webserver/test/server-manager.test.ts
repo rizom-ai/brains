@@ -594,16 +594,16 @@ describe("ServerManager (in-process)", () => {
         resources: testResourceSignals(),
       }),
       getOperationalInfo: async () => ({
-        model: "test",
         version: "0.2.0-test",
         uptime: 10,
-        entities: 4,
-        entityCounts: [{ entityType: "note", count: 4 }],
-        embeddings: 4,
-        ai: { model: "test", embeddingModel: "test" },
-        daemons: [],
-        endpoints: [],
-        interactions: [],
+        daemons: [
+          {
+            name: "webserver:webserver",
+            pluginId: "webserver",
+            status: "running",
+            health: { status: "healthy" },
+          },
+        ],
       }),
     });
     await m.start();
@@ -618,8 +618,8 @@ describe("ServerManager (in-process)", () => {
       operationalStatus: "operational",
       app: {
         version: "0.2.0-test",
-        entities: 4,
-        entityCounts: [{ entityType: "note", count: 4 }],
+        uptime: 10,
+        daemons: [{ name: "webserver:webserver", status: "running" }],
       },
     });
   });

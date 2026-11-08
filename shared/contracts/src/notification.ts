@@ -60,8 +60,6 @@ export const notificationFailureSchema: z.ZodEnum<{
   "delivery-failed": "delivery-failed";
 }> = z.enum(["recipient-missing", "transport-missing", "delivery-failed"]);
 
-export type NotificationFailure = z.output<typeof notificationFailureSchema>;
-
 /** A transport's own short failure code: no message content, so it can be kept and shown. */
 export const notificationTransportCodeSchema: z.ZodString = z
   .string()
@@ -100,10 +98,7 @@ export const sendNotificationResultSchema: SendNotificationResultSchema =
 export type NotificationRecipient = z.output<
   typeof notificationRecipientSchema
 >;
-export type EmailNotificationRecipient = NotificationRecipient;
 export type SendNotificationInput = z.input<typeof sendNotificationSchema>;
-export type ParsedSendNotification = z.output<typeof sendNotificationSchema>;
-export type NotificationSensitivity = ParsedSendNotification["sensitivity"];
 export type SendNotificationResult = z.output<
   typeof sendNotificationResultSchema
 >;

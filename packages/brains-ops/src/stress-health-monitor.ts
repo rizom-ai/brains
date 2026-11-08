@@ -7,27 +7,30 @@ import {
   type StressRuntimeSample,
 } from "./directory-sync-stress";
 
+/** Entity counts by type, as the runtime's database reports them. */
+export const stressEntityCountsSchema: z.ZodArray<
+  z.ZodObject<{ entityType: z.ZodString; count: z.ZodNumber }>
+> = z.array(
+  z.object({
+    entityType: z.string(),
+    count: z.number().int().nonnegative(),
+  }),
+);
+
+export type StressEntityCounts = z.output<typeof stressEntityCountsSchema>;
+
 export interface HealthPayload {
   version: string;
   entities: number;
-  entityCounts: { entityType: string; count: number }[];
+  entityCounts: StressEntityCounts;
 }
 
+// /health/operate answers without a session, so it carries health fields
+// only: the version comes from it, the counts from readEntityCounts.
 const operationalHealthPayloadSchema = z.object({
   status: z.literal("ready"),
   operationalStatus: z.literal("operational"),
-  app: z.object({
-    version: z.string(),
-    entities: z.number().int().nonnegative(),
-    entityCounts: z
-      .array(
-        z.object({
-          entityType: z.string(),
-          count: z.number().int().nonnegative(),
-        }),
-      )
-      .default([]),
-  }),
+  app: z.object({ version: z.string() }),
 });
 
 export function noteCount(payload: HealthPayload): number {
@@ -44,11 +47,17 @@ export interface StressHealthMonitorOptions {
   sleep: (milliseconds: number) => Promise<void>;
   /** Take one runtime sample (e.g. docker stats over SSH), if available. */
   sampleRuntime: () => Promise<StressRuntimeSample | undefined>;
+  /**
+   * Entity counts by type from an authenticated source (the runtime's
+   * database over SSH), or undefined when this poll has no reading.
+   */
+  readEntityCounts: () => Promise<StressEntityCounts | undefined>;
 }
 
 /**
  * Samples deployment health and runtime resource usage during a stress run,
- * and answers entity-baseline waits against the operational health endpoint.
+ * and answers entity-baseline waits from the operational health endpoint and
+ * the runtime's own entity counts.
  */
 export class StressHealthMonitor {
   readonly #options: StressHealthMonitorOptions;
@@ -179,6 +188,21 @@ export class StressHealthMonitor {
   }
 
   async fetchHealthPayload(): Promise<HealthPayload | undefined> {
+    const version = await this.#fetchHealthVersion();
+    if (version === undefined) return undefined;
+    // Outside the probe's catch: a count we cannot read raises instead of
+    // reading as one more unhealthy sample.
+    const entityCounts = await this.#options.readEntityCounts();
+    if (!entityCounts) return undefined;
+    return {
+      version,
+      entities: entityCounts.reduce((total, entry) => total + entry.count, 0),
+      entityCounts,
+    };
+  }
+
+  /** The runtime version from /health/operate, recording the probe. */
+  async #fetchHealthVersion(): Promise<string | undefined> {
     const started = this.#options.now();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20_000);
@@ -199,7 +223,7 @@ export class StressHealthMonitor {
         ok: response.ok,
       });
       if (!response.ok) return undefined;
-      return operationalHealthPayloadSchema.parse(JSON.parse(body)).app;
+      return operationalHealthPayloadSchema.parse(JSON.parse(body)).app.version;
     } catch (error) {
       // The failed probe is recorded above before this returns, so the run
       // still reports it. Undefined means no reading, which the acceptance

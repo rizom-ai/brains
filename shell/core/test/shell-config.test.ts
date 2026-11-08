@@ -78,7 +78,6 @@ describe("shell config", () => {
       model: "gpt-4o-mini",
       embeddingModel: "openai:text-embedding-3-small",
       temperature: 0.7,
-      maxTokens: 1000,
       webSearch: true,
     });
     expect(config.embedding).toEqual({ enabled: true });

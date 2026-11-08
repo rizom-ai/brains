@@ -9,18 +9,20 @@ import type { SchedulerMessagePublisher } from "./types/scheduler";
 import type { QueueEntry } from "./queue-manager";
 import type { RetryTracker } from "./retry-tracker";
 import type { PublishEntityExecutor } from "./publish-executor";
-import type {
-  PublishSuccessEvent,
-  PublishFailedEvent,
-} from "./types/scheduler";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
+import type { PublishSuccessEvent } from "./types/scheduler";
+import {
+  publishCompletedChannel,
+  publishFailedChannel,
+  type PublishCompletedPayload,
+  type PublishFailedPayload,
+} from "@brains/contracts";
 
 export interface PublishDeps {
   retryTracker: RetryTracker;
   messageBus?: SchedulerMessagePublisher | undefined;
   publishExecutor?: Pick<PublishEntityExecutor, "publish"> | undefined;
   onPublish?: ((event: PublishSuccessEvent) => void) | undefined;
-  onFailed?: ((event: PublishFailedEvent) => void) | undefined;
+  onFailed?: ((event: PublishFailedPayload) => void) | undefined;
 }
 
 /**
@@ -63,7 +65,7 @@ async function executeWithPublishExecutor(
     });
 
     if ("error" in publishResult) {
-      const event = {
+      const event: PublishFailedPayload = {
         entityType: entry.entityType,
         entityId: entry.entityId,
         error: publishResult.error,
@@ -72,7 +74,7 @@ async function executeWithPublishExecutor(
       };
       if (deps.messageBus) {
         await deps.messageBus.send({
-          type: PUBLISH_CHANNELS.failed,
+          type: publishFailedChannel.name,
           payload: event,
           sender: "publish-service",
           broadcast: true,
@@ -116,9 +118,10 @@ export function sendPublishCompleted(
   deps.retryTracker.clearRetries(entityId);
 
   if (deps.messageBus) {
+    const payload: PublishCompletedPayload = { entityType, entityId, result };
     void deps.messageBus.send({
-      type: PUBLISH_CHANNELS.completed,
-      payload: { entityType, entityId, result },
+      type: publishCompletedChannel.name,
+      payload,
       sender: "publish-service",
       broadcast: true,
     });
@@ -139,7 +142,7 @@ export function sendPublishFailed(
   deps.retryTracker.recordFailure(entityId, error);
   const retryInfo = deps.retryTracker.getRetryInfo(entityId);
 
-  const event: PublishFailedEvent = {
+  const event: PublishFailedPayload = {
     entityType,
     entityId,
     error,
@@ -149,7 +152,7 @@ export function sendPublishFailed(
 
   if (deps.messageBus) {
     void deps.messageBus.send({
-      type: PUBLISH_CHANNELS.failed,
+      type: publishFailedChannel.name,
       payload: event,
       sender: "publish-service",
       broadcast: true,

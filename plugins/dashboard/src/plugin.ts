@@ -97,7 +97,6 @@ export class DashboardPlugin extends ServicePlugin<
 
     this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
     this.datasource = new DashboardDataSource(this.widgetRegistry, this.logger);
-    context.entities.registerDataSource(this.datasource);
     context.endpoints.register({
       label: "Dashboard",
       url: this.config.routePath,

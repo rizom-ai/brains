@@ -63,12 +63,15 @@ export type {
   EntityInboxEdits,
   EntityInboxListContext,
   EntityJobContext,
+  EntityJobHandleContext,
   EntityJobDeclaration,
   EntityTypeClassification,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityOf,
+  EntityPackageConfiguration,
   EntityPackageDefinition,
+  EntitySlotBinding,
   EntityReader,
   EntityRecordReader,
   EntityPublishAssetDeclaration,
@@ -96,16 +99,3 @@ export type {
   PublishProvider,
   PublishResult,
 } from "@brains/contracts";
-
-export type {
-  BaseEntity,
-  EntityInput,
-  EntityMutationResult,
-  SearchResult,
-  ListOptions,
-  SearchOptions,
-  PaginationInfo,
-  PaginateOptions,
-  PaginateResult,
-  FrontmatterConfig,
-} from "@brains/entity-service";

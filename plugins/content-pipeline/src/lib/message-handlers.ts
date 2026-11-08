@@ -1,9 +1,9 @@
 import {
-  ENTITY_CHANNELS,
-  PUBLISH_CHANNELS,
   generateReportFailureContract,
   generateReportSuccessContract,
   publishAssetRegisterContract,
+  publishCompletedChannel,
+  publishFailedChannel,
   publishRegisterContract,
   type GenerateReportFailurePayload,
   type GenerateReportSuccessPayload,
@@ -11,17 +11,19 @@ import {
 } from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import {
+  entityCreatedChannel,
+  entityUpdatedChannel,
+  type BaseEntity,
+  type EntityChangePayload,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { PublicationQueueService } from "../publication-queue-service";
 import {
   publishableMetadataSchema,
   type PublishableMetadata,
 } from "../schemas/publishable";
-import type {
-  PublishCompletedPayload,
-  PublishFailedPayload,
-} from "../types/messages";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishAssetRegistry } from "../publish-assets";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
@@ -55,28 +57,22 @@ function subscribeToPublishMessages(
     handleRegister(deps, registration),
   );
 
-  context.messaging.subscribe<PublishCompletedPayload, { success: boolean }>(
-    PUBLISH_CHANNELS.completed,
-    async (msg) => {
-      await deps.publicationQueueService.complete(
-        msg.payload.entityType,
-        msg.payload.entityId,
-      );
-      return { success: true };
-    },
-  );
+  context.messaging.subscribe(publishCompletedChannel, async (payload) => {
+    await deps.publicationQueueService.complete(
+      payload.entityType,
+      payload.entityId,
+    );
+    return { success: true };
+  });
 
-  context.messaging.subscribe<PublishFailedPayload, { success: boolean }>(
-    PUBLISH_CHANNELS.failed,
-    async (msg) => {
-      await deps.publicationQueueService.fail(
-        msg.payload.entityType,
-        msg.payload.entityId,
-        msg.payload.error,
-      );
-      return { success: true };
-    },
-  );
+  context.messaging.subscribe(publishFailedChannel, async (payload) => {
+    await deps.publicationQueueService.fail(
+      payload.entityType,
+      payload.entityId,
+      payload.error,
+    );
+    return { success: true };
+  });
 
   deps.logger.debug("Subscribed to publish messages");
 }
@@ -111,30 +107,18 @@ function subscribeToPublishAssetMessages(
   deps.logger.debug("Subscribed to publish asset messages");
 }
 
-interface EntityChangePayload {
-  entityType: string;
-  entityId: string;
-  entity?: BaseEntity;
-}
-
 function subscribeToEntityChangeMessages(
   context: ServicePluginContext,
   deps: MessageHandlerDeps,
 ): void {
-  const handler = async (msg: {
-    payload: EntityChangePayload;
-  }): Promise<{ success: boolean }> =>
-    handleEntityChange(context, deps, msg.payload);
+  const handler = async (
+    payload: EntityChangePayload,
+  ): Promise<{ success: boolean }> =>
+    handleEntityChange(context, deps, payload);
 
   // Observed: an entity the worker publishes needs its assets too.
-  context.messaging.observe<EntityChangePayload, { success: boolean }>(
-    ENTITY_CHANNELS.created,
-    handler,
-  );
-  context.messaging.observe<EntityChangePayload, { success: boolean }>(
-    ENTITY_CHANNELS.updated,
-    handler,
-  );
+  context.messaging.observe(entityCreatedChannel, handler);
+  context.messaging.observe(entityUpdatedChannel, handler);
 
   deps.logger.debug("Subscribed to entity change messages for publish assets");
 }

@@ -1,3 +1,4 @@
+import { toSdkError } from "@brains/contracts";
 import { describe, expect, it } from "bun:test";
 import {
   baseEntitySchema,
@@ -679,5 +680,29 @@ describe("content-pipeline Studio workspace registration", () => {
         })
       )?.metadata["status"],
     ).toBe("published");
+
+    // Why a publish cannot be prepared reaches the operator by code.
+    const refusal = async (input: object): Promise<unknown> =>
+      Promise.resolve(
+        registration?.actionHandler?.(
+          { actionId: "publish", input, mode: "prepare" },
+          actor,
+        ),
+      ).then(
+        () => {
+          throw new Error("Expected the publish to be refused");
+        },
+        (error: unknown) => toSdkError(error).toJSON(),
+      );
+    expect(await refusal(publishInput)).toEqual({
+      code: "conflict",
+      message: "Entity is already published",
+    });
+    expect(
+      await refusal({ entityType: "social-post", entityId: "missing-post" }),
+    ).toEqual({
+      code: "not_found",
+      message: "Entity not found: social-post:missing-post",
+    });
   });
 });

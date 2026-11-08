@@ -1,4 +1,4 @@
-import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
+import { formatVoiceGuidance, styleGuideFromRecord } from "@brains/contracts";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import {
   siteBuilderRoutesContract,
@@ -19,7 +19,7 @@ export class SiteContentOperations {
       id: "style-guide",
     });
     return styleGuide?.visibility === "public"
-      ? formatVoiceGuidance(parseStyleGuideContent(styleGuide.content))
+      ? formatVoiceGuidance(styleGuideFromRecord(styleGuide))
       : "";
   }
 

@@ -118,7 +118,6 @@ export interface BrainAgentFactoryOptions {
   modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
-  maxTokens?: number | undefined;
   reasoningEffort?: ReasoningEffort | undefined;
   /** Message bus for emitting tool invocation events */
   messageBus: IMessageBus;
@@ -142,7 +141,6 @@ export function createBrainAgentFactory(
     modelId,
     webSearch,
     temperature,
-    maxTokens,
     reasoningEffort,
     messageBus,
   } = options;
@@ -272,7 +270,6 @@ export function createBrainAgentFactory(
             // Provider options
             ...(temperature !== undefined &&
               capabilities.supportsTemperature && { temperature }),
-            ...(maxTokens !== undefined && { maxTokens }),
             // Guests answer from the brain, never from provider web search.
             ...((reasoning !== undefined || (webSearch && !guest)) && {
               providerOptions: {

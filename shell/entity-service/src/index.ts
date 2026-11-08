@@ -168,6 +168,7 @@ export type {
   CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  GenerationEnqueuer,
   UploadSaveInput,
   UploadSaveHandler,
   UploadSaveHandlerRegistration,
@@ -241,6 +242,16 @@ export {
   permissionToVisibilityScope,
 } from "./types";
 
+export {
+  embeddingReadyChannel,
+  embeddingReadyPayloadSchema,
+  entityChangePayloadSchema,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type EmbeddingReadyPayload,
+  type EntityChangePayload,
+} from "./entity-event-channels";
 export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
 export { scopeEntityReads } from "./scoped-entity-reads";

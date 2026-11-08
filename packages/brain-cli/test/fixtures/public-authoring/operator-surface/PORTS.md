@@ -83,7 +83,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
           id: run.id,
           title: run.summary,
           description: `${run.imported} imported · ${run.exported} exported`,
-          meta: run.completedAt,
+          metadata: [run.completedAt],
           tone: run.outcome === "succeeded" ? "good" : "warn",
         })),
       },
