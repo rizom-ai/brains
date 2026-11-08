@@ -67,6 +67,9 @@ export async function declaredEntityStore(
   companions: readonly PluginPackageDefinition[] = [],
   // The package's own config, as a brain gives it.
   packageConfig: unknown = {},
+  // Types registered beside the package's, as the shell and class plugins
+  // register them, for readers that read across types.
+  registerTypes: (registry: EntityRegistry) => void = (): void => {},
 ): Promise<DeclaredEntityStore> {
   const temporary = await createTestDirectory();
   const logger = createSilentLogger();
@@ -88,6 +91,7 @@ export async function declaredEntityStore(
     ),
   ];
   const registry = EntityRegistry.createFresh(logger);
+  registerTypes(registry);
   // A service package installs its owned types' entity plugins beside it.
   const entityPlugins = plugins.flatMap((plugin) =>
     plugin instanceof EntityPlugin ? [plugin] : [],

@@ -1,4 +1,7 @@
-import { parseMarkdown } from "@brains/utils/markdown";
+import {
+  frontmatterRecordFields,
+  type FrontmatterRecord,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { siteMetadataCTASchema, siteMetadataSchema } from "./metadata";
 
@@ -53,10 +56,11 @@ export type ResolvedSiteInfoBody = SiteInfoBody & {
 export type SiteInfoCTA = NonNullable<SiteInfoBody["cta"]>;
 
 /**
- * Parse a site-info entity's frontmatter body from its markdown content.
+ * The site info a stored site-info record holds: its frontmatter, carried in
+ * the content or, for the declared type, in the record's metadata.
  */
-export function parseSiteInfoContent(content: string): SiteInfoBody {
-  return siteInfoBodySchema.parse(parseMarkdown(content).frontmatter);
+export function siteInfoFromRecord(record: FrontmatterRecord): SiteInfoBody {
+  return siteInfoBodySchema.parse(frontmatterRecordFields(record).fields);
 }
 
 /**
@@ -68,7 +72,7 @@ export interface SiteInfoEntityReader {
   listEntities(request: {
     entityType: string;
     options?: { limit?: number };
-  }): Promise<{ content: string }[]>;
+  }): Promise<FrontmatterRecord[]>;
 }
 
 /**
@@ -86,5 +90,5 @@ export async function fetchSiteInfo(
   if (!entity) {
     throw new Error("Site info not found — create a site-info entity");
   }
-  return parseSiteInfoContent(entity.content);
+  return siteInfoFromRecord(entity);
 }

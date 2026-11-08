@@ -168,14 +168,7 @@ export class DecksPlugin extends EntityPlugin<
       ...this.deps,
       getThemeMode:
         this.deps.getThemeMode ??
-        (async (): Promise<"light" | "dark"> => {
-          try {
-            const info = await fetchSiteInfo(context.entityService);
-            return info.themeMode ?? "dark";
-          } catch {
-            return "dark";
-          }
-        }),
+        ((): Promise<"light" | "dark"> => siteThemeMode(context.entityService)),
     };
     this.unregisterCarouselAttachmentProvider = context.attachments.register(
       "deck",
@@ -243,3 +236,19 @@ export function decksPlugin(): Plugin {
 }
 
 export default decksPlugin;
+
+/**
+ * The site's theme mode, which a deck carousel is drawn in: dark until the
+ * site says otherwise, and when its site-info cannot be read.
+ */
+export async function siteThemeMode(
+  entityService: Parameters<typeof fetchSiteInfo>[0],
+): Promise<"light" | "dark"> {
+  try {
+    const info = await fetchSiteInfo(entityService);
+    return info.themeMode ?? "dark";
+  } catch {
+    // No site-info yet, or one that does not parse: the carousel's default.
+    return "dark";
+  }
+}

@@ -1,4 +1,4 @@
-export { DecksPlugin, decksPlugin, default } from "./plugin";
+export { DecksPlugin, decksPlugin, default, siteThemeMode } from "./plugin";
 export {
   deckSchema,
   deckFrontmatterSchema,

@@ -1,8 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { parseInstanceOverrides, resolve } from "@brains/app";
 import { createServicePluginContext } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
-import siteInfoPackage from "@brains/site-info";
+import {
+  baseEntitySchema,
+  createMockShell,
+  createTestEntityAdapter,
+} from "@brains/plugins/test";
+import siteInfoPackage, { fetchSiteInfo } from "@brains/site-info";
+import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import { deckAdapter, deckSchema, siteThemeMode } from "@brains/decks";
+import { HomepageListDataSource } from "@brains/site-professional";
+import { HomepageDataSource } from "@brains/site-personal";
 import { siteMetadataContract } from "@brains/site-composition";
 import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
@@ -140,5 +148,106 @@ describe("site-info's config in a brain", () => {
       status: "answered",
       data: { represents: "anchor", title: "From brain.yaml" },
     });
+  });
+});
+
+describe("site-info's readers on the entity store", () => {
+  const siteInfoMarkdown = [
+    "---",
+    "title: Alex Chen",
+    "description: Systems notes",
+    "themeMode: light",
+    "cta:",
+    "  heading: Get in touch",
+    "  buttonText: Say hello",
+    "  buttonLink: mailto:alex@example.com",
+    "---",
+    "",
+  ].join("\n");
+
+  /**
+   * The declared site-info beside the types the homepages read, registered
+   * as the shell (the anchor profile) and the blog and decks plugins
+   * register them, with a site-info imported as directory sync imports one.
+   */
+  async function homepageStore(): Promise<DeclaredEntityStore> {
+    const opened = await declaredEntityStore(
+      siteInfoPackage,
+      "@brains/site-info",
+      "site-metadata",
+      { classification: "system", embeddable: false },
+      [],
+      {},
+      (registry) => {
+        registry.registerEntityType(
+          "anchor-profile",
+          baseEntitySchema,
+          createTestEntityAdapter("anchor-profile", { isSingleton: true }),
+        );
+        registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+        registry.registerEntityType("deck", deckSchema, deckAdapter);
+      },
+    );
+    stores.push(opened);
+    await opened.service.createEntityFromMarkdown({
+      input: {
+        entityType: "site-info",
+        id: "site-info",
+        markdown: siteInfoMarkdown,
+      },
+    });
+    await opened.service.createEntityFromMarkdown({
+      input: {
+        entityType: "anchor-profile",
+        id: "anchor-profile",
+        markdown: "---\nname: Alex Chen\n---\n",
+      },
+    });
+    return opened;
+  }
+
+  const cta = {
+    heading: "Get in touch",
+    buttonText: "Say hello",
+    buttonLink: "mailto:alex@example.com",
+  };
+
+  test("fetchSiteInfo reads a declared site-info's fields", async () => {
+    const { service } = await homepageStore();
+
+    expect(await fetchSiteInfo(service)).toMatchObject({
+      title: "Alex Chen",
+      description: "Systems notes",
+      themeMode: "light",
+      cta,
+    });
+  });
+
+  test("the professional homepage reads its call to action", async () => {
+    const { service } = await homepageStore();
+
+    const data = await new HomepageListDataSource("/posts", "/decks").fetch(
+      {},
+      z.record(z.string(), z.unknown()),
+      { entityService: service },
+    );
+    expect(data["cta"]).toEqual(cta);
+  });
+
+  test("the personal homepage reads its call to action", async () => {
+    const { service } = await homepageStore();
+
+    const data = await new HomepageDataSource("/posts").fetch(
+      {},
+      z.record(z.string(), z.unknown()),
+      { entityService: service },
+    );
+    expect(data["cta"]).toEqual(cta);
+  });
+
+  test("decks' carousel reads the site's theme, not its fallback", async () => {
+    const { service } = await homepageStore();
+
+    expect(await siteThemeMode(service)).toBe("light");
   });
 });
