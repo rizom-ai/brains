@@ -1,6 +1,7 @@
 import {
   defineBrain,
   type BrainDefinition,
+  type CapabilityConfig,
   type CapabilityEntry,
   type PluginConfig,
 } from "@brains/app";
@@ -16,7 +17,7 @@ import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
-import { atprotoRegistryPlugin } from "@brains/atproto-registry";
+import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import { blogPlugin } from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
@@ -39,28 +40,29 @@ import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import { notePlugin } from "@brains/note";
-import { notificationsPlugin } from "@brains/notifications";
+import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
 import {
   oauthBrokerPlugin,
   type OAuthBrokerPlugin,
 } from "@brains/oauth-broker";
-import { obsidianVaultPlugin } from "@brains/obsidian-vault";
+import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
-import { profilePlugin } from "@brains/profile";
+import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
-import { onboardingPlugin } from "@brains/onboarding";
+import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
-import { siteInfoPlugin } from "@brains/site-info";
+import siteInfoPackage from "@brains/site-info";
 import { socialMediaPlugin } from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
+import knowledgeMapPackage from "@brains/knowledge-map";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
@@ -125,13 +127,15 @@ function packageCapability(
   packageName: string,
   definition: PluginPackageDefinition,
   options: PluginPackageInstantiationOptions = {},
+  /** The config the catalog gives the capability, as its class entry did. */
+  defaults: CapabilityConfig = undefined,
 ): CapabilityEntry {
   const metadata = { name: packageName, version: packageJson.version };
   return [
     id,
     (config): Plugin[] =>
       instantiatePluginPackageDefinition(definition, config, metadata, options),
-    undefined,
+    defaults,
   ];
 }
 
@@ -146,7 +150,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("prompt", "@brains/prompt", promptPackage, {
       pluginId: "prompt",
     }),
-    ["profile", profilePlugin, undefined],
+    packageCapability("profile", "@brains/profile", profilePackage, {
+      pluginId: "profile",
+    }),
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage, {
       pluginId: "style-guide",
     }),
@@ -164,7 +170,21 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
       pluginId: "wishlist",
     }),
-    ["topics", topicsPlugin, undefined],
+    // The knowledge map draws its territories from topics, so it comes and
+    // goes with them, as it did while it lived in the topics package.
+    [
+      "topics",
+      (config): Plugin[] => [
+        topicsPlugin(config),
+        ...instantiatePluginPackageDefinition(
+          knowledgeMapPackage,
+          {},
+          { name: "@brains/knowledge-map", version: packageJson.version },
+          { pluginId: "knowledge-map" },
+        ),
+      ],
+      undefined,
+    ],
     ["decks", decksPlugin, undefined],
     [
       "directory-sync",
@@ -175,20 +195,35 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         initialSync: true,
       },
     ],
-    ["atproto-registry", atprotoRegistryPlugin, undefined],
+    packageCapability(
+      "atproto-registry",
+      "@brains/atproto-registry",
+      atprotoRegistryPackage,
+      { pluginId: "atproto-registry" },
+    ),
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
-    ["notifications", notificationsPlugin, undefined],
+    packageCapability(
+      "notifications",
+      "@brains/notifications",
+      notificationsPackage,
+      { pluginId: "notifications" },
+    ),
     ["contact", contactPlugin, undefined],
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],
-    ["onboarding", onboardingPlugin, undefined],
+    packageCapability("onboarding", "@brains/onboarding", onboardingPackage, {
+      pluginId: "onboarding",
+      dependencies: ["playbook", "playbooks"],
+    }),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["admin", adminPlugin, undefined],
 
-    ["site-info", siteInfoPlugin, undefined],
+    packageCapability("site-info", "@brains/site-info", siteInfoPackage, {
+      pluginId: "site-metadata",
+    }),
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
@@ -221,7 +256,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["guides", guidesPlugin, undefined],
     ["book", bookPlugin, undefined],
 
-    ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
+    packageCapability(
+      "obsidian-vault",
+      "@brains/obsidian-vault",
+      obsidianVaultPackage,
+      { pluginId: "obsidian-vault" },
+      { autoSync: true },
+    ),
     ["email-workflows", emailWorkflows, undefined],
     ["unified-inbox", unifiedInboxPlugin, undefined],
     ["linkedin-import", linkedInImportPlugin, undefined],

@@ -126,7 +126,7 @@ export class LinkedInImportPlugin extends ServicePlugin<
       this.config.oauth?.redirectUri ?? this.config.broker?.returnUri;
     if (!ownUrl || !this.connections) return;
     const url = await registerLinkedInWorkspace(context, {
-      profileImport: new ProfileImport(context.entityService, this.deps.fetch),
+      profileImport: new ProfileImport(context.messaging, this.deps.fetch),
       clientFor: (accessToken) =>
         new LinkedInClient(accessToken, this.deps.fetch),
       connections: this.connections,

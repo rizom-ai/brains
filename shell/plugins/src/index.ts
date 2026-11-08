@@ -273,6 +273,7 @@ export {
   createPluginPackageDefinition,
   getPluginPackageMetadata,
   instantiatePluginPackageDefinition,
+  isPackageDefinitionPlugin,
   isPluginPackageDefinition,
   type AnyPluginConfigSchema,
   type CreatePluginPackageDefinitionInput,
@@ -976,6 +977,24 @@ export {
   type QueuedCreate,
   type StoredCreate,
 } from "./entity/entity-runtime";
+// First-party services converted from a class reach what the public
+// service contract does not offer here.
+export { withOwnedDataSources } from "./public/service-definition";
+export {
+  firstPartyTool,
+  serviceRuntime,
+  type ClaimedSystemType,
+  type ServiceCorpusReads,
+  type ServiceDashboardWidget,
+  type ServiceDataSourceDeclaration,
+  type ServiceEntityReads,
+  type ServiceEntityShapes,
+  type ServiceIdentity,
+  type ServiceListenHandler,
+  type ServiceListenMode,
+  type ServiceListenOptions,
+  type ServiceRuntime,
+} from "./service/service-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";

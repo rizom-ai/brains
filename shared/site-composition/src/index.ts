@@ -74,7 +74,7 @@ export {
 } from "./section-templates";
 export {
   fetchSiteInfo,
-  parseSiteInfoContent,
+  siteInfoFromRecord,
   siteInfoBodySchema,
   siteInfoCTASchema,
 } from "./site-info";

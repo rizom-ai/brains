@@ -28,12 +28,9 @@ import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-templat
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
-import { KnowledgeMapDataSource } from "./datasources/knowledge-map-datasource";
-import { getKnowledgeMapTemplate } from "./templates/knowledge-map-template";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 import { createTopicDistributionReport } from "./reports/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
-import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
 import {
   createRankedTopicJobHandler,
@@ -98,17 +95,11 @@ export class TopicsPlugin extends EntityPlugin<
       "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
-      "knowledge-map": getKnowledgeMapTemplate(),
     };
   }
 
   protected override getDataSources(): DataSource[] {
-    return [
-      new TopicsDataSource(this.logger.child("TopicsDataSource")),
-      new KnowledgeMapDataSource((entityService) =>
-        topicSourceTypes(entityService, this.config),
-      ),
-    ];
+    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
   }
 
   protected override async onRegister(
@@ -202,10 +193,15 @@ export class TopicsPlugin extends EntityPlugin<
       return { titles };
     });
     // Which types topics are drawn from, for other plugins: a map of the
-    // corpus measures its territories against the same sources.
-    context.messaging.answer(topicSourceTypesContract, async () => ({
-      types: topicSourceTypes(context.entityService, this.config),
-    }));
+    // corpus measures its territories against the same sources. Answered in
+    // every process: the worker builds the site the map is drawn on.
+    context.messaging.answer(
+      topicSourceTypesContract,
+      async () => ({
+        types: topicSourceTypes(context.entityService, this.config),
+      }),
+      { everyProcess: true },
+    );
     const extractionStores = topicExtractionStores(context);
     context.analytics.register(
       createTopicDistributionReport({
@@ -232,12 +228,9 @@ export class TopicsPlugin extends EntityPlugin<
       }),
     );
 
-    // Dashboard widgets: the topic list and the knowledge map
+    // Dashboard widget: the topic list. The knowledge map is its own
+    // package, @brains/knowledge-map.
     registerTopicsDashboardWidget({ context });
-    registerKnowledgeMapDashboardWidget({
-      context,
-      sourceTypes: () => topicSourceTypes(context.entityService, this.config),
-    });
 
     // Eval handlers
     registerTopicEvalHandlers({
@@ -290,9 +283,3 @@ export {
   buildTopicAtprotoRecord,
   createTopicAtprotoProjection,
 } from "./atproto-projection";
-export {
-  buildKnowledgeMapData,
-  knowledgeMapDataSchema,
-  type KnowledgeMapData,
-  type KnowledgeMapDataContext,
-} from "./lib/knowledge-map-data";

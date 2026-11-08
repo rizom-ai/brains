@@ -154,7 +154,6 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
 | `entities/prompt`              | `prompt`                             | Editable AI prompt entities                         |
 | `entities/series`              | `series`                             | Derived post grouping                               |
-| `entities/site-info`           | `site-info`                          | Site metadata                                       |
 | `entities/social-media`        | `social-post`                        | Social publishing content                           |
 | `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
 | `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
@@ -177,13 +176,15 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
 | `plugins/directory-sync`   | File sync + git operations                                                                         |
 | `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
-| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`                    |
+| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile` |
 | `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                           |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
 | `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains       |
+| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget         |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
 | `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
+| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                     |
 | `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
 | `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
 | `plugins/studio`           | Browser authoring routes + Studio config                                                           |

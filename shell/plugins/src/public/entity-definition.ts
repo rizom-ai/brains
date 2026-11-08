@@ -366,7 +366,7 @@ export interface EntityPackageDefinition<
  * The data sources a package installs: every id once, each with entities
  * to install it, and an entity data source reading one of the package's.
  */
-function assertDataSources(
+export function assertDataSources(
   packageId: string,
   entitySet: ReadonlySet<AnyEntityDefinition>,
   dataSources: readonly AnyDataSourceDeclaration[],

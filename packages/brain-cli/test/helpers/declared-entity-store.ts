@@ -28,6 +28,12 @@ export interface DeclaredEntityStore {
   service: EntityService;
   /** Settle startup content, as the shell does once at boot. */
   settleStartupContent(): Promise<void>;
+  /** Announce that the startup import ended, as directory-sync does. */
+  completeInitialSync(
+    outcome: { success: true } | { success: false; error: string },
+  ): Promise<void>;
+  /** Ask a request contract, as another package would. */
+  shell: ReturnType<typeof createMockShell>;
   /** Fetch from a data source the packages registered, by its registered id. */
   fetchData<T>(
     id: string,
@@ -59,6 +65,11 @@ export async function declaredEntityStore(
   // Packages installed beside it under their own scoped ids, such as the
   // types a cross-type package reads.
   companions: readonly PluginPackageDefinition[] = [],
+  // The package's own config, as a brain gives it.
+  packageConfig: unknown = {},
+  // Types registered beside the package's, as the shell and class plugins
+  // register them, for readers that read across types.
+  registerTypes: (registry: EntityRegistry) => void = (): void => {},
 ): Promise<DeclaredEntityStore> {
   const temporary = await createTestDirectory();
   const logger = createSilentLogger();
@@ -67,7 +78,7 @@ export async function declaredEntityStore(
   const plugins = [
     ...instantiatePluginPackageDefinition(
       definition,
-      {},
+      packageConfig,
       { name: packageName, version: "0.0.0-test" },
       { pluginId },
     ),
@@ -80,8 +91,13 @@ export async function declaredEntityStore(
     ),
   ];
   const registry = EntityRegistry.createFresh(logger);
-  for (const plugin of plugins) {
-    if (!(plugin instanceof EntityPlugin)) throw new Error("No entity plugin");
+  registerTypes(registry);
+  // A service package installs its owned types' entity plugins beside it.
+  const entityPlugins = plugins.flatMap((plugin) =>
+    plugin instanceof EntityPlugin ? [plugin] : [],
+  );
+  if (entityPlugins.length === 0) throw new Error("No entity plugin");
+  for (const plugin of entityPlugins) {
     registry.registerEntityType(
       plugin.entityType,
       plugin.schema,
@@ -112,6 +128,15 @@ export async function declaredEntityStore(
   const db: Client = createClient(dbConfig);
   return {
     service,
+    shell,
+    async completeInitialSync(outcome): Promise<void> {
+      await shell.getMessageBus().send({
+        type: SYSTEM_CHANNELS.initialSyncCompleted,
+        payload: outcome,
+        sender: "directory-sync",
+        broadcast: true,
+      });
+    },
     async settleStartupContent(): Promise<void> {
       await shell.getMessageBus().send({
         type: SYSTEM_CHANNELS.startupContentSettled,

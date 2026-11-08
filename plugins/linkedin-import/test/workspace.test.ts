@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
+  baseEntitySchema,
   createMockAuthBackend,
   createPluginHarness,
+  createTestEntityAdapter,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import profilePackage from "@brains/profile";
 import {
+  instantiatePluginPackageDefinition,
   studioWorkspaceRegisterContract,
   internalFullScope,
   type AccountSettingsBackend,
@@ -185,6 +189,8 @@ async function fixture(
     mode?: "direct" | "broker" | "both";
     token?: { accessToken: string; expiresAt?: string };
     linkedInStatus?: number;
+    /** Who profile lets fill the anchor profile; its default otherwise. */
+    importers?: string[];
   } = {},
 ): Promise<Fixture> {
   // A log context keeps the shell this fixture seeds; install would replace it.
@@ -214,7 +220,28 @@ async function fixture(
         updated: "2026-11-01T00:00:00.000Z",
       },
     ]);
+  // The shell registers its identity types before any plugin; profile, the
+  // anchor profile's steward, answers the import.
+  const registry = harness.getEntityRegistry();
+  for (const type of ["anchor-profile", "brain-character"]) {
+    registry.registerEntityType(
+      type,
+      baseEntitySchema,
+      createTestEntityAdapter(type, { isSingleton: true }),
+    );
+  }
   setProfile(ownerProfile);
+  const [profile] = instantiatePluginPackageDefinition(
+    profilePackage,
+    {
+      starterIdentity: { enabled: false },
+      ...(options.importers ? { importers: options.importers } : {}),
+    },
+    { name: "@brains/profile", version: "0.0.0-test" },
+    { pluginId: "profile" },
+  );
+  if (!profile) throw new Error("Profile installs no plugin");
+  await profile.register(shell);
   const workspaces: StudioWorkspaceRegistration[] = [];
   shell
     .getMessageBus()
@@ -579,6 +606,20 @@ describe("LinkedIn workspace", () => {
       }),
     ).rejects.toThrow("stale");
     expect(await state.profile()).toBe(edited);
+  });
+
+  it("imports through profile, which admits the linkedin-import plugin by its sender", async () => {
+    const refused = await fixture({
+      token: { accessToken: "member-token", expiresAt: future },
+      importers: ["someone-else"],
+    });
+
+    // The preview is profile's answer, so a sender it refuses sees none.
+    expect(await refused.view()).toContain(
+      "linkedin-import may not fill the anchor profile",
+    );
+    expect(importProfile(refused)).rejects.toThrow();
+    expect(await refused.profile()).toBe(ownerProfile);
   });
 
   it("asks to reconnect when LinkedIn refuses the token", async () => {

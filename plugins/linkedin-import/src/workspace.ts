@@ -14,12 +14,14 @@ import {
   type LinkedInConnections,
   type StoredConnection,
 } from "./lib/linkedin-connection";
-import type { ImportOutcome } from "./lib/merge-profile";
+import type {
+  ProfileImportFieldName,
+  ProfileImportOutcome,
+} from "@brains/contracts";
 import type { ProfileImport } from "./lib/profile-import";
-import type { ProfileImport as ImportedValues } from "./lib/profile-mapper";
 import { inspectRichDomains } from "./lib/snapshot-shape";
 
-const FIELD_LABELS: Record<keyof ImportedValues, string> = {
+const FIELD_LABELS: Record<ProfileImportFieldName, string> = {
   name: "Name",
   headline: "Headline",
   industry: "Industry",
@@ -28,7 +30,7 @@ const FIELD_LABELS: Record<keyof ImportedValues, string> = {
   story: "Story",
 };
 
-const OUTCOME_LABELS: Record<ImportOutcome, string> = {
+const OUTCOME_LABELS: Record<ProfileImportOutcome, string> = {
   fill: "Fill",
   preserve: "Keep yours",
   unchanged: "Same",
@@ -345,7 +347,7 @@ export async function registerLinkedInWorkspace(
               const preview = await deps.profileImport.preview(
                 (await connected(caller)).accessToken,
               );
-              const labelled = (outcome: ImportOutcome): string[] =>
+              const labelled = (outcome: ProfileImportOutcome): string[] =>
                 preview.fields
                   .filter((field) => field.outcome === outcome)
                   .map((field) => FIELD_LABELS[field.field].toLowerCase());

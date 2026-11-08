@@ -316,6 +316,31 @@ export {
   type LifecycleStarterRegistration,
 } from "./playbook-lifecycle-starter";
 export {
+  playbookSeedContract,
+  type PlaybookSeed,
+  type PlaybookSeedResult,
+} from "./playbook-seed";
+export {
+  profileImportApplyContract,
+  profileImportFieldNameSchema,
+  profileImportFieldNames,
+  profileImportFieldSchema,
+  profileImportFieldsSchema,
+  profileImportOutcomeSchema,
+  profileImportPreviewContract,
+  type ProfileImportField,
+  type ProfileImportFieldName,
+  type ProfileImportFields,
+  type ProfileImportOutcome,
+} from "./profile-import";
+export {
+  SOURCES_PER_TOPIC,
+  ownTopicSources,
+  topicSourceKey,
+  type NearSource,
+  type TopicNeighbourhood,
+} from "./topic-ownership";
+export {
   publishAssetDefinitionSchema,
   publishAssetRegisterContract,
   publishRegisterContract,

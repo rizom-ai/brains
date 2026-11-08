@@ -6,8 +6,8 @@ import type {
   BaseEntity,
   ProfileCategory,
   IEntityAINamespace,
-  ServiceEntityService,
 } from "@brains/plugins";
+import type { ServiceEntityReads } from "@brains/sdk/internal/service-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
@@ -228,7 +228,7 @@ function contentTypePriority(entityType: string): number {
 }
 
 async function collectContentSignals(
-  entityService: ServiceEntityService,
+  entityService: ServiceEntityReads,
   counts: ReadonlyMap<string, number>,
 ): Promise<StarterCharacterContentSignal[]> {
   const candidateTypes = [...counts.entries()]
@@ -270,7 +270,7 @@ async function collectContentSignals(
 }
 
 export async function buildStarterCharacterBrief(options: {
-  entityService: ServiceEntityService;
+  entityService: ServiceEntityReads;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;
   anchorEntity: BaseEntity | null;
@@ -346,7 +346,7 @@ ${JSON.stringify(brief, null, 2)}`;
 }
 
 export async function generateStarterCharacter(
-  ai: IEntityAINamespace,
+  ai: Pick<IEntityAINamespace, "generateObject">,
   brief: StarterCharacterBrief,
 ): Promise<GeneratedStarterCharacter> {
   const result = await ai.generateObject(
