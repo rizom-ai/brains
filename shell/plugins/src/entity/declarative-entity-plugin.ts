@@ -395,9 +395,14 @@ function binaryStorage(
     toMarkdown: (entity): string => entity.content,
     fromMarkdown(content): Partial<EntityOf<AnyEntityDefinition>> {
       const decoded = definition.markdown?.decode({ content, frontmatter: {} });
-      return decoded
-        ? { content: decoded.content, metadata: { ...decoded.metadata } }
-        : { content };
+      const entityType = definition.type;
+      if (!decoded) return { entityType, content };
+      // Bytes that say nothing leave the metadata to what is handed beside
+      // them, as an adapter that recovers none returns none.
+      const said = { ...decoded.metadata };
+      return Object.keys(said).length > 0
+        ? { entityType, content: decoded.content, metadata: said }
+        : { entityType, content: decoded.content };
     },
     parseFrontMatter: (_content, schemaToParse) => schemaToParse.parse({}),
     generateFrontMatter: (): string => "",

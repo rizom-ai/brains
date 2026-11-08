@@ -163,7 +163,11 @@ describe("a declared type with binary storage", () => {
   it("decodes what the bytes say, which an import merges with the metadata it was handed", async () => {
     const { service, registry, stored } = await store();
     const decoded = registry.getAdapter("picture").fromMarkdown(ONE);
-    expect(decoded).toEqual({ content: ONE, metadata: { format: "png" } });
+    expect(decoded).toEqual({
+      entityType: "picture",
+      content: ONE,
+      metadata: { format: "png" },
+    });
 
     await service.createEntity({
       entity: {
@@ -175,6 +179,27 @@ describe("a declared type with binary storage", () => {
     });
 
     expect(await stored("imported")).toEqual({ content: ONE, metadata });
+  });
+
+  it("leaves the metadata to the import when the bytes say nothing", () => {
+    const blob = defineEntity({
+      type: "blob",
+      purpose: "Bytes that say nothing about themselves.",
+      metadata: z.object({ filename: z.string() }),
+      config: { binaryStorage: "data-url" },
+      markdown: { decode: ({ content }) => ({ content, metadata: {} }) },
+    });
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "blobs", entities: [blob] }),
+      {},
+      { name: "@fixture/blobs", version: "0.1.0" },
+    );
+    if (!(plugin instanceof EntityPlugin)) throw new Error("No blob plugin");
+
+    expect(plugin.adapter.fromMarkdown(ONE)).toEqual({
+      entityType: "blob",
+      content: ONE,
+    });
   });
 
   it("validates the merged metadata when it is stored", () => {
