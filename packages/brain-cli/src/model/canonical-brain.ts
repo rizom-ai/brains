@@ -39,7 +39,7 @@ import imagePackage from "@brains/image-plugin";
 import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
-import { notePlugin } from "@brains/note";
+import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
@@ -165,7 +165,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("document", "@brains/document-plugin", documentPackage, {
       pluginId: "document",
     }),
-    ["note", notePlugin, undefined],
+    packageCapability("note", "@brains/note", notePackage, {
+      pluginId: "note",
+    }),
     ["link", linkPlugin, undefined],
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
       pluginId: "wishlist",

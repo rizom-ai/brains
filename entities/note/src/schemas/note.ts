@@ -26,16 +26,23 @@ export type NoteFrontmatter = z.output<typeof noteFrontmatterSchema>;
 
 /**
  * Note metadata schema - derived from frontmatter
- * Title is required in metadata (frontmatter, body H1, body line, or Untitled)
+ * Title is required in metadata (frontmatter, body H1, body line, or Untitled).
+ * Whether the file states its title is hidden bookkeeping: a note keeps a
+ * stated title in its frontmatter and a derived one out of it, so a plain
+ * note stays plain.
  */
 export const noteMetadataSchema: z.ZodObject<{
-  title: z.ZodString;
+  title: z.ZodDefault<z.ZodString>;
   status: z.ZodOptional<typeof noteStatusSchema>;
   error: z.ZodOptional<z.ZodString>;
+  titleStated: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
-  title: z.string(),
+  // A file need not state its title: the note takes it from its body, so
+  // a writer, Studio included, may leave it out.
+  title: z.string().default("Untitled"),
   status: noteStatusSchema.optional(),
   error: z.string().optional(),
+  titleStated: z.boolean().optional().meta({ studioWidget: "hidden" }),
 });
 
 export type NoteMetadata = z.output<typeof noteMetadataSchema>;

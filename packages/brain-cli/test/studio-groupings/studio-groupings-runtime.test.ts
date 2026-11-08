@@ -14,7 +14,8 @@ import {
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
-import { noteAdapter, noteSchema } from "@brains/note";
+import notePackage from "@brains/note";
+import { declaredType } from "../helpers/declared-type";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
 import promptPackage from "@brains/prompt";
@@ -109,7 +110,11 @@ async function open(
   const dbConfig = { url: `file:${dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const registry = EntityRegistry.createFresh(logger);
-  registry.registerEntityType("note", noteSchema, noteAdapter);
+  {
+    // The declared note, as the canonical brain installs it.
+    const note = declaredType(notePackage, "@brains/note", "note");
+    registry.registerEntityType("note", note.schema, note.adapter);
+  }
   registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
   configure?.(registry);
   const service = EntityService.createFresh({
@@ -822,6 +827,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       }),
     ).toMatchObject({ values: [{ value: "Field notes", count: 1 }], total: 1 });
     const before = await reader.service.getEntity({
+      source: true,
       entityType: "note",
       id: "member",
     });
@@ -833,6 +839,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       await (await reader.request("GET", "schema?type=note")).json(),
     ).toMatchObject({ format: "raw" });
     const after = await reader.service.getEntity({
+      source: true,
       entityType: "note",
       id: "member",
     });
@@ -1769,6 +1776,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       },
     });
     const before = await writer.service.getEntity({
+      source: true,
       entityType: "note",
       id: "existing",
     });
@@ -1785,7 +1793,11 @@ describe("document-backed runtime definitions with real adapters", () => {
       ).values,
     ).toEqual([{ value: "Before definition", count: 1 }]);
     expect(
-      await restarted.service.getEntity({ entityType: "note", id: "existing" }),
+      await restarted.service.getEntity({
+        source: true,
+        entityType: "note",
+        id: "existing",
+      }),
     ).toEqual(before);
     expect(await restarted.service.listPendingEntityExports()).toEqual(exports);
   });
@@ -1825,6 +1837,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         },
       });
       const stored = await worker.service.getEntity({
+        source: true,
         entityType,
         id: "member",
       });
@@ -1847,7 +1860,13 @@ describe("document-backed runtime definitions with real adapters", () => {
         ).status,
       ).toBe(200);
       expect(
-        (await worker.service.getEntity({ entityType, id: "member" }))?.content,
+        (
+          await worker.service.getEntity({
+            source: true,
+            entityType,
+            id: "member",
+          })
+        )?.content,
       ).toBe(stored.content);
       const failure = await worker.service
         .updateEntity({
@@ -1905,6 +1924,7 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(reads).toHaveBeenCalledTimes(2);
     expect(worker.registry.getGroupings()).toEqual([]);
     const saved = await worker.service.getEntity({
+      source: true,
       entityType: "note",
       id: "unclaimed",
     });
@@ -2009,6 +2029,7 @@ describe("document-backed runtime definitions with real adapters", () => {
     });
     expect(
       await worker.service.getEntity({
+        source: true,
         entityType: "note",
         id: "A",
         visibilityScope: "shared",
@@ -2208,8 +2229,13 @@ describe("declared types in the editor", () => {
       tone: "plain",
     });
     expect(
-      (await fixture.service.getEntity({ entityType: "card", id: "tide" }))
-        ?.metadata,
+      (
+        await fixture.service.getEntity({
+          source: true,
+          entityType: "card",
+          id: "tide",
+        })
+      )?.metadata,
     ).toEqual({ title: "Ebb", tone: "plain" });
   });
 });
