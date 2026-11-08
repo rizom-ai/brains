@@ -317,6 +317,11 @@ export {
   type LifecycleStarterRegistration,
 } from "./playbook-lifecycle-starter";
 export {
+  playbookSeedContract,
+  type PlaybookSeed,
+  type PlaybookSeedResult,
+} from "./playbook-seed";
+export {
   publishAssetDefinitionSchema,
   publishAssetRegisterContract,
   publishRegisterContract,
