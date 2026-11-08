@@ -199,6 +199,96 @@ describe("a declared post as a site reads it", () => {
   });
 });
 
+describe("the blog's data source on the entity store", () => {
+  // As the blog plugin class read them: neighbours newest first, a series by
+  // its order with an unplaced post first, a page counted over every post.
+  test("shows a post with its neighbours and series, and pages the list", async () => {
+    const opened = await store();
+    const posts = [
+      ["two", "published", "2025-03-01T00:00:00.000Z", 2],
+      ["one", "published", "2025-01-01T00:00:00.000Z", 1],
+      ["loose", "draft", undefined, undefined],
+      ["other", "published", "2025-02-01T00:00:00.000Z", undefined],
+    ] as const;
+    for (const [id, status, publishedAt, seriesIndex] of posts) {
+      await imported(
+        opened,
+        id,
+        [
+          "---",
+          `title: ${id}`,
+          `slug: ${id}`,
+          `status: ${status}`,
+          ...(publishedAt ? [`publishedAt: ${publishedAt}`] : []),
+          "excerpt: E",
+          "author: A",
+          ...(id === "other" ? [] : ["seriesName: Tides"]),
+          ...(seriesIndex ? [`seriesIndex: ${seriesIndex}`] : []),
+          "---",
+          `${id} body`,
+          "",
+        ].join("\n"),
+      );
+    }
+    const detail = z.looseObject({
+      post: z.looseObject({ id: z.string(), content: z.string() }),
+      prevPost: z.looseObject({ id: z.string() }).nullable(),
+      nextPost: z.looseObject({ id: z.string() }).nullable(),
+      seriesPosts: z.array(z.looseObject({ id: z.string() })).nullable(),
+    });
+    const shown = async (slug: string): Promise<unknown> => {
+      const read = await opened.fetchData(
+        "blog:entities",
+        { entityType: "post", query: { id: slug } },
+        detail,
+        { entityService: opened.service },
+      );
+      return {
+        post: read.post.id,
+        prev: read.prevPost?.id ?? null,
+        next: read.nextPost?.id ?? null,
+        series: read.seriesPosts?.map((entry) => entry.id) ?? null,
+      };
+    };
+    expect(await shown("two")).toEqual({
+      post: "two",
+      prev: null,
+      next: "other",
+      series: ["loose", "one", "two"],
+    });
+    expect(await shown("loose")).toEqual({
+      post: "loose",
+      prev: "one",
+      next: null,
+      series: ["loose", "one", "two"],
+    });
+    expect(await shown("other")).toEqual({
+      post: "other",
+      prev: "two",
+      next: "one",
+      series: null,
+    });
+    const page = await opened.fetchData(
+      "blog:entities",
+      { entityType: "post", query: { page: 1, pageSize: 2 } },
+      z.looseObject({
+        posts: z.array(z.looseObject({ id: z.string() })),
+        pagination: z.unknown(),
+      }),
+      { entityService: opened.service },
+    );
+    expect(page.posts.map((entry) => entry.id)).toEqual(["two", "other"]);
+    expect(page.pagination).toEqual({
+      currentPage: 1,
+      totalPages: 2,
+      totalItems: 4,
+      pageSize: 2,
+      hasNextPage: true,
+      hasPrevPage: false,
+    });
+  });
+});
+
 describe("the declared post generation on the entity store", () => {
   test.each([
     [
