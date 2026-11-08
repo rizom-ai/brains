@@ -52,6 +52,8 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import { getErrorMessage } from "@brains/utils/error";
+import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
@@ -329,6 +331,14 @@ function encodeEntityMarkdown(
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
+/** A document's body; content with no frontmatter is a body already. */
+function documentBody(content: string): string {
+  const document = readMarkdownFrontmatter(content);
+  return isPlainRecord(document.data) && Object.keys(document.data).length > 0
+    ? document.content
+    : content;
+}
+
 type DeclaredAdapter = EntityAdapter<
   EntityOf<AnyEntityDefinition>,
   Record<string, unknown>
@@ -348,8 +358,16 @@ function markdownStorage(
 > {
   return {
     frontmatterSchema: definition.metadata,
+    // A whole document handed in, as an import or an editor writes one, had
+    // its frontmatter decoded into the metadata already: the type writes the
+    // body under its own frontmatter, in its own order, as an entity plugin
+    // class's adapter did, and the serializer keeps after it the frontmatter
+    // the type does not write.
     toMarkdown(entity): string {
-      return encodeEntityMarkdown(definition, entity);
+      return encodeEntityMarkdown(definition, {
+        ...entity,
+        content: documentBody(entity.content),
+      });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
       const parsed = parseMarkdownWithFrontmatter(
