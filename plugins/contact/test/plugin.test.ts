@@ -9,7 +9,8 @@ import type {
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
-import { NotificationsPlugin } from "@brains/notifications";
+import notificationsPackage from "@brains/notifications";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
   siteBuilderRouteRegisterContract,
@@ -125,11 +126,16 @@ async function setup(
     },
   });
   channels.finalize();
-  await new NotificationsPlugin(
+  const [notifications] = instantiatePluginPackageDefinition(
+    notificationsPackage,
     wiring.noRecipient
       ? {}
       : { defaultRecipient: { type: "email", address: "owner@example.com" } },
-  ).register(shell, { executionOnly });
+    { name: "@brains/notifications", version: "0.0.0-test" },
+    { pluginId: "notifications" },
+  );
+  if (!notifications) throw new Error("Notifications installs no plugin");
+  await notifications.register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
   return { h, shell, checks, sent, pages, transport, plugin, handlers };
 }

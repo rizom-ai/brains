@@ -39,7 +39,7 @@ import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import { notePlugin } from "@brains/note";
-import { notificationsPlugin } from "@brains/notifications";
+import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
 import {
@@ -184,7 +184,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
-    ["notifications", notificationsPlugin, undefined],
+    packageCapability(
+      "notifications",
+      "@brains/notifications",
+      notificationsPackage,
+      { pluginId: "notifications" },
+    ),
     ["contact", contactPlugin, undefined],
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],

@@ -48,9 +48,9 @@ What _does_ survive: the delivery path is entirely in-process and job-free.
 ```
 createRecurringCheckDelivery(messageBus)               shell/core/src/initialization/recurring-check-delivery.ts:13
   └─ messageBus.send(NOTIFICATIONS_SEND)               :20   — in-process bus, no job
-       └─ NotificationsPlugin handler                  plugins/notifications/src/index.ts:56
-            └─ context.channels.getDeliveryProvider(recipient.type)   :68
-                 └─ await provider.send({...})         :76   — awaited directly, no job
+       └─ notifications' answer                      plugins/notifications/src/index.ts:60
+            └─ runtime.deliveryProvider(recipient.type)   :74
+                 └─ await provider.send({...})         :82   — awaited directly, no job
 ```
 
 Plugin registration is **not** gated by `processRole` — `shellBootloader` gates capability
