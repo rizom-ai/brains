@@ -202,10 +202,15 @@ export class TopicsPlugin extends EntityPlugin<
       return { titles };
     });
     // Which types topics are drawn from, for other plugins: a map of the
-    // corpus measures its territories against the same sources.
-    context.messaging.answer(topicSourceTypesContract, async () => ({
-      types: topicSourceTypes(context.entityService, this.config),
-    }));
+    // corpus measures its territories against the same sources. Answered in
+    // every process: the worker builds the site the map is drawn on.
+    context.messaging.answer(
+      topicSourceTypesContract,
+      async () => ({
+        types: topicSourceTypes(context.entityService, this.config),
+      }),
+      { everyProcess: true },
+    );
     const extractionStores = topicExtractionStores(context);
     context.analytics.register(
       createTopicDistributionReport({
