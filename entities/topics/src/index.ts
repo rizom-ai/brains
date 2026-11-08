@@ -1,4 +1,7 @@
 import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
   internalFullScope,
   EntityPlugin,
   type EntityPluginContext,
@@ -9,7 +12,6 @@ import {
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
 import {
-  ENTITY_CHANNELS,
   topicSourceTypesContract,
   topicTitlesContract,
 } from "@brains/contracts";
@@ -141,22 +143,19 @@ export class TopicsPlugin extends EntityPlugin<
         "topics:extract",
         createRankedTopicJobHandler(context, this.config, this.logger),
       );
-      const eventSchema = z.object({ entityType: z.string() });
       for (const channel of [
-        ENTITY_CHANNELS.created,
-        ENTITY_CHANNELS.updated,
-        ENTITY_CHANNELS.deleted,
+        entityCreatedChannel,
+        entityUpdatedChannel,
+        entityDeletedChannel,
       ]) {
         // Execution subscriptions run in both processes, exactly once: worker
         // imports need the same trigger as ordinary web-side mutations. A
         // refused enqueue is retried until the queue admits it: the event is
         // not delivered again, and one keyed retry stands for all of them.
-        context.messaging.subscribeExecution(channel, async (message) => {
-          const event = eventSchema.safeParse(message.payload);
+        context.messaging.subscribeExecution(channel, async (change) => {
           if (
-            event.success &&
             this.shouldProcessEntityType(
-              event.data.entityType,
+              change.entityType,
               context.entityService,
             )
           ) {

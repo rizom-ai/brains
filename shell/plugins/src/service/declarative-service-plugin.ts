@@ -4,7 +4,6 @@ import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
   jsonObjectSchema,
-  sdkErrorSchema,
   toSdkError,
   type ActorRef,
   type BusContract,
@@ -16,7 +15,7 @@ import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
-import type { JobHandler, JobInfo } from "@brains/job-queue";
+import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createConfirmationGate,
@@ -38,17 +37,24 @@ import {
   SingleUseStore,
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
-import { parseWithSchema } from "@brains/utils/parse-schema";
 import { emptyPluginState } from "../base/empty-state";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
   IShell,
 } from "../interfaces";
-import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import {
+  sealAccountSettings,
+  type AnyAccountSettingsDefinition,
+  type SealedAccountSettingsValue,
+} from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
+import type {
+  OperatorCallScope,
+  OperatorRunAs,
+} from "../operator/operator-context-runtime";
 import type {
   AnyStudioWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
@@ -59,11 +65,9 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import { createEntityReader } from "../entity/entity-reader";
 import type {
   AnyEntityDefinition,
   EntityOf,
-  EntityReader,
 } from "../entity/entity-definition-contract";
 import { packageRuntimeState } from "../internal/state-namespace";
 import { ServicePlugin } from "./service-plugin";
@@ -98,13 +102,24 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
+import { serviceJobStatus } from "./job-status";
 import {
+  admitPackageJob,
   anonymousCaller,
+  createPackageEntityReader,
+  packageReadScope,
+  packageSelfCall,
+  queuedJobCall,
   serviceJobDataSchema,
   toolCaller,
+  type PackageCall,
   type ServiceJobData,
 } from "./job-authority";
-import type { AnyInterfaceRouteDefinition } from "../interface/route-definition-contract";
+import {
+  isReturnToRoute,
+  type AnyDeclaredRouteDefinition,
+  type ReturnToWorkspace,
+} from "../interface/route-definition-contract";
 import { createDeclaredRoute } from "../internal/declared-route";
 import type { WebRouteDefinition } from "../types/web-routes";
 
@@ -114,17 +129,11 @@ const confirmationTokenField = "_rizomConfirmationToken";
  * Who a slot's `entities` acts as right now: the access it reads and writes
  * at, and whom a write is attributed to.
  */
-interface ServiceCall {
-  access(): Promise<CallerAccess>;
+interface ServiceCall extends PackageCall {
   /** Who a job started now is admitted as; unset, the package itself. */
   readonly caller?: Caller | undefined;
   /** The account the caller signed in as, when it has one. */
   account?(): Promise<AccountHolder | undefined>;
-  /**
-   * The package acting as itself, with no caller: its own types are its to
-   * read and write, as a class plugin's are, past the policy callers meet.
-   */
-  readonly asPackage?: boolean;
   readonly eventContext: {
     readonly actor: ActorRef;
     readonly interfaceType?: string;
@@ -186,39 +195,6 @@ function promptInput(value: string | undefined): unknown {
   }
 }
 
-/**
- * What a caller is told of a failure: its recorded public form, as an
- * SdkError would publish it. The diagnostic beside it is for operators only,
- * and a failure recorded without a valid public form reads as a failed
- * handler.
- */
-function publicFailure(stored: unknown): {
-  readonly code: SdkErrorCode;
-  readonly error: string;
-} {
-  const failure =
-    sdkErrorSchema.safeParse(stored).data ??
-    new SdkError("handler_failed").toJSON();
-  return { code: failure.code, error: failure.message };
-}
-
-function statusFor<TDefinition extends AnyServiceJobDefinition>(
-  definition: TDefinition,
-  job: JobInfo,
-): ServiceJobStatus<z.output<TDefinition["output"]>> {
-  const result: z.output<TDefinition["output"]> | undefined =
-    job.status === "completed" && job.result !== undefined
-      ? parseWithSchema<TDefinition["output"]>(definition.output, job.result)
-      : undefined;
-  return {
-    id: job.id,
-    status: job.status,
-    progress: job.progress,
-    ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? publicFailure(job.lastErrorPublic) : {}),
-  };
-}
-
 function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
@@ -237,20 +213,16 @@ function runtimeJobHandler(
       return parsed.success ? parsed.data : null;
     },
     async process(
-      { authority, input, byPackage }: ServiceJobData,
+      job: ServiceJobData,
       _jobId: string,
       progress: ProgressReporter,
       signal: AbortSignal,
     ): Promise<unknown> {
       // The job reads and writes with its requester's current access, never
       // more than it was admitted at; a revoked requester's job is refused here.
-      const access = await context.jobAuthority.resolve(authority);
-      const call: ServiceCall = {
-        access: () => Promise.resolve(access),
-        // A job the package queued for itself runs as the package.
-        asPackage: byPackage === true,
-        eventContext: { actor: authority.actor },
-      };
+      // A job the package queued for itself runs as the package.
+      const call: ServiceCall = await queuedJobCall(context.jobAuthority, job);
+      const { input } = job;
       const output = await withCall(call, () =>
         handler({ input, signal, progress }),
       );
@@ -261,7 +233,8 @@ function runtimeJobHandler(
           cause: parsed.error,
         });
       }
-      return parsed.data;
+      // Stored as the handler answered; a status read parses it, once.
+      return output;
     },
   };
 }
@@ -296,6 +269,13 @@ class DeclarativeServicePlugin<
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
+  /** Where Studio serves each workspace this package registered. */
+  private readonly workspaceUrls = new Map<ReturnToWorkspace, string>();
+  /** The routes that return the browser to one of this package's workspaces. */
+  private readonly returnTargets: {
+    readonly route: AnyDeclaredRouteDefinition;
+    readonly workspace: ReturnToWorkspace;
+  }[] = [];
   private readonly registeredDashboardWidgetIds: string[] = [];
   private accountSettingsRegistration:
     AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
@@ -303,7 +283,8 @@ class DeclarativeServicePlugin<
     AnyStudioWorkspaceDefinition,
     z.output<TConfigSchema>,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TEntities[number]
   >[] = [];
   private dashboardWidgetBindings: readonly BoundDashboardWidget<
     AnyDashboardWidgetDefinition,
@@ -418,7 +399,10 @@ class DeclarativeServicePlugin<
   }
 
   /** A declared route, served as its caller. */
-  private runtimeRoute(route: AnyInterfaceRouteDefinition): WebRouteDefinition {
+  private runtimeRoute(route: AnyDeclaredRouteDefinition): WebRouteDefinition {
+    if (isReturnToRoute(route)) {
+      this.returnTargets.push({ route, workspace: route.returnTo });
+    }
     const permissions = this.requireShell().getPermissionService();
     return createDeclaredRoute(route, {
       declarationId: this.publicId,
@@ -432,6 +416,7 @@ class DeclarativeServicePlugin<
       runAs: (caller, request, run) =>
         this.calls.run(this.routeCall(caller, request), run),
       logger: this.logger,
+      workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
     });
   }
 
@@ -469,14 +454,19 @@ class DeclarativeServicePlugin<
           binding,
           context,
           runtimeSignal: this.operatorAbortController.signal,
+          entities: this.entityAccess(),
+          accountSettings: this.accountSettingsWriter(),
+          runAs: this.asOperator,
         });
         try {
           const result = await context.studio.registerWorkspace(registration);
           if (result === false) {
             await this.rollbackStudioWorkspaces(context, acquiredStudio);
             acquiredStudio.splice(0);
+            this.workspaceUrls.clear();
             break;
           }
+          this.workspaceUrls.set(binding.definition, result.workspaceUrl);
         } catch (error) {
           throw new Error(
             `Service "${this.publicId}" package "${this.packageName}" Studio workspace "${binding.definition.id}" host registration failed; correct the declaration or Studio configuration: ${getErrorMessage(error)}`,
@@ -501,6 +491,9 @@ class DeclarativeServicePlugin<
           binding,
           context,
           runtimeSignal: this.operatorAbortController.signal,
+          entities: this.entityAccess(),
+          accountSettings: this.accountSettingsWriter(),
+          runAs: this.asOperator,
         });
         try {
           const registered =
@@ -587,6 +580,8 @@ class DeclarativeServicePlugin<
     );
     this.studioWorkspaceBindings = [];
     this.dashboardWidgetBindings = [];
+    this.workspaceUrls.clear();
+    this.returnTargets.splice(0);
     this.tools = undefined;
     this.resources = undefined;
     this.routes = [];
@@ -597,6 +592,23 @@ class DeclarativeServicePlugin<
     for (const release of this.answered.splice(0).reverse()) release();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
+    }
+  }
+
+  /**
+   * A route may return the browser only to a workspace this package binds;
+   * any other, another package's included, is refused here.
+   */
+  private assertReturnTargets(): void {
+    const bound = new Set<ReturnToWorkspace>(
+      this.studioWorkspaceBindings.map((binding) => binding.definition),
+    );
+    for (const { route, workspace } of this.returnTargets) {
+      if (!bound.has(workspace)) {
+        throw new Error(
+          `Service "${this.publicId}" route ${route.method} ${route.path} returns to Studio workspace "${workspace.id}", which this package does not declare`,
+        );
+      }
     }
   }
 
@@ -637,6 +649,7 @@ class DeclarativeServicePlugin<
         ids.add(id);
       }
       this.studioWorkspaceBindings = Object.freeze([...bindings]);
+      this.assertReturnTargets();
     }
   }
 
@@ -703,6 +716,41 @@ class DeclarativeServicePlugin<
         actor: toolContext.actor,
         interfaceType: toolContext.interfaceType,
       },
+    };
+  }
+
+  /**
+   * An operator callback runs as the operator who called it, so every
+   * capability the package holds, its slots' `entities` included, acts as
+   * them; a Dashboard viewer nobody signed in is held to public.
+   */
+  private readonly asOperator: OperatorRunAs = (scope, run) =>
+    this.calls.run(this.operatorCall(scope), run);
+
+  /** An operator's call; access is admitted once, when first used. */
+  private operatorCall(scope: OperatorCallScope): ServiceCall {
+    const context = this.getContext();
+    const caller: Caller = scope.caller
+      ? {
+          actor: scope.actor ?? { kind: "user", userId: scope.caller.actor.id },
+          permissionLevel: scope.caller.permission,
+        }
+      : anonymousCaller(this.id);
+    let admitted: Promise<CallerAccess> | undefined;
+    const userId = scope.caller?.actor.id;
+    return {
+      access: () => (admitted ??= context.jobAuthority.access(caller)),
+      caller,
+      // A Studio operator acts through a browser session of their own
+      // account, so a claim they make binds that session; a Dashboard
+      // viewer's account is theirs to read, with no session bound.
+      account: async () =>
+        userId === undefined
+          ? undefined
+          : scope.browserSession
+            ? { userId, sessionUserId: userId }
+            : { userId },
+      eventContext: { actor: caller.actor, interfaceType: scope.interfaceType },
     };
   }
 
@@ -780,6 +828,21 @@ class DeclarativeServicePlugin<
       }
     };
     return {
+      read: async (): Promise<SealedAccountSettingsValue<
+        NonNullable<TAccountSettings>
+      > | null> => {
+        const account = await this.calls.getStore()?.account?.();
+        const registration = this.accountSettingsRegistration;
+        if (!account || !registration) return null;
+        // The caller's own account only; the package never names one.
+        const values = await this.getContext().accountSettings.getForActor(
+          registration,
+          account.userId,
+        );
+        return values
+          ? sealAccountSettings(registration.definition, values)
+          : null;
+      },
       save: async (values) => write((await holder()).userId, values),
       claim: async (): Promise<string> => {
         const account = await holder();
@@ -814,8 +877,7 @@ class DeclarativeServicePlugin<
   private packageCall(): ServiceCall {
     const context = this.getContext();
     return {
-      access: () => context.jobAuthority.access(undefined),
-      asPackage: true,
+      ...packageSelfCall(context.jobAuthority),
       eventContext: { actor: { kind: "service", serviceId: this.id } },
     };
   }
@@ -834,9 +896,7 @@ class DeclarativeServicePlugin<
     entityType: string,
     access: CallerAccess,
   ): CallerAccess["visibilityScope"] {
-    return call.asPackage === true && this.ownsType(entityType)
-      ? internalFullScope("a package acting as itself reads its own types")
-      : access.visibilityScope;
+    return packageReadScope(call, this.ownsType(entityType), access);
   }
 
   /** Asking other packages over the bus, as this package. */
@@ -1028,20 +1088,12 @@ class DeclarativeServicePlugin<
   private entityAccess(): ServiceEntityAccess<TEntities[number]> {
     if (this.entityAccessCache) return this.entityAccessCache;
     const context = this.getContext();
-    const reader = async (entityType: string): Promise<EntityReader> => {
-      const call = this.currentCall();
-      return createEntityReader(
-        context.entityService,
-        this.readScope(call, entityType, await call.access()),
-      );
-    };
     const access: ServiceEntityAccess<AnyEntityDefinition> = {
-      get: async (definition, id) =>
-        (await reader(definition.type)).get(definition, id),
-      list: async (definition, options) =>
-        (await reader(definition.type)).list(definition, options),
-      count: async (definition) =>
-        (await reader(definition.type)).count(definition),
+      ...createPackageEntityReader(
+        context.entityService,
+        () => this.currentCall(),
+        (entityType) => this.ownsType(entityType),
+      ),
       create: async (definition, input) => {
         const declared = this.ownedDefinition(definition);
         const call = this.currentCall();
@@ -1142,7 +1194,7 @@ class DeclarativeServicePlugin<
     ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> => {
       const job = await context.jobs.getStatus(id);
       return job?.type === `${this.id}:${definition.name}`
-        ? statusFor(definition, job)
+        ? serviceJobStatus(definition, job)
         : null;
     };
     return {
@@ -1155,23 +1207,23 @@ class DeclarativeServicePlugin<
             `Service "${this.publicId}" cannot enqueue unregistered job "${definition.name}"`,
           );
         }
-        const parsed = definition.input.parse(input);
+        // Refused here, but queued as written: the worker parses it, once.
+        definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
-        // A tool's or a route's caller starts the job; outside one, this service.
-        const call = this.calls.getStore();
-        const authority = await context.jobAuthority.admit(call?.caller);
-        // Queued by the package acting as itself, the job runs as the package.
-        const byPackage = call === undefined || call.asPackage === true;
+        // A tool's or a route's caller starts the job; outside one, this
+        // service, and queued by the package acting as itself, the job runs
+        // as the package.
+        const data = await admitPackageJob(
+          context.jobAuthority,
+          this.calls.getStore()?.caller,
+          input,
+        );
         const maxRetries = definition.retry
           ? definition.retry.attempts - 1
           : undefined;
         const id = await context.jobs.enqueue({
           type: definition.name,
-          data: {
-            authority,
-            input: parsed,
-            ...(byPackage && { byPackage: true }),
-          },
+          data,
           ...(toolContext ? { toolContext } : {}),
           options: {
             source: this.id,

@@ -24,7 +24,6 @@ Topics are normal entities:
 
 ```ts
 interface TopicsPluginConfig {
-  includeEntityTypes?: string[]; // Deprecated allow-list. Default: ["*"]
   excludeEntityTypes?: string[]; // Entity types to omit. Default: []
   minRelevanceScore?: number; // Default: 0.5
   createRelevanceThreshold?: number; // Default: 0.7
@@ -33,7 +32,7 @@ interface TopicsPluginConfig {
     Record<ProjectionSourceRole, TopicSourceRolePolicy>
   >;
   sourceRoleOverrides?: Record<string, ProjectionSourceRole>;
-  mergeSimilarityThreshold?: number; // Default: 0.85
+  semanticMergeDistance?: number; // Default: 0.35
   autoMerge?: boolean; // Default: true
   extractableStatuses?: string[]; // Default: ["published"]
   excludeTitleTerms?: string[]; // Default: []; e.g. a book brain's author
@@ -60,12 +59,10 @@ Default role policies:
 
 ### Notes
 
-- By default, all registered projection-source entity types are processed (`includeEntityTypes: ["*"]`).
+- By default, all registered projection-source entity types are processed.
 - Use `excludeEntityTypes` as the normal blacklist when a brain should omit a source type.
-- `includeEntityTypes` remains as a deprecated compatibility allow-list for constrained evals or unusual instances.
 - Entity types declare their default derivation authority via `projectionSourceRole`; the topics plugin maps roles to mint/reinforce behavior instead of knowing about package-specific entity names.
 - Brain and instance configs can adapt authority with `excludeEntityTypes`, `sourceRoleOverrides`, and `sourceRolePolicies`.
-- Legacy `sourceWeights` and `mintableEntityTypes` remain supported for compatibility, but role-based policy is preferred.
 - Topic entities themselves are never reprocessed as sources.
 - Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
 - `reinforceRelevanceThreshold` applies to legacy batch/eval extraction, not automatic ranked selection.
@@ -132,8 +129,8 @@ new topics; unknown legacy fields on existing entities are stripped on read.
 
 ### Dependency boundary follow-up
 
-- `@brains/ui-library` and `@brains/utils` are direct workspace dependencies today.
-- Before publishing this package externally, either publish those packages too or expose the needed stable APIs through `@brains/plugins`.
+- `@brains/utils` and `@rizom/brain-ui/internal` (the first-party components) are direct workspace dependencies today.
+- Before publishing this package externally, either expose the needed stable APIs through `@brains/plugins` and `@rizom/brain-ui`, or replace them.
 
 ## Refactor notes
 

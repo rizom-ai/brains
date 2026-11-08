@@ -1,7 +1,30 @@
 import { describe, it, expect } from "bun:test";
+import { join } from "node:path";
 import { parseEvalYaml, loadPluginEvalConfig } from "../src/eval-yaml-loader";
 
+const namedExportsModule = join(
+  import.meta.dir,
+  "fixtures",
+  "named-plugin-exports.ts",
+);
+const defaultExportModule = join(
+  import.meta.dir,
+  "fixtures",
+  "default-plugin-export.ts",
+);
+
 describe("parseEvalYaml", () => {
+  it("should parse eval.yaml with the export that provides the plugin", () => {
+    const result = parseEvalYaml(`
+plugin: "@brains/assessment/eval"
+export: swotEvalPlugin
+`);
+    expect(result).toEqual({
+      plugin: "@brains/assessment/eval",
+      export: "swotEvalPlugin",
+    });
+  });
+
   it("should parse minimal eval.yaml with just plugin", () => {
     const result = parseEvalYaml(`plugin: "@brains/blog"`);
     expect(result).toEqual({ plugin: "@brains/blog" });
@@ -75,15 +98,54 @@ describe("loadPluginEvalConfig", () => {
     }
   });
 
-  it("resolves the actual plugin export when a package also exports adapters", async () => {
+  it("loads the export eval.yaml names, not the export that sorts first", async () => {
+    const config = await loadPluginEvalConfig({
+      plugin: namedExportsModule,
+      export: "declaredPlugin",
+    });
+
+    expect(config.plugins?.map((plugin) => plugin.id)).toEqual(["declared"]);
+  });
+
+  it("calls the named factory with eval.yaml's config", async () => {
+    const config = await loadPluginEvalConfig({
+      plugin: namedExportsModule,
+      export: "declaredPlugin",
+      config: { suffix: "configured" },
+    });
+
+    expect(config.plugins?.map((plugin) => plugin.id)).toEqual([
+      "declared-configured",
+    ]);
+  });
+
+  it("constructs a named plugin class", async () => {
     const config = await loadPluginEvalConfig({
       plugin: "@brains/link",
+      export: "LinkPlugin",
     });
 
     const plugin = config.plugins?.[0];
-    expect(plugin).toBeDefined();
     expect(plugin?.id).toBe("link");
     expect(plugin?.packageName).toBe("@brains/link");
     expect(plugin?.type).toBe("entity");
+  });
+
+  it("loads the module's default export when eval.yaml names none", async () => {
+    const config = await loadPluginEvalConfig({ plugin: defaultExportModule });
+
+    expect(config.plugins?.map((plugin) => plugin.id)).toEqual(["default"]);
+  });
+
+  it("refuses a module without a default export when eval.yaml names none", () => {
+    expect(
+      loadPluginEvalConfig({ plugin: namedExportsModule }),
+    ).rejects.toThrow(`${namedExportsModule} has no export "default"`);
+  });
+
+  it("refuses a named export that does not provide a plugin", () => {
+    expect(
+      loadPluginEvalConfig({ plugin: "@brains/link", export: "LinkAdapter" }),
+    ).rejects.toThrow(`@brains/link export "LinkAdapter" is not a plugin`);
   });
 });

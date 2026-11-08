@@ -84,11 +84,11 @@ describe("TopicsPlugin", () => {
     };
 
     it("should always skip topic entity type to prevent recursion", () => {
-      const pluginWithWhitelist = new TopicsPlugin({
-        includeEntityTypes: ["topic", "post"],
+      const pluginWithRoleOverride = new TopicsPlugin({
+        sourceRoleOverrides: { topic: "primary" },
       });
       expect(
-        pluginWithWhitelist.shouldProcessEntityType("topic", allowAll),
+        pluginWithRoleOverride.shouldProcessEntityType("topic", allowAll),
       ).toBe(false);
     });
 
@@ -121,45 +121,6 @@ describe("TopicsPlugin", () => {
       expect(
         pluginWithBlacklist.shouldProcessEntityType("note", allowAll),
       ).toBe(false);
-    });
-
-    it("should process whitelisted entity types and reject ones marked projectionSource: false", () => {
-      const pluginWithWhitelist = new TopicsPlugin({
-        includeEntityTypes: ["post", "summary", "skill"],
-      });
-      expect(
-        pluginWithWhitelist.shouldProcessEntityType("post", allowAll),
-      ).toBe(true);
-      expect(
-        pluginWithWhitelist.shouldProcessEntityType("summary", allowAll),
-      ).toBe(true);
-      expect(
-        pluginWithWhitelist.shouldProcessEntityType("skill", blockSkill),
-      ).toBe(false);
-      expect(
-        pluginWithWhitelist.shouldProcessEntityType("link", allowAll),
-      ).toBe(false);
-      expect(
-        pluginWithWhitelist.shouldProcessEntityType("deck", allowAll),
-      ).toBe(false);
-    });
-
-    it("should process nothing when includeEntityTypes is empty", () => {
-      const pluginWithEmpty = new TopicsPlugin({
-        includeEntityTypes: [],
-      });
-      expect(pluginWithEmpty.shouldProcessEntityType("post", allowAll)).toBe(
-        false,
-      );
-      expect(pluginWithEmpty.shouldProcessEntityType("link", allowAll)).toBe(
-        false,
-      );
-      expect(pluginWithEmpty.shouldProcessEntityType("deck", allowAll)).toBe(
-        false,
-      );
-      expect(pluginWithEmpty.shouldProcessEntityType("topic", allowAll)).toBe(
-        false,
-      );
     });
   });
 });

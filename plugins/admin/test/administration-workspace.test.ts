@@ -3,6 +3,7 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 
+import { toSdkError } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   adminActor,
@@ -215,5 +216,40 @@ describe("Admin-owned Studio Administration workspace", () => {
       ),
     ).toBe(false);
     expect(headBlockIds(people)).not.toContain("people-summary");
+  });
+
+  it("refuses an action it does not route by a code Studio publishes", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const auth = new AuthServicePlugin({
+      storageDir: await createTempDataDir("brains-administration-refusals-"),
+    });
+    authPlugins.push(auth);
+    await auth.register(shell);
+    const admin = await auth.getService().createUser({
+      displayName: "Ada Admin",
+      role: "admin",
+    });
+    const workspace = workspaceByLabel(
+      await captureAdminWorkspaces(shell),
+      "Administration",
+    );
+    const refusal = async (request: unknown): Promise<unknown> =>
+      Promise.resolve(
+        workspace.actionHandler?.(request, actorFor(adminActor, admin)),
+      ).then(
+        () => {
+          throw new Error("Expected a refusal");
+        },
+        (error: unknown) => toSdkError(error).toJSON(),
+      );
+
+    expect(await refusal({ input: {} })).toEqual({
+      code: "invalid_input",
+      message: "Administration action id is required",
+    });
+    expect(await refusal({ actionId: "promote-everyone", input: {} })).toEqual({
+      code: "not_found",
+      message: "Unknown Administration action: promote-everyone",
+    });
   });
 });

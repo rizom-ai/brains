@@ -12,7 +12,6 @@ describe("PublishAssetRegistry", () => {
       targetEntityField: { location: "frontmatter", field: "ogImageId" },
       requiredWhen: { status: "published" },
       autoGenerate: true,
-      jobType: "image:image-render-source",
     });
 
     expect(registry.has("post", "og-image")).toBe(true);

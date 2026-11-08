@@ -14,6 +14,7 @@ import {
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
+import { toSdkError } from "@brains/contracts";
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { LinkedInImportPlugin } from "../src/plugin";
@@ -529,6 +530,31 @@ describe("LinkedIn workspace", () => {
     expect(content).toContain("location: Rotterdam, Netherlands");
     expect(content).toContain("My own story.");
     expect(content).not.toContain("I build resilient software systems");
+  });
+
+  it("tells the Anchor why an import cannot start, in its public form", async () => {
+    const refusal = async (state: Fixture): Promise<unknown> =>
+      state
+        .act({ actionId: "import-profile", input: {}, mode: "prepare" })
+        .then(
+          () => {
+            throw new Error("Expected the import to be refused");
+          },
+          (error: unknown) => toSdkError(error).toJSON(),
+        );
+
+    expect(await refusal(await fixture())).toEqual({
+      code: "conflict",
+      message: "Connect LinkedIn before importing.",
+    });
+    const complete = await fixture({
+      token: { accessToken: "member-token", expiresAt: future },
+    });
+    await importProfile(complete);
+    expect(await refusal(complete)).toEqual({
+      code: "conflict",
+      message: "Your profile already has everything LinkedIn holds.",
+    });
   });
 
   it("refuses a confirmation once the profile has changed", async () => {

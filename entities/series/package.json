@@ -1,15 +1,15 @@
 {
   "name": "@brains/series",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.646",
+  "version": "0.2.0-alpha.658",
   "description": "Cross-content series — auto-derived from entities with seriesName metadata",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/entity-service": "workspace:*",

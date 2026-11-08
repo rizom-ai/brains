@@ -16,7 +16,6 @@ export const topicTitlesResponseSchema: z.ZodObject<
 > = z.strictObject({
   titles: z.array(z.string().trim().min(1).max(500)).max(20),
 });
-export type TopicTitlesResponse = z.output<typeof topicTitlesResponseSchema>;
 
 /**
  * Another plugin asks the topics plugin what the brain's public work is

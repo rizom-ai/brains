@@ -168,6 +168,7 @@ export interface StudioWorkspaceDefinition<
   TDataSchema extends OperatorSchema = OperatorSchema,
   TActions extends readonly AnyWorkspaceActionDefinition[] =
     readonly AnyWorkspaceActionDefinition[],
+  TQuerySchema extends OperatorSchema | undefined = OperatorSchema | undefined,
 > {
   readonly kind: "rizom-studio-workspace";
   readonly id: TId;
@@ -182,7 +183,11 @@ export interface StudioWorkspaceDefinition<
    * editor sends its publication actions here instead of guessing a host.
    */
   readonly publishesEntityTypes?: true | undefined;
-  readonly query?: OperatorSchema | undefined;
+  /**
+   * The workspace's URL state, read through `query.get(schema)`; a route
+   * that returns the browser here answers with this schema's input.
+   */
+  readonly query?: TQuerySchema | undefined;
   readonly data: TDataSchema;
   readonly actions: TActions;
   readonly badge?:
@@ -199,8 +204,9 @@ export interface StudioWorkspaceDefinition<
     TConfig,
     TState extends object,
     TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+    TOwned extends AnyEntityDefinition = never,
   >(
-    context: OperatorBindingContext<TConfig, TState, TAccountSettings>,
+    context: OperatorBindingContext<TConfig, TState, TAccountSettings, TOwned>,
     input: {
       readonly authorize?:
         | ((
@@ -225,21 +231,24 @@ export interface StudioWorkspaceDefinition<
         TActions[number],
         TConfig,
         TState,
-        TAccountSettings
+        TAccountSettings,
+        TOwned
       >[];
     },
   ): BoundStudioWorkspace<
-    StudioWorkspaceDefinition<TId, TDataSchema, TActions>,
+    StudioWorkspaceDefinition<TId, TDataSchema, TActions, TQuerySchema>,
     TConfig,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TOwned
   >;
 }
 
 export type AnyStudioWorkspaceDefinition = StudioWorkspaceDefinition<
   string,
   OperatorSchema,
-  readonly AnyWorkspaceActionDefinition[]
+  readonly AnyWorkspaceActionDefinition[],
+  OperatorSchema | undefined
 >;
 
 const studioWorkspaceExecutor: unique symbol = Symbol(
@@ -280,6 +289,7 @@ export interface StudioWorkspaceBinding<
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition = never,
 > {
   readonly kind: "rizom-studio-workspace-binding";
   readonly definition: TDefinition;
@@ -287,7 +297,8 @@ export interface StudioWorkspaceBinding<
     TDefinition["actions"][number],
     TConfig,
     TState,
-    TAccountSettings
+    TAccountSettings,
+    TOwned
   >[];
   readonly [studioWorkspaceExecutor]?:
     | StudioWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings>
@@ -301,7 +312,14 @@ export type BoundStudioWorkspace<
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
-> = StudioWorkspaceBinding<TDefinition, TConfig, TState, TAccountSettings> &
+  TOwned extends AnyEntityDefinition = never,
+> = StudioWorkspaceBinding<
+  TDefinition,
+  TConfig,
+  TState,
+  TAccountSettings,
+  TOwned
+> &
   OperatorBindingBrand<TConfig, TState, TAccountSettings>;
 
 export function getStudioWorkspaceExecutor<
@@ -309,8 +327,15 @@ export function getStudioWorkspaceExecutor<
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TOwned extends AnyEntityDefinition,
 >(
-  binding: BoundStudioWorkspace<TDefinition, TConfig, TState, TAccountSettings>,
+  binding: BoundStudioWorkspace<
+    TDefinition,
+    TConfig,
+    TState,
+    TAccountSettings,
+    TOwned
+  >,
 ): StudioWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings> {
   const executor = binding[studioWorkspaceExecutor];
   if (!executor) {
@@ -356,12 +381,13 @@ export function defineStudioWorkspace<
   const TId extends string,
   TDataSchema extends OperatorSchema,
   const TActions extends readonly AnyWorkspaceActionDefinition[],
+  TQuerySchema extends OperatorSchema | undefined = undefined,
 >(
   definition: Omit<
-    StudioWorkspaceDefinition<TId, TDataSchema, TActions>,
+    StudioWorkspaceDefinition<TId, TDataSchema, TActions, TQuerySchema>,
     "kind" | "bind"
   >,
-): StudioWorkspaceDefinition<TId, TDataSchema, TActions> {
+): StudioWorkspaceDefinition<TId, TDataSchema, TActions, TQuerySchema> {
   assertIdentifier(definition.id, "Studio workspace id");
   assertText(definition.label, `Studio workspace "${definition.id}" label`);
   assertOptionalText(
@@ -394,7 +420,12 @@ export function defineStudioWorkspace<
     assertPublicationWorkspace(definition, actionNames);
   }
 
-  const workspace: StudioWorkspaceDefinition<TId, TDataSchema, TActions> = {
+  const workspace: StudioWorkspaceDefinition<
+    TId,
+    TDataSchema,
+    TActions,
+    TQuerySchema
+  > = {
     kind: "rizom-studio-workspace",
     ...definition,
     ...(definition.entities

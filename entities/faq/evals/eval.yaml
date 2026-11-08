@@ -1,2 +1,3 @@
 plugin: "@brains/faq"
+export: faqPlugin
 model: gpt-6-luna

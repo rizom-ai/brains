@@ -11,9 +11,9 @@ import {
 import { createElement, type ReactElement } from "react";
 import { notificationsSendContract } from "@brains/contracts";
 import {
-  SITE_METADATA_UPDATED_CHANNEL,
   siteBuilderRouteRegisterContract,
   siteMetadataContract,
+  siteMetadataUpdatedChannel,
 } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
@@ -43,10 +43,6 @@ const maintenanceStatusSchema = z.strictObject({
   failed: z.boolean(),
 });
 type MaintenanceStatus = z.output<typeof maintenanceStatusSchema>;
-/** Only the theme is read from the site's metadata. */
-const siteThemeSchema = z.looseObject({
-  themeMode: z.enum(["light", "dark"]).optional(),
-});
 
 /** Public intake on the plugin's own policy, on the origin the brain serves.
  * Readiness requires recovery and the actual Studio Inbox destination, not a
@@ -221,14 +217,10 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
     });
     if (!context.executionOnly)
-      context.messaging.subscribe<unknown, { success: boolean }>(
-        SITE_METADATA_UPDATED_CHANNEL,
-        async (message) => {
-          this.siteTheme = siteThemeSchema.safeParse(message.payload).data
-            ?.themeMode;
-          return { success: true };
-        },
-      );
+      context.messaging.subscribe(siteMetadataUpdatedChannel, async (site) => {
+        this.siteTheme = site.themeMode;
+        return { success: true };
+      });
     context.endpoints.register({
       label: "Contact",
       url: `${config.http.origin}/contact`,

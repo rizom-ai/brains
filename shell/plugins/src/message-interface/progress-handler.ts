@@ -1,7 +1,6 @@
-import { JOB_CHANNELS } from "@brains/contracts";
 import type { InterfacePluginContext } from "../interface/context";
 import {
-  JobProgressEventSchema,
+  jobProgressChannel,
   type JobProgressEvent,
   type JobContext,
 } from "@brains/job-queue";
@@ -12,28 +11,19 @@ import {
 export interface ProgressHandlers {
   onProgress: (event: JobProgressEvent, context: JobContext) => Promise<void>;
   onError: (error: unknown) => void;
-  onInvalidSchema: () => void;
 }
 
 /**
  * Setup progress event handler with callbacks
- * Subscribes to job-progress channel and validates/routes events
+ * Subscribes to the job progress channel, which refuses a malformed event,
+ * and routes each valid one
  */
 export function setupProgressHandler(
   context: InterfacePluginContext,
   handlers: ProgressHandlers,
 ): void {
-  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
+  context.messaging.subscribe(jobProgressChannel, async (progressEvent) => {
     try {
-      const validationResult = JobProgressEventSchema.safeParse(
-        message.payload,
-      );
-      if (!validationResult.success) {
-        handlers.onInvalidSchema();
-        return { success: false };
-      }
-
-      const progressEvent = validationResult.data;
       await handlers.onProgress(progressEvent, progressEvent.metadata);
 
       return { success: true };

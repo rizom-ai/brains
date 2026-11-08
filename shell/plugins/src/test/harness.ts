@@ -20,6 +20,7 @@ import type {
   IEntityService,
   IEntityRegistry,
 } from "@brains/entity-service";
+import type { PrincipalResolver } from "@brains/content-service";
 import { createMockShell, type MockShell } from "./mock-shell";
 import {
   createServicePluginContext,
@@ -46,6 +47,8 @@ export interface HarnessOptions {
   gitBrokerSocket?: string;
   /** Absolute broker-owned checkout supplied with that endpoint. */
   gitBrokerCheckout?: string;
+  /** Who an account-bound caller is now, for jobs that run as their requester. */
+  resolvePrincipal?: PrincipalResolver;
 }
 
 /**
@@ -73,6 +76,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       profileKind?: string;
       gitBrokerSocket?: string;
       gitBrokerCheckout?: string;
+      resolvePrincipal?: PrincipalResolver;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
@@ -94,6 +98,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.gitBrokerCheckout !== undefined) {
       mockShellOptions.gitBrokerCheckout = options.gitBrokerCheckout;
+    }
+    if (options.resolvePrincipal !== undefined) {
+      mockShellOptions.resolvePrincipal = options.resolvePrincipal;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }
@@ -120,6 +127,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         profileKind?: string;
         gitBrokerSocket?: string;
         gitBrokerCheckout?: string;
+        resolvePrincipal?: PrincipalResolver;
       } = {
         logger: createSilentLogger(context),
       };
@@ -143,6 +151,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       }
       if (this.options.gitBrokerCheckout !== undefined) {
         mockShellOptions.gitBrokerCheckout = this.options.gitBrokerCheckout;
+      }
+      if (this.options.resolvePrincipal !== undefined) {
+        mockShellOptions.resolvePrincipal = this.options.resolvePrincipal;
       }
       this.mockShell = createMockShell(mockShellOptions);
     }

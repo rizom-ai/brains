@@ -1,12 +1,8 @@
 # External Site and Theme Authoring
 
-> **Alpha preview for collaborators.** The last exact registry-tested combination
-> was `@rizom/brain@0.2.0-alpha.313` with `@rizom/site@0.2.0-alpha.233`. The
-> final candidates may advance after review; stable versions have not been
-> nominated.
-
 Sites and themes are ordinary public npm packages and can live outside the
-Brains monorepo. `@rizom/site` is the sole structural authoring SDK; site,
+Brains monorepo. `@rizom/site` is the sole structural authoring SDK, and
+`@rizom/brain-ui` holds the components a section renders entities with. Site,
 theme, and Brain versions are selected independently.
 
 For the complete checked implementation, read the
@@ -35,9 +31,9 @@ focused entity/service/interface packages composed by the Brain definition.
 
 ## Publishable site package
 
-A deployable site publishes built JavaScript and declarations. During this
-preview, pin `@rizom/site` exactly and declare the nominated Brain compatibility
-range:
+A deployable site publishes built JavaScript and declarations. It pins
+`@rizom/site` and `@rizom/brain-ui` exactly and declares the Brain releases it
+runs on:
 
 ```json
 {
@@ -56,15 +52,16 @@ range:
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.233"
+    "@rizom/brain-ui": "0.2.0",
+    "@rizom/site": "0.2.0"
   },
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.272 <0.3.0",
+    "@rizom/brain": ">=0.2.0 <0.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.272",
+    "@rizom/brain": "0.2.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",
     "react": "^19.2.7",
@@ -76,6 +73,10 @@ range:
   }
 }
 ```
+
+`@rizom/brain-ui` versions and releases with `@rizom/brain`, so pin it at the
+release of the Brain you develop against. Before the stable `0.2.0` releases
+are published, use the exact alphas you develop against.
 
 The published manifest and tarball must contain no `workspace:` ranges,
 authoring-only publish fields, private imports, or undeclared runtime
@@ -170,6 +171,59 @@ pass `style` as an object, and camel-case SVG props such as `strokeWidth`.
 Server-rendered sites remain static and are not hydrated merely because they use
 React.
 
+## Rendering entities with `@rizom/brain-ui`
+
+`@rizom/brain-ui` holds the components a site section or a plugin view renders
+entities with: `Card`, `CardTitle`, `CardMetadata`, `TagsList` and
+`MarkdownContent`, and the `formatDate` helper. They take the selected theme's
+tokens, so a section that uses them follows whichever theme the brain selects.
+`react` and `react-dom` are peers.
+
+<!-- public-authoring-example: external-site-ui-section -->
+
+```tsx
+import {
+  Card,
+  CardMetadata,
+  CardTitle,
+  MarkdownContent,
+  TagsList,
+  formatDate,
+} from "@rizom/brain-ui";
+import { defineSection, z } from "@rizom/site";
+
+export const reading = defineSection(
+  z.object({
+    title: z.string(),
+    url: z.string(),
+    savedAt: z.string(),
+    tags: z.array(z.string()),
+    note: z.string(),
+  }),
+  ({ title, url, savedAt, tags, note }) => (
+    <Card variant="compact">
+      <CardTitle href={url}>{title}</CardTitle>
+      <CardMetadata>
+        Saved {formatDate(savedAt, { style: "long" })}
+      </CardMetadata>
+      <TagsList tags={tags} />
+      <MarkdownContent markdown={note} />
+    </Card>
+  ),
+  { title: "Reading", description: "One saved reading" },
+);
+```
+
+- `MarkdownContent` renders markdown as sanitized prose. Inside a site build it
+  resolves `entity://image/<id>` references to the build's optimized images.
+- `formatDate` formats in the `en-US` locale and the UTC time zone, so a build
+  renders the same dates wherever it runs.
+- Import from the package root only; the rest of the library is first-party
+  and not published.
+
+The [reading-site fixture](../packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx)
+renders its shelf section with these components.
+
 ## Stable structural fields
 
 | Field           | Purpose                                                                |
@@ -244,6 +298,7 @@ paths during that build.
 | Content is accepted by TypeScript but fails  | Keep content under the section group's namespace and satisfy its schema              |
 | A route renders no section                   | Match `template: "namespace:sectionId"` to `sectionGroup(namespace, {...})`          |
 | The site imports `@rizom/brain/site`         | Import every structural helper from `@rizom/site`                                    |
+| A section imports `@rizom/brain-ui/internal` | Import components from the `@rizom/brain-ui` root; `internal` is not published       |
 | The site embeds tools or a runtime plugin    | Move backend behavior into a separately composed extension package                   |
 | React warns about a JSX property             | Use `className`, `htmlFor`, style objects, and camel-cased SVG props                 |
 | Theme and site versions move together        | Publish and pin them independently                                                   |

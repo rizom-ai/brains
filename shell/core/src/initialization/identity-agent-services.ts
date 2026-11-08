@@ -12,16 +12,18 @@ import {
   type IAIService,
 } from "@brains/ai-service";
 import {
-  ENTITY_CHANNELS,
   type AgentContextRequest,
   agentContextContract,
   askedBeforeContract,
 } from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
-import type {
-  IEntityRegistry,
-  IEntityService,
-  IEmbeddingService,
+import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type IEntityRegistry,
+  type IEntityService,
+  type IEmbeddingService,
 } from "@brains/entity-service";
 import {
   AnchorProfileService,
@@ -84,29 +86,23 @@ function subscribeToEntityCacheInvalidation(
   refreshCache: () => Promise<void>,
   logger: Logger,
 ): (() => void)[] {
-  const events = [
-    ENTITY_CHANNELS.created,
-    ENTITY_CHANNELS.updated,
-    ENTITY_CHANNELS.deleted,
-  ] as const;
-
   // Observed, not subscribed: the identity follows writes from the runtime's
   // other process too, such as content the worker syncs from git.
-  return events.map((event) =>
-    messageBus.observe<{ entityType: string; entityId: string }, void>(
-      event,
-      async (message) => {
+  return [entityCreatedChannel, entityUpdatedChannel, entityDeletedChannel].map(
+    (channel) =>
+      messageBus.observe(channel.name, async (message) => {
+        const change = channel.schema.safeParse(message.payload);
         if (
-          message.payload.entityType === entityType &&
-          (entityId === null || message.payload.entityId === entityId)
+          change.success &&
+          change.data.entityType === entityType &&
+          (entityId === null || change.data.entityId === entityId)
         ) {
           await refreshCache();
-          const action = event.replace("entity:", "");
+          const action = channel.name.replace("entity:", "");
           logger.debug(`${entityType} entity ${action}, cache refreshed`);
         }
         return { success: true };
-      },
-    ),
+      }),
   );
 }
 

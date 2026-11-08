@@ -5,6 +5,7 @@ import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/plugins";
 import { askedBeforeContract } from "@brains/contracts";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockShell,
   createPluginHarness,
@@ -12,6 +13,18 @@ import {
 } from "@brains/plugins/test";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { FaqPlugin } from "../src";
+
+/** What the embedding job announces once an entity's embedding is stored. */
+function embeddingReady(
+  entityType: string,
+  entityId: string,
+): { entityType: string; entityId: string; entity: object } {
+  return {
+    entityType,
+    entityId,
+    entity: createTestEntity(entityType, { id: entityId }),
+  };
+}
 
 describe("FaqPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -182,10 +195,10 @@ describe("FaqPlugin refused enqueues", () => {
     const queue = harness.getMockShell().getJobQueueService();
     refuseEnqueues(queue, 1);
 
-    await harness.sendMessage("entity:embedding:ready", {
-      entityType: "faq",
-      entityId: "faq-1",
-    });
+    await harness.sendMessage(
+      "entity:embedding:ready",
+      embeddingReady("faq", "faq-1"),
+    );
 
     await waitUntil(
       async () =>
@@ -321,14 +334,14 @@ describe("FaqPlugin reconciliation", () => {
     });
     await harness.installPlugin(new FaqPlugin());
 
-    await harness.sendMessage("entity:embedding:ready", {
-      entityType: "note",
-      entityId: "note-1",
-    });
-    await harness.sendMessage("entity:embedding:ready", {
-      entityType: "faq",
-      entityId: "faq-1",
-    });
+    await harness.sendMessage(
+      "entity:embedding:ready",
+      embeddingReady("note", "note-1"),
+    );
+    await harness.sendMessage(
+      "entity:embedding:ready",
+      embeddingReady("faq", "faq-1"),
+    );
 
     const jobs = await harness
       .getMockShell()
@@ -373,7 +386,7 @@ describe("FaqPlugin evals", () => {
 
     await shell.getMessageBus().send({
       type: "entity:embedding:ready",
-      payload: { entityType: "faq", entityId: "faq-1" },
+      payload: embeddingReady("faq", "faq-1"),
       sender: "embedding",
       broadcast: true,
     });

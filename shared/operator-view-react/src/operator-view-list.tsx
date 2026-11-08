@@ -60,10 +60,7 @@ export function ListItems(props: {
       presentation={props.presentation}
     >
       {props.items.map((item, index) => {
-        const metadata = [
-          ...(item.meta ? [item.meta] : []),
-          ...(item.metadata ?? []),
-        ];
+        const metadata = item.metadata ?? [];
         return (
           <OperatorRecordRow
             key={item.id}

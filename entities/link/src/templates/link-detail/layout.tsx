@@ -1,13 +1,13 @@
 import type { JSX } from "react";
 import type { LinkDetailData, LinkDetail } from "./schema";
+import { Card } from "@rizom/brain-ui";
 import {
   Head,
   DetailPageHeader,
   BackLink,
   LinkButton,
-  Card,
   Alert,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 
 interface LinkNavigationProps {
   prevLink: LinkDetail | null;

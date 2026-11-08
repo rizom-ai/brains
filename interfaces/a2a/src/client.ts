@@ -3,9 +3,13 @@ import type {
   ContentVisibility,
   Tool,
   ToolResponse,
-  ParsedAgentCard,
+  UserPermissionLevel,
 } from "@brains/plugins";
-import { internalFullScope, parseAgentCard } from "@brains/plugins";
+import {
+  fetchVerifiedAgentCard,
+  isEndpointRefusal,
+  permissionToVisibilityScope,
+} from "@brains/plugins";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
 import { getErrorMessage } from "@brains/utils/error";
 import { SourceCitationSchema, type SourceCitation } from "@brains/contracts";
@@ -264,58 +268,6 @@ function normalizeAgentTarget(agent: string): NormalizedAgentTarget {
 
 function isExactDomainLikeAgentId(agentId: string): boolean {
   return /^[^\s/.][^\s/]*\.[^\s/]+$/.test(agentId);
-}
-
-/**
- * Validate a remote-supplied Agent Card endpoint URL before contacting it.
- * The card is fetched from https://<agentId>, so the endpoint must stay on
- * that host over HTTPS — anything else is an SSRF vector.
- */
-function validateCardEndpoint(
-  cardUrl: string,
-  agentId: string,
-): { ok: true } | { ok: false; error: string } {
-  let url: URL;
-  try {
-    url = new URL(cardUrl);
-  } catch {
-    return {
-      ok: false,
-      error: `Agent Card for ${agentId} has an invalid endpoint URL.`,
-    };
-  }
-  if (url.protocol !== "https:" || url.hostname.toLowerCase() !== agentId) {
-    return {
-      ok: false,
-      error: `Agent Card for ${agentId} has an untrusted endpoint URL (${cardUrl}). The endpoint must be https:// on ${agentId}.`,
-    };
-  }
-  return { ok: true };
-}
-
-async function fetchAgentCard(
-  agentUrl: string,
-  fetchFn: FetchFn,
-  requestTimeoutMs: number,
-  signal?: AbortSignal,
-): Promise<ParsedAgentCard | null> {
-  const cardUrl = agentUrl.replace(/\/$/, "") + "/.well-known/agent-card.json";
-  try {
-    const response = await fetchWithTimeout(
-      fetchFn,
-      cardUrl,
-      {},
-      requestTimeoutMs,
-      signal,
-    );
-    if (!response.ok) return null;
-    const data: unknown = await response.json();
-    signal?.throwIfAborted();
-    return parseAgentCard(data);
-  } catch {
-    if (signal?.aborted) throw signal.reason;
-    return null;
-  }
 }
 
 /**
@@ -623,6 +575,11 @@ export interface A2AClientDeps extends A2ANetworkOptions {
 export interface ExecuteAgentCallOptions {
   /** Refuse unknown domains instead of allowing the tool's one-shot mode. */
   requireSaved?: boolean;
+  /**
+   * Whose call this is. Saved agents resolve at this level's visibility, so
+   * an agent saved above it is an unsaved domain; absent reads public only.
+   */
+  userPermissionLevel?: UserPermissionLevel | undefined;
   /** Cancellation for this outbound call. */
   signal?: AbortSignal;
 }
@@ -660,12 +617,12 @@ export async function executeAgentCall(
     };
   }
 
+  // A saved agent is known only to callers who may read it: anyone else
+  // meets an unsaved domain, without its saved status.
   const entity = await deps.entityService.getEntity({
     entityType: "agent",
     id: agentId,
-    visibilityScope: internalFullScope(
-      "agent_call is admin-only and resolves saved remote agents at any visibility",
-    ),
+    visibilityScope: permissionToVisibilityScope(options.userPermissionLevel),
   });
   signal?.throwIfAborted();
   if (!entity) {
@@ -684,14 +641,17 @@ export async function executeAgentCall(
       };
     }
 
-    const cardBaseUrl = `https://${agentId}`;
-    const card = await fetchAgentCard(
-      cardBaseUrl,
-      fetchFn,
-      networkOptions.requestTimeoutMs,
+    const verified = await fetchVerifiedAgentCard(agentId, {
+      fetch: fetchFn,
+      timeoutMs: networkOptions.requestTimeoutMs,
       signal,
-    );
-    if (!card) {
+    });
+    if (!verified.ok) {
+      // The endpoint must be HTTPS on the agent's own host: anything else is
+      // an SSRF vector, refused in words that name both hosts.
+      if (isEndpointRefusal(verified.reason)) {
+        return { success: false, error: verified.error };
+      }
       return {
         success: false,
         error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
@@ -699,13 +659,8 @@ export async function executeAgentCall(
       };
     }
 
-    const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
-    if (!oneShotEndpoint.ok) {
-      return { success: false, error: oneShotEndpoint.error };
-    }
-
     const oneShotResult = await sendMessage(
-      card.url,
+      verified.card.url,
       input.message,
       fetchFn,
       deps.requestSigner,
@@ -747,27 +702,23 @@ export async function executeAgentCall(
     };
   }
 
-  const cardBaseUrl = `https://${agentId}`;
-  const card = await fetchAgentCard(
-    cardBaseUrl,
-    fetchFn,
-    networkOptions.requestTimeoutMs,
+  const verified = await fetchVerifiedAgentCard(agentId, {
+    fetch: fetchFn,
+    timeoutMs: networkOptions.requestTimeoutMs,
     signal,
-  );
-  if (!card) {
+  });
+  if (!verified.ok) {
+    if (isEndpointRefusal(verified.reason)) {
+      return { success: false, error: verified.error };
+    }
     return {
       success: false,
-      error: `Could not fetch Agent Card from ${cardBaseUrl}`,
+      error: `Could not fetch Agent Card from https://${agentId}`,
     };
   }
 
-  const approvedEndpoint = validateCardEndpoint(card.url, agentId);
-  if (!approvedEndpoint.ok) {
-    return { success: false, error: approvedEndpoint.error };
-  }
-
   return sendMessage(
-    card.url,
+    verified.card.url,
     input.message,
     fetchFn,
     deps.requestSigner,
@@ -794,6 +745,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
         };
       }
       return executeAgentCall(parsed.data, deps, {
+        userPermissionLevel: context.userPermissionLevel,
         ...(context.signal ? { signal: context.signal } : {}),
       });
     },

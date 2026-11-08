@@ -35,10 +35,6 @@ export const consoleJumpDestinationsRequestSchema: ConsoleJumpDestinationsReques
     permissionLevel: z.enum(["public", "trusted", "admin"]),
   });
 
-export type ConsoleJumpDestinationsRequest = z.output<
-  typeof consoleJumpDestinationsRequestSchema
->;
-
 /** One page a surface offers in the ⌘K palette. */
 export interface ConsoleJumpDestination {
   id: string;
