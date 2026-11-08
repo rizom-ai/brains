@@ -48,7 +48,6 @@ describe("long-note agent eval coverage", () => {
         entityType: "note",
         id,
         operation: {
-          kind: "edits",
           edits: [
             { oldText: "# Working Plan", newText: "# Approved Plan" },
             {
@@ -122,7 +121,6 @@ describe("long-note agent eval coverage", () => {
           entityType: "note",
           id,
           operation: {
-            kind: "edits",
             edits: [
               ...(combined
                 ? [{ oldText: "# Working Plan", newText: "# Approved Plan" }]

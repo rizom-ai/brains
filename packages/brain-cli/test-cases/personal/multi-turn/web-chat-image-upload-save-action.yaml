@@ -42,8 +42,7 @@ turns:
             entityType: image
             source.kind: upload
             source.transform: preserve
-            source.upload.kind: upload
-            source.upload.id: upload-00000000-0000-4000-8000-000000000703
+            source.id: upload-00000000-0000-4000-8000-000000000703
           argsAbsent:
             - prompt
             - from
@@ -64,8 +63,7 @@ successCriteria:
         entityType: image
         source.kind: upload
         source.transform: preserve
-        source.upload.kind: upload
-        source.upload.id: upload-00000000-0000-4000-8000-000000000703
+        source.id: upload-00000000-0000-4000-8000-000000000703
       argsAbsent:
         - prompt
         - from

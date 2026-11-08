@@ -64,7 +64,6 @@ turns:
             entityType: note
             id: long-note-update-title-and-body
             operation:
-              kind: edits
               edits:
                 &patch [
                   { "oldText": "# Working Plan", "newText": "# Approved Plan" },
@@ -101,7 +100,6 @@ turns:
             entityType: note
             id: long-note-update-title-and-body
             operation:
-              kind: edits
               edits: *patch
           argsAbsent: ["operation.fields", "operation.content"]
           resultContains:
