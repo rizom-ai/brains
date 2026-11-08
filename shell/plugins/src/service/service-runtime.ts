@@ -1,7 +1,11 @@
 import type { BusContract, Channel } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
-import type { IMessagingNamespace } from "../base/context-types";
+import type {
+  IMessagingNamespace,
+  IProfileKindsNamespace,
+} from "../base/context-types";
+import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type {
@@ -159,6 +163,13 @@ export interface ServiceRuntime {
    * refused. Released when the package shuts down.
    */
   claim(type: string): ClaimedSystemType;
+  /**
+   * The brain's profile-kind catalog, as the class registered kinds into
+   * it and read the selected one once registration completed.
+   */
+  readonly profileKinds: IProfileKindsNamespace;
+  /** One structured answer from the brain's AI, as the class asked it. */
+  readonly ai: Pick<IEntityAINamespace, "generateObject">;
 }
 
 /** The entity service's reads a first-party class made, and nothing that writes. */
@@ -198,6 +209,8 @@ export interface ServiceRuntimeBinding {
   readonly domain: string | undefined;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
+  readonly profileKinds: IProfileKindsNamespace;
+  readonly ai: Pick<IEntityAINamespace, "generateObject">;
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
@@ -213,6 +226,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     domain: binding.domain,
     entityReads: binding.entityReads,
     claim: binding.claim,
+    profileKinds: binding.profileKinds,
+    ai: binding.ai,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
     },

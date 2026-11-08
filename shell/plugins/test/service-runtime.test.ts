@@ -812,3 +812,84 @@ describe("a first-party service claiming a shell system type", () => {
     expect(await second.register(shell)).toBeDefined();
   });
 });
+
+describe("a first-party service's profile kinds and AI", () => {
+  it("registers a kind, and reads the selected one once registration completes", async () => {
+    const shell = createMockShell({ profileKind: "gardener" });
+    const read: unknown[] = [];
+    const plugin = await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.profileKinds.register({
+              kind: "gardener",
+              category: "person",
+              fields: z.object({ plot: z.string().optional() }),
+              labels: { singular: "Gardener", plural: "Gardeners" },
+            });
+            runtime.registered(() => {
+              read.push(
+                runtime.profileKinds.getResolved(),
+                Object.keys(
+                  runtime.profileKinds.getSelectedDefinition()?.fields.shape ??
+                    {},
+                ),
+              );
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    shell.getProfileKindRegistry().finalize();
+    await plugin.finalizeRegistration?.();
+
+    expect(read).toEqual([
+      {
+        kind: "gardener",
+        category: "person",
+        labels: { singular: "Gardener", plural: "Gardeners" },
+      },
+      ["plot"],
+    ]);
+  });
+
+  it("asks the brain's AI for one structured answer", async () => {
+    const shell = createMockShell();
+    const prompts: string[] = [];
+    shell.generateObject = async <T>(
+      prompt: string,
+      schema: { parse(value: unknown): T },
+    ): Promise<{ object: T }> => {
+      prompts.push(prompt);
+      return { object: schema.parse({ role: "Gardener" }) };
+    };
+    const answered: unknown[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.ready(async () => {
+              answered.push(
+                await runtime.ai.generateObject(
+                  "Who tends this brain?",
+                  z.object({ role: z.string() }),
+                ),
+              );
+            });
+            return [];
+          },
+        },
+      ),
+    ).then((plugin) => plugin.ready?.());
+
+    expect(prompts).toEqual(["Who tends this brain?"]);
+    expect(answered).toEqual([{ object: { role: "Gardener" } }]);
+  });
+});
