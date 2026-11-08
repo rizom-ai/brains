@@ -262,7 +262,6 @@ export function initializeIdentityAndAgentServices(
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,
-    maxTokens: aiService.getConfig().maxTokens,
     reasoningEffort: aiService.getConfig().reasoningEffort,
     messageBus,
   });
