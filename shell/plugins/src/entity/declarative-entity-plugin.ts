@@ -728,6 +728,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.create = definition.create;
     this.attachments = definition.attachments;
     this.jobs = definition.jobs ?? {};
+    // A create route names the type's own generation "generation"; a job
+    // of that name would shadow it.
+    if (Object.hasOwn(this.jobs, "generation")) {
+      throw new Error(
+        `${definition.type} declares a job named "generation", the name a create route gives its own generation`,
+      );
+    }
     this.generation = definition.generation;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
@@ -1886,7 +1893,12 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     executionContext: CreateExecutionContext,
   ): Promise<CreateResult> {
     const { job: name, input: jobInput = {} } = allocation.delegate;
-    const job = Object.hasOwn(this.jobs, name) ? this.jobs[name] : undefined;
+    // "generation" names the type's own generation, queued as
+    // `{type}:generation`, as an entity plugin's interceptor queued it.
+    const ownGeneration = name === "generation" ? this.generation : undefined;
+    const job =
+      ownGeneration ??
+      (Object.hasOwn(this.jobs, name) ? this.jobs[name] : undefined);
     if (!job) {
       return createFailure(
         `${this.entityType} declares no job named "${name}"`,
@@ -1924,22 +1936,35 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     if ("error" in allocated) return createFailure(allocated.error);
     const entityId = allocated.entityId;
     try {
-      const jobId = await context.jobs.enqueue({
-        type: name,
-        // The input as written, and beside it the entity a generation fills
-        // and the entries the request named it from.
-        data: {
-          ...queued,
-          ...(entityId !== undefined && { entityId }),
-          ...("generate" in job &&
-            definedFields({ source: generationSource(input) })),
-        },
-        toolContext: {
-          interfaceType: executionContext.interfaceType,
-          actor: executionContext.actor,
-          ...definedFields({ channelId: executionContext.channelId }),
-        },
-      });
+      const data = {
+        ...queued,
+        ...(entityId !== undefined && { entityId }),
+        ...("generate" in job &&
+          definedFields({ source: generationSource(input) })),
+      };
+      const jobId = ownGeneration
+        ? // Content work for the caller who asked, routed back to their
+          // conversation, as the classes queued their generations.
+          await context.jobs.enqueue({
+            type: `${this.entityType}:generation`,
+            data,
+            toolContext: executionContext,
+            options: {
+              source: this.id,
+              metadata: { operationType: "content_operations" },
+            },
+          })
+        : await context.jobs.enqueue({
+            type: name,
+            // The input as written, and beside it the entity a generation
+            // fills and the entries the request named it from.
+            data,
+            toolContext: {
+              interfaceType: executionContext.interfaceType,
+              actor: executionContext.actor,
+              ...definedFields({ channelId: executionContext.channelId }),
+            },
+          });
       const attachment =
         "attachment" in allocation ? allocation.attachment : undefined;
       return {
