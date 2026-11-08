@@ -1,3 +1,5 @@
+import { enableChatCapability } from "./fixtures/chat-capability";
+import { directorySyncStatusContract } from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 import {
   createMockShell,
@@ -234,14 +236,6 @@ async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
   };
 }
 
-function enableChatCapability(shell: MockShell): void {
-  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-  shell.getPluginPackageName = (pluginId): string | undefined =>
-    pluginId === "web-chat"
-      ? "@brains/web-chat"
-      : getPluginPackageName(pluginId);
-}
-
 async function setup(): Promise<{
   shell: MockShell;
   plugin: StudioPlugin;
@@ -368,7 +362,7 @@ describe("Studio active-session gate inversion", () => {
     }
   });
 
-  it("keeps only static assets and legacy redirects as anonymous non-data exceptions", async () => {
+  it("keeps only static assets as an anonymous non-data exception", async () => {
     const { plugin } = await setup();
 
     const manifest = studioAssetManifestSchema.parse(
@@ -380,14 +374,6 @@ describe("Studio active-session gate inversion", () => {
       request(`/studio/assets/${manifest.entrypoints.script}`),
     );
     expect(asset.status).toBe(200);
-
-    const redirect = await findRoute(plugin, "/cms").handler(
-      request("/cms/entities/note/example?view=edit"),
-    );
-    expect(redirect.status).toBe(308);
-    expect(redirect.headers.get("location")).toBe(
-      "/studio/entities/note/example?view=edit",
-    );
   });
 
   it("admits every active session to shell entries", async () => {
@@ -604,10 +590,12 @@ describe("Studio active-session gate inversion", () => {
   it("keeps repository sync metadata Admin-only after gate inversion", async () => {
     const { shell, plugin, sessions } = await setup();
     let syncReads = 0;
-    shell.getMessageBus().subscribe("sync:status:request", async () => {
-      syncReads += 1;
-      return { success: true, data: {} };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncStatusContract.name, async () => {
+        syncReads += 1;
+        return { success: true, data: {} };
+      });
 
     for (const cookie of [sessions.public, sessions.trusted]) {
       const response = await findRoute(

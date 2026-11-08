@@ -39,38 +39,6 @@ export const actorRefSchema: ActorRefSchema = z.discriminatedUnion("kind", [
 
 export type ActorRef = z.output<typeof actorRefSchema>;
 
-export interface LegacyActorIdentity {
-  actorId: string;
-  userId?: string | undefined;
-  canonicalId?: string | undefined;
-  interfaceType: string;
-  role: "user" | "assistant";
-}
-
-export function actorRefFromLegacy(input: LegacyActorIdentity): ActorRef {
-  const migratedUserId =
-    input.userId ??
-    (input.canonicalId?.startsWith("user:")
-      ? `usr_${input.canonicalId.slice("user:".length)}`
-      : undefined);
-  if (migratedUserId) {
-    return {
-      kind: "user",
-      userId: migratedUserId,
-      ...(input.canonicalId ? { canonicalId: input.canonicalId } : {}),
-    };
-  }
-  if (input.role === "assistant") {
-    return { kind: "agent", agentId: input.actorId };
-  }
-  return {
-    kind: "external",
-    externalActorId: input.canonicalId
-      ? createExternalActorId("canonical", input.canonicalId)
-      : createExternalActorId(input.interfaceType, input.actorId),
-  };
-}
-
 export function authenticatedUserId(context: {
   actor?: ActorRef | undefined;
 }): string | undefined {

@@ -1,7 +1,7 @@
 import type { RuntimeUploadScopeOptions } from "@brains/plugins";
 
-export const discordChatUploadRefKind = "discord-chat-upload";
-export const slackChatUploadRefKind = "slack-chat-upload";
+const discordChatUploadRefKind = "discord-chat-upload";
+const slackChatUploadRefKind = "slack-chat-upload";
 export const canonicalChatUploadRefKind = "upload";
 
 export function createCanonicalChatUploadStoreScope(): RuntimeUploadScopeOptions {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { EMAIL_INBOUND, inboundEmailSchema } from "../src";
+import { inboundEmailContract, inboundEmailSchema } from "../src";
 
 const inbound = {
   messageId: "<message@example.com>",
@@ -14,7 +14,7 @@ const inbound = {
 
 describe("inbound email contract", () => {
   it("requires an opaque transport-owned source reference", () => {
-    expect(EMAIL_INBOUND).toBe("email:inbound");
+    expect(inboundEmailContract.name).toBe("email:inbound");
     expect(inboundEmailSchema.parse(inbound)).toEqual(inbound);
     const { sourceRef: _sourceRef, ...withoutSourceRef } = inbound;
     expect(inboundEmailSchema.safeParse(withoutSourceRef).success).toBe(false);

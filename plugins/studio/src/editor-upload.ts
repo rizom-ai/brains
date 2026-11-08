@@ -83,6 +83,7 @@ export async function handleUpload(
       {
         interfaceType: "studio",
         actor: access.actor,
+        userPermissionLevel: access.permissionLevel,
       },
     );
   } catch {

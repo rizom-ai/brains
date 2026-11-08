@@ -1,0 +1,6 @@
+{
+  "name": "@brains/eval-loader-package-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}

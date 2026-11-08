@@ -15,6 +15,19 @@ describe("public Ask content boundary", () => {
       introduction: "Authored introduction.",
     });
   });
+  test("reads a declared record, its frontmatter being its metadata", () => {
+    expect(
+      publicAskContent({
+        visibility: "public",
+        content: "Authored introduction.",
+        metadata: { title: "Authored welcome", topics: ["Authored topic"] },
+      }),
+    ).toEqual({
+      title: "Authored welcome",
+      topics: ["Authored topic"],
+      introduction: "Authored introduction.",
+    });
+  });
   test("never exposes private or missing content", () => {
     expect(publicAskContent(null)).toBeUndefined();
     for (const visibility of ["private", "unlisted", "trusted", ""]) {

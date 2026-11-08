@@ -1,17 +1,14 @@
+import { requireSameOriginJson, issuerFromRequest } from "@brains/plugins";
 import type { AccountSettingsRegistry } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
   type AuthAccountSnapshot,
-} from "./account-contracts";
+} from "@brains/contracts";
 import type { AuthAccountContext, AuthAccountService } from "./account-service";
 import { getErrorMessage } from "@brains/utils/error";
-import {
-  privateJsonResponse,
-  readJsonRequest,
-  requireSameOriginJson,
-} from "./http-responses";
-import { issuerFromRequest, isSecureRequest } from "./issuer";
+import { privateJsonResponse, readJsonRequest } from "./http-responses";
+import { isSecureRequest } from "./issuer";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
 import { clearAuthSessionCookie } from "./session-store";
 import { registrationResponseSchema } from "./webauthn-request-schemas";

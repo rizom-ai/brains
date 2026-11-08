@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import { actorRefSchema } from "@brains/contracts";
 import type {
   BaseEntity,
@@ -168,7 +169,7 @@ export class PublicationQueueService {
       const entity = await this.context.entityService.getEntity({
         entityType,
         id: entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("publish failure bookkeeping"),
       });
       if (entity) await this.persistStatus(entity, "failed", error);
       await this.queueManager.remove(entityType, entityId);
@@ -189,7 +190,9 @@ export class PublicationQueueService {
           options: {
             filter: {
               metadata: { status: "queued" },
-              visibilityScope: "restricted",
+              visibilityScope: internalFullScope(
+                "publication queue reconciliation",
+              ),
             },
           },
         });
@@ -320,7 +323,9 @@ export class PublicationQueueService {
     const entity = await this.context.entityService.getEntity({
       entityType,
       id: entityId,
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope(
+        "queue position check; callers pre-scoped",
+      ),
     });
     if (!entity) throw new Error(`Entity not found: ${entityType}:${entityId}`);
     return entity;

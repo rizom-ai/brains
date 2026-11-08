@@ -135,8 +135,6 @@ export interface RecurringCheckServiceOptions {
   logger: Logger;
   /** Effect clock shared with scheduler tests. Defaults to the live clock. */
   clock?: Clock.Clock | undefined;
-  /** @deprecated Prefer an Effect clock. */
-  now?: (() => Date) | undefined;
 }
 
 export interface RecurringCheckSchedule {
@@ -154,7 +152,6 @@ export class RecurringCheckService {
   private readonly delivery: RecurringCheckDelivery;
   private readonly logger: Logger;
   private readonly clock: Clock.Clock | undefined;
-  private readonly nowFallback: () => Date;
   private readonly checks = new Map<string, RegisteredCheck>();
   private readonly pluginChecks = new Map<string, Set<RegisteredCheck>>();
   private readonly alertOperations = new KeyedSerialQueue();
@@ -169,7 +166,6 @@ export class RecurringCheckService {
     this.delivery = options.delivery;
     this.logger = options.logger.child("RecurringCheckService");
     this.clock = options.clock;
-    this.nowFallback = options.now ?? ((): Date => new Date());
     this.state = options.runtimeState.scoped({
       namespace: "shell.recurring-checks",
       schema: recurringCheckStateSchema,
@@ -209,7 +205,7 @@ export class RecurringCheckService {
   }
 
   register(pluginId: string, definition: RecurringCheckDefinition): () => void {
-    assertValidIdentifier(pluginId, "plugin ID");
+    assertValidPluginId(pluginId);
     assertValidIdentifier(definition.id, "check ID");
     const checkId = `${pluginId}:${definition.id}`;
     if (this.checks.has(checkId)) {
@@ -735,7 +731,7 @@ export class RecurringCheckService {
   private currentTime(): Date {
     return this.clock
       ? new Date(this.clock.currentTimeMillisUnsafe())
-      : this.nowFallback();
+      : new Date();
   }
 
   private lastSuccessKey(checkId: string): string {
@@ -787,6 +783,17 @@ export function getPreviousOccurrence(
   let occurrence = periodStart + schedule.offsetMs;
   if (occurrence > timestamp) occurrence -= schedule.periodMs;
   return new Date(occurrence);
+}
+
+// A declared plugin is named by its package and local id, such as
+// "@scope/package:type". Check ids are hashed before they key any state, so
+// the wider form is safe wherever a plain identifier is.
+const packageScopedPluginId =
+  /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*:[a-z][a-z0-9-]*$/;
+
+function assertValidPluginId(value: string): void {
+  if (value.length <= 200 && packageScopedPluginId.test(value)) return;
+  assertValidIdentifier(value, "plugin ID");
 }
 
 function assertValidIdentifier(value: string, label: string): void {

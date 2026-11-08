@@ -3,6 +3,7 @@ import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
+  ListEntitiesRequest,
   ProjectionExecutionContext,
   ProjectionInputContext,
 } from "@brains/plugins";
@@ -69,7 +70,7 @@ function executionContext(description = "A connected body of work."): {
 
 describe("series projection rule", () => {
   it("passes voice guidance to series descriptions without injecting identity", async () => {
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule("series:description");
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
@@ -104,7 +105,7 @@ describe("series projection rule", () => {
   });
 
   it("selects all series members and derives one series per distinct name", async () => {
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule("series:description");
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
@@ -157,7 +158,7 @@ describe("series projection rule", () => {
   it("preserves described series and deletes every orphan without a model call", async () => {
     const describedContent =
       "---\ntitle: Systems\nslug: systems\n---\n\n## Description\n\nExisting description.";
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule("series:description");
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
@@ -199,5 +200,147 @@ describe("series projection rule", () => {
       { operation: "delete", entityType: "series", id: "orphan" },
     ]);
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+describe("series projection rule on declared series reads", () => {
+  // A declared series reads back its body alone; its stored record keeps
+  // the frontmatter, as the series plugin class stored and read it.
+  const stored =
+    "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n# Systems\n\n## Description\nExisting description.\n";
+  const body = "# Systems\n\n## Description\nExisting description.\n";
+
+  function declaredContext(): {
+    context: ProjectionInputContext;
+    reads: ListEntitiesRequest[];
+  } {
+    const members = [
+      entity({
+        id: "post-1",
+        entityType: "post",
+        metadata: { title: "Post one", seriesName: "Systems" },
+      }),
+    ];
+    const reads: ListEntitiesRequest[] = [];
+    const service = createMockEntityService({
+      entityTypes: ["post", "series"],
+      listEntitiesImpl: async (request) => {
+        reads.push(request);
+        if (request.entityType !== "series") return members;
+        return [
+          entity({
+            id: "systems",
+            entityType: "series",
+            content: request.options?.source === true ? stored : body,
+            metadata: {
+              title: "Systems",
+              slug: "systems",
+              coverImageId: "systems-cover",
+            },
+          }),
+        ];
+      },
+      getEntityImpl: async () => null,
+    });
+    return {
+      reads,
+      context: {
+        entities: service,
+        resolvePrompt: async (_reference, fallback) => fallback,
+        appInfo: async (): Promise<never> => {
+          throw new Error("not used");
+        },
+        identityInput: () => ({}),
+      },
+    };
+  }
+
+  it("selects an existing series as stored, so its input and fingerprint stay those the class read", async () => {
+    const rule = createSeriesProjectionRule("series:description");
+    const { context } = declaredContext();
+
+    const selected = await rule.selectInput(
+      { waveId: "wave-1", inputs: [] },
+      context,
+      new AbortController().signal,
+    );
+
+    expect(selected).toEqual({
+      members: [
+        {
+          id: "post-1",
+          seriesName: "Systems",
+          title: "Post one",
+          excerpt: null,
+        },
+      ],
+      existingSeries: [
+        {
+          id: "systems",
+          content: stored,
+          title: "Systems",
+          slug: "systems",
+          visibility: "public",
+          hasDescription: true,
+        },
+      ],
+      voiceGuidance: "",
+    });
+  });
+
+  it("keeps a projected series' frontmatter and cover", async () => {
+    const rule = createSeriesProjectionRule("series:description");
+    const signal = new AbortController().signal;
+    const { context } = declaredContext();
+    const selected = await rule.selectInput(
+      { waveId: "wave-1", inputs: [] },
+      context,
+      signal,
+    );
+    const { context: execution, generate } = executionContext();
+
+    const intents = await rule.derive(selected, execution, signal);
+
+    expect(intents).toEqual([
+      {
+        operation: "upsert",
+        entity: {
+          id: "systems",
+          entityType: "series",
+          content: stored,
+          metadata: {
+            title: "Systems",
+            slug: "systems",
+            coverImageId: "systems-cover",
+          },
+          visibility: "public",
+        },
+      },
+    ]);
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("describes through the description template under its registered name", async () => {
+    const rule = createSeriesProjectionRule("another:description");
+    const signal = new AbortController().signal;
+    const selected = await rule.selectInput(
+      { waveId: "wave-1", inputs: [] },
+      inputContext([
+        entity({
+          id: "post-1",
+          entityType: "post",
+          metadata: { title: "Post one", seriesName: "Systems" },
+        }),
+      ]),
+      signal,
+    );
+    const { context, generate } = executionContext();
+
+    await rule.derive(selected, context, signal);
+
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({ templateName: "another:description" }),
+      expect.anything(),
+    );
   });
 });

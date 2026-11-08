@@ -14,6 +14,7 @@ import { setupTokenId } from "../src/setup-state-store";
 import { TargetedSetupService } from "../src/targeted-setup-service";
 import { AuthUserStore } from "../src/user-store";
 import { sha256Hex } from "@brains/utils/hash";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 
@@ -36,7 +37,10 @@ async function withUserStore<T>(
   });
   await database.start();
   try {
-    const identities = new AuthIdentityStore(database.db);
+    const identities = new AuthIdentityStore(
+      database.db,
+      registeredTestChannels,
+    );
     return await callback(
       new AuthUserStore(database.db),
       database,

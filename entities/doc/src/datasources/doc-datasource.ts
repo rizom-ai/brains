@@ -1,42 +1,30 @@
 import type { DocsChrome } from "@brains/docs-chrome";
+import {
+  defineDataSource,
+  z,
+  type DataSourceDefinition,
+  type EntityOf,
+} from "@brains/sdk/entities";
+import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import type { DocsConfig, DocsHero } from "../config";
-import {
-  BaseEntityDataSource,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  BaseQuery,
-  NavigationResult,
-  PaginationInfo,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { docSchema, type Doc } from "../schemas/doc";
-import {
-  docFrontmatterSchema,
-  docWithDataSchema,
-  type DocWithData,
-} from "../schemas/doc";
+import { doc } from "../doc";
+import { docWithDataSchema, type DocWithData } from "../schemas/doc";
 
 export type { DocWithData };
 
-interface DocDetailData {
-  doc: DocWithData;
-  docs: DocWithData[];
-  prevDoc: DocWithData | null;
-  nextDoc: DocWithData | null;
-  chrome: DocsChrome | null;
-}
+type Doc = EntityOf<typeof doc>;
 
-interface DocListData {
-  docs: DocWithData[];
-  pagination: PaginationInfo | null;
-  baseUrl: string | null;
-  hero: DocsHero | null;
-  chrome: DocsChrome | null;
-}
+/** How many docs a page reads, as the class's list and navigation did. */
+const DOCS_LIMIT = 1000;
+
+const docsQuerySchema = z.looseObject({
+  query: z
+    .looseObject({
+      id: z.string().optional(),
+      baseUrl: z.string().optional(),
+    })
+    .optional(),
+});
 
 function sortDocsForDisplay(docs: DocWithData[]): DocWithData[] {
   return [...docs].sort((a, b) => {
@@ -46,118 +34,77 @@ function sortDocsForDisplay(docs: DocWithData[]): DocWithData[] {
   });
 }
 
+/**
+ * A doc as the templates read it: its record with its frontmatter and its
+ * body, and its content the document it is stored as.
+ */
 export function parseDocData(entity: Doc): DocWithData {
-  const parsed = parseMarkdownWithFrontmatter(
-    entity.content,
-    docFrontmatterSchema,
+  const { title, section, order, description, slug, authoredSlug } =
+    entity.metadata;
+  const frontmatter = {
+    title,
+    section,
+    order,
+    description,
+    slug: authoredSlug === true ? slug : null,
+  };
+  const stated = Object.fromEntries(
+    Object.entries(frontmatter).filter(([, value]) => value !== null),
   );
-
   return docWithDataSchema.parse({
     ...entity,
-    frontmatter: parsed.metadata,
-    body: parsed.content,
+    content: generateMarkdown(stated, entity.content),
+    metadata: { title, section, order, description, slug },
+    frontmatter,
+    body: entity.content,
   });
 }
 
-export class DocDataSource extends BaseEntityDataSource<
-  Doc,
-  DocWithData,
-  DocListData
-> {
-  readonly id = "docs:entities";
-  readonly name = "Docs Entity DataSource";
-  readonly description = "Fetches and transforms doc entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<Doc> = {
-    entityType: "doc",
-    entitySchema: docSchema,
-    defaultSort: [
-      { field: "order" as const, direction: "asc" as const },
-      { field: "section" as const, direction: "asc" as const },
-      { field: "title" as const, direction: "asc" as const },
-    ],
-    defaultLimit: 100,
-    enableNavigation: true,
-  };
-
-  /** The configured hero and chrome, handed to every docs page. */
-  private readonly hero: DocsHero | null;
-  private readonly chrome: DocsChrome | null;
-
-  constructor(logger: Logger, presentation: DocsConfig = {}) {
-    super(logger);
-    this.hero = presentation.hero ?? null;
-    this.chrome = presentation.chrome ?? null;
-  }
-
-  protected transformEntity(entity: Doc): DocWithData {
-    return parseDocData(entity);
-  }
-
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params = this.parseQuery(query);
-
-    if (!params.query.id) {
-      const list = await this.fetchList(
-        { ...params.query, limit: 1000, page: undefined, pageSize: undefined },
-        context.entityService,
+/**
+ * The docs the templates render, with the configured hero and chrome: every
+ * doc for a list, and for a query naming a slug, that doc with the docs
+ * around it in reading order.
+ */
+export function docDataSource(presentation: DocsConfig): DataSourceDefinition {
+  const hero: DocsHero | null = presentation.hero ?? null;
+  const chrome: DocsChrome | null = presentation.chrome ?? null;
+  return defineDataSource({
+    id: "entities",
+    name: "Docs Entity DataSource",
+    description: "Fetches and transforms doc entities for rendering",
+    fetch: async (raw, entities) => {
+      const query = docsQuerySchema.parse(raw).query ?? {};
+      const docs = sortDocsForDisplay(
+        (
+          await entities.list(doc, {
+            limit: DOCS_LIMIT,
+            sort: [
+              { field: "order", direction: "asc" },
+              { field: "section", direction: "asc" },
+              { field: "title", direction: "asc" },
+            ],
+          })
+        ).map(parseDocData),
       );
-      return outputSchema.parse(
-        this.buildListResult(list.items, null, params.query),
-      );
-    }
-
-    const [detail, list] = await Promise.all([
-      this.fetchDetail(params.query.id, context.entityService),
-      this.fetchList({ limit: 1000 }, context.entityService),
-    ]);
-
-    const docs = sortDocsForDisplay(list.items);
-    const currentIndex = docs.findIndex((item) => item.id === detail.item.id);
-    const prevDoc = currentIndex > 0 ? (docs[currentIndex - 1] ?? null) : null;
-    const nextDoc =
-      currentIndex >= 0 && currentIndex < docs.length - 1
-        ? (docs[currentIndex + 1] ?? null)
-        : null;
-
-    const data: DocDetailData = {
-      doc: detail.item,
-      docs,
-      prevDoc,
-      nextDoc,
-      chrome: this.chrome,
-    };
-    return outputSchema.parse(data);
-  }
-
-  protected override buildDetailResult(
-    item: DocWithData,
-    navigation: NavigationResult<DocWithData> | null,
-  ): DocDetailData {
-    return {
-      doc: item,
-      docs: [item],
-      prevDoc: navigation?.prev ?? null,
-      nextDoc: navigation?.next ?? null,
-      chrome: this.chrome,
-    };
-  }
-
-  protected buildListResult(
-    items: DocWithData[],
-    pagination: PaginationInfo | null,
-    query: BaseQuery,
-  ): DocListData {
-    return {
-      docs: sortDocsForDisplay(items),
-      pagination,
-      baseUrl: query.baseUrl ?? null,
-      hero: this.hero,
-      chrome: this.chrome,
-    };
-  }
+      if (query.id === undefined) {
+        return {
+          docs,
+          pagination: null,
+          baseUrl: query.baseUrl ?? null,
+          hero,
+          chrome,
+        };
+      }
+      const index = docs.findIndex((item) => item.metadata.slug === query.id);
+      const current = docs[index];
+      if (!current) throw new Error(`doc not found with slug: ${query.id}`);
+      return {
+        doc: current,
+        docs,
+        prevDoc: index > 0 ? (docs[index - 1] ?? null) : null,
+        nextDoc: docs[index + 1] ?? null,
+        chrome,
+      };
+    },
+  });
 }

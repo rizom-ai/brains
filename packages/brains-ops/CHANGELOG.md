@@ -1,5 +1,159 @@
 # @brains/ops
 
+## 0.2.0-alpha.664
+
+No changes in this release.
+
+## 0.2.0-alpha.663
+
+No changes in this release.
+
+## 0.2.0-alpha.662
+
+No changes in this release.
+
+## 0.2.0-alpha.661
+
+No changes in this release.
+
+## 0.2.0-alpha.660
+
+No changes in this release.
+
+## 0.2.0-alpha.659
+
+No changes in this release.
+
+## 0.2.0-alpha.658
+
+No changes in this release.
+
+## 0.2.0-alpha.657
+
+No changes in this release.
+
+## 0.2.0-alpha.656
+
+No changes in this release.
+
+## 0.2.0-alpha.655
+
+No changes in this release.
+
+## 0.2.0-alpha.654
+
+No changes in this release.
+
+## 0.2.0-alpha.653
+
+No changes in this release.
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- [#859](https://github.com/rizom-ai/brains/pull/859) [`92b3bb7`](https://github.com/rizom-ai/brains/commit/92b3bb74eeffc14b522eb91f55e9fe9f159af195) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every package a release publishes lands on the `latest` dist-tag, the tag third parties install. In prerelease mode changesets chose each package's tag from its registry history: `latest` while every published version was an alpha, `alpha` once any other version existed. The `0.0.0-stage` placeholder left by `@rizom/brain-ui`'s trusted-publishing bootstrap sent it to `alpha` at alpha.650 while `@rizom/brain` and `@rizom/ops` went to `latest`, so `npm install @rizom/brain-ui` got alpha.649. The publish wrapper now sets the prerelease state aside for the publish in both lanes, which leaves `latest` for every package; the thefourth site and theme, whose `latest` stayed at alpha.1 the same way, follow from their next site release.
+
+## 0.2.0-alpha.651
+
+No changes in this release.
+
+## 0.2.0-alpha.650
+
+No changes in this release.
+
+## 0.2.0-alpha.649
+
+No changes in this release.
+
+## 0.2.0-alpha.648
+
+No changes in this release.
+
+## 0.2.0-alpha.647
+
+No changes in this release.
+
+## 0.2.0-alpha.646
+
+No changes in this release.
+
+## 0.2.0-alpha.645
+
+No changes in this release.
+
+## 0.2.0-alpha.644
+
+No changes in this release.
+
+## 0.2.0-alpha.643
+
+No changes in this release.
+
+## 0.2.0-alpha.642
+
+No changes in this release.
+
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- [#838](https://github.com/rizom-ai/brains/pull/838) [`c3a41f5`](https://github.com/rizom-ai/brains/commit/c3a41f5bbb13935e88fd7b3fc2bb4431eac5617e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The predeploy backup waits for the running brain instead of failing on its database lock: every snapshot read opens with a busy timeout, so a writer's lock or a WAL recovery in progress delays the copy rather than aborting the deploy.
+
+## 0.2.0-alpha.640
+
+No changes in this release.
+
+## 0.2.0-alpha.639
+
+No changes in this release.
+
+## 0.2.0-alpha.638
+
+No changes in this release.
+
+## 0.2.0-alpha.637
+
+### Patch Changes
+
+- [#832](https://github.com/rizom-ai/brains/pull/832) [`8cdcb18`](https://github.com/rizom-ai/brains/commit/8cdcb18e64f300529c56fd5b10e2d738d0b58436) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An anchor profile's social links can name a podcast: `platform: podcast` sits next to GitHub, Instagram, LinkedIn, email and website. The anchor profile, site-info, the site build and the fleet registry read one shared list of platforms, and the shared social icons draw a microphone for a podcast.
+
+## 0.2.0-alpha.636
+
+No changes in this release.
+
+## 0.2.0-alpha.635
+
+No changes in this release.
+
+## 0.2.0-alpha.634
+
+No changes in this release.
+
+## 0.2.0-alpha.633
+
+No changes in this release.
+
+## 0.2.0-alpha.632
+
+No changes in this release.
+
+## 0.2.0-alpha.631
+
+No changes in this release.
+
+## 0.2.0-alpha.630
+
+No changes in this release.
+
+## 0.2.0-alpha.629
+
+No changes in this release.
+
+## 0.2.0-alpha.628
+
+No changes in this release.
+
 ## 0.2.0-alpha.627
 
 No changes in this release.

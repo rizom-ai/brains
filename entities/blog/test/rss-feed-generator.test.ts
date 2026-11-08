@@ -333,6 +333,17 @@ describe("RSS Feed Generator", () => {
         "<description>Excerpt with &lt;tags&gt; &amp; symbols</description>",
       );
     });
+
+    test("keeps a body that closes a CDATA section inside the content", () => {
+      const firstPost = samplePosts[0];
+      if (!firstPost) throw new Error("First post not found");
+
+      const xml = generateFeed([{ ...firstPost, body: "An array a[b[0]]> c" }]);
+
+      expect(xml).toContain(
+        "<content:encoded><![CDATA[An array a[b[0]]]]><![CDATA[> c]]></content:encoded>",
+      );
+    });
   });
 
   describe("lastBuildDate", () => {

@@ -24,7 +24,7 @@ describe("createMockMessageBus", () => {
       return { success: true, data: "second" };
     });
 
-    const response = await bus.send<Record<string, never>, string>(ping());
+    const response = await bus.send(ping());
 
     expect(response).toEqual({ success: true, data: "first" });
     expect(seen).toEqual(["first"]);
@@ -76,7 +76,7 @@ describe("createMockMessageBus", () => {
     bus.subscribe("ping", async () => ({ success: true, data: "a" }));
     bus.subscribe("ping", async () => ({ success: true, data: "b" }));
 
-    const responses = await bus.collect<Record<string, never>, string>(ping());
+    const responses = await bus.collect(ping());
 
     const data = responses.map((response) =>
       "data" in response ? response.data : undefined,

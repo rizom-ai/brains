@@ -1,3 +1,18 @@
+import type {
+  AttachAuthIdentityInput,
+  AuthAuditEvent,
+  AuthMutationContext,
+  AuthPrincipal,
+  UserPasskeyRegistration,
+} from "@brains/contracts";
+import type {
+  AuthExternalPeerInvitationAccess,
+  AuthInvitationAccess,
+  CreateInvitationRequest,
+  InviteExternalPeerPersonRequest,
+  LinkExternalPeerRequest,
+  UnlinkExternalPeerRequest,
+} from "@brains/contracts";
 import type { ChannelDescriptor } from "@brains/plugins";
 import type {
   AuthAdminUserSummary,
@@ -7,20 +22,15 @@ import type {
   AuthInvitationSummary,
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
-} from "./admin-contracts";
-import type { AuthAuditEvent, AuthAuditStore } from "./audit-store";
+} from "@brains/contracts";
+import type { AuthAuditStore } from "./audit-store";
 import type { AuthCredentialStore, StoredPasskey } from "./credential-store";
-import type {
-  AttachAuthIdentityInput,
-  AuthIdentityRecord,
-  AuthIdentityStore,
-} from "./identity-store";
+import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
 import type { AuthInvitationService } from "./invitation-service";
 import type { AuthInvitation } from "./invitation-schema";
-import { auditActor, type AuthMutationContext } from "./mutation-context";
-import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
+import { auditActor } from "./mutation-context";
 import type { PersonExternalPeerStore } from "./person-external-peer-store";
-import { principalFromUser, type AuthPrincipal } from "./principal-service";
+import { principalFromUser } from "./principal-service";
 import { resolveProfileDisplayNameSafely } from "./profile-display-name";
 import type { AuthBrainAnchor, PersonExternalPeer } from "./runtime-schema";
 import type { AuthUserManagementService } from "./user-management-service";
@@ -31,46 +41,12 @@ import type {
   CreateAuthUserInput,
 } from "./user-store";
 
-export interface CreateInvitationRequest {
-  idempotencyKey: string;
-  displayName: string;
-  role: "admin" | "trusted";
-  delivery: AuthSetupDeliveryInput;
-  peerId?: string;
-}
-
-export interface CreatedInvitationAccess {
-  invitation: AuthInvitationSummary;
-  user: AuthPrincipal;
+export interface CreatedInvitationAccess extends AuthInvitationAccess {
   peer?: PersonExternalPeer;
-  registration?: {
-    setupUrl: string;
-    expiresAt: number;
-    deliveryAttemptId: string;
-  };
 }
 
-export interface InviteExternalPeerPersonRequest {
-  peerId: string;
-  displayName: string;
-  role: "admin" | "trusted";
-  delivery: AuthSetupDeliveryInput;
-}
-
-export interface LinkExternalPeerRequest {
-  peerId: string;
-  userId: string;
-}
-
-export interface UnlinkExternalPeerRequest {
-  peerId: string;
-  userId: string;
-}
-
-export interface InvitedExternalPeerAccess {
-  user: AuthPrincipal;
+export interface InvitedExternalPeerAccess extends AuthExternalPeerInvitationAccess {
   peer: PersonExternalPeer;
-  registration: UserPasskeyRegistration;
 }
 
 export interface AuthAdministrationServiceOptions {

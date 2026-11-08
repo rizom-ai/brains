@@ -5,6 +5,7 @@ order: 30
 section: Use a brain
 persona: The consultant
 for: Your expertise is locked in client work, slide decks and a LinkedIn summary. You want it findable and askable without writing it all again.
+summary: Client work, decks and a profile
 recipe: professional
 brings:
   - A profile your site and answers start from

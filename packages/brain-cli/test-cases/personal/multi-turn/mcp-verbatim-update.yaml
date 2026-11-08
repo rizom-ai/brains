@@ -185,7 +185,6 @@ turns:
           argsContain:
             entityType: note
             id: mcp-verbatim-update
-            operation.kind: source
             operation.source.kind: user-message
           argsAbsent:
             - operation.content

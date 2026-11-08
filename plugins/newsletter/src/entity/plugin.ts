@@ -9,7 +9,11 @@ import type {
 import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { GENERATE_CHANNELS, NEWSLETTER_CHANNELS } from "@brains/contracts";
+import {
+  NEWSLETTER_CHANNELS,
+  generateExecuteContract,
+  generateReportFailureContract,
+} from "@brains/contracts";
 import { fetchVoiceGuidance } from "@brains/contracts";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import {
@@ -102,10 +106,10 @@ export class NewsletterPlugin extends EntityPlugin<
   }
 
   private subscribeToGenerateExecute(context: EntityPluginContext): void {
-    context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
-      GENERATE_CHANNELS.execute,
-      async (msg) => {
-        if (msg.payload.entityType !== "newsletter") return { success: true };
+    context.messaging.answer(
+      generateExecuteContract,
+      async ({ entityType }) => {
+        if (entityType !== "newsletter") return;
 
         try {
           const recentPosts = await context.entityService.listEntities({
@@ -117,14 +121,11 @@ export class NewsletterPlugin extends EntityPlugin<
           });
 
           if (recentPosts.length === 0) {
-            await context.messaging.send({
-              type: GENERATE_CHANNELS.reportFailure,
-              payload: {
-                entityType: "newsletter",
-                error: "No published posts available for newsletter",
-              },
+            await context.messaging.command(generateReportFailureContract, {
+              entityType: "newsletter",
+              error: "No published posts available for newsletter",
             });
-            return { success: true };
+            return;
           }
 
           // A refused enqueue is retried until the queue admits it; the
@@ -150,17 +151,11 @@ export class NewsletterPlugin extends EntityPlugin<
             "queue a scheduled newsletter generation",
             "generate:newsletter",
           );
-
-          return { success: true };
         } catch (error) {
-          await context.messaging.send({
-            type: GENERATE_CHANNELS.reportFailure,
-            payload: {
-              entityType: "newsletter",
-              error: getErrorMessage(error),
-            },
+          await context.messaging.command(generateReportFailureContract, {
+            entityType: "newsletter",
+            error: getErrorMessage(error),
           });
-          return { success: true };
         }
       },
     );

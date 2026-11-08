@@ -94,9 +94,10 @@ export interface MessageContext {
  * Message bus interface
  */
 export interface IMessageBus {
-  send<T = unknown, R = unknown>(
+  /** Send a message; a reply's data comes back unchecked. */
+  send<T = unknown>(
     request: MessageBusSendRequest<T>,
-  ): Promise<MessageResponse<R>>;
+  ): Promise<MessageResponse>;
 
   subscribe<T = unknown, R = unknown>(
     type: string,
@@ -120,9 +121,9 @@ export interface IMessageBus {
   deliverPeer<T = unknown>(type: string, payload: T): Promise<void>;
 
   /** Collect one response from every matching handler, in registration order. */
-  collect<T = unknown, R = unknown>(
+  collect<T = unknown>(
     request: MessageBusSendRequest<T>,
-  ): Promise<MessageResponse<R>[]>;
+  ): Promise<MessageResponse[]>;
 
   validateMessage<T>(
     message: unknown,

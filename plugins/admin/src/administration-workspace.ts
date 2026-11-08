@@ -6,6 +6,7 @@ import type {
   StudioWorkspaceActor,
   StudioWorkspaceRegistration,
 } from "@brains/plugins";
+import { SdkError } from "@brains/contracts";
 import { DECLARATIVE_STUDIO_WORKSPACE_RENDERER } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
@@ -23,7 +24,7 @@ import {
   createPeopleTabSource,
 } from "./people-workspace";
 import {
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -308,15 +309,26 @@ export async function registerAdministrationWorkspace(
       } satisfies RuntimeStudioWorkspaceData;
     },
     actionHandler: async (request, actor, signal) => {
+      // Studio answers a failure in its public form, so a refused request
+      // says why by its code and public message.
       const actionId = requestActionId(request);
-      if (!actionId) throw new Error("Administration action id is required");
+      if (!actionId) {
+        throw new SdkError("invalid_input", {
+          publicMessage: "Administration action id is required",
+        });
+      }
       const source = routes.get(actionId);
-      if (!source)
-        throw new Error(`Unknown Administration action: ${actionId}`);
+      if (!source) {
+        throw new SdkError("not_found", {
+          publicMessage: `Unknown Administration action: ${actionId}`,
+        });
+      }
       return runChildAction(source, request, actor, signal);
     },
     badgeProvider: async () =>
-      administrationAttention(await requireAuthService().listAdminUsers()),
+      administrationAttention(
+        await requireAuthBackend(context).listAdminUsers(),
+      ),
   });
   return result ? result.workspaceUrl : undefined;
 }

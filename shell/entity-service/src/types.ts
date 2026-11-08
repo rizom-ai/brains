@@ -11,6 +11,7 @@ import type {
 } from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type { ActorRef } from "@brains/contracts";
+import type { EnqueueJobRouting } from "@brains/job-queue";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -261,8 +262,6 @@ export const emptyFrontmatterSchema: z.ZodObject<Record<string, never>> =
   z.object({});
 
 export type EntitySchema<T> = z.ZodType<T, unknown>;
-/** @deprecated Use EntitySchema<T>. */
-export type EntitySchemaParser<T> = EntitySchema<T>;
 
 export type UnknownEntitySchema = EntitySchema<unknown>;
 export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;
@@ -367,6 +366,8 @@ export interface CreateInput {
 export interface CreateExecutionContext {
   interfaceType: string;
   actor: ActorRef;
+  /** The caller's permission level; absent reads as public, failing closed. */
+  userPermissionLevel?: "admin" | "trusted" | "public";
   channelId?: string;
   channelName?: string;
 }
@@ -472,6 +473,22 @@ export type CreateInterceptor = (
   input: CreateInput,
   executionContext: CreateExecutionContext,
 ) => Promise<CreateInterceptionResult>;
+
+/**
+ * How `system_generate` queues one entity type's `{type}:generation` job.
+ *
+ * It exists so a generation runs with the authority of the caller who asked
+ * for it: a public-SDK entity type records that caller beside the job data
+ * when the job is queued, and resolves them again when it runs, refusing one
+ * who was revoked meanwhile. `system_generate` hands it the job data it built
+ * (the allocated `entityId`, the prompt, any source and target) and the
+ * caller's routing, and reports the job id it answers. A type that registers
+ * none, such as a class-based one, is queued with that data as written.
+ */
+export type GenerationEnqueuer = (
+  data: Record<string, unknown>,
+  toolContext: NonNullable<EnqueueJobRouting["toolContext"]>,
+) => Promise<string>;
 
 export interface UploadSaveInput {
   upload: CreateFromUploadInput;
@@ -580,6 +597,14 @@ export interface EntityAdapter<
   supportsCoverImage?: boolean;
 
   /**
+   * Optional: the type's metadata is its frontmatter. Reads hand back the
+   * body as `content` and the decoded frontmatter as `metadata`, so
+   * frontmatter an update carries in its content is a write — a cover or a
+   * social card recorded by id — and the metadata follows it.
+   */
+  metadataFromFrontmatter?: boolean;
+
+  /**
    * Optional: the `metadata.status` values that count as published for
    * `publishedOnly` queries (production site builds). Declaring this makes the
    * list exact — entities without a status are NOT published. When absent, the
@@ -654,7 +679,15 @@ export interface ListOptions<
   };
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly?: boolean;
+  source?: SourceReadOption;
 }
+
+/**
+ * Hand back each record's content as stored: the markdown document, its
+ * frontmatter included, as an editor edits it. A declared type's ordinary
+ * reads carry its body alone; every other type reads the same either way.
+ */
+export type SourceReadOption = boolean | undefined;
 
 /**
  * Search options
@@ -764,6 +797,7 @@ export interface GetEntityRequest extends EntityReadOptions {
   visibilityScope?: ContentVisibility | undefined;
   /** Only an entity its type counts as published, as for published-only listings. */
   publishedOnly?: boolean | undefined;
+  source?: SourceReadOption;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -797,6 +831,7 @@ export interface QueryEntityHierarchyRequest {
       }
     | undefined;
   signal?: AbortSignal | undefined;
+  source?: SourceReadOption;
 }
 
 export interface EntityHierarchyPage {
@@ -1239,6 +1274,15 @@ export interface IEntitiesNamespace {
   /** Register the check a create of this plugin's entity type passes before it is confirmed */
   registerCreateCheck(entityType: string, check: CreateCheck): void;
 
+  /**
+   * Register how system_generate queues this plugin's entity type's
+   * generation, so the job carries the caller's authority.
+   */
+  registerGenerationEnqueuer(
+    entityType: string,
+    enqueuer: GenerationEnqueuer,
+  ): void;
+
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 
@@ -1352,6 +1396,8 @@ export interface EntityServiceClient extends ICoreEntityService {
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
   /** Rewrite stored entities whose content still carries a retired frontmatter field. */
   rewriteRetiredFields(): Promise<{ rewritten: number }>;
+  /** Re-derive declared types' stored metadata from their stored markdown, the metadata column alone. */
+  reconcileDeclaredMetadata(): Promise<{ reconciled: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,
@@ -1460,6 +1506,10 @@ export interface EntityRegistry {
 
   getCreateCheck(type: string): CreateCheck | undefined;
 
+  registerGenerationEnqueuer(type: string, enqueuer: GenerationEnqueuer): void;
+
+  getGenerationEnqueuer(type: string): GenerationEnqueuer | undefined;
+
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 
   getUploadSaveHandler(
@@ -1550,6 +1600,7 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
 export type ReadOnlyEntityService = Pick<
   ICoreEntityService,
   | "getEntity"
+  | "getEntityRaw"
   | "listEntities"
   | "search"
   | "searchWithDistances"

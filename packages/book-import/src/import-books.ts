@@ -18,8 +18,10 @@ import {
 import { parseMlwerkePages } from "./adapters/mlwerke";
 import {
   frakturRead,
+  GREEK_MODEL,
   hyphenRead,
   volumeOfPages,
+  withGreekReadings,
   type OcrReading,
   type PageOcr,
 } from "./page-ocr";
@@ -61,7 +63,7 @@ const bookFields: BookFields = {
    * sit under: "Vorwort zu Charcot, Neue Vorlesungen (1886)".
    */
   part: z.string().min(1).optional(),
-  /** False for writings published only after the author's death. */
+  /** False for writings the author left unpublished, read from his papers. */
   published: z.boolean().default(true),
   author: z.string().min(1),
   year: z.number().int(),
@@ -213,6 +215,7 @@ const archiveOcrBookSchema: z.ZodObject<
       frontLeaf: z.ZodOptional<z.ZodNumber>;
       scan: z.ZodOptional<typeof scanSchema>;
       binarise: z.ZodDefault<z.ZodBoolean>;
+      greek: z.ZodDefault<z.ZodBoolean>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       lastPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       title: z.ZodString;
@@ -235,6 +238,9 @@ const archiveOcrBookSchema: z.ZodObject<
       marginalia: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
       verse: z.ZodDefault<z.ZodBoolean>;
+      verseFrom: z.ZodOptional<
+        z.ZodObject<{ page: typeof printedPageSchema; opens: z.ZodString }>
+      >;
       opensWith: z.ZodOptional<z.ZodString>;
       closesWith: z.ZodOptional<z.ZodString>;
       columns: z.ZodDefault<z.ZodBoolean>;
@@ -254,6 +260,13 @@ const archiveOcrBookSchema: z.ZodObject<
   scan: scanSchema.optional(),
   /** The scan's paper is uneven in tone and its lines askew: each page is straightened and set black on white before it is read anew. */
   binarise: z.boolean().default(false),
+  /**
+   * The work quotes Greek, which the page's model reads as Latin letters:
+   * each page is read again with an Ancient Greek model, and a word
+   * it reads as Greek, and surer, takes that reading; the Greek is read from
+   * the page as scanned, binarised or not. Needs `ocr`.
+   */
+  greek: z.boolean().default(false),
   /** The work's printed pages in the volume. */
   firstPage: printedPageSchema,
   lastPage: printedPageSchema,
@@ -307,6 +320,10 @@ const archiveOcrBookSchema: z.ZodObject<
   datelined: z.boolean().default(false),
   /** The work is verse: its lines stay lines, and a stanza opens below the space it leaves. */
   verse: z.boolean().default(false),
+  /** The line the work turns to verse at, to its end, as an essay closes on a poem. */
+  verseFrom: z
+    .object({ page: printedPageSchema, opens: z.string().min(1) })
+    .optional(),
   /** The line the first page opens the work with, after another work's end. */
   opensWith: z.string().min(1).optional(),
   /** The line the last page closes the work with, before another work begins. */
@@ -660,6 +677,7 @@ export function volumeKey(book: ScannedBook): string {
     book.item,
     book.ocr ?? "",
     book.binarise ? "binarised" : "",
+    book.greek ? "greek" : "",
     book.frontLeaf === undefined ? "" : `I@${book.frontLeaf}`,
     book.columns ? "columns" : "",
   ].join("|");
@@ -839,6 +857,22 @@ export async function fetchVolumeHocr(
 
 const DTA = "https://www.deutschestextarchiv.de/book/";
 
+/**
+ * The licence a Textarchiv transcription is imported under, from the one its
+ * header links; none when the transcription may not be reused.
+ */
+function dtaLicense(
+  licence: string | null,
+): "CC-BY-SA-4.0" | "public-domain" | undefined {
+  // CC BY-SA 2.0 lets an adaptation take a later version of the licence.
+  if (licence?.includes("/by-sa/")) return "CC-BY-SA-4.0";
+  // CC0, or the Public Domain Mark of a text the Textarchiv took from Wikisource.
+  if (/\/publicdomain\/(?:zero|mark)\//u.test(licence ?? "")) {
+    return "public-domain";
+  }
+  return undefined;
+}
+
 /** A work transcribed by the Deutsches Textarchiv, from its TEI. */
 async function loadDtaTeiBook(
   entry: z.output<typeof dtaTeiBookSchema>,
@@ -848,9 +882,11 @@ async function loadDtaTeiBook(
     await fetchText(`${DTA}download_xml/${entry.id}`),
     entry,
   );
-  // CC BY-SA 2.0 lets an adaptation take a later version of the licence.
-  if (!licence?.includes("/by-sa/")) {
-    throw new Error(`${entry.id} is not under CC BY-SA: ${licence}`);
+  const license = dtaLicense(licence);
+  if (!license) {
+    throw new Error(
+      `${entry.id} is neither under CC BY-SA nor in the public domain: ${licence}`,
+    );
   }
   return {
     book: {
@@ -860,7 +896,7 @@ async function loadDtaTeiBook(
       year: entry.year,
       kind: entry.kind,
       edition: entry.edition,
-      license: "CC-BY-SA-4.0",
+      license,
       attribution: `Deutsches Textarchiv (deutschestextarchiv.de), ${licence}`,
       source: `${DTA}show/${entry.id}`,
       published: entry.published,
@@ -973,15 +1009,29 @@ export async function ocrVolumeHocr(
   );
 }
 
-/** A scan's page images read one after another, as one volume. */
+/**
+ * Pages read at once: recognising a page takes the reader up to half a
+ * minute, and one page after another a volume takes hours.
+ */
+const PAGES_AT_ONCE = 8;
+
+/** A scan's page images read, several at once, as one volume in their order. */
 async function imagesHocr(
   images: string[],
   pageOcr: PageOcr,
   numbers?: Array<number | undefined>,
   read: (hocr: string) => string = frakturRead,
 ): Promise<string> {
-  const pages = await images.reduce<Promise<string[]>>(
-    async (done, image) => [...(await done), await pageOcr(image)],
+  const batches = Array.from(
+    { length: Math.ceil(images.length / PAGES_AT_ONCE) },
+    (_, index) =>
+      images.slice(index * PAGES_AT_ONCE, (index + 1) * PAGES_AT_ONCE),
+  );
+  const pages = await batches.reduce<Promise<string[]>>(
+    async (done, batch) => [
+      ...(await done),
+      ...(await Promise.all(batch.map((image) => pageOcr(image)))),
+    ],
     Promise.resolve([]),
   );
   return volumeOfPages(pages, numbers, read);
@@ -999,13 +1049,45 @@ export async function volumeHocr(
       book.frontLeaf === undefined ? hocr : withFrontPage(hocr, book.frontLeaf),
       book.columns ? { columns: true } : {},
     );
-  if (!book.ocr) return marked(await fetchVolumeHocr(book.item, fetchText));
+  if (!book.ocr) {
+    if (book.greek) {
+      throw new Error(
+        `${book.slug} reads Greek anew, but names no model (ocr)`,
+      );
+    }
+    return marked(await fetchVolumeHocr(book.item, fetchText));
+  }
   if (!pageOcr) {
     throw new Error(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
-  const read = pageOcr({ model: book.ocr, binarise: book.binarise });
+  const own = pageOcr({ model: book.ocr, binarise: book.binarise });
+  const greek = book.greek
+    ? // The Greek model, trained on scans as they are, reads a binarised
+      // page worse than the page itself.
+      pageOcr({ model: GREEK_MODEL, binarise: false })
+    : null;
+  const read: PageOcr = greek
+    ? async (url): Promise<string> => {
+        const page = await own(url);
+        // A page its model read no letters on, such as a blank leaf, has no
+        // Greek to read, and the Greek model fails on one.
+        const text = (/<body>([\s\S]*)<\/body>/u.exec(page)?.[1] ?? "").replace(
+          /<[^>]*>/gu,
+          "",
+        );
+        if (!/\p{L}/u.test(text)) return page;
+        try {
+          return withGreekReadings(page, await greek(url));
+        } catch (error) {
+          // The Greek model's engine fails on a page of specks its own model
+          // read a few letters into; the page keeps that reading, and says so.
+          console.warn(`No Greek reading of ${url}: ${String(error)}`);
+          return page;
+        }
+      }
+    : own;
   // A Fraktur model's reading is read as roman type sets it, a German one's
   // hyphens as hyphens; an English or French print's dashes stay dashes.
   const reading = FRAKTUR_MODEL.test(book.ocr)

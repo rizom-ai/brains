@@ -1,3 +1,5 @@
+import { type ToolResponse } from "@brains/plugins";
+import { directorySyncStatusContract } from "@brains/contracts";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
@@ -5,7 +7,6 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import type { StudioWorkspaceRegistration } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import type { ToolResponse } from "@brains/mcp-service";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdtempSync } from "fs";
@@ -140,68 +141,20 @@ describe("DirectorySyncPlugin", () => {
 
   describe("Message Handling", () => {
     it("should respond to sync status requests", async () => {
-      const response = await harness.sendMessage<
-        Record<string, never>,
-        {
-          syncPath: string;
-          isInitialized: boolean;
-          watchEnabled: boolean;
-          lastSync: string | null;
-          totalFiles: number;
-          byEntityType: Record<string, number>;
-          git: unknown;
-          managementUrl?: string;
-        }
-      >("sync:status:request", {}, "test");
+      const response = directorySyncStatusContract.response.parse(
+        await harness.sendMessage(directorySyncStatusContract.name, {}, "test"),
+      );
 
       expect(response).toBeDefined();
-      expect(response?.syncPath).toBe(syncPath);
-      expect(response?.isInitialized).toBe(true);
-      expect(response?.watchEnabled).toBe(false);
-      expect(response?.totalFiles).toBeGreaterThanOrEqual(0);
-      expect(response?.byEntityType).toBeDefined();
+      expect(response.syncPath).toBe(syncPath);
+      expect(response.isInitialized).toBe(true);
+      expect(response.watchEnabled).toBe(false);
+      expect(response.totalFiles).toBeGreaterThanOrEqual(0);
+      expect(response.byEntityType).toBeDefined();
       // No git configured in this harness — status degrades, not errors.
-      expect(response?.git).toBeNull();
-      expect(response?.lastSync).toBeNull();
-      expect(response?.managementUrl).toBe("/studio/workspaces/sync");
-    });
-
-    it("should respond to export requests", async () => {
-      // Without an entity to export the counts are all zero, which any broken
-      // export also produces. Seed one so the numbers mean something.
-      harness.addEntities([
-        {
-          id: "note-1",
-          entityType: "note",
-          content: "# Note one",
-          metadata: {},
-        },
-      ]);
-
-      const response = await harness.sendMessage<
-        { entityTypes?: string[] },
-        { exported: number; failed: number; errors: string[] }
-      >("entity:export:request", { entityTypes: ["note"] }, "test");
-
-      expect(response).toEqual({ exported: 1, failed: 0, errors: [] });
-    });
-
-    it("should respond to configuration requests", async () => {
-      const newPath = mkdtempSync(join(tmpdir(), "test-directory-sync-new-"));
-
-      const response = await harness.sendMessage<
-        { syncPath: string },
-        { syncPath: string; configured: boolean }
-      >("sync:configure:request", { syncPath: newPath }, "test");
-
-      expect(response).toBeDefined();
-      expect(response?.syncPath).toBe(newPath);
-      expect(response?.configured).toBe(true);
-
-      // Clean up new path
-      if (existsSync(newPath)) {
-        rmSync(newPath, { recursive: true, force: true });
-      }
+      expect(response.git).toBeNull();
+      expect(response.lastSync).toBeNull();
+      expect(response.managementUrl).toBe("/studio/workspaces/sync");
     });
   });
 

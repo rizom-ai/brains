@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { siteHeadScriptsContract } from "@brains/contracts";
 import {
   analyticsConfigSchema,
   type AnalyticsConfig,
@@ -96,10 +96,9 @@ export class AnalyticsPlugin extends ServicePlugin<
     const beaconToken = this.config.cloudflare?.beaconToken;
     if (beaconToken) {
       const script = generateCloudflareBeaconScript(beaconToken);
-      context.messaging.subscribeExecution(
-        SITE_BUILDER_CHANNELS.headScripts,
-        async () => ({ success: true, data: script }),
-      );
+      context.messaging.answer(siteHeadScriptsContract, async () => script, {
+        everyProcess: true,
+      });
     }
 
     // Daily, in the worker: yesterday's traffic while Cloudflare's counts are

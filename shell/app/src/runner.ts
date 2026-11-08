@@ -11,7 +11,7 @@ import {
 import { registerConventionalSiteTheme } from "./register-conventional-site-theme";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
-import type { BrainDefinition as DeclarativeBrainDefinition } from "./contracts/brain-definition";
+import type { BrainDefinition as DeclarativeBrainDefinition } from "@brains/sdk";
 import { registerOverridePackages } from "./register-override-packages";
 import { resolveBrainPackageName } from "./brain-package";
 import { registerBrainDefinitionPackages } from "./register-brain-definition-packages";

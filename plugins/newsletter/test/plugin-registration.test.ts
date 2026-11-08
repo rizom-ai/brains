@@ -1,4 +1,8 @@
 import { describe, expect, it } from "bun:test";
+import {
+  generateExecuteContract,
+  publishRegisterContract,
+} from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
   baseEntitySchema,
@@ -34,7 +38,7 @@ describe("NewsletterPlugin registration", () => {
       dataDir: "/tmp/test-newsletter-publish-registration",
     });
     const messages: unknown[] = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       messages.push(msg.payload);
       return { success: true };
     });
@@ -76,7 +80,7 @@ describe("NewsletterPlugin scheduled generation", () => {
     const refusals = refuseEnqueues(queue, 1);
     await harness.installPlugin(new NewsletterPlugin({}));
 
-    await harness.sendMessage("generate:execute", {
+    await harness.sendMessage(generateExecuteContract.name, {
       entityType: "newsletter",
     });
     expect(refusals.count).toBe(1);

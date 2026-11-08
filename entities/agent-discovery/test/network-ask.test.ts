@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { Plugin } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
+import { a2aAskContract } from "@brains/contracts";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import {
@@ -222,7 +223,7 @@ describe("network_ask", () => {
     const harness = await setup();
     const asked: Array<{ agent: string; question: string }> = [];
     harness.subscribe<{ agent: string; question: string }, unknown>(
-      "a2a:ask:request",
+      a2aAskContract.name,
       async (message) => {
         asked.push(message.payload);
         // Both peers are in flight before either answers.
@@ -314,12 +315,13 @@ describe("network_ask", () => {
   it("names the peers that refused or timed out and keeps the rest", async () => {
     const harness = await setup();
     harness.subscribe<{ agent: string; question: string }, unknown>(
-      "a2a:ask:request",
+      a2aAskContract.name,
       async (message) =>
         message.payload.agent === "jo.example"
           ? {
               success: false,
               error: "jo.example did not answer within 6000 ms",
+              code: "deadline_exceeded",
             }
           : {
               success: true,
@@ -347,6 +349,28 @@ describe("network_ask", () => {
     ]);
   });
 
+  it("gives a failure's public message, never its diagnostic, as the reason", async () => {
+    const harness = await setup();
+    harness.subscribe<{ agent: string; question: string }, unknown>(
+      a2aAskContract.name,
+      async () => ({
+        success: false,
+        error: "connect ECONNREFUSED 10.0.0.7:443",
+      }),
+    );
+
+    const result = await networkAsk(harness).handler(
+      { question: "How do I plan a permaculture garden?" },
+      guestContext,
+    );
+    expectSuccess(result);
+    const data = networkAskResultSchema.parse(result.data);
+    expect(data.unanswered.map((entry) => entry.reason)).toEqual([
+      "The operation failed",
+      "The operation failed",
+    ]);
+  });
+
   it("reports an unreachable network rather than failing the turn", async () => {
     const harness = await setup();
     const result = await networkAsk(harness).handler(
@@ -366,7 +390,7 @@ describe("network_ask", () => {
     const harness = await setup();
     const asked: string[] = [];
     harness.subscribe<{ agent: string }, unknown>(
-      "a2a:ask:request",
+      a2aAskContract.name,
       async (message) => {
         asked.push(message.payload.agent);
         return { success: false, error: "unexpected" };

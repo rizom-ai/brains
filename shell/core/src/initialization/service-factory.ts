@@ -1,11 +1,15 @@
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
   AIService,
   EmbeddingUsageMeter,
   GenerationUsageMeter,
   OnlineEmbeddingProvider,
 } from "@brains/ai-service";
-import { ContentService as ContentServiceClass } from "@brains/content-service";
-import { createGenerationAuthorizer } from "./generation-authorization";
+import {
+  ContentService as ContentServiceClass,
+  GenerationAuthorizer,
+} from "@brains/content-service";
+import { createCallerAuthorizer } from "./caller-authorization";
 import {
   ConversationServiceTag,
   createConversationServiceLayer,
@@ -26,6 +30,7 @@ import { MessageBus } from "@brains/messaging-service";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -154,6 +159,8 @@ export function createShellServices(options: {
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
   const accountSettingsRegistry =
     dependencies?.accountSettingsRegistry ?? new AccountSettingsRegistry();
+  const authRegistry = new AuthRegistry();
+  const atprotoProjectionRegistry = new AtprotoProjectionRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -312,6 +319,11 @@ export function createShellServices(options: {
     }
   });
 
+  // One requester authorizer: generation and package jobs share it.
+  const callerAuthorizer = createCallerAuthorizer(
+    permissionService,
+    messageBus,
+  );
   const contentService =
     dependencies?.contentService ??
     new ContentServiceClass({
@@ -320,9 +332,9 @@ export function createShellServices(options: {
       aiService,
       templateRegistry,
       dataSourceRegistry,
-      generationAuthorizer: createGenerationAuthorizer(
+      generationAuthorizer: new GenerationAuthorizer(
         permissionService,
-        messageBus,
+        callerAuthorizer,
       ),
     });
 
@@ -366,6 +378,7 @@ export function createShellServices(options: {
     aiService,
     conversationService,
     contentService,
+    callerAuthorizer,
     jobQueueService,
     jobQueueWorker,
     batchJobManager,
@@ -381,6 +394,8 @@ export function createShellServices(options: {
     inboxFollowUpRegistry,
     operationalHealthRegistry,
     accountSettingsRegistry,
+    authRegistry,
+    atprotoProjectionRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,

@@ -22,6 +22,7 @@ Service plugins provide operational capabilities such as:
 - Import through `@brains/plugins`; avoid shell-internal imports.
 - Keep integrations isolated from standalone entity packages.
 - For a tightly coupled 1:1 entity + service capability, keep both parts in one compound package under `plugins/`; put entity schemas/adapters under `src/entity/`.
+- Make a request or command to another package through a bus contract (`defineBusContract` in `@brains/contracts`, then `context.messaging.request/gather/command/answer`); enqueue another package's job through a job contract (`defineJobContract`). A raw `context.messaging.send` is only for an event sent with `broadcast: true`, and lint enforces it. See `shell/messaging-service/README.md`.
 
 ## Do not
 

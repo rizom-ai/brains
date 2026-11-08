@@ -42,7 +42,7 @@ successCriteria:
       argsContain:
         entityType: note
         source.kind: upload
-        source.upload.id: upload-00000000-0000-4000-8000-000000000952
+        source.id: upload-00000000-0000-4000-8000-000000000952
         source.transform: extract-markdown
     - toolName: system_generate
       shouldBeCalled: false

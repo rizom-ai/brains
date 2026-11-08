@@ -6,9 +6,15 @@ export const MAX_GENERATION_REQUEST_BYTES = 1_048_576;
 export const MAX_GENERATION_JSON_DEPTH = 32;
 
 export class GenerationLimitError extends Error {
+  /** Its SDK error code: the request was refused as given. */
+  public readonly code = "invalid_input";
+  /** Names only the limit exceeded, so a caller may be told it. */
+  public readonly publicMessage: string;
+
   constructor(message: string) {
     super(message);
     this.name = "GenerationLimitError";
+    this.publicMessage = message;
   }
 }
 

@@ -253,7 +253,7 @@ export function createSiteBuilderServices(
 ): SiteBuilderServices {
   return {
     entityService: context.entityService,
-    sendMessage: context.messaging.send,
+    command: context.messaging.command,
     resolveTemplateContent: (templateName, options) =>
       context.templates.resolve(templateName, options),
     getViewTemplate: (name) => context.views.get(name),
@@ -292,4 +292,14 @@ export function createTestConfig(
     ...defaultConfig,
     ...overrides,
   };
+}
+
+/**
+ * The messaging a site build job uses: the given send for its events, and a
+ * site metadata request no plugin answers, so the configured fallback holds.
+ */
+export function messagingFor(
+  send: ServicePluginContext["messaging"]["send"],
+): Pick<ServicePluginContext["messaging"], "send" | "request"> {
+  return { send, request: async () => ({ status: "unavailable" }) };
 }

@@ -1,7 +1,6 @@
 import { z } from "@brains/utils/zod";
 import { actorRefSchema } from "./actor-ref";
-
-export const AUTH_PRINCIPAL_RESOLVE_CHANNEL = "auth:principal:resolve";
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 type AuthPrincipalResolveRequestSchema = z.ZodObject<{
   actor: typeof actorRefSchema;
@@ -11,10 +10,6 @@ export const authPrincipalResolveRequestSchema: AuthPrincipalResolveRequestSchem
   z.object({
     actor: actorRefSchema,
   });
-
-export type AuthPrincipalResolveRequest = z.output<
-  typeof authPrincipalResolveRequestSchema
->;
 
 type AuthPrincipalAttributionSchema = z.ZodObject<{
   userId: z.ZodString;
@@ -53,3 +48,15 @@ export const authPrincipalResolveResponseSchema: AuthPrincipalResolveResponseSch
 export type AuthPrincipalResolveResponse = z.output<
   typeof authPrincipalResolveResponseSchema
 >;
+
+/** Resolve an actor to the auth principal behind it; auth-service owns it. */
+export const authPrincipalResolveContract: BusContract<
+  AuthPrincipalResolveRequestSchema,
+  AuthPrincipalResolveResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "auth:principal:resolve",
+  request: authPrincipalResolveRequestSchema,
+  response: authPrincipalResolveResponseSchema,
+  delivery: "request",
+});

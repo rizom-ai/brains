@@ -1,17 +1,27 @@
+import {
+  internalFullScope,
+  brainCharacterBodySchema,
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { createHash } from "node:crypto";
 import type {
   BaseEntity,
   ProfileCategory,
   BrainCharacter,
-  ServiceEntityService,
 } from "@brains/plugins";
-import {
-  brainCharacterBodySchema,
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import type { ClaimedSystemType } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+
+/**
+ * The identity records a starter identity reads and writes: the brain's
+ * character and its anchor's profile, as their steward keeps them.
+ */
+export type StarterIdentityStore = Pick<
+  ClaimedSystemType,
+  "getEntity" | "createEntity" | "updateEntity"
+>;
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -296,7 +306,7 @@ export function createStarterAnchorProfileContent(
 }
 
 async function persistIdentityEntity(
-  entityService: ServiceEntityService,
+  entityService: StarterIdentityStore,
   existing: BaseEntity | null,
   entityType: "brain-character" | "anchor-profile",
   content: string,
@@ -320,7 +330,7 @@ async function persistIdentityEntity(
 }
 
 export async function seedOrMigrateStarterIdentity(options: {
-  entityService: ServiceEntityService;
+  entityService: StarterIdentityStore;
   identifier: string;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;
@@ -341,12 +351,12 @@ export async function seedOrMigrateStarterIdentity(options: {
     entityService.getEntity({
       entityType: "brain-character",
       id: "brain-character",
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope("bootstrap singleton identity load"),
     }),
     entityService.getEntity({
       entityType: "anchor-profile",
       id: "anchor-profile",
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope("bootstrap singleton identity load"),
     }),
   ]);
 

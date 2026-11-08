@@ -1,9 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import {
-  promptSchema,
-  promptFrontmatterSchema,
-  promptMetadataSchema,
-} from "../src/schemas/prompt";
+import { promptFrontmatterSchema, promptMetadataSchema } from "../src";
+import { promptPlugin } from "./prompt-plugin";
+
+// The record schema the prompt package registers for its type. A stored
+// record always carries its visibility.
+const promptSchema = promptPlugin().schema;
 
 describe("Prompt Schema", () => {
   it("should validate a valid prompt entity", () => {
@@ -16,6 +17,7 @@ describe("Prompt Schema", () => {
         title: "Blog Generation",
         target: "blog:generation",
       },
+      visibility: "public",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       contentHash: "abc123",
@@ -30,6 +32,7 @@ describe("Prompt Schema", () => {
       entityType: "note",
       content: "test",
       metadata: { title: "Test", target: "test:target" },
+      visibility: "public",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       contentHash: "abc",

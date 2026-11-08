@@ -154,7 +154,6 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
 | `entities/prompt`              | `prompt`                             | Editable AI prompt entities                         |
 | `entities/series`              | `series`                             | Derived post grouping                               |
-| `entities/site-info`           | `site-info`                          | Site metadata                                       |
 | `entities/social-media`        | `social-post`                        | Social publishing content                           |
 | `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
 | `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
@@ -177,11 +176,15 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
 | `plugins/directory-sync`   | File sync + git operations                                                                         |
 | `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
+| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile` |
 | `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                           |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
+| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains       |
+| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget         |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
 | `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
+| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                     |
 | `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
 | `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
 | `plugins/studio`           | Browser authoring routes + Studio config                                                           |
@@ -207,6 +210,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `sites/`              | `default`, `personal`, `professional`, `rizom` and app-specific compositions             |
 | `shared/theme-*`      | `default`, `rizom`, `signal`, and related theme packages                                 |
 | `packages/brain-cli`  | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI |
+| `packages/brain-sdk`  | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                |
 | `packages/brains-ops` | published `@rizom/ops` fleet tooling                                                     |
 
 ## Plugin model
@@ -416,9 +420,10 @@ web routing readiness (`/health/ready`) and full operational health
 Operational health additionally covers durable worker sessions, stale attempt
 leases, daemon health, and projection circuit state; both reports include
 bounded process, queue, and causal-work resource signals. Operational health
-also carries app version, entity counts, and daemon metadata for operator
-diagnostics. Generated containers probe liveness, while generated host
-deployment artifacts install a restart-budgeted systemd
+also carries app version, uptime, and daemon state; it answers without a
+session, so entity counts and totals stay on authenticated surfaces. Generated
+containers probe liveness, while generated host deployment artifacts install a
+restart-budgeted systemd
 watchdog that preserves container diagnostics before restarting a persistently
 unhealthy Brain container.
 

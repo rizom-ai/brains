@@ -1,9 +1,9 @@
+import { decodeEntityIdPath } from "@brains/plugins";
 import type {
   BaseEntity,
   EntityIdPath,
   ServicePluginContext,
 } from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
 import { getTypeCapabilities } from "./editor-access";
 import type { StudioRequestAccess } from "./editor-contracts";
 

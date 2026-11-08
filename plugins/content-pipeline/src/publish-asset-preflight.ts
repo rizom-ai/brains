@@ -2,11 +2,12 @@ import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { slugify } from "@brains/utils/string-utils";
-import type {
-  PublishAssetDefinition,
-  PublishAssetTargetField,
-  PublishAssetRegistry,
-} from "./publish-assets";
+import {
+  imageRenderSourceJobContract,
+  type PublishAssetDefinition,
+  type PublishAssetTargetField,
+} from "@brains/contracts";
+import type { PublishAssetRegistry } from "./publish-assets";
 
 export interface PublishAssetPreflightResult {
   checked: number;
@@ -114,14 +115,11 @@ export class PublishAssetPreflight {
       return false;
     }
 
-    const jobType = this.resolveJobType(definition);
-    if (!jobType) return false;
-
     const mediaId = this.getPredictedMediaId(entity, definition);
     const deduplicationKey = this.getDeduplicationKey(entity, definition);
-    await this.deps.context.jobs.enqueue({
-      type: jobType,
-      data: {
+    await this.deps.context.jobs.enqueue(
+      imageRenderSourceJobContract,
+      {
         sourceEntityType: entity.entityType,
         sourceEntityId: entity.id,
         attachmentType: definition.attachmentType,
@@ -131,20 +129,22 @@ export class PublishAssetPreflight {
         targetEntityId: entity.id,
         ...this.getTargetImageFieldData(definition.targetEntityField),
       },
-      options: {
-        source: "content-pipeline",
-        metadata: {
-          operationType: "content_operations",
+      {
+        options: {
+          source: "content-pipeline",
+          metadata: {
+            operationType: "content_operations",
+          },
+          deduplication: "skip",
+          deduplicationKey,
         },
-        deduplication: "skip",
-        deduplicationKey,
       },
-    });
+    );
     this.deps.context.logger.debug("Queued publish asset generation", {
       entityType: entity.entityType,
       entityId: entity.id,
       attachmentType: definition.attachmentType,
-      jobType,
+      jobType: imageRenderSourceJobContract.type,
     });
     return true;
   }
@@ -189,15 +189,6 @@ export class PublishAssetPreflight {
 
     const { frontmatter } = parseMarkdown(entity.content);
     return hasValue(frontmatter[targetField.field]);
-  }
-
-  private resolveJobType(
-    definition: PublishAssetDefinition,
-  ): string | undefined {
-    if (definition.jobType) return definition.jobType;
-    if (definition.mediaEntityType === "image")
-      return "image:image-render-source";
-    return undefined;
   }
 
   private getPredictedMediaId(

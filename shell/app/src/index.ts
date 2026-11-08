@@ -1,4 +1,5 @@
-export { App, buildShellConfig } from "./app";
+export { App } from "./app";
+export { buildShellConfig } from "./shell-config";
 export { defineConfig } from "./config";
 export { handleCLI } from "./cli";
 export {
@@ -33,7 +34,7 @@ export {
   isConfiguredPluginDefinition,
   use,
   type ConfiguredPluginDefinition,
-} from "./configured-plugin";
+} from "@brains/sdk/internal/configured-plugin";
 export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { defineBundle } from "./bundle-definition";
 export {
@@ -47,6 +48,10 @@ export {
   normalizeDeclarativeBrainDefinition,
 } from "./declarative-brain";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
+export {
+  findPackageManifest,
+  type InstalledPackageManifest,
+} from "./installed-package-metadata";
 export { resolveBrainPackageName } from "./brain-package";
 export {
   registerPackage,

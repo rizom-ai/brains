@@ -56,7 +56,7 @@ function createProjection(instance: string): {
 
 describe("AtprotoProjectionRegistry", () => {
   it("uses the newest implementation for equivalent registrations", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = createProjection("first");
     const second = createProjection("second");
 
@@ -73,7 +73,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("restores the newest remaining instance when an older one unregisters", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = createProjection("first");
     const second = createProjection("second");
 
@@ -85,7 +85,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("allows idempotent re-registration of the same projection object", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const projection = createProjection("only");
 
     const unregisterFirst = registry.register(projection);
@@ -100,7 +100,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("rejects conflicting registrations for the same entity type", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = createProjection("first");
     const second = {
       entityType: "post",
@@ -119,7 +119,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("ignores double calls of the same unregister function", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = createProjection("first");
     const second = createProjection("second");
 

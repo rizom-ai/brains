@@ -10,3 +10,17 @@ export class PluginError extends Error {
     this.pluginId = pluginId;
   }
 }
+
+/**
+ * A plugin configuration this brain must not run with. The shell fails the
+ * boot on it, whether or not the plugin's daemon is required.
+ */
+export class FatalPluginConfigurationError extends Error {
+  public readonly pluginId: string;
+
+  constructor(pluginId: string, message: string) {
+    super(message);
+    this.name = "FatalPluginConfigurationError";
+    this.pluginId = pluginId;
+  }
+}

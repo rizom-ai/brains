@@ -2,7 +2,7 @@ import { createMockShell } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
@@ -97,6 +97,10 @@ export async function createWorkViewFixtures(
       status: "completed",
       message: "Pulled 14 changes from git.",
       jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
+      metadata: {
+        rootJobId: "directory-sync",
+        operationType: "data_processing",
+      },
     });
     clock = now - 12 * MINUTE;
     await registry.recordEntity("updated", {
@@ -111,6 +115,10 @@ export async function createWorkViewFixtures(
       message:
         "Preview render failed. Inspect the retained build diagnostics before retrying.",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
+      metadata: {
+        rootJobId: "preview-build",
+        operationType: "data_processing",
+      },
     });
   }
   const overview = createStudioOverviewWorkspace({
@@ -169,7 +177,7 @@ export async function createWorkViewFixtures(
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         inbox = message.payload;
         return {

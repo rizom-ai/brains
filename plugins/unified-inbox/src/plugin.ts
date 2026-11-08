@@ -3,8 +3,8 @@ import {
   type Plugin,
   type ServicePluginContext,
   type Tool,
+  normalizeSameOriginPath,
 } from "@brains/plugins";
-import { normalizeSameOriginPath } from "@brains/plugins/internal/same-origin-path";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
@@ -47,7 +47,6 @@ export class UnifiedInboxPlugin extends ServicePlugin<
       this.dataSource,
       context.inboxFollowUps,
     );
-    context.entities.registerDataSource(this.dataSource);
     registerUnifiedInboxDigest(context, this.dataSource, {
       workspaceUrl: () => this.studioWorkspaceUrl,
     });

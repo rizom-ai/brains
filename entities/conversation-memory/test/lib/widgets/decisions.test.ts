@@ -1,9 +1,9 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  dashboardWidgetRegisterContract,
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
 import {
@@ -104,7 +104,7 @@ describe("registerDecisionsWidget", () => {
       listEntitiesImpl: async () => [],
     });
     context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
+      dashboardWidgetRegisterContract.name,
       async () => ({ success: true }),
     );
 

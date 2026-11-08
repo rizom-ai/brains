@@ -1,7 +1,8 @@
+import { toSdkError } from "@brains/contracts";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   InboxRegistry,
   createServicePluginContext,
   type StudioWorkspaceActor,
@@ -102,7 +103,7 @@ async function setup(options?: {
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         workspace = message.payload;
         return {
@@ -346,6 +347,18 @@ describe("unified inbox Studio registration", () => {
       ),
     ).rejects.toThrow("invalid or stale");
     expect(fixture.actors).toEqual([]);
+    // A withdrawn action cannot be prepared again, and Studio says why.
+    expect(
+      await fixture.workspace
+        .actionHandler(
+          { actionId: "run-inbox-action", input, mode: "prepare" },
+          admin,
+        )
+        .then(
+          () => "prepared",
+          (error: unknown) => toSdkError(error).toJSON(),
+        ),
+    ).toEqual({ code: "not_found", message: "Inbox item or action not found" });
   });
 
   it("maps only the Studio permission and fixes source exceptions", async () => {

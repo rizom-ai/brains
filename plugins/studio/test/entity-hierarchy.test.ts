@@ -1,19 +1,18 @@
-import { describe, expect, spyOn, test } from "bun:test";
 import {
+  decodeEntityIdPath,
   BaseEntityAdapter,
   baseEntitySchema,
   createServicePluginContext,
   type BaseEntity,
   type GetEntityRequest,
   type WebRouteDefinition,
-} from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
-import { createMockShell } from "@brains/plugins/test";
-import { z } from "@brains/utils/zod";
-import {
   EntityValidationError,
   EntityWriteConflictError,
 } from "@brains/plugins";
+import { describe, expect, spyOn, test } from "bun:test";
+import { directorySyncPathContract } from "@brains/contracts";
+import { createMockShell } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 
@@ -124,15 +123,17 @@ describe("Studio hierarchy editor API", () => {
     async ({ entityType, path, field }) => {
       const { shell, routes } = fixture("trusted", entityType);
       const create = spyOn(shell.getEntityService(), "createEntity");
-      shell.getMessageBus().subscribe("sync:path:request", async () => ({
-        success: true,
-        data: {
-          relativePath: "book/intro.md",
-          leaf: null,
-          writable: false,
-          owner: { entityType: "book", id: "intro" },
-        },
-      }));
+      shell
+        .getMessageBus()
+        .subscribe(directorySyncPathContract.name, async () => ({
+          success: true,
+          data: {
+            relativePath: "book/intro.md",
+            leaf: null,
+            writable: false,
+            owner: { entityType: "book", id: "intro" },
+          },
+        }));
       const preview = await request(routes, "destination", {
         entityType,
         idPath: path,
@@ -158,10 +159,12 @@ describe("Studio hierarchy editor API", () => {
 
   test("an explicit false still refuses when an optional owner is absent", async () => {
     const { shell, routes } = fixture();
-    shell.getMessageBus().subscribe("sync:path:request", async () => ({
-      success: true,
-      data: { relativePath: "section/intro.md", leaf: null, writable: false },
-    }));
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncPathContract.name, async () => ({
+        success: true,
+        data: { relativePath: "section/intro.md", leaf: null, writable: false },
+      }));
     expect(
       (
         await request(routes, "entities", {
@@ -178,17 +181,19 @@ describe("Studio hierarchy editor API", () => {
     async (version) => {
       const { shell, routes } = fixture();
       if (version !== "absent")
-        shell.getMessageBus().subscribe("sync:path:request", async () => ({
-          success: true,
-          data: {
-            relativePath: "section/section/intro.md",
-            leaf: null,
-            ...(version === "writable" && {
-              writable: true,
-              owner: { entityType: "section", id: "section:intro" },
-            }),
-          },
-        }));
+        shell
+          .getMessageBus()
+          .subscribe(directorySyncPathContract.name, async () => ({
+            success: true,
+            data: {
+              relativePath: "section/section/intro.md",
+              leaf: null,
+              ...(version === "writable" && {
+                writable: true,
+                owner: { entityType: "section", id: "section:intro" },
+              }),
+            },
+          }));
       const response = await request(routes, "entities", {
         entityType: "section",
         idPath: ["section", "intro"],
@@ -326,6 +331,8 @@ describe("Studio hierarchy editor API", () => {
       entityType: "section",
       id,
       visibilityScope: "shared",
+      // The editor reads the stored document.
+      source: true,
     });
   });
 
@@ -394,13 +401,15 @@ describe("Studio hierarchy editor API", () => {
 
   test("destination preview encodes identity on the server and asks its placement owner", async () => {
     const { shell, routes } = fixture();
-    shell.getMessageBus().subscribe("sync:path:request", async () => ({
-      success: true,
-      data: {
-        relativePath: "section/book/intro.md",
-        leaf: { start: 13, end: 18 },
-      },
-    }));
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncPathContract.name, async () => ({
+        success: true,
+        data: {
+          relativePath: "section/book/intro.md",
+          leaf: { start: 13, end: 18 },
+        },
+      }));
     const response = await request(routes, "destination", {
       entityType: "section",
       idPath: ["book", "intro"],
@@ -436,16 +445,18 @@ describe("Studio hierarchy editor API", () => {
       metadata: { format: "png" },
     });
     const payloads: unknown[] = [];
-    shell.getMessageBus().subscribe("sync:path:request", async (message) => {
-      payloads.push(message.payload);
-      return {
-        success: true,
-        data: {
-          relativePath: "section/intro.png",
-          leaf: { start: 8, end: 13 },
-        },
-      };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(directorySyncPathContract.name, async (message) => {
+        payloads.push(message.payload);
+        return {
+          success: true,
+          data: {
+            relativePath: "section/intro.png",
+            leaf: { start: 8, end: 13 },
+          },
+        };
+      });
     const response = await request(routes, "destination", {
       entityType: "section",
       idPath: ["intro"],

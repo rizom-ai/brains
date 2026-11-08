@@ -1,7 +1,11 @@
 import { describe, expect, it, mock } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import {
+  findRouteByRole,
+  type BaseEntity,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import {
   loadAskContent,
   loadHomepageOpening,
@@ -47,7 +51,10 @@ function context(record: BaseEntity | null = entity()): ServicePluginContext {
     siteUrl: origin,
     preferLocalUrls: false,
     previewUrl: "https://preview.brain.test",
-    webRoutes: { getRoutes: () => routes },
+    webRoutes: {
+      getRoutes: () => routes,
+      findByRole: (role) => findRouteByRole(routes, role),
+    },
     identity: {
       ...context.identity,
       getAppInfo: async () => ({
@@ -138,6 +145,20 @@ describe("authored opening", () => {
     expect(
       await loadAskContent({ entityService: missing.entityService }),
     ).toBeNull();
+  });
+  it("reads a declared record's copy from its metadata", async () => {
+    const runtime = context({
+      ...entity(),
+      content: "An authored opening.",
+      metadata: {
+        title: "A different opening",
+        topics: ["Talk about research"],
+      },
+    });
+    const copy = await loadAskContent({ entityService: runtime.entityService });
+    expect(copy?.title).toBe("A different opening");
+    expect(copy?.topics).toEqual(["Talk about research"]);
+    expect(copy?.introduction).toBe("An authored opening.");
   });
   it("uses the local site URL for a local preview, not the deployment's HTTPS domain", async () => {
     const runtime = context();

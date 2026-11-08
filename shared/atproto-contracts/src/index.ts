@@ -47,6 +47,12 @@ export {
   ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
   ATPROTO_JETSTREAM_GAP,
+  atprotoBrainCardConflictChannel,
+  atprotoBrainCardDiscoveredChannel,
+  atprotoBrainCardRefreshedChannel,
+  atprotoBrainCardUnavailableChannel,
+  atprotoBrainDiscoveredChannel,
+  atprotoJetstreamGapChannel,
   atprotoBrainCardConflictPayloadSchema,
   atprotoBrainCardDiscoveredPayloadSchema,
   atprotoBrainCardUnavailablePayloadSchema,
@@ -68,3 +74,8 @@ export type {
   AtprotoPublishConfig,
 } from "./projection";
 export { AtprotoProjectionRegistry } from "./projection-registry";
+export {
+  atprotoProvenance,
+  defineAtprotoProjection,
+  type AtprotoRecordProvenance,
+} from "./record-provenance";

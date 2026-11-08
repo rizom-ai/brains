@@ -1,4 +1,8 @@
-import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
+import {
+  internalFullScope,
+  BaseGenerationJobHandler,
+  ensureUniqueTitle,
+} from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import {
   type GenerationResult,
@@ -286,7 +290,9 @@ Add your conclusion here.`;
         entity: await this.context.entityService.getEntity({
           entityType,
           id,
-          visibilityScope: "restricted",
+          visibilityScope: internalFullScope(
+            "generation sources pre-resolved at caller scope",
+          ),
         }),
       })),
     );

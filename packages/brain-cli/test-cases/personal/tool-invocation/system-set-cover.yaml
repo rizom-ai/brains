@@ -20,7 +20,6 @@ successCriteria:
       argsContain:
         entityType: "post"
         id: "resilience-in-distributed-systems"
-        operation.kind: fields
         operation.fields.coverImageId: "og-post-resilience-in-distributed-systems"
   responseNotContains:
     - "I cannot"

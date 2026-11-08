@@ -184,4 +184,48 @@ describe.skipIf(!LINUX)("checkout operation executor", () => {
     expect(failed).toBeDefined();
     expect(await executor.execute({ name: "has-local-changes" })).toBe(false);
   }, 60_000);
+
+  it("holds the turn through `afterOperation`, after the operation has landed", async () => {
+    // The seam in-process tests use to hold a turn: it runs inside the turn,
+    // once Git itself has returned, so what it holds is an operation that has
+    // already changed the checkout.
+    scratch = await mkdtemp(join(tmpdir(), "checkout-executor-after-"));
+    const dataDir = join(scratch, "checkout");
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const executor = new CheckoutOperationExecutor({
+      logger: createSilentLogger(),
+      dataDir,
+      branch: "main",
+      remoteUrl: "",
+      remoteFingerprint: sha256Hex(""),
+      timeoutMs: 30_000,
+      authorName: "Test",
+      authorEmail: "test@example.com",
+      afterOperation: async (operation): Promise<void> => {
+        if (operation.name !== "commit") return;
+        entered.resolve();
+        await release.promise;
+      },
+    });
+    await executor.execute({ name: "initialize" });
+    await writeFile(join(dataDir, "note.md"), "landed\n");
+
+    const held = executor.execute({ name: "commit" });
+    await entered.promise;
+    expect(await commitTouching(dataDir, "note.md")).toEqual(["note.md"]);
+
+    let queuedStarted = false;
+    const queued = executor.execute(
+      { name: "get-status" },
+      { onStart: () => void (queuedStarted = true) },
+    );
+    await Bun.sleep(25);
+    expect(queuedStarted).toBe(false);
+
+    release.resolve();
+    await held;
+    await queued;
+    expect(queuedStarted).toBe(true);
+  }, 60_000);
 });

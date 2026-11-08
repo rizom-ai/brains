@@ -44,28 +44,29 @@ export function toInternalResponse(
     response.success,
     response.data,
     response.error,
+    response.code,
   );
 }
 
 /**
- * Convert an internal bus response into the public MessageResponse shape.
+ * Convert an internal bus response into the public MessageResponse shape. Its
+ * data is unchecked: a caller that relies on a reply asks through a bus
+ * contract, whose response schema parses it.
  */
-export function toMessageResponse<R>(
+export function toMessageResponse(
   type: string,
   response: InternalMessageResponse | null,
-): MessageResponse<R> {
+): MessageResponse {
   if (response?.success) {
-    return {
-      success: true,
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the bus carries responses as unknown and only the caller knows R; removing this needs a response schema on Channel, which is a messaging contract change
-      data: response.data as R,
-    };
+    return { success: true, data: response.data };
   }
 
+  const code = response?.error?.code;
   return {
     success: false,
     error:
       response?.error?.message ?? `No handler found for message type: ${type}`,
+    ...(code !== undefined && { code }),
   };
 }
 
@@ -74,6 +75,7 @@ function createInternalResponse(
   success: boolean,
   data?: unknown,
   error?: string,
+  code?: string,
 ): InternalMessageResponse {
   return {
     id: createId("resp"),
@@ -81,7 +83,9 @@ function createInternalResponse(
     timestamp: createTimestamp(),
     success,
     data,
-    error: error ? { message: error } : undefined,
+    error: error
+      ? { message: error, ...(code !== undefined && { code }) }
+      : undefined,
   };
 }
 

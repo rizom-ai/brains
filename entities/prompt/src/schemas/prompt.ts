@@ -1,5 +1,4 @@
-import { baseEntityParserSchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 
 export interface PromptFrontmatter {
   [key: string]: unknown;
@@ -43,26 +42,13 @@ type PromptMetadataSchema = z.ZodObject<{
 }>;
 
 /**
- * Prompt metadata schema — derived from frontmatter
+ * Prompt metadata schema — derived from frontmatter. Studio edits a
+ * prompt's metadata, so the derived slug and the default's hash are
+ * hidden there, as they were absent from the frontmatter it edited.
  */
 export const promptMetadataSchema: PromptMetadataSchema = z.object({
   title: z.string(),
   target: z.string(),
-  slug: z.string().optional(),
-  defaultHash: z.string().optional(),
+  slug: z.string().optional().meta({ studioWidget: "hidden" }),
+  defaultHash: z.string().optional().meta({ studioWidget: "hidden" }),
 });
-
-/**
- * Prompt entity schema
- */
-export const promptSchema: ReturnType<
-  typeof baseEntityParserSchema.extend<{
-    entityType: z.ZodLiteral<"prompt">;
-    metadata: PromptMetadataSchema;
-  }>
-> = baseEntityParserSchema.extend({
-  entityType: z.literal("prompt"),
-  metadata: promptMetadataSchema,
-});
-
-export type Prompt = z.output<typeof promptSchema>;

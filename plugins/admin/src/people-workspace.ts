@@ -1,4 +1,4 @@
-import type { AuthService } from "@brains/auth-service";
+import type { AuthBackend } from "@brains/plugins";
 import {
   createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
@@ -21,7 +21,7 @@ import {
   adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
@@ -731,15 +731,15 @@ function mutationContext(caller: OperatorCaller | null): {
 }
 
 function personName(
-  users: Awaited<ReturnType<AuthService["listAdminUsers"]>>,
+  users: Awaited<ReturnType<AuthBackend["listAdminUsers"]>>,
   userId: string,
 ): string {
   return users.find((user) => user.userId === userId)?.displayName ?? "person";
 }
 
 async function loadBrainAnchor(
-  authService: AuthService,
-): Promise<Awaited<ReturnType<AuthService["getBrainAnchor"]>> | undefined> {
+  authService: AuthBackend,
+): Promise<Awaited<ReturnType<AuthBackend["getBrainAnchor"]>> | undefined> {
   try {
     return await authService.getBrainAnchor();
   } catch (error) {
@@ -756,7 +756,7 @@ async function loadBrainAnchor(
 export function createPeopleTabSource(
   context: ServicePluginContext,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
+  const authService = requireAuthBackend(context);
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peopleWorkspace,

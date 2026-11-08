@@ -1,8 +1,8 @@
 import { z } from "@brains/utils/zod";
 import type {
+  EnqueueJobRequest,
   Tool,
   ServiceEntityService,
-  ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type {
@@ -18,8 +18,8 @@ export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
   entityService: ServiceEntityService;
   fetchImage: FetchImageFn;
-  /** Only enqueue is used; asking for the whole job service would be a claim these tools do not make. */
-  jobs: Pick<ServicePluginContext["jobs"], "enqueue">;
+  /** Only enqueue by job type is used; asking for the whole job service would be a claim these tools do not make. */
+  jobs: { enqueue(request: EnqueueJobRequest): Promise<string> };
 }
 
 const searchInputSchema = z.object({

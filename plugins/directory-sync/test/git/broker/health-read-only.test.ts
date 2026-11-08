@@ -91,8 +91,6 @@ describe.skipIf(!LINUX)("an operational health request", () => {
     // notice that, and schedule durable replay — from a read.
     const health = await createBrokerHealthCheck({
       probe: probeBrokerActivity(owned.socketPath),
-      now: () => Date.now(),
-      progressTimeoutMs: 60_000,
     })();
 
     expect(health.status).toBe("degraded");
@@ -108,8 +106,6 @@ describe.skipIf(!LINUX)("an operational health request", () => {
     recovery.close();
     const recovered = await createBrokerHealthCheck({
       probe: probeBrokerActivity(owned.socketPath),
-      now: () => Date.now(),
-      progressTimeoutMs: 60_000,
     })();
     expect(recovered.status).toBe("healthy");
 
@@ -123,8 +119,6 @@ describe.skipIf(!LINUX)("an operational health request", () => {
 
     const health = await createBrokerHealthCheck({
       probe: probeBrokerActivity(owned.socketPath),
-      now: () => Date.now(),
-      progressTimeoutMs: 60_000,
     })();
 
     expect(health.status).toBe("unhealthy");

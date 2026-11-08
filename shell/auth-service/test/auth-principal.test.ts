@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createExternalActorId } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { AuthService } from "../src";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 const redirectUri = "http://127.0.0.1:6274/oauth/callback";
@@ -279,6 +280,7 @@ describe("AuthService principals", () => {
 
   it("revokes user sessions when an identity is detached", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
@@ -311,6 +313,7 @@ describe("AuthService principals", () => {
 
   it("distinguishes unbound identities from inactive bindings", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
@@ -344,6 +347,7 @@ describe("AuthService principals", () => {
 
   it("resolves canonical actors without exposing raw identity subjects", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
@@ -389,6 +393,7 @@ describe("AuthService principals", () => {
 
   it("resolves verified identity access to active auth principals", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });

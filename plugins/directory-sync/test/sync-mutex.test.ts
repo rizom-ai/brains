@@ -56,14 +56,18 @@ describe("sync mutex", () => {
     // Hold the first call inside enqueueBatch until the second has been made,
     // so the overlap is guaranteed rather than relying on a sleep outlasting it.
     const firstEnqueue = Promise.withResolvers<void>();
+    const firstEntered = Promise.withResolvers<void>();
     context.jobs.enqueueBatch = mock(async () => {
+      firstEntered.resolve();
       await firstEnqueue.promise;
       return "batch-slow";
     });
 
     const call1 = directorySync.queueSyncBatch(context, "test-1");
     const call2 = directorySync.queueSyncBatch(context, "test-2");
-    await Bun.sleep(10);
+    // Wait until the first call is inside enqueueBatch instead of guessing
+    // how long discovery takes; a fixed sleep lost that race on slow runners.
+    await firstEntered.promise;
     // The second call has not started discovery while the first enqueues.
     expect(context.jobs.enqueueBatch).toHaveBeenCalledTimes(1);
 

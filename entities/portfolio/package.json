@@ -1,7 +1,7 @@
 {
   "name": "@brains/portfolio",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.664",
   "description": "Portfolio showcase for projects and case studies",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
@@ -9,9 +9,8 @@
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/app": "workspace:*",

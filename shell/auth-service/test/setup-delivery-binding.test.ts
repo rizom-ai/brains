@@ -7,6 +7,7 @@ import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { setupTokens } from "../src/runtime-schema";
 import { RuntimeSetupStateStore, setupTokenId } from "../src/setup-state-store";
 import { AuthUserStore } from "../src/user-store";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 
@@ -35,7 +36,10 @@ describe("targeted setup delivery binding", () => {
         role: "trusted",
         status: "invited",
       });
-      const identity = await new AuthIdentityStore(database.db).attachIdentity({
+      const identity = await new AuthIdentityStore(
+        database.db,
+        registeredTestChannels,
+      ).attachIdentity({
         userId: user.id,
         type: "email",
         subject: "mira@example.com",

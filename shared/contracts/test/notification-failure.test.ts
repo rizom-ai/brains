@@ -1,31 +1,46 @@
 import { describe, expect, it } from "bun:test";
-import { NOTIFICATION_FAILURES, notificationFailureCode } from "../src";
+import {
+  notificationsSendContract,
+  sendNotificationResultSchema,
+} from "../src";
 
-describe("notification failure codes", () => {
-  it("names why notifications:send refused, with the transport's own code", () => {
+describe("notification refusals", () => {
+  it("are answers that name why notifications:send refused", () => {
+    for (const answer of [
+      { status: "failed", failure: "recipient-missing" },
+      { status: "failed", failure: "transport-missing" },
+      {
+        status: "failed",
+        failure: "delivery-failed",
+        transportCode: "resend_validation_error",
+      },
+      { status: "failed", failure: "delivery-failed" },
+    ]) {
+      const parsed: unknown = sendNotificationResultSchema.parse(answer);
+      expect(parsed).toEqual(answer);
+    }
+    // The contract answers with exactly this schema.
     expect(
-      notificationFailureCode(NOTIFICATION_FAILURES.recipientMissing),
-    ).toBe("recipient-missing");
-    expect(
-      notificationFailureCode(NOTIFICATION_FAILURES.transportMissing),
-    ).toBe("transport-missing");
-    expect(
-      notificationFailureCode(
-        `${NOTIFICATION_FAILURES.deliveryFailed}: resend_validation_error`,
+      Object.is(
+        notificationsSendContract.response,
+        sendNotificationResultSchema,
       ),
-    ).toBe("resend_validation_error");
-    expect(notificationFailureCode(NOTIFICATION_FAILURES.deliveryFailed)).toBe(
-      "delivery-failed",
-    );
+    ).toBe(true);
   });
 
-  it("never lets free text through as a code", () => {
-    expect(
-      notificationFailureCode(
-        `${NOTIFICATION_FAILURES.deliveryFailed}: user@example.com is invalid`,
-      ),
-    ).toBe("delivery-failed");
-    expect(notificationFailureCode("anything else")).toBe("unconfirmed");
-    expect(notificationFailureCode(undefined)).toBe("unconfirmed");
+  it("never let free text through as a reason or a transport code", () => {
+    for (const answer of [
+      { status: "failed", failure: "the inbox was full" },
+      {
+        status: "failed",
+        failure: "delivery-failed",
+        transportCode: "user@example.com is invalid",
+      },
+      { status: "failed" },
+    ]) {
+      expect(sendNotificationResultSchema.safeParse(answer).success).toBe(
+        false,
+      );
+    }
   });
 });

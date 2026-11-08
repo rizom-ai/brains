@@ -1,76 +1,94 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { SeriesPlugin } from "../src/plugin";
+import { seriesPlugin, type SeriesEntityPlugin } from "./series-plugin";
 
-describe("SeriesPlugin", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
+/**
+ * What the series register, as the series plugin class registered it: the
+ * same plugin id, type, templates, data source, projection rule and AT
+ * Protocol projection. Its `series:generation` job is retired.
+ */
+async function installed(): Promise<{
+  harness: ReturnType<typeof createPluginHarness<SeriesEntityPlugin>>;
+  capabilities: Awaited<
+    ReturnType<
+      ReturnType<
+        typeof createPluginHarness<SeriesEntityPlugin>
+      >["installPlugin"]
+    >
+  >;
+  plugin: SeriesEntityPlugin;
+}> {
+  const harness = createPluginHarness<SeriesEntityPlugin>({
+    logger: createSilentLogger("series-plugin-test"),
+  });
+  const plugin = seriesPlugin();
+  const capabilities = await harness.installPlugin(plugin);
+  return { harness, capabilities, plugin };
+}
 
-  beforeEach(() => {
-    harness = createPluginHarness({
-      logger: createSilentLogger("series-plugin-test"),
+describe("the series package", () => {
+  it("registers the series entity plugin under its class's id", async () => {
+    const { harness, plugin } = await installed();
+
+    expect(plugin.type).toBe("entity");
+    expect(plugin.id).toBe("series");
+    expect(plugin.packageName).toBe("@brains/series");
+    expect(harness.getEntityService().getEntityTypes()).toContain("series");
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("series"),
+    ).toMatchObject({ weight: 0.5, projectionSourceRole: "supporting" });
+    expect(plugin.adapter.supportsCoverImage).toBe(true);
+    expect(plugin.adapter.purpose).toBe(
+      "A series grouping related posts or content under one theme.",
+    );
+  });
+
+  it("returns zero tools", async () => {
+    const { capabilities } = await installed();
+
+    expect(capabilities.tools).toHaveLength(0);
+  });
+
+  it("registers one scheduler-owned projection rule", async () => {
+    const { capabilities } = await installed();
+
+    expect("projections" in capabilities).toBe(false);
+    expect(capabilities.projectionRules).toHaveLength(1);
+    expect(capabilities.projectionRules?.[0]).toMatchObject({
+      id: "series-projection",
+      version: "1",
+      sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
+      targetType: "series",
     });
   });
 
-  describe("registration", () => {
-    it("should register as entity plugin", async () => {
-      const plugin = new SeriesPlugin();
-      await harness.installPlugin(plugin);
+  it("registers its templates on its data source and the AI content source", async () => {
+    const { harness } = await installed();
 
-      expect(plugin.type).toBe("entity");
-      expect(plugin.id).toBe("series");
-    });
+    expect(
+      [...harness.getTemplates()]
+        .filter(([name]) => name.startsWith("series:"))
+        .map(([name, template]) => [name, template.dataSourceId])
+        .sort(),
+    ).toEqual([
+      ["series:description", "shell:ai-content"],
+      ["series:series-detail", "series:entities"],
+      ["series:series-list", "series:entities"],
+    ]);
+  });
 
-    it("should register series entity type", async () => {
-      const plugin = new SeriesPlugin();
-      await harness.installPlugin(plugin);
+  it("registers its data source", async () => {
+    const { harness } = await installed();
 
-      expect(harness.getEntityService().getEntityTypes()).toContain("series");
-    });
+    expect([...harness.getDataSources().keys()]).toContain("series:entities");
+  });
 
-    it("should return zero tools", async () => {
-      const plugin = new SeriesPlugin();
-      const capabilities = await harness.installPlugin(plugin);
+  it("registers no job types, its generation job retired", async () => {
+    const { harness } = await installed();
 
-      expect(capabilities.tools).toHaveLength(0);
-    });
-
-    it("should register one scheduler-owned projection rule", async () => {
-      const plugin = new SeriesPlugin();
-      const capabilities = await harness.installPlugin(plugin);
-
-      expect("projections" in capabilities).toBe(false);
-      expect(capabilities.projectionRules).toHaveLength(1);
-      expect(capabilities.projectionRules?.[0]).toMatchObject({
-        id: "series-projection",
-        version: "1",
-        sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
-        targetType: "series",
-      });
-    });
-
-    it("should register templates including description", async () => {
-      const plugin = new SeriesPlugin();
-      await harness.installPlugin(plugin);
-
-      const templateNames = Array.from(harness.getTemplates().keys());
-      expect(templateNames.some((name) => name.includes("series-list"))).toBe(
-        true,
-      );
-      expect(templateNames.some((name) => name.includes("series-detail"))).toBe(
-        true,
-      );
-      expect(templateNames.some((name) => name.includes("description"))).toBe(
-        true,
-      );
-    });
-
-    it("should register datasource", async () => {
-      const plugin = new SeriesPlugin();
-      await harness.installPlugin(plugin);
-
-      const datasourceIds = Array.from(harness.getDataSources().keys());
-      expect(datasourceIds.some((id) => id.includes("series"))).toBe(true);
-    });
+    expect(
+      harness.getMockShell().getJobQueueService().getRegisteredTypes(),
+    ).toEqual([]);
   });
 });

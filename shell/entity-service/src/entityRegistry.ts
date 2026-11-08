@@ -31,6 +31,7 @@ import {
 import type {
   BaseEntity,
   CreateCheck,
+  GenerationEnqueuer,
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
@@ -49,6 +50,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
   private createChecks = new Map<string, CreateCheck>();
+  private generationEnqueuers = new Map<string, GenerationEnqueuer>();
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
@@ -143,6 +145,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.entityConfigs.delete(type);
     this.createInterceptors.delete(type);
     this.createChecks.delete(type);
+    this.generationEnqueuers.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
     this.groupingExtensions.delete(type);
@@ -335,6 +338,14 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateCheck(type: string): CreateCheck | undefined {
     return this.createChecks.get(type);
+  }
+
+  registerGenerationEnqueuer(type: string, enqueuer: GenerationEnqueuer): void {
+    this.generationEnqueuers.set(type, enqueuer);
+  }
+
+  getGenerationEnqueuer(type: string): GenerationEnqueuer | undefined {
+    return this.generationEnqueuers.get(type);
   }
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void {
@@ -730,13 +741,16 @@ export class EntityRegistry implements IEntityRegistry {
 
 /**
  * The top-level metadata keys an entity schema declares. A retired field is
- * dropped from stored metadata, so the schema must not require it.
+ * dropped from stored metadata, so the schema must not require it. A
+ * metadata migration (`z.preprocess`) is looked through to the shape it
+ * migrates into.
  */
 function declaredMetadataKeys(
   schema: UnknownEntitySchema,
 ): ReadonlySet<string> {
   if (!(schema instanceof z.ZodObject)) return new Set();
-  const metadata: unknown = schema.shape["metadata"];
+  const declared: unknown = schema.shape["metadata"];
+  const metadata = declared instanceof z.ZodPipe ? declared.out : declared;
   return metadata instanceof z.ZodObject
     ? new Set(Object.keys(metadata.shape))
     : new Set();

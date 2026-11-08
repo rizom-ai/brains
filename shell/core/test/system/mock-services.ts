@@ -11,6 +11,7 @@ import { createMockEntityService } from "@brains/entity-service/test";
  * same functions were exempt for the same reason, just implicitly.
  */
 import type { SystemServices } from "../../src/system/types";
+import { createEnqueueJobFn } from "@brains/job-queue";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   EntityRegistry,
@@ -97,6 +98,10 @@ export function createMockSystemServices(
   const createInterceptors = new Map<
     string,
     (...args: unknown[]) => Promise<unknown>
+  >();
+  const generationEnqueuers = new Map<
+    string,
+    (data: Record<string, unknown>, toolContext: unknown) => Promise<string>
   >();
   const uploadSaveHandlers: Array<{
     entityType: string;
@@ -238,6 +243,16 @@ export function createMockSystemServices(
       createInterceptors.set(type, interceptor);
     },
     getCreateInterceptor: (type: string) => createInterceptors.get(type),
+    registerGenerationEnqueuer: (
+      type: string,
+      enqueuer: (
+        data: Record<string, unknown>,
+        toolContext: unknown,
+      ) => Promise<string>,
+    ) => {
+      generationEnqueuers.set(type, enqueuer);
+    },
+    getGenerationEnqueuer: (type: string) => generationEnqueuers.get(type),
     registerUploadSaveHandler: (registration: {
       entityType: string;
       mediaTypes: string[];
@@ -454,16 +469,19 @@ export function createMockSystemServices(
     data: unknown;
   }> = [];
   const jobs = {
-    enqueue: async (request: {
-      type: string;
-      data: unknown;
-    }): Promise<string> => {
-      enqueuedJobs.push({
-        type: request.type,
-        data: request.data,
-      });
-      return `job-${Date.now()}`;
-    },
+    // The system tools' own enqueue, over a queue that records what it gets.
+    enqueue: createEnqueueJobFn(
+      {
+        enqueue: async (request): Promise<string> => {
+          enqueuedJobs.push({ type: request.type, data: request.data });
+          return `job-${Date.now()}`;
+        },
+      },
+      "system",
+      false,
+    ),
+    // No job's owner is installed in this fake.
+    has: () => false,
     enqueueBatch: async () => `batch-${Date.now()}`,
     getLastEnqueued: () => enqueuedJobs[enqueuedJobs.length - 1],
     registerHandler: () => {},

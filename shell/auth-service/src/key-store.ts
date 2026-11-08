@@ -1,15 +1,11 @@
+import type { A2APrivateJwk, A2APublicJwk } from "@brains/contracts";
 import { generateKeyPairSync } from "node:crypto";
 import { sha256Base64Url } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { and, eq } from "drizzle-orm";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { oauthSigningKeys } from "./runtime-schema";
-import type {
-  A2APrivateJwk,
-  A2APublicJwk,
-  OAuthPrivateJwk,
-  OAuthPublicJwk,
-} from "./types";
+import type { OAuthPrivateJwk, OAuthPublicJwk } from "./types";
 
 const oauthPrivateJwkSchema = z.object({
   kty: z.literal("EC"),

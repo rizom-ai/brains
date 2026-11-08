@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createDeckAtprotoProjection } from "../src/atproto-projection";
 import { DecksPlugin } from "../src/plugin";
 import type { DeckEntity } from "../src/schemas/deck";
@@ -24,10 +23,6 @@ const deck: DeckEntity = {
 };
 
 describe("deck ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps decks to ai.rizom.brain.deck records", async () => {
     const projection = createDeckAtprotoProjection();
 
@@ -79,7 +74,10 @@ describe("deck ATProto projection", () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-deck-atproto" });
     await harness.installPlugin(new DecksPlugin());
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("deck");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("deck");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.deck");

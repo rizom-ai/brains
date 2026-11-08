@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.664",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
@@ -69,12 +69,15 @@
     "@brains/guide": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",
+    "@brains/knowledge-map": "workspace:*",
     "@brains/link": "workspace:*",
+    "@brains/linkedin-import": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/newsletter": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
+    "@brains/oauth-broker": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
     "@brains/onboarding": "workspace:*",
     "@brains/operation-context": "workspace:*",
@@ -83,6 +86,7 @@
     "@brains/portfolio": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
@@ -107,6 +111,7 @@
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*",
     "@libsql/client": "^0.17.4",
+    "@manypkg/get-packages": "^3.1.0",
     "@rizom/theme-default": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react-dom": "^19.0.3",
@@ -131,10 +136,6 @@
       "types": "./dist/model.d.ts",
       "import": "./dist/model.js"
     },
-    "./plugins": {
-      "types": "./dist/plugins.d.ts",
-      "import": "./dist/plugins.js"
-    },
     "./entities": {
       "types": "./dist/entities.d.ts",
       "import": "./dist/entities.js"
@@ -147,9 +148,9 @@
       "types": "./dist/interfaces.d.ts",
       "import": "./dist/interfaces.js"
     },
-    "./templates": {
-      "types": "./dist/templates.d.ts",
-      "import": "./dist/templates.js"
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
     },
     "./deploy": {
       "types": "./dist/deploy.d.ts",

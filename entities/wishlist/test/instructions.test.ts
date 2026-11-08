@@ -1,15 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { WishlistPlugin } from "../src/index";
+import { wish } from "../src";
 
-class TestWishlistPlugin extends WishlistPlugin {
-  public instructions(): Promise<string> {
-    return this.getInstructions();
-  }
-}
-
-describe("WishlistPlugin instructions", () => {
+describe("wish instructions", () => {
   it("tells models to list the whole wishlist without status fanout", async () => {
-    const instructions = await new TestWishlistPlugin().instructions();
+    const instructions = wish.instructions ?? "";
 
     expect(instructions).toContain("Mandatory unmet-request routing");
     expect(instructions).toContain('call system_create with entityType "wish"');

@@ -2,42 +2,18 @@ import { getErrorMessage } from "@brains/utils/error";
 import { connectBroker } from "./load-client";
 
 /**
- * What the checkout's owner is doing, asked on request.
+ * Whether a checkout owner answers, and what it inherited, asked on request.
  *
- * A wedged owner does not exit, so liveness of the process proves nothing.
- * These are the durable facts instead: whether anything answers on the socket,
- * what it has in flight, and how long since that work last advanced.
+ * An owner that answers is serving Git; one that does not means no Git work
+ * can happen at all. A replacement that inherited unsettled work from the
+ * owner before it stays degraded until a role has reconciled that work.
  *
  * This degrades `/health/operate` only. Routing readiness stays independent —
  * a checkout that cannot be written is not a reason to take the Brain out of
  * rotation, and conflating the two turns a Git outage into a site outage.
  */
 
-/**
- * How long an operation may show no progress before its owner is treated as
- * wedged. Shared with the supervisor so a health report and a termination
- * decision cannot disagree about what stalled means, and comfortably longer
- * than the broker’s own 120s stall timeout so an operation the broker is already
- * failing is not taken from it.
- */
-export const BROKER_PROGRESS_TIMEOUT_MS = 300_000;
-/** Internal only: shortens the real-process recovery fixture, never config. */
-export const GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV =
-  "BRAIN_TEST_GIT_BROKER_PROGRESS_TIMEOUT_MS";
-
-export function resolveBrokerProgressTimeoutMs(
-  env: NodeJS.ProcessEnv = process.env,
-): number {
-  const configured = Number(env[GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]);
-  return Number.isFinite(configured) && configured > 0
-    ? configured
-    : BROKER_PROGRESS_TIMEOUT_MS;
-}
-
 export interface BrokerActivity {
-  activeRequestIds: string[];
-  queuedRequestIds: string[];
-  oldestActiveProgressAt: number | null;
   /** Work the previous generation left with no observed outcome. */
   ambiguousRequestIds: string[];
   evidenceComplete: boolean;
@@ -47,8 +23,6 @@ export interface BrokerActivity {
 
 export interface BrokerHealthOptions {
   probe: () => Promise<BrokerActivity>;
-  now: () => number;
-  progressTimeoutMs: number;
 }
 
 interface HealthResult {
@@ -72,9 +46,6 @@ export function probeBrokerActivity(
     try {
       const status = await connection.status();
       return {
-        activeRequestIds: status.activeRequestIds,
-        queuedRequestIds: status.queuedRequestIds,
-        oldestActiveProgressAt: status.oldestActiveProgressAt,
         ambiguousRequestIds: status.ambiguousRequestIds,
         evidenceComplete: status.evidenceComplete,
         recoveryPending: status.recoveryPending,
@@ -102,8 +73,8 @@ export function createBrokerHealthCheck(
       };
     }
 
-    // Reported before staleness: a replacement carrying unresolved work is
-    // degraded whether or not anything is running right now.
+    // A replacement carrying unresolved work is degraded until a role has
+    // reconciled it, whether or not anything is running right now.
     if (activity.recoveryPending) {
       return {
         status: "degraded",
@@ -117,25 +88,7 @@ export function createBrokerHealthCheck(
       };
     }
 
-    if (activity.oldestActiveProgressAt === null) {
-      return { status: "healthy" };
-    }
-
-    const staleMs = options.now() - activity.oldestActiveProgressAt;
-    if (staleMs < options.progressTimeoutMs) {
-      return { status: "healthy" };
-    }
-
-    return {
-      status: "degraded",
-      message: `Git operation has made no progress for ${staleMs}ms`,
-      details: {
-        activeRequestIds: activity.activeRequestIds,
-        queuedRequestIds: activity.queuedRequestIds,
-        staleMs,
-        timeoutMs: options.progressTimeoutMs,
-      },
-    };
+    return { status: "healthy" };
   };
 }
 
@@ -143,11 +96,8 @@ function isActivity(value: unknown): value is BrokerActivity {
   return (
     typeof value === "object" &&
     value !== null &&
-    "activeRequestIds" in value &&
-    "queuedRequestIds" in value &&
     "ambiguousRequestIds" in value &&
     "evidenceComplete" in value &&
-    "recoveryPending" in value &&
-    "oldestActiveProgressAt" in value
+    "recoveryPending" in value
   );
 }

@@ -72,7 +72,7 @@ export interface LinkCaptureJobHandlerOptions {
  * Job handler for link capture with AI extraction
  */
 export class LinkCaptureJobHandler extends BaseJobHandler<
-  "link-capture",
+  "link:capture",
   LinkCaptureJobData,
   LinkCaptureResult
 > {
@@ -87,7 +87,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
   ) {
     super(logger, {
       schema: linkCaptureJobSchema,
-      jobTypeName: "link-capture",
+      jobTypeName: "link:capture",
     });
     this.context = context;
     this.linkAdapter = new LinkAdapter();

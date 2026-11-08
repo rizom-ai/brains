@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   normalizeSameOriginPath,
   setSameOriginSearchParams,
-} from "../src/internal/same-origin-path";
+} from "../src/http/same-origin-path";
 
 describe("normalizeSameOriginPath", () => {
   it("preserves canonical paths and normalizes path traversal", () => {

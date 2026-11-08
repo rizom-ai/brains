@@ -1,34 +1,5 @@
-import { join } from "path";
 import {
-  ASK_BOX_SCRIPT_PATH,
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
-  askBoxAvailabilitySchema,
-  SITE_CHANNELS,
-  type AskBoxAvailability,
-  type SiteBuildRequestedPayload,
-} from "@brains/contracts";
-import type { IRuntimeStateStore } from "@brains/plugins";
-import {
-  ASK_BOX_BOOT_PATH,
-  ASK_BOX_LOADER_SCRIPT,
-  ASK_BOX_VERSION_PATH,
-  askBoxBootScript,
-} from "./ask-box-boot";
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  parseAgentResponse,
-} from "@brains/contracts";
-import {
-  chatActionRequestSchema,
-  chatContextHandoffRequestSchema,
-} from "@brains/contracts/chat";
-import {
-  getActiveAuthService,
   requireSameOriginJson,
-  type AuthPrincipal,
-} from "@brains/auth-service";
-import {
   MessageInterfacePlugin,
   SitePageResponse,
   createScheduledMaintenanceDaemon,
@@ -47,6 +18,28 @@ import {
   type ChatAttachment,
   coerceConversationMetadata,
 } from "@brains/plugins";
+import type { AuthPrincipal } from "@brains/contracts";
+import { join } from "path";
+import {
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+  siteBuildRequestContract,
+  type AskBoxAvailability,
+} from "@brains/contracts";
+import type { IRuntimeStateStore } from "@brains/plugins";
+import {
+  ASK_BOX_BOOT_PATH,
+  ASK_BOX_LOADER_SCRIPT,
+  ASK_BOX_VERSION_PATH,
+  askBoxBootScript,
+} from "./ask-box-boot";
+import { agentActionContract } from "@brains/contracts";
+import {
+  chatActionRequestSchema,
+  chatContextHandoffRequestSchema,
+} from "@brains/contracts/chat";
 import {
   handleRemoteAgentChatRequest as handleRemoteAgentChatRoute,
   handleRemoteAgentConfirmRequest as handleRemoteAgentConfirmRoute,
@@ -147,9 +140,6 @@ export interface WebChatDeps {
   guestPolicy?: GuestPolicy;
 }
 
-const defaultResolveAuthPrincipal: BrowserPrincipalResolver = async (request) =>
-  getActiveAuthService()?.resolveSession(request);
-
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
   WebChatConfigInput
@@ -184,7 +174,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.guestConfigured =
       this.injectedGuestPolicy?.enabled ?? this.config.guest !== false;
     this.resolveAuthPrincipal =
-      deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
+      deps.resolveAuthPrincipal ??
+      (async (request): Promise<AuthPrincipal | undefined> =>
+        this.context?.auth.get()?.resolveSession(request));
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
     this.resolveAuthSession =
       deps.resolveAuthSession ??
@@ -309,11 +301,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     try {
       await this.recordAskBoxAvailability();
       // The site renders the box from that record when it builds.
-      await this.getContext().messaging.send({
-        type: SITE_CHANNELS.buildRequested,
-        payload: {
-          reason: "guest chat was switched",
-        } satisfies SiteBuildRequestedPayload,
+      await this.getContext().messaging.command(siteBuildRequestContract, {
+        reason: "guest chat was switched",
       });
     } catch (error) {
       // The activation itself succeeded; the next start rewrites the record
@@ -669,11 +658,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleAuthenticatedChatPage(): Promise<Response> {
-    const studioHref = this.getContext()
-      .webRoutes.getRoutes()
-      .find(
-        (route) => route.pluginId === "studio" && route.fullPath === "/chat",
-      )?.fullPath;
+    const studioHref =
+      this.getContext().webRoutes.findByRole("studio-chat")?.fullPath;
     // Studio owns authentication; this retired page never renders operator UI.
     return studioHref
       ? new Response(null, {
@@ -709,9 +695,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
     if (accessError) return accessError;
 
-    const response = await this.getContext().messaging.send({
-      type: AGENT_ACTION_REQUEST_CHANNEL,
-      payload: {
+    const result = await this.getContext().messaging.request(
+      agentActionContract,
+      {
         conversationId: parsed.data.conversationId,
         interfaceType: webChatInterfaceType,
         channelName: "Web Chat",
@@ -719,19 +705,20 @@ export class WebChatInterface extends MessageInterfacePlugin<
         isAnchor: principal?.isAnchor ?? false,
         action: parsed.data.action,
       },
-    });
+    );
 
-    if ("noop" in response || !response.success || !response.data) {
+    if (
+      result.status === "unavailable" ||
+      (result.status === "answered" && result.data === null)
+    ) {
       return new Response("No runtime action handler", { status: 404 });
     }
-
-    try {
-      return Response.json(parseAgentResponse(response.data));
-    } catch {
+    if (result.status === "failed") {
       // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
       // origin 502 with its own page, and the reason never reaches the caller.
-      return new Response("Invalid runtime action response", { status: 500 });
+      return new Response("Runtime action failed", { status: 500 });
     }
+    return Response.json(result.data);
   }
 
   private guestAssetVersionPromise: Promise<string> | undefined;
@@ -1290,7 +1277,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private createAuthLoginRequiredResponse(request: Request): Response {
-    const authService = getActiveAuthService();
+    const authService = this.context?.auth.get();
     if (authService) return authService.createAuthLoginResponse(request);
 
     return new Response("Authentication required", {

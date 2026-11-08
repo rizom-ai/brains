@@ -21,13 +21,10 @@ import { makeBrokerRpcSerialization } from "../../../src/lib/broker/rpc-serializ
 const status: BrokerRpcStatus = {
   brokerId: "rpc-probe",
   checkouts: ["/checkout"],
-  activeRequestIds: [],
-  queuedRequestIds: [],
   ambiguousRequestIds: [],
   evidenceComplete: true,
   recoveryPending: false,
   admitsMutations: true,
-  oldestActiveProgressAt: null,
 };
 const failure: BrokerRpcFailure = {
   _tag: "BrokerError",

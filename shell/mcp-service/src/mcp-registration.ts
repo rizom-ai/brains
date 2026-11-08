@@ -7,6 +7,7 @@ import {
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import { type Logger } from "@brains/utils/logger";
+import type { ProgressNotification } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import {
   McpServer,
@@ -253,7 +254,17 @@ export function registerToolOnServer(
             toolName: tool.name,
             args: params,
             progressToken,
-            hasProgress: progressToken !== undefined,
+            // The bus is in-process, so the owning plugin reports progress
+            // straight to the calling client.
+            ...(progressToken !== undefined && {
+              sendProgress: (
+                notification: ProgressNotification,
+              ): Promise<void> =>
+                ctx.mcpReq.notify({
+                  method: "notifications/progress",
+                  params: { progressToken, ...notification },
+                }),
+            }),
             interfaceType,
             actor,
             ...(displayName ? { displayName } : {}),

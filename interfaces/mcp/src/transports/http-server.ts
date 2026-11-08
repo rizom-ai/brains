@@ -1,3 +1,8 @@
+import {
+  type IMCPTransport,
+  type ToolVisibility,
+  ToolVisibilitySchema,
+} from "@brains/plugins";
 import { timingSafeEqual } from "node:crypto";
 import {
   createMcpHandler,
@@ -6,8 +11,6 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
-import { ToolVisibilitySchema } from "@brains/mcp-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
@@ -93,7 +96,7 @@ export class StreamableHTTPServer {
     ) {
       throw new Error(
         "MCP HTTP transport requires an auth token or bearer token verifier. " +
-          "Set MCP_AUTH_TOKEN, configure OAuth verification, or pass auth: { disabled: true } for local dev.",
+          "Configure OAuth verification, or for local development set MCP_AUTH_TOKEN or pass auth: { disabled: true }.",
       );
     }
   }

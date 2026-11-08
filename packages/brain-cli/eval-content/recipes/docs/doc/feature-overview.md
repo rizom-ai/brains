@@ -223,7 +223,7 @@ External authors can provide scoped definition packages, capability packages, in
 - The product is one instance with multiple users, not multi-tenant SaaS.
 - Site and theme packages are selected explicitly.
 - Several integrations require external credentials and remain opt-in.
-- Opportunity prioritization, LinkedIn import, OAuth broker, assessment, wishlist, docs, Obsidian sync, and email workflows remain outside default bundles unless selected by a recipe or explicit addition.
+- LinkedIn import, the OAuth broker, assessment, wishlist, docs, Obsidian sync, and email workflows remain outside default bundles unless selected by a recipe or explicit addition.
 
 ## Read next
 

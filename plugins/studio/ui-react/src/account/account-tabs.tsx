@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { Button, Input, Switch } from "@brains/app-ui-react";
-import type { AuthAccountSnapshot } from "@brains/auth-service/account-contracts";
+import type { AuthAccountSnapshot } from "@brains/contracts";
 import { OperatorCard } from "@brains/operator-view-react";
 import type { ReactElement } from "react";
 import { studioWorkspacePath } from "../../../src/studio-paths";

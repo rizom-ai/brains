@@ -4,31 +4,55 @@ import {
   redactUploadRefsInStructuredCard,
 } from "../../src/message-interface/upload-redaction";
 
+const draft = "upload-00000000-0000-4000-8000-000000000b01";
+const photo = "upload-00000000-0000-4000-8000-000000000b03";
+
 describe("redactUploadRefs", () => {
-  it("replaces nested upload refs with a safe label", () => {
+  it("hides every upload id, wherever it sits", () => {
     expect(
       redactUploadRefs({
-        entityType: "document",
-        source: { kind: "upload", id: "upload-123" },
-        nested: [{ ref: { kind: "upload", id: "upload-456" } }],
+        source: { kind: "upload", id: draft, transform: "preserve" },
+        files: {
+          kind: "uploads",
+          items: [
+            { id: draft, transform: "extract-markdown" },
+            { id: photo, transform: "preserve" },
+          ],
+        },
+        data: { entityId: "harbor", entityType: "image", uploadId: photo },
+        error: `Upload 2 of 2 (${photo}): could not read it`,
       }),
     ).toEqual({
-      entityType: "document",
-      source: "uploaded file",
-      nested: [{ ref: "uploaded file" }],
+      source: { kind: "upload", id: "uploaded file", transform: "preserve" },
+      files: {
+        kind: "uploads",
+        items: [
+          { id: "uploaded file", transform: "extract-markdown" },
+          { id: "uploaded file", transform: "preserve" },
+        ],
+      },
+      data: {
+        entityId: "harbor",
+        entityType: "image",
+        uploadId: "uploaded file",
+      },
+      error: "Upload 2 of 2 (uploaded file): could not read it",
     });
   });
 
-  it("leaves non-upload records intact", () => {
-    expect(redactUploadRefs({ kind: "entity", id: "note-1" })).toEqual({
-      kind: "entity",
-      id: "note-1",
-    });
+  it("leaves strings that only look like upload ids", () => {
+    const value = {
+      kind: "upload",
+      id: "upload-123",
+      entityId: "upload-guide",
+      note: "upload-00000000-0000-0000-0000-000000000000",
+    };
+    expect(redactUploadRefs(value)).toEqual(value);
   });
 });
 
 describe("redactUploadRefsInStructuredCard", () => {
-  it("redacts tool approval input and output upload refs", () => {
+  it("redacts tool approval input and output upload ids", () => {
     expect(
       redactUploadRefsInStructuredCard({
         kind: "tool-approval",
@@ -36,11 +60,8 @@ describe("redactUploadRefsInStructuredCard", () => {
         toolName: "system_create",
         summary: "Create document",
         state: "output-available",
-        input: { source: { kind: "upload", id: "upload-123" } },
-        output: {
-          entityId: "doc-1",
-          source: { kind: "upload", id: "upload-123" },
-        },
+        input: { source: { kind: "upload", id: draft, transform: "preserve" } },
+        output: { entityId: "doc-1", uploadId: draft },
       }),
     ).toEqual({
       kind: "tool-approval",
@@ -48,8 +69,10 @@ describe("redactUploadRefsInStructuredCard", () => {
       toolName: "system_create",
       summary: "Create document",
       state: "output-available",
-      input: { source: "uploaded file" },
-      output: { entityId: "doc-1", source: "uploaded file" },
+      input: {
+        source: { kind: "upload", id: "uploaded file", transform: "preserve" },
+      },
+      output: { entityId: "doc-1", uploadId: "uploaded file" },
     });
   });
 

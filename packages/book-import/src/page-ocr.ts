@@ -58,12 +58,20 @@ export function createPageOcr(options: PageOcrOptions): PageOcr {
 
 /**
  * Models Tesseract does not bring, by where they are published: frak2021,
- * UB Mannheim's Fraktur model trained on historical prints (Apache-2.0).
+ * UB Mannheim's Fraktur model trained on historical prints (Apache-2.0),
+ * and grc_agocr, Nick White's Ancient Greek model trained on the
+ * nineteenth century's Greek types (ancientgreekocr.org, Apache-2.0), which
+ * reads their curled kappa and theta that Tesseract's own grc reads as chi
+ * and upsilon.
  */
 const MODELS: Record<string, string> = {
   frak2021:
     "https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/frak2021/tessdata_best/frak2021-0.905.traineddata",
+  grc_agocr: "https://ancientgreekocr.org/2.0/grc.traineddata",
 };
+
+/** The model a print's Greek is read with. */
+export const GREEK_MODEL = "grc_agocr";
 
 async function exists(path: string): Promise<boolean> {
   return Bun.file(path).exists();
@@ -413,5 +421,118 @@ export function hyphenRead(hocr: string): string {
       // A double hyphen is a hyphen wherever it stands: inside a word, and
       // ending one before a comma (Wechsel⸗, Aktien⸗ und Schiffshändler).
       .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L}|[,;])/gu, "$1-")
+  );
+}
+
+/** A word of a Tesseract hOCR page: where it stands, how sure, what it reads. */
+interface ReadWord {
+  box: [number, number, number, number];
+  confidence: number;
+  text: string;
+}
+
+const HOCR_WORD =
+  /(<span class='ocrx_word'[^>]*title='bbox (\d+) (\d+) (\d+) (\d+); x_wconf (\d+)'[^>]*>)(.*?)(<\/span>)/gsu;
+
+function readWords(hocr: string): ReadWord[] {
+  return [...hocr.matchAll(HOCR_WORD)].map((match) => ({
+    box: [
+      Number(match[2]),
+      Number(match[3]),
+      Number(match[4]),
+      Number(match[5]),
+    ],
+    confidence: Number(match[6]),
+    text: match[7] ?? "",
+  }));
+}
+
+function boxArea([left, top, right, bottom]: ReadWord["box"]): number {
+  return Math.max(0, right - left) * Math.max(0, bottom - top);
+}
+
+/** Two words read as one where their boxes share a good part of the smaller. */
+function sameWord(a: ReadWord["box"], b: ReadWord["box"]): boolean {
+  const shared = boxArea([
+    Math.max(a[0], b[0]),
+    Math.max(a[1], b[1]),
+    Math.min(a[2], b[2]),
+    Math.min(a[3], b[3]),
+  ]);
+  return shared > 0.4 * Math.min(boxArea(a), boxArea(b));
+}
+
+/** Of a reading's letters, the share in Greek script. */
+function greekShare(text: string): number {
+  const letters = [...text].filter((char) => /\p{L}/u.test(char));
+  const greek = letters.filter((char) => /\p{Script=Greek}/u.test(char));
+  return greek.length / Math.max(1, letters.length);
+}
+
+/**
+ * Greek letters a roman print sets alike: a reading made of these alone,
+ * such as a heading's numeral read as Ι. or ΧΧΙΙΙ, is no sign of Greek.
+ */
+const LOOKALIKE = new Set([..."ΑΒΕΖΗΙΚΜΝΟΡΤΥΧο"]);
+
+/** A reading holding a letter only Greek prints. */
+function readsGreek(text: string): boolean {
+  return [...text].some(
+    (char) => /\p{Script=Greek}/u.test(char) && !LOOKALIKE.has(char),
+  );
+}
+
+/** How sure the Greek model must be of a word before its reading is taken. */
+const GREEK_CONFIDENCE = 40;
+
+/**
+ * A page read with its language's model, each word the Greek model reads as
+ * Greek, and surer, taking the Greek reading: a print that quotes Greek in
+ * German or Latin text is read by neither model alone, and each misreads the
+ * other's script. Both readings are of the same prepared image, so a word
+ * stands in the same place in both.
+ */
+export function withGreekReadings(hocr: string, greekHocr: string): string {
+  const greek = readWords(greekHocr);
+  // A Greek word the page's model read as two takes the place of the first;
+  // the second, read already, is left empty.
+  const taken = new Set<ReadWord>();
+  return hocr.replace(
+    HOCR_WORD,
+    (
+      whole,
+      open: string,
+      left,
+      top,
+      right,
+      bottom,
+      confidence,
+      text: string,
+      close,
+    ) => {
+      const box: ReadWord["box"] = [
+        Number(left),
+        Number(top),
+        Number(right),
+        Number(bottom),
+      ];
+      const read = greek.filter((word) => sameWord(word.box, box));
+      // A section sign is the page's own: no Greek word holds one.
+      if (read.length === 0 || text.includes("§")) return whole;
+      const surest = Math.min(...read.map((word) => word.confidence));
+      const reading = read.map((word) => word.text).join(" ");
+      // A reading with figures in it is no Greek word: the model's guess at
+      // letters of another script.
+      const isGreek =
+        greekShare(reading) >= 0.8 &&
+        !/\d/u.test(reading) &&
+        readsGreek(reading) &&
+        surest >= GREEK_CONFIDENCE &&
+        surest > Number(confidence);
+      if (!isGreek) return whole;
+      const fresh = read.filter((word) => !taken.has(word));
+      read.forEach((word) => taken.add(word));
+      return `${open}${fresh.map((word) => word.text).join(" ")}${close}`;
+    },
   );
 }

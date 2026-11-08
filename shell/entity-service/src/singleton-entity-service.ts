@@ -132,10 +132,14 @@ export abstract class SingletonEntityService<TBody> {
    * but `cacheParseError` is set so `get()` returns the default body instead
    * of re-throwing on every call. The parse error is logged once with the
    * full validation message so users can fix their data.
+   *
+   * A singleton is a document of values, so it is read as stored: an
+   * `entity://image/<id>` reference stays a reference instead of being
+   * inlined as image data the way rendered markdown is.
    */
   private async load(): Promise<boolean> {
     try {
-      const entity = await this.entityService.getEntity({
+      const entity = await this.entityService.getEntityRaw({
         entityType: this.entityType,
         id: this.entityType,
         visibilityScope: this.readScope,

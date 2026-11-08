@@ -39,6 +39,7 @@ function siteBuildJob(overrides: Partial<JobInfo> = {}): JobInfo {
     retryCount: 0,
     maxRetries: 3,
     lastError: null,
+    lastErrorPublic: null,
     createdAt: TERMINAL_AT - 4_000,
     scheduledFor: TERMINAL_AT - 4_000,
     startedAt: TERMINAL_AT - 3_000,

@@ -12,7 +12,6 @@ export type MessageUploadAttachmentRestorer = (
 
 export interface MessageUploadContinuityOptions {
   sourceKind: string;
-  legacySourceKinds?: string[] | undefined;
   loadMessages: MessageUploadConversationLoader;
   restoreAttachment: MessageUploadAttachmentRestorer;
   maxRecent?: number | undefined;
@@ -83,20 +82,15 @@ export class MessageUploadContinuity {
     conversationId: string,
   ): Promise<ChatAttachment[]> {
     const messages = await this.loadMessages(conversationId);
-    const sourceKinds = [
-      this.options.sourceKind,
-      ...(this.options.legacySourceKinds ?? []),
-    ];
+    const { sourceKind } = this.options;
+    const uploadIds = collectUploadIdsFromStoredMessages(messages, {
+      sourceKind,
+      role: "user",
+    });
     const uploads: ChatAttachment[] = [];
-    for (const sourceKind of sourceKinds) {
-      const uploadIds = collectUploadIdsFromStoredMessages(messages, {
-        sourceKind,
-        role: "user",
-      });
-      for (const uploadId of uploadIds) {
-        const upload = await this.restoreAttachment(uploadId, sourceKind);
-        if (upload) uploads.push(upload);
-      }
+    for (const uploadId of uploadIds) {
+      const upload = await this.restoreAttachment(uploadId, sourceKind);
+      if (upload) uploads.push(upload);
     }
     return uploads;
   }

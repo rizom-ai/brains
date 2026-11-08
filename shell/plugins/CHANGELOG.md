@@ -1,5 +1,917 @@
 # @brains/plugins
 
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.664
+  - @brains/content-formatters@0.2.0-alpha.664
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/site-composition@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/ai-service@0.2.0-alpha.664
+  - @brains/content-service@0.2.0-alpha.664
+  - @brains/conversation-service@0.2.0-alpha.664
+  - @brains/entity-service@0.2.0-alpha.664
+  - @brains/identity-service@0.2.0-alpha.664
+  - @brains/job-queue@0.2.0-alpha.664
+  - @brains/mcp-service@0.2.0-alpha.664
+  - @brains/messaging-service@0.2.0-alpha.664
+  - @brains/recurring-checks@0.2.0-alpha.664
+  - @brains/runtime-state@0.2.0-alpha.664
+  - @brains/scheduler@0.2.0-alpha.664
+  - @brains/templates@0.2.0-alpha.664
+
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.663
+  - @brains/content-formatters@0.2.0-alpha.663
+  - @brains/contracts@0.2.0-alpha.663
+  - @brains/site-composition@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/ai-service@0.2.0-alpha.663
+  - @brains/content-service@0.2.0-alpha.663
+  - @brains/conversation-service@0.2.0-alpha.663
+  - @brains/entity-service@0.2.0-alpha.663
+  - @brains/identity-service@0.2.0-alpha.663
+  - @brains/job-queue@0.2.0-alpha.663
+  - @brains/mcp-service@0.2.0-alpha.663
+  - @brains/messaging-service@0.2.0-alpha.663
+  - @brains/recurring-checks@0.2.0-alpha.663
+  - @brains/runtime-state@0.2.0-alpha.663
+  - @brains/scheduler@0.2.0-alpha.663
+  - @brains/templates@0.2.0-alpha.663
+
+## 0.2.0-alpha.662
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.662
+  - @brains/content-formatters@0.2.0-alpha.662
+  - @brains/contracts@0.2.0-alpha.662
+  - @brains/site-composition@0.2.0-alpha.662
+  - @brains/utils@0.2.0-alpha.662
+  - @brains/ai-service@0.2.0-alpha.662
+  - @brains/content-service@0.2.0-alpha.662
+  - @brains/conversation-service@0.2.0-alpha.662
+  - @brains/entity-service@0.2.0-alpha.662
+  - @brains/identity-service@0.2.0-alpha.662
+  - @brains/job-queue@0.2.0-alpha.662
+  - @brains/mcp-service@0.2.0-alpha.662
+  - @brains/messaging-service@0.2.0-alpha.662
+  - @brains/recurring-checks@0.2.0-alpha.662
+  - @brains/runtime-state@0.2.0-alpha.662
+  - @brains/scheduler@0.2.0-alpha.662
+  - @brains/templates@0.2.0-alpha.662
+
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.661
+  - @brains/content-formatters@0.2.0-alpha.661
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/site-composition@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+  - @brains/ai-service@0.2.0-alpha.661
+  - @brains/content-service@0.2.0-alpha.661
+  - @brains/conversation-service@0.2.0-alpha.661
+  - @brains/entity-service@0.2.0-alpha.661
+  - @brains/identity-service@0.2.0-alpha.661
+  - @brains/job-queue@0.2.0-alpha.661
+  - @brains/mcp-service@0.2.0-alpha.661
+  - @brains/messaging-service@0.2.0-alpha.661
+  - @brains/recurring-checks@0.2.0-alpha.661
+  - @brains/runtime-state@0.2.0-alpha.661
+  - @brains/scheduler@0.2.0-alpha.661
+  - @brains/templates@0.2.0-alpha.661
+
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.660
+  - @brains/content-formatters@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/site-composition@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/ai-service@0.2.0-alpha.660
+  - @brains/content-service@0.2.0-alpha.660
+  - @brains/conversation-service@0.2.0-alpha.660
+  - @brains/entity-service@0.2.0-alpha.660
+  - @brains/identity-service@0.2.0-alpha.660
+  - @brains/job-queue@0.2.0-alpha.660
+  - @brains/mcp-service@0.2.0-alpha.660
+  - @brains/messaging-service@0.2.0-alpha.660
+  - @brains/recurring-checks@0.2.0-alpha.660
+  - @brains/runtime-state@0.2.0-alpha.660
+  - @brains/scheduler@0.2.0-alpha.660
+  - @brains/templates@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.659
+  - @brains/content-formatters@0.2.0-alpha.659
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/site-composition@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/ai-service@0.2.0-alpha.659
+  - @brains/content-service@0.2.0-alpha.659
+  - @brains/conversation-service@0.2.0-alpha.659
+  - @brains/entity-service@0.2.0-alpha.659
+  - @brains/identity-service@0.2.0-alpha.659
+  - @brains/job-queue@0.2.0-alpha.659
+  - @brains/mcp-service@0.2.0-alpha.659
+  - @brains/messaging-service@0.2.0-alpha.659
+  - @brains/recurring-checks@0.2.0-alpha.659
+  - @brains/runtime-state@0.2.0-alpha.659
+  - @brains/scheduler@0.2.0-alpha.659
+  - @brains/templates@0.2.0-alpha.659
+
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.658
+  - @brains/content-formatters@0.2.0-alpha.658
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/site-composition@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/ai-service@0.2.0-alpha.658
+  - @brains/content-service@0.2.0-alpha.658
+  - @brains/conversation-service@0.2.0-alpha.658
+  - @brains/entity-service@0.2.0-alpha.658
+  - @brains/identity-service@0.2.0-alpha.658
+  - @brains/job-queue@0.2.0-alpha.658
+  - @brains/mcp-service@0.2.0-alpha.658
+  - @brains/messaging-service@0.2.0-alpha.658
+  - @brains/recurring-checks@0.2.0-alpha.658
+  - @brains/runtime-state@0.2.0-alpha.658
+  - @brains/scheduler@0.2.0-alpha.658
+  - @brains/templates@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.657
+  - @brains/content-formatters@0.2.0-alpha.657
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/site-composition@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/ai-service@0.2.0-alpha.657
+  - @brains/content-service@0.2.0-alpha.657
+  - @brains/conversation-service@0.2.0-alpha.657
+  - @brains/entity-service@0.2.0-alpha.657
+  - @brains/identity-service@0.2.0-alpha.657
+  - @brains/job-queue@0.2.0-alpha.657
+  - @brains/mcp-service@0.2.0-alpha.657
+  - @brains/messaging-service@0.2.0-alpha.657
+  - @brains/recurring-checks@0.2.0-alpha.657
+  - @brains/runtime-state@0.2.0-alpha.657
+  - @brains/scheduler@0.2.0-alpha.657
+  - @brains/templates@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.656
+  - @brains/content-formatters@0.2.0-alpha.656
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/site-composition@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/ai-service@0.2.0-alpha.656
+  - @brains/content-service@0.2.0-alpha.656
+  - @brains/conversation-service@0.2.0-alpha.656
+  - @brains/entity-service@0.2.0-alpha.656
+  - @brains/identity-service@0.2.0-alpha.656
+  - @brains/job-queue@0.2.0-alpha.656
+  - @brains/mcp-service@0.2.0-alpha.656
+  - @brains/messaging-service@0.2.0-alpha.656
+  - @brains/recurring-checks@0.2.0-alpha.656
+  - @brains/runtime-state@0.2.0-alpha.656
+  - @brains/scheduler@0.2.0-alpha.656
+  - @brains/templates@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.655
+  - @brains/content-formatters@0.2.0-alpha.655
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/site-composition@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/ai-service@0.2.0-alpha.655
+  - @brains/content-service@0.2.0-alpha.655
+  - @brains/conversation-service@0.2.0-alpha.655
+  - @brains/entity-service@0.2.0-alpha.655
+  - @brains/identity-service@0.2.0-alpha.655
+  - @brains/job-queue@0.2.0-alpha.655
+  - @brains/mcp-service@0.2.0-alpha.655
+  - @brains/messaging-service@0.2.0-alpha.655
+  - @brains/recurring-checks@0.2.0-alpha.655
+  - @brains/runtime-state@0.2.0-alpha.655
+  - @brains/scheduler@0.2.0-alpha.655
+  - @brains/templates@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.654
+  - @brains/content-formatters@0.2.0-alpha.654
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/site-composition@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/ai-service@0.2.0-alpha.654
+  - @brains/content-service@0.2.0-alpha.654
+  - @brains/conversation-service@0.2.0-alpha.654
+  - @brains/entity-service@0.2.0-alpha.654
+  - @brains/identity-service@0.2.0-alpha.654
+  - @brains/job-queue@0.2.0-alpha.654
+  - @brains/mcp-service@0.2.0-alpha.654
+  - @brains/messaging-service@0.2.0-alpha.654
+  - @brains/recurring-checks@0.2.0-alpha.654
+  - @brains/runtime-state@0.2.0-alpha.654
+  - @brains/scheduler@0.2.0-alpha.654
+  - @brains/templates@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/testing` runs a package's own tests on the runtime itself. `startTestBrain({ plugins: [use(definition)] })` starts a brain in the test's process, on the runtime's own services and a temporary storage of its own, running the packages under the name the working directory's `package.json` gives them and holding that package to its `@rizom/brain` peer range. The brain calls a tool as `brain tool` does, as its operator, and answers in the tool's public form; it asks a contract as the brain asks, serves a `Request` through the routes its packages declare, reads every stored record through an `EntityReader`, and waits for a queued job's status by the job's definition. It reaches no AI provider and computes no embeddings, and `stop()` deletes what it stored.
+- Updated dependencies []:
+  - @brains/conversation-service@0.2.0-alpha.653
+  - @brains/entity-service@0.2.0-alpha.653
+  - @brains/job-queue@0.2.0-alpha.653
+  - @brains/runtime-state@0.2.0-alpha.653
+  - @brains/ai-service@0.2.0-alpha.653
+  - @brains/identity-service@0.2.0-alpha.653
+  - @brains/atproto-contracts@0.2.0-alpha.653
+  - @brains/content-service@0.2.0-alpha.653
+  - @brains/recurring-checks@0.2.0-alpha.653
+  - @brains/content-formatters@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/site-composition@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/mcp-service@0.2.0-alpha.653
+  - @brains/messaging-service@0.2.0-alpha.653
+  - @brains/scheduler@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.652
+  - @brains/content-formatters@0.2.0-alpha.652
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/site-composition@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/ai-service@0.2.0-alpha.652
+  - @brains/content-service@0.2.0-alpha.652
+  - @brains/conversation-service@0.2.0-alpha.652
+  - @brains/entity-service@0.2.0-alpha.652
+  - @brains/identity-service@0.2.0-alpha.652
+  - @brains/job-queue@0.2.0-alpha.652
+  - @brains/mcp-service@0.2.0-alpha.652
+  - @brains/messaging-service@0.2.0-alpha.652
+  - @brains/recurring-checks@0.2.0-alpha.652
+  - @brains/runtime-state@0.2.0-alpha.652
+  - @brains/scheduler@0.2.0-alpha.652
+  - @brains/templates@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.651
+  - @brains/content-formatters@0.2.0-alpha.651
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/site-composition@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/ai-service@0.2.0-alpha.651
+  - @brains/content-service@0.2.0-alpha.651
+  - @brains/conversation-service@0.2.0-alpha.651
+  - @brains/entity-service@0.2.0-alpha.651
+  - @brains/identity-service@0.2.0-alpha.651
+  - @brains/job-queue@0.2.0-alpha.651
+  - @brains/mcp-service@0.2.0-alpha.651
+  - @brains/messaging-service@0.2.0-alpha.651
+  - @brains/recurring-checks@0.2.0-alpha.651
+  - @brains/runtime-state@0.2.0-alpha.651
+  - @brains/scheduler@0.2.0-alpha.651
+  - @brains/templates@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.650
+  - @brains/content-formatters@0.2.0-alpha.650
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/site-composition@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/ai-service@0.2.0-alpha.650
+  - @brains/content-service@0.2.0-alpha.650
+  - @brains/conversation-service@0.2.0-alpha.650
+  - @brains/entity-service@0.2.0-alpha.650
+  - @brains/identity-service@0.2.0-alpha.650
+  - @brains/job-queue@0.2.0-alpha.650
+  - @brains/mcp-service@0.2.0-alpha.650
+  - @brains/messaging-service@0.2.0-alpha.650
+  - @brains/recurring-checks@0.2.0-alpha.650
+  - @brains/runtime-state@0.2.0-alpha.650
+  - @brains/scheduler@0.2.0-alpha.650
+  - @brains/templates@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.649
+  - @brains/content-formatters@0.2.0-alpha.649
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/site-composition@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/ai-service@0.2.0-alpha.649
+  - @brains/content-service@0.2.0-alpha.649
+  - @brains/conversation-service@0.2.0-alpha.649
+  - @brains/entity-service@0.2.0-alpha.649
+  - @brains/identity-service@0.2.0-alpha.649
+  - @brains/job-queue@0.2.0-alpha.649
+  - @brains/mcp-service@0.2.0-alpha.649
+  - @brains/messaging-service@0.2.0-alpha.649
+  - @brains/recurring-checks@0.2.0-alpha.649
+  - @brains/runtime-state@0.2.0-alpha.649
+  - @brains/scheduler@0.2.0-alpha.649
+  - @brains/templates@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.648
+  - @brains/content-formatters@0.2.0-alpha.648
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/site-composition@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/ai-service@0.2.0-alpha.648
+  - @brains/content-service@0.2.0-alpha.648
+  - @brains/conversation-service@0.2.0-alpha.648
+  - @brains/entity-service@0.2.0-alpha.648
+  - @brains/identity-service@0.2.0-alpha.648
+  - @brains/job-queue@0.2.0-alpha.648
+  - @brains/mcp-service@0.2.0-alpha.648
+  - @brains/messaging-service@0.2.0-alpha.648
+  - @brains/recurring-checks@0.2.0-alpha.648
+  - @brains/runtime-state@0.2.0-alpha.648
+  - @brains/scheduler@0.2.0-alpha.648
+  - @brains/templates@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service reads its own account settings for the current caller with `accountSettings.read()`, in its tools and routes and in every operator callback, loaders and `prepare` included: the caller's own settings, or `null` for a caller without an account or one who has none. Each field the definition marks `secret` comes back as an `AccountSettingsSecret`, whose `reveal()` returns the value and whose `toJSON()`, `toString()`, interpolation and inspection give `[secret]`, so a secret placed by accident in view data, a route answer, a tool result or a log line leaves as the marker. Writes stay with `execute`, tools and routes, and an operator callback's `settings` stays redacted.
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An operator surface acts as its caller. Its callbacks read through an `EntityReader` (`get`, `list` with paging and sort, `count`) at the caller's visibility, in place of `OperatorEntityReader`, whose `search` had no consumer. Inside a service, every operator callback runs as the operator or viewer who called it, so a slot's `entities` captured elsewhere reads and writes as them too, never as the package. A workspace action's `execute` writes the service's own entity types through its `entities`, attributed to the operator and held to the action policy.
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An operator surface's failure reaches Studio in its public form, `{ error, code }`, with the HTTP status its code names. A workspace callback's `SdkError` keeps its code and public message, any other error is `handler_failed`, input or query state its schema refuses is `invalid_input` naming the offending paths, an undeclared action is `not_found`, a request below its permission is `permission_denied`, a stale prepared confirmation is `conflict`, and an answer outside what the surface declares is `invalid_response`. The diagnostic and its cause stay in the declaring package's log; Studio no longer shows the operator a message naming the package and surface, and a callback's own public message is no longer dropped. The Administration workspace refuses an action it does not route by code.
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service's `GET` route can return the browser to one of the package's own Studio workspaces: `defineRoute({ ..., returnTo: workspace, handle })`, whose handler answers with the workspace's query input, inline literals kept. The runtime checks the answer against the workspace's query as the URL carries it and answers `303` to the workspace with that query and `Cache-Control: no-store`; an answer the query refuses is `invalid_response`, a route answers `no_handler` while no Studio hosts the workspace, and a workspace the package does not bind is refused when it registers. A Studio workspace's definition now carries its query schema's type.
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared job's input and result are parsed once. A job is queued with its input as written and parsed by its schema when it runs, whether a tool, a route, an interface, an entity's create route or a workspace action queued it; its result is kept as its handler answered and parsed when its status is read. A transforming schema was parsed again and refused. A workspace action's input reaches the view as the schema's input, and `prepare` and `execute` are each handed it parsed once; a request that goes while a workspace callback runs is answered with the cancellation. An operator surface's `jobs.status` reports a failure in its public form, `code` and public message, instead of the message it was thrown with.
+
+- [#846](https://github.com/rizom-ai/brains/pull/846) [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A workspace action can send the operator's browser to a URL it computes, such as a provider's consent page: `defineWorkspaceAction({ ..., launch: { origins } })` declares absolute https origins and its `execute` answers `{ url }`. The runtime refuses, as `invalid_response`, any destination that is not an absolute https URL on a declared origin, carries credentials or is longer than 2048 characters, and Studio sends the page there only after that check and its own https check. A workspace action's `execute` is handed `accountSettings` (`save`, `claim`, `redeem`) for the operator's account; a claim made there names the operator's Studio session, so only that session's account redeems it at the provider's callback.
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.647
+  - @brains/content-formatters@0.2.0-alpha.647
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/site-composition@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+  - @brains/ai-service@0.2.0-alpha.647
+  - @brains/content-service@0.2.0-alpha.647
+  - @brains/conversation-service@0.2.0-alpha.647
+  - @brains/entity-service@0.2.0-alpha.647
+  - @brains/identity-service@0.2.0-alpha.647
+  - @brains/job-queue@0.2.0-alpha.647
+  - @brains/mcp-service@0.2.0-alpha.647
+  - @brains/messaging-service@0.2.0-alpha.647
+  - @brains/recurring-checks@0.2.0-alpha.647
+  - @brains/runtime-state@0.2.0-alpha.647
+  - @brains/scheduler@0.2.0-alpha.647
+  - @brains/templates@0.2.0-alpha.647
+
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared route's handler answers with its response schema's input, for a service's routes and an interface's alike: written inline, an answer keeps its literal types, so an enum value needs no cast, and an answer the schema does not accept is refused by the types as well as by the runtime. `@rizom/brain/interfaces` exports `SdkError`, so an interface route throws a coded failure that is answered in its public form, `{ error, code }`, with the status its code names.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`e2c6e83`](https://github.com/rizom-ai/brains/commit/e2c6e8328fb9ba84dfed78bd63933ed33efd50b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineInterface` and `defineMessageInterface` take two arguments, as `defineServicePlugin` does: a header with the interface's `id`, `config`, `accountSettings`, `setup` and, for a message interface, its `channel`, and the behavior that reads the state `setup` returns, whose slots may be written in any order. A behavior slot written into the header, or a slot the interface does not have, is refused. `setup` is given `config`, `lifecycle.onCleanup` and `runtimeState({ namespace, schema })`, a store qualified by the owning package, so two packages declaring the same interface id never share a record. A message interface's cleanups also run when the queue worker shuts down, where its setup runs for delivery.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface's inbound attachments are kept as chat keeps its uploads. Each is a `url` the runtime fetches or, new, a `read()` the interface answers with the bytes as a `Uint8Array`, for a platform whose media needs its credentials; never both. Only a trusted sender's or an admin's attachments are read. Each is checked by the message upload policy, kept in the runtime's shared upload store attributed to its sender and channel, and handed to the turn with an `upload` reference a later turn restores. A refused or unreadable attachment is skipped and the sender told, instead of failing the turn, and a message with nothing left to answer starts none. The shared upload store is named once, for the writers and readers that use it.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/interfaces` exports `defineMessageInterfacePackage({ id, config, interfaces })`: one package that runs several message interfaces chosen from one config. `interfaces({ config })` returns the `defineMessageInterface` definitions the parsed config enables, each its own plugin with its own channel under the package, which owns their runtime state. Every interface is declared over the package's config schema; one declared over another schema, one that is not a message interface, an id declared twice and a package nested in another are refused.
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`0e95b92`](https://github.com/rizom-ai/brains/commit/0e95b92f0a40a3b0943d8650c77321431a04b5e9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface answers in the thread a message came from: `send` is given the inbound `channel` with its `threadId`, where it was given only the channel id, so a reply to a threaded message landed outside its thread.
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.646
+  - @brains/content-formatters@0.2.0-alpha.646
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/site-composition@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+  - @brains/ai-service@0.2.0-alpha.646
+  - @brains/content-service@0.2.0-alpha.646
+  - @brains/conversation-service@0.2.0-alpha.646
+  - @brains/entity-service@0.2.0-alpha.646
+  - @brains/identity-service@0.2.0-alpha.646
+  - @brains/job-queue@0.2.0-alpha.646
+  - @brains/mcp-service@0.2.0-alpha.646
+  - @brains/messaging-service@0.2.0-alpha.646
+  - @brains/recurring-checks@0.2.0-alpha.646
+  - @brains/runtime-state@0.2.0-alpha.646
+  - @brains/scheduler@0.2.0-alpha.646
+  - @brains/templates@0.2.0-alpha.646
+
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.645
+  - @brains/content-formatters@0.2.0-alpha.645
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/site-composition@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/ai-service@0.2.0-alpha.645
+  - @brains/content-service@0.2.0-alpha.645
+  - @brains/conversation-service@0.2.0-alpha.645
+  - @brains/entity-service@0.2.0-alpha.645
+  - @brains/identity-service@0.2.0-alpha.645
+  - @brains/job-queue@0.2.0-alpha.645
+  - @brains/mcp-service@0.2.0-alpha.645
+  - @brains/messaging-service@0.2.0-alpha.645
+  - @brains/recurring-checks@0.2.0-alpha.645
+  - @brains/runtime-state@0.2.0-alpha.645
+  - @brains/scheduler@0.2.0-alpha.645
+  - @brains/templates@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bus contract's failure reaches the asker in its public form. `BusResult`'s `failed` carries `error: SdkErrorData` (`{ code, message }`) and `BusCollection.failures` is `SdkErrorData[]`: an owner that throws an `SdkError` keeps its code and public message, any other error is `handler_failed`, an answer outside the contract is `invalid_response` and an invalid request `invalid_input`. The message a failure was thrown with stays in the owner's log. Askers that pass a failure on raise it again with `sdkErrorFrom`, keeping its code. The A2A ask and call owners report a directory refusal as `permission_denied`, a timeout as `deadline_exceeded` and a peer's refusal in its own words, cut to the public bound with `clipPublicMessage`; Studio's workspace host refuses a reserved id as `invalid_input` and a taken one as `conflict`. Studio's ask-agent route answers a failure with `{ error, code }` and the code's HTTP status, and `network_ask` gives each unanswered peer's public message as its reason.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A durable job's failure is recorded in its public form, the `SdkError` data `{ code, message }`, beside the diagnostic message, in a new `lastErrorPublic` column. `jobs.status()` on a service job reports that `code` and, as `error`, its public message: an `SdkError`'s `publicMessage` when it was given one, else the code's standard message, never the message a failure was thrown with, so a status reader never sees what a handler meant only for operators. A failure recorded without a valid public form reads as `handler_failed`. A thrown `SdkError` keeps its code, any other error is `handler_failed`, an answer outside the job's output schema is `invalid_response`, a requester whose account is gone is `permission_denied`, a job no package handles is `no_handler`, a superseded one `cancelled`, and an expired attempt `deadline_exceeded`.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`fbee77b`](https://github.com/rizom-ai/brains/commit/fbee77b9444be83e8f1282a249430da4c907ced7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation's `linkInto` on a declared target is refused before anything is saved when the target's metadata does not declare the linked field or list, or cannot hold the link. A declared type's metadata is its frontmatter, so such a link was stored where no read reached it.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A definition-typed record is read as stored: its body decoded by the type's codec, with image references left as `entity://image/{id}` references instead of resolved to the image's data. `EntityReader.get` used to resolve them while `list` did not, so the two returned different content for one record, and a record read and written back, through an Inbox action, a create route's update or a service's owned writes, could store the image's data in place of its reference. A record written back unchanged is now stored byte for byte. A generation's `linkInto` on a declared target now reads and writes the target's metadata, which is its frontmatter, instead of the body, so extending a list keeps the entries already on it. The read-only entity service that analytics reports are given gains `getEntityRaw`.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`c33189f`](https://github.com/rizom-ai/brains/commit/c33189f0b2527fbf7419a17fca015ff418652639) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/entities` exports the definition-typed reader as `EntityReader` instead of `DataSourceEntityReader`. It is the reader every context that reads entities is given (data sources, checks, evals, the Inbox, analytics reports and AT Protocol projections), not one particular to data sources. The old name is gone.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`ec7c939`](https://github.com/rizom-ai/brains/commit/ec7c939a4b4389478ac4b0fe0fc7c73347356db1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service template is one declaration, whatever it can do. The `views` slot is gone: a template in `templates` formats a value with `format`, renders it with `renderers.web`, or both, with an optional `description`, instead of a same-name view repeating its schema. A template that neither formats nor renders is refused, as is a generation template that does not format, and the types refuse a renderer for a schema that does not produce JSON. A behavior slot the service does not have, such as `views`, is refused rather than ignored.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`29ac442`](https://github.com/rizom-ai/brains/commit/29ac442e4f090c25f28b1e87228a2a5fb8f467bc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service acting as itself, with no caller (an answer, a job it queued for itself, other slot work), reads and writes its own types as a class plugin does: at every visibility and past the action policy, which governs callers. Other types it reads at its own grant. Writes by a tool caller, a route caller or a job a requester queued stay held to the policy at that caller's level. A steward therefore writes its own type with no grant from the brain.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service writes its own account settings for an account the runtime vouches for. The `tools` and `routes` slots of a service that declares `accountSettings` are given `accountSettings`: `save(values)` writes the current caller's own account, `claim()` returns a single-use state naming the caller's account and, through a browser session, that session's account, and `redeem(state, produce)` consumes a claim before `produce` runs and writes what it returns, from a session of the same account when the claim was made in one. A refused value is named by its field alone. The consent-state lifetime main's LinkedIn import uses, ten minutes and twenty waiting, is now `CONSENT_STATE_LIFETIME` in `@brains/utils/single-use-store`, which the import and the runtime share.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`e18c7c2`](https://github.com/rizom-ai/brains/commit/e18c7c25309f4c489f295c00890d6af9a61828e9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service answers only channels its owner names: `<package name>:<name>`, the same owner its runtime state is kept under. Answering any other channel is refused when the package registers; declaring a contract and asking one stay open, since an asker imports the owner's contract.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`a7178d0`](https://github.com/rizom-ai/brains/commit/a7178d0d135ba4222d8d5c62736786550e1e0403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service serves HTTP routes. The `routes` slot returns routes declared with `defineRoute` and `protocol`, now also exported from `@rizom/brain/services`, and is given `entities`, `jobs` and `messaging`, which inside a route act as its caller: the signed caller of a protocol route, or nobody in particular on a public one, and a job a route starts is admitted as that caller. Services and interfaces serve declared routes through one runtime, which answers a failure in its public form, `{ error, code }`, with the status its code names: `unauthenticated` (401) for an unsigned protocol call, `invalid_input` (400) for a body that is not JSON or that its schema refuses, a handler's `SdkError` with its own code, `handler_failed` (500) for any other error and `invalid_response` (500) for an answer outside the response schema. The diagnostic stays in the declaring package's log.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`8e4928d`](https://github.com/rizom-ai/brains/commit/8e4928d751ff6addabfbb4b463e20dcc5543aa06) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service declares the entity types it owns in its header's `entities`, and each is installed with the package. The `jobs` and `tools` slots are given one `entities`: definition-typed reads (`EntityReader`) and writes to the owned types (`OwnedEntityWriter`: `create`, `update` and `delete`), both exported from `@rizom/brain/services`. It acts as the current caller: the tool's caller inside a tool, the job's requester inside a running job, and the package's own grant anywhere else. Writes are attributed to that caller and held to the type's action policy at its permission level; a `never` rule closes a type to system tools, not to its owner. A definition the header does not own is refused by the types and at runtime, an id taken at any visibility is refused, and an update or delete of a record the caller cannot see, or one that changed after it was read, is refused. A job handler's context no longer carries an `entities` reader of its own.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`2302529`](https://github.com/rizom-ai/brains/commit/230252986476b8752489a681a87da122ebd6eb51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service's capabilities belong to its slots, and a call's data to its handlers. The `jobs` slot is given `messaging` and `templates`, as `tools` is, and a job's handler is given only its `input`, `progress` and `signal`. The `subscriptions` slot is given `entities`, which inside an answer acts as the package's own grant, and an answer's handler is given only its `request` and the runtime-supplied `sender`.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`04b829a`](https://github.com/rizom-ai/brains/commit/04b829a4586ac2cf75a0e48d7175e73307346c30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service answers other packages over the bus by contract. `defineBusContract({ channel, request, response, delivery })` is public from `@rizom/brain/services`, the brain's own contract narrowed to `request` and `command`; gathering stays inside the brain. The `subscriptions` slot returns `answer(contract, handler)` bindings, contract first, whose handler gets the parsed `request`, the `sender` and `entities` acting as the package; an answer keeps the literals it is written with, is checked against the response schema, and is released when the package shuts down. A channel answered twice, or a contract delivered any other way, is refused. The `tools` and `subscriptions` slots, and a job's handler beside `publish`, ask with `messaging.request(contract, request)`, which returns a `BusResult` whose failure is in its public form, and send with `messaging.command(contract, request)`. `BusContract` and `BusResult` are public types.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A literal returned inline from a `defineTool` `execute` keeps its literal type, with or without parameters, so an enum value in the output no longer needs a cast. A tool's `confirmation` may be a function of its parsed input. A service tool's failure reaches its caller in its public form, `{ success: false, code, error }`: an `SdkError`'s code and `publicMessage`, or else the code's standard message, never the message a failure was thrown with, which stays in the brain's debug log. Refused input is `invalid_input`, and its message names each offending path and why, as main's class tools always have, cut between whole issues to the 1024-character public bound; another error from `execute` is `handler_failed`, an answer outside the output schema is `invalid_response`, and a call whose caller has gone is `cancelled`. Content-generation limits keep their message as `invalid_input`.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineServicePlugin` now takes two arguments: a header with the package's `id`, `config`, `accountSettings` and `setup`, and the behavior that reads the state `setup` returns, whose slots may be written in any order; a behavior slot written into the header is refused. `setup` is given `runtimeState({ namespace, schema })`, a store qualified by the owning package so two packages naming the same namespace never share a record. `@rizom/brain/services` exports `SdkError`, `SdkErrorCode`, `SdkErrorData`, `sdkErrorCodeSchema` and `sdkErrorSchema`: a coded failure whose code survives every boundary and whose diagnostic message stays local. Runtime state now stores the schema's input and parses it at every read, so a transforming schema no longer fails on a stored value; a value that does not survive a JSON round trip is refused before it is written, and `compareAndSet` compares the expected value with the stored value as read, answering `false` rather than throwing for one the schema would refuse. Namespaces may be up to 512 characters, and a scoped store is a frozen handle that exposes no storage internals.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`b46228c`](https://github.com/rizom-ai/brains/commit/b46228cfa648da9e988fe4e66ad1c21876fcd135) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The test entity registry refuses a second registration of an entity type, as the brain's registry does, so a package declaring a type another package already owns fails in tests as it does in a brain.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98), [`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/messaging-service@0.2.0-alpha.644
+  - @brains/content-service@0.2.0-alpha.644
+  - @brains/job-queue@0.2.0-alpha.644
+  - @brains/entity-service@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/mcp-service@0.2.0-alpha.644
+  - @brains/runtime-state@0.2.0-alpha.644
+  - @brains/content-formatters@0.2.0-alpha.644
+  - @brains/site-composition@0.2.0-alpha.644
+  - @brains/ai-service@0.2.0-alpha.644
+  - @brains/conversation-service@0.2.0-alpha.644
+  - @brains/identity-service@0.2.0-alpha.644
+  - @brains/templates@0.2.0-alpha.644
+  - @brains/recurring-checks@0.2.0-alpha.644
+  - @brains/atproto-contracts@0.2.0-alpha.644
+  - @brains/scheduler@0.2.0-alpha.644
+
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.643
+  - @brains/content-formatters@0.2.0-alpha.643
+  - @brains/contracts@0.2.0-alpha.643
+  - @brains/site-composition@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/ai-service@0.2.0-alpha.643
+  - @brains/content-service@0.2.0-alpha.643
+  - @brains/conversation-service@0.2.0-alpha.643
+  - @brains/entity-service@0.2.0-alpha.643
+  - @brains/identity-service@0.2.0-alpha.643
+  - @brains/job-queue@0.2.0-alpha.643
+  - @brains/mcp-service@0.2.0-alpha.643
+  - @brains/messaging-service@0.2.0-alpha.643
+  - @brains/recurring-checks@0.2.0-alpha.643
+  - @brains/runtime-state@0.2.0-alpha.643
+  - @brains/scheduler@0.2.0-alpha.643
+  - @brains/templates@0.2.0-alpha.643
+
+## 0.2.0-alpha.642
+
+### Patch Changes
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`53da557`](https://github.com/rizom-ai/brains/commit/53da557991ad676545a4674600f0aca4c00fa1ba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts `instructions`, `agentContext`, `scheduledGeneration` and `evals`, and `@rizom/brain/entities` exports `EntityAgentContextProvider`, `EntityScheduledGenerationDeclaration`, `EntityEvalDeclaration`, `EntityEvalContext` and `EntityEvalFixtures`. A declared type can tell the agent when to use it, ground the agent's turn with records the asker may see, answer the content pipeline's schedule by writing from one or all qualifying sources, and register evals with fixtures that seed, wait for embeddings and reset.
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`fa7dd0e`](https://github.com/rizom-ai/brains/commit/fa7dd0e07df1d9d4fd74c8e9d9255220a5cfb628) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts `create` routing and `attachments`, and `@rizom/brain/entities` exports `EntityCreateRouting`, `EntityCreateRoute`, `EntityCreateResolution`, `EntityCreateContext`, `EntityCreateUploadReader`, `EntityCreateAttachment`, `EntityCreateCheck`, `EntityAttachmentDeclaration`, `MediaAttachmentContext` and `AttachmentProvider`. A declared type decides how `system_create` treats uploads, attachments, content and prompts: it can check a request before the user confirms it, then create, reuse, update or refuse, and the runtime performs the write with the caller's visibility and attribution. A route can also claim upload media types from the upload endpoint. Declared attachment providers are built from a frozen, read-only media context that only reads public records, and `@brains/media-page-composer` providers accept that same context.
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`2e10c13`](https://github.com/rizom-ai/brains/commit/2e10c1388c32a44d301dbf115dd169a4328b5acf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts the basic entity slots and seeds, and `@rizom/brain/entities` exports `EntityDefinitionConfig`, `EntitySeedDefinition` and `EntitySeedTrigger`. A declared entity can set its entity-type settings through `config` (search, projection sourcing, binary storage, default sort, Markdown import, retired and translated fields, containment, its minimum action policy and publish statuses), migrate stored metadata with `metadataFrom`, be a `singleton`, declare `hasBody`, `coverImage` and a `displayTitle`, enforce a persistence invariant with `validatePersist`, set its own action rule with `actions`, and plant a default record with `seed` once startup content settles, never overwriting an existing one. The retired-field registration check now also applies to a type whose metadata schema migrates stored values.
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`72403d7`](https://github.com/rizom-ai/brains/commit/72403d7d7ff7422f0a59db708955c267225ab7a3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Metadata written inline in `defineEntity` — a seed, a stub, a decoded document, a create route's resolution or allocation, a generation result — keeps its literal types without an annotation, also from a callback that takes no parameters, and is also accepted read-only.
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`386fc50`](https://github.com/rizom-ai/brains/commit/386fc505b04e29932e70cbda82171dacd915d494) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts `jobs`, `generation` and `stub`, create routes can allocate an entity and delegate to a declared job, and `@rizom/brain/entities` exports `defineEntityJob` with `AnyEntityJobDeclaration`, `EntityJobDeclaration`, `EntityGenerationDeclaration`, `EntityJobContext`, `EntityGenerationContext`, `EntityGenerationRequest`, `EntityGenerationResult`, `EntityGenerationLink`, `EntityCreateAllocation` and `EntityCreateDelegation`. A declared type can run its own durable jobs, generate entities through its own templates in the brain's voice, support `system_generate` with a placeholder stub, and link what it generated into another entity. A create route can write a placeholder and hand its id to a generating job, which fills it in or marks it failed.
+
+- [#833](https://github.com/rizom-ai/brains/pull/833) [`821fdf7`](https://github.com/rizom-ai/brains/commit/821fdf7451ec6fb80ff3cd70d7164cd672aee288) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `defineEntity` now accepts `templates` and `feed`, `defineEntityPackage` accepts `dataSources`, and `@rizom/brain/entities` exports `defineDataSource`, `DataSourceDefinition`, `DataSourceEntityReader`, `EntityDataSourceDefinition`, `EntityFeedDeclaration` and `FeedItem`. A data source either fetches through reads typed by the definitions it names, or lists and shows one declared entity type, with the runtime deriving that type's schema from its definition and handling ordering, paging, filtering, lookup and neighbors. Data source ids are scoped to the package, and templates follow a package data source to its scoped id. A declared feed is written as RSS into every site build, with every record in a preview and only published ones in production, and a malformed item fails the build. Blog RSS feeds no longer break when a post's body contains `]]>`.
+- Updated dependencies [[`fa7dd0e`](https://github.com/rizom-ai/brains/commit/fa7dd0e07df1d9d4fd74c8e9d9255220a5cfb628), [`2e10c13`](https://github.com/rizom-ai/brains/commit/2e10c1388c32a44d301dbf115dd169a4328b5acf), [`821fdf7`](https://github.com/rizom-ai/brains/commit/821fdf7451ec6fb80ff3cd70d7164cd672aee288)]:
+  - @brains/entity-service@0.2.0-alpha.642
+  - @brains/site-composition@0.2.0-alpha.642
+  - @brains/atproto-contracts@0.2.0-alpha.642
+  - @brains/ai-service@0.2.0-alpha.642
+  - @brains/content-service@0.2.0-alpha.642
+  - @brains/identity-service@0.2.0-alpha.642
+  - @brains/content-formatters@0.2.0-alpha.642
+  - @brains/contracts@0.2.0-alpha.642
+  - @brains/utils@0.2.0-alpha.642
+  - @brains/conversation-service@0.2.0-alpha.642
+  - @brains/job-queue@0.2.0-alpha.642
+  - @brains/mcp-service@0.2.0-alpha.642
+  - @brains/messaging-service@0.2.0-alpha.642
+  - @brains/recurring-checks@0.2.0-alpha.642
+  - @brains/runtime-state@0.2.0-alpha.642
+  - @brains/scheduler@0.2.0-alpha.642
+  - @brains/templates@0.2.0-alpha.642
+
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.641
+  - @brains/content-formatters@0.2.0-alpha.641
+  - @brains/contracts@0.2.0-alpha.641
+  - @brains/site-composition@0.2.0-alpha.641
+  - @brains/utils@0.2.0-alpha.641
+  - @brains/ai-service@0.2.0-alpha.641
+  - @brains/content-service@0.2.0-alpha.641
+  - @brains/conversation-service@0.2.0-alpha.641
+  - @brains/entity-service@0.2.0-alpha.641
+  - @brains/identity-service@0.2.0-alpha.641
+  - @brains/job-queue@0.2.0-alpha.641
+  - @brains/mcp-service@0.2.0-alpha.641
+  - @brains/messaging-service@0.2.0-alpha.641
+  - @brains/recurring-checks@0.2.0-alpha.641
+  - @brains/runtime-state@0.2.0-alpha.641
+  - @brains/scheduler@0.2.0-alpha.641
+  - @brains/templates@0.2.0-alpha.641
+
+## 0.2.0-alpha.640
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.640
+  - @brains/content-formatters@0.2.0-alpha.640
+  - @brains/contracts@0.2.0-alpha.640
+  - @brains/site-composition@0.2.0-alpha.640
+  - @brains/utils@0.2.0-alpha.640
+  - @brains/ai-service@0.2.0-alpha.640
+  - @brains/content-service@0.2.0-alpha.640
+  - @brains/conversation-service@0.2.0-alpha.640
+  - @brains/entity-service@0.2.0-alpha.640
+  - @brains/identity-service@0.2.0-alpha.640
+  - @brains/job-queue@0.2.0-alpha.640
+  - @brains/mcp-service@0.2.0-alpha.640
+  - @brains/messaging-service@0.2.0-alpha.640
+  - @brains/recurring-checks@0.2.0-alpha.640
+  - @brains/runtime-state@0.2.0-alpha.640
+  - @brains/scheduler@0.2.0-alpha.640
+  - @brains/templates@0.2.0-alpha.640
+
+## 0.2.0-alpha.639
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.639
+  - @brains/content-formatters@0.2.0-alpha.639
+  - @brains/contracts@0.2.0-alpha.639
+  - @brains/site-composition@0.2.0-alpha.639
+  - @brains/utils@0.2.0-alpha.639
+  - @brains/ai-service@0.2.0-alpha.639
+  - @brains/content-service@0.2.0-alpha.639
+  - @brains/conversation-service@0.2.0-alpha.639
+  - @brains/entity-service@0.2.0-alpha.639
+  - @brains/identity-service@0.2.0-alpha.639
+  - @brains/job-queue@0.2.0-alpha.639
+  - @brains/mcp-service@0.2.0-alpha.639
+  - @brains/messaging-service@0.2.0-alpha.639
+  - @brains/recurring-checks@0.2.0-alpha.639
+  - @brains/runtime-state@0.2.0-alpha.639
+  - @brains/scheduler@0.2.0-alpha.639
+  - @brains/templates@0.2.0-alpha.639
+
+## 0.2.0-alpha.638
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.638
+  - @brains/content-formatters@0.2.0-alpha.638
+  - @brains/contracts@0.2.0-alpha.638
+  - @brains/site-composition@0.2.0-alpha.638
+  - @brains/utils@0.2.0-alpha.638
+  - @brains/ai-service@0.2.0-alpha.638
+  - @brains/content-service@0.2.0-alpha.638
+  - @brains/conversation-service@0.2.0-alpha.638
+  - @brains/entity-service@0.2.0-alpha.638
+  - @brains/identity-service@0.2.0-alpha.638
+  - @brains/job-queue@0.2.0-alpha.638
+  - @brains/mcp-service@0.2.0-alpha.638
+  - @brains/messaging-service@0.2.0-alpha.638
+  - @brains/recurring-checks@0.2.0-alpha.638
+  - @brains/runtime-state@0.2.0-alpha.638
+  - @brains/scheduler@0.2.0-alpha.638
+  - @brains/templates@0.2.0-alpha.638
+
+## 0.2.0-alpha.637
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.637
+  - @brains/content-formatters@0.2.0-alpha.637
+  - @brains/contracts@0.2.0-alpha.637
+  - @brains/site-composition@0.2.0-alpha.637
+  - @brains/utils@0.2.0-alpha.637
+  - @brains/ai-service@0.2.0-alpha.637
+  - @brains/content-service@0.2.0-alpha.637
+  - @brains/conversation-service@0.2.0-alpha.637
+  - @brains/entity-service@0.2.0-alpha.637
+  - @brains/identity-service@0.2.0-alpha.637
+  - @brains/job-queue@0.2.0-alpha.637
+  - @brains/mcp-service@0.2.0-alpha.637
+  - @brains/messaging-service@0.2.0-alpha.637
+  - @brains/recurring-checks@0.2.0-alpha.637
+  - @brains/runtime-state@0.2.0-alpha.637
+  - @brains/scheduler@0.2.0-alpha.637
+  - @brains/templates@0.2.0-alpha.637
+
+## 0.2.0-alpha.636
+
+### Patch Changes
+
+- Updated dependencies [[`11b7280`](https://github.com/rizom-ai/brains/commit/11b72805aacd377e1ea1db3b36109c57c541eca5)]:
+  - @brains/contracts@0.2.0-alpha.636
+  - @brains/content-formatters@0.2.0-alpha.636
+  - @brains/site-composition@0.2.0-alpha.636
+  - @brains/ai-service@0.2.0-alpha.636
+  - @brains/content-service@0.2.0-alpha.636
+  - @brains/conversation-service@0.2.0-alpha.636
+  - @brains/entity-service@0.2.0-alpha.636
+  - @brains/identity-service@0.2.0-alpha.636
+  - @brains/job-queue@0.2.0-alpha.636
+  - @brains/mcp-service@0.2.0-alpha.636
+  - @brains/messaging-service@0.2.0-alpha.636
+  - @brains/templates@0.2.0-alpha.636
+  - @brains/atproto-contracts@0.2.0-alpha.636
+  - @brains/recurring-checks@0.2.0-alpha.636
+  - @brains/utils@0.2.0-alpha.636
+  - @brains/runtime-state@0.2.0-alpha.636
+  - @brains/scheduler@0.2.0-alpha.636
+
+## 0.2.0-alpha.635
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.635
+  - @brains/content-formatters@0.2.0-alpha.635
+  - @brains/contracts@0.2.0-alpha.635
+  - @brains/site-composition@0.2.0-alpha.635
+  - @brains/utils@0.2.0-alpha.635
+  - @brains/ai-service@0.2.0-alpha.635
+  - @brains/content-service@0.2.0-alpha.635
+  - @brains/conversation-service@0.2.0-alpha.635
+  - @brains/entity-service@0.2.0-alpha.635
+  - @brains/identity-service@0.2.0-alpha.635
+  - @brains/job-queue@0.2.0-alpha.635
+  - @brains/mcp-service@0.2.0-alpha.635
+  - @brains/messaging-service@0.2.0-alpha.635
+  - @brains/recurring-checks@0.2.0-alpha.635
+  - @brains/runtime-state@0.2.0-alpha.635
+  - @brains/scheduler@0.2.0-alpha.635
+  - @brains/templates@0.2.0-alpha.635
+
+## 0.2.0-alpha.634
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.634
+  - @brains/content-formatters@0.2.0-alpha.634
+  - @brains/contracts@0.2.0-alpha.634
+  - @brains/site-composition@0.2.0-alpha.634
+  - @brains/utils@0.2.0-alpha.634
+  - @brains/ai-service@0.2.0-alpha.634
+  - @brains/content-service@0.2.0-alpha.634
+  - @brains/conversation-service@0.2.0-alpha.634
+  - @brains/entity-service@0.2.0-alpha.634
+  - @brains/identity-service@0.2.0-alpha.634
+  - @brains/job-queue@0.2.0-alpha.634
+  - @brains/mcp-service@0.2.0-alpha.634
+  - @brains/messaging-service@0.2.0-alpha.634
+  - @brains/recurring-checks@0.2.0-alpha.634
+  - @brains/runtime-state@0.2.0-alpha.634
+  - @brains/scheduler@0.2.0-alpha.634
+  - @brains/templates@0.2.0-alpha.634
+
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/content-formatters@0.2.0-alpha.633
+  - @brains/site-composition@0.2.0-alpha.633
+  - @brains/ai-service@0.2.0-alpha.633
+  - @brains/content-service@0.2.0-alpha.633
+  - @brains/conversation-service@0.2.0-alpha.633
+  - @brains/entity-service@0.2.0-alpha.633
+  - @brains/identity-service@0.2.0-alpha.633
+  - @brains/job-queue@0.2.0-alpha.633
+  - @brains/mcp-service@0.2.0-alpha.633
+  - @brains/messaging-service@0.2.0-alpha.633
+  - @brains/templates@0.2.0-alpha.633
+  - @brains/atproto-contracts@0.2.0-alpha.633
+  - @brains/recurring-checks@0.2.0-alpha.633
+  - @brains/runtime-state@0.2.0-alpha.633
+  - @brains/scheduler@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.632
+  - @brains/content-formatters@0.2.0-alpha.632
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/site-composition@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/ai-service@0.2.0-alpha.632
+  - @brains/content-service@0.2.0-alpha.632
+  - @brains/conversation-service@0.2.0-alpha.632
+  - @brains/entity-service@0.2.0-alpha.632
+  - @brains/identity-service@0.2.0-alpha.632
+  - @brains/job-queue@0.2.0-alpha.632
+  - @brains/mcp-service@0.2.0-alpha.632
+  - @brains/messaging-service@0.2.0-alpha.632
+  - @brains/recurring-checks@0.2.0-alpha.632
+  - @brains/runtime-state@0.2.0-alpha.632
+  - @brains/scheduler@0.2.0-alpha.632
+  - @brains/templates@0.2.0-alpha.632
+
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.631
+  - @brains/content-formatters@0.2.0-alpha.631
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/site-composition@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/ai-service@0.2.0-alpha.631
+  - @brains/content-service@0.2.0-alpha.631
+  - @brains/conversation-service@0.2.0-alpha.631
+  - @brains/entity-service@0.2.0-alpha.631
+  - @brains/identity-service@0.2.0-alpha.631
+  - @brains/job-queue@0.2.0-alpha.631
+  - @brains/mcp-service@0.2.0-alpha.631
+  - @brains/messaging-service@0.2.0-alpha.631
+  - @brains/recurring-checks@0.2.0-alpha.631
+  - @brains/runtime-state@0.2.0-alpha.631
+  - @brains/scheduler@0.2.0-alpha.631
+  - @brains/templates@0.2.0-alpha.631
+
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.630
+  - @brains/content-formatters@0.2.0-alpha.630
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/site-composition@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/ai-service@0.2.0-alpha.630
+  - @brains/content-service@0.2.0-alpha.630
+  - @brains/conversation-service@0.2.0-alpha.630
+  - @brains/entity-service@0.2.0-alpha.630
+  - @brains/identity-service@0.2.0-alpha.630
+  - @brains/job-queue@0.2.0-alpha.630
+  - @brains/mcp-service@0.2.0-alpha.630
+  - @brains/messaging-service@0.2.0-alpha.630
+  - @brains/recurring-checks@0.2.0-alpha.630
+  - @brains/runtime-state@0.2.0-alpha.630
+  - @brains/scheduler@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.629
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/site-composition@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/ai-service@0.2.0-alpha.629
+  - @brains/content-service@0.2.0-alpha.629
+  - @brains/conversation-service@0.2.0-alpha.629
+  - @brains/entity-service@0.2.0-alpha.629
+  - @brains/identity-service@0.2.0-alpha.629
+  - @brains/job-queue@0.2.0-alpha.629
+  - @brains/mcp-service@0.2.0-alpha.629
+  - @brains/messaging-service@0.2.0-alpha.629
+  - @brains/recurring-checks@0.2.0-alpha.629
+  - @brains/runtime-state@0.2.0-alpha.629
+  - @brains/scheduler@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.628
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/site-composition@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/ai-service@0.2.0-alpha.628
+  - @brains/content-service@0.2.0-alpha.628
+  - @brains/conversation-service@0.2.0-alpha.628
+  - @brains/entity-service@0.2.0-alpha.628
+  - @brains/identity-service@0.2.0-alpha.628
+  - @brains/job-queue@0.2.0-alpha.628
+  - @brains/mcp-service@0.2.0-alpha.628
+  - @brains/messaging-service@0.2.0-alpha.628
+  - @brains/recurring-checks@0.2.0-alpha.628
+  - @brains/runtime-state@0.2.0-alpha.628
+  - @brains/scheduler@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
 ## 0.2.0-alpha.627
 
 ### Patch Changes

@@ -15,6 +15,7 @@ import {
 } from "../src/setup-state-store";
 import { TargetedSetupService } from "../src/targeted-setup-service";
 import { AuthUserStore } from "../src/user-store";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 
@@ -32,7 +33,10 @@ describe("TargetedSetupService", () => {
     await database.start();
     try {
       const users = new AuthUserStore(database.db);
-      const identities = new AuthIdentityStore(database.db);
+      const identities = new AuthIdentityStore(
+        database.db,
+        registeredTestChannels,
+      );
       const service = new TargetedSetupService(database.db, identities);
       const user = await users.createUser({
         displayName: "Invited Person",

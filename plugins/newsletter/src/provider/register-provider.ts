@@ -1,13 +1,14 @@
-import { PUBLISH_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import {
+  publishCompletedChannel,
+  publishRegisterContract,
+} from "@brains/contracts";
+import { siteBuilderSlotsContract } from "@brains/site-composition";
 import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
-import { NewsletterSignup } from "@brains/ui-library";
+import { NewsletterSignup } from "@rizom/brain-ui/internal";
 import type { Logger } from "@brains/utils/logger";
 import { createElement as h, type ReactElement } from "react";
 import type { NewsletterDeliveryProvider } from "./contracts";
-import {
-  handlePublishCompleted,
-  type PublishCompletedPayload,
-} from "./publish-handler";
+import { handlePublishCompleted } from "./publish-handler";
 
 export interface NewsletterProviderRegistration {
   pluginId: string;
@@ -24,13 +25,10 @@ export function registerNewsletterProvider(
   logger: Logger,
 ): void {
   context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-    await context.messaging.send({
-      type: PUBLISH_CHANNELS.register,
-      payload: {
-        entityType: "newsletter",
-        provider,
-        config: { publishTimestampField: "sentAt" },
-      },
+    await context.messaging.command(publishRegisterContract, {
+      entityType: "newsletter",
+      provider,
+      config: { publishTimestampField: "sentAt" },
     });
 
     logger.info("Newsletter provider registered", {
@@ -41,47 +39,42 @@ export function registerNewsletterProvider(
 
   // Site builds run in the worker and ask for slots as they render; that
   // process never emits pluginsRegistered, so the signup answers there.
-  context.messaging.subscribeExecution(
-    SITE_BUILDER_CHANNELS.slots,
-    async () => ({
-      success: true,
-      data: [
-        {
-          pluginId: options.pluginId,
-          slotName: "footer-top",
-          render: (): ReactElement =>
-            h(NewsletterSignup, {
-              variant: "inline",
-              action: options.signupAction,
-              successMessage: options.signupSuccessMessage,
-            }),
-        },
-      ],
-    }),
+  context.messaging.answer(
+    siteBuilderSlotsContract,
+    async () => [
+      {
+        pluginId: options.pluginId,
+        slotName: "footer-top",
+        render: (): ReactElement =>
+          h(NewsletterSignup, {
+            variant: "inline",
+            action: options.signupAction,
+            successMessage: options.signupSuccessMessage,
+          }),
+      },
+    ],
+    { everyProcess: true },
   );
 
   if (!options.autoSendOnPublish) return;
 
-  context.messaging.subscribe<PublishCompletedPayload>(
-    PUBLISH_CHANNELS.completed,
-    async (msg) => {
-      const result = await handlePublishCompleted(
-        msg.payload,
-        provider,
-        context.entityService,
-        logger,
-      );
-      if (!result.success) {
-        logger.error("Newsletter auto-send failed", {
-          provider: provider.name,
-          entityId: msg.payload.entityId,
-          error: result.error,
-        });
-        return { success: false, error: result.error };
-      }
-      return { success: true };
-    },
-  );
+  context.messaging.subscribe(publishCompletedChannel, async (payload) => {
+    const result = await handlePublishCompleted(
+      payload,
+      provider,
+      context.entityService,
+      logger,
+    );
+    if (!result.success) {
+      logger.error("Newsletter auto-send failed", {
+        provider: provider.name,
+        entityId: payload.entityId,
+        error: result.error,
+      });
+      return { success: false, error: result.error };
+    }
+    return { success: true };
+  });
   logger.info("Newsletter auto-send on publish enabled", {
     provider: provider.name,
   });

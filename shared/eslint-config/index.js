@@ -1,4 +1,138 @@
 /* global module */
+
+/** Shell packages plugins never import; @brains/plugins serves them. */
+const shellServicePackages = [
+  "@brains/core",
+  "@brains/job-queue",
+  "@brains/identity-service",
+  "@brains/entity-service",
+  "@brains/content-service",
+  "@brains/conversation-service",
+  "@brains/messaging-service",
+  "@brains/ai-service",
+];
+
+/** Shell packages the plugin context serves at runtime: auth, MCP tools, runtime state, templates. */
+const contextServedPackages = [
+  "@brains/auth-service",
+  "@brains/mcp-service",
+  "@brains/runtime-state",
+  "@brains/templates",
+];
+
+const shellImportMessage =
+  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.";
+
+function shellImportBan(packages) {
+  return [
+    "error",
+    {
+      paths: packages.map((name) => ({ name, message: shellImportMessage })),
+      patterns: [
+        {
+          group: packages.map((name) => `${name}/*`),
+          message: shellImportMessage,
+        },
+      ],
+    },
+  ];
+}
+/** Syntax banned everywhere; see each entry for why. */
+const restrictedSyntax = [
+  {
+    // A synchronous spawn has to collect its child's exit itself, and when
+    // it does not the process spins at 100% CPU with the child left
+    // `<defunct>` — uninterruptible, because the loop never yields. Under
+    // `bun test --parallel` that took whole runs down: a child holding
+    // inherited stdio keeps the pipe the runner waits on for EOF.
+    //
+    // Restricted everywhere rather than in tests alone. The same spin in a
+    // running Brain is worse than in a test, and the one production caller
+    // was a bootstrap path that awaits just as well.
+    selector:
+      "CallExpression[callee.object.name='Bun'][callee.property.name='spawnSync']",
+    message:
+      "Use runProcess/runProcessOrThrow from @brains/utils/run-process: a synchronous spawn can leave a <defunct> child and spin the process.",
+  },
+  {
+    selector:
+      'ConditionalExpression[test.operator="instanceof"][test.right.name="Error"][consequent.property.name="message"]',
+    message:
+      "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
+  },
+  {
+    selector: 'JSXAttribute[name.name="class"]',
+    message: "Use React-compatible className in TSX.",
+  },
+  {
+    selector: 'JSXAttribute[name.name="for"]',
+    message: "Use React-compatible htmlFor in TSX.",
+  },
+  {
+    selector: 'JSXAttribute[name.name="srcset"]',
+    message: "Use React-compatible srcSet in TSX.",
+  },
+  {
+    selector: "JSXAttribute[name.name=/^on[a-z]/]",
+    message:
+      "React does not render lowercase string event handlers. Bind static interactions from the site shell instead.",
+  },
+  {
+    selector:
+      'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
+    message: "Use a React-compatible style object in TSX.",
+  },
+  {
+    selector: "JSXAttribute[name.name=/^(fill|font|letter|stop|stroke|text)-/]",
+    message: "Use React-compatible camelCase SVG attributes in TSX.",
+  },
+];
+
+/**
+ * Full read scope reaches every entity, restricted ones included. Production
+ * code opts into it through internalFullScope(reason), whose call is the
+ * audit record that the escalation was deliberate.
+ */
+const rawFullScope = {
+  selector: 'Property[key.name="visibilityScope"][value.value="restricted"]',
+  message:
+    "Use internalFullScope(reason) from @brains/plugins for a deliberate full-scope read, or pass the caller's scope.",
+};
+
+/**
+ * A raw `messaging.send` answers with whichever subscriber replies first and
+ * leaves the reply untyped. Entities, plugins and interfaces send events with
+ * `broadcast: true` and make every other cross-package call through a bus
+ * contract.
+ */
+const busContractMessage =
+  "Use context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send is only for an event sent with broadcast: true.";
+const messagingObject =
+  ":matches([object.name='messaging'], [object.property.name='messaging'])";
+const rawBusSend = [
+  {
+    selector: `MemberExpression[property.name='send']${messagingObject}:not(CallExpression:has(> ObjectExpression:has(> Property[key.name='broadcast'][value.value=true])) > .callee)`,
+    message: busContractMessage,
+  },
+  {
+    selector:
+      "VariableDeclarator:matches([init.name='messaging'], [init.property.name='messaging']) > ObjectPattern > Property[key.name='send']",
+    message: busContractMessage,
+  },
+];
+
+/**
+ * A type argument on a messaging subscription casts a payload nobody checked:
+ * a malformed one is read as whatever fields it lacks. Entities, plugins and
+ * interfaces subscribe through the event's typed channel, which validates the
+ * payload and refuses a malformed one.
+ */
+const castSubscription = {
+  selector: `CallExpression[typeArguments] > MemberExpression.callee[property.name=/^(subscribe|observe|subscribeExecution)$/]${messagingObject}`,
+  message:
+    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins) instead of type arguments, which cast a payload nobody validated.",
+};
+
 module.exports = {
   extends: [
     "eslint:recommended",
@@ -31,8 +165,8 @@ module.exports = {
   },
   overrides: [
     {
-      // Enforce import pattern for entities, plugins, and interfaces - shell packages must go through @brains/plugins
-      // Note: This applies to top-level entities/*, plugins/*, and interfaces/*, NOT shell/plugins (the plugins package itself)
+      // Entities, plugins and interfaces reach shell packages through
+      // @brains/plugins only. Not shell/plugins, the plugins package itself.
       files: [
         "**/entities/**/*.ts",
         "**/plugins/**/*.ts",
@@ -40,71 +174,99 @@ module.exports = {
       ],
       excludedFiles: ["**/shell/plugins/**/*.ts"],
       rules: {
-        "no-restricted-imports": [
+        "no-restricted-imports": shellImportBan(shellServicePackages),
+      },
+    },
+    {
+      // Their production code also stays off the shell packages whose
+      // capabilities the plugin context serves; tests may still build them.
+      files: [
+        "**/entities/*/src/**/*.ts",
+        "**/entities/*/src/**/*.tsx",
+        "**/plugins/*/src/**/*.ts",
+        "**/plugins/*/src/**/*.tsx",
+        "**/plugins/*/ui-react/src/**/*.ts",
+        "**/plugins/*/ui-react/src/**/*.tsx",
+        "**/interfaces/*/src/**/*.ts",
+        "**/interfaces/*/src/**/*.tsx",
+      ],
+      excludedFiles: [
+        "**/shell/plugins/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+      ],
+      rules: {
+        "no-restricted-imports": shellImportBan([
+          ...shellServicePackages,
+          ...contextServedPackages,
+        ]),
+      },
+    },
+    {
+      files: ["**/src/**/*.ts", "**/src/**/*.tsx"],
+      excludedFiles: [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+        "**/entity-service/src/internal-scope.ts",
+      ],
+      rules: {
+        "no-restricted-syntax": ["error", ...restrictedSyntax, rawFullScope],
+      },
+    },
+    {
+      // Entity, plugin and interface production code sends no raw requests
+      // and casts no subscription's payload. Listed last: it restates the
+      // restrictions above for these files.
+      files: [
+        "**/entities/*/src/**/*.ts",
+        "**/entities/*/src/**/*.tsx",
+        "**/plugins/*/src/**/*.ts",
+        "**/plugins/*/src/**/*.tsx",
+        "**/interfaces/*/src/**/*.ts",
+        "**/interfaces/*/src/**/*.tsx",
+      ],
+      excludedFiles: [
+        "**/shell/plugins/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+      ],
+      rules: {
+        "no-restricted-syntax": [
           "error",
-          {
-            paths: [
-              {
-                name: "@brains/core",
-                message:
-                  "Import from @brains/plugins instead. Shell internals should not be imported by entity, plugin, or interface packages.",
-              },
-              {
-                name: "@brains/job-queue",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/identity-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/entity-service",
-                // The shared identity codec is a package-level contract, not a
-                // service capability. Keep all other shell imports restricted.
-                allowImportNames: ["decodeEntityIdPath", "encodeEntityIdPath"],
-                message:
-                  "Only the entity-path codec may be imported here; access entity-service capabilities through @brains/plugins.",
-              },
-              {
-                name: "@brains/content-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/conversation-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/messaging-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/ai-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-            ],
-            patterns: [
-              {
-                group: [
-                  "@brains/core/*",
-                  "@brains/job-queue/*",
-                  "@brains/identity-service/*",
-                  "@brains/entity-service/*",
-                  "@brains/content-service/*",
-                  "@brains/conversation-service/*",
-                  "@brains/messaging-service/*",
-                  "@brains/ai-service/*",
-                ],
-                message:
-                  "Import from @brains/plugins instead. Shell internals should not be imported by entity, plugin, or interface packages.",
-              },
-            ],
-          },
+          ...restrictedSyntax,
+          rawFullScope,
+          ...rawBusSend,
+          castSubscription,
+        ],
+      },
+    },
+    {
+      // Shared and shell production code that subscribes through a plugin
+      // context's messaging casts no payload either. The message bus itself is
+      // exempt: it is what the typed channels are built on. Restates the
+      // `**/src/**` restrictions above for these files.
+      files: [
+        "**/shared/*/src/**/*.ts",
+        "**/shared/*/src/**/*.tsx",
+        "**/shell/*/src/**/*.ts",
+        "**/shell/*/src/**/*.tsx",
+      ],
+      excludedFiles: [
+        "**/shell/messaging-service/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/src/test/**",
+        "**/entity-service/src/internal-scope.ts",
+      ],
+      rules: {
+        "no-restricted-syntax": [
+          "error",
+          ...restrictedSyntax,
+          rawFullScope,
+          castSubscription,
         ],
       },
     },
@@ -168,56 +330,6 @@ module.exports = {
     "no-inner-declarations": "error",
     "no-useless-assignment": "error",
     "preserve-caught-error": "error",
-    "no-restricted-syntax": [
-      "error",
-      {
-        // A synchronous spawn has to collect its child's exit itself, and when
-        // it does not the process spins at 100% CPU with the child left
-        // `<defunct>` — uninterruptible, because the loop never yields. Under
-        // `bun test --parallel` that took whole runs down: a child holding
-        // inherited stdio keeps the pipe the runner waits on for EOF.
-        //
-        // Restricted everywhere rather than in tests alone. The same spin in a
-        // running Brain is worse than in a test, and the one production caller
-        // was a bootstrap path that awaits just as well.
-        selector:
-          "CallExpression[callee.object.name='Bun'][callee.property.name='spawnSync']",
-        message:
-          "Use runProcess/runProcessOrThrow from @brains/utils/run-process: a synchronous spawn can leave a <defunct> child and spin the process.",
-      },
-      {
-        selector:
-          'ConditionalExpression[test.operator="instanceof"][test.right.name="Error"][consequent.property.name="message"]',
-        message:
-          "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
-      },
-      {
-        selector: 'JSXAttribute[name.name="class"]',
-        message: "Use React-compatible className in TSX.",
-      },
-      {
-        selector: 'JSXAttribute[name.name="for"]',
-        message: "Use React-compatible htmlFor in TSX.",
-      },
-      {
-        selector: 'JSXAttribute[name.name="srcset"]',
-        message: "Use React-compatible srcSet in TSX.",
-      },
-      {
-        selector: "JSXAttribute[name.name=/^on[a-z]/]",
-        message:
-          "React does not render lowercase string event handlers. Bind static interactions from the site shell instead.",
-      },
-      {
-        selector:
-          'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
-        message: "Use a React-compatible style object in TSX.",
-      },
-      {
-        selector:
-          "JSXAttribute[name.name=/^(fill|font|letter|stop|stroke|text)-/]",
-        message: "Use React-compatible camelCase SVG attributes in TSX.",
-      },
-    ],
+    "no-restricted-syntax": ["error", ...restrictedSyntax],
   },
 };

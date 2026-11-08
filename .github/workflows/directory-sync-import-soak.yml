@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       git_broker_acceptance:
-        description: Run the approved affected-Bun Git broker acceptance matrix
+        description: Run the Git broker crash-recovery gate, the 100-cycle Git process inventory, and three import soak passes
         required: true
         default: false
         type: boolean
@@ -32,17 +32,10 @@ jobs:
         with:
           node-version-file: .node-version
 
-      - name: Setup repository Bun
-        if: ${{ !inputs.git_broker_acceptance }}
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
-
-      - name: Setup affected Bun
-        if: ${{ inputs.git_broker_acceptance }}
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.0
 
       - name: Record runtime version
         run: bun --version | tee "$RUNNER_TEMP/bun-version.log"
@@ -54,13 +47,13 @@ jobs:
         id: build
         run: bunx turbo run build --filter=@rizom/brain
 
-      - name: Run packaged Git broker recovery and fallback
+      - name: Run packaged Git broker crash recovery
         if: ${{ inputs.git_broker_acceptance && steps.build.outcome == 'success' && !cancelled() }}
         timeout-minutes: 10
         run: |
           set -o pipefail
           bun run test:git-broker-recovery \
-            2>&1 | tee "$RUNNER_TEMP/git-broker-affected-runtime.log"
+            2>&1 | tee "$RUNNER_TEMP/git-broker-acceptance.log"
 
       - name: Run 100-cycle Git process inventory
         if: ${{ inputs.git_broker_acceptance && steps.build.outcome == 'success' && !cancelled() }}
@@ -71,7 +64,7 @@ jobs:
         run: |
           set -o pipefail
           bun run test:git-broker-process-inventory \
-            2>&1 | tee -a "$RUNNER_TEMP/git-broker-affected-runtime.log"
+            2>&1 | tee -a "$RUNNER_TEMP/git-broker-acceptance.log"
 
       - name: Run feature-enabled resource gate
         env:
@@ -103,20 +96,6 @@ jobs:
               | tee -a "$RUNNER_TEMP/directory-sync-import-soak.log"
           done
 
-      - name: Run affected-runtime full core checks
-        if: ${{ inputs.git_broker_acceptance && !cancelled() }}
-        timeout-minutes: 25
-        run: |
-          set -o pipefail
-          {
-            bun scripts/lint.mjs --filter='!@rizom/site*' --filter='!@rizom/theme*'
-            bunx turbo run typecheck --filter='!@rizom/site*' --filter='!@rizom/theme*'
-            bunx turbo run test --concurrency="$(nproc)" --filter='!@rizom/site*' --filter='!@rizom/theme*'
-            bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'
-            mkdir -p "$RUNNER_TEMP/package"
-            (cd packages/brain-cli && bun pm pack --destination "$RUNNER_TEMP/package")
-          } 2>&1 | tee -a "$RUNNER_TEMP/git-broker-affected-runtime.log"
-
       - name: Upload soak evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -126,8 +105,7 @@ jobs:
             ${{ runner.temp }}/bun-version.log
             ${{ runner.temp }}/directory-sync-feature-resource.log
             ${{ runner.temp }}/directory-sync-import-soak*.log
-            ${{ runner.temp }}/git-broker-affected-runtime.log
-            ${{ runner.temp }}/package/*.tgz
+            ${{ runner.temp }}/git-broker-acceptance.log
           if-no-files-found: warn
 
       - name: Notify operator of soak failure

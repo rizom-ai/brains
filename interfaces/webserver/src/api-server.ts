@@ -1,17 +1,15 @@
 import type { Context } from "hono";
-import { createExternalActorId } from "@brains/contracts";
 import { toolResultSchema } from "@brains/plugins";
-import { PLUGIN_CHANNELS } from "@brains/contracts";
-import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
+import type { IApiRoutesNamespace, RegisteredApiRoute } from "@brains/plugins";
 
 /**
  * Create a Hono handler for a registered plugin API route.
- * Parses the request, invokes the plugin tool via the message bus,
+ * Parses the request, runs the plugin's tool through the interface context,
  * and returns the response (JSON or redirect).
  */
 export function createApiRouteHandler(
   route: RegisteredApiRoute,
-  messageBus: IMessageBus,
+  executeTool: IApiRoutesNamespace["executeTool"],
 ): (c: Context) => Promise<Response> {
   return async (c: Context): Promise<Response> => {
     const req = c.req.raw;
@@ -29,29 +27,12 @@ export function createApiRouteHandler(
       }
     }
 
-    // Call tool via message bus. Most plugin routes use local tool names, but
-    // consolidated tools may intentionally target an exact canonical name.
-    const toolName = route.definition.tool.includes("_")
-      ? route.definition.tool
-      : `${route.pluginId}_${route.definition.tool}`;
-    const response = await messageBus.send({
-      type: PLUGIN_CHANNELS.toolExecute(route.pluginId),
-      payload: {
-        toolName,
-        args,
-        interfaceType: "webserver",
-        actor: {
-          kind: "external",
-          externalActorId: createExternalActorId("webserver", "anonymous"),
-        },
-      },
-      sender: "webserver",
-    });
+    const response = await executeTool(route, args);
 
     // The message bus wraps the tool result in { success, data }
     // Extract and validate the inner tool result
     const innerData =
-      typeof response === "object" && "data" in response
+      typeof response === "object" && response !== null && "data" in response
         ? response.data
         : response;
 

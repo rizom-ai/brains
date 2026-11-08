@@ -8,11 +8,9 @@ import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import {
-  SITE_BUILDER_CHANNELS,
-  SITE_CHANNELS,
-  type SiteBuildRequestedPayload,
+  siteBuildRequestContract,
+  siteHeadScriptsContract,
 } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
   SiteBuildProfile,
@@ -22,7 +20,6 @@ import {
   RouteRegistry,
   UISlotRegistry,
   type LayoutComponent,
-  type SlotRegistration,
 } from "@brains/site-engine";
 import { RebuildManager } from "./lib/auto-rebuild";
 import { setupRouteHandlers } from "./lib/route-handlers";
@@ -30,8 +27,8 @@ import { registerConfigRoutes } from "./lib/route-helpers";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import {
-  SITE_METADATA_UPDATED_CHANNEL,
-  type SiteMetadata,
+  siteBuilderSlotsContract,
+  siteMetadataUpdatedChannel,
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
@@ -42,19 +39,6 @@ import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
 import packageJson from "../package.json";
-
-/** One plugin's answer on SITE_BUILDER_CHANNELS.slots. */
-const slotContributionsSchema = z.array(
-  z.object({
-    pluginId: z.string(),
-    slotName: z.string(),
-    // A render function cannot be validated beyond being one.
-    render: z.custom<SlotRegistration["render"]>(
-      (value) => typeof value === "function",
-    ),
-    priority: z.number().optional(),
-  }),
-);
 
 /**
  * Site Builder Plugin
@@ -131,7 +115,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
     const siteBuilderServices: SiteBuilderServices = {
       entityService: context.entityService,
-      sendMessage: context.messaging.send,
+      command: context.messaging.command,
       resolveTemplateContent: (templateName, options) =>
         context.templates.resolve(templateName, options),
       getViewTemplate: (name) => context.views.get(name),
@@ -159,7 +143,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
       "site-build",
       new SiteBuildJobHandler(
         this.logger.child("SiteBuildJobHandler"),
-        context.messaging.send,
+        context.messaging,
         {
           siteBuilder: this.siteBuilder,
           entityDisplay: context.entityDisplay,
@@ -218,26 +202,19 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
     // Builds follow entity changes on their own; a plugin whose other state a
     // page renders from asks for one when that state changes.
-    context.messaging.subscribe<
-      SiteBuildRequestedPayload,
-      { success: boolean }
-    >(SITE_CHANNELS.buildRequested, async (message) => {
-      this.logger.info(`Site build requested: ${message.payload.reason}`);
+    context.messaging.answer(siteBuildRequestContract, async ({ reason }) => {
+      this.logger.info(`Site build requested: ${reason}`);
       await this.rebuildBuiltOutputs();
-      return { success: true };
     });
 
     // Re-register instructions when site metadata changes so the prompt stays fresh.
-    context.messaging.subscribe<SiteMetadata, { success: boolean }>(
-      SITE_METADATA_UPDATED_CHANNEL,
-      async () => {
-        const instructions = await this.getInstructions();
-        if (instructions) {
-          context.registerInstructions(instructions);
-        }
-        return { success: true };
-      },
-    );
+    context.messaging.subscribe(siteMetadataUpdatedChannel, async () => {
+      const instructions = await this.getInstructions();
+      if (instructions) {
+        context.registerInstructions(instructions);
+      }
+      return { success: true };
+    });
   }
 
   protected override async onReady(
@@ -280,15 +257,12 @@ export class SiteBuilderPlugin extends ServicePlugin<
    * whatever order plugins registered in.
    */
   public async getHeadScripts(): Promise<string[]> {
-    const answers = await this.getContext().messaging.collect({
-      type: SITE_BUILDER_CHANNELS.headScripts,
-      payload: {},
-    });
-    const contributed = answers.flatMap((answer) => {
-      const script =
-        "data" in answer ? z.string().safeParse(answer.data) : null;
-      return script?.success ? [script.data] : [];
-    });
+    const collection = await this.getContext().messaging.gather(
+      siteHeadScriptsContract,
+      {},
+    );
+    const contributed =
+      collection.status === "answered" ? collection.answers : [];
     return [...this.config.headScripts, ...contributed];
   }
 
@@ -297,28 +271,18 @@ export class SiteBuilderPlugin extends ServicePlugin<
    * build time, like the head scripts, so they reach the worker.
    */
   public async getSlots(): Promise<UISlotRegistry> {
-    const answers = await this.getContext().messaging.collect({
-      type: SITE_BUILDER_CHANNELS.slots,
-      payload: {},
-    });
+    const collection = await this.getContext().messaging.gather(
+      siteBuilderSlotsContract,
+      {},
+    );
     const slots = new UISlotRegistry();
-    for (const answer of answers) {
-      const contributions =
-        "data" in answer
-          ? slotContributionsSchema.safeParse(answer.data)
-          : null;
-      for (const {
-        slotName,
+    const answers = collection.status === "answered" ? collection.answers : [];
+    for (const { slotName, pluginId, render, priority } of answers.flat())
+      slots.register(slotName, {
         pluginId,
         render,
-        priority,
-      } of contributions?.success ? contributions.data : [])
-        slots.register(slotName, {
-          pluginId,
-          render,
-          ...(priority !== undefined && { priority }),
-        });
-    }
+        ...(priority !== undefined && { priority }),
+      });
     return slots;
   }
 
@@ -345,7 +309,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           contents: Array<{ uri: string; mimeType: string; text: string }>;
         }> => {
           const siteMetadata = await resolveSiteMetadata(
-            context.messaging.send,
+            context.messaging,
             this.config.siteInfo,
           );
           return {
@@ -440,7 +404,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
     const context = this.getContext();
 
     const siteMetadata = await resolveSiteMetadata(
-      context.messaging.send,
+      context.messaging,
       this.config.siteInfo,
     );
     const parts = [

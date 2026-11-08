@@ -129,6 +129,18 @@ describe("registering retired fields", () => {
       }),
     ).toThrow("post retires title, which its metadata schema still declares");
   });
+
+  it("sees the declared fields through a metadata migration", () => {
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    const migrating = baseEntitySchema.extend({
+      metadata: z.preprocess((stored) => stored, postFields),
+    });
+    expect(() =>
+      registry.registerEntityType("post", migrating, new PostAdapter(), {
+        retiredFields: ["title"],
+      }),
+    ).toThrow("post retires title, which its metadata schema still declares");
+  });
 });
 
 describe("rewriting stored entities that still carry retired fields", () => {

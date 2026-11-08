@@ -110,18 +110,21 @@ describe.skipIf(process.platform !== "linux")(
             expect((await observer.status()).brokerId).toBe(broker.brokerId);
           } else expect(error).toBeInstanceOf(BrokerUnavailableError);
 
-          const afterAbandon = await independent.status();
-          expect(afterAbandon.activeRequestIds).toContain(operationId);
+          // Still owned: the owner answers, and the commit it holds has not
+          // settled.
+          expect((await independent.status()).brokerId).toBe(broker.brokerId);
           expect(journalSettles).not.toContain(operationId);
-          const following = independent.executeWithId(queuedId, checkout, {
-            name: "get-status",
-          });
+          let followingSettled = false;
+          const following = independent
+            .executeWithId(queuedId, checkout, { name: "get-status" })
+            .finally(() => {
+              followingSettled = true;
+            });
           admitted.push(following);
           await queued.promise;
-          const during = await independent.status();
-          expect(during.activeRequestIds).toContain(operationId);
-          expect(during.queuedRequestIds).toContain(queuedId);
-          expect(during.activeRequestIds).not.toContain(queuedId);
+          // Admitted, and waiting: nothing runs inside the held turn.
+          await independent.status();
+          expect(followingSettled).toBe(false);
           expect(journalSettles).not.toContain(queuedId);
 
           const replayObserver = await connect();
@@ -139,9 +142,6 @@ describe.skipIf(process.platform !== "linux")(
           expect(
             journalSettles.filter((id) => id === operationId),
           ).toHaveLength(1);
-          expect((await independent.status()).activeRequestIds).not.toContain(
-            operationId,
-          );
           await writeFile(join(checkout, "second.md"), "second\n");
           await replayObserver.executeWithId(operationId, checkout, {
             name: "commit",

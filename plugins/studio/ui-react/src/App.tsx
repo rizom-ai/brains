@@ -17,7 +17,7 @@ import {
   shouldBlockChatNavigation,
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
-import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
+import type { AuthAccountRole } from "@brains/contracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {

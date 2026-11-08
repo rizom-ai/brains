@@ -148,7 +148,7 @@ describe("entity action policy", () => {
         {
           entityType: "note",
           id: "team-note",
-          operation: { kind: "fields", fields: { title: "Edited" } },
+          operation: { fields: { title: "Edited" } },
         },
         baseContext("trusted"),
       ),
@@ -175,7 +175,7 @@ describe("entity action policy", () => {
       {
         entityType: "summary",
         id: "weekly-summary",
-        operation: { kind: "fields", fields: { title: "Edited" } },
+        operation: { fields: { title: "Edited" } },
       },
       baseContext("trusted"),
     );
@@ -202,7 +202,7 @@ describe("entity action policy", () => {
         {
           entityType: "summary",
           id: "weekly-summary",
-          operation: { kind: "fields", fields: { title: "Edited" } },
+          operation: { fields: { title: "Edited" } },
         },
         baseContext("admin"),
       ),

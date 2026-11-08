@@ -185,17 +185,31 @@ function startTransportEvidence(): TransportEvidence {
   };
 }
 
+/** Polls until the probe answers, or the deadline passes. */
+async function pollUntil<T>(
+  deadline: number,
+  intervalMs: number,
+  probe: () => Promise<T | undefined>,
+  onTimeout: () => Error,
+): Promise<T> {
+  const answer = await probe();
+  if (answer !== undefined) return answer;
+  if (Date.now() >= deadline) throw onTimeout();
+  await Bun.sleep(intervalMs);
+  return pollUntil(deadline, intervalMs, probe, onTimeout);
+}
+
 async function waitForEvidence(
   label: string,
   predicate: () => boolean,
   diagnostics: () => string,
 ): Promise<void> {
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    if (predicate()) return;
-    await Bun.sleep(50);
-  }
-  throw new Error(`${label} did not become observable\n${diagnostics()}`);
+  await pollUntil(
+    Date.now() + 30_000,
+    50,
+    async () => (predicate() ? true : undefined),
+    () => new Error(`${label} did not become observable\n${diagnostics()}`),
+  );
 }
 
 function startRuntime(consumerDirectory: string): StartedCommand {
@@ -237,24 +251,31 @@ async function waitForCompletedDigest(
   jobId: string,
   runtime: StartedCommand,
 ): Promise<string> {
-  const deadline = Date.now() + 30_000;
   let diagnostic = "job status was not queried";
-  while (Date.now() < deadline) {
-    try {
-      diagnostic = await invokeTool(
-        consumerDirectory,
-        "reading-insights_reading-digest-status",
-        { jobId },
-      );
+  const notCompleted = (): Error =>
+    new Error(
+      `Digest job ${jobId} did not complete\n${diagnostic}\n${combinedOutput(runtime.getOutput())}`,
+    );
+  return pollUntil(
+    Date.now() + 30_000,
+    250,
+    async () => {
+      try {
+        diagnostic = await invokeTool(
+          consumerDirectory,
+          "reading-insights_reading-digest-status",
+          { jobId },
+        );
+      } catch (error) {
+        diagnostic = getErrorMessage(error);
+        return undefined;
+      }
       if (diagnostic.includes('"status": "completed"')) return diagnostic;
-      if (diagnostic.includes('"status": "failed"')) break;
-    } catch (error) {
-      diagnostic = getErrorMessage(error);
-    }
-    await Bun.sleep(250);
-  }
-  throw new Error(
-    `Digest job ${jobId} did not complete\n${diagnostic}\n${combinedOutput(runtime.getOutput())}`,
+      // A failed job will not complete; stop polling and report it.
+      if (diagnostic.includes('"status": "failed"')) throw notCompleted();
+      return undefined;
+    },
+    notCompleted,
   );
 }
 
@@ -342,6 +363,31 @@ describe("public authoring Phase 5 packed interface contracts", () => {
       expect(health.status).toBe(200);
       expect(await health.json()).toEqual({ status: "ok" });
 
+      // A service serves its declared routes through the same server.
+      const summaryUrl = `http://127.0.0.1:${runtimePort}/reading-insights/summary`;
+      const summary = await fetch(summaryUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          bookmarkId: "interface-jobs",
+          title: "Interface Jobs",
+          content: "Typed interface enqueue",
+        }),
+      });
+      expect(summary.status).toBe(200);
+      expect(await summary.json()).toEqual({
+        bookmarkId: "interface-jobs",
+        summary: "Saved reading: Interface Jobs (3 words)",
+        wordCount: 3,
+      });
+      const refused = await fetch(summaryUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ bookmarkId: "interface-jobs" }),
+      });
+      expect(refused.status).toBe(400);
+      expect(await refused.json()).toMatchObject({ code: "invalid_input" });
+
       const denied = await fetch(
         `http://127.0.0.1:${runtimePort}/hooks/reading-digest`,
         {
@@ -352,18 +398,18 @@ describe("public authoring Phase 5 packed interface contracts", () => {
       );
       expect(denied.status).toBe(401);
 
-      const accepted = await fetch(
-        `http://127.0.0.1:${runtimePort}/hooks/reading-digest`,
-        {
+      const delivery = (): Promise<Response> =>
+        fetch(`http://127.0.0.1:${runtimePort}/hooks/reading-digest`, {
           method: "POST",
           headers: {
             authorization: "Bearer packed-interface-secret",
             "content-type": "application/json",
+            "idempotency-key": "packed-delivery-1",
             "x-reading-user": "packed-reader",
           },
           body: JSON.stringify({ bookmarkId: "interface-jobs" }),
-        },
-      );
+        });
+      const accepted = await delivery();
       expect(accepted.status).toBe(200);
       const acceptedBody = z
         .object({
@@ -377,6 +423,14 @@ describe("public authoring Phase 5 packed interface contracts", () => {
         acceptedFor: "packed-reader",
         permission: "admin",
         anchor: true,
+      });
+      // The interface's runtime state remembers the key, so a retry is refused
+      // with the code its route threw.
+      const retried = await delivery();
+      expect(retried.status).toBe(409);
+      expect(await retried.json()).toEqual({
+        error: "This delivery was already accepted",
+        code: "conflict",
       });
 
       const completed = await waitForCompletedDigest(

@@ -1,10 +1,14 @@
+import {
+  internalFullScope,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import type {
   BaseEntity,
   ProfileCategory,
   IEntityAINamespace,
-  ServiceEntityService,
 } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import type { ServiceEntityReads } from "@brains/sdk/internal/service-runtime";
+import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 const MAX_CAPABILITIES = 50;
@@ -155,6 +159,23 @@ function parseFrontmatter(content: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * A record's frontmatter fields: from its content as an entity plugin class
+ * reads it, or its metadata as a declared type does.
+ */
+function recordFrontmatter(
+  entity: Pick<BaseEntity, "content" | "metadata">,
+): Record<string, unknown> | null {
+  try {
+    const { fields } = frontmatterRecordFields(entity);
+    return isUnknownRecord(fields) ? fields : null;
+  } catch {
+    // Unparseable authored frontmatter gives no signals, as parseFrontmatter
+    // treats it.
+    return null;
+  }
+}
+
 function isUnknownRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -207,7 +228,7 @@ function contentTypePriority(entityType: string): number {
 }
 
 async function collectContentSignals(
-  entityService: ServiceEntityService,
+  entityService: ServiceEntityReads,
   counts: ReadonlyMap<string, number>,
 ): Promise<StarterCharacterContentSignal[]> {
   const candidateTypes = [...counts.entries()]
@@ -229,7 +250,11 @@ async function collectContentSignals(
       options: {
         limit: MAX_CONTENT_SIGNALS,
         sortFields: [{ field: "updated", direction: "desc" }],
-        filter: { visibilityScope: "restricted" },
+        filter: {
+          // The character is published (agent card, Dashboard, guest chat),
+          // so only public content may shape it.
+          visibilityScope: "public",
+        },
       },
     });
 
@@ -245,7 +270,7 @@ async function collectContentSignals(
 }
 
 export async function buildStarterCharacterBrief(options: {
-  entityService: ServiceEntityService;
+  entityService: ServiceEntityReads;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;
   anchorEntity: BaseEntity | null;
@@ -258,7 +283,7 @@ export async function buildStarterCharacterBrief(options: {
     anchorEntity,
     includeAnchor,
   } = options;
-  const entityCounts = await entityService.getEntityCounts("restricted");
+  const entityCounts = await entityService.getEntityCounts("public");
   const counts = new Map(
     entityCounts.map(({ entityType, count }) => [entityType, count]),
   );
@@ -280,11 +305,11 @@ export async function buildStarterCharacterBrief(options: {
   const styleEntity = await entityService.getEntity({
     entityType: "style-guide",
     id: "style-guide",
-    visibilityScope: "restricted",
+    visibilityScope: internalFullScope(
+      "starter character brief reads the owner's style guide",
+    ),
   });
-  const styleMetadata = styleEntity
-    ? parseFrontmatter(styleEntity.content)
-    : null;
+  const styleMetadata = styleEntity ? recordFrontmatter(styleEntity) : null;
   const styleSignals = styleMetadata
     ? collectPathSignals(styleMetadata, STYLE_SIGNAL_PATHS)
     : [];
@@ -321,7 +346,7 @@ ${JSON.stringify(brief, null, 2)}`;
 }
 
 export async function generateStarterCharacter(
-  ai: IEntityAINamespace,
+  ai: Pick<IEntityAINamespace, "generateObject">,
   brief: StarterCharacterBrief,
 ): Promise<GeneratedStarterCharacter> {
   const result = await ai.generateObject(

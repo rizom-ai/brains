@@ -7,8 +7,10 @@ const routeRegistry = {
 
 const profileService = {
   getProfile: (): {
+    photo: string;
     socialLinks: Array<{ platform: "github"; url: string }>;
   } => ({
+    photo: "![Ada at work](entity://image/ada)",
     socialLinks: [
       { platform: "github" as const, url: "https://github.com/ada" },
     ],
@@ -27,6 +29,16 @@ describe("buildSiteLayoutInfo", () => {
     expect(result.socialLinks).toEqual(profileService.getProfile().socialLinks);
   });
 
+  test("hands the layout the anchor's photo", () => {
+    const result = buildSiteLayoutInfo(
+      { title: "Ada", description: "Profile" },
+      profileService,
+      routeRegistry,
+    );
+
+    expect(result.photo).toBe("![Ada at work](entity://image/ada)");
+  });
+
   test("does not present anchor social links on a brain-representing site", () => {
     const result = buildSiteLayoutInfo(
       { represents: "brain", title: "Relay", description: "Shared brain" },
@@ -35,5 +47,6 @@ describe("buildSiteLayoutInfo", () => {
     );
 
     expect(result.socialLinks).toBeUndefined();
+    expect(result.photo).toBeUndefined();
   });
 });

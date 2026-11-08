@@ -4,7 +4,7 @@ import {
   DocsPageShell,
   type DocsChrome,
 } from "@brains/docs-chrome";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/internal/presentation";
 import type { DocWithData } from "../schemas/doc";
 import type { DocsHero } from "../config";
 import { groupDocs, sortDocs } from "./docs-design";

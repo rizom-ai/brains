@@ -39,7 +39,7 @@ function dashboardInput(
     widgetScripts: [...rendering.widgetScripts],
     widgets: {
       "agent-discovery:skills": skillsWidget(),
-      "topics:topics-knowledge-map": knowledgeMapWidget(),
+      "knowledge-map:knowledge-map": knowledgeMapWidget(),
       "agent-discovery:agent-proximity": agentProximityWidget(
         rendering.proximityComponent,
       ),
@@ -148,8 +148,8 @@ function skillsWidget(): DashboardWidget {
 function knowledgeMapWidget(): DashboardWidget {
   return {
     widget: {
-      id: "topics-knowledge-map",
-      pluginId: "topics",
+      id: "knowledge-map",
+      pluginId: "knowledge-map",
       title: "Knowledge Map",
       group: "knowledge",
       section: "primary",
@@ -503,7 +503,7 @@ export function dashboardFixtureInput(
   const input = dashboardInput(rendering);
   if (fixtureState === "dense-map") {
     const block = findCartesianMap(input.widgets);
-    const widget = input.widgets["topics:topics-knowledge-map"];
+    const widget = input.widgets["knowledge-map:knowledge-map"];
     if (!block || !widget || block.zones.length === 0)
       throw new Error("Missing source atlas fixture");
     widget.data = {

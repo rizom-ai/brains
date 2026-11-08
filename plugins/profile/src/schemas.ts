@@ -52,6 +52,9 @@ export type ProfessionalProfileFieldsSchema = z.ZodObject<{
   expertise: z.ZodOptional<z.ZodArray<z.ZodString>>;
   currentFocus: z.ZodOptional<z.ZodString>;
   availability: z.ZodOptional<z.ZodString>;
+  headline: z.ZodOptional<z.ZodString>;
+  industry: z.ZodOptional<z.ZodString>;
+  location: z.ZodOptional<z.ZodString>;
 }>;
 
 export const professionalProfileFields: ProfessionalProfileFieldsSchema =
@@ -72,6 +75,15 @@ export const professionalProfileFields: ProfessionalProfileFieldsSchema =
       .string()
       .optional()
       .describe("Work, speaking, or collaboration availability"),
+    headline: z
+      .string()
+      .optional()
+      .describe("Public professional headline, such as a LinkedIn headline"),
+    industry: z
+      .string()
+      .optional()
+      .describe("Industry the professional works in"),
+    location: z.string().optional().describe("Where the professional is based"),
   });
 
 export interface ProfessionalProfileExtension extends CommonProfileExtension {
@@ -79,6 +91,9 @@ export interface ProfessionalProfileExtension extends CommonProfileExtension {
   expertise?: string[] | undefined;
   currentFocus?: string | undefined;
   availability?: string | undefined;
+  headline?: string | undefined;
+  industry?: string | undefined;
+  location?: string | undefined;
 }
 
 export type ProfessionalProfileExtensionSchema = ReturnType<
@@ -258,6 +273,9 @@ export type ProfessionalProfileViewSchema = ReturnType<
     expertise: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
     currentFocus: NullableStringSchema;
     availability: NullableStringSchema;
+    headline: NullableStringSchema;
+    industry: NullableStringSchema;
+    location: NullableStringSchema;
   }>
 >;
 
@@ -268,6 +286,9 @@ export const professionalProfileViewSchema: ProfessionalProfileViewSchema =
     expertise: z.array(z.string()).nullable().default(null),
     currentFocus: nullableString,
     availability: nullableString,
+    headline: nullableString,
+    industry: nullableString,
+    location: nullableString,
   });
 export type ProfessionalProfileView = z.output<
   typeof professionalProfileViewSchema

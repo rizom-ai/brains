@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { SITE_CHANNELS } from "@brains/contracts";
+import { siteBuildRequestContract } from "@brains/contracts";
 import { SiteBuilderPlugin } from "../src/plugin";
 
 // A start, an upgrade included, may bring new renderer code that the input
@@ -118,7 +118,7 @@ describe("the site builder at start", () => {
       await writeFile(join(dir, env, "index.html"), "<html></html>");
     }
     expect(await start(0, { settle: false })).toEqual([]);
-    await harness.sendMessage(SITE_CHANNELS.buildRequested, {
+    await harness.sendMessage(siteBuildRequestContract.name, {
       reason: "guest chat switched on",
     });
     const queue = harness.getMockShell().getJobQueueService();

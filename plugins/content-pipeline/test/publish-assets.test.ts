@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import {
-  PublishAssetRegistry,
-  publishAssetDefinitionSchema,
-} from "../src/publish-assets";
+import { publishAssetDefinitionSchema } from "@brains/contracts";
+import { PublishAssetRegistry } from "../src/publish-assets";
 
 describe("PublishAssetRegistry", () => {
   it("stores and unregisters publish asset definitions", () => {
@@ -14,7 +12,6 @@ describe("PublishAssetRegistry", () => {
       targetEntityField: { location: "frontmatter", field: "ogImageId" },
       requiredWhen: { status: "published" },
       autoGenerate: true,
-      jobType: "image:image-render-source",
     });
 
     expect(registry.has("post", "og-image")).toBe(true);

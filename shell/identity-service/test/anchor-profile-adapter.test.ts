@@ -186,6 +186,18 @@ socialLinks:
       });
     });
 
+    it("reads the photo of the people behind the anchor", () => {
+      const markdown = `---
+name: The Fourth
+photo: '![Sam and Becca among books](entity://image/sam-x-becca)'
+---
+`;
+
+      expect(adapter.parseProfileBody(markdown).photo).toBe(
+        "![Sam and Becca among books](entity://image/sam-x-becca)",
+      );
+    });
+
     it("uses the base projection while ignoring kind-owned extension fields", () => {
       const markdown = `---
 name: Rizom

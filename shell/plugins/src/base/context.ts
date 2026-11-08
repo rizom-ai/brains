@@ -15,7 +15,13 @@ import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import type { AccountSettingsRegistry } from "../operator/account-settings-registry";
+import type { IAuthNamespace } from "../contracts/auth";
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
+import {
+  createJobAuthorityNamespace,
+  type IJobAuthorityNamespace,
+} from "../service/job-authority";
 import {
   createAppInfoGetter,
   createChannelsNamespace,
@@ -152,7 +158,8 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /**
    * Messaging namespace
-   * - `messaging.send()` - Send a message to other plugins
+   * - `messaging.send()` - Broadcast an event to other plugins
+   * - `messaging.request/gather/command/answer()` - Cross-plugin calls through bus contracts
    * - `messaging.subscribe()` - Subscribe to messages on a channel
    */
   readonly messaging: IMessagingNamespace;
@@ -169,6 +176,9 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /** Job operations — monitoring + plugin-scoped enqueue/registerHandler */
   readonly jobs: JobsNamespace;
+
+  /** Who starts a package job; its reads run with that requester's access. */
+  readonly jobAuthority: IJobAuthorityNamespace;
 
   // ============================================================================
   // Source-derived Attachments
@@ -190,6 +200,11 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /** Internal app-scoped per-account settings catalog and runtime access. */
   readonly accountSettings: AccountSettingsRegistry;
+
+  /** The brain's auth backend: people, sessions, audit log and A2A trust. */
+  readonly auth: IAuthNamespace;
+  /** AT Protocol projections of entity types, published by the atproto plugin. */
+  readonly atprotoProjections: AtprotoProjectionRegistry;
 
   /** Disposable, secret-free operational state namespace. */
   readonly runtimeState: IRuntimeStateNamespace;
@@ -254,6 +269,7 @@ export function createBasePluginContext(
   const domain = shell.getDomain();
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
+  const production = shell.isProduction();
   const themeCSS = shell.getThemeCSS();
   const getAppInfo = createAppInfoGetter(shell);
   const attachments = shell.getAttachmentRegistry();
@@ -295,6 +311,7 @@ export function createBasePluginContext(
     localSiteUrl,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
     preferLocalUrls,
+    production,
     themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
     spaces: shell.getSpaces(),
@@ -315,12 +332,15 @@ export function createBasePluginContext(
     ),
 
     jobs: createJobsNamespace(shell, pluginId),
+    jobAuthority: createJobAuthorityNamespace(shell, pluginId),
 
     attachments,
 
     uploads,
 
     accountSettings,
+    auth: shell.getAuthRegistry(),
+    atprotoProjections: shell.getAtprotoProjectionRegistry(),
     runtimeState,
     recurringChecks: shell.getRecurringChecks(pluginId),
 

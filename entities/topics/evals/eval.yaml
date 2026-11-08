@@ -1,2 +1,8 @@
 plugin: "@brains/topics"
 model: gpt-5.4-mini
+# A plugin eval installs topics alone, so the source types its cases name
+# are registered by no plugin and would take the default role. Give them the
+# role the brain's own plugins register them with.
+config:
+  sourceRoleOverrides:
+    link: supporting

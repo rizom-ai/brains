@@ -248,6 +248,7 @@ export function defineChannel<TPayload, TResponse = unknown>(
 
 type PublicEntityServiceMethods =
   | "getEntity"
+  | "getEntityRaw"
   | "listEntities"
   | "search"
   | "searchWithDistances"
@@ -378,13 +379,13 @@ export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
 
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;
-  content: Buffer;
+  content: Uint8Array;
 }
 
 export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
-  content: Buffer;
+  content: Uint8Array;
   metadata?: Record<string, unknown> | undefined;
 }
 
@@ -453,6 +454,8 @@ export interface BasePluginContext {
   readonly localSiteUrl: string | undefined;
   readonly previewUrl: string | undefined;
   readonly preferLocalUrls: boolean;
+  /** Whether this brain runs in production rather than local development. */
+  readonly production: boolean;
   readonly appInfo: () => Promise<AppInfo>;
   readonly judge: <T>(input: JudgeInput<T>) => Promise<{
     verdict: T;

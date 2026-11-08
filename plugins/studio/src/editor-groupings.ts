@@ -1,12 +1,12 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import {
+  decodeEntityIdPath,
   GROUPING_PAGE_LIMIT,
   GROUPING_MAX_PAGE_LIMIT,
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
 } from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
+import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
 import type {
@@ -134,6 +134,7 @@ export async function handleGroupingRead(
   const page = await context.entityService.queryGroupingMembers({
     ...input,
     ...pagination,
+    source: true,
     value: query.data.value ?? "",
     q: query.data.q,
     sort: query.data.sort,

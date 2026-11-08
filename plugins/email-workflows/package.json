@@ -1,12 +1,11 @@
 {
   "name": "@brains/email-workflows",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.664",
   "description": "Safe email triage and source-backed Inbox detail workflows",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
   },

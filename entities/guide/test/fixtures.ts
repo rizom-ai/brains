@@ -52,6 +52,7 @@ export function guideWithData(
     recipe,
     brings: null,
     section: null,
+    summary: null,
     material: [],
   };
   return {
@@ -94,6 +95,7 @@ export function writerGuide(): GuideWithData {
     recipe: "professional" as const,
     brings: null,
     section: null,
+    summary: null,
     material: [
       {
         from: "Drafts and fragments",

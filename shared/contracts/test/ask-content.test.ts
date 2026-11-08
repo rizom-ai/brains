@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { askContentSchema } from "../src/ask-content";
-import { parseAskContent } from "../src/ask-content-markdown";
+import {
+  askContentFromRecord,
+  parseAskContent,
+} from "../src/ask-content-markdown";
 
 describe("authored Ask presentation", () => {
   test("has no invented defaults", () => {
@@ -46,5 +49,26 @@ describe("authored Ask presentation", () => {
     expect(() =>
       askContentSchema.parse({ refusal: "x".repeat(501) }),
     ).toThrow();
+  });
+});
+
+describe("askContentFromRecord", () => {
+  const authored = "---\ntitle: Ask us\ntopics:\n  - Tides\n---\nWelcome.\n";
+
+  test("reads a record whose content carries the frontmatter", () => {
+    expect(askContentFromRecord({ content: authored, metadata: {} })).toEqual({
+      title: "Ask us",
+      topics: ["Tides"],
+      introduction: "Welcome.",
+    });
+  });
+
+  test("reads a declared record, its frontmatter being its metadata", () => {
+    expect(
+      askContentFromRecord({
+        content: "Welcome.\n",
+        metadata: { title: "Ask us", topics: ["Tides"] },
+      }),
+    ).toEqual({ title: "Ask us", topics: ["Tides"], introduction: "Welcome." });
   });
 });

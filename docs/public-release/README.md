@@ -126,8 +126,9 @@ plugins:
     git:
       repo: your-org/your-content
       authToken: ${GIT_SYNC_TOKEN}
-  mcp:
-    authToken: ${MCP_AUTH_TOKEN}
+  # Static MCP token, local development only; a production brain refuses it:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
 ```
 
 Secrets stay in `.env`; everything else goes in `brain.yaml`. Full reference: [packages/brain-cli/docs/brain-yaml-reference.md](../../packages/brain-cli/docs/brain-yaml-reference.md).
@@ -187,7 +188,7 @@ docs/                 Architecture, plugin development, deployment, theming
 
 ## License
 
-Split model: the core (runtime, brain models, agents, CLI, deploy tooling, apps) is [AGPL-3.0-only](../../LICENSE); the SDK and contract packages (`@rizom/site`, the published `@rizom` themes, `@brains/contracts`, `@brains/atproto-contracts`) are Apache-2.0. Plugins, themes, and site packages built against the Apache-licensed interfaces are not considered derivative works of the runtime and may be licensed however their authors choose.
+Split model: the core (runtime, brain models, agents, CLI, deploy tooling, apps) is [AGPL-3.0-only](../../LICENSE); the SDK and contract packages (`@rizom/site`, `@rizom/brain-ui`, the published `@rizom` themes, `@brains/contracts`, `@brains/atproto-contracts`) are Apache-2.0. Plugins, themes, and site packages built against the Apache-licensed interfaces are not considered derivative works of the runtime and may be licensed however their authors choose.
 
 ## Security
 

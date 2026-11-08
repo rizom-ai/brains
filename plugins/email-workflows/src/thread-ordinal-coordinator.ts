@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import type { IRuntimeStateStore, ServiceEntityService } from "@brains/plugins";
 import { KeyedSerialQueue, SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -97,13 +98,21 @@ export class MailThreadOrdinalCoordinator {
     await this.state.set(THREAD_ORDINAL_STATE_KEY, { kind: "building" });
     const initialCount = await this.entityService.countEntities({
       entityType: "mail-item",
-      options: { filter: { visibilityScope: "restricted" } },
+      options: {
+        filter: {
+          visibilityScope: internalFullScope("mail thread ordinal reindex"),
+        },
+      },
     });
     await this.reindex(initialCount);
     await this.ingressGate.withExclusive(async () => {
       const finalCount = await this.entityService.countEntities({
         entityType: "mail-item",
-        options: { filter: { visibilityScope: "restricted" } },
+        options: {
+          filter: {
+            visibilityScope: internalFullScope("mail thread ordinal reindex"),
+          },
+        },
       });
       await this.reindex(finalCount);
       await this.state.set(THREAD_ORDINAL_STATE_KEY, { kind: "ready" });
@@ -124,7 +133,9 @@ export class MailThreadOrdinalCoordinator {
               { field: "receivedAt", direction: "asc" },
               { field: "id", direction: "asc" },
             ],
-            filter: { visibilityScope: "restricted" },
+            filter: {
+              visibilityScope: internalFullScope("mail thread ordinal reindex"),
+            },
           },
         },
         mailItemSchema,
@@ -182,7 +193,9 @@ export class MailThreadOrdinalCoordinator {
           sortFields: [{ field: "threadOrdinal", direction: "desc" }],
           filter: {
             metadata: { threadKey },
-            visibilityScope: "restricted",
+            visibilityScope: internalFullScope(
+              "mail thread ordinal allocation",
+            ),
           },
         },
       },
@@ -196,7 +209,7 @@ export class MailThreadOrdinalCoordinator {
       (await this.entityService.getEntity({
         entityType: "mail-item",
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mail ingestion dedupe check"),
       })) !== null
     );
   }

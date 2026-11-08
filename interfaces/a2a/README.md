@@ -15,7 +15,9 @@ A2A (Agent-to-Agent) interface plugin. Enables brain instances to discover and c
 
 - saved agents are callable only when their saved status is **approved**
 - saved `discovered` or `archived` agents fail closed before network contact
+- saved agents resolve at the caller's access: an agent saved above the caller's level is treated as an unsaved domain, and its saved status stays hidden
 - unsaved exact domains are verified via `/.well-known/agent-card.json` and may be called one-shot without being saved
+- an Agent Card is accepted only when its endpoint is `https://` on the host it was fetched from; `agent_connect` and `agent_scan_directories` apply the same check before saving
 - `agent_call` never auto-saves; save/connect explicitly with `agent_connect`
 - raw URLs and ambiguous display names are not valid `agent_call` targets; connect/save or clarify them first
 

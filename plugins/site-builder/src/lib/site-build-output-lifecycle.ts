@@ -300,35 +300,7 @@ async function publishGeneration(
     await fs.rm(temporaryLink, { force: true });
     throw error;
   }
-  await preserveLegacyImageCache(fs, displaced, target.activeOutputDir);
   await fs.rm(displaced, { recursive: true, force: true });
-}
-
-/**
- * Rescue a sharp cache that older layouts kept inside the output directory.
- *
- * `sharedImagesDir` defaults outside the site directory, but main's `clean()`
- * deliberately skips an `images/` entry within it, so deployments exist where
- * the derivatives live there. They are the only content in the displaced
- * directory a rebuild cannot cheaply reproduce.
- */
-async function preserveLegacyImageCache(
-  fs: SiteBuildOutputFs,
-  displaced: string,
-  activeOutputDir: string,
-): Promise<void> {
-  const legacyImages = join(displaced, "images");
-  const sharedImages = join(dirname(activeOutputDir), "images");
-  try {
-    await fs.access(legacyImages);
-  } catch {
-    return;
-  }
-  try {
-    await fs.access(sharedImages);
-  } catch {
-    await fs.rename(legacyImages, sharedImages);
-  }
 }
 
 async function restoreSymbolicLink(

@@ -1,9 +1,9 @@
-import { describe, expect, it } from "bun:test";
-import { getErrorMessage } from "@brains/utils/error";
 import {
   requireSameOriginJson,
   requireSameOriginRequest,
-} from "../src/http-responses";
+} from "@brains/plugins";
+import { describe, expect, it } from "bun:test";
+import { getErrorMessage } from "@brains/utils/error";
 
 describe("auth HTTP mutation guards", () => {
   it("accepts same-origin JSON requests", () => {

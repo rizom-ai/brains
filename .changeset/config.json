@@ -4,7 +4,13 @@
   "commit": false,
   "privatePackages": { "version": true, "tag": false },
   "fixed": [
-    ["@brains/*", "!@brains/theme-rizom", "@rizom/brain", "@rizom/ops"]
+    [
+      "@brains/*",
+      "!@brains/theme-rizom",
+      "@rizom/brain",
+      "@rizom/brain-ui",
+      "@rizom/ops"
+    ]
   ],
   "linked": [],
   "access": "public",

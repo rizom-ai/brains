@@ -2,7 +2,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
-import type { BatchJobStatus } from "@brains/job-queue";
+import type { BatchJobStatus } from "@brains/plugins";
 import { ProgressBar } from "./ProgressBar";
 
 interface BatchProgressProps {

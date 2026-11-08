@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 export interface DirectorySyncPathRequest {
   entityType: string;
@@ -34,4 +35,16 @@ export const directorySyncPathResponseSchema: z.ZodType<{
     .nullable(),
   owner: z.object({ entityType: z.string(), id: z.string() }).optional(),
   writable: z.boolean().optional(),
+});
+
+/** Ask directory-sync where an entity would live, before it is written. */
+export const directorySyncPathContract: BusContract<
+  typeof directorySyncPathRequestSchema,
+  typeof directorySyncPathResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "sync:path:request",
+  request: directorySyncPathRequestSchema,
+  response: directorySyncPathResponseSchema,
+  delivery: "request",
 });
