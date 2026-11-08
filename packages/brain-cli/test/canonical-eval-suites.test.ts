@@ -635,7 +635,10 @@ describe("canonical eval recipe ladder", () => {
       expect(await tool.handler(approval.args, context)).toMatchObject({
         success: true,
       });
-      const saved = await shell.getEntityService().getEntity(entityRef);
+      // The stored document: a declared note reads back its body alone.
+      const saved = await shell
+        .getEntityService()
+        .getEntity({ ...entityRef, source: true });
       expect(saved?.content).toBe(
         `---\nvisibility: restricted\n---\n${content}`,
       );
@@ -738,7 +741,11 @@ describe("canonical eval recipe ladder", () => {
           ),
         };
         expect(
-          (await shell.getEntityService().getEntity(entityRef))?.content,
+          (
+            await shell
+              .getEntityService()
+              .getEntity({ ...entityRef, source: true })
+          )?.content,
         ).toBe(original);
         const proposal = await tool.handler(
           {
@@ -778,7 +785,10 @@ describe("canonical eval recipe ladder", () => {
         expect(await tool.handler(approval.args, context)).toMatchObject({
           success: true,
         });
-        const saved = await shell.getEntityService().getEntity(entityRef);
+        // The stored document: a declared note reads back its body alone.
+        const saved = await shell
+          .getEntityService()
+          .getEntity({ ...entityRef, source: true });
         expect(saved?.content).toBe(
           `---\nvisibility: restricted\n---\n${content}`,
         );
