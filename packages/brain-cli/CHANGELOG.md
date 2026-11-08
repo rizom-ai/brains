@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- [#879](https://github.com/rizom-ai/brains/pull/879) [`050fdd6`](https://github.com/rizom-ai/brains/commit/050fdd629ad89f0dbe57c434bf562e16786590fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain running in production now refuses the static MCP bearer token (`plugins.mcp.authToken` / `MCP_AUTH_TOKEN`) at boot; the token is for local development only, so connect deployed brains through OAuth with passkeys.
+
 ## 0.2.0-alpha.663
 
 ### Patch Changes
