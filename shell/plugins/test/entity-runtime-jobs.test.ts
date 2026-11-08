@@ -11,8 +11,10 @@ import {
   defineEntity,
   defineEntityJob,
   defineEntityPackage,
+  ensureUniqueTitle,
   entityRuntime,
   instantiatePluginPackageDefinition,
+  uniqueTitleContext,
   type AnyEntityDefinition,
   type EntityRuntime,
 } from "../src";
@@ -368,6 +370,71 @@ describe("entityRuntime(context).generate", () => {
         queuedByPackage("@fixture/memos:memo", {}),
       );
       expect(refusal).toContain('declares no template named "missing"');
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
+describe("uniqueTitleContext(entityRuntime(context))", () => {
+  it("lets a generation ask for a free title when its own is taken", async () => {
+    let titled: string | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { generation: generationTemplate },
+      generation: {
+        input: z.object({ title: z.string() }),
+        generate: async (context) => {
+          titled = await ensureUniqueTitle({
+            entityType: "memo",
+            title: context.input.title,
+            deriveId: (title) => title.toLowerCase(),
+            regeneratePrompt: "Name it differently.",
+            context: uniqueTitleContext(entityRuntime(context)),
+          });
+          return {
+            success: true,
+            content: "Body",
+            metadata: { title: titled },
+          };
+        },
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "taken",
+          entityType: "memo",
+          content: "Already here",
+          metadata: { title: "Taken" },
+        },
+      });
+      const prompts: string[] = [];
+      harness.getMockShell().generateObject = async <T>(
+        prompt: string,
+        schema: { parse(value: unknown): T },
+      ): Promise<{ object: T }> => {
+        prompts.push(prompt);
+        return { object: schema.parse({ title: "Fresh" }) };
+      };
+      await run(
+        harness,
+        "memo:generation",
+        queuedByPackage("@fixture/memos:memo", { title: "Taken" }),
+      );
+      expect(titled).toBe("Fresh");
+      expect(prompts).toEqual([
+        'The title "Taken" is already taken. Name it differently.',
+      ]);
+      await run(
+        harness,
+        "memo:generation",
+        queuedByPackage("@fixture/memos:memo", { title: "Untaken" }),
+      );
+      expect(titled).toBe("Untaken");
     } finally {
       await harness.reset();
     }

@@ -16,6 +16,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
+import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
 import type {
   AnyEntityDefinition,
   DataSourceListOptions,
@@ -684,6 +685,29 @@ export function withEntityRuntime<TContext extends object>(
 
 function isEntityRuntime(value: unknown): value is EntityRuntime {
   return typeof value === "object" && value !== null;
+}
+
+/**
+ * What `ensureUniqueTitle` reads, through a call's runtime: a record of
+ * the title's id at the call's scope, one structured answer, and the
+ * package's logger, as the entity plugin classes' generations read them.
+ */
+export function uniqueTitleContext(runtime: EntityRuntime): UniqueTitleContext {
+  return {
+    entityService: {
+      getEntity: ({ entityType, id }) =>
+        runtime.anyEntities.getEntity({ entityType, id }),
+    },
+    ai: {
+      generateObject: async <T>(
+        prompt: string,
+        schema: AIGenerationSchema<T>,
+      ): Promise<{ object: T }> => ({
+        object: await runtime.generateObject(prompt, schema),
+      }),
+    },
+    logger: runtime.logger,
+  };
 }
 
 /**

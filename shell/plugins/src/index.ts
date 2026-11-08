@@ -968,6 +968,7 @@ export {
 export {
   contractJob,
   entityRuntime,
+  uniqueTitleContext,
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,

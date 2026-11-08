@@ -10,7 +10,9 @@
 
 export {
   contractJob,
+  ensureUniqueTitle,
   entityRuntime,
+  uniqueTitleContext,
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,
