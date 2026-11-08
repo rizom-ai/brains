@@ -1,6 +1,7 @@
 import {
   defineBrain,
   type BrainDefinition,
+  type CapabilityConfig,
   type CapabilityEntry,
   type PluginConfig,
 } from "@brains/app";
@@ -46,7 +47,7 @@ import {
   oauthBrokerPlugin,
   type OAuthBrokerPlugin,
 } from "@brains/oauth-broker";
-import { obsidianVaultPlugin } from "@brains/obsidian-vault";
+import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
 import { profilePlugin } from "@brains/profile";
@@ -125,13 +126,15 @@ function packageCapability(
   packageName: string,
   definition: PluginPackageDefinition,
   options: PluginPackageInstantiationOptions = {},
+  /** The config the catalog gives the capability, as its class entry did. */
+  defaults: CapabilityConfig = undefined,
 ): CapabilityEntry {
   const metadata = { name: packageName, version: packageJson.version };
   return [
     id,
     (config): Plugin[] =>
       instantiatePluginPackageDefinition(definition, config, metadata, options),
-    undefined,
+    defaults,
   ];
 }
 
@@ -231,7 +234,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["guides", guidesPlugin, undefined],
     ["book", bookPlugin, undefined],
 
-    ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
+    packageCapability(
+      "obsidian-vault",
+      "@brains/obsidian-vault",
+      obsidianVaultPackage,
+      { pluginId: "obsidian-vault" },
+      { autoSync: true },
+    ),
     ["email-workflows", emailWorkflows, undefined],
     ["unified-inbox", unifiedInboxPlugin, undefined],
     ["linkedin-import", linkedInImportPlugin, undefined],
