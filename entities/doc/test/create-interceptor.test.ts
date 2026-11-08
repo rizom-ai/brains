@@ -8,8 +8,10 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
-import { DocsPlugin } from "../src/plugin";
-import { docAdapter } from "../src/adapters/doc-adapter";
+import { docsPlugin } from "./docs-plugin";
+
+// The adapter the docs register for their type.
+const docAdapter = docsPlugin().adapter;
 
 const executionContext: CreateExecutionContext = {
   interfaceType: "test",
@@ -52,7 +54,7 @@ function existingDoc(
   };
 }
 
-describe("DocsPlugin create interceptor", () => {
+describe("doc create route", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(async () => {
@@ -60,7 +62,7 @@ describe("DocsPlugin create interceptor", () => {
       dataDir: "/tmp/test-datadir-docs-create",
       logContext: "docs-create-test",
     });
-    await harness.installPlugin(new DocsPlugin());
+    await harness.installPlugin(docsPlugin());
   });
 
   afterEach(async () => {

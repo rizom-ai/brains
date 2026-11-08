@@ -11,8 +11,6 @@ import {
   type SdkErrorCode,
 } from "@brains/contracts";
 import type { Caller, CallerAccess } from "@brains/content-service";
-import { internalFullScope, type BaseEntity } from "@brains/entity-service";
-import { definedFields } from "@brains/utils/strip-undefined";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
 import type { JobHandler } from "@brains/job-queue";
@@ -27,7 +25,6 @@ import {
 } from "@brains/mcp-service";
 import {
   createTemplate,
-  PermissionService,
   type ComponentType,
   type Template,
 } from "@brains/templates";
@@ -65,10 +62,11 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
+import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import {
+  assertOwnedWriteAllowed,
+  createOwnedEntityWriter,
+} from "../entity/owned-entity-writer-runtime";
 import { packageRuntimeState } from "../internal/state-namespace";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -1016,69 +1014,14 @@ class DeclarativeServicePlugin<
     action: "create" | "update" | "delete",
     call: ServiceCall,
   ): Promise<void> {
-    if (call.asPackage === true) return;
-    const access = await call.access();
-    const required = this.requireShell()
-      .getPermissionService()
-      .getEntityActionRequiredLevel(entityType, action);
-    if (
-      required === undefined ||
-      required === "never" ||
-      PermissionService.hasPermission(access.permissionLevel, required)
-    ) {
-      return;
-    }
-    const refusal = `Writing ${entityType} (${action}) requires ${required} permission; the caller has ${access.permissionLevel}`;
-    throw new SdkError("permission_denied", {
-      message: refusal,
-      publicMessage: refusal,
-    });
-  }
-
-  private parseOwnedMetadata(
-    definition: AnyEntityDefinition,
-    metadata: unknown,
-  ): Record<string, unknown> {
-    const parsed = definition.metadata.safeParse(metadata);
-    if (!parsed.success) {
-      throw new SdkError("invalid_input", {
-        message: `Invalid ${definition.type} metadata: ${parsed.error.message}`,
-        cause: parsed.error,
-      });
-    }
-    return parsed.data;
-  }
-
-  /** The stored record as the current authority sees it, unchanged since it was read. */
-  private async currentRecord(
-    definition: AnyEntityDefinition,
-    record: EntityOf<AnyEntityDefinition>,
-    call: ServiceCall,
-  ): Promise<BaseEntity> {
-    const access = await call.access();
-    if (record.entityType !== definition.type) {
-      throw new SdkError("permission_denied", {
-        message: `A ${definition.type} write cannot change a ${record.entityType}`,
-      });
-    }
-    // As stored, so content written back unchanged is the stored body.
-    const stored = await this.getContext().entityService.getEntityRaw({
-      entityType: definition.type,
-      id: record.id,
-      visibilityScope: this.readScope(call, definition.type, access),
-    });
-    if (!stored) {
-      throw new SdkError("not_found", {
-        message: `No ${definition.type} "${record.id}" is visible to the caller`,
-      });
-    }
-    if (stored.contentHash !== record.contentHash) {
-      throw new SdkError("conflict", {
-        message: `The ${definition.type} "${record.id}" changed after it was read`,
-        publicMessage: "The record changed after it was read; read it again",
-      });
-    }
-    return stored;
+    await assertOwnedWriteAllowed(
+      this.requireShell()
+        .getPermissionService()
+        .getEntityActionRequiredLevel(entityType, action),
+      entityType,
+      action,
+      call,
+    );
   }
 
   /**
@@ -1094,91 +1037,15 @@ class DeclarativeServicePlugin<
         () => this.currentCall(),
         (entityType) => this.ownsType(entityType),
       ),
-      create: async (definition, input) => {
-        const declared = this.ownedDefinition(definition);
-        const call = this.currentCall();
-        await this.assertWriteAllowed(declared.type, "create", call);
-        const metadata = this.parseOwnedMetadata(declared, input.metadata);
-        // Create-if-absent: an id taken at any visibility is not written
-        // over, even one the caller cannot see.
-        if (input.id !== undefined) {
-          const taken = await context.entityService.getEntity({
-            entityType: declared.type,
-            id: input.id,
-            visibilityScope: internalFullScope(
-              "an owned create checks whether its id is taken; no content returned",
-            ),
-          });
-          if (taken) {
-            throw new SdkError("conflict", {
-              message: `A ${declared.type} "${input.id}" already exists`,
-            });
-          }
-        }
-        const written = await context.entityService.createEntity({
-          entity: {
-            ...definedFields({ id: input.id, visibility: input.visibility }),
-            entityType: declared.type,
-            content: input.content,
-            metadata,
-          },
-          options: {
-            ...(input.id !== undefined && {
-              conditionalWrite: { expectedRevision: null },
-            }),
-            eventContext: call.eventContext,
-          },
-        });
-        return { id: written.entityId };
-      },
-      update: async (definition, record, change) => {
-        const declared = this.ownedDefinition(definition);
-        const call = this.currentCall();
-        await this.assertWriteAllowed(declared.type, "update", call);
-        const stored = await this.currentRecord(declared, record, call);
-        const written = await context.entityService.updateEntity({
-          entity: {
-            ...stored,
-            content: change.content ?? stored.content,
-            metadata: this.parseOwnedMetadata(
-              declared,
-              change.metadata ?? record.metadata,
-            ),
-          },
-          options: {
-            expectedContentHash: record.contentHash,
-            eventContext: call.eventContext,
-          },
-        });
-        if (written.skipReason === "content-conflict") {
-          throw new SdkError("conflict", {
-            message: `The ${declared.type} "${record.id}" changed after it was read`,
-            publicMessage:
-              "The record changed after it was read; read it again",
-          });
-        }
-      },
-      delete: async (definition, record) => {
-        const declared = this.ownedDefinition(definition);
-        const call = this.currentCall();
-        await this.assertWriteAllowed(declared.type, "delete", call);
-        await this.currentRecord(declared, record, call);
-        const deleted = await context.entityService.deleteEntity({
-          entityType: declared.type,
-          id: record.id,
-          options: {
-            expectedContentHash: record.contentHash,
-            eventContext: call.eventContext,
-          },
-        });
-        if (!deleted) {
-          throw new SdkError("conflict", {
-            message: `The ${declared.type} "${record.id}" changed after it was read`,
-            publicMessage:
-              "The record changed after it was read; read it again",
-          });
-        }
-      },
+      ...createOwnedEntityWriter({
+        entityService: context.entityService,
+        owned: (definition) => this.ownedDefinition(definition),
+        currentCall: () => this.currentCall(),
+        assertWriteAllowed: (entityType, action, call) =>
+          this.assertWriteAllowed(entityType, action, call),
+        readScope: (call, entityType, callerAccess) =>
+          this.readScope(call, entityType, callerAccess),
+      }),
     };
     this.entityAccessCache = Object.freeze(access);
     return this.entityAccessCache;

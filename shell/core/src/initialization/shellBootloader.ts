@@ -277,6 +277,16 @@ export class ShellBootloader {
           rewritten: retired.rewritten,
         });
       }
+      // A type converted from an entity plugin class to a declaration reads
+      // its frontmatter as metadata; rows the class wrote get it before
+      // startup content settles and seeds look for them.
+      const declared =
+        await this.services.entityService.reconcileDeclaredMetadata();
+      if (declared.reconciled > 0) {
+        this.services.logger.info("Re-derived declared entity metadata", {
+          reconciled: declared.reconciled,
+        });
+      }
 
       if (initialSyncPending) {
         pendingStartupContent = initialSync.promise

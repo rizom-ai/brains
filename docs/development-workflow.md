@@ -268,7 +268,7 @@ model: gpt-5.4-mini
 config: {} # optional, passed to the plugin class or factory
 ```
 
-The loader takes only the named export, so adding an export never changes which plugin the evals run against. Each plugin test case addresses its handler by that plugin's id (`plugin: link`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
+The loader takes only the named export, so adding an export never changes which plugin the evals run against. An export that is a plugin package definition, such as a declarative entity package's default export, is instantiated with `config`, as a brain installs it. `pluginId: wishlist` installs a first-party entity package under the plugin id the canonical brain keeps for it. Each plugin test case addresses its handler by that plugin's id (`plugin: link`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
 
 ### Example Unit Tests
 

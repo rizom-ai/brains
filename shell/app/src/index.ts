@@ -48,6 +48,10 @@ export {
   normalizeDeclarativeBrainDefinition,
 } from "./declarative-brain";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
+export {
+  findPackageManifest,
+  type InstalledPackageManifest,
+} from "./installed-package-metadata";
 export { resolveBrainPackageName } from "./brain-package";
 export {
   registerPackage,

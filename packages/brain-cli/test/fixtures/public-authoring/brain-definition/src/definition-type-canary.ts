@@ -23,6 +23,11 @@ import {
 const insightsPackage: PluginPackageDefinition = readingInsights;
 void insightsPackage;
 const entities = use(readingEntities);
+// An entity package's settings, by the schema it declares.
+const savedEntities = use(readingEntities, { shelfTitle: "Saved" });
+void savedEntities;
+// @ts-expect-error shelfTitle is a string
+void use(readingEntities, { shelfTitle: 1 });
 const insights = use(readingInsights, { summaryPrefix: "Reading" });
 const configured: ConfiguredPluginDefinition = insights;
 void configured;

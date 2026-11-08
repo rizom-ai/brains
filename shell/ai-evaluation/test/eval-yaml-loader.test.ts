@@ -12,6 +12,12 @@ const defaultExportModule = join(
   "fixtures",
   "default-plugin-export.ts",
 );
+const packageDefinitionModule = join(
+  import.meta.dir,
+  "fixtures",
+  "package-definition-export",
+  "index.ts",
+);
 
 describe("parseEvalYaml", () => {
   it("should parse eval.yaml with the export that provides the plugin", () => {
@@ -56,6 +62,19 @@ model: gpt-4o-mini
   it("should return null for yaml without plugin field", () => {
     const result = parseEvalYaml(`brain: "@acme/brain-definition"`);
     expect(result).toBeNull();
+  });
+
+  it("should parse eval.yaml with the plugin id a package is installed under", () => {
+    const result = parseEvalYaml(`
+plugin: "@brains/wishlist"
+export: default
+pluginId: wishlist
+`);
+    expect(result).toEqual({
+      plugin: "@brains/wishlist",
+      export: "default",
+      pluginId: "wishlist",
+    });
   });
 
   it("should return null for empty yaml", () => {
@@ -141,6 +160,37 @@ describe("loadPluginEvalConfig", () => {
     expect(
       loadPluginEvalConfig({ plugin: namedExportsModule }),
     ).rejects.toThrow(`${namedExportsModule} has no export "default"`);
+  });
+
+  it("instantiates a package definition export under its package's scoped ids", async () => {
+    const config = await loadPluginEvalConfig({
+      plugin: packageDefinitionModule,
+    });
+
+    const plugin = config.plugins?.[0];
+    expect(config.plugins?.map(({ id }) => id)).toEqual([
+      "@brains/eval-loader-package-fixture:shelf",
+    ]);
+    expect(plugin?.packageName).toBe("@brains/eval-loader-package-fixture");
+    expect(plugin?.type).toBe("entity");
+  });
+
+  it("installs a package definition under the plugin id eval.yaml names", async () => {
+    const config = await loadPluginEvalConfig({
+      plugin: packageDefinitionModule,
+      pluginId: "shelf",
+    });
+
+    expect(config.plugins?.map(({ id }) => id)).toEqual(["shelf"]);
+    expect(config.name).toBe("shelf-eval");
+  });
+
+  it("refuses a plugin id for an export that is not a package definition", () => {
+    expect(
+      loadPluginEvalConfig({ plugin: defaultExportModule, pluginId: "other" }),
+    ).rejects.toThrow(
+      `${defaultExportModule} export "default" is not a package definition; \`pluginId\` names the id a package definition is installed under`,
+    );
   });
 
   it("refuses a named export that does not provide a plugin", () => {

@@ -17,7 +17,8 @@ import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
-import { PromptPlugin } from "@brains/prompt";
+import promptPackage from "@brains/prompt";
+import wishlistPackage from "@brains/wishlist";
 import { z } from "@brains/utils/zod";
 import {
   EntityPlugin,
@@ -25,8 +26,9 @@ import {
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
+  type EntityTypeConfig,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
   generateMarkdown,
@@ -42,6 +44,38 @@ import {
   createEditorRoutes,
   StudioWorkspaceRegistry,
 } from "@brains/studio/test";
+
+/** The entity plugin the prompt package installs, as a brain composes it. */
+function promptPlugin(): EntityPlugin<
+  BaseEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  const [plugin] = instantiatePluginPackageDefinition(
+    promptPackage,
+    {},
+    { name: "@brains/prompt", version: "0.0.0-test" },
+  );
+  if (!(plugin instanceof EntityPlugin)) throw new Error("No prompt plugin");
+  return plugin;
+}
+
+/** The type config a plugin registers, read from a registry it installs into. */
+async function registeredConfig(
+  plugin: EntityPlugin<
+    BaseEntity,
+    Record<string, never>,
+    Record<string, never>
+  >,
+): Promise<EntityTypeConfig> {
+  const harness = createPluginHarness({ logger: createSilentLogger() });
+  await harness.installPlugin(plugin);
+  const config = harness
+    .getEntityRegistry()
+    .getEntityTypeConfig(plugin.entityType);
+  await harness.reset();
+  return config;
+}
 
 const type = "grouping-definitions";
 const areas = { label: "Areas", multiple: true };
@@ -180,7 +214,8 @@ function content(values: string[], entityType = "note"): string {
 describe("document-backed runtime definitions with real adapters", () => {
   test("system classification removes real prompts from groupings without rewriting authored source", async () => {
     const dir = await directory();
-    const plugin = new PromptPlugin();
+    const plugin = promptPlugin();
+    const promptConfig = await registeredConfig(plugin);
     const legacy = await open(dir, (registry) =>
       registry.registerEntityType(
         plugin.entityType,
@@ -226,7 +261,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         plugin.entityType,
         plugin.schema,
         plugin.adapter,
-        plugin.getEntityTypeConfig(),
+        promptConfig,
       ),
     );
     const after = await current.service.getEntityRaw({
@@ -278,14 +313,13 @@ describe("document-backed runtime definitions with real adapters", () => {
         })
       ).status,
     ).toBe(200);
-    const edited = await current.service.getEntityRaw({
-      entityType: "prompt",
-      id: "guidance",
-      visibilityScope: "shared",
-    });
-    expect(parseMarkdown(edited?.content ?? "").frontmatter["areas"]).toEqual(
-      exact,
-    );
+    // A declared type reads back its body alone; the authored source is the
+    // stored markdown.
+    expect(
+      parseMarkdown(await storedContent(dir, "prompt", "guidance")).frontmatter[
+        "areas"
+      ],
+    ).toEqual(exact);
     expect(
       (
         await save(
@@ -2177,5 +2211,68 @@ describe("declared types in the editor", () => {
       (await fixture.service.getEntity({ entityType: "card", id: "tide" }))
         ?.metadata,
     ).toEqual({ title: "Ebb", tone: "plain" });
+  });
+});
+
+/** A first-party declared package's types, registered as the brain does. */
+function registerPackage(
+  definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
+  packageName: string,
+  pluginId: string,
+): (registry: EntityRegistry) => void {
+  return (registry) => {
+    for (const plugin of instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: packageName, version: "0.0.0-test" },
+      { pluginId },
+    )) {
+      if (plugin instanceof EntityPlugin) {
+        registry.registerEntityType(
+          plugin.entityType,
+          plugin.schema,
+          plugin.adapter,
+        );
+      }
+    }
+  };
+}
+
+describe("first-party declared types in the editor", () => {
+  test("saves a wish edited in the editor, its derived slug left out of the file", async () => {
+    const dir = await directory();
+    const fixture = await open(
+      dir,
+      registerPackage(wishlistPackage, "@brains/wishlist", "wishlist"),
+    );
+    const authored =
+      "---\ntitle: Send emails\nstatus: new\npriority: medium\nrequested: 2\n---\nUser wants email integration\n";
+    await fixture.service.createEntityFromMarkdown({
+      input: { entityType: "wish", id: "send-emails", markdown: authored },
+    });
+    const opened = await (
+      await fixture.request("GET", "entities?type=wish&id=send-emails")
+    ).json();
+
+    const saved = await fixture.request("PUT", "entities", {
+      entityType: "wish",
+      id: "send-emails",
+      frontmatter: { ...opened.entity.frontmatter, priority: "high" },
+      body: opened.entity.body,
+      baseContentHash: opened.entity.contentHash,
+    });
+
+    expect(saved.status).toBe(200);
+    expect(
+      parseMarkdown(await storedContent(dir, "wish", "send-emails")),
+    ).toEqual({
+      frontmatter: {
+        title: "Send emails",
+        status: "new",
+        priority: "high",
+        requested: 2,
+      },
+      content: expect.stringContaining("User wants email integration"),
+    });
   });
 });

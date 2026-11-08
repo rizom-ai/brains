@@ -12,6 +12,24 @@ module.exports = {
       },
     },
     {
+      name: "public-entries-never-reach-the-first-party-entity-runtime",
+      severity: "error",
+      comment:
+        "entityRuntime(context) is internal to first-party packages: no public entry of @rizom/brain or the SDK may import it",
+      from: {
+        path: [
+          "^packages/brain-cli/src/entries/",
+          "^packages/brain-sdk/src/(index|entities|services|interfaces)\\.ts$",
+        ],
+      },
+      to: {
+        path: [
+          "^packages/brain-sdk/src/internal/",
+          "^shell/plugins/src/entity/entity-runtime\\.ts$",
+        ],
+      },
+    },
+    {
       name: "not-to-unresolvable",
       severity: "error",
       comment:
@@ -160,12 +178,12 @@ module.exports = {
       name: "entities-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Entity packages can only import from shell/* and shared/* packages, and the published component library (packages/ui, @rizom/brain-ui)",
+        "Entity packages can only import from shell/* and shared/* packages, the published component library (packages/ui, @rizom/brain-ui), and the authoring SDK (packages/brain-sdk, @brains/sdk) that converted packages are written against",
       from: {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|packages/ui/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/ui/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins

@@ -12,9 +12,9 @@ export {
   type ResolvedImage,
 } from "./schemas/image";
 
-// Image entity adapter
-export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
-export type { CreateImageInput } from "./adapters/image-adapter";
+// Image entity data
+export { createImageEntity, imageMetadataFor } from "./lib/image-entity";
+export type { CreateImageInput } from "./lib/image-entity";
 
 // Image resolver utilities
 export {

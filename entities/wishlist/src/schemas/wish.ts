@@ -1,5 +1,4 @@
-import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { z } from "@brains/sdk/entities";
 
 /**
  * Wish status
@@ -55,34 +54,24 @@ type WishMetadataSchema = z.ZodObject<{
   status: typeof wishStatusSchema;
   priority: typeof wishPrioritySchema;
   requested: z.ZodNumber;
-  slug: z.ZodString;
+  slug: z.ZodOptional<z.ZodString>;
+  declinedReason: z.ZodOptional<z.ZodString>;
 }>;
 
 /**
- * Wish metadata schema - derived from frontmatter via .pick()
- * Only includes fields needed for fast DB queries/filtering.
+ * Wish metadata schema: the frontmatter, decoded, with the slug derived
+ * from the title. Studio edits it, so it shows the request count as a fact
+ * and hides the derived slug, as the frontmatter it edited did; the slug is
+ * optional, since a wish's file never carries one and an edited wish
+ * arrives without it, though every decoded wish has one.
  */
 export const wishMetadataSchema: WishMetadataSchema = z.object({
   title: z.string(),
   status: wishStatusSchema,
   priority: wishPrioritySchema,
-  requested: z.number().int(),
-  slug: z.string(),
+  requested: z.number().int().meta({ studioWidget: "provenance" }),
+  slug: z.string().optional().meta({ studioWidget: "hidden" }),
+  declinedReason: z.string().optional(),
 });
 
 export type WishMetadata = z.output<typeof wishMetadataSchema>;
-
-/**
- * Wish entity schema
- */
-export const wishSchema: ReturnType<
-  typeof baseEntityParserSchema.extend<{
-    entityType: z.ZodLiteral<"wish">;
-    metadata: WishMetadataSchema;
-  }>
-> = baseEntityParserSchema.extend({
-  entityType: z.literal("wish"),
-  metadata: wishMetadataSchema,
-});
-
-export type WishEntity = z.output<typeof wishSchema>;

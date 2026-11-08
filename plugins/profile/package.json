@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.658",
   "description": "Anchor-profile extensions and context-generated starter identity lifecycle",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

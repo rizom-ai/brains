@@ -1,4 +1,4 @@
-import type { WishEntity, WishPriority } from "../schemas/wish";
+import type { WishMetadata, WishPriority } from "../schemas/wish";
 
 const PRIORITY_ORDER: Record<WishPriority, number> = {
   critical: 0,
@@ -7,11 +7,13 @@ const PRIORITY_ORDER: Record<WishPriority, number> = {
   low: 3,
 };
 
-/**
- * Sort wishes in-place by request count (descending), then priority.
- */
-export function sortWishesByDemand(wishes: WishEntity[]): void {
-  wishes.sort((a, b) => {
+/** Wishes by request count (descending), then priority. */
+export function sortWishesByDemand<
+  TWish extends {
+    readonly metadata: Pick<WishMetadata, "requested" | "priority">;
+  },
+>(wishes: readonly TWish[]): TWish[] {
+  return [...wishes].sort((a, b) => {
     const reqDiff = b.metadata.requested - a.metadata.requested;
     if (reqDiff !== 0) return reqDiff;
     return (

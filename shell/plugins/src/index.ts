@@ -281,6 +281,7 @@ export {
   type PluginPackageConfigInput,
   type PluginPackageDefinition,
   type PluginPackageFamily,
+  type PluginPackageInstantiationOptions,
 } from "./package-definition";
 // Runtime reads for a host that drives installed packages, such as the test
 // brain: definition-typed entity reads, and a job's status as a service reads it.
@@ -309,6 +310,7 @@ export {
   type EntityGenerationRequest,
   type EntityGenerationResult,
   type EntityJobContext,
+  type EntityJobHandleContext,
   type EntityJobDeclaration,
   type EntityJobMessaging,
   type EntityJobProgress,
@@ -349,7 +351,10 @@ export {
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
   type EntityOf,
+  type EntityPackageConfigSchema,
+  type EntityPackageConfiguration,
   type EntityPackageDefinition,
+  type EntitySlotBinding,
   type EntityPublishAssetDeclaration,
   type EntityPublishDeclaration,
   type EntitySeedDefinition,
@@ -957,6 +962,20 @@ export {
   type EntityTextResult,
   type ReadEntityTextOptions,
 } from "./entity/create-from-text";
+// First-party entity callbacks reach their call's internal runtime here;
+// the public contexts never name it.
+export {
+  contractJob,
+  entityRuntime,
+  type AnyEntityReads,
+  type EntityRuntime,
+  type EntityRuntimeAttachments,
+  type EntityRuntimeImages,
+  type OrdinaryCreateDocument,
+  type OrdinaryCreateOptions,
+  type QueuedCreate,
+  type StoredCreate,
+} from "./entity/entity-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
