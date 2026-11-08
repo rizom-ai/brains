@@ -1,5 +1,16 @@
 # @brains/newsletter
 
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.663
+  - @brains/contracts@0.2.0-alpha.663
+  - @brains/site-composition@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/plugins@0.2.0-alpha.663
+
 ## 0.2.0-alpha.662
 
 ### Patch Changes
