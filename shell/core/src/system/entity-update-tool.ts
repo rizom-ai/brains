@@ -13,6 +13,7 @@ import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
   applyUpdateOperation,
   buildUpdateDiff,
+  describeStoredChange,
   requiredUpdateAction,
   resolveReplacementContent,
   validateUpdateOperation,
@@ -157,7 +158,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     } catch (error) {
       return failure(getErrorMessage(error, "Failed to update entity"));
     }
-    return { success: true, data: { updated: entity.id } };
+    // Read the entity back, so the confirmation shows what storage holds.
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope: permissionToVisibilityScope(context.userPermissionLevel),
+    });
+    const completionDetail = stored
+      ? describeStoredChange(entity, stored)
+      : undefined;
+    return {
+      success: true,
+      data: { updated: entity.id },
+      ...(completionDetail !== undefined && { completionDetail }),
+    };
   };
 
   const proposeUpdate = (

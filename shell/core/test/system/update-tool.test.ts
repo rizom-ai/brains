@@ -1007,6 +1007,8 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: true,
       data: { updated: "resilience-in-distributed-systems" },
+      completionDetail:
+        "Stored now:\n> status: draft\n> publishedAt: (removed)",
     });
 
     const updated = expectDefined(
@@ -1077,6 +1079,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: true,
       data: { updated: "linkedin-update" },
+      completionDetail: "Stored now:\n> coverImageId: hero-banner",
     });
     const updated = expectDefined(
       services.getEntities().get("linkedin-update"),
@@ -1096,6 +1099,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: true,
       data: { updated: "linkedin-update" },
+      completionDetail: "Stored now:\n> ogImageId: social-card",
     });
     const updated = expectDefined(
       services.getEntities().get("linkedin-update"),
@@ -1129,6 +1133,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: true,
       data: { updated: "covered-post" },
+      completionDetail: "No longer stored:\n> coverImageId: hero-banner",
     });
     expect(services.getEntities().get("covered-post")?.content).not.toContain(
       "coverImageId",
@@ -1148,6 +1153,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: true,
       data: { updated: "old-agent.io" },
+      completionDetail: "Stored now:\n> visibility: private",
     });
 
     const updated = expectDefined(
@@ -1244,6 +1250,75 @@ describe("system_update tool", () => {
       ).toBe("approved");
     },
   );
+
+  it("reports a confirmed edit's changed text as storage now holds it", async () => {
+    const store = services.entityService;
+    const read = store.getEntity.bind(store);
+    // Storage normalizes what it is given, so only a read-back sees "(kept)".
+    store.getEntity = async (
+      request: Parameters<typeof read>[0],
+    ): ReturnType<typeof read> => {
+      const entity = await read(request);
+      return entity?.content.startsWith("Groundhogs")
+        ? { ...entity, content: `${entity.content} (kept)` }
+        : entity;
+    };
+
+    const confirmed = await execConfirmed({
+      entityType: "base",
+      id: "woodchuck-note",
+      operation: {
+        edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }],
+      },
+    });
+
+    expect(confirmed).toMatchObject({
+      success: true,
+      completionDetail:
+        "Stored now:\n> Groundhogs and woodpeckers are different animals. (kept)",
+    });
+  });
+
+  it("reports the lines a confirmed edit removed", async () => {
+    services.addEntities([
+      {
+        id: "two-line-note",
+        entityType: "base",
+        content: "Keep this line.\nDrop this line.",
+        contentHash: "hash-two-line",
+        visibility: "public",
+        metadata: { title: "Two lines" },
+        created: new Date("2026-03-12T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-12T10:00:00.000Z").toISOString(),
+      },
+    ]);
+
+    const confirmed = await execConfirmed({
+      entityType: "base",
+      id: "two-line-note",
+      operation: {
+        edits: [{ oldText: "\nDrop this line.", newText: "" }],
+      },
+    });
+
+    expect(confirmed).toMatchObject({
+      success: true,
+      completionDetail: "No longer stored:\n> Drop this line.",
+    });
+  });
+
+  it("reports a confirmed field change as storage now holds it", async () => {
+    const confirmed = await execConfirmed({
+      entityType: "agent",
+      id: "pending-agent.io",
+      operation: { fields: { status: "approved" } },
+    });
+
+    expect(confirmed).toMatchObject({
+      success: true,
+      completionDetail: "Stored now:\n> status: approved",
+    });
+  });
 
   it("replays an approved note field operation exactly", async () => {
     const args = expectConfirmationArgs(
@@ -1881,6 +1956,7 @@ describe("system_update tool", () => {
     expect(result).toEqual({
       success: true,
       data: { updated: "metadata-backed-1" },
+      completionDetail: "Stored now:\n> publishedAt: (removed)",
     });
     const updateRequest = services.getLastUpdateRequest();
     if (!updateRequest) throw new Error("Expected an update to be recorded");
