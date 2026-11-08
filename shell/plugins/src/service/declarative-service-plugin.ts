@@ -1028,6 +1028,11 @@ class DeclarativeServicePlugin<
       },
       entityShapes: entityShapesOf(context),
       dataDir: context.dataDir,
+      identity: Object.freeze({
+        get: () => context.identity.get(),
+        getProfile: () => context.identity.getProfile(),
+      }),
+      domain: context.domain,
     });
   }
 

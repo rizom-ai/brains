@@ -2,6 +2,7 @@ import type { BusContract, Channel } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { IMessagingNamespace } from "../base/context-types";
+import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { SchemaValue } from "../internal/schema-value";
 import {
@@ -120,6 +121,19 @@ export interface ServiceRuntime {
   readonly entityShapes: ServiceEntityShapes;
   /** Where the brain keeps its data on disk. */
   readonly dataDir: string;
+  /**
+   * The brain's character and its anchor's profile, as the shell's identity
+   * caches hold them now, read-only.
+   */
+  readonly identity: ServiceIdentity;
+  /** The brain's bare domain, when it has one. */
+  readonly domain: string | undefined;
+}
+
+/** Who the brain is and whom it represents, as the shell keeps them. */
+export interface ServiceIdentity {
+  get(): BrainCharacter;
+  getProfile(): AnchorProfile;
 }
 
 /** What the runtime binds a first-party service's runtime to. */
@@ -137,6 +151,8 @@ export interface ServiceRuntimeBinding {
   readonly onReady: (handler: () => Promise<void>) => void;
   readonly entityShapes: ServiceEntityShapes;
   readonly dataDir: string;
+  readonly identity: ServiceIdentity;
+  readonly domain: string | undefined;
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
@@ -148,6 +164,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     deliveryProvider: binding.deliveryProvider,
     entityShapes: binding.entityShapes,
     dataDir: binding.dataDir,
+    identity: binding.identity,
+    domain: binding.domain,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
     },

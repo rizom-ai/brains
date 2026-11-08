@@ -394,3 +394,44 @@ describe("a first-party service's runtime, once the brain is ready", () => {
     ]);
   });
 });
+
+describe("a first-party service's runtime, reading the brain", () => {
+  it("reads the brain's character, its anchor's profile and its domain as the shell keeps them", async () => {
+    const shell = createMockShell({ domain: "brain.example" });
+    const read: unknown[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const { identity, domain } = serviceRuntime(context);
+            read.push(identity.get().name, identity.getProfile().name, domain);
+            return [];
+          },
+        },
+      ),
+    );
+
+    expect(read).toEqual(["Test Brain", "Test Owner", "brain.example"]);
+  });
+
+  it("has no domain when the brain names none", async () => {
+    const shell = createMockShell();
+    const read: unknown[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            read.push(serviceRuntime(context).domain);
+            return [];
+          },
+        },
+      ),
+    );
+
+    expect(read).toEqual([undefined]);
+  });
+});

@@ -983,6 +983,7 @@ export {
   firstPartyTool,
   serviceRuntime,
   type ServiceEntityShapes,
+  type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
   type ServiceListenOptions,
