@@ -4,11 +4,13 @@ import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
 import { ChatInterface } from "@brains/chat";
 import { newsletter } from "@brains/newsletter";
-import type {
-  ApiRouteDefinition,
-  Plugin,
-  WebRouteDefinition,
+import {
+  isPackageDefinitionPlugin,
+  type ApiRouteDefinition,
+  type Plugin,
+  type WebRouteDefinition,
 } from "@brains/plugins";
+import { createMockShell } from "@brains/plugins/test";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 interface WebRoutePlugin extends Plugin {
@@ -80,7 +82,13 @@ function readExpected(name: string): string[] {
   return contents.length > 0 ? contents.split("\n") : [];
 }
 
-function resolveTestApp(name: string): Plugin[] {
+/**
+ * A test app's plugins, with the routes the shell collects from them: a
+ * declared service builds its routes when it registers, so it is registered
+ * on a mock shell first, as the shell registers every plugin before it
+ * collects routes.
+ */
+async function resolveTestApp(name: string): Promise<Plugin[]> {
   const source = readFileSync(
     join(import.meta.dir, "..", "test-apps", name, "brain.yaml"),
     "utf8",
@@ -90,12 +98,25 @@ function resolveTestApp(name: string): Plugin[] {
     site: _site,
     ...overrides
   } = parseInstanceOverrides(source);
-  return resolve(canonicalBrain, {}, overrides).plugins ?? [];
+  const plugins = resolve(canonicalBrain, {}, overrides).plugins ?? [];
+  for (const plugin of plugins) {
+    if (plugin.type === "service" && isPackageDefinitionPlugin(plugin)) {
+      await plugin.register(createMockShell());
+    }
+  }
+  return plugins;
 }
 
-describe("canonical HTTP route manifests", () => {
-  const minimal = routeManifest(resolveTestApp("minimal"));
+const minimal = routeManifest(await resolveTestApp("minimal"));
+const compositionCases: Array<[string, Plugin[]]> = [
+  ["personal", await resolveTestApp("personal")],
+  ["publishing", await resolveTestApp("publishing")],
+  ["team", await resolveTestApp("team")],
+  ["docs", await resolveTestApp("docs")],
+  ["rizom-ai", await resolveTestApp("rizom-ai")],
+];
 
+describe("canonical HTTP route manifests", () => {
   test("normalizes only content-addressed CSS and JavaScript routes", () => {
     expect(
       normalizeRoutePath(
@@ -117,14 +138,6 @@ describe("canonical HTTP route manifests", () => {
   test("inventories every route in the minimal composition", () => {
     expect(minimal).toEqual(readExpected("minimal"));
   });
-
-  const compositionCases: Array<[string, Plugin[]]> = [
-    ["personal", resolveTestApp("personal")],
-    ["publishing", resolveTestApp("publishing")],
-    ["team", resolveTestApp("team")],
-    ["docs", resolveTestApp("docs")],
-    ["rizom-ai", resolveTestApp("rizom-ai")],
-  ];
 
   for (const [name, plugins] of compositionCases) {
     test(`records the ${name} composition delta`, () => {

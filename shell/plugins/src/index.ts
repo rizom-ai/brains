@@ -273,6 +273,7 @@ export {
   createPluginPackageDefinition,
   getPluginPackageMetadata,
   instantiatePluginPackageDefinition,
+  isPackageDefinitionPlugin,
   isPluginPackageDefinition,
   type AnyPluginConfigSchema,
   type CreatePluginPackageDefinitionInput,

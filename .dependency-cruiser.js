@@ -25,7 +25,7 @@ module.exports = {
       to: {
         path: [
           "^packages/brain-sdk/src/internal/",
-          "^shell/plugins/src/entity/entity-runtime\\.ts$",
+          "^shell/plugins/packages/brain-sdk/src/entity/entity-runtime\\.ts$",
           "^shell/plugins/src/service/service-runtime\\.ts$",
         ],
       },
@@ -92,7 +92,7 @@ module.exports = {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Plugins can only import from shell/* and shared/* packages, and the published component library (packages/ui, @rizom/brain-ui)",
+        "Plugins can only import from shell/* and shared/* packages, the published component library (packages/ui, @rizom/brain-ui), and the authoring SDK (packages/brain-sdk, @brains/sdk) that converted packages are written against",
       from: {
         path: "^plugins/",
         // Covered by the companion rule below with a wider builtin allowlist
@@ -102,7 +102,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins

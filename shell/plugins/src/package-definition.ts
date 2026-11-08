@@ -75,6 +75,17 @@ const installedMetadata = new WeakMap<
   PluginPackageDefinition,
   InstalledPluginPackageMetadata
 >();
+/** Every plugin a definition created, so a reader can tell it from a class. */
+const definitionPlugins = new WeakSet<Plugin>();
+
+/**
+ * Whether a definition created this plugin rather than a class constructing
+ * it: such a plugin declares what it serves, its routes included, only once
+ * it registers, which is when the shell collects them.
+ */
+export function isPackageDefinitionPlugin(plugin: Plugin): boolean {
+  return definitionPlugins.has(plugin);
+}
 
 interface RuntimePluginPackageDefinition<
   TConfigSchema extends AnyPluginConfigSchema = AnyPluginConfigSchema,
@@ -303,5 +314,6 @@ export function instantiatePluginPackageDefinition(
       );
     }
   }
+  for (const plugin of plugins) definitionPlugins.add(plugin);
   return plugins;
 }
