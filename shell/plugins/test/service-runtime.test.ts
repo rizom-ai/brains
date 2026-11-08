@@ -5,8 +5,12 @@ import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { baseEntitySchema, createTestEntityAdapter } from "../test";
 import {
+  SYSTEM_CHANNELS,
   createServicePluginContext,
+  createTemplate,
+  defineDashboardWidget,
   defineServicePlugin,
+  type DashboardWidgetRegistration,
   instantiatePluginPackageDefinition,
   serviceRuntime,
   type Plugin,
@@ -891,5 +895,162 @@ describe("a first-party service's profile kinds and AI", () => {
 
     expect(prompts).toEqual(["Who tends this brain?"]);
     expect(answered).toEqual([{ object: { role: "Gardener" } }]);
+  });
+});
+
+describe("a first-party service's data source, template and widget", () => {
+  const mapData = z.object({ count: z.number() });
+
+  function mapping(
+    loads: string[],
+  ): Parameters<typeof instantiatePluginPackageDefinition>[0] {
+    return defineServicePlugin(
+      { id: "probe", config: z.object({}) },
+      {
+        subscriptions: (context) => {
+          const runtime = serviceRuntime(context);
+          runtime.dataSource({
+            id: "map",
+            name: "Map",
+            description: "The corpus",
+            fetch: async (_query, { corpus }) => ({
+              count: await corpus.countEntities({
+                entityType: "note",
+                options: { filter: { visibilityScope: "public" } },
+              }),
+            }),
+          });
+          runtime.template(
+            "map",
+            createTemplate({
+              name: "map",
+              description: "The corpus as a map",
+              schema: mapData,
+              dataSourceId: "probe:map",
+              requiredPermission: "public",
+              // A component returns an element, as a section's does.
+              layout: {
+                component: () => ({ type: "p", props: {}, key: null }),
+              },
+            }),
+          );
+          runtime.dashboardWidget({
+            definition: defineDashboardWidget({
+              id: "map",
+              title: "Map",
+              group: "knowledge",
+              placement: "primary",
+              priority: 30,
+              permission: "public",
+              data: mapData,
+              view: () => ({ blocks: [] }),
+            }),
+            render: { component: () => null, clientStyles: ".map{}" },
+            load: async ({ corpus, visibilityScope }) => {
+              loads.push(visibilityScope);
+              return {
+                count: await corpus.countEntities({
+                  entityType: "note",
+                  options: { filter: { visibilityScope } },
+                }),
+              };
+            },
+          });
+          return [];
+        },
+      },
+    );
+  }
+
+  function noted(): MockShell {
+    const shell = createMockShell();
+    const at = new Date().toISOString();
+    shell.addEntities(
+      ["public", "restricted"].map((visibility) => ({
+        id: `${visibility}-note`,
+        entityType: "note",
+        content: visibility,
+        contentHash: visibility,
+        metadata: {},
+        visibility: visibility === "public" ? "public" : "restricted",
+        created: at,
+        updated: at,
+      })),
+    );
+    return shell;
+  }
+
+  it("serves a data source under the plugin's id, reading at the build's scope", async () => {
+    const shell = noted();
+    await install(shell, mapping([]));
+
+    const source = shell.getDataSourceRegistry().get("probe:map");
+    if (!source?.fetch) throw new Error("No probe:map data source");
+    expect(
+      await source.fetch({}, mapData, {
+        entityService: shell.getEntityService(),
+      }),
+    ).toEqual({ count: 1 });
+  });
+
+  it("registers a built template under the plugin's id, naming its data source", async () => {
+    const shell = noted();
+    await install(shell, mapping([]));
+
+    const template = shell.getTemplates().get("probe:map");
+    expect(template?.dataSourceId).toBe("probe:map");
+    expect(template?.requiredPermission).toBe("public");
+  });
+
+  it("registers its widget with its own renderer once every plugin has registered", async () => {
+    const shell = noted();
+    const registrations: DashboardWidgetRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        },
+      );
+    const loads: string[] = [];
+    await install(shell, mapping(loads));
+    expect(registrations).toEqual([]);
+
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+      sender: "shell",
+    });
+
+    const [registration] = registrations;
+    if (!registration) throw new Error("The widget was not registered");
+    expect(registration).toMatchObject({ id: "map", title: "Map" });
+    expect(registration.renderer).toMatchObject({ clientStyles: ".map{}" });
+    const data = await registration.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
+    expect(data).toMatchObject({ source: { count: 1 } });
+    // A viewer nobody signed in reads as public.
+    expect(loads).toEqual(["public"]);
+  });
+
+  it("registers no widget in a worker", async () => {
+    const shell = noted();
+    const registrations: unknown[] = [];
+    shell.getMessageBus().subscribe("dashboard:register-widget", (message) => {
+      registrations.push(message.payload);
+      return { success: true };
+    });
+    await install(shell, mapping([]), true);
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+      sender: "shell",
+    });
+
+    expect(registrations).toEqual([]);
   });
 });

@@ -13,7 +13,20 @@ import {
 import type { Caller, CallerAccess } from "@brains/content-service";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
-import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  CountEntitiesRequest,
+  DataSource,
+  DataSourceSchema,
+  EntityMutationResult,
+  GetEntityRequest,
+  ListEntitiesRequest,
+  NearestEntity,
+  NearestToEntityRequest,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -36,6 +49,7 @@ import {
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import { emptyPluginState } from "../base/empty-state";
+import { SYSTEM_CHANNELS } from "../system-channels";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -48,7 +62,10 @@ import {
 } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
-import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
+import {
+  createDeclarativeDashboardWidgetRegistration,
+  registerBuiltInDashboardWidget,
+} from "../operator/dashboard-widget-runtime";
 import type {
   OperatorCallScope,
   OperatorRunAs,
@@ -73,6 +90,8 @@ import {
   claimableSystemTypes,
   withServiceRuntime,
   type ClaimedSystemType,
+  type ServiceCorpusReads,
+  type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
 } from "./service-runtime";
@@ -1052,6 +1071,37 @@ class DeclarativeServicePlugin<
         generateObject: (prompt, schema, signal) =>
           context.ai.generateObject(prompt, schema, signal),
       }),
+      dataSource: (declaration): void => {
+        context.entities.registerDataSource(
+          firstPartyDataSource(`${this.id}:${declaration.id}`, declaration),
+        );
+      },
+      template: (name, template): void => {
+        context.templates.register({ [name]: template }, this.id);
+      },
+      dashboardWidget: (widget): void => {
+        // Once the Dashboard host has mounted, as the class registered it.
+        this.answered.push(
+          context.messaging.subscribe(
+            SYSTEM_CHANNELS.pluginsRegistered,
+            async (): Promise<{ success: true }> => {
+              await registerBuiltInDashboardWidget({
+                context,
+                definition: widget.definition,
+                render: widget.render,
+                load: ({ visibilityScope, signal }) =>
+                  widget.load({
+                    corpus: corpusReadsOf(context.entityService),
+                    visibilityScope,
+                    signal,
+                  }),
+                runtimeSignal: this.operatorAbortController.signal,
+              });
+              return { success: true };
+            },
+          ),
+        );
+      },
     });
   }
 
@@ -1540,6 +1590,54 @@ class DeclarativeServicePlugin<
       },
     };
   }
+}
+
+/** The corpus reads a map draws from, each bound on its own so no write rides along. */
+function corpusReadsOf(
+  entityService: ServicePluginContext["entityService"],
+): ServiceCorpusReads {
+  return Object.freeze({
+    listEntities: (request: ListEntitiesRequest): Promise<BaseEntity[]> =>
+      entityService.listEntities(request),
+    getEntity: (request: GetEntityRequest): Promise<BaseEntity | null> =>
+      entityService.getEntity(request),
+    countEntities: (request: CountEntitiesRequest): Promise<number> =>
+      entityService.countEntities(request),
+    nearestToEntity: (
+      request: NearestToEntityRequest,
+    ): Promise<NearestEntity[]> => entityService.nearestToEntity(request),
+    projectSemanticSpace: (
+      request: ProjectSemanticSpaceRequest,
+    ): Promise<SemanticSpaceProjection> =>
+      entityService.projectSemanticSpace(request),
+  });
+}
+
+/**
+ * A first-party data source as the registry serves it: reading the corpus
+ * through the entity service the build hands it, validated against the
+ * caller's schema.
+ */
+function firstPartyDataSource(
+  id: string,
+  declaration: ServiceDataSourceDeclaration,
+): DataSource {
+  return {
+    id,
+    name: declaration.name,
+    description: declaration.description,
+    fetch: async <T>(
+      query: unknown,
+      outputSchema: DataSourceSchema<T>,
+      context: BaseDataSourceContext,
+    ): Promise<T> =>
+      outputSchema.parse(
+        await declaration.fetch(query, {
+          corpus: corpusReadsOf(context.entityService),
+          publishedOnly: context.publishedOnly === true,
+        }),
+      ),
+  };
 }
 
 /** Which package claimed each shell system type, per shell. */

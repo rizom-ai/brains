@@ -11,13 +11,21 @@ import type { ChannelDeliveryProvider } from "../channel-registry";
 import type {
   BaseEntity,
   ContentVisibility,
+  CountEntitiesRequest,
   CreateEntityRequest,
   EntityMutationResult,
   GetEntityRequest,
   ListEntitiesRequest,
+  NearestEntity,
+  NearestToEntityRequest,
   PersistValidator,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
   UpdateEntityRequest,
 } from "@brains/entity-service";
+import type { Template } from "@brains/templates";
+import type { DashboardWidgetRenderer } from "../contracts/dashboard-widget-contracts";
+import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   buildServiceTool,
@@ -170,6 +178,67 @@ export interface ServiceRuntime {
   readonly profileKinds: IProfileKindsNamespace;
   /** One structured answer from the brain's AI, as the class asked it. */
   readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  /**
+   * Serve a data source under `<plugin id>:<id>`, as an entity plugin class
+   * registered one: `fetch` reads the corpus at the build's scope, through
+   * the entity service the build hands the data source, and the runtime
+   * validates what it returns against the caller's schema.
+   */
+  dataSource(declaration: ServiceDataSourceDeclaration): void;
+  /**
+   * Register a template built with the internal template builder under
+   * `<plugin id>:<name>`, such as a site section that names a data source
+   * and keeps its own overlay formatter.
+   */
+  template(name: string, template: Template): void;
+  /**
+   * A Dashboard widget that draws itself, as the class's built-in widget
+   * did: registered once every plugin has registered, never in a worker, its
+   * `load` reading the corpus at the viewer's scope.
+   */
+  dashboardWidget<TDefinition extends AnyDashboardWidgetDefinition>(
+    widget: ServiceDashboardWidget<TDefinition>,
+  ): void;
+}
+
+/** The corpus reads a map draws from, passed through to an entity service. */
+export interface ServiceCorpusReads {
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  countEntities(request: CountEntitiesRequest): Promise<number>;
+  nearestToEntity(request: NearestToEntityRequest): Promise<NearestEntity[]>;
+  projectSemanticSpace(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
+}
+
+export interface ServiceDataSourceDeclaration {
+  /** Local id; the runtime scopes it to the plugin. */
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch(
+    query: unknown,
+    context: {
+      readonly corpus: ServiceCorpusReads;
+      /** True for a production build, which shows only published records. */
+      readonly publishedOnly: boolean;
+    },
+  ): Promise<unknown>;
+}
+
+export interface ServiceDashboardWidget<
+  TDefinition extends AnyDashboardWidgetDefinition,
+> {
+  readonly definition: TDefinition;
+  /** The widget's own component and styles, in place of the declarative body. */
+  readonly render: DashboardWidgetRenderer;
+  load(provider: {
+    readonly corpus: ServiceCorpusReads;
+    /** What the viewer may read: pass it to every read. */
+    readonly visibilityScope: ContentVisibility;
+    readonly signal: AbortSignal;
+  }): z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
 }
 
 /** The entity service's reads a first-party class made, and nothing that writes. */
@@ -211,6 +280,11 @@ export interface ServiceRuntimeBinding {
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  readonly dataSource: (declaration: ServiceDataSourceDeclaration) => void;
+  readonly template: (name: string, template: Template) => void;
+  readonly dashboardWidget: <TDefinition extends AnyDashboardWidgetDefinition>(
+    widget: ServiceDashboardWidget<TDefinition>,
+  ) => void;
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
@@ -228,6 +302,9 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     claim: binding.claim,
     profileKinds: binding.profileKinds,
     ai: binding.ai,
+    dataSource: binding.dataSource,
+    template: binding.template,
+    dashboardWidget: binding.dashboardWidget,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
     },
