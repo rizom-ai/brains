@@ -302,8 +302,9 @@ export type EntityPackageConfigSchema = z.ZodObject<z.ZodRawShape>;
 
 /**
  * The config-dependent slots of one entity in its package, bound by
- * `configure`: only the slots a package needs its config for. A slot the
- * entity already declares statically is refused.
+ * `configure`: only the slots a package needs its config for, such as a
+ * provider or a job that reads an API token. A slot the entity already
+ * declares statically, or one `configure` cannot bind, is refused.
  */
 export type EntitySlotBinding<TEntity extends AnyEntityDefinition> =
   TEntity extends EntityDefinition<string, infer TMetadataSchema>
@@ -311,8 +312,22 @@ export type EntitySlotBinding<TEntity extends AnyEntityDefinition> =
         readonly entity: TEntity;
         readonly create?: EntityCreateRouting<TMetadataSchema> | undefined;
         readonly evals?: EntityEvalDeclaration | undefined;
+        readonly publish?: TEntity["publish"];
+        readonly projectionRules?: TEntity["projectionRules"];
+        readonly jobs?: TEntity["jobs"];
+        readonly generation?: TEntity["generation"];
       }
     : never;
+
+/** The slots `configure` binds; any other key a binding names is refused. */
+const BOUND_SLOTS = [
+  "create",
+  "evals",
+  "publish",
+  "projectionRules",
+  "jobs",
+  "generation",
+] as const;
 
 /**
  * What an entity package's `configure` answers for its parsed config: data
@@ -420,21 +435,29 @@ function boundSlots(
         `Entity package "${packageId}" configures "${entity.type}" twice`,
       );
     }
-    for (const slot of ["create", "evals"] as const) {
+    // A key configure does not bind would otherwise be dropped unseen.
+    const unbindable = Object.keys(binding).find(
+      (key) =>
+        key !== "entity" && !BOUND_SLOTS.some((slot): boolean => slot === key),
+    );
+    if (unbindable !== undefined) {
+      throw new Error(
+        `Entity package "${packageId}" cannot configure the ${unbindable} of "${entity.type}"; configure binds ${BOUND_SLOTS.join(", ")}`,
+      );
+    }
+    for (const slot of BOUND_SLOTS) {
       if (binding[slot] !== undefined && entity[slot] !== undefined) {
         throw new Error(
           `Entity package "${packageId}" configures the ${slot} of "${entity.type}", which declares it already`,
         );
       }
     }
-    bound.set(
-      entity,
-      Object.freeze({
-        ...entity,
-        ...(binding.create !== undefined && { create: binding.create }),
-        ...(binding.evals !== undefined && { evals: binding.evals }),
-      }),
+    const slots = Object.fromEntries(
+      BOUND_SLOTS.flatMap((slot) =>
+        binding[slot] === undefined ? [] : [[slot, binding[slot]]],
+      ),
     );
+    bound.set(entity, Object.freeze({ ...entity, ...slots }));
   }
   return bound;
 }
