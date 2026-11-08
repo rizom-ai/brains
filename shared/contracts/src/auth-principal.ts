@@ -11,10 +11,6 @@ export const authPrincipalResolveRequestSchema: AuthPrincipalResolveRequestSchem
     actor: actorRefSchema,
   });
 
-export type AuthPrincipalResolveRequest = z.output<
-  typeof authPrincipalResolveRequestSchema
->;
-
 type AuthPrincipalAttributionSchema = z.ZodObject<{
   userId: z.ZodString;
   personId: z.ZodString;

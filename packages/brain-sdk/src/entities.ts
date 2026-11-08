@@ -96,16 +96,3 @@ export type {
   PublishProvider,
   PublishResult,
 } from "@brains/contracts";
-
-export type {
-  BaseEntity,
-  EntityInput,
-  EntityMutationResult,
-  SearchResult,
-  ListOptions,
-  SearchOptions,
-  PaginationInfo,
-  PaginateOptions,
-  PaginateResult,
-  FrontmatterConfig,
-} from "@brains/entity-service";

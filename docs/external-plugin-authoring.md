@@ -1,20 +1,15 @@
 # External Package Authoring
 
-> **Alpha preview for collaborators.** This candidate is under final API review
-> and is not yet stable `0.2.0`. The last exact registry-tested combination was
-> `@rizom/brain@0.2.0-alpha.313` with `@rizom/site@0.2.0-alpha.233`; the final
-> candidate may advance after review. Do not widen peer ranges to stable `0.2.x`
-> until the stable release is published.
-
 Rizom extensions are declarative packages. You describe domain schemas and
 behavior, default-export the resulting definition, and compose it into a Brain
 with `use()`. You do not subclass a runtime plugin or work with registries,
 queues, process roles, or package metadata in TypeScript.
 
-If you are reviewing the API, start with this guide and then read the checked
-[golden packages](../packages/brain-cli/test/fixtures/public-authoring/README.md).
-The [stable symbol ledger](./public-release/AUTHORING_API_0.2.md) is the exact
-contract reference; it is not the best introduction.
+For one package end to end, start with the [Package Quickstart](./package-quickstart.md).
+This guide covers every package family. The checked
+[golden packages](../packages/brain-cli/test/fixtures/public-authoring/README.md)
+are complete reference source, and the [public API ledger](./public-release/AUTHORING_API_0.2.md)
+states every stable contract and the rules the families share.
 
 ## The model in one minute
 
@@ -50,6 +45,7 @@ The runtime owns:
 | Connect a conversational/outbound transport  | `@rizom/brain/interfaces` | [`defineMessageInterface()`](../packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts) |
 | Define layouts, routes, sections, and assets | `@rizom/site`             | [`defineSite()`](../packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx)                         |
 | Compose packages into one Brain              | `@rizom/brain`            | [`defineBrain()`](../packages/brain-cli/test/fixtures/public-authoring/brain-definition/src/index.ts)             |
+| Test a package on the runtime                | `@rizom/brain/testing`    | [`startTestBrain()`](../packages/brain-cli/test/fixtures/public-authoring/reminders/test/reminders.exercise.ts)   |
 
 Use one family for one concern. A transport that needs durable work imports a
 service job definition and enqueues it; it does not become a service/queue
@@ -89,18 +85,18 @@ calendar-plugin/
     "build": "tsc -p tsconfig.json"
   },
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.313 <0.3.0"
+    "@rizom/brain": ">=0.2.0 <0.3.0"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.313",
+    "@rizom/brain": "0.2.0",
     "typescript": "^7.0.2"
   }
 }
 ```
 
-The peer range states host compatibility. The exact development dependency
-makes local typechecking reproducible. When stable `0.2.0` exists, new packages
-use `>=0.2.0 <0.3.0` for the stable patch line.
+The peer range is the brains the package runs on; the exact development
+dependency is the one it is built and tested against. Before `0.2.0` is
+published, use the exact alpha you develop against for both.
 
 `tsconfig.json`:
 
@@ -207,7 +203,7 @@ configuration/environment interpolation, not in package defaults.
 
 ## How the complete reference fits together
 
-The eight golden packages form one reading-library example:
+The golden packages form one reading-library example:
 
 ```text
 bookmark entity ──projection──▶ reading-digest entity
@@ -245,6 +241,15 @@ Read them in this order:
 8. [Account-settings interface](../packages/brain-cli/test/fixtures/public-authoring/account-settings-interface/src/index.ts)
    — the same settings contract in an interface with runtime-owned per-account
    daemon supervision.
+9. [Profile steward](../packages/brain-cli/test/fixtures/public-authoring/profile-steward/src/index.ts)
+   — the one package that writes the reader profile, and the contract it
+   answers for changes.
+10. [Profile import](../packages/brain-cli/test/fixtures/public-authoring/profile-import/src/index.ts)
+    — an importer that asks the steward through its contract instead of
+    writing the profile itself.
+11. [Reminders](../packages/brain-cli/test/fixtures/public-authoring/reminders/src/index.ts)
+    — one service end to end, with [its own test](../packages/brain-cli/test/fixtures/public-authoring/reminders/test/reminders.exercise.ts)
+    on `@rizom/brain/testing`.
 
 These are standalone packages with their own manifests and TypeScript configs.
 CI builds, packs, installs, imports, boots, and exercises them outside the
@@ -262,9 +267,11 @@ search indexing, scheduling, and loop prevention stay runtime-owned.
 
 ### Entity data and templates
 
-A declarative entity definition does **not** have a `templates` field. Entities
-own storage schemas, optional Markdown encoding, and projections. Put formatting
-or presentation in a separately composed service and read the entity from a job:
+An entity type can declare presentation `templates` and a `feed` of its own;
+the entity fixture's
+[presentation canary](../packages/brain-cli/test/fixtures/public-authoring/entity/src/presentation-type-canary.ts)
+shows both. Formatting that a service's work produces belongs in that service's
+`templates`, and the service reads the entity from a job:
 
 <!-- public-authoring-example: external-template-service -->
 
@@ -340,16 +347,12 @@ Rules that are easy to miss:
 
 Several unrelated concepts also use the word “template”:
 
-| Concept                         | Meaning                                                                    |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| Entity `markdown` codec         | Converts persisted content/metadata to and from Markdown; not presentation |
-| Service `templates`             | Schema-validated text formatting and web rendering for that service        |
-| Site route `template`           | A `namespace:section` reference created by `sectionGroup()`                |
-| `@rizom/brain/templates` import | Advanced rich-rendering API outside the patch-stable `0.2` contract        |
-
-Normal external packages should use the family fields above. Pin an exact Brain
-version before deliberately using the advanced `@rizom/brain/templates`
-subpath.
+| Concept                 | Meaning                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Entity `markdown` codec | Converts persisted content/metadata to and from Markdown; not presentation |
+| Entity `templates`      | Presentation an entity type declares, scoped to the type                   |
+| Service `templates`     | Schema-validated text formatting and web rendering for that service        |
+| Site route `template`   | A `namespace:section` reference created by `sectionGroup()`                |
 
 ### Services and durable jobs
 
@@ -369,6 +372,31 @@ another package, runs as the service: its own types are its to read at every
 visibility and to write past the action policy, which governs callers. If the
 requester's account is revoked before the job runs, the job fails. A service
 writes only the entity types its header's `entities` declares.
+
+### Failures
+
+Throw `new SdkError(code, { message, publicMessage })` for a failure the caller
+should be told about. The caller gets the `code` and the `publicMessage`, or
+the code's standard message: a tool answers `{ success: false, code, error }`,
+a job's status carries the code, and a route answers `{ error, code }` with the
+HTTP status the code names. The message stays in the brain's logs. Any other
+thrown error reaches the caller as `handler_failed`.
+
+### Contracts and stewardship
+
+Packages talk over the message bus by contract. `defineBusContract()` declares
+a request one package answers or a command every package hears; the package
+exports it for the packages that ask. The owner answers in its `subscriptions`
+slot with `answer(contract, handler)`, on a channel its package name owns
+(`<package name>:<name>`), and an asker calls `messaging.request(contract,
+request)` and reads a `BusResult`.
+
+A package stewards the entity types its header owns: it alone writes them.
+Another package that needs one changed asks the steward through a contract the
+steward answers, and the steward decides by the request's `sender`. The
+[profile steward](../packages/brain-cli/test/fixtures/public-authoring/profile-steward/src/index.ts)
+and [importer](../packages/brain-cli/test/fixtures/public-authoring/profile-import/src/index.ts)
+fixtures show both sides.
 
 ### Account settings and operator surfaces
 
@@ -419,9 +447,7 @@ Widgets and workspaces do not reference or discover each other. A missing
 optional host is a true no-op, and execution-only workers do not bind operator
 callbacks. See the checked [operator fixture](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)
 for a complete cast-free package and its [capability inventory](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/CAPABILITY_INVENTORY.md)
-for the built-in equivalence evidence. The local packed operator consumer also
-checks the additive card/columns type exports; exact registry evidence covers
-their first published release in `@rizom/brain@0.2.0-alpha.313`.
+for the built-in operator surfaces each contract covers.
 
 ### Generic interfaces
 
@@ -460,6 +486,20 @@ definition never embeds a runtime plugin. See [External Site and Theme
 Authoring](./external-site-authoring.md) for package metadata and the full site
 example.
 
+## Testing a package
+
+`@rizom/brain/testing` runs a package's own tests on the runtime itself.
+`startTestBrain({ plugins: [use(definition)] })` starts a brain in the test's
+process, on the runtime's own services and a temporary storage of its own, and
+runs the packages under the name the working directory's `package.json` gives
+them. The brain calls tools as `brain tool` does, asks contracts, serves the
+packages' routes, reads what they stored, and waits for queued jobs. It calls
+tools only as the operator, an admin, asks contracts only as the brain itself,
+and reaches no AI provider. The [Package Quickstart](./package-quickstart.md)
+shows a complete test, and the
+[reminders test](../packages/brain-cli/test/fixtures/public-authoring/reminders/test/reminders.exercise.ts)
+drives a tool, a contract, a route and a job together.
+
 ## Packaging checklist
 
 Before publishing an external package:
@@ -473,6 +513,7 @@ Before publishing an external package:
 - do not import a package manifest or repeat package name/version in source;
 - do not add direct `zod`, runtime classes, registries, queue types, shell
   objects, or process-role branches;
+- run the package's own tests with `@rizom/brain/testing`;
 - pack and install the tarball in a clean consumer before publishing.
 
 ## Common mistakes
@@ -496,14 +537,3 @@ functions, named `plugin` factories, or `brain.yaml` package declarations. Move
 package imports into a brain-definition package and compose default definitions
 with `use()`. The [alpha migration guide](./public-release/AUTHORING_0.2_MIGRATION.md)
 lists every corrected signature.
-
-## Where to give feedback
-
-For pre-release review, focus on author experience rather than internal
-implementation:
-
-- Is the right family obvious?
-- Is any runtime bookkeeping leaking into domain source?
-- Does schema/config inference behave as expected?
-- Is a common capability missing from the declarative model?
-- Would you be comfortable maintaining the package through the `0.2.x` line?

@@ -1,5 +1,62 @@
 # @brains/db
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`2260166`](https://github.com/rizom-ai/brains/commit/226016664a9c4d82759ce864b23a6371eb827856) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bundled module finds its migrations in the bundle's `dist/migrations` whether it is an entry or a shared chunk below `dist`, where a chunk used to look for them in `dist/chunks/migrations`. The auth service resolves its migrations the same way as every other store.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.651
+
 ## 0.2.0-alpha.650
 
 ### Patch Changes

@@ -7,7 +7,7 @@ import {
   type AgentToolsConfigInput,
 } from "../src/plugins/agent-tools-plugin";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
-import type { FetchFn } from "../src/lib/fetch-agent-card";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { agentEntitySchema } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
 
@@ -17,7 +17,7 @@ interface MockHost {
 }
 
 function createMockNetwork(hosts: Record<string, MockHost>): {
-  fetch: FetchFn;
+  fetch: FetchLike;
   calls: string[];
 } {
   const calls: string[] = [];
@@ -74,7 +74,7 @@ function directoryOf(...urls: string[]): unknown {
 }
 
 async function setupHarness(network: {
-  fetch: FetchFn;
+  fetch: FetchLike;
 }): Promise<ReturnType<typeof createPluginHarness<Plugin>>> {
   const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
   await harness.installPlugin(new AgentDiscoveryPlugin());
@@ -91,7 +91,7 @@ type CapturedRecurringCheck = Parameters<
 >[0];
 
 async function setupRecurringCheck(
-  network: { fetch: FetchFn },
+  network: { fetch: FetchLike },
   config: AgentToolsConfigInput = {},
 ): Promise<{
   harness: AgentDiscoveryTestHarness;
@@ -216,7 +216,7 @@ describe("agent_scan_directories", () => {
     const started = new Promise<void>((resolve) => {
       markStarted = resolve;
     });
-    const fetchFn: FetchFn = (_url, init) =>
+    const fetchFn: FetchLike = (_url, init) =>
       new Promise((_resolve, reject) => {
         markStarted?.();
         init?.signal?.addEventListener(
@@ -248,6 +248,31 @@ describe("agent_scan_directories", () => {
 
     expect(run).rejects.toBe(abortReason);
     await run.catch(() => undefined);
+    await harness.reset();
+  });
+
+  it("bounds every directory and card request with a timeout signal", async () => {
+    const network = createMockNetwork({
+      "kai.brain": { directory: directoryOf("https://vale.example/a2a") },
+      "vale.example": { card: createAgentCard("vale.example", "Vale") },
+    });
+    const signals: Array<AbortSignal | undefined> = [];
+    const harness = await setupHarness({
+      fetch: (url, init) => {
+        signals.push(init?.signal ?? undefined);
+        return network.fetch(url, init);
+      },
+    });
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({ id: "kai.brain", status: "approved" }),
+    });
+
+    // No caller signal: each request still carries one, its timeout.
+    expectSuccess(await harness.executeTool("agent_scan_directories", {}));
+
+    expect(signals).toHaveLength(2);
+    for (const signal of signals) expect(signal).toBeInstanceOf(AbortSignal);
+
     await harness.reset();
   });
 
@@ -482,6 +507,36 @@ describe("agent_scan_directories", () => {
     if (!after) throw new Error("Expected agent after rescan");
     const parsed = new AgentAdapter().parseEntity(after);
     expect(parsed.frontmatter.introducedBy).toEqual(["kai.brain"]);
+
+    await harness.reset();
+  });
+  it("leaves a sighting unverified when its card points at another host", async () => {
+    const network = createMockNetwork({
+      "kai.brain": {
+        directory: directoryOf("https://vale.example/a2a"),
+      },
+      "vale.example": {
+        card: {
+          ...createAgentCard("vale.example", "Vale"),
+          url: "https://elsewhere.example/a2a",
+        },
+      },
+    });
+    const harness = await setupHarness(network);
+    const entityService = harness.getEntityService();
+    await entityService.createEntity({
+      entity: createTestAgent({ id: "kai.brain", status: "approved" }),
+    });
+
+    const result = await harness.executeTool("agent_scan_directories", {});
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({ created: 0, unverified: 1 });
+    for (const id of ["vale.example", "elsewhere.example"]) {
+      expect(
+        await entityService.getEntity({ entityType: "agent", id }),
+      ).toBeNull();
+    }
 
     await harness.reset();
   });

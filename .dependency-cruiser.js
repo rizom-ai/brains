@@ -132,10 +132,28 @@ module.exports = {
         "Entity packages should not import from other entity packages - use shared packages instead",
       from: {
         path: "^entities/([^/]+)/",
-        pathNot: "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow integration tests
+        pathNot: [
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow integration tests
+          "^entities/[^/]+/src/eval/", // Eval-only entries; see the rule below
+        ],
       },
       to: {
         path: "^entities/(?!$1/)",
+      },
+    },
+    {
+      name: "eval-entries-stay-out-of-production",
+      severity: "error",
+      comment:
+        "An entity's eval-only entry (src/eval/, its ./eval subpath, named by evals/eval.yaml) may compose other entities as devDependencies; nothing but tests imports it, so none of that reaches a brain",
+      from: {
+        pathNot: [
+          "^entities/[^/]+/src/eval/",
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$",
+        ],
+      },
+      to: {
+        path: "^entities/[^/]+/src/eval/",
       },
     },
     {

@@ -1,5 +1,5 @@
 import {
-  internalFullScope,
+  permissionToVisibilityScope,
   type InterfacePluginContext,
 } from "@brains/plugins";
 import {
@@ -57,7 +57,9 @@ export interface A2AMessageHandlerOptions {
  * Register the in-process A2A surface used by packages that must not depend
  * on this interface directly. Calls use the exact outbound validation,
  * Agent Card verification, signing, and network path as agent_call, but are
- * restricted to saved approved agents.
+ * restricted to saved approved agents the requester can see: a Studio call
+ * and the agent list carry the author's level, and a network ask, which
+ * carries none, sees agents saved public, the peers network_ask picks.
  */
 export function registerA2ACallMessageHandlers(
   context: InterfacePluginContext,
@@ -113,7 +115,12 @@ export function registerA2ACallMessageHandlers(
 
   context.messaging.answer(
     a2aCallContract,
-    async ({ agent, instruction, selection }): Promise<A2APeerAnswer> => {
+    async ({
+      agent,
+      instruction,
+      selection,
+      userPermissionLevel,
+    }): Promise<A2APeerAnswer> => {
       const result = await executeAgentCall(
         {
           agent,
@@ -126,7 +133,7 @@ export function registerA2ACallMessageHandlers(
           ].join("\n"),
         },
         deps,
-        { requireSaved: true },
+        { requireSaved: true, userPermissionLevel },
       );
       if (!("success" in result) || result.success !== true) {
         throw callRefusal(result, "Agent call failed");
@@ -141,30 +148,34 @@ export function registerA2ACallMessageHandlers(
     },
   );
 
-  context.messaging.answer(a2aAgentsContract, async () => {
-    if (!context.entityService.hasEntityType("agent")) return { agents: [] };
+  context.messaging.answer(
+    a2aAgentsContract,
+    async ({ userPermissionLevel }) => {
+      if (!context.entityService.hasEntityType("agent")) return { agents: [] };
 
-    const entities = await context.entityService.listEntities({
-      entityType: "agent",
-      options: {
-        filter: {
-          visibilityScope: internalFullScope(
-            "Admin Studio lists approved A2A contacts at any visibility",
-          ),
+      // The agents a Studio author may ask: the ones a2a:call:request
+      // resolves for the same level.
+      const entities = await context.entityService.listEntities({
+        entityType: "agent",
+        options: {
+          filter: {
+            visibilityScope: permissionToVisibilityScope(userPermissionLevel),
+          },
         },
-      },
-    });
-    const agents: A2ADirectoryAgent[] = entities
-      .filter((entity) => entity.metadata["status"] === "approved")
-      .map((entity) => {
-        const name = entity.metadata["name"];
-        return {
-          id: entity.id,
-          label: typeof name === "string" && name.length > 0 ? name : entity.id,
-        };
-      })
-      .sort((left, right) => left.label.localeCompare(right.label));
+      });
+      const agents: A2ADirectoryAgent[] = entities
+        .filter((entity) => entity.metadata["status"] === "approved")
+        .map((entity) => {
+          const name = entity.metadata["name"];
+          return {
+            id: entity.id,
+            label:
+              typeof name === "string" && name.length > 0 ? name : entity.id,
+          };
+        })
+        .sort((left, right) => left.label.localeCompare(right.label));
 
-    return { agents };
-  });
+      return { agents };
+    },
+  );
 }

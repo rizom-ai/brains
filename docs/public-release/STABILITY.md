@@ -84,8 +84,9 @@ Stable external packages use generated declarative authoring subpaths:
 - `@rizom/brain/entities` for entity packages and projections;
 - `@rizom/brain/services` for services, tools, and durable jobs;
 - `@rizom/brain/interfaces` for routes, daemons, and message interfaces;
-- `@rizom/site` for site definitions and schema-first sections; and
-- `@rizom/brain/plugins` only for nominated advanced shared contracts.
+- `@rizom/site` for site definitions and schema-first sections;
+- `@rizom/brain-ui` for the components a section renders entities with; and
+- `@rizom/brain/testing` for a package's own tests on the runtime.
 
 Each extension package default-exports one definition returned by its family helper. Config input and parsed callback config derive from one schema. Installed package metadata, capability scoping, registration, worker/web placement, rollback, and shutdown remain runtime-owned. Published declarations are generated from source and guarded against internal `@brains/*` imports.
 

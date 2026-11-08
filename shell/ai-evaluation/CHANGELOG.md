@@ -1,5 +1,117 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.658
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/ai-service@0.2.0-alpha.658
+  - @brains/app@0.2.0-alpha.658
+  - @brains/mcp-service@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+  - @brains/templates@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.657
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/ai-service@0.2.0-alpha.657
+  - @brains/app@0.2.0-alpha.657
+  - @brains/mcp-service@0.2.0-alpha.657
+  - @brains/plugins@0.2.0-alpha.657
+  - @brains/templates@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.656
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/ai-service@0.2.0-alpha.656
+  - @brains/app@0.2.0-alpha.656
+  - @brains/mcp-service@0.2.0-alpha.656
+  - @brains/plugins@0.2.0-alpha.656
+  - @brains/templates@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.655
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/ai-service@0.2.0-alpha.655
+  - @brains/app@0.2.0-alpha.655
+  - @brains/mcp-service@0.2.0-alpha.655
+  - @brains/plugins@0.2.0-alpha.655
+  - @brains/templates@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.654
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/ai-service@0.2.0-alpha.654
+  - @brains/app@0.2.0-alpha.654
+  - @brains/mcp-service@0.2.0-alpha.654
+  - @brains/plugins@0.2.0-alpha.654
+  - @brains/templates@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/app@0.2.0-alpha.653
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/ai-service@0.2.0-alpha.653
+  - @brains/content-formatters@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/mcp-service@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.652
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/ai-service@0.2.0-alpha.652
+  - @brains/app@0.2.0-alpha.652
+  - @brains/mcp-service@0.2.0-alpha.652
+  - @brains/plugins@0.2.0-alpha.652
+  - @brains/templates@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.651
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/ai-service@0.2.0-alpha.651
+  - @brains/app@0.2.0-alpha.651
+  - @brains/mcp-service@0.2.0-alpha.651
+  - @brains/plugins@0.2.0-alpha.651
+  - @brains/templates@0.2.0-alpha.651
+
 ## 0.2.0-alpha.650
 
 ### Patch Changes

@@ -1,5 +1,10 @@
 import {
   ConfirmationArgsStore,
+  canWriteVisibility,
+  fetchVerifiedAgentCard,
+  internalFullScope,
+  isEndpointRefusal,
+  type ParsedAgentCard,
   type Tool,
   type ToolResponse,
 } from "@brains/plugins";
@@ -7,14 +12,11 @@ import type {
   EntityPluginContext,
   ServicePluginContext,
 } from "@brains/plugins";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
-import {
-  extractDomain,
-  fetchAgentCard,
-  type FetchFn,
-} from "../lib/fetch-agent-card";
+import { extractDomain } from "../lib/extract-domain";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import { getErrorMessage } from "@brains/utils/error";
@@ -42,40 +44,58 @@ type AgentConnectContext = Pick<
 
 const agentAdapter = new AgentAdapter();
 
-function normalizeSourceUrl(sourceUrl: string): {
-  domain: string;
-  fetchTarget: string;
-} | null {
-  const domain = extractDomain(sourceUrl);
-  if (!domain) return null;
-  return {
-    domain,
-    fetchTarget: sourceUrl.trim().startsWith("http")
-      ? sourceUrl.trim()
-      : domain,
-  };
+/**
+ * The host an agent is connected under: the one its card is fetched from,
+ * over HTTPS. An http:// source is refused rather than upgraded.
+ */
+function normalizeSourceUrl(
+  sourceUrl: string,
+): { ok: true; domain: string } | { ok: false; error: string } {
+  if (/^http:\/\//i.test(sourceUrl.trim())) {
+    return {
+      ok: false,
+      error: "Invalid agent URL. Agent URLs must use https://.",
+    };
+  }
+  const domain = extractDomain(sourceUrl).toLowerCase();
+  if (!domain) {
+    return {
+      ok: false,
+      error: "Provide a valid remote agent domain or URL to connect.",
+    };
+  }
+  return { ok: true, domain };
 }
 
-function getEntityIdForCard(inputDomain: string, cardUrl: string): string {
-  const cardDomain = extractDomain(cardUrl);
-  return (cardDomain || inputDomain).toLowerCase();
+/**
+ * The agent already saved under `entityId`, at any visibility: whether
+ * connecting creates or updates it depends on what is stored, not on what
+ * the caller may read.
+ */
+function findSavedAgent(
+  context: AgentConnectContext,
+  entityId: string,
+): Promise<AgentEntity | null> {
+  return context.entityService.getEntity(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+      id: entityId,
+      visibilityScope: internalFullScope(
+        "agent_connect decides create or update; a refusal reveals only that the agent is saved",
+      ),
+    },
+    agentEntitySchema,
+  );
 }
 
 async function upsertConnectedAgent(params: {
   context: AgentConnectContext;
   entityId: string;
-  sourceUrl: string;
-  card: NonNullable<Awaited<ReturnType<typeof fetchAgentCard>>>;
+  existing: AgentEntity | null;
+  card: ParsedAgentCard;
 }): Promise<{ entity: AgentEntity; created: boolean }> {
-  const { context, entityId, card } = params;
+  const { context, entityId, existing, card } = params;
   const now = new Date().toISOString();
-  const existing = await context.entityService.getEntity(
-    {
-      entityType: AGENT_ENTITY_TYPE,
-      id: entityId,
-    },
-    agentEntitySchema,
-  );
   const built = buildAgentFromCard(card, { status: "approved" });
   const parsedContent = agentAdapter.fromMarkdown(built.content);
   const metadata = {
@@ -110,7 +130,7 @@ async function upsertConnectedAgent(params: {
 
 export function createAgentConnectTool(
   context: AgentConnectContext,
-  fetchFn: FetchFn = globalThis.fetch,
+  fetchFn: FetchLike = globalThis.fetch,
 ): Tool {
   const toolName = "agent_connect";
   const confirmationArgsStore = new ConfirmationArgsStore();
@@ -133,10 +153,10 @@ export function createAgentConnectTool(
 
       const input = parsed.data;
       const normalized = normalizeSourceUrl(input.source.url);
-      if (!normalized) {
+      if (!normalized.ok) {
         return {
           success: false,
-          error: "Provide a valid remote agent domain or URL to connect.",
+          error: normalized.error,
           code: "invalid_agent_url",
         };
       }
@@ -172,8 +192,44 @@ export function createAgentConnectTool(
           };
         }
 
-        const card = await fetchAgentCard(normalized.fetchTarget, fetchFn);
-        if (!card) {
+        // A caller may change only what it may write: an agent saved above
+        // that is refused before any request, naming no content or status.
+        const existing = await findSavedAgent(context, normalized.domain);
+        if (
+          existing &&
+          !canWriteVisibility(
+            toolContext.userPermissionLevel,
+            existing.visibility,
+          )
+        ) {
+          return {
+            success: false,
+            error: `Agent ${normalized.domain} is already saved and can't be changed at your access.`,
+            code: "agent_already_saved",
+          };
+        }
+
+        const verified = await fetchVerifiedAgentCard(normalized.domain, {
+          fetch: fetchFn,
+          signal: toolContext.signal,
+        });
+        if (!verified.ok) {
+          // A card that points elsewhere would save and approve the agent
+          // under a host it was not fetched from; refuse it, naming both.
+          if (isEndpointRefusal(verified.reason)) {
+            return {
+              success: false,
+              error: verified.error,
+              code: "untrusted_agent_card",
+            };
+          }
+          if (verified.reason === "invalid_host") {
+            return {
+              success: false,
+              error: verified.error,
+              code: "invalid_agent_url",
+            };
+          }
           return {
             success: false,
             error: `Could not verify an A2A Agent Card for ${normalized.domain}.`,
@@ -181,11 +237,11 @@ export function createAgentConnectTool(
           };
         }
 
-        const entityId = getEntityIdForCard(normalized.domain, card.url);
+        const { card } = verified;
         const { entity, created } = await upsertConnectedAgent({
           context,
-          entityId,
-          sourceUrl: input.source.url,
+          entityId: normalized.domain,
+          existing,
           card,
         });
 

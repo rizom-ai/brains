@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { AgentAdapter, SkillAdapter } from "@brains/agent-discovery";
 import { ProjectionJsonObjectSchema } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockProgressReporter } from "@brains/test-utils";
 import { SwotAdapter, SwotAssessmentPlugin } from "../src";
-import { AgentAdapter, SkillAdapter } from "./helpers";
 import {
   buildDraftPromptFallback,
   buildPromptContext,

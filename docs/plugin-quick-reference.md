@@ -102,8 +102,7 @@ template renders on the web when it declares `renderers.web`, a component given
 the parsed value as props.
 
 Do not confuse service templates with an entity's persistence `markdown` codec
-or a site's `namespace:section` route template. The generic
-`@rizom/brain/templates` subpath remains an advanced exact-version API. See
+or a site's `namespace:section` route template. See
 [Entity data and templates](./external-plugin-authoring.md#entity-data-and-templates)
 for the complete rules and checked reference.
 

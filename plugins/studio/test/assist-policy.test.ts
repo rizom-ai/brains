@@ -249,6 +249,7 @@ describe("Studio assist policy", () => {
           canonicalId: trustedPrincipal.canonicalId,
         },
         interfaceType: "studio",
+        userPermissionLevel: "trusted",
       },
       {
         agent: "reviewer",
@@ -262,6 +263,7 @@ describe("Studio assist policy", () => {
           canonicalId: trustedPrincipal.canonicalId,
         },
         interfaceType: "studio",
+        userPermissionLevel: "trusted",
       },
     ]);
   });

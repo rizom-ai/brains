@@ -56,15 +56,36 @@ export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
-  return sharedEntityDisplayTitle(context.entities, entity);
+  // Studio reads a declared type as stored, while its title is derived from
+  // the record as the type reads it: the body, not the document.
+  const declared =
+    context.entities.getAdapter(entity.entityType)?.metadataFromFrontmatter ===
+    true;
+  return sharedEntityDisplayTitle(
+    context.entities,
+    declared
+      ? {
+          ...entity,
+          content: splitEntityContent(
+            entity.entityType,
+            entity.content,
+            context,
+          ).body,
+        }
+      : entity,
+  );
 }
 
-/** Authoring reads preserve source; rendering must never change a save draft. */
+/**
+ * Authoring reads preserve source; rendering must never change a save draft.
+ * The source is the stored document, frontmatter included, which a declared
+ * type's ordinary reads leave out.
+ */
 function readEditorEntity(
   context: ServicePluginContext,
   request: GetEntityRequest,
 ): Promise<BaseEntity | null> {
-  return context.entityService.getEntityRaw(request);
+  return context.entityService.getEntityRaw({ ...request, source: true });
 }
 
 const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
@@ -273,6 +294,7 @@ export async function handleGetEntities(
     context.entityService.listEntities({
       entityType,
       options: {
+        source: true,
         offset: query.data.offset,
         limit: query.data.limit,
         sortFields: [
@@ -328,6 +350,7 @@ export async function handleGetEntityHierarchy(
     query.data;
   const base: HierarchyQueryBase = {
     visibilityScope: access.visibilityScope,
+    source: true,
     filter: {
       ...(q && { contentContains: q }),
       ...(visibility !== "all" && { visibility }),

@@ -12,6 +12,7 @@ import {
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
+import { queuedByPackage } from "../src/test/package-job-data";
 import {
   createTemplate,
   defineEntity,
@@ -248,10 +249,16 @@ describe("declared scheduled generation", () => {
       await harness.sendMessage(generateExecuteContract.name, {
         entityType: "digest",
       });
+      // The package starts it, so it is queued as the package, at its grant,
+      // with the entry it is written from beside its input.
       expect(await enqueued(harness)).toEqual([
         {
           type: "digest:generation",
-          data: { sourceEntityType: "essay", sourceEntityId: "two" },
+          data: queuedByPackage(
+            "@fixture/reading:digest",
+            { sourceEntityType: "essay", sourceEntityId: "two" },
+            { source: { entityType: "essay", ids: ["two"] } },
+          ),
         },
       ]);
     } finally {
@@ -268,13 +275,16 @@ describe("declared scheduled generation", () => {
       });
       const [job] = await enqueued(harness);
       expect(job?.type).toBe("digest:generation");
-      expect(job?.data).toMatchObject({ sourceEntityType: "essay" });
-      expect(
-        z
-          .object({ sourceEntityIds: z.array(z.string()) })
-          .parse(job?.data)
-          .sourceEntityIds.sort(),
-      ).toEqual(["one", "two"]);
+      const queued = z
+        .object({
+          byPackage: z.literal(true),
+          input: z.object({
+            sourceEntityType: z.literal("essay"),
+            sourceEntityIds: z.array(z.string()),
+          }),
+        })
+        .parse(job?.data);
+      expect(queued.input.sourceEntityIds.sort()).toEqual(["one", "two"]);
     } finally {
       await harness.reset();
     }
@@ -312,8 +322,16 @@ describe("declared scheduled generation", () => {
         .getJobQueueService()
         .getHandler("digest:generation");
       if (!handler) throw new Error("No digest generation registered");
+      const data = handler.validateAndParse(
+        queuedByPackage("@fixture/reading:digest", {
+          sourceEntityType: "essay",
+          sourceEntityId: "one",
+        }),
+      );
+      if (data === null)
+        throw new Error("The digest generation refused its data");
       await handler.process(
-        { sourceEntityType: "essay", sourceEntityId: "one" },
+        data,
         "job-1",
         createMockProgressReporter(),
         new AbortController().signal,

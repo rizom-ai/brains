@@ -1,3 +1,4 @@
+import { defineChannel, type Channel } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -44,3 +45,29 @@ export const pluginsRegisteredAnswerSchema: PluginsRegisteredAnswerSchema =
 export type PluginsRegisteredAnswer = z.output<
   typeof pluginsRegisteredAnswerSchema
 >;
+
+type InitialSyncOutcomeSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ success: z.ZodLiteral<true> }>,
+    z.ZodObject<{ success: z.ZodLiteral<false>; error: z.ZodString }>,
+  ]
+>;
+
+/** How the startup import ended: imported, or failed with its reason. */
+export const initialSyncOutcomeSchema: InitialSyncOutcomeSchema =
+  z.discriminatedUnion("success", [
+    z.object({ success: z.literal(true) }),
+    z.object({ success: z.literal(false), error: z.string() }),
+  ]);
+
+export type InitialSyncOutcome = z.output<typeof initialSyncOutcomeSchema>;
+
+/** Broadcast by directory-sync once its startup import has settled. */
+export const initialSyncCompletedChannel: Channel<
+  InitialSyncOutcome,
+  unknown,
+  typeof SYSTEM_CHANNELS.initialSyncCompleted
+> = defineChannel(
+  SYSTEM_CHANNELS.initialSyncCompleted,
+  initialSyncOutcomeSchema,
+);

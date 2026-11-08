@@ -1,5 +1,69 @@
 # @rizom/brain
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- [#871](https://github.com/rizom-ai/brains/pull/871) [`20a1e64`](https://github.com/rizom-ai/brains/commit/20a1e6414d3c1747a736a1b2860690d14aacd658) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The topics plugin no longer has the deprecated `includeEntityTypes`, `sourceWeights`, `mintableEntityTypes` and `mergeSimilarityThreshold` config fields. Topics are drawn from every projection source not named in `excludeEntityTypes`, each weighted and given mint authority by its source role (`sourceRolePolicies`, `sourceRoleOverrides`), and automatic merging uses `semanticMergeDistance`. A brain config that still sets one of the four fields boots, and the field has no effect.
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- [#870](https://github.com/rizom-ai/brains/pull/870) [`29e5336`](https://github.com/rizom-ai/brains/commit/29e53365c5c0a36ba5d41f3dee7222e2f4124572) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish-asset preflight queues image renders through the image job contract, so their data is validated when they are queued. Publish-asset definitions no longer take a `jobType` override or a `"document"` media type, which never generated anything.
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- [#869](https://github.com/rizom-ai/brains/pull/869) [`0540c35`](https://github.com/rizom-ai/brains/commit/0540c3531e4c7f44da74dbebc3398210f07c3fbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Unified Inbox and Dashboard no longer register their aggregates as shared data sources. Nothing read them through the registry, and the Inbox aggregate ignored who was asking, so any template or package that fetched `unified-inbox:inbox` could have received admin inbox items.
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- [#868](https://github.com/rizom-ai/brains/pull/868) [`9c95dba`](https://github.com/rizom-ai/brains/commit/9c95dbaf91c9a625c51cab534be8522c0c44bca7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A malformed broadcast event is now refused and logged instead of being read with its missing fields as undefined. Entity changes, embeddings, publish results, job progress, conversation messages, tool activity, site metadata updates and the startup import's completion each have one declared payload, which every plugin following them checks. A publish event that does not name its entity no longer marks a queued post published or failed, the newsletter no longer looks up an undefined post, and an invalid site metadata update no longer clears the contact form's theme. Studio's activity feed now shows a job whose message runs past 500 characters, with the message cut short, where it used to leave the job out.
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- [#865](https://github.com/rizom-ai/brains/pull/865) [`01a6ab9`](https://github.com/rizom-ai/brains/commit/01a6ab983194bdb9aad9991ff97c6a52eba49eff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `agent_connect` now refuses an Agent Card whose endpoint is on a different host than the one you connected, the same rule `agent_call` applies at call time. Connecting `https://a.example` when its card names `https://b.example/a2a` fails with an error naming both hosts and saves nothing, so it no longer approves and overwrites `b.example` or republishes it in `/.well-known/agent-directory.json`. An `http://` source is refused before confirmation, and an agent is always saved under the host its card was fetched from. `agent_call`, `agent_connect`, `agent_scan_directories` and agent creation from a domain now share one card fetch: HTTPS only, the endpoint on the same host, and a 30 s limit on the response and body together, so a peer that never answers no longer stalls a call, a connect, a create job, or the daily directory scan, whose directory reads get the same limit. Sightings whose card names another host are counted unverified and not saved.
+
+  `agent_call` reads saved agents at the caller's access instead of at any visibility. A trusted caller no longer learns the saved status of an agent saved as restricted, or calls it as a saved contact: it is treated as an unsaved domain. Studio's ask-agent list and calls carry the author's level, so a trusted author sees and asks only agents it can read, and `network_ask` asks only peers saved public, the ones it picks.
+
+  `agent_connect`, `agent_scan_directories`, ATProto brain-card discovery and `agent_set_trust_level` now see agents saved at any visibility. Connecting an agent already saved as shared or restricted used to fail with a database constraint error; now a caller who may write that visibility updates it as before, and anyone else is told only that the agent is already saved and can't be changed at their access. The directory scan counts a sighting already saved above public as already known and leaves it as saved, where it used to abort the whole scan; only peers saved public are walked, as before. A brain card announced over ATProto for an agent saved above public is skipped the same way: the agent is not rewritten, no refresh state is kept for it, and no discovery, refresh or conflict event names it, where it used to fail with the same constraint error. An admin can now set inbound trust with `agent_set_trust_level` for an agent saved at any visibility, which used to report it as not found.
+
+- [#866](https://github.com/rizom-ai/brains/pull/866) [`e051d69`](https://github.com/rizom-ai/brains/commit/e051d6916056222cd976610215cd6825f4003961) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio opens an entry of a type declared with `defineEntity` with its frontmatter, and saving it keeps the authored frontmatter the type does not own. A declared type's reads carry its body alone, so the editor showed such an entry without its fields and a save dropped keys such as a grouping's values. The editor, its collection lists, folders and grouping members, and editor assist now read a declared type's stored document. An update that hands a declared type back its body alone, as a package writing through its own entities does, keeps the stored frontmatter the type does not write; a writer that sends the whole document, as a file import does, still decides what it keeps. Types written as entity plugin classes read and write as before.
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`66f7e59`](https://github.com/rizom-ai/brains/commit/66f7e59f4f21cb0f906bab83bcd097ad1f0cac87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain` no longer exports `BrainMode`, which no author signature names. The brain-definition fixture's canary writes every field a brain definition freezes through its own exported type, and the fixture now compiles with the other public-authoring packages.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`2260166`](https://github.com/rizom-ai/brains/commit/226016664a9c4d82759ce864b23a6371eb827856) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bundled module finds its migrations in the bundle's `dist/migrations` whether it is an entry or a shared chunk below `dist`, where a chunk used to look for them in `dist/chunks/migrations`. The auth service resolves its migrations the same way as every other store.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`5d99cf6`](https://github.com/rizom-ai/brains/commit/5d99cf6632894eacc4667ab54a5a1da5fb5c9665) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/entities` no longer exports the alpha entity-service types `BaseEntity`, `EntityInput`, `EntityMutationResult`, `FrontmatterConfig`, `ListOptions`, `PaginateOptions`, `PaginateResult`, `PaginationInfo`, `SearchOptions` and `SearchResult`, which no declarative package uses; a definition's records are `EntityOf` the definition. Every stable entity name now has a fixture that uses it.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`b6a6d9e`](https://github.com/rizom-ai/brains/commit/b6a6d9e85930701eb12c7fea557253eb871f2721) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `@rizom/brain/plugins` and `@rizom/brain/templates` subpaths are removed. No declarative package used their advanced alpha names: the agent, app-info, runtime-readiness, conversation, identity, extension-metadata, messaging and channel contracts, and the template and site-builder types. `PluginPackageDefinition` stays on the root entry. The packages written against the alpha class API that still imported `Resource`, `Tool` and `createTemplate` already stopped working when the class bases left the public entries.
+
+- [#863](https://github.com/rizom-ai/brains/pull/863) [`e207238`](https://github.com/rizom-ai/brains/commit/e2072389faf1c52df26416429e9e8ca793d25fd5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The unauthenticated `/health/operate` endpoint and the public status tools now carry health fields only. Its `app` block holds the version, uptime and each daemon's name, plugin, status and health status with its last check time; background work stays in the readiness checks and queue and worker signals of the same response. Anonymous callers no longer see per-type entry counts, entity and embedding totals, the brain and AI model names, endpoints, interactions, or the message and details a daemon reports, which could name the admin-only preview host. A public caller of `system_status` gets the version, uptime, background work and the web surfaces it can open, without the model or totals, and a public caller of `system_job_status` gets job and batch progress without the raw batch errors. Operators still find all of it on authenticated surfaces: `system_status` as a trusted or admin caller over MCP keeps the model, entity and embedding totals, `system_job_status` keeps batch errors for trusted and admin callers, `system_analytics` reports per-type counts at the caller's access, and Studio reads app info in-process as before. The directory-sync stress harness in `@rizom/ops` now reads its note and entity counts from the runtime's database over SSH.
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/testing` runs a package's own tests on the runtime itself. `startTestBrain({ plugins: [use(definition)] })` starts a brain in the test's process, on the runtime's own services and a temporary storage of its own, running the packages under the name the working directory's `package.json` gives them and holding that package to its `@rizom/brain` peer range. The brain calls a tool as `brain tool` does, as its operator, and answers in the tool's public form; it asks a contract as the brain asks, serves a `Request` through the routes its packages declare, reads every stored record through an `EntityReader`, and waits for a queued job's status by the job's definition. It reaches no AI provider and computes no embeddings, and `stop()` deletes what it stored.
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- [#859](https://github.com/rizom-ai/brains/pull/859) [`92b3bb7`](https://github.com/rizom-ai/brains/commit/92b3bb74eeffc14b522eb91f55e9fe9f159af195) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every package a release publishes lands on the `latest` dist-tag, the tag third parties install. In prerelease mode changesets chose each package's tag from its registry history: `latest` while every published version was an alpha, `alpha` once any other version existed. The `0.0.0-stage` placeholder left by `@rizom/brain-ui`'s trusted-publishing bootstrap sent it to `alpha` at alpha.650 while `@rizom/brain` and `@rizom/ops` went to `latest`, so `npm install @rizom/brain-ui` got alpha.649. The publish wrapper now sets the prerelease state aside for the publish in both lanes, which leaves `latest` for every package; the thefourth site and theme, whose `latest` stayed at alpha.1 the same way, follow from their next site release.
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- [#858](https://github.com/rizom-ai/brains/pull/858) [`2f1d6c7`](https://github.com/rizom-ai/brains/commit/2f1d6c74de007a302062739772e015c415eb6488) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity package's jobs and generations now read entries with the access of the person whose request started them, as a service package's jobs already do, and a generation writes only what that person may write. Before this, they read every entry. A generation the package starts on its own, such as a scheduled one, reads the package's own types at every visibility and other types with the package's configured grant, which is public unless the brain grants more. Checks, evals and the Inbox listing, which run with no caller behind them, now read the same way instead of reading every entry. A job whose requester's account is revoked before it runs is refused, and entity jobs queued before the upgrade fail rather than run. An AT Protocol record a package declares is built from public entries only, since it is published to a public PDS. A projection's new entry takes its source's visibility unless the package sets one, and so does a generation written from a source, such as a scheduled one: a restricted entry no longer becomes a public one. A generation can set its entry's visibility in its result; one with no source writes as before.
+
 ## 0.2.0-alpha.650
 
 ### Patch Changes

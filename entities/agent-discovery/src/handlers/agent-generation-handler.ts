@@ -1,10 +1,15 @@
 import type { EntityPluginContext, GeneratedContent } from "@brains/plugins";
-import { BaseGenerationJobHandler } from "@brains/plugins";
+import {
+  BaseGenerationJobHandler,
+  fetchVerifiedAgentCard,
+  isEndpointRefusal,
+} from "@brains/plugins";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
-import { fetchAgentCard, extractDomain } from "../lib/fetch-agent-card";
+import { extractDomain } from "../lib/extract-domain";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 type AgentGenerationStatusSchema = z.ZodEnum<{
@@ -65,12 +70,19 @@ export class AgentGenerationJobHandler extends BaseGenerationJobHandler<
   AgentGenerationJobData,
   AgentGenerationResult
 > {
-  constructor(logger: Logger, context: EntityPluginContext) {
+  private readonly fetchFn: FetchLike;
+
+  constructor(
+    logger: Logger,
+    context: EntityPluginContext,
+    fetchFn: FetchLike = globalThis.fetch,
+  ) {
     super(logger, context, {
       schema: agentGenerationJobSchema,
       jobTypeName: "agent-generation",
       entityType: AGENT_ENTITY_TYPE,
     });
+    this.fetchFn = fetchFn;
   }
 
   protected async generate(
@@ -87,16 +99,24 @@ export class AgentGenerationJobHandler extends BaseGenerationJobHandler<
       );
     }
 
-    const card = await fetchAgentCard(domain, globalThis.fetch);
-    if (!card) {
+    // The job carries no cancellation; the card fetch's timeout bounds it.
+    const verified = await fetchVerifiedAgentCard(domain, {
+      fetch: this.fetchFn,
+    });
+    if (!verified.ok) {
       this.failEarly(
-        `Could not fetch Agent Card from ${domain}. Make sure the agent is running and accessible.`,
+        isEndpointRefusal(verified.reason)
+          ? verified.error
+          : `Could not fetch Agent Card from ${domain}. Make sure the agent is running and accessible.`,
       );
     }
 
-    const { content, metadata, anchorName } = buildAgentFromCard(card, {
-      ...(data.status !== undefined ? { status: data.status } : {}),
-    });
+    const { content, metadata, anchorName } = buildAgentFromCard(
+      verified.card,
+      {
+        ...(data.status !== undefined ? { status: data.status } : {}),
+      },
+    );
 
     return {
       id: domain,

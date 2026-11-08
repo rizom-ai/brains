@@ -3,6 +3,7 @@ import type {
   CreateCheck,
   CreateInterceptor,
   DataSource,
+  GenerationEnqueuer,
   PersistValidator,
   UploadSaveHandlerRegistration,
   EntityAdapter,
@@ -116,6 +117,12 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     },
     registerCreateCheck: (entityType: string, check: CreateCheck): void => {
       entityRegistry.registerCreateCheck(entityType, check);
+    },
+    registerGenerationEnqueuer: (
+      entityType: string,
+      enqueuer: GenerationEnqueuer,
+    ): void => {
+      entityRegistry.registerGenerationEnqueuer(entityType, enqueuer);
     },
     registerUploadSaveHandler: (
       registration: UploadSaveHandlerRegistration,

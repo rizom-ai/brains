@@ -100,6 +100,7 @@ const listOptionsSchema: z.ZodObject<{
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
   signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
+  source: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
   offset: z.number().int().min(0).optional().default(0),
@@ -117,6 +118,7 @@ const listOptionsSchema: z.ZodObject<{
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
   signal: z.instanceof(AbortSignal).optional(),
+  source: z.boolean().optional(),
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
@@ -134,6 +136,7 @@ const hierarchyRequestSchema = z.object({
     .omit({ visibilityScope: true })
     .optional(),
   signal: z.instanceof(AbortSignal).optional(),
+  source: listOptionsSchema.shape.source,
 });
 
 const MAX_HIERARCHY_FOLDERS = 1000;
@@ -253,7 +256,7 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortFields, filter, publishedOnly, signal } =
+    const { limit, offset, sortFields, filter, publishedOnly, signal, source } =
       validatedOptions;
     signal?.throwIfAborted();
     this.logger.debug(
@@ -286,6 +289,7 @@ export class EntityQueries {
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
+      source,
     );
 
     signal?.throwIfAborted();
@@ -373,6 +377,7 @@ export class EntityQueries {
       input.signal?.throwIfAborted();
       const entity = await this.serializer.convertToEntity(
         normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
+        input.source,
       );
       if (entity) page.push(entity);
     }
@@ -511,6 +516,7 @@ export class EntityQueries {
         normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
       ),
       entityType,
+      input.source,
     );
     signal?.throwIfAborted();
     return {
