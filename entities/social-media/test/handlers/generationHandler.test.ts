@@ -390,6 +390,58 @@ describe("GenerationJobHandler", () => {
       expect(result.error).toContain("not found");
     });
 
+    // A declared source reads back as its body, its frontmatter its
+    // metadata; a stored document carries the frontmatter in its content.
+    // Either way the prompt names the source's title and gives its text.
+    it.each([
+      {
+        kind: "a declared deck",
+        sourceEntityType: "deck" as const,
+        content: "# Tidal Systems\n\n---\n\nHow tides move",
+        metadata: { title: "Tidal Systems", slug: "tidal-systems" },
+      },
+      {
+        kind: "a post document",
+        sourceEntityType: "post" as const,
+        content:
+          "---\ntitle: Tidal Systems\nslug: tidal-systems\n---\n# Tidal Systems\n\n---\n\nHow tides move\n",
+        metadata: { title: "Tidal Systems", slug: "tidal-systems" },
+      },
+    ])(
+      "writes from $kind with its title and text",
+      async ({ sourceEntityType, content, metadata }) => {
+        await harness.getEntityService().createEntity({
+          entity: {
+            id: "tidal-systems",
+            entityType: sourceEntityType,
+            content,
+            metadata,
+          },
+        });
+        const prompts: string[] = [];
+        harness.getMockShell().generateContent = async (
+          config,
+        ): Promise<unknown> => {
+          prompts.push(config.prompt);
+          return { title: "Share the tides", content: "Tides move." };
+        };
+
+        await handler.process(
+          {
+            sourceEntityType,
+            sourceEntityId: "tidal-systems",
+            platform: "linkedin",
+          },
+          "job-123",
+          progressReporter,
+        );
+
+        expect(prompts).toEqual([
+          `Write a linkedin post to share this ${sourceEntityType}:\n\nSource: ${sourceEntityType}/tidal-systems\n\nTitle: Tidal Systems\n\n# Tidal Systems\n\n---\n\nHow tides move`,
+        ]);
+      },
+    );
+
     it("should queue image generation when generateImage is true", async () => {
       const jobData: GenerationJobData = {
         title: "Visual Post Title",

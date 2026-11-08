@@ -11,7 +11,11 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
+import {
+  fetchStyleGuide,
+  formatVoiceGuidance,
+  frontmatterRecordFields,
+} from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -181,6 +185,12 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
       const slugSchema = z.looseObject({ slug: z.string() });
       const parsed = slugSchema.safeParse(sourceEntity.metadata);
       const slug = parsed.success ? parsed.data.slug : sourceEntityId;
+      // A declared source reads back as its body, its frontmatter its
+      // metadata; a stored document carries its frontmatter in its content.
+      const source = frontmatterRecordFields(sourceEntity);
+      const sourceTitle = z
+        .looseObject({ title: z.string() })
+        .safeParse(source.fields);
 
       const generated = await this.context.ai.generate(
         {
@@ -188,7 +198,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
 Source: ${sourceEntityType}/${slug}
 
-${sourceEntity.content}`,
+${sourceTitle.success ? `Title: ${sourceTitle.data.title}\n\n` : ""}${source.body}`,
           templateName: getTemplateName(platform),
           ...styleContext,
         },

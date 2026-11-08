@@ -72,27 +72,41 @@ export type DeckFrontmatter = z.output<typeof deckFrontmatterSchema>;
 
 export type DeckMetadataSchema = z.ZodObject<{
   title: z.ZodString;
+  slug: z.ZodString;
   description: z.ZodOptional<z.ZodString>;
+  author: z.ZodOptional<z.ZodString>;
   status: DeckStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
+  event: z.ZodOptional<z.ZodString>;
   coverImageId: z.ZodOptional<z.ZodString>;
-  slug: z.ZodString;
+  ogImageId: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
+  authoredSlug: z.ZodOptional<z.ZodBoolean>;
 }>;
 
 /**
- * Deck metadata schema - derived from frontmatter
- * Only includes fields needed for fast DB queries/filtering
+ * A deck's metadata: its frontmatter, decoded, with the slug resolved
+ * from the title when the file states none, and the error a failed
+ * generation recorded. Studio edits it as it edited the frontmatter;
+ * the error and whether the file states its slug are hidden, so a stated slug stays where
+ * the file states it and a resolved one is written after the other fields,
+ * as the deck adapter wrote them.
  */
 export const deckMetadataSchema: DeckMetadataSchema = z
   .object({
     title: z.string(),
+    slug: z.string(),
     description: z.string().optional(),
+    author: z.string().optional(),
     status: deckStatusSchema,
     publishedAt: z.string().datetime().optional(),
+    event: z.string().optional(),
     coverImageId: z.string().optional(),
-    slug: z.string(), // Required in metadata (auto-generated from title)
-    error: z.string().optional(),
+    ogImageId: z.string().optional(),
+    // Bookkeeping: the error a failed generation recorded, and whether the
+    // file states its slug, which neither Studio nor the vault shows.
+    error: z.string().optional().meta({ studioWidget: "hidden" }),
+    authoredSlug: z.boolean().optional().meta({ studioWidget: "hidden" }),
   })
   .superRefine((data, ctx) => {
     if (!isMissingPublishedAt(data)) return;

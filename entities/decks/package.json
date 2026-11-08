@@ -10,6 +10,7 @@
     "@brains/image": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*"

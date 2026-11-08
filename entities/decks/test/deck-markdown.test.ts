@@ -1,14 +1,25 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { isEntityValidationError } from "@brains/plugins";
-import { DeckAdapter } from "../src/adapters/deck-adapter";
-import { publishedAtRequiredMessage } from "../src/schemas/deck";
+import { describe, it, expect, beforeAll } from "bun:test";
+import {
+  isEntityValidationError,
+  type BaseEntity,
+  type EntityAdapter,
+} from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import {
+  deckMetadataSchema,
+  publishedAtRequiredMessage,
+} from "../src/schemas/deck";
+import { decksPlugin } from "./decks-plugin";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
-describe("DeckAdapter", () => {
-  let adapter: DeckAdapter;
+/** The deck's adapter, as the declared deck registers it. */
+describe("the deck adapter", () => {
+  let adapter: EntityAdapter<BaseEntity>;
 
-  beforeEach(() => {
-    adapter = new DeckAdapter();
+  beforeAll(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(decksPlugin());
+    adapter = harness.getEntityRegistry().getAdapter("deck");
   });
 
   describe("schema", () => {
@@ -94,7 +105,10 @@ describe("DeckAdapter", () => {
         publishedAt: "2025-01-01T10:00:00.000Z",
         metadata: {
           slug: "test-deck",
+          authoredSlug: true,
           title: "Test Presentation",
+          description: "A test presentation",
+          author: "Jane Developer",
           status: "published",
           publishedAt: "2025-01-01T10:00:00.000Z",
         },
@@ -158,12 +172,13 @@ Key points`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("deck");
-      expect(result.metadata?.title).toBe("Test Presentation");
-      expect(result.metadata?.slug).toBe("test-presentation");
-      expect(result.metadata?.publishedAt).toBe("2025-01-01T10:00:00.000Z");
-      // Content is the full markdown (frontmatter is preserved for storage)
-      expect(result.content).toContain("title: Test Presentation");
+      expect(result.metadata?.["title"]).toBe("Test Presentation");
+      expect(result.metadata?.["slug"]).toBe("test-presentation");
+      expect(result.metadata?.["publishedAt"]).toBe("2025-01-01T10:00:00.000Z");
+      // A declared deck reads back as its slides; the frontmatter is its metadata.
+      expect(result.metadata?.["description"]).toBe("A test presentation");
+      expect(result.metadata?.["author"]).toBe("Jane Developer");
+      expect(result.content).not.toContain("title: Test Presentation");
       expect(result.content).toContain("# Welcome");
     });
 
@@ -211,8 +226,8 @@ status: draft
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.metadata?.title).toBe("Minimal Deck");
-      expect(result.metadata?.status).toBe("draft");
+      expect(result.metadata?.["title"]).toBe("Minimal Deck");
+      expect(result.metadata?.["status"]).toBe("draft");
     });
   });
 
@@ -233,10 +248,10 @@ status: draft
 
       const metadata = adapter.extractMetadata(entity);
 
-      expect(metadata.slug).toBe("test-deck");
-      expect(metadata.title).toBe("Test Deck");
-      expect(metadata.status).toBe("published");
-      expect(metadata.publishedAt).toBe("2025-01-01T10:00:00.000Z");
+      expect(metadata["slug"]).toBe("test-deck");
+      expect(metadata["title"]).toBe("Test Deck");
+      expect(metadata["status"]).toBe("published");
+      expect(metadata["publishedAt"]).toBe("2025-01-01T10:00:00.000Z");
     });
 
     it("should handle missing optional metadata", () => {
@@ -247,35 +262,9 @@ status: draft
 
       const metadata = adapter.extractMetadata(entity);
 
-      expect(metadata.title).toBe("Test Deck");
-      expect(metadata.publishedAt).toBeUndefined();
-      expect(metadata.coverImageId).toBeUndefined();
-    });
-  });
-
-  describe("generateTitle", () => {
-    it("should return entity title from metadata", () => {
-      const entity = createMockDeckEntity({
-        content: "# Slide 1\n\n---\n\n# Slide 2",
-        title: "My Presentation",
-      });
-
-      const title = adapter.generateTitle(entity);
-
-      expect(title).toBe("My Presentation");
-    });
-  });
-
-  describe("generateSummary", () => {
-    it("should return fallback summary", () => {
-      const entity = createMockDeckEntity({
-        content: "# Slide 1\n\n---\n\n# Slide 2",
-        title: "Test Deck",
-      });
-
-      const summary = adapter.generateSummary(entity);
-
-      expect(summary).toBe("Presentation: Test Deck");
+      expect(metadata["title"]).toBe("Test Deck");
+      expect(metadata["publishedAt"]).toBeUndefined();
+      expect(metadata["coverImageId"]).toBeUndefined();
     });
   });
 
@@ -302,8 +291,7 @@ status: draft
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("deck");
-      expect(result.metadata?.title).toBe("Multi-slide Deck");
+      expect(result.metadata?.["title"]).toBe("Multi-slide Deck");
     });
 
     it("should validate slide separators as standalone lines", () => {
@@ -324,15 +312,16 @@ status: draft
 
   describe("generation stub", () => {
     function stubEntity(): ReturnType<typeof createMockDeckEntity> {
-      const stub = adapter.buildStub({
+      const stub = adapter.buildStub?.({
         id: "on-slowness",
         title: "On slowness",
       });
+      if (!stub) throw new Error("The deck builds no stub");
       return {
         ...createMockDeckEntity({ content: "---\n" }),
         id: "on-slowness",
         content: stub.content,
-        metadata: stub.metadata,
+        metadata: deckMetadataSchema.parse(stub.metadata),
       };
     }
 
