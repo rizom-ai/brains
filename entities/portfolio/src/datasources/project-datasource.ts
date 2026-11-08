@@ -60,7 +60,7 @@ function projectWithData(entity: EntityOf<ProjectDefinition>): ProjectWithData {
 
 /**
  * Fetches and transforms projects for rendering: a paged list, or one
- * project with its neighbours.
+ * project with its neighbors.
  */
 export function projectDataSource(
   project: ProjectDefinition,

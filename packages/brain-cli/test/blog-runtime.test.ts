@@ -200,9 +200,9 @@ describe("a declared post as a site reads it", () => {
 });
 
 describe("the blog's data source on the entity store", () => {
-  // As the blog plugin class read them: neighbours newest first, a series by
+  // As the blog plugin class read them: neighbors newest first, a series by
   // its order with an unplaced post first, a page counted over every post.
-  test("shows a post with its neighbours and series, and pages the list", async () => {
+  test("shows a post with its neighbors and series, and pages the list", async () => {
     const opened = await store();
     const posts = [
       ["two", "published", "2025-03-01T00:00:00.000Z", 2],

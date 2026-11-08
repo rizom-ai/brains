@@ -53,7 +53,7 @@ async function seriesPosts(
 
 /**
  * Fetches and transforms posts for rendering: a paged list, newest
- * published first, or one post by its slug with its neighbours and the
+ * published first, or one post by its slug with its neighbors and the
  * other posts in its series.
  */
 export function blogDataSource(

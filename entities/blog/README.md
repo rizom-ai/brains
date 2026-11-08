@@ -57,7 +57,7 @@ canonicalUrl: https://example.com/posts/my-post
 
 ## Site
 
-- `blog:post-list` and `blog:post-detail` render `/posts` and each post, through `blog:entities`, which serves paged lists, newest published first, and a post by its slug with its neighbours and the other posts in its series.
+- `blog:post-list` and `blog:post-detail` render `/posts` and each post, through `blog:entities`, which serves paged lists, newest published first, and a post by its slug with its neighbors and the other posts in its series.
 - `blog:homepage` shows the latest post or a page of markdown, read from a `blog:homepage` data source the site provides.
 - Every site build writes `feed.xml`. A preview carries every post; production carries the published, dated ones. `blog:rss` answers the same feed for a channel a query names.
 - `blog:printable` and `blog:og-image` render a post as a PDF and as its social card.
