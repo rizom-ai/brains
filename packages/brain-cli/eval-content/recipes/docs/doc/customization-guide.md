@@ -44,7 +44,7 @@ site:
   theme: "@acme/brain-theme"
 
 plugins:
-  # Optional deprecated fallback for MCP clients that cannot use OAuth:
+  # Static MCP token, local development only; a production brain refuses it:
   # mcp:
   #   authToken: ${MCP_AUTH_TOKEN}
 ```

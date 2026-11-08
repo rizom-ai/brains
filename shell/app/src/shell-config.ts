@@ -1,7 +1,7 @@
 import type { Shell } from "@brains/core";
 import { CLI_OPERATOR_PRINCIPAL } from "./cli-operator";
 import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
-import { preferLocalUrlsForRuntime } from "./runtime-env";
+import { isProductionRuntime, preferLocalUrlsForRuntime } from "./runtime-env";
 import {
   resolveGitBrokerCheckout,
   resolveGitBrokerSocket,
@@ -199,4 +199,5 @@ function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
 
   shellConfig.localSiteUrl = `http://localhost:${config.deployment.ports.production}`;
   shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
+  shellConfig.production = isProductionRuntime();
 }

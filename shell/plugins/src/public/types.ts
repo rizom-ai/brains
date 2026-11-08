@@ -454,6 +454,8 @@ export interface BasePluginContext {
   readonly localSiteUrl: string | undefined;
   readonly previewUrl: string | undefined;
   readonly preferLocalUrls: boolean;
+  /** Whether this brain runs in production rather than local development. */
+  readonly production: boolean;
   readonly appInfo: () => Promise<AppInfo>;
   readonly judge: <T>(input: JudgeInput<T>) => Promise<{
     verdict: T;

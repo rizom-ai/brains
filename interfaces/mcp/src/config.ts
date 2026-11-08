@@ -23,7 +23,9 @@ export const mcpConfigSchema: MCPConfigSchema = mcpProtocolConfigSchema.extend({
     .default(3333),
   authToken: z
     .string()
-    .describe("Bearer token for HTTP transport authentication")
+    .describe(
+      "Static bearer token for HTTP transport authentication; local development only, a production brain refuses it",
+    )
     .optional(),
 });
 

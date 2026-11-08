@@ -104,6 +104,7 @@ export const shellConfigSchema: z.ZodObject<{
   siteBaseUrl: z.ZodOptional<z.ZodString>;
   localSiteUrl: z.ZodOptional<z.ZodString>;
   preferLocalUrls: z.ZodDefault<z.ZodBoolean>;
+  production: z.ZodDefault<z.ZodBoolean>;
   themeCSS: z.ZodDefault<z.ZodString>;
   entityDisplay: z.ZodOptional<
     z.ZodRecord<z.ZodString, typeof entityDisplayEntrySchema>
@@ -162,6 +163,8 @@ export const shellConfigSchema: z.ZodObject<{
   siteBaseUrl: z.string().optional(),
   localSiteUrl: z.string().optional(),
   preferLocalUrls: z.boolean().default(false),
+  /** Whether the runtime environment is production, read by the app layer. */
+  production: z.boolean().default(false),
   themeCSS: z.string().default(""),
   entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
   profileKind: z.string().trim().min(1).optional(),

@@ -73,7 +73,7 @@ or, after deployment:
 https://your-domain.com/mcp
 ```
 
-OAuth-capable clients can use the built-in browser/passkey login. `MCP_AUTH_TOKEN` still exists as a legacy fallback for clients that cannot use OAuth.
+OAuth-capable clients can use the built-in browser/passkey login. `MCP_AUTH_TOKEN` is a static token for local development only; a production brain refuses it.
 
 ## How it works
 
