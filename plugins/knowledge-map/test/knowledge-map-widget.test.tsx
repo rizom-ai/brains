@@ -7,13 +7,44 @@ import {
   type DashboardWidgetRegistration,
 } from "@brains/plugins";
 import {
-  createEntityPluginContext,
   createMockShell,
+  createServicePluginContext,
 } from "@brains/plugins/test";
-import {
-  KNOWLEDGE_MAP_WIDGET_ID,
-  registerKnowledgeMapDashboardWidget,
-} from "../../src/lib/knowledge-map-widget";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { topicSourceTypesContract } from "@brains/contracts";
+import knowledgeMapPackage, { KNOWLEDGE_MAP_WIDGET_ID } from "../src";
+
+/**
+ * The knowledge map installed as the canonical brain installs it, beside
+ * topics answering which types it is drawn from (every type but topics'
+ * own), and announced once every plugin has registered.
+ */
+async function installMap(
+  shell: ReturnType<typeof createMockShell>,
+): Promise<void> {
+  createServicePluginContext(shell, "topics").messaging.answer(
+    topicSourceTypesContract,
+    async () => ({
+      types: shell
+        .getEntityService()
+        .getEntityTypes()
+        .filter((type) => type !== "topic"),
+    }),
+  );
+  const [plugin] = instantiatePluginPackageDefinition(
+    knowledgeMapPackage,
+    {},
+    { name: "@brains/knowledge-map", version: "0.0.0-test" },
+    { pluginId: "knowledge-map" },
+  );
+  if (!plugin) throw new Error("The knowledge map installs no plugin");
+  await plugin.register(shell);
+  await shell.getMessageBus().send({
+    type: SYSTEM_CHANNELS.pluginsRegistered,
+    payload: {},
+    sender: "shell",
+  });
+}
 import { z } from "@brains/utils/zod";
 
 /**
@@ -30,7 +61,7 @@ const widgetComponentSchema = z.custom<
 
 const widgetDataSchema = z.looseObject({ source: z.unknown() });
 
-describe("registerKnowledgeMapDashboardWidget", () => {
+describe("the knowledge map's Dashboard widget", () => {
   it("registers one normalized semantic projection once plugins are ready", async () => {
     const shell = createMockShell();
     Object.assign(shell.getEntityService(), {
@@ -86,19 +117,7 @@ describe("registerKnowledgeMapDashboardWidget", () => {
           return { success: true };
         },
       );
-    const context = createEntityPluginContext(shell, "topics");
-
-    registerKnowledgeMapDashboardWidget({
-      context,
-      sourceTypes: () =>
-        context.entityService
-          .getEntityTypes()
-          .filter((type) => type !== "topic"),
-    });
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-    });
+    await installMap(shell);
 
     expect(registration).toMatchObject({
       id: KNOWLEDGE_MAP_WIDGET_ID,
@@ -190,18 +209,7 @@ describe("registerKnowledgeMapDashboardWidget", () => {
           return { success: true };
         },
       );
-    const context = createEntityPluginContext(shell, "topics");
-    registerKnowledgeMapDashboardWidget({
-      context,
-      sourceTypes: () =>
-        context.entityService
-          .getEntityTypes()
-          .filter((type) => type !== "topic"),
-    });
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-    });
+    await installMap(shell);
     if (!registration) throw new Error("Knowledge Map was not registered");
 
     const data = await registration.dataProvider({
@@ -278,19 +286,7 @@ describe("registerKnowledgeMapDashboardWidget", () => {
           return { success: true };
         },
       );
-    const context = createEntityPluginContext(shell, "topics");
-
-    registerKnowledgeMapDashboardWidget({
-      context,
-      sourceTypes: () =>
-        context.entityService
-          .getEntityTypes()
-          .filter((type) => type !== "topic"),
-    });
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-    });
+    await installMap(shell);
 
     if (!registration) throw new Error("Knowledge Map was not registered");
     const renderer = registration.renderer;

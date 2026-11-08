@@ -1,10 +1,17 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { KnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
-import type { KnowledgeMapTemplateData } from "../../src/templates/knowledge-map-template";
-import { getKnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
-import { KnowledgeMapDataSource } from "../../src/datasources/knowledge-map-datasource";
+import { KnowledgeMapTemplate } from "../src/knowledge-map-template";
+import type { KnowledgeMapTemplateData } from "../src/knowledge-map-template";
+import { getKnowledgeMapTemplate } from "../src/knowledge-map-template";
+import { topicSourceTypesContract } from "@brains/contracts";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import {
+  createMockShell,
+  createServicePluginContext,
+} from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
+import knowledgeMapPackage from "../src";
 
 /* The knowledge-map site template. The proof
    section — authored copy on the left, the live map on the right, honest
@@ -83,7 +90,7 @@ describe("KnowledgeMapTemplate", () => {
 describe("knowledge-map template registration", () => {
   test("registers with the datasource and a round-tripping overlay formatter", () => {
     const template = getKnowledgeMapTemplate();
-    expect(template.dataSourceId).toBe("topics:knowledge-map");
+    expect(template.dataSourceId).toBe("knowledge-map:knowledge-map");
     expect(template.requiredPermission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
 
@@ -109,11 +116,38 @@ describe("knowledge-map template registration", () => {
     expect(template.overlayFormatter?.parse(markdown)).toMatchObject(copy);
   });
 
-  test("the datasource carries the registered id", () => {
-    // fetch itself is two lines of composition over the builder (fully
-    // tested in knowledge-map-data.test.ts) and the schema parse; what the
-    // registry depends on is the id contract.
-    const source = new KnowledgeMapDataSource(() => []);
-    expect(source.id).toBe("topics:knowledge-map");
+  test("installs the template and its data source under the knowledge map's id", async () => {
+    const shell = createMockShell();
+    Object.assign(shell.getEntityService(), {
+      projectSemanticSpace: async () => ({ points: [] }),
+    });
+    createServicePluginContext(shell, "topics").messaging.answer(
+      topicSourceTypesContract,
+      async () => ({ types: [] }),
+    );
+    const [plugin] = instantiatePluginPackageDefinition(
+      knowledgeMapPackage,
+      {},
+      { name: "@brains/knowledge-map", version: "0.0.0-test" },
+      { pluginId: "knowledge-map" },
+    );
+    if (!plugin) throw new Error("The knowledge map installs no plugin");
+    await plugin.register(shell);
+
+    expect(
+      shell.getTemplates().get("knowledge-map:knowledge-map")?.dataSourceId,
+    ).toBe("knowledge-map:knowledge-map");
+    const source = shell
+      .getDataSourceRegistry()
+      .get("knowledge-map:knowledge-map");
+    if (!source?.fetch) throw new Error("No knowledge map data source");
+    // An empty corpus is an empty map, validated against the caller's schema.
+    expect(
+      await source.fetch(
+        {},
+        z.object({ counts: z.object({ entities: z.number() }) }),
+        { entityService: shell.getEntityService() },
+      ),
+    ).toEqual({ counts: { entities: 0 } });
   });
 });

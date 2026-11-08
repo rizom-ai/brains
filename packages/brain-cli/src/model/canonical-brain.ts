@@ -62,6 +62,7 @@ import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
+import knowledgeMapPackage from "@brains/knowledge-map";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
@@ -169,7 +170,21 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
       pluginId: "wishlist",
     }),
-    ["topics", topicsPlugin, undefined],
+    // The knowledge map draws its territories from topics, so it comes and
+    // goes with them, as it did while it lived in the topics package.
+    [
+      "topics",
+      (config): Plugin[] => [
+        topicsPlugin(config),
+        ...instantiatePluginPackageDefinition(
+          knowledgeMapPackage,
+          {},
+          { name: "@brains/knowledge-map", version: packageJson.version },
+          { pluginId: "knowledge-map" },
+        ),
+      ],
+      undefined,
+    ],
     ["decks", decksPlugin, undefined],
     [
       "directory-sync",

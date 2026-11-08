@@ -22,7 +22,7 @@ function dashboardFixtureInput(
 
 const widgetIds = [
   "agent-discovery:skills",
-  "topics:topics-knowledge-map",
+  "knowledge-map:knowledge-map",
   "agent-discovery:agent-proximity",
 ];
 
@@ -43,7 +43,7 @@ describe("dashboardFixtureInput", () => {
     expect(input.widgetScripts).toEqual(["/* proximity */"]);
     expect(chatStatus(null)).toBe("available");
     // The proximity widget draws itself from the source beside its view.
-    for (const id of ["agent-discovery:skills", "topics:topics-knowledge-map"])
+    for (const id of ["agent-discovery:skills", "knowledge-map:knowledge-map"])
       expect(
         safeParseRuntimeDashboardWidgetData(input.widgets[id]?.data).success,
       ).toBe(true);

@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
-} from "../../src/lib/knowledge-map-data";
+} from "../src/knowledge-map-data";
 import type {
   KnowledgeMapDataContext,
   ProjectedPoint,
-} from "../../src/lib/knowledge-map-data";
+} from "../src/knowledge-map-data";
 
 /* The data builder projects the whole
    corpus (centerless 2D), turns topics into zones, and files each entity into
@@ -150,7 +150,8 @@ describe("buildKnowledgeMapData", () => {
 
     // the far deck is filed nowhere, but remains an ordinary source point
     const deck = data.points.find((point) => point.id === "cococo");
-    expect(deck?.zoneId).toBeNull();
+    if (!deck) throw new Error("The far deck is not on the map");
+    expect(deck.zoneId).toBeNull();
 
     // kinds derive from entity type
     const kinds = Object.fromEntries(

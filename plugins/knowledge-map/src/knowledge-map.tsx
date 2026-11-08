@@ -7,7 +7,7 @@ import {
   type KnowledgeMapData,
   type KnowledgeMapPoint,
   type KnowledgeMapZone,
-} from "../lib/knowledge-map-data";
+} from "./knowledge-map-data";
 
 export { knowledgeMapStyles };
 

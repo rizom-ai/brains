@@ -726,6 +726,7 @@
         "@brains/guide": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/image-plugin": "workspace:*",
+        "@brains/knowledge-map": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/linkedin-import": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -1121,6 +1122,25 @@
         "bun-types": "^1.4.0",
         "eslint": "^10.5.0",
         "react-dom": "^19.2.7",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/knowledge-map": {
+      "name": "@brains/knowledge-map",
+      "version": "0.2.0-alpha.658",
+      "dependencies": {
+        "@brains/content-formatters": "workspace:*",
+        "@brains/contracts": "workspace:*",
+        "@brains/sdk": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@rizom/brain-ui": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
         "typescript": "^7.0.2",
       },
     },
@@ -2453,13 +2473,13 @@
         "@brains/contracts": "workspace:*",
         "@brains/decks": "workspace:*",
         "@brains/faq": "workspace:*",
+        "@brains/knowledge-map": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/profile": "workspace:*",
         "@brains/site-atlas": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/templates": "workspace:*",
-        "@brains/topics": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
         "react": "^19.2.7",
@@ -2728,6 +2748,8 @@
     "@brains/image-plugin": ["@brains/image-plugin@workspace:entities/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
+
+    "@brains/knowledge-map": ["@brains/knowledge-map@workspace:plugins/knowledge-map"],
 
     "@brains/link": ["@brains/link@workspace:entities/link"],
 

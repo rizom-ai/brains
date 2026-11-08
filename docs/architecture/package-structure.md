@@ -90,6 +90,7 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/analytics`        | Cloudflare analytics + query tool                                |
 | `plugins/dashboard`        | Widget system                                                    |
 | `plugins/directory-sync`   | File + git sync                                                  |
+| `plugins/knowledge-map`    | Semantic map of the corpus: site section + Dashboard widget      |
 | `plugins/obsidian-vault`   | Obsidian template generation                                     |
 | `plugins/stock-photo`      | Unsplash stock photo search                                      |
 | `plugins/site-content`     | Site section content generation                                  |

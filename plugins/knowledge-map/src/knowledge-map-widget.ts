@@ -1,20 +1,12 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
+  type DashboardWidgetDefinition,
+} from "@brains/sdk/services";
 import { computeContentHash } from "@brains/utils/hash";
-import {
-  buildKnowledgeMapData,
-  knowledgeMapDataSchema,
-} from "./knowledge-map-data";
-import {
-  KnowledgeMapWidget,
-  knowledgeMapStyles,
-} from "../widgets/knowledge-map";
+import { knowledgeMapDataSchema } from "./knowledge-map-data";
+import { KNOWLEDGE_MAP_WIDGET_ID } from "./constants";
 
-export const KNOWLEDGE_MAP_WIDGET_ID = "topics-knowledge-map";
+export { KNOWLEDGE_MAP_WIDGET_ID };
 
 /** The view's identifier limit; a deep id is kept apart by a short hash. */
 const MAX_VIEW_ID = 120;
@@ -33,7 +25,10 @@ function viewLabel(label: string): string {
     : `${label.slice(0, MAX_VIEW_LABEL - 1)}…`;
 }
 
-const knowledgeMapWidget = defineDashboardWidget({
+export const knowledgeMapWidget: DashboardWidgetDefinition<
+  typeof KNOWLEDGE_MAP_WIDGET_ID,
+  typeof knowledgeMapDataSchema
+> = defineDashboardWidget({
   id: KNOWLEDGE_MAP_WIDGET_ID,
   title: "Knowledge Map",
   group: "knowledge",
@@ -109,37 +104,3 @@ const knowledgeMapWidget = defineDashboardWidget({
     ],
   }),
 });
-
-/** Register the semantic corpus projection after the Dashboard host mounts. */
-export function registerKnowledgeMapDashboardWidget(params: {
-  context: EntityPluginContext;
-  /** The entity types topics are drawn from. */
-  sourceTypes: () => string[];
-}): void {
-  const { context, sourceTypes } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: knowledgeMapWidget,
-        // The console draws the cartographic field itself; the declarative
-        // view above stays as the map's text detail and digest.
-        render: {
-          component: KnowledgeMapWidget,
-          clientStyles: knowledgeMapStyles,
-        },
-        load: async ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          const data = await buildKnowledgeMapData(
-            { ...context, sourceTypes: async () => sourceTypes() },
-            visibilityScope,
-          );
-          signal.throwIfAborted();
-          return data;
-        },
-      });
-      return { success: true };
-    },
-  );
-}
