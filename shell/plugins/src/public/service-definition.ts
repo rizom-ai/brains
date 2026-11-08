@@ -1,5 +1,6 @@
 import type { z } from "@brains/utils/zod";
 import {
+  assertIdentifier,
   createPluginPackageDefinition,
   type PluginPackageDefinition,
 } from "../package-definition";
@@ -152,16 +153,52 @@ function createServicePackage<
     config: definition.config,
     // The owned types come first, so each exists before the service that
     // writes it registers, exactly as an entity package installs them.
-    instantiate: ({ config, package: metadata, scope }) => [
-      ...createEntityPackagePlugins(entities, [], metadata, scope),
+    instantiate: ({ config, package: metadata, scope, pluginId }) => [
+      ...createEntityPackagePlugins(
+        entities,
+        [],
+        metadata,
+        pluginId === undefined
+          ? scope
+          : legacyOwnedScope(definition.id, entities, pluginId),
+      ),
       createDeclarativeServicePlugin(
         definition,
         config,
         metadata,
-        scope(definition.id),
+        pluginId ?? scope(definition.id),
       ),
     ],
   });
+}
+
+/**
+ * Names for the type a first-party service keeps from its class: installed
+ * under the type itself, as an entity plugin class was named after the type
+ * it registered, with every name scoped to it following that id.
+ */
+function legacyOwnedScope(
+  serviceId: string,
+  entities: readonly AnyEntityDefinition[],
+  pluginId: string,
+): (localId: string) => string {
+  const [only, ...rest] = entities;
+  if (rest.length > 0) {
+    throw new Error(
+      `Service "${serviceId}" keeps a legacy plugin id only when it owns at most one entity type`,
+    );
+  }
+  if (only?.type === pluginId) {
+    throw new Error(
+      `Service "${serviceId}" cannot keep legacy plugin id "${pluginId}", which its entity type is installed under`,
+    );
+  }
+  return (localId) => {
+    assertIdentifier(localId, "Local plugin id");
+    return only === undefined || localId === only.type
+      ? localId
+      : `${only.type}:${localId}`;
+  };
 }
 
 /** What a service header and its behavior may declare. */

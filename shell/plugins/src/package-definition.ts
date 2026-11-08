@@ -47,7 +47,7 @@ export interface PluginPackageInstantiationContext<TConfig extends object> {
   readonly config: TConfig;
   readonly package: InstalledPluginPackageMetadata;
   scope(localId: string): string;
-  /** The plugin id a first-party entity package keeps from its class. */
+  /** The plugin id a first-party entity or service package keeps from its class. */
   readonly pluginId?: string | undefined;
 }
 
@@ -57,9 +57,11 @@ export interface PluginPackageInstantiationContext<TConfig extends object> {
  */
 export interface PluginPackageInstantiationOptions {
   /**
-   * The plugin id a converted first-party entity package keeps from its
-   * class, with every name derived from it (templates, data sources, jobs,
-   * channels). The package still owns its state and channels by name.
+   * The plugin id a converted first-party entity or service package keeps
+   * from its class, with every name derived from it (templates, data
+   * sources, jobs, channels). The package still owns its state and channels
+   * by name. A service that owns a type installs it under the type itself,
+   * as an entity plugin class was named after its type.
    */
   readonly pluginId?: string | undefined;
 }
@@ -253,9 +255,9 @@ export function instantiatePluginPackageDefinition(
   const { pluginId } = options;
   if (pluginId !== undefined) {
     assertIdentifier(pluginId, "Legacy plugin id");
-    if (definition.family !== "entity") {
+    if (definition.family !== "entity" && definition.family !== "service") {
       throw new Error(
-        `Plugin definition "" is not an entity package; only an entity package keeps a legacy plugin id`,
+        `Plugin definition "${definition.id}" is not an entity or service package; only those keep a legacy plugin id`,
       );
     }
   }

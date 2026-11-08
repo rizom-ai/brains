@@ -8,7 +8,10 @@ import {
   defineEntity,
   defineEntityJob,
   defineEntityPackage,
+  defineInterface,
+  defineJob,
   defineServicePlugin,
+  defineTool,
   instantiatePluginPackageDefinition,
 } from "../src";
 
@@ -54,6 +57,50 @@ const docs = defineEntityPackage({
 });
 
 const metadata = { name: "@brains/doc", version: "0.1.0" };
+
+const registryEntry = defineEntity({
+  type: "registry-entry",
+  purpose: "One registered thing.",
+  metadata: z.object({ title: z.string() }),
+});
+
+const registry = defineServicePlugin(
+  { id: "registry", config: z.object({}) },
+  {
+    templates: {
+      summary: {
+        schema: z.object({ title: z.string() }),
+        format: ({ value }) => value.title,
+      },
+    },
+    jobs: () => [
+      defineJob({
+        name: "refresh",
+        input: z.object({}),
+        output: z.object({}),
+      }).handle(async () => ({})),
+    ],
+    tools: () => [
+      defineTool({
+        name: "list",
+        description: "List what is registered.",
+        input: z.object({}),
+        output: z.object({}),
+        execute: () => ({}),
+      }),
+    ],
+  },
+);
+
+const serviceMetadata = { name: "@brains/registry", version: "0.1.0" };
+
+async function installAll(
+  plugins: ReturnType<typeof instantiatePluginPackageDefinition>,
+): Promise<ReturnType<typeof createPluginHarness>> {
+  const harness = createPluginHarness({ logger: createSilentLogger() });
+  for (const plugin of plugins) await harness.installPlugin(plugin);
+  return harness;
+}
 
 async function install(options?: { pluginId: string }): Promise<{
   pluginIds: string[];
@@ -127,23 +174,116 @@ describe("an entity package instantiated under a legacy plugin id", () => {
     ).toThrow(/one plugin/);
   });
 
-  it("is refused for a family other than an entity package", () => {
-    const service = defineServicePlugin({
-      id: "service",
+  it("is refused for an interface package, naming the definition", () => {
+    const listener = defineInterface({
+      id: "listener",
       config: z.object({}),
     });
     expect(() =>
-      instantiatePluginPackageDefinition(service, {}, metadata, {
-        pluginId: "service",
+      instantiatePluginPackageDefinition(listener, {}, metadata, {
+        pluginId: "listener",
       }),
-    ).toThrow(/entity package/);
+    ).toThrow(
+      'Plugin definition "listener" is not an entity or service package; only those keep a legacy plugin id',
+    );
   });
 
   it("is refused when it is not a plugin identifier", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(registry, {}, serviceMetadata, {
+        pluginId: "Registry!",
+      }),
+    ).toThrow();
     expect(() =>
       instantiatePluginPackageDefinition(docs, {}, metadata, {
         pluginId: "Docs!",
       }),
     ).toThrow();
+  });
+});
+
+describe("a service package instantiated under a legacy plugin id", () => {
+  it("registers its plugin, templates and jobs under that id, its tools by name", async () => {
+    const plugins = instantiatePluginPackageDefinition(
+      registry,
+      {},
+      serviceMetadata,
+      { pluginId: "registry" },
+    );
+    const harness = await installAll(plugins);
+
+    expect(plugins.map(({ id }) => id)).toEqual(["registry"]);
+    expect(plugins.map(({ packageName }) => packageName)).toEqual([
+      "@brains/registry",
+    ]);
+    expect([...harness.getTemplates().keys()]).toEqual(["registry:summary"]);
+    expect(
+      harness.getMockShell().getJobQueueService().getRegisteredTypes(),
+    ).toEqual(["registry:refresh"]);
+    expect(harness.getCapabilities().tools.map(({ name }) => name)).toEqual([
+      "registry_list",
+    ]);
+    await harness.reset();
+  });
+
+  it("scopes its plugin by the package without one", async () => {
+    const plugins = instantiatePluginPackageDefinition(
+      registry,
+      {},
+      serviceMetadata,
+    );
+    const harness = await installAll(plugins);
+
+    expect(plugins.map(({ id }) => id)).toEqual(["@brains/registry:registry"]);
+    expect([...harness.getTemplates().keys()]).toEqual([
+      "@brains/registry:registry:summary",
+    ]);
+    await harness.reset();
+  });
+
+  it("installs the one type it owns under the type's own id", () => {
+    const owning = defineServicePlugin({
+      id: "registry",
+      config: z.object({}),
+      entities: [registryEntry],
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      owning,
+      {},
+      serviceMetadata,
+      { pluginId: "registry-metadata" },
+    );
+    expect(plugins.map(({ id, type }) => [id, type])).toEqual([
+      ["registry-entry", "entity"],
+      ["registry-metadata", "service"],
+    ]);
+  });
+
+  it("is refused for a service that owns more than one type", () => {
+    const owning = defineServicePlugin({
+      id: "registry",
+      config: z.object({}),
+      entities: [registryEntry, doc],
+    });
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        pluginId: "registry",
+      }),
+    ).toThrow(/at most one entity type/);
+  });
+});
+
+describe("a service's legacy plugin id beside the type it owns", () => {
+  it("is refused when it is the id its type is installed under", () => {
+    const owning = defineServicePlugin({
+      id: "registry",
+      config: z.object({}),
+      entities: [registryEntry],
+    });
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        pluginId: "registry-entry",
+      }),
+    ).toThrow(/its entity type is installed under/);
   });
 });
