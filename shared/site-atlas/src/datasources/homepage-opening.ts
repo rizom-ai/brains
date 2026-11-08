@@ -1,8 +1,8 @@
-import {
-  findRouteByRole,
-  type BaseDataSourceContext,
-  type ServicePluginContext,
+import type {
+  BaseDataSourceContext,
+  ServicePluginContext,
 } from "@brains/plugins";
+import { findRouteByRole } from "@brains/plugins/contracts/web-routes";
 import { askContentFromRecord, type AskContent } from "@brains/contracts";
 
 type OpeningRuntime = Pick<
