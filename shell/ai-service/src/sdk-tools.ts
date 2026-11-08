@@ -1,4 +1,7 @@
-import { dynamicTool, jsonSchema, type Schema, type ToolSet } from "ai";
+import { dynamicTool, jsonSchema, type Schema } from "ai";
+
+/** The tools the agent runs: each takes the input its schema parsed. */
+export type SDKToolSet = Record<string, ReturnType<typeof dynamicTool>>;
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
 import {
@@ -210,7 +213,7 @@ export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
-): ToolSet {
+): SDKToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
   if (
@@ -222,7 +225,7 @@ export function convertToSDKTools(
   ) {
     throw new Error("Guest execution denied");
   }
-  const sdkTools: ToolSet = {};
+  const sdkTools: SDKToolSet = {};
   const readCache = new Map<string, unknown>();
 
   for (const t of pluginTools) {

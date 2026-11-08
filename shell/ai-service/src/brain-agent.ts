@@ -240,7 +240,7 @@ export function createBrainAgentFactory(
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
           const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-            (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+            (onStepEnd) => agent.generate({ ...params, onStepEnd }),
           );
           return {
             text,
@@ -281,7 +281,7 @@ export function createBrainAgentFactory(
             guestScreening: { outcome: "refused", category: judgment.category },
           };
         const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-          (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+          (onStepEnd) => agent.generate({ ...params, onStepEnd }),
         );
         return {
           text,

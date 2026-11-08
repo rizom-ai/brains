@@ -60,11 +60,29 @@ function sdkResult<F extends (...args: never[]) => PromiseLike<unknown>>(
   return fields as Awaited<ReturnType<F>>;
 }
 
+/**
+ * A stand-in for generateText. generateText is generic over its tools and
+ * output; the stand-in answers every instantiation from one function.
+ */
+function fakeGenerateText(
+  respond: (
+    settings: Parameters<typeof ai.generateText>[0],
+  ) => Awaited<ReturnType<typeof ai.generateText>>,
+): typeof ai.generateText {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
+  return (async (settings: Parameters<typeof ai.generateText>[0]) =>
+    respond(settings)) as typeof ai.generateText;
+}
+
+/** What generateText returns for a call with structured output. */
 function objectResult<T>(
   object: T,
   objectUsage: LanguageModelUsage,
-): Awaited<ReturnType<typeof ai.generateObject>> {
-  return sdkResult<typeof ai.generateObject>({ object, usage: objectUsage });
+): Awaited<ReturnType<typeof ai.generateText>> {
+  return sdkResult<typeof ai.generateText>({
+    output: object,
+    usage: objectUsage,
+  });
 }
 
 /** The real provider model the service hands to the SDK call. */
@@ -81,7 +99,9 @@ describe("AIService", () => {
   // each test. mock.module would replace the "ai" module for every later test
   // file in the same process, and bun cannot undo it.
   let generateTextSpy: ReturnType<typeof spyOn<typeof ai, "generateText">>;
-  let generateObjectSpy: ReturnType<typeof spyOn<typeof ai, "generateObject">>;
+  // Structured output is a generateText call with an output setting; this
+  // names the same spy where a test is about object generation.
+  let generateObjectSpy: ReturnType<typeof spyOn<typeof ai, "generateText">>;
   let generateImageSpy: ReturnType<typeof spyOn<typeof ai, "generateImage">>;
   let createAnthropicSpy: ReturnType<
     typeof spyOn<typeof anthropicSdk, "createAnthropic">
@@ -171,15 +191,17 @@ describe("AIService", () => {
   beforeEach(() => {
     logger = createSilentLogger();
 
-    generateTextSpy = spyOn(ai, "generateText").mockResolvedValue(
-      sdkResult<typeof ai.generateText>({
-        text: "Generated text response",
-        usage: usage(10, 20),
-      }),
+    generateTextSpy = spyOn(ai, "generateText").mockImplementation(
+      fakeGenerateText((settings) =>
+        settings.output
+          ? objectResult({ result: "structured data" }, usage(15, 25))
+          : sdkResult<typeof ai.generateText>({
+              text: "Generated text response",
+              usage: usage(10, 20),
+            }),
+      ),
     );
-    generateObjectSpy = spyOn(ai, "generateObject").mockResolvedValue(
-      objectResult({ result: "structured data" }, usage(15, 25)),
-    );
+    generateObjectSpy = generateTextSpy;
     generateImageSpy = spyOn(ai, "generateImage").mockResolvedValue(
       sdkResult<typeof ai.generateImage>({
         image: new ai.DefaultGeneratedFile({
@@ -279,7 +301,7 @@ describe("AIService", () => {
       // Verify the mock was called with correct parameters
       expect(generateTextSpy).toHaveBeenCalledWith({
         model: providerModel("anthropic", DEFAULT_TEXT_MODEL),
-        system: systemPrompt,
+        instructions: systemPrompt,
         prompt: userPrompt,
         temperature: 0.7,
       });
@@ -407,8 +429,8 @@ describe("AIService", () => {
       await service.generateText("System", "User");
       await service.generateObject("System", "User", z.object({}));
 
-      for (const spy of [generateTextSpy, generateObjectSpy]) {
-        const [settings] = spy.mock.calls.at(-1) ?? [];
+      expect(generateTextSpy).toHaveBeenCalledTimes(2);
+      for (const [settings] of generateTextSpy.mock.calls) {
         expect(settings).not.toHaveProperty("maxTokens");
         expect(settings).not.toHaveProperty("webSearch");
       }
@@ -498,9 +520,9 @@ describe("AIService", () => {
       });
       expect(generateObjectSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          system: expect.stringContaining("careful judge"),
+          instructions: expect.stringContaining("careful judge"),
           prompt: expect.stringContaining("Decide whether the goal is met."),
-          schema,
+          output: expect.anything(),
         }),
       );
     });
@@ -571,9 +593,9 @@ describe("AIService", () => {
       // Verify the mock was called with correct parameters
       expect(generateObjectSpy).toHaveBeenCalledWith({
         model: providerModel("anthropic", DEFAULT_TEXT_MODEL),
-        system: systemPrompt,
+        instructions: systemPrompt,
         prompt: userPrompt,
-        schema: testSchema,
+        output: expect.anything(),
         temperature: 0.7,
         providerOptions: {
           anthropic: { structuredOutputMode: "jsonTool" },
@@ -715,7 +737,7 @@ describe("AIService", () => {
       expect(result.text).toBe("Generated text response");
       expect(generateTextSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          system: "",
+          instructions: "",
           prompt: "",
         }),
       );
