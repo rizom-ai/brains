@@ -11,6 +11,7 @@
 export {
   firstPartyTool,
   serviceRuntime,
+  type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceIdentity,
   type ServiceListenHandler,

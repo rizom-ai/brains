@@ -4,6 +4,12 @@ import type { z } from "@brains/utils/zod";
 import type { IMessagingNamespace } from "../base/context-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  GetEntityRequest,
+  ListEntitiesRequest,
+} from "@brains/entity-service";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   buildServiceTool,
@@ -135,6 +141,23 @@ export interface ServiceRuntime {
   readonly identity: ServiceIdentity;
   /** The brain's bare domain, when it has one. */
   readonly domain: string | undefined;
+  /**
+   * Read-only reads of the brain's entities, passed through to the entity
+   * service at the scope each call names, as the class read them: the
+   * registered types, counts by type, a page of a type and one record. It
+   * writes nothing.
+   */
+  readonly entityReads: ServiceEntityReads;
+}
+
+/** The entity service's reads a first-party class made, and nothing that writes. */
+export interface ServiceEntityReads {
+  getEntityTypes(): string[];
+  getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>>;
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
 }
 
 /** Who the brain is and whom it represents, as the shell keeps them. */
@@ -162,6 +185,7 @@ export interface ServiceRuntimeBinding {
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
+  readonly entityReads: ServiceEntityReads;
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
@@ -175,6 +199,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     dataDir: binding.dataDir,
     identity: binding.identity,
     domain: binding.domain,
+    entityReads: binding.entityReads,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
     },

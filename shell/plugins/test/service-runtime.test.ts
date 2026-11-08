@@ -484,3 +484,102 @@ describe("a first-party service's runtime, once every plugin has registered", ()
     );
   });
 });
+
+describe("a first-party service's read-only view of the entity service", () => {
+  async function reads(
+    shell: MockShell,
+  ): Promise<ReturnType<typeof serviceRuntime>["entityReads"]> {
+    const captured: ReturnType<typeof serviceRuntime>["entityReads"][] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            captured.push(serviceRuntime(context).entityReads);
+            return [];
+          },
+        },
+      ),
+    );
+    const [view] = captured;
+    if (!view) throw new Error("No entity reads");
+    return view;
+  }
+
+  function seeded(): MockShell {
+    const shell = createMockShell();
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "note",
+        baseEntitySchema,
+        createTestEntityAdapter("note"),
+      );
+    const at = new Date().toISOString();
+    shell.addEntities([
+      {
+        id: "public-note",
+        entityType: "note",
+        content: "Public",
+        contentHash: "a",
+        metadata: {},
+        visibility: "public",
+        created: at,
+        updated: at,
+      },
+      {
+        id: "private-note",
+        entityType: "note",
+        content: "Private",
+        contentHash: "b",
+        metadata: {},
+        visibility: "restricted",
+        created: at,
+        updated: at,
+      },
+    ]);
+    return shell;
+  }
+
+  it("reads types, public counts, lists and records as the entity service does", async () => {
+    const view = await reads(seeded());
+
+    expect(view.getEntityTypes()).toEqual(["note"]);
+    expect(await view.getEntityCounts("public")).toEqual([
+      { entityType: "note", count: 1 },
+    ]);
+    expect(
+      (
+        await view.listEntities({
+          entityType: "note",
+          options: { filter: { visibilityScope: "public" } },
+        })
+      ).map(({ id }) => id),
+    ).toEqual(["public-note"]);
+    // A full-scope read reaches a restricted record, as the class's did.
+    expect(
+      (
+        await view.getEntity({
+          entityType: "note",
+          id: "private-note",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+    ).toBe("Private");
+    expect(
+      await view.getEntity({ entityType: "note", id: "private-note" }),
+    ).toBeNull();
+  });
+
+  it("offers no writes", async () => {
+    const view = await reads(seeded());
+
+    expect(Object.keys(view).sort()).toEqual([
+      "getEntity",
+      "getEntityCounts",
+      "getEntityTypes",
+      "listEntities",
+    ]);
+  });
+});

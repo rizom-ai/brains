@@ -70,6 +70,7 @@ import {
 import { packageRuntimeState } from "../internal/state-namespace";
 import {
   withServiceRuntime,
+  type ServiceEntityReads,
   type ServiceEntityShapes,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
@@ -1041,6 +1042,7 @@ class DeclarativeServicePlugin<
         getProfile: () => context.identity.getProfile(),
       }),
       domain: context.domain,
+      entityReads: entityReadsOf(context),
     });
   }
 
@@ -1465,6 +1467,17 @@ class DeclarativeServicePlugin<
       },
     };
   }
+}
+
+/** The entity service's reads, each bound on its own so no write rides along. */
+function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
+  const { entityService } = context;
+  return Object.freeze({
+    getEntityTypes: () => entityService.getEntityTypes(),
+    getEntityCounts: (scope) => entityService.getEntityCounts(scope),
+    listEntities: (request) => entityService.listEntities(request),
+    getEntity: (request) => entityService.getEntity(request),
+  } satisfies ServiceEntityReads);
 }
 
 /** What every registered entity type looks like, read through the plugin's context. */
