@@ -226,6 +226,21 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "first-party-service-runtime",
+      "paths": [
+        "packages/brain-sdk/src/internal/service-runtime.ts",
+        "shell/plugins/src/service/service-runtime.ts"
+      ],
+      "symbol": "firstPartyTool",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Gives a first-party service converted from a class what the public service contract does not offer: tools whose local names keep the underscore their class gave them (`atproto-registry_check_contracts`), which the public `defineTool` refuses.",
+      "currentConsumers": "First-party service packages converted to declarative definitions whose class tools were named in snake case (atproto-registry).",
+      "removalPrerequisite": "Rename the snake-case tools to kebab case, with their evals, docs and agent instructions, or promote the underscore to the public tool-name rule once a third-party package needs it.",
+      "rollbackDependency": "None: a tool name is registered per run and stores nothing.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "site-analytics-script-field",
       "paths": ["shared/site-engine/src/html-generator.ts"],
       "symbol": "analytics script fallback",

@@ -976,6 +976,9 @@ export {
   type QueuedCreate,
   type StoredCreate,
 } from "./entity/entity-runtime";
+// First-party services converted from a class reach what the public
+// service contract does not offer here.
+export { firstPartyTool } from "./service/service-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
