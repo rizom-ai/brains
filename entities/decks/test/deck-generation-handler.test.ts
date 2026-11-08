@@ -1,8 +1,7 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { ContentGenerationConfig } from "@brains/plugins";
-import type { JobHandler } from "@brains/job-queue";
+import type { ContentGenerationConfig, JobHandler } from "@brains/plugins";
 import type { StyleGuideEntity } from "@brains/style-guide";
 import { createMockProgressReporter } from "@brains/test-utils";
 import { decksPlugin } from "./decks-plugin";
