@@ -63,6 +63,18 @@ export interface ServiceListenOptions {
   readonly mode?: ServiceListenMode | undefined;
 }
 
+/** What a registered entity type looks like to a package that renders it. */
+export interface ServiceEntityShapes {
+  /** Every registered entity type. */
+  types(): string[];
+  /** The type's frontmatter schema with every extension; none when unknown. */
+  frontmatterSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
+  /** Whether the type keeps one record; false when unknown. */
+  isSingleton(type: string): boolean;
+  /** The body a new record of the type starts with; empty when unknown. */
+  bodyTemplate(type: string): string;
+}
+
 /** The internal capabilities a first-party service's slot context carries. */
 export interface ServiceRuntime {
   /** The package's logger, as its class logged. */
@@ -98,6 +110,16 @@ export interface ServiceRuntime {
   ): void;
   /** The transport registered for a recipient's channel type, if any. */
   deliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
+  /**
+   * Run once the brain is ready, as the package: after every plugin has
+   * registered and the shell has prepared its ready state, where the class's
+   * onReady ran. Handlers run in the order they were given.
+   */
+  ready(handler: () => void | Promise<void>): void;
+  /** The shape of every registered entity type, read-only. */
+  readonly entityShapes: ServiceEntityShapes;
+  /** Where the brain keeps its data on disk. */
+  readonly dataDir: string;
 }
 
 /** What the runtime binds a first-party service's runtime to. */
@@ -111,15 +133,24 @@ export interface ServiceRuntimeBinding {
   readonly asPackage: <T>(run: () => Promise<T>) => Promise<T>;
   /** Keeps a release to run when the package shuts down. */
   readonly onRelease: (release: () => void) => void;
+  /** Keeps a handler to run once the brain is ready. */
+  readonly onReady: (handler: () => Promise<void>) => void;
+  readonly entityShapes: ServiceEntityShapes;
+  readonly dataDir: string;
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
 
 function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
-  const { messaging, asPackage, onRelease } = binding;
+  const { messaging, asPackage, onRelease, onReady } = binding;
   const runtime: ServiceRuntime = {
     logger: binding.logger,
     deliveryProvider: binding.deliveryProvider,
+    entityShapes: binding.entityShapes,
+    dataDir: binding.dataDir,
+    ready(handler): void {
+      onReady(() => asPackage(async () => handler()));
+    },
     answer(contract, handler, options = {}): void {
       // The bus checks the answer against the contract's own schema, as the
       // public answer does; erasing the response type is what lets a handler

@@ -3,6 +3,7 @@ import { defineBusContract, defineChannel } from "@brains/contracts";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
+import { baseEntitySchema, createTestEntityAdapter } from "../test";
 import {
   createServicePluginContext,
   defineServicePlugin,
@@ -307,5 +308,89 @@ describe("a first-party service's runtime", () => {
 
   it("is refused on a context the runtime did not build", () => {
     expect(() => serviceRuntime({})).toThrow(/first-party packages only/);
+  });
+});
+
+describe("a first-party service's runtime, once the brain is ready", () => {
+  it("runs its ready handlers when the brain is ready, in order, as the package", async () => {
+    const shell = createMockShell();
+    const order: string[] = [];
+    const plugin = await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.ready(() => {
+              order.push("first");
+            });
+            runtime.ready(async () => {
+              order.push("second");
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    expect(order).toEqual([]);
+
+    await plugin.ready?.();
+    expect(order).toEqual(["first", "second"]);
+  });
+
+  it("reads the shape of every registered type, and where the brain keeps its data", async () => {
+    const shell = createMockShell({ dataDir: "/tmp/probe-data" });
+    const registry = shell.getEntityRegistry();
+    registry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      createTestEntityAdapter("note"),
+    );
+    // The mock registry keeps no extensions; answer as the real one would.
+    registry.getEffectiveFrontmatterSchema = (
+      type: string,
+    ): z.ZodObject<z.ZodRawShape> | undefined =>
+      type === "note" ? z.object({ title: z.string() }) : undefined;
+    registry.registerEntityType(
+      "site-info",
+      baseEntitySchema,
+      createTestEntityAdapter("site-info", { isSingleton: true }),
+    );
+    const read: unknown[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const { entityShapes, dataDir } = serviceRuntime(context);
+            read.push(
+              dataDir,
+              entityShapes.types(),
+              Object.keys(entityShapes.frontmatterSchema("note")?.shape ?? {}),
+              entityShapes.frontmatterSchema("missing"),
+              entityShapes.isSingleton("site-info"),
+              entityShapes.isSingleton("note"),
+              entityShapes.isSingleton("missing"),
+              typeof entityShapes.bodyTemplate("note"),
+              entityShapes.bodyTemplate("missing"),
+            );
+            return [];
+          },
+        },
+      ),
+    );
+    expect(read).toEqual([
+      "/tmp/probe-data",
+      ["note", "site-info"],
+      ["title"],
+      undefined,
+      true,
+      false,
+      false,
+      "string",
+      "",
+    ]);
   });
 });

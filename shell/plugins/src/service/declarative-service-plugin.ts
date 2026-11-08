@@ -68,7 +68,10 @@ import {
   createOwnedEntityWriter,
 } from "../entity/owned-entity-writer-runtime";
 import { packageRuntimeState } from "../internal/state-namespace";
-import { withServiceRuntime } from "./service-runtime";
+import {
+  withServiceRuntime,
+  type ServiceEntityShapes,
+} from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -265,6 +268,8 @@ class DeclarativeServicePlugin<
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
   /** Releases the contracts this package answers. */
   private readonly answered: Array<() => void> = [];
+  /** What a first-party package runs once the brain is ready. */
+  private readonly readyHandlers: Array<() => Promise<void>> = [];
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -565,6 +570,10 @@ class DeclarativeServicePlugin<
     });
   }
 
+  protected override async onReady(): Promise<void> {
+    for (const handler of this.readyHandlers) await handler();
+  }
+
   protected override async onShutdown(): Promise<void> {
     this.operatorAbortController.abort(
       new Error(`Service "${this.publicId}" is shutting down`),
@@ -589,6 +598,7 @@ class DeclarativeServicePlugin<
     }
     this.registeredJobs.clear();
     for (const release of this.answered.splice(0).reverse()) release();
+    this.readyHandlers.splice(0);
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
@@ -1009,6 +1019,11 @@ class DeclarativeServicePlugin<
       onRelease: (release) => {
         this.answered.push(release);
       },
+      onReady: (handler) => {
+        this.readyHandlers.push(handler);
+      },
+      entityShapes: entityShapesOf(context),
+      dataDir: context.dataDir,
     });
   }
 
@@ -1433,6 +1448,19 @@ class DeclarativeServicePlugin<
       },
     };
   }
+}
+
+/** What every registered entity type looks like, read through the plugin's context. */
+function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
+  return Object.freeze({
+    types: () => context.entityService.getEntityTypes(),
+    frontmatterSchema: (type: string) =>
+      context.entities.getEffectiveFrontmatterSchema(type),
+    isSingleton: (type: string) =>
+      context.entities.getAdapter(type)?.isSingleton === true,
+    bodyTemplate: (type: string) =>
+      context.entities.getAdapter(type)?.getBodyTemplate() ?? "",
+  });
 }
 
 export function createDeclarativeServicePlugin<
