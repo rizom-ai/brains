@@ -967,8 +967,12 @@ export {
 // the public contexts never name it.
 export {
   contractJob,
+  answering,
+  entityAnswer,
   entityRuntime,
   uniqueTitleContext,
+  type EntityAnswerContext,
+  type EntityAnswerDeclaration,
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,

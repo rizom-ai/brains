@@ -9,11 +9,15 @@
  */
 
 export {
+  answering,
   contractJob,
+  entityAnswer,
   ensureUniqueTitle,
   entityRuntime,
   uniqueTitleContext,
   type AnyEntityReads,
+  type EntityAnswerContext,
+  type EntityAnswerDeclaration,
   type EntityRuntime,
   type EntityRuntimeAttachments,
   type EntityRuntimeIdentity,

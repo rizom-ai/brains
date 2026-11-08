@@ -370,6 +370,28 @@ function entityJobWriter(
 }
 
 /**
+ * Reads and writes of the declaring type as the package acting as itself,
+ * with no caller behind it: its own types at every visibility and past the
+ * action policy, other types at its own grant, its writes attributed to it.
+ */
+export async function packageEntityWrites(
+  context: EntityPluginContext,
+  pluginId: string,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): Promise<EntityReader & OwnedEntityWriter<AnyEntityDefinition>> {
+  const call: QueuedJobCall = {
+    ...packageSelfCall(context.jobAuthority),
+    eventContext: { actor: { kind: "service", serviceId: pluginId } },
+  };
+  const authority = await runAuthority(context, call, ownsType);
+  return Object.freeze({
+    ...authority.entities,
+    ...entityJobWriter(context, call, authority, ownsType, writes),
+  });
+}
+
+/**
  * Bind a declared job that does its own work. It reads as whoever started
  * it, as a service package's job does, and writes the declaring type's
  * records as them.

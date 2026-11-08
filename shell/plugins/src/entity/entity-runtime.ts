@@ -1,5 +1,6 @@
 import {
   SdkError,
+  type BusContract,
   type ImageAspectRatio,
   type JobContract,
   type PublishMediaData,
@@ -29,7 +30,9 @@ import type {
   EntityOf,
   EntityReader,
   EntityVisibility,
+  OwnedEntityWriter,
 } from "./entity-definition-contract";
+import type { SchemaValue } from "../internal/schema-value";
 
 /**
  * Internal runtime capabilities bound to one entity callback's call, for
@@ -685,6 +688,73 @@ export function withEntityRuntime<TContext extends object>(
 
 function isEntityRuntime(value: unknown): value is EntityRuntime {
   return typeof value === "object" && value !== null;
+}
+
+/** What a first-party entity type's answer is handed with its request. */
+export interface EntityAnswerContext<TRequest> {
+  readonly request: TRequest;
+  /** The package that asked, as the bus stamps it. */
+  readonly sender: string;
+  /** The declaring type's reads and writes, as the package acting as itself. */
+  readonly entities: EntityReader & OwnedEntityWriter<AnyEntityDefinition>;
+}
+
+/** A first-party contract a type answers, declared with `entityAnswer`. */
+export interface EntityAnswerDeclaration {
+  readonly contract: BusContract<z.ZodType, z.ZodType>;
+  handle(context: EntityAnswerContext<unknown>): Promise<unknown>;
+  readonly everyProcess?: boolean | undefined;
+}
+
+/**
+ * Answer a first-party contract under the channel it already has, such as
+ * `note:capture`, as an entity plugin class answered it: as the package,
+ * in the main process, or in every process with `everyProcess`. The
+ * request reaches the handler parsed, and the answer reaches the asker
+ * only when the contract accepts it; a failure crosses in its public form.
+ */
+export function entityAnswer<
+  const TRequest extends z.ZodType,
+  const TResponse extends z.ZodType,
+>(
+  contract: BusContract<TRequest, TResponse>,
+  handle: (
+    context: EntityAnswerContext<z.output<TRequest>>,
+  ) => Promise<SchemaValue<TResponse>>,
+  options: { readonly everyProcess?: boolean | undefined } = {},
+): EntityAnswerDeclaration {
+  const erased: BusContract<z.ZodType, z.ZodType> = contract;
+  return Object.freeze({
+    contract: erased,
+    handle: (context: EntityAnswerContext<unknown>): Promise<unknown> =>
+      handle({ ...context, request: contract.schema.parse(context.request) }),
+    ...(options.everyProcess === true && { everyProcess: true }),
+  });
+}
+
+const entityAnswersKey = Symbol("rizom.entity-answers");
+
+/**
+ * A first-party definition that also answers first-party contracts: the
+ * definition, carrying its answers under a key no public type names, which
+ * the runtime registers with the type and releases when it shuts down.
+ */
+export function answering<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  answers: readonly EntityAnswerDeclaration[],
+): TDefinition {
+  return Object.freeze({
+    ...definition,
+    [entityAnswersKey]: Object.freeze([...answers]),
+  });
+}
+
+/** The first-party answers a definition carries, when it carries any. */
+export function entityAnswersOf(
+  definition: object,
+): readonly EntityAnswerDeclaration[] {
+  const found: unknown = Reflect.get(definition, entityAnswersKey);
+  return Array.isArray(found) ? found : [];
 }
 
 /**

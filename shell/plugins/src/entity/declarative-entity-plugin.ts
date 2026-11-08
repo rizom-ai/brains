@@ -62,6 +62,7 @@ import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import {
   contractJobOf,
+  entityAnswersOf,
   ordinaryCreateOf,
   queuedCreateOf,
   storedCreateOf,
@@ -89,6 +90,7 @@ import {
   type EntityJobWrites,
   type EntityRunAuthority,
   generationSource,
+  packageEntityWrites,
 } from "./declarative-jobs";
 import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { createPendingEntity } from "./pending-ingestion";
@@ -1146,6 +1148,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ? mediaAttachmentContext(context)
       : undefined;
     this.releases = [
+      // First-party answers, under the channels their contracts already
+      // have, as the package acting as itself.
+      ...entityAnswersOf(this.definition).map((declared) =>
+        context.messaging.answer(
+          declared.contract,
+          async (request, { sender }) =>
+            declared.handle({
+              request,
+              sender,
+              entities: await packageEntityWrites(
+                context,
+                this.id,
+                (entityType) => this.ownsType(entityType),
+                {
+                  declaring: this.definition,
+                  requiredLevel: (entityType, action) =>
+                    this.requiredLevel(entityType, action),
+                },
+              ),
+            }),
+          declared.everyProcess === true ? { everyProcess: true } : {},
+        ),
+      ),
       ...(agentContext
         ? [
             // Reads are scoped to the asker, so a provider cannot surface
