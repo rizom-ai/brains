@@ -137,6 +137,28 @@ describe("the declared decks on the entity store", () => {
     );
   });
 
+  test("writes a resolved slug where the file states it once stored", async () => {
+    const opened = await store();
+    await imported(
+      opened,
+      "noslug",
+      "---\ntitle: No Slug Deck\nstatus: draft\ndescription: Short\n---\n# No Slug\n\n---\n\nTwo\n",
+    );
+    const read = await opened.service.getEntity({
+      entityType: "deck",
+      id: "noslug",
+    });
+    if (!read) throw new Error("Missing deck");
+    await opened.service.updateEntity({
+      entity: { ...read, content: read.content.replace("Two", "Changed") },
+    });
+    // As DeckAdapter stored it: the stored file states its slug, so the
+    // update writes it where a stated slug goes.
+    expect((await opened.stored("deck", "noslug"))?.content).toBe(
+      "---\ntitle: No Slug Deck\nslug: no-slug-deck\ndescription: Short\nstatus: draft\n---\n# No Slug\n\n---\n\nChanged\n",
+    );
+  });
+
   test("refuses a deck without slides, as a body validation error", async () => {
     const opened = await store();
     const refusal = await opened.service
