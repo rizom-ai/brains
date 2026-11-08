@@ -287,3 +287,36 @@ describe("a service's legacy plugin id beside the type it owns", () => {
     ).toThrow(/its entity type is installed under/);
   });
 });
+
+describe("a first-party service's plugin dependencies", () => {
+  it("are the ones the composer names, as its class declared them", () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      registry,
+      {},
+      serviceMetadata,
+      { pluginId: "registry", dependencies: ["playbook", "playbooks"] },
+    );
+    expect(plugin?.dependencies).toEqual(["playbook", "playbooks"]);
+  });
+
+  it("are none unless the composer names them", () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      registry,
+      {},
+      serviceMetadata,
+      { pluginId: "registry" },
+    );
+    expect(plugin?.dependencies).toEqual([]);
+  });
+
+  it("are refused for a package that is not a service", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(docs, {}, metadata, {
+        pluginId: "docs",
+        dependencies: ["playbook"],
+      }),
+    ).toThrow(
+      'Plugin definition "docs" is not a service package; only a service keeps the dependencies its class declared',
+    );
+  });
+});

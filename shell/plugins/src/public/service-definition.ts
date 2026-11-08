@@ -153,7 +153,13 @@ function createServicePackage<
     config: definition.config,
     // The owned types come first, so each exists before the service that
     // writes it registers, exactly as an entity package installs them.
-    instantiate: ({ config, package: metadata, scope, pluginId }) => [
+    instantiate: ({
+      config,
+      package: metadata,
+      scope,
+      pluginId,
+      dependencies,
+    }) => [
       ...createEntityPackagePlugins(
         entities,
         [],
@@ -167,6 +173,7 @@ function createServicePackage<
         config,
         metadata,
         pluginId ?? scope(definition.id),
+        dependencies ?? [],
       ),
     ],
   });

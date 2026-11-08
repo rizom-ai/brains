@@ -263,6 +263,8 @@ class DeclarativeServicePlugin<
   private readonly calls = new AsyncLocalStorage<ServiceCall>();
   private entityAccessCache: ServiceEntityAccess<TEntities[number]> | undefined;
   private readonly publicId: string;
+  /** Registered before this plugin; a first-party class's, named by the composer. */
+  public readonly dependencies: string[];
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
@@ -314,10 +316,12 @@ class DeclarativeServicePlugin<
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
     id: string,
+    dependencies: readonly string[],
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
     this.publicId = definition.id;
+    this.dependencies = [...dependencies];
   }
 
   public override register(
@@ -1484,6 +1488,8 @@ export function createDeclarativeServicePlugin<
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,
+  /** The plugins a first-party class declared it depends on; none otherwise. */
+  dependencies: readonly string[] = [],
 ): DeclarativeServicePlugin<
   TConfigSchema,
   TState,
@@ -1493,5 +1499,11 @@ export function createDeclarativeServicePlugin<
   TTemplateDefinitions,
   TEntities
 > {
-  return new DeclarativeServicePlugin(definition, config, metadata, id);
+  return new DeclarativeServicePlugin(
+    definition,
+    config,
+    metadata,
+    id,
+    dependencies,
+  );
 }

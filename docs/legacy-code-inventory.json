@@ -200,11 +200,11 @@
         "shell/plugins/src/public/entity-definition.ts",
         "shell/plugins/src/public/service-definition.ts"
       ],
-      "symbol": "PluginPackageInstantiationOptions.pluginId",
+      "symbol": "PluginPackageInstantiationOptions.pluginId, PluginPackageInstantiationOptions.dependencies",
       "owner": "@brains/plugins",
       "class": "runtime-compatibility",
-      "behavior": "Instantiates a first-party entity or service package converted from a class under the plugin id its class had, so its template, data source, job and channel names stay those sites, brains and queued jobs use; a service that owns one type installs it under the type itself, as an entity plugin class was named after its type. Only the canonical brain's composer and a plugin eval's eval.yaml (`pluginId`) name it; package source never does.",
-      "currentConsumers": "First-party entity and service packages converted to declarative definitions and composed by the canonical brain, and their plugin evals (wishlist).",
+      "behavior": "Instantiates a first-party entity or service package converted from a class under the plugin id its class had, so its template, data source, job and channel names stay those sites, brains and queued jobs use; a service that owns one type installs it under the type itself, as an entity plugin class was named after its type; and a converted service keeps the plugin dependencies its class declared, registering after them and not starting without them. Only the canonical brain's composer and a plugin eval's eval.yaml (`pluginId`) name it; package source never does.",
+      "currentConsumers": "First-party entity and service packages converted to declarative definitions and composed by the canonical brain, and their plugin evals (wishlist); onboarding's dependency on playbook and playbooks.",
       "removalPrerequisite": "Decide whether first-party packages adopt package-scoped names; if they do, migrate site template references, brain configs and queued job types to the scoped names.",
       "rollbackDependency": "A brain rolled back to a release with class plugins reads the same plugin, template, data source and job names.",
       "targetRelease": "0.3.0-or-later"

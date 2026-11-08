@@ -49,6 +49,8 @@ export interface PluginPackageInstantiationContext<TConfig extends object> {
   scope(localId: string): string;
   /** The plugin id a first-party entity or service package keeps from its class. */
   readonly pluginId?: string | undefined;
+  /** The plugins a first-party service's class declared it depends on. */
+  readonly dependencies?: readonly string[] | undefined;
 }
 
 /**
@@ -64,6 +66,11 @@ export interface PluginPackageInstantiationOptions {
    * as an entity plugin class was named after its type.
    */
   readonly pluginId?: string | undefined;
+  /**
+   * The plugins a converted first-party service's class declared it depends
+   * on, which register before it and without which it does not start.
+   */
+  readonly dependencies?: readonly string[] | undefined;
 }
 
 type PluginPackageRuntimeFactory<TConfig extends object> = (
@@ -263,7 +270,12 @@ export function instantiatePluginPackageDefinition(
   metadata: InstalledPluginPackageMetadata,
   options: PluginPackageInstantiationOptions = {},
 ): Plugin[] {
-  const { pluginId } = options;
+  const { pluginId, dependencies } = options;
+  if (dependencies !== undefined && definition.family !== "service") {
+    throw new Error(
+      `Plugin definition "${definition.id}" is not a service package; only a service keeps the dependencies its class declared`,
+    );
+  }
   if (pluginId !== undefined) {
     assertIdentifier(pluginId, "Legacy plugin id");
     if (definition.family !== "entity" && definition.family !== "service") {
@@ -295,6 +307,7 @@ export function instantiatePluginPackageDefinition(
       return `${metadata.name}:${localId}`;
     },
     ...(pluginId !== undefined && { pluginId }),
+    ...(dependencies !== undefined && { dependencies }),
   });
   const plugins = isSeveral(created) ? [...created] : [created];
   const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
