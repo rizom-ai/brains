@@ -1,6 +1,6 @@
 id: portfolio-tool-create-asks-for-url
 name: Portfolio Create Without URL
-description: Verifies that the agent can start portfolio generation via system_create even when no project URL is available
+description: Verifies that the agent can start portfolio generation via system_generate even when no project URL is available
 type: tool_invocation
 tags:
   - portfolio
@@ -12,10 +12,13 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_create
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: project
+        operation.kind: prompt
+        operation.entityType: project
+    - toolName: system_create
+      shouldBeCalled: false
   responseNotContains:
     - "I cannot"
     - "I don't have access"
