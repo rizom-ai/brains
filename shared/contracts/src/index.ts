@@ -335,6 +335,13 @@ export {
   type ProfileImportOutcome,
 } from "./profile-import";
 export {
+  SOURCES_PER_TOPIC,
+  ownTopicSources,
+  topicSourceKey,
+  type NearSource,
+  type TopicNeighbourhood,
+} from "./topic-ownership";
+export {
   publishAssetDefinitionSchema,
   publishAssetRegisterContract,
   publishRegisterContract,
