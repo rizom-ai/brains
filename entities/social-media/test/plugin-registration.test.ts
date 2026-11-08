@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
 import { createTestEntity } from "@brains/entity-service/test";
-import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
+import type { StyleGuideEntity } from "@brains/style-guide";
 import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -38,11 +38,12 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       spyOn(mockShell.getEntityService(), "getEntity").mockResolvedValue(
         createTestEntity<StyleGuideEntity>("style-guide", {
           id: "style-guide",
-          content: styleGuideAdapter.createStyleGuideContent({
+          // As the declared style guide reads: the guidance is its metadata.
+          content: "",
+          metadata: {
             name: "Voice",
             voice: { summary: "Full paragraphs, no engagement bait" },
-          }),
-          metadata: {},
+          },
         }),
       );
       const generateContent = spyOn(

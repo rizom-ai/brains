@@ -9,7 +9,7 @@ import {
   WidgetListItem,
   WidgetStatusPill,
   WidgetEmptyState,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 import {
   OperatorDocumentBody,
   OperatorNotice,

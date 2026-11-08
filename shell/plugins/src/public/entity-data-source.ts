@@ -18,6 +18,7 @@ import type {
   EntityOf,
 } from "../entity/entity-definition-contract";
 import { createEntityReader, sortFields } from "../entity/entity-reader";
+import { withDataSourceRuntime } from "../entity/entity-runtime";
 import { entitySchema } from "../entity/entity-schema";
 import { assertIdentifier as assertLocalId } from "../package-definition";
 import {
@@ -30,7 +31,7 @@ export type {
   AnyDataSourceDeclaration,
   AnyEntityDataSourceDefinition,
   DataSourceDefinition,
-  DataSourceEntityReader,
+  EntityReader,
   DataSourceListOptions,
   DataSourceQuery,
   DataSourceReadContext,
@@ -109,10 +110,13 @@ function createFetchingDataSource(
       outputSchema: DataSourceSchema<T>,
       context: BaseDataSourceContext,
     ): Promise<T> {
-      const readContext = Object.freeze(
+      // First-party sources reach untyped reads at the build's own scope
+      // through entityRuntime(context).
+      const readContext = withDataSourceRuntime(
         dataSourceReadContextSchema.parse(
           definedFields({ publishedOnly: context.publishedOnly }),
         ),
+        context.entityService,
       );
       return outputSchema.parse(
         await definition.fetch(

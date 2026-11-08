@@ -49,6 +49,7 @@ export {
   type JobStatusType,
   type JobResultStatusType,
   JobProgressEventSchema,
+  jobProgressChannel,
   type JobProgressEvent,
   HandlerFailureSchema,
   type HandlerFailure,

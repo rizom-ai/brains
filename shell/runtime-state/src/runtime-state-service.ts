@@ -59,8 +59,26 @@ export class RuntimeStateService implements IRuntimeStateService {
     }
   }
 
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
-    return new RuntimeStateStore(this.db, options.namespace, options.schema);
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput> {
+    const store = new RuntimeStateStore(
+      this.db,
+      options.namespace,
+      options.schema,
+    );
+    // A scoped handle must not expose the implementation's database or mutable
+    // namespace fields. Bind methods so detached calls retain the same scope.
+    return Object.freeze({
+      get: store.get.bind(store),
+      has: store.has.bind(store),
+      set: store.set.bind(store),
+      setIfNotExists: store.setIfNotExists.bind(store),
+      compareAndSet: store.compareAndSet.bind(store),
+      delete: store.delete.bind(store),
+      list: store.list.bind(store),
+      clear: store.clear.bind(store),
+    });
   }
 
   close(): void {

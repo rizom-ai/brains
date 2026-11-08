@@ -51,9 +51,16 @@ with the bus it owns.
   invalid payload throws.
 - `unavailable` means no plugin answers the contract in this process. It is
   decided from the subscriber count, never from an error string.
+- A failure reaches the sender in its public form, as an `SdkError` publishes
+  it: `failed` carries `error: { code, message }` (`SdkErrorData`), and each
+  of `gather`'s `failures` is one. An owner that throws an `SdkError` keeps its
+  code and public message; any other error is `handler_failed` with the code's
+  standard message. The message a failure was thrown with stays in the owner's
+  log, as an error for `handler_failed` and a warning for any other code. To
+  pass a failure on, throw `sdkErrorFrom(result.error)`, which keeps both.
 - An owner's handler sees only a valid request; an invalid one is answered with
-  `Invalid <channel> request`. Its reply leaves only when the response schema
-  accepts it, otherwise the sender gets `failed`.
+  `invalid_input` and `Invalid <channel> request`. Its reply leaves only when
+  the response schema accepts it, otherwise the sender gets `invalid_response`.
 - The handler's second argument names the sending plugin (`{ sender }`).
 - An execution-only (worker) process answers only with
   `answer(contract, handler, { everyProcess: true })`.
@@ -66,6 +73,39 @@ and `context.jobs.has(contract)` reports whether the job type is declared.
 ESLint rejects a raw `messaging.send` in entity, plugin and interface source
 unless it passes `broadcast: true`.
 
+## Broadcast events
+
+An event a package broadcasts is declared once as a typed channel, with
+`defineChannel` from `@brains/contracts`, beside the schema its payload passes.
+The publish events (`publishCompletedChannel`, `publishFailedChannel`) live in
+`@brains/contracts`. The others live beside the schema their payload passes and
+reach plugins through `@brains/plugins`: the entity events
+(`entityCreatedChannel`, `entityUpdatedChannel`, `entityDeletedChannel`,
+`embeddingReadyChannel`) in `@brains/entity-service`, `jobProgressChannel` in
+`@brains/job-queue`, the conversation messages
+(`conversationMessageAddedChannel`, `conversationGuestMessageAddedChannel`) in
+`@brains/conversation-service`, the tool events (`toolInvokingChannel`,
+`toolCompletedChannel`, `toolFailedChannel`) in `@brains/ai-service`, and
+`initialSyncCompletedChannel` in `@brains/plugins` itself.
+
+```typescript
+context.messaging.observe(entityUpdatedChannel, async (change) => {
+  // change.entityType, change.entityId and change.entity are validated
+  return { success: true };
+});
+```
+
+- `subscribe`, `observe` and `subscribeExecution` take a channel. The handler
+  receives the validated payload, then the message without it.
+- A malformed payload is refused with `Invalid <channel> payload` and a logged
+  warning; the handler never sees it.
+- Every process raises entity events, so `subscribe` refuses their channels,
+  at compile time and at registration. They take `observe` or
+  `subscribeExecution`.
+- ESLint rejects type arguments on `subscribe`, `observe` and
+  `subscribeExecution` in entity, plugin, interface, shared and shell source,
+  this package aside: a type argument casts a payload nobody validated.
+
 ## Usage
 
 ```typescript
@@ -76,10 +116,9 @@ declare const logger: Logger;
 
 const messageBus = MessageBus.createFresh(logger);
 
-const unsubscribe = messageBus.subscribe<{ id: string }>(
-  "entity:created",
-  async () => ({ success: true }),
-);
+const unsubscribe = messageBus.subscribe("entity:created", async () => ({
+  success: true,
+}));
 
 await messageBus.send({
   type: "entity:created",

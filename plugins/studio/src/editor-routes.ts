@@ -8,6 +8,7 @@ import {
   permissionToVisibilityScope,
 } from "@brains/plugins";
 import { join } from "node:path";
+import { sdkErrorHttpStatus, toSdkError } from "@brains/contracts";
 import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import type {
   ServicePluginContext,
@@ -34,7 +35,6 @@ import {
   STUDIO_CHAT_ROUTE_PATH,
 } from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
-import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
@@ -708,15 +708,22 @@ async function handleGetWorkspace(
       },
     });
   } catch (error) {
-    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
-    // origin 502 with its own page, and the reason never reaches the caller.
-    return jsonResponse(
-      {
-        error: getErrorMessage(error, "Studio workspace data provider failed"),
-      },
-      500,
-    );
+    return workspaceFailure(error, request);
   }
+}
+
+/**
+ * A workspace's failure in its public form, `{ error, code }`, with the status
+ * its code names: never 502, which a proxy in front of the brain (Cloudflare)
+ * replaces with its own page. The diagnostic is the declaring package's to
+ * log, and the runtime has logged it there.
+ */
+function workspaceFailure(error: unknown, request: Request): Response {
+  const { code, message } = toSdkError(
+    error,
+    request.signal.aborted ? "cancelled" : "handler_failed",
+  ).toJSON();
+  return jsonResponse({ error: message, code }, sdkErrorHttpStatus(code));
 }
 
 function workspaceQueryFromSearchParams(
@@ -768,12 +775,7 @@ async function handleWorkspaceAction(
       ),
     });
   } catch (error) {
-    return jsonResponse(
-      {
-        error: getErrorMessage(error, "Studio workspace action failed"),
-      },
-      400,
-    );
+    return workspaceFailure(error, request);
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.642",
+  "version": "0.2.0-alpha.658",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
@@ -62,6 +62,7 @@
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",
     "./yaml": "./src/yaml.ts",
+    "./zod-issues": "./src/zod-issues.ts",
     "./zod": "./src/zod.ts",
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",

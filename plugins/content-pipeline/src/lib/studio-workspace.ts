@@ -10,6 +10,7 @@ import {
   type ServicePluginContext,
   type ToolContext,
 } from "@brains/plugins";
+import { SdkError } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
 import type { QueueManager } from "../queue-manager";
@@ -186,8 +187,11 @@ async function requirePublicationEntity(
   input: StudioPublishingTarget,
   caller: OperatorCaller,
 ): Promise<{ metadata: Record<string, unknown> }> {
+  // A refusal reaches the operator by its code and public message.
   if (!deps.providerRegistry.has(input.entityType)) {
-    throw new Error(`No publish provider registered for ${input.entityType}`);
+    throw new SdkError("not_found", {
+      publicMessage: `No publish provider registered for ${input.entityType}`,
+    });
   }
   const entity = await context.entityService.getEntity({
     entityType: input.entityType,
@@ -195,7 +199,9 @@ async function requirePublicationEntity(
     visibilityScope: permissionToVisibilityScope(caller.permission),
   });
   if (!entity) {
-    throw new Error(`Entity not found: ${input.entityType}:${input.entityId}`);
+    throw new SdkError("not_found", {
+      publicMessage: `Entity not found: ${input.entityType}:${input.entityId}`,
+    });
   }
   return entity;
 }
@@ -278,7 +284,9 @@ async function preparePublish(
     entityType: input.entityType,
     id: input.entityId,
   });
-  if ("error" in candidate) throw new Error(candidate.error);
+  if ("error" in candidate) {
+    throw new SdkError("conflict", { publicMessage: candidate.error });
+  }
   const label =
     typeof candidate.entity.metadata["title"] === "string"
       ? candidate.entity.metadata["title"]

@@ -65,6 +65,8 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
+import { isDeepStrictEqual } from "node:util";
 import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import { z } from "@brains/utils/zod";
@@ -149,23 +151,23 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
   >();
 
   return {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => {
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => {
       if (!namespaces.has(options.namespace)) {
         namespaces.set(options.namespace, new Map());
       }
       const records = namespaces.get(options.namespace);
       if (!records) throw new Error("Runtime state namespace missing");
 
-      return {
+      return Object.freeze<IRuntimeStateStore<T, TInput>>({
         get: async (key): Promise<T | null> => {
           const record = records.get(key);
           return record ? options.schema.parse(record.value) : null;
         },
         has: async (key): Promise<boolean> => records.has(key),
         set: async (key, value): Promise<void> => {
-          const parsed = options.schema.parse(value);
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           const now = new Date();
           records.set(key, {
@@ -175,19 +177,18 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           });
         },
         setIfNotExists: async (key, value): Promise<boolean> => {
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           if (records.has(key)) return false;
-          const parsed = options.schema.parse(value);
           const now = new Date();
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
         },
         compareAndSet: async (key, expected, value): Promise<boolean> => {
-          const parsedExpected = options.schema.parse(expected);
-          const parsedValue = options.schema.parse(value);
+          const parsedValue = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           if (
             !existing ||
-            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+            !isDeepStrictEqual(options.schema.parse(existing.value), expected)
           )
             return false;
           records.set(key, {
@@ -226,7 +227,7 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           for (const key of keys) records.delete(key);
           return keys.length;
         },
-      };
+      });
     },
   };
 }

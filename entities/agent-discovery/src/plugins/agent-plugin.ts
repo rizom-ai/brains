@@ -69,6 +69,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
     return new AgentGenerationJobHandler(
       this.logger.child("AgentGenerationJobHandler"),
       context,
+      this.fetchFn,
     );
   }
 

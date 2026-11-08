@@ -31,9 +31,9 @@ episodes with `dedupeKey`, a `pending → delivered → resolved` lifecycle pers
 and wired delivery. But its execution path routes through the job queue:
 
 ```
-RecurringCheckService.schedule()                       shell/recurring-checks/src/recurring-check-service.ts:411
-  └─ scheduler.scheduleCron(...)                       :418  — runs in web (daemon gated processRole !== "worker", service-factory.ts:182)
-       └─ this.enqueue(check.id)                       :422  — enqueues job "shell:recurring-check"
+RecurringCheckService.schedule()                       shell/recurring-checks/src/recurring-check-service.ts
+  └─ scheduler.scheduleCron(...)                       runs in a serving process (registerShellDaemon gates on role.serves, service-factory.ts)
+       └─ this.enqueue(check.id)                       enqueues job "shell:recurring-check"
             └─ claimed and executed by the worker child
 ```
 

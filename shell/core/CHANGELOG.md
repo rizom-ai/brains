@@ -1,5 +1,280 @@
 # @brains/core
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.658
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/image@0.2.0-alpha.658
+  - @brains/operation-context@0.2.0-alpha.658
+  - @brains/site-composition@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+  - @brains/recurring-checks@0.2.0-alpha.658
+  - @brains/runtime-state@0.2.0-alpha.658
+  - @brains/scheduler@0.2.0-alpha.658
+  - @brains/templates@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.657
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/image@0.2.0-alpha.657
+  - @brains/operation-context@0.2.0-alpha.657
+  - @brains/site-composition@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/plugins@0.2.0-alpha.657
+  - @brains/recurring-checks@0.2.0-alpha.657
+  - @brains/runtime-state@0.2.0-alpha.657
+  - @brains/scheduler@0.2.0-alpha.657
+  - @brains/templates@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.656
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/image@0.2.0-alpha.656
+  - @brains/operation-context@0.2.0-alpha.656
+  - @brains/site-composition@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/plugins@0.2.0-alpha.656
+  - @brains/recurring-checks@0.2.0-alpha.656
+  - @brains/runtime-state@0.2.0-alpha.656
+  - @brains/scheduler@0.2.0-alpha.656
+  - @brains/templates@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.655
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/image@0.2.0-alpha.655
+  - @brains/operation-context@0.2.0-alpha.655
+  - @brains/site-composition@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/plugins@0.2.0-alpha.655
+  - @brains/recurring-checks@0.2.0-alpha.655
+  - @brains/runtime-state@0.2.0-alpha.655
+  - @brains/scheduler@0.2.0-alpha.655
+  - @brains/templates@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.654
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/image@0.2.0-alpha.654
+  - @brains/operation-context@0.2.0-alpha.654
+  - @brains/site-composition@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/plugins@0.2.0-alpha.654
+  - @brains/recurring-checks@0.2.0-alpha.654
+  - @brains/runtime-state@0.2.0-alpha.654
+  - @brains/scheduler@0.2.0-alpha.654
+  - @brains/templates@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- [#852](https://github.com/rizom-ai/brains/pull/852) [`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/brain/testing` runs a package's own tests on the runtime itself. `startTestBrain({ plugins: [use(definition)] })` starts a brain in the test's process, on the runtime's own services and a temporary storage of its own, running the packages under the name the working directory's `package.json` gives them and holding that package to its `@rizom/brain` peer range. The brain calls a tool as `brain tool` does, as its operator, and answers in the tool's public form; it asks a contract as the brain asks, serves a `Request` through the routes its packages declare, reads every stored record through an `EntityReader`, and waits for a queued job's status by the job's definition. It reaches no AI provider and computes no embeddings, and `stop()` deletes what it stored.
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/runtime-state@0.2.0-alpha.653
+  - @brains/image@0.2.0-alpha.653
+  - @brains/atproto-contracts@0.2.0-alpha.653
+  - @brains/recurring-checks@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/operation-context@0.2.0-alpha.653
+  - @brains/site-composition@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/scheduler@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.652
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/image@0.2.0-alpha.652
+  - @brains/operation-context@0.2.0-alpha.652
+  - @brains/site-composition@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/plugins@0.2.0-alpha.652
+  - @brains/recurring-checks@0.2.0-alpha.652
+  - @brains/runtime-state@0.2.0-alpha.652
+  - @brains/scheduler@0.2.0-alpha.652
+  - @brains/templates@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.651
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/image@0.2.0-alpha.651
+  - @brains/operation-context@0.2.0-alpha.651
+  - @brains/site-composition@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/plugins@0.2.0-alpha.651
+  - @brains/recurring-checks@0.2.0-alpha.651
+  - @brains/runtime-state@0.2.0-alpha.651
+  - @brains/scheduler@0.2.0-alpha.651
+  - @brains/templates@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.650
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/image@0.2.0-alpha.650
+  - @brains/operation-context@0.2.0-alpha.650
+  - @brains/site-composition@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/plugins@0.2.0-alpha.650
+  - @brains/recurring-checks@0.2.0-alpha.650
+  - @brains/runtime-state@0.2.0-alpha.650
+  - @brains/scheduler@0.2.0-alpha.650
+  - @brains/templates@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.649
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/image@0.2.0-alpha.649
+  - @brains/operation-context@0.2.0-alpha.649
+  - @brains/site-composition@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/plugins@0.2.0-alpha.649
+  - @brains/recurring-checks@0.2.0-alpha.649
+  - @brains/runtime-state@0.2.0-alpha.649
+  - @brains/scheduler@0.2.0-alpha.649
+  - @brains/templates@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.648
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/image@0.2.0-alpha.648
+  - @brains/operation-context@0.2.0-alpha.648
+  - @brains/site-composition@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/plugins@0.2.0-alpha.648
+  - @brains/recurring-checks@0.2.0-alpha.648
+  - @brains/runtime-state@0.2.0-alpha.648
+  - @brains/scheduler@0.2.0-alpha.648
+  - @brains/templates@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- Updated dependencies [[`5be493b`](https://github.com/rizom-ai/brains/commit/5be493b073fdffbfa34d0e7cbb5c56b3755d4710), [`881a78d`](https://github.com/rizom-ai/brains/commit/881a78d94b08a4118f9b48adb5df7af50b275476), [`52e956e`](https://github.com/rizom-ai/brains/commit/52e956e691d81534c8b95fcbc944ec9bc5c08f57), [`a2e7db7`](https://github.com/rizom-ai/brains/commit/a2e7db724ee73b295aab8270caf39559ca462242), [`8a8ff2b`](https://github.com/rizom-ai/brains/commit/8a8ff2b51b74e71441aeebff7057a768152fc0de), [`468104b`](https://github.com/rizom-ai/brains/commit/468104beef91e82a3635e582396ee4d3f0d0d47b)]:
+  - @brains/plugins@0.2.0-alpha.647
+  - @brains/image@0.2.0-alpha.647
+  - @brains/atproto-contracts@0.2.0-alpha.647
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/operation-context@0.2.0-alpha.647
+  - @brains/site-composition@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+  - @brains/recurring-checks@0.2.0-alpha.647
+  - @brains/runtime-state@0.2.0-alpha.647
+  - @brains/scheduler@0.2.0-alpha.647
+  - @brains/templates@0.2.0-alpha.647
+
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- [#845](https://github.com/rizom-ai/brains/pull/845) [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A message interface's inbound attachments are kept as chat keeps its uploads. Each is a `url` the runtime fetches or, new, a `read()` the interface answers with the bytes as a `Uint8Array`, for a platform whose media needs its credentials; never both. Only a trusted sender's or an admin's attachments are read. Each is checked by the message upload policy, kept in the runtime's shared upload store attributed to its sender and channel, and handed to the turn with an `upload` reference a later turn restores. A refused or unreadable attachment is skipped and the sender told, instead of failing the turn, and a message with nothing left to answer starts none. The shared upload store is named once, for the writers and readers that use it.
+- Updated dependencies [[`d17741e`](https://github.com/rizom-ai/brains/commit/d17741ee9a90fe7a93ee10aed0fcb7e3d326a620), [`e2c6e83`](https://github.com/rizom-ai/brains/commit/e2c6e8328fb9ba84dfed78bd63933ed33efd50b0), [`74f58e6`](https://github.com/rizom-ai/brains/commit/74f58e6a99d1b60d5323a0da623db98a43a8a8ff), [`8429386`](https://github.com/rizom-ai/brains/commit/84293863b22d4be8a5cf1ac2341fd28bd13d8573), [`0e95b92`](https://github.com/rizom-ai/brains/commit/0e95b92f0a40a3b0943d8650c77321431a04b5e9)]:
+  - @brains/plugins@0.2.0-alpha.646
+  - @brains/image@0.2.0-alpha.646
+  - @brains/atproto-contracts@0.2.0-alpha.646
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/operation-context@0.2.0-alpha.646
+  - @brains/site-composition@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+  - @brains/recurring-checks@0.2.0-alpha.646
+  - @brains/runtime-state@0.2.0-alpha.646
+  - @brains/scheduler@0.2.0-alpha.646
+  - @brains/templates@0.2.0-alpha.646
+
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.645
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/image@0.2.0-alpha.645
+  - @brains/operation-context@0.2.0-alpha.645
+  - @brains/site-composition@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/plugins@0.2.0-alpha.645
+  - @brains/recurring-checks@0.2.0-alpha.645
+  - @brains/runtime-state@0.2.0-alpha.645
+  - @brains/scheduler@0.2.0-alpha.645
+  - @brains/templates@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bus contract's failure reaches the asker in its public form. `BusResult`'s `failed` carries `error: SdkErrorData` (`{ code, message }`) and `BusCollection.failures` is `SdkErrorData[]`: an owner that throws an `SdkError` keeps its code and public message, any other error is `handler_failed`, an answer outside the contract is `invalid_response` and an invalid request `invalid_input`. The message a failure was thrown with stays in the owner's log. Askers that pass a failure on raise it again with `sdkErrorFrom`, keeping its code. The A2A ask and call owners report a directory refusal as `permission_denied`, a timeout as `deadline_exceeded` and a peer's refusal in its own words, cut to the public bound with `clipPublicMessage`; Studio's workspace host refuses a reserved id as `invalid_input` and a taken one as `conflict`. Studio's ask-agent route answers a failure with `{ error, code }` and the code's HTTP status, and `network_ask` gives each unanswered peer's public message as its reason.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98), [`fbee77b`](https://github.com/rizom-ai/brains/commit/fbee77b9444be83e8f1282a249430da4c907ced7), [`309fed6`](https://github.com/rizom-ai/brains/commit/309fed693c3ae04ad23a279d06bca8058c1d480b), [`c33189f`](https://github.com/rizom-ai/brains/commit/c33189f0b2527fbf7419a17fca015ff418652639), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`ec7c939`](https://github.com/rizom-ai/brains/commit/ec7c939a4b4389478ac4b0fe0fc7c73347356db1), [`29ac442`](https://github.com/rizom-ai/brains/commit/29ac442e4f090c25f28b1e87228a2a5fb8f467bc), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`e18c7c2`](https://github.com/rizom-ai/brains/commit/e18c7c25309f4c489f295c00890d6af9a61828e9), [`a7178d0`](https://github.com/rizom-ai/brains/commit/a7178d0d135ba4222d8d5c62736786550e1e0403), [`8e4928d`](https://github.com/rizom-ai/brains/commit/8e4928d751ff6addabfbb4b463e20dcc5543aa06), [`2302529`](https://github.com/rizom-ai/brains/commit/230252986476b8752489a681a87da122ebd6eb51), [`04b829a`](https://github.com/rizom-ai/brains/commit/04b829a4586ac2cf75a0e48d7175e73307346c30), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0), [`b46228c`](https://github.com/rizom-ai/brains/commit/b46228cfa648da9e988fe4e66ad1c21876fcd135)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/plugins@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/runtime-state@0.2.0-alpha.644
+  - @brains/operation-context@0.2.0-alpha.644
+  - @brains/site-composition@0.2.0-alpha.644
+  - @brains/templates@0.2.0-alpha.644
+  - @brains/image@0.2.0-alpha.644
+  - @brains/recurring-checks@0.2.0-alpha.644
+  - @brains/atproto-contracts@0.2.0-alpha.644
+  - @brains/scheduler@0.2.0-alpha.644
+
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.643
+  - @brains/contracts@0.2.0-alpha.643
+  - @brains/image@0.2.0-alpha.643
+  - @brains/operation-context@0.2.0-alpha.643
+  - @brains/site-composition@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/plugins@0.2.0-alpha.643
+  - @brains/recurring-checks@0.2.0-alpha.643
+  - @brains/runtime-state@0.2.0-alpha.643
+  - @brains/scheduler@0.2.0-alpha.643
+  - @brains/templates@0.2.0-alpha.643
+
 ## 0.2.0-alpha.642
 
 ### Patch Changes

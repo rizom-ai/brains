@@ -177,7 +177,6 @@ export interface RuntimeOperatorListItem {
   readonly id: string;
   readonly title: string;
   readonly description?: string | undefined;
-  readonly meta?: string | undefined;
   readonly metadata?: readonly string[] | undefined;
   readonly at?: string | undefined;
   readonly tags?: readonly string[] | undefined;
@@ -401,6 +400,15 @@ export interface RuntimePreparedConfirmation {
   readonly expiresAt: string;
 }
 
+/**
+ * A launch action's answer: where the host sends the operator's browser. The
+ * runtime checked it against the action's declared https origins.
+ */
+export interface RuntimeWorkspaceLaunch {
+  readonly kind: "launch";
+  readonly url: string;
+}
+
 export interface RuntimeWorkspaceActionFormField {
   readonly name: string;
   readonly label: string;
@@ -452,6 +460,8 @@ export interface RuntimeOperatorActionControl {
     | undefined;
   /** Matrix cards only: dropping the card on this cell runs the action. */
   readonly dropTarget?: string | undefined;
+  /** The action answers with a destination the host sends the browser to. */
+  readonly launch?: true | undefined;
   /** Host-only action transport state; never accepted from an author view. */
   readonly invocation?:
     | { readonly mode: "prepare" }

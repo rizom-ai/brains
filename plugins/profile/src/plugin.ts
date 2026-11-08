@@ -1,5 +1,9 @@
 import type { BaseEntity, Plugin, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  ServicePlugin,
+  SYSTEM_CHANNELS,
+  initialSyncCompletedChannel,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import {
@@ -129,10 +133,10 @@ export class ProfilePlugin extends ServicePlugin<
       }
     };
 
-    context.messaging.subscribe<{ success?: boolean }>(
-      SYSTEM_CHANNELS.initialSyncCompleted,
-      async (message) => {
-        if (message.payload.success === true) {
+    context.messaging.subscribe(
+      initialSyncCompletedChannel,
+      async (outcome) => {
+        if (outcome.success) {
           initialSyncSucceeded = true;
           await attemptStarterIdentity();
         }

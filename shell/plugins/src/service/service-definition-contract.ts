@@ -1,9 +1,11 @@
-import type {
-  ComponentType,
-  TemplateDataSchema,
-  UserPermissionLevel,
-} from "@brains/templates";
-import type { JsonObject } from "@brains/contracts";
+import type { ComponentType, UserPermissionLevel } from "@brains/templates";
+import {
+  defineBusContract as defineAnyBusContract,
+  type BusContract,
+  type BusResult,
+  type JsonObject,
+  type SdkErrorCode,
+} from "@brains/contracts";
 import type { ServiceContentGeneration } from "./content-generation-contract";
 export type {
   ServiceContentGeneration,
@@ -17,11 +19,18 @@ export type {
 } from "./content-generation-contract";
 import type { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import type { SchemaValue } from "../internal/schema-value";
 import type {
   AnyEntityDefinition,
-  EntityOf,
+  EntityReader,
 } from "../entity/entity-definition-contract";
-import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
+export type { OwnedEntityWriter } from "../entity/owned-entity-writer";
+import type {
+  AnyAccountSettingsDefinition,
+  ServiceAccountSettings,
+} from "../operator/account-settings-definition-contract";
+export type { ServiceAccountSettings } from "../operator/account-settings-definition-contract";
 import type {
   AnyStudioWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
@@ -30,18 +39,16 @@ import type {
 } from "../operator/operator-definition-contract";
 import type { OperatorBindingContext } from "../operator/operator-context-contract";
 import { assertIdentifier } from "../package-definition";
+import type { AnyDeclaredRouteDefinition } from "../interface/route-definition-contract";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
 export type ServiceSchemaMap = Record<string, ServiceSchema>;
 export type ServiceDeadline = `${number}ms` | `${number}s` | `${number}m`;
 
-export interface ServiceEntityReader {
-  get<TDefinition extends AnyEntityDefinition>(
-    definition: TDefinition,
-    id: string,
-  ): Promise<EntityOf<TDefinition> | null>;
-}
+/** What a slot reads and writes entities with: one `entities`, as the current caller. */
+export type ServiceEntityAccess<TOwned extends AnyEntityDefinition> =
+  EntityReader & OwnedEntityWriter<TOwned>;
 
 export interface ServiceMessagePublisher {
   publish(input: {
@@ -49,6 +56,103 @@ export interface ServiceMessagePublisher {
     readonly data: object;
   }): Promise<void>;
 }
+
+/** How a package's bus contract travels: one owner answers, or every owner hears. */
+export type ServiceBusDelivery = "request" | "command";
+
+/**
+ * Asking other packages over the bus, by the contract they answer, as this
+ * package. Gathering every owner's answer stays inside the brain.
+ */
+export interface ServiceMessaging extends ServiceMessagePublisher {
+  /**
+   * Ask a request contract's owner: its answer, parsed by the contract;
+   * `unavailable` when no package answers it; or `failed` with the failure
+   * in its public form. A request the contract refuses throws.
+   */
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    request: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
+  /**
+   * Send a command to every package that hears it; nobody answers. A command
+   * the contract refuses throws.
+   */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    request: z.input<TRequest>,
+  ): Promise<void>;
+}
+
+/**
+ * Declare a question one package answers (`request`) or a command every
+ * package that hears it receives (`command`): its channel, what the sender
+ * sends, and what the owner answers, `z.void()` for a command. The same
+ * contract is the brain's own; gathering every owner's answer stays inside
+ * the brain.
+ */
+export function defineBusContract<
+  TRequest extends z.ZodType,
+  TResponse extends z.ZodType,
+  TDelivery extends ServiceBusDelivery,
+>(definition: {
+  readonly channel: string;
+  readonly request: TRequest;
+  readonly response: TResponse;
+  readonly delivery: TDelivery;
+}): BusContract<TRequest, TResponse, TDelivery> {
+  const delivery: string = definition.delivery;
+  if (delivery !== "request" && delivery !== "command") {
+    throw new Error(
+      `Bus contract "${definition.channel}" must be delivered as a "request" or a "command"`,
+    );
+  }
+  return defineAnyBusContract(definition);
+}
+
+/**
+ * What answering a contract is handed: the call's data, the parsed request
+ * and who asked. The package's capabilities are the `subscriptions` slot's.
+ */
+export interface ServiceAnswerContext<TRequest> {
+  readonly request: TRequest;
+  /**
+   * The package that asked, as the runtime knows it; nothing in the request
+   * can name another. An answer authorizes by it and by what its contract
+   * permits.
+   */
+  readonly sender: string;
+}
+
+/** A contract this package answers, as the `subscriptions` slot returns it. */
+export interface ServiceSubscriptionBinding {
+  readonly kind: "rizom-service-subscription-binding";
+  readonly contract: BusContract<z.ZodType, z.ZodType>;
+}
+
+/**
+ * What a tool returns or an answer gives: its schema's input, also accepted
+ * read-only, so that with the schema taken as a `const` parameter a literal
+ * written inline keeps its literal type, from a callback with parameters or
+ * without.
+ */
+export type ServiceSchemaValue<TSchema extends ServiceSchema> =
+  SchemaValue<TSchema>;
+
+/**
+ * Answer a request contract, or hear a command: contract first. The handler
+ * sees only a valid request, and its answer reaches the asker only when the
+ * contract accepts it.
+ */
+export type ServiceAnswer = <
+  const TRequest extends z.ZodType,
+  const TResponse extends z.ZodType,
+>(
+  contract: BusContract<TRequest, TResponse, ServiceBusDelivery>,
+  handler: (
+    context: ServiceAnswerContext<z.output<TRequest>>,
+  ) => ServiceSchemaValue<TResponse> | Promise<ServiceSchemaValue<TResponse>>,
+) => ServiceSubscriptionBinding;
 
 export interface ServiceJobProgress {
   readonly progress: number;
@@ -64,13 +168,15 @@ export interface ServiceTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
 }
 
+/**
+ * What a job's handler is given: the call's own data. The package's
+ * capabilities (`entities`, `messaging`, `templates`) are the `jobs`
+ * slot's, which the handler closes over.
+ */
 export interface ServiceJobHandlerContext<TInput> {
   readonly input: TInput;
-  readonly entities: ServiceEntityReader;
-  readonly messaging: ServiceMessagePublisher;
   readonly progress: ServiceProgressReporter;
   readonly signal: AbortSignal;
-  readonly templates: ServiceTemplateFormatter;
 }
 
 export type ServiceJobHandler<TInput, TOutput> = (
@@ -191,7 +297,13 @@ export interface ServiceJobStatus<TOutput> {
   readonly status: "pending" | "processing" | "completed" | "failed";
   readonly progress: ServiceJobProgress | null;
   readonly result?: TOutput | undefined;
+  /**
+   * Why the last attempt failed, as its code's standard message: never the
+   * message the failure was thrown with, which stays in the brain's logs.
+   */
   readonly error?: string | undefined;
+  /** The code of the last attempt's failure, when it failed. */
+  readonly code?: SdkErrorCode | undefined;
 }
 
 export interface ServiceJobReference<
@@ -222,13 +334,20 @@ export interface ServiceToolDefinition<
   readonly description: string;
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
-  readonly confirmation?: string | undefined;
+  /**
+   * What the person is asked to approve before the tool runs: the same
+   * every time, or written from the parsed input when the act depends on it.
+   */
+  readonly confirmation?:
+    string | ((input: z.output<TInputSchema>) => string) | undefined;
   readonly permission?: UserPermissionLevel | undefined;
   readonly sideEffects?: "none" | "writes" | "external" | undefined;
   execute(context: {
     readonly input: z.output<TInputSchema>;
     readonly signal: AbortSignal;
-  }): z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>;
+  }):
+    | ServiceSchemaValue<TOutputSchema>
+    | Promise<ServiceSchemaValue<TOutputSchema>>;
 }
 
 export type AnyServiceToolDefinition = ServiceToolDefinition<
@@ -240,7 +359,7 @@ export type AnyServiceToolDefinition = ServiceToolDefinition<
 export function defineTool<
   const TName extends string,
   TInputSchema extends ServiceInputSchema,
-  TOutputSchema extends ServiceSchema,
+  const TOutputSchema extends ServiceSchema,
 >(
   definition: Omit<
     ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,
@@ -256,6 +375,60 @@ export function defineTool<
 
 export interface ServiceLifecycle {
   onCleanup(cleanup: () => void | Promise<void>): void;
+}
+
+/** What a package keeps under one runtime-state namespace, and its schema. */
+export interface ServiceRuntimeStateOptions<TValue, TInput = TValue> {
+  /** Local to the package; the runtime qualifies it by the owning package. */
+  readonly namespace: string;
+  /** Validates every write and parses every read. */
+  readonly schema: z.ZodType<TValue, TInput>;
+}
+
+/** One stored value, as a listing returns it. */
+export interface ServiceRuntimeStateRecord<TValue> {
+  readonly key: string;
+  readonly value: TValue;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+/**
+ * Bookkeeping that is not an entity, kept between runs: a cursor, a count, a
+ * claim. Writes take the schema's input and are stored as written; every read
+ * parses what is stored, so a transform runs at the read, never twice.
+ */
+export interface ServiceRuntimeState<TValue, TInput = TValue> {
+  get(key: string): Promise<TValue | null>;
+  has(key: string): Promise<boolean>;
+  set(key: string, value: TInput): Promise<void>;
+  /** Writes only when the key is absent; true when it wrote. */
+  setIfNotExists(key: string, value: TInput): Promise<boolean>;
+  /** Replaces the value only while it still reads as `expected`. */
+  compareAndSet(key: string, expected: TValue, value: TInput): Promise<boolean>;
+  delete(key: string): Promise<boolean>;
+  /** In key order, `afterKey` exclusive, at most `limit` (1–1000) records. */
+  list(options?: {
+    readonly keyPrefix?: string | undefined;
+    readonly afterKey?: string | undefined;
+    readonly limit?: number | undefined;
+  }): Promise<readonly ServiceRuntimeStateRecord<TValue>[]>;
+  /** Removes every record, or those under a literal key prefix; the count. */
+  clear(options?: { readonly keyPrefix?: string | undefined }): Promise<number>;
+}
+
+/** What `setup` is given once, when the package registers. */
+export interface ServiceSetupContext<TConfig> {
+  readonly config: TConfig;
+  readonly lifecycle: ServiceLifecycle;
+  /**
+   * A runtime-state store for this package. Named `runtimeState` because
+   * `state` is what `setup` returns. Two packages naming the same namespace
+   * never share a record.
+   */
+  readonly runtimeState: <TValue, TInput = TValue>(
+    options: ServiceRuntimeStateOptions<TValue, TInput>,
+  ) => ServiceRuntimeState<TValue, TInput>;
 }
 
 export interface ServiceResourceDefinition {
@@ -295,50 +468,78 @@ type GenerationTemplateNames<TTemplates extends ServiceTemplateShapeMap> =
     string
   >;
 
+/**
+ * One declaration per template, whatever it can do: it formats a value as
+ * text, renders it, or both, and registration refuses one that does neither.
+ */
 export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
   readonly schema: TSchema;
+  /** What the template is, where a console or a site lists it. */
+  readonly description?: string | undefined;
+  /** Content the brain writes under this template; it must format it too. */
   readonly generation?: ServiceTemplateGenerationDefinition | undefined;
-  format(context: { readonly value: z.output<TSchema> }): string;
+  /** How a value becomes text, when the template produces any. */
+  readonly format?:
+    ((context: { readonly value: z.output<TSchema> }) => string) | undefined;
+  /** How a value is drawn, when the template renders. */
+  readonly renderers?:
+    | {
+        /**
+         * A React component receiving the schema-parsed value as props,
+         * mounted by the site builder exactly like a site section. The value
+         * is stored and serialized to the browser, so the schema must
+         * produce JSON.
+         */
+        readonly web: ComponentType<z.output<TSchema>>;
+      }
+    | undefined;
 }
 
 /**
- * A view schema must produce JSON: its parsed value is stored, serialized to
- * the browser, and handed to a React component as props.
+ * A template renders only a schema that produces JSON: its parsed value is
+ * stored, serialized to the browser, and handed to a component as props.
  */
-export type ServiceViewSchema = TemplateDataSchema<JsonObject>;
-export type ServiceViewSchemaMap = Record<string, ServiceViewSchema>;
+export type ServiceTemplateRenderCheck<TSchema extends ServiceSchema> =
+  z.output<TSchema> extends JsonObject
+    ? unknown
+    : { readonly renderers?: undefined };
 
-export interface ServiceViewDefinition<TSchema extends ServiceViewSchema> {
-  readonly schema: TSchema;
-  readonly description?: string | undefined;
-  readonly renderers: {
-    /**
-     * A React component receiving the schema-parsed value as props. Views are
-     * mounted with createElement by the site builder, exactly like site
-     * sections — the earlier string-returning form was mounted the same way,
-     * which would have rendered its markup as an escaped text node.
-     */
-    readonly web: ComponentType<z.output<TSchema>>;
-  };
+/**
+ * What the package is: its identity, its config, and what it sets up before
+ * anything runs. The first of `defineServicePlugin`'s two arguments, so the
+ * state `setup` returns is known before any behavior slot is checked, in
+ * whatever order those are written.
+ */
+export interface ServiceDefinitionHeader<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TEntities extends readonly AnyEntityDefinition[] = readonly [],
+> {
+  readonly id: string;
+  readonly config: TConfigSchema;
+  /**
+   * The entity types this package owns: each is installed with the package,
+   * and they are the only types its `entities` may write.
+   */
+  readonly entities?: TEntities | undefined;
+  /** Builds the `state` every behavior slot reads, once, at registration. */
+  readonly setup?:
+    | ((
+        context: ServiceSetupContext<z.output<TConfigSchema>>,
+      ) => TState | Promise<TState>)
+    | undefined;
 }
 
-interface ServiceDefinitionCore<
+/** What the package does with what it set up: the second argument. */
+export interface ServiceDefinitionBehavior<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
+  TOwned extends AnyEntityDefinition = never,
 > {
-  readonly id: string;
-  readonly config: TConfigSchema;
-  readonly setup?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly lifecycle: ServiceLifecycle;
-      }) => TState | Promise<TState>)
-    | undefined;
   readonly instructions?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -362,27 +563,69 @@ interface ServiceDefinitionCore<
     | (TTemplateDefinitions & {
         readonly [K in keyof TTemplateSchemas]: ServiceTemplateDefinition<
           TTemplateSchemas[K]
-        >;
+        > &
+          ServiceTemplateRenderCheck<TTemplateSchemas[K]>;
       })
-    | undefined;
-  readonly views?:
-    | {
-        readonly [K in keyof TViewSchemas]: ServiceViewDefinition<
-          TViewSchemas[K]
-        >;
-      }
     | undefined;
   readonly jobs?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /** Reads and writes as the requester of the job that is running. */
+        readonly entities: ServiceEntityAccess<TOwned>;
+        readonly messaging: ServiceMessaging;
+        readonly templates: ServiceTemplateFormatter;
       }) => readonly ServiceJobBinding[])
+    | undefined;
+  /**
+   * The contracts this package answers, registered with the package and
+   * released when it shuts down.
+   */
+  readonly subscriptions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        /**
+         * Inside an answer, reads and writes as the package: the bus carries
+         * the package that asked, not a person.
+         */
+        readonly entities: ServiceEntityAccess<TOwned>;
+        readonly jobs: ServiceJobs;
+        readonly messaging: ServiceMessaging;
+        readonly answer: ServiceAnswer;
+      }) => readonly ServiceSubscriptionBinding[])
+    | undefined;
+  /**
+   * HTTP routes the package serves, declared with `defineRoute` as an
+   * interface's are. Inside a route, `entities` and `jobs` act as the
+   * route's caller: the signed caller of a protocol route, and nobody in
+   * particular on a public one.
+   */
+  readonly routes?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly entities: ServiceEntityAccess<TOwned>;
+        readonly jobs: ServiceJobs;
+        readonly messaging: ServiceMessaging;
+        /** Writes the package's own settings for an account the runtime vouches for. */
+        readonly accountSettings: ServiceAccountSettings<
+          NonNullable<TAccountSettings>
+        >;
+      }) => readonly AnyDeclaredRouteDefinition[])
     | undefined;
   readonly tools?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /** Reads and writes as the caller of the tool that is running. */
+        readonly entities: ServiceEntityAccess<TOwned>;
         readonly jobs: ServiceJobs;
+        readonly messaging: ServiceMessaging;
+        /** Writes the package's own settings for an account the runtime vouches for. */
+        readonly accountSettings: ServiceAccountSettings<
+          NonNullable<TAccountSettings>
+        >;
         readonly templates: ServiceTemplateFormatter;
         readonly content: ServiceContentGeneration<
           GenerationTemplateNames<NoInfer<TTemplateDefinitions>>
@@ -403,57 +646,66 @@ interface ServiceDefinitionCore<
         TAccountSettings
       >[])
     | undefined;
+  /**
+   * Studio workspaces, bound to the package: their workspace actions write
+   * the header's own types as the operator who invoked them.
+   */
   readonly studioWorkspaces?:
     | ((
         context: OperatorBindingContext<
           z.output<TConfigSchema>,
           TState,
-          TAccountSettings
+          TAccountSettings,
+          TOwned
         >,
       ) => readonly BoundStudioWorkspace<
         AnyStudioWorkspaceDefinition,
         z.output<TConfigSchema>,
         TState,
-        TAccountSettings
+        TAccountSettings,
+        TOwned
       >[])
     | undefined;
 }
 
+/** Everything one package declares, as the runtime reads it: both halves joined. */
 export type NormalizedServiceDefinitionInput<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
-> = ServiceDefinitionCore<
-  TConfigSchema,
-  TState,
-  TPromptSchemas,
-  TTemplateSchemas,
-  TViewSchemas,
-  TAccountSettings,
-  TTemplateDefinitions
-> & { readonly accountSettings: TAccountSettings };
+  TEntities extends readonly AnyEntityDefinition[],
+> = Omit<
+  ServiceDefinitionHeader<TConfigSchema, TState, TEntities>,
+  "entities"
+> &
+  ServiceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TAccountSettings,
+    TTemplateDefinitions,
+    TEntities[number]
+  > & {
+    readonly accountSettings: TAccountSettings;
+    /** The header's owned types, copied when the package is defined. */
+    readonly entities: readonly TEntities[number][];
+  };
 
-export type ServiceDefinitionInput<
+/**
+ * The header as an author writes it. Account settings belong with identity
+ * rather than behavior: what a package asks each person to configure is part
+ * of what it is, and the operator slots that read them are checked against it.
+ */
+export type ServiceDefinitionHeaderInput<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
-  TPromptSchemas extends ServiceSchemaMap,
-  TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-  TTemplateDefinitions extends ServiceTemplateShapeMap,
-> = ServiceDefinitionCore<
-  TConfigSchema,
-  TState,
-  TPromptSchemas,
-  TTemplateSchemas,
-  TViewSchemas,
-  TAccountSettings,
-  TTemplateDefinitions
-> &
+  TEntities extends readonly AnyEntityDefinition[] = readonly [],
+> = ServiceDefinitionHeader<TConfigSchema, TState, TEntities> &
   (TAccountSettings extends AnyAccountSettingsDefinition
     ? { readonly accountSettings: TAccountSettings }
     : { readonly accountSettings?: undefined });

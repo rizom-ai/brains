@@ -8,13 +8,11 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
+  entityUpdatedChannel,
 } from "@brains/plugins";
-import { ENTITY_CHANNELS } from "@brains/contracts";
-import { isPlainRecord } from "@brains/utils/predicates";
-import { readString } from "@brains/utils/record-fields";
 import {
-  SITE_METADATA_UPDATED_CHANNEL,
   siteMetadataContract,
+  siteMetadataUpdatedChannel,
 } from "@brains/site-composition";
 import {
   siteInfoSchema,
@@ -85,14 +83,11 @@ export class SiteInfoPlugin extends EntityPlugin<
 
     // Observed: a site-info change synced by the worker refreshes this
     // process's metadata too.
-    context.messaging.observe(ENTITY_CHANNELS.updated, async (message) => {
-      const payload = isPlainRecord(message.payload)
-        ? message.payload
-        : undefined;
-      if (readString(payload, "entityType") === "site-info") {
+    context.messaging.observe(entityUpdatedChannel, async (change) => {
+      if (change.entityType === siteInfoEntityType) {
         const siteInfo = await service.getSiteInfo();
         await context.messaging.send({
-          type: SITE_METADATA_UPDATED_CHANNEL,
+          type: siteMetadataUpdatedChannel.name,
           payload: siteInfo,
           broadcast: true,
         });

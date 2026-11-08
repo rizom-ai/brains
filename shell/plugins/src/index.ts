@@ -167,11 +167,14 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  initialSyncCompletedChannel,
+  initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
 } from "./system-channels";
-export { defineChannel, type Channel } from "./utils/channels";
+export { defineChannel, type Channel } from "@brains/contracts";
 export {
   createAdminListTool,
   createListToolOutputSchema,
@@ -201,6 +204,7 @@ export {
   createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
   runtimeUploadIdPattern,
+  sharedUploadScope,
   defaultRuntimeUploadRetentionMs,
   defaultRuntimeUploadMaxCount,
   type IRuntimeUploadsNamespace,
@@ -277,7 +281,12 @@ export {
   type PluginPackageConfigInput,
   type PluginPackageDefinition,
   type PluginPackageFamily,
+  type PluginPackageInstantiationOptions,
 } from "./package-definition";
+// Runtime reads for a host that drives installed packages, such as the test
+// brain: definition-typed entity reads, and a job's status as a service reads it.
+export { createEntityReader } from "./entity/entity-reader";
+export { serviceJobStatus } from "./service/job-status";
 export {
   defineEntity,
   defineEntityAnalyticsReport,
@@ -301,6 +310,7 @@ export {
   type EntityGenerationRequest,
   type EntityGenerationResult,
   type EntityJobContext,
+  type EntityJobHandleContext,
   type EntityJobDeclaration,
   type EntityJobMessaging,
   type EntityJobProgress,
@@ -341,7 +351,10 @@ export {
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
   type EntityOf,
+  type EntityPackageConfigSchema,
+  type EntityPackageConfiguration,
   type EntityPackageDefinition,
+  type EntitySlotBinding,
   type EntityPublishAssetDeclaration,
   type EntityPublishDeclaration,
   type EntitySeedDefinition,
@@ -356,7 +369,7 @@ export {
   type AnyDataSourceDeclaration,
   type AnyEntityDataSourceDefinition,
   type DataSourceDefinition,
-  type DataSourceEntityReader,
+  type EntityReader,
   type DataSourceListOptions,
   type DataSourceQuery,
   type DataSourceReadContext,
@@ -369,6 +382,7 @@ export {
   defineAccountSettings,
   defineStudioWorkspace,
   defineDashboardWidget,
+  defineBusContract,
   defineEntityCatalog,
   defineJob,
   defineServicePlugin,
@@ -376,6 +390,7 @@ export {
   defineWorkspaceAction,
   type AccountSettingsDefinition,
   type AccountSettingsFieldDefinition,
+  type AccountSettingsSecret,
   type AccountSettingsValue,
   type AnyServiceJobDefinition,
   type AnyServiceToolDefinition,
@@ -389,7 +404,6 @@ export {
   type OperatorCaller,
   type OperatorCapabilityDefinition,
   type OperatorEntityCatalogDefinition,
-  type OperatorEntityReader,
   type OperatorQueryReader,
   type OperatorView,
   type OperatorCardBlock,
@@ -417,6 +431,7 @@ export {
   type ServiceJobDefinition,
   type ServiceJobReference,
   type ServiceJobStatus,
+  type OwnedEntityWriter,
   type ServicePackageDefinition,
   type ServiceTemplateGenerationDefinition,
   type WorkspaceActionConfirmation,
@@ -427,6 +442,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineRoute,
   protocol,
 } from "./public/interface-definition";
@@ -544,6 +560,14 @@ export {
   BaseEntityAdapter,
   baseEntityParserSchema,
   baseEntitySchema,
+  embeddingReadyChannel,
+  embeddingReadyPayloadSchema,
+  entityChangePayloadSchema,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type EmbeddingReadyPayload,
+  type EntityChangePayload,
   entityIdPathSchema,
   entityGroupingSchema,
   groupingSortSchema,
@@ -603,7 +627,11 @@ export { paginationInfoSchema } from "@brains/entity-service";
 // Job System & Generation
 // ============================================================================
 
-export { BaseJobHandler, JobProgressEventSchema } from "@brains/job-queue";
+export {
+  BaseJobHandler,
+  JobProgressEventSchema,
+  jobProgressChannel,
+} from "@brains/job-queue";
 export type { JobHandler } from "@brains/job-queue";
 export {
   BaseGenerationJobHandler,
@@ -690,6 +718,15 @@ export {
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
 export {
+  publicDaemonHealthSchema,
+  publicHealthInfoSchema,
+  publicStatusInfoSchema,
+  toPublicHealthInfo,
+  type PublicDaemonHealth,
+  type PublicHealthInfo,
+  type PublicStatusInfo,
+} from "./contracts/public-health";
+export {
   OperationalHealthRegistry,
   type IOperationalHealthRegistry,
   type OperationalHealthProvider,
@@ -742,11 +779,27 @@ export {
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
+  conversationGuestMessageAddedChannel,
+  conversationMessageAddedChannel,
 } from "@brains/conversation-service";
-export type { ConversationMessageActor } from "@brains/conversation-service";
+export type {
+  ConversationGuestMessageAddedPayload,
+  ConversationMessageActor,
+  ConversationMessageAddedPayload,
+} from "@brains/conversation-service";
 
-export type { IAgentService } from "@brains/ai-service";
-export { resolveTextProvider } from "@brains/ai-service";
+export type {
+  IAgentService,
+  ToolCompletionEvent,
+  ToolFailureEvent,
+  ToolInvocationEvent,
+} from "@brains/ai-service";
+export {
+  resolveTextProvider,
+  toolCompletedChannel,
+  toolFailedChannel,
+  toolInvokingChannel,
+} from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
@@ -909,6 +962,20 @@ export {
   type EntityTextResult,
   type ReadEntityTextOptions,
 } from "./entity/create-from-text";
+// First-party entity callbacks reach their call's internal runtime here;
+// the public contexts never name it.
+export {
+  contractJob,
+  entityRuntime,
+  type AnyEntityReads,
+  type EntityRuntime,
+  type EntityRuntimeAttachments,
+  type EntityRuntimeImages,
+  type OrdinaryCreateDocument,
+  type OrdinaryCreateOptions,
+  type QueuedCreate,
+  type StoredCreate,
+} from "./entity/entity-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
@@ -1067,6 +1134,14 @@ export {
   type AnchorExtensionProfile,
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
+export {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  fetchVerifiedAgentCard,
+  isEndpointRefusal,
+  type AgentCardRefusalReason,
+  type FetchVerifiedAgentCardOptions,
+  type VerifiedAgentCard,
+} from "./a2a/fetch-verified-agent-card";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
 export {
   agentBodySchema,

@@ -1,6 +1,6 @@
 {
   "name": "@brains/app",
-  "version": "0.2.0-alpha.642",
+  "version": "0.2.0-alpha.658",
   "description": "High-level factory for creating Brain applications",
   "keywords": [
     "brain",
@@ -26,6 +26,7 @@
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/mcp-service": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/sdk": "workspace:*",
@@ -44,7 +45,8 @@
     "varlock": "^1.7.0"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "files": [
     "src",

@@ -55,6 +55,7 @@ type JobInfoSchema = z.ZodObject<{
   retryCount: z.ZodNumber;
   maxRetries: z.ZodNumber;
   lastError: z.ZodNullable<z.ZodString>;
+  lastErrorPublic: z.ZodUnknown;
   createdAt: z.ZodNumber;
   scheduledFor: z.ZodNumber;
   startedAt: z.ZodNullable<z.ZodNumber>;
@@ -86,6 +87,12 @@ export const JobInfoSchema: JobInfoSchema = z.object({
   retryCount: z.number(),
   maxRetries: z.number(),
   lastError: z.string().nullable(),
+  /**
+   * The failure's public form as stored (SdkError data, `{ code, message }`),
+   * or null. Validate it with `sdkErrorSchema` before telling a caller;
+   * lastError stays diagnostic.
+   */
+  lastErrorPublic: z.unknown(),
   createdAt: z.number(),
   scheduledFor: z.number(),
   startedAt: z.number().nullable(),

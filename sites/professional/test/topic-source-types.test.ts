@@ -24,7 +24,10 @@ describe("topic source types for the atlas", () => {
     ).toEqual([]);
     expect(
       await loadTopicSourceTypes({
-        request: async () => ({ status: "failed", error: "no route" }),
+        request: async () => ({
+          status: "failed",
+          error: { code: "no_handler", message: "No route" },
+        }),
       }),
     ).toEqual([]);
     expect(

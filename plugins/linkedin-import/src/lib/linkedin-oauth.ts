@@ -1,4 +1,7 @@
-import { SingleUseStore } from "@brains/utils/single-use-store";
+import {
+  CONSENT_STATE_LIFETIME,
+  SingleUseStore,
+} from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import type { LinkedInFetch } from "./linkedin-client";
 
@@ -100,17 +103,10 @@ export class LinkedInOAuthClient {
   }
 }
 
-const STATE_TTL_MS = 10 * 60 * 1000;
-const MAX_PENDING = 20;
-
 /**
  * Single-use OAuth state, each bound to the account that started the
  * connection and valid for ten minutes.
  */
 export function createOAuthStates(now?: () => number): SingleUseStore<string> {
-  return new SingleUseStore<string>({
-    ttlMs: STATE_TTL_MS,
-    maxPending: MAX_PENDING,
-    now,
-  });
+  return new SingleUseStore<string>({ ...CONSENT_STATE_LIFETIME, now });
 }

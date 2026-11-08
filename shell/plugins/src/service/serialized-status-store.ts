@@ -35,14 +35,14 @@ export interface SerializedStatusStoreOptions<T> {
  * its own domain rules.
  */
 export class SerializedStatusStore<T> {
-  private readonly store: IRuntimeStateStore<T>;
+  private readonly store: IRuntimeStateStore<T, unknown>;
   private readonly schema: RuntimeStateValueSchema<T>;
   private readonly createEmpty: () => T;
   private readonly key: string;
   private readonly queue = new SerialQueue();
 
   constructor(options: SerializedStatusStoreOptions<T>) {
-    this.store = options.runtimeState.scoped<T>({
+    this.store = options.runtimeState.scoped<T, unknown>({
       namespace: options.namespace,
       schema: options.schema,
     });

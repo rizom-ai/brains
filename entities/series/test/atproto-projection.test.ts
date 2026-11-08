@@ -1,42 +1,49 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createSeriesAtprotoProjection } from "../src/atproto-projection";
-import { SeriesPlugin } from "../src/plugin";
-import { seriesAdapter } from "../src/adapters/series-adapter";
-import type { Series } from "../src/schemas/series";
+import { buildSeriesAtprotoRecord, type Series } from "../src";
+import { seriesPlugin } from "./series-plugin";
 
+// A series as a declared type reads it: its metadata and its body.
 const series: Series = {
   id: "series-1",
   entityType: "series",
-  content: seriesAdapter.toMarkdown({
-    id: "series-1",
-    entityType: "series",
-    content:
-      "---\ntitle: ATProto Series\nslug: atproto-series\n---\n## Description\n\nA sequence about AT Protocol.",
-    created: "2026-05-28T10:00:00.000Z",
-    updated: "2026-05-28T11:00:00.000Z",
-    visibility: "public",
-    contentHash: "hash",
-    metadata: { title: "ATProto Series", slug: "atproto-series" },
-  }),
+  content:
+    "# ATProto Series\n\n## Description\nA sequence about AT Protocol.\n",
   created: "2026-05-28T10:00:00.000Z",
   updated: "2026-05-28T11:00:00.000Z",
   visibility: "public",
   contentHash: "hash",
-  metadata: { title: "ATProto Series", slug: "atproto-series" },
+  metadata: {
+    title: "ATProto Series",
+    slug: "atproto-series",
+    coverImageId: null,
+  },
 };
+
+function recordInput(
+  overrides: Partial<Parameters<typeof buildSeriesAtprotoRecord>[0]> = {},
+): Parameters<typeof buildSeriesAtprotoRecord>[0] {
+  return {
+    entity: series,
+    config: {},
+    dryRun: false,
+    entities: {
+      get: async () => null,
+      list: async () => [],
+      count: async () => 0,
+    },
+    uploadBlob: async (): Promise<never> => {
+      throw new Error("not used");
+    },
+    ...overrides,
+  };
+}
 
 describe("series ATProto projection", () => {
   it("maps series to ai.rizom.brain.series records", async () => {
-    const projection = createSeriesAtprotoProjection();
-
-    const record = await projection.buildRecord({
-      entity: series,
-      context: createPluginHarness().getServiceContext("series"),
-      config: {
-        brainDid: "did:web:brain.example.com",
-      },
-    });
+    const record = await buildSeriesAtprotoRecord(
+      recordInput({ config: { brainDid: "did:web:brain.example.com" } }),
+    );
 
     expect(record).toEqual({
       $type: "ai.rizom.brain.series",
@@ -52,22 +59,13 @@ describe("series ATProto projection", () => {
   });
 
   it("names its page when the site gives the series one, and nothing otherwise", async () => {
-    const projection = createSeriesAtprotoProjection();
-    const context = createPluginHarness().getServiceContext("series");
-    const placed = await projection.buildRecord({
-      entity: series,
-      context,
-      config: {},
-      pageUrl: "https://brain.example.com/seriess/series-1",
-    });
+    const placed = await buildSeriesAtprotoRecord(
+      recordInput({ pageUrl: "https://brain.example.com/seriess/series-1" }),
+    );
     expect(placed.canonicalUrl).toBe(
       "https://brain.example.com/seriess/series-1",
     );
-    const unplaced = await projection.buildRecord({
-      entity: series,
-      context,
-      config: {},
-    });
+    const unplaced = await buildSeriesAtprotoRecord(recordInput());
     expect(unplaced.canonicalUrl).toBeUndefined();
   });
 
@@ -75,7 +73,7 @@ describe("series ATProto projection", () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-series-atproto",
     });
-    await harness.installPlugin(new SeriesPlugin());
+    await harness.installPlugin(seriesPlugin());
 
     const projection = harness
       .getMockShell()
@@ -84,5 +82,6 @@ describe("series ATProto projection", () => {
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.series");
+    expect(projection?.validate).toBe(false);
   });
 });

@@ -1,15 +1,13 @@
 import type { JSX } from "react";
+import { Card, CardTitle, CardMetadata } from "@rizom/brain-ui";
 import {
-  Card,
   CardImage,
-  CardTitle,
-  CardMetadata,
   ListPageHeader,
   EmptyState,
   Head,
   Breadcrumb,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 import type { SeriesListItem } from "../schemas/series";
 
 export interface SeriesListProps {

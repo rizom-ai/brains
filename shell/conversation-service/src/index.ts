@@ -14,12 +14,18 @@ export type {
   ConversationMessageSource,
   ConversationMessageMetadata,
   ConversationDbConfig,
+  ConversationGuestMessageAddedPayload,
+  ConversationMessageAddedPayload,
 } from "./types";
 export {
   CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   CONVERSATION_STARTED_CHANNEL,
+  conversationGuestMessageAddedChannel,
+  conversationGuestMessageAddedPayloadSchema,
+  conversationMessageAddedChannel,
+  conversationMessageAddedPayloadSchema,
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,

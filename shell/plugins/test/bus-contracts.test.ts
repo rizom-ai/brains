@@ -75,7 +75,10 @@ describe("bus contracts", () => {
       "caller",
     ).messaging.request(measure, { text: "four" });
 
-    expect(result).toMatchObject({ status: "failed" });
+    expect(result).toEqual({
+      status: "failed",
+      error: { code: "invalid_response", message: "Invalid response" },
+    });
   });
 
   it("reports a throwing owner as a failure, not as absent", async () => {
@@ -92,7 +95,11 @@ describe("bus contracts", () => {
       "caller",
     ).messaging.request(measure, { text: "four" });
 
-    expect(result).toEqual({ status: "failed", error: "disk full" });
+    // The diagnostic stays with the owner; the asker gets the public form.
+    expect(result).toEqual({
+      status: "failed",
+      error: { code: "handler_failed", message: "The operation failed" },
+    });
   });
 
   it("refuses a second owner for a request contract", () => {

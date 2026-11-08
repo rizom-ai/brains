@@ -75,6 +75,10 @@ function makeJobStatus(
     retryCount: 0,
     maxRetries: 3,
     lastError,
+    lastErrorPublic:
+      lastError === null
+        ? null
+        : { code: "handler_failed", message: "The operation failed" },
     createdAt: Date.now(),
     scheduledFor: Date.now(),
     startedAt: status === "pending" ? null : Date.now(),
@@ -1879,6 +1883,7 @@ describe("WebChatInterface", () => {
           toolName: "playbook_manage",
           conversationId,
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: conversationId,
         });
         return {
@@ -1928,12 +1933,14 @@ describe("WebChatInterface", () => {
           toolName: "system_create",
           conversationId,
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: conversationId,
         });
         await harness.sendMessage("tool:completed", {
           toolName: "system_create",
           conversationId,
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: conversationId,
         });
         return {
@@ -1991,6 +1998,7 @@ describe("WebChatInterface", () => {
           toolName: "background_tool",
           conversationId: "other-conversation",
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: "other-conversation",
         });
         return {

@@ -45,6 +45,7 @@ import type {
   EntityDefinitionConfig,
   EntityScheduledGenerationDeclaration,
 } from "./entity-definition-config";
+import type { SchemaValue } from "../internal/schema-value";
 
 export type {
   EntityDefinitionConfig,
@@ -54,24 +55,14 @@ export type {
 export type EntityVisibility = "public" | "shared" | "restricted";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
 
-type ReadonlyInput<T> = T extends Date | ((...args: never[]) => unknown)
-  ? T
-  : { readonly [K in keyof T]: ReadonlyInput<T[K]> };
-
 /**
  * Metadata a definition writes — a seed, a stub, a decoded document, a
  * create or a generation result: the schema's input, also accepted
- * read-only.
- *
- * Spelled through the schema's own input slot so that, with `defineEntity`
- * taking its schema as a `const` parameter, a literal written inline is in a
- * const context. It then keeps its literal type even before the schema is
- * inferred, which TypeScript has not yet done when it checks a callback
- * without parameters. A const context makes arrays read-only, hence the
- * read-only form.
+ * read-only, so that with `defineEntity` taking its schema as a `const`
+ * parameter a literal written inline keeps its literal type.
  */
-type EntityMetadataInput<TMetadataSchema extends EntityMetadataSchema> =
-  TMetadataSchema["_zod"]["input"] | ReadonlyInput<z.input<TMetadataSchema>>;
+export type EntityMetadataInput<TMetadataSchema extends EntityMetadataSchema> =
+  SchemaValue<TMetadataSchema>;
 
 export interface EntityMarkdownDocument<TMetadata> {
   readonly content: string;
@@ -83,14 +74,30 @@ export interface EncodedEntityMarkdown {
   readonly frontmatter: Record<string, unknown>;
 }
 
+/**
+ * How a type's stored document maps to its record. A text type's document
+ * is markdown: `decode` reads its body and frontmatter into the record, and
+ * `encode` writes them back; omitted, the metadata is the frontmatter. A
+ * type that declares `binaryStorage` stores its content unchanged, with no
+ * frontmatter: its metadata is kept beside the content, `decode` is handed
+ * the content alone and says what the content itself says, and `encode` is
+ * not used.
+ *
+ * A text type's decoded metadata is checked against its schema as it is
+ * decoded. A binary type's may be partial, what the bytes say: an import
+ * merges it with the metadata handed beside the file, and the schema checks
+ * the record when it is stored.
+ */
 export interface EntityMarkdownCodec<
   TMetadataSchema extends EntityMetadataSchema,
 > {
   decode(input: {
     readonly content: string;
     readonly frontmatter: Readonly<Record<string, unknown>>;
-  }): EntityMarkdownDocument<EntityMetadataInput<TMetadataSchema>>;
-  encode(
+  }): EntityMarkdownDocument<
+    EntityMetadataInput<TMetadataSchema> | Partial<z.input<TMetadataSchema>>
+  >;
+  encode?(
     input: EntityMarkdownDocument<z.output<TMetadataSchema>>,
   ): EncodedEntityMarkdown;
 }
@@ -232,14 +239,21 @@ export interface EntityInboxEdits<TDefinition extends AnyEntityDefinition> {
   delete(record: EntityOf<TDefinition>): Promise<void>;
 }
 
-/** What listing the Inbox reads with: everything the package holds. */
+/**
+ * What listing the Inbox reads with. The listing is gathered with no viewer
+ * behind it, so it reads as the package.
+ */
 export interface EntityInboxListContext<
   TDefinition extends AnyEntityDefinition,
 > {
   /** The declaring type's records, at every visibility. */
   readonly records: EntityRecordReader<EntityOf<TDefinition>>;
-  /** Reads of any type, at every visibility. */
-  readonly entities: DataSourceEntityReader;
+  /**
+   * Reads as the package: its own package's types at every visibility, other
+   * types at the package's grant, which is public unless the brain grants
+   * `service:<plugin id>` more.
+   */
+  readonly entities: EntityReader;
 }
 
 /** What an operator opening or acting on an item reads with: their own view. */
@@ -250,7 +264,7 @@ export interface EntityInboxDetailContext<
   /** The declaring type's records, at the actor's visibility. */
   readonly records: EntityRecordReader<EntityOf<TDefinition>>;
   /** Reads of any type, at the actor's visibility. */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly signal: AbortSignal;
 }
 
@@ -300,8 +314,13 @@ export type EntityCheckResult = RecurringCheckResult;
 
 /** What a check runs with. */
 export interface EntityCheckContext {
-  /** Definition-typed reads as the package, at every visibility. */
-  readonly entities: DataSourceEntityReader;
+  /**
+   * Definition-typed reads as the package, since a scheduled run has no
+   * caller: its own package's types at every visibility, other types at the
+   * package's grant, which is public unless the brain grants
+   * `service:<plugin id>` more.
+   */
+  readonly entities: EntityReader;
   /**
    * The brain's own address, for a link an alert sends. Undefined on a
    * brain nobody outside can reach.
@@ -332,7 +351,7 @@ export interface EntityAnalyticsReportContext {
    * Definition-typed reads at the caller's visibility. A public caller is a
    * site's visitor and sees only what is published.
    */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly visibility: EntityVisibility;
 }
 
@@ -375,10 +394,10 @@ export interface EntityAtprotoRecordInput<TEntity> {
   /** True when the record is previewed rather than published. */
   readonly dryRun: boolean;
   /**
-   * Definition-typed reads as the package, at every visibility, so a
-   * projection can refuse to publish something that is not public.
+   * Definition-typed reads of public entries only: the record is published
+   * to a public PDS, so an entry that is not public reads as absent.
    */
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   /**
    * Store bytes on the PDS and return the blob naming them. A preview stores
    * nothing and returns a placeholder of the same type and size.
@@ -562,6 +581,44 @@ export type AnyEntityDefinition = EntityDefinition<
   EntityMetadataSchema
 >;
 
+/**
+ * Writes to the entity types a service's header `entities` declares, or to
+ * the type an entity job is declared on, as the current caller: the tool
+ * caller inside a tool, the requester inside a running job, the operator
+ * inside a workspace action, and the package's own grant anywhere else. A
+ * write is held to the type's action policy at that permission level;
+ * `update` and `delete` refuse a record that changed after it was read, or
+ * that the caller cannot see.
+ */
+export interface OwnedEntityWriter<TOwned extends AnyEntityDefinition> {
+  /** Creates a record; one with that id at any visibility is refused. */
+  create<TDefinition extends TOwned>(
+    definition: TDefinition,
+    input: NoInfer<{
+      /** Omitted, the runtime picks one. */
+      readonly id?: string | undefined;
+      readonly content: string;
+      readonly metadata: EntityMetadataInput<TDefinition["metadata"]>;
+      readonly visibility?: EntityVisibility | undefined;
+    }>,
+  ): Promise<{ readonly id: string }>;
+  /** Changes the content, the metadata or both of a record as it was read. */
+  update<TDefinition extends TOwned>(
+    definition: TDefinition,
+    record: NoInfer<EntityOf<TDefinition>>,
+    change: NoInfer<{
+      readonly content?: string | undefined;
+      readonly metadata?:
+        EntityMetadataInput<TDefinition["metadata"]> | undefined;
+    }>,
+  ): Promise<void>;
+  /** Deletes a record as it was read. */
+  delete<TDefinition extends TOwned>(
+    definition: TDefinition,
+    record: NoInfer<EntityOf<TDefinition>>,
+  ): Promise<void>;
+}
+
 export interface EntityOf<TDefinition extends AnyEntityDefinition> {
   readonly id: string;
   readonly entityType: TDefinition["type"];
@@ -576,6 +633,7 @@ export interface EntityOf<TDefinition extends AnyEntityDefinition> {
 export interface EntityWriteInput<TDefinition extends AnyEntityDefinition> {
   readonly id: string;
   readonly content: string;
+  /** Unset, a projected entry takes the visibility of its source. */
   readonly visibility?: EntityVisibility | undefined;
   readonly metadata: z.input<TDefinition["metadata"]>;
 }
@@ -615,11 +673,12 @@ export interface DataSourceListOptions {
 }
 
 /**
- * The reads a declared data source is given, typed by the definitions it
- * names. Reads see what the build may show: public records, and only
- * published ones when the build asks for that.
+ * Definition-typed reads, each typed by the definition it names. Every
+ * context that reads entities is given one, at that context's authority: a
+ * data source sees what the build may show, a check reads as the package, an
+ * Inbox detail reads as its actor.
  */
-export interface DataSourceEntityReader {
+export interface EntityReader {
   get<TDefinition extends AnyEntityDefinition>(
     definition: TDefinition,
     id: string,
@@ -652,7 +711,7 @@ export interface DataSourceDefinition {
   readonly description: string;
   fetch(
     query: unknown,
-    entities: DataSourceEntityReader,
+    entities: EntityReader,
     context: DataSourceReadContext,
   ): Promise<unknown>;
 }
@@ -669,7 +728,7 @@ export interface EntityDetailContext<TTransformed> {
   readonly item: TTransformed;
   readonly navigation: NavigationResult<TTransformed> | null;
   readonly siblings: readonly TTransformed[];
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
 }
 
 /**
@@ -836,7 +895,7 @@ export interface EntityCreateUploadReader {
  */
 export interface EntityCreateContext {
   readonly input: Readonly<CreateInput>;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly uploads: EntityCreateUploadReader;
 }
 
@@ -945,15 +1004,39 @@ export interface EntityJobMessaging {
 }
 
 /**
- * What a declared job is given: its parsed input, definition-typed reads as
- * the package, messaging, progress and cancellation. Frozen.
+ * What a declared job is given: its parsed input, definition-typed reads,
+ * messaging, progress and cancellation. Frozen.
+ *
+ * The job reads with the authority of whoever started it, recorded when it
+ * is queued and resolved again when it runs: the caller of the create that
+ * delegated to it, or of the `system_generate` that queued a generation. A
+ * requester who is revoked or rebound before it runs is refused. A job the
+ * package starts on its own, such as a scheduled generation, reads as the
+ * package: its own types at every visibility, and other types at the
+ * package's grant, which is public unless the brain grants
+ * `service:<plugin id>` more.
  */
 export interface EntityJobContext<TInput> {
   readonly input: TInput;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
   readonly messaging: EntityJobMessaging;
   readonly progress: EntityJobProgress;
   readonly signal: AbortSignal;
+}
+
+/**
+ * What a job that does its own work is given: a job's context, with writes
+ * to the records of the type whose `jobs` slot declares it. A job is
+ * declared on its own, before it knows that type, so the writer is typed
+ * for any definition and the runtime refuses any other type. It writes as
+ * the job reads: as its requester, held to the type's action policy and the
+ * visibility they may write, or as the package when the package queued it.
+ */
+export interface EntityJobHandleContext<TInput> extends Omit<
+  EntityJobContext<TInput>,
+  "entities"
+> {
+  readonly entities: EntityReader & OwnedEntityWriter<AnyEntityDefinition>;
 }
 
 /** One generation through a template this type declares. */
@@ -987,8 +1070,9 @@ export interface EntityGenerationContext<
 
 /**
  * Point the entity a generation came from at what it produced. The runtime
- * makes the write, entitled to both sides, after checking the target before
- * anything is saved.
+ * makes the write as the generation reads, after checking the target before
+ * anything is saved: a target the generation cannot see, or one its
+ * requester may not update, is refused.
  */
 export type EntityGenerationLink = {
   readonly entityType: string;
@@ -1020,6 +1104,14 @@ export type EntityGenerationResult<
       readonly metadata: EntityMetadataInput<TMetadataSchema>;
       /** The id when nothing was allocated; defaults to the slugified title. */
       readonly id?: string | undefined;
+      /**
+       * How visible the entity is. Unset, a generation written from a source
+       * entry is no more visible than that source (or than the allocated
+       * entity, when that is more private); one with no source is public,
+       * or keeps its allocated entity's visibility. Either way it is never
+       * more visible than its requester may write.
+       */
+      readonly visibility?: EntityVisibility | undefined;
       /** Extra fields merged into the job's success result. */
       readonly resultExtras?: Readonly<Record<string, unknown>> | undefined;
       readonly linkInto?: EntityGenerationLink | undefined;
@@ -1031,13 +1123,20 @@ export interface EntityJobDeclaration<
   TInputSchema extends z.ZodType = z.ZodType,
 > {
   readonly input: TInputSchema;
-  handle(context: EntityJobContext<z.output<TInputSchema>>): Promise<unknown>;
+  handle(
+    context: EntityJobHandleContext<z.output<TInputSchema>>,
+  ): Promise<unknown>;
 }
 
 /**
  * A durable job that generates an entity of this type. The runtime parses
  * the input, then persists what comes back — filling the allocated entity
- * when the job was given one — or marks that entity failed.
+ * when the job was given one — or marks that entity failed. It writes as it
+ * reads: held to the type's create policy at the requester's level, and
+ * filling an allocated entity only while the requester can still see it. A
+ * generation written from a source entry is no more visible than its source
+ * unless its result sets `visibility`; one with no source writes a new
+ * entity public. It never writes more visibly than its requester may.
  */
 export interface EntityGenerationDeclaration<
   TInputSchema extends z.ZodType = z.ZodType,
@@ -1081,7 +1180,7 @@ export interface EntityCreateRouting<
  */
 export type EntityAgentContextProvider = (context: {
   readonly request: AgentContextRequest;
-  readonly entities: DataSourceEntityReader;
+  readonly entities: EntityReader;
 }) => Promise<readonly AgentContextItem[]>;
 
 /**
@@ -1108,7 +1207,11 @@ export interface EntityEvalFixtures {
 /** What an eval handler is given: generation, reads as the package, fixtures. */
 export interface EntityEvalContext {
   readonly ai: EntityGenerationAI;
-  readonly entities: DataSourceEntityReader;
+  /**
+   * Reads as the package, since an eval runs with no caller: its own
+   * package's types at every visibility, other types at the package's grant.
+   */
+  readonly entities: EntityReader;
   readonly fixtures: EntityEvalFixtures;
 }
 

@@ -233,7 +233,10 @@ describe("inbound email intake", () => {
         },
         publish: async () => {
           expect(recorded).toBe(true);
-          return { status: "failed", error: "retry" };
+          return {
+            status: "failed",
+            error: { code: "handler_failed", message: "The operation failed" },
+          };
         },
         logger: createMockLogger(),
       },

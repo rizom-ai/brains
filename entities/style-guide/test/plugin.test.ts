@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { StyleGuidePlugin, styleGuideAdapter } from "../src";
+import { createStyleGuideContent, styleGuideFromRecord } from "../src";
+import { styleGuidePlugin } from "./style-guide-plugin";
 
 describe("StyleGuidePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -13,17 +15,23 @@ describe("StyleGuidePlugin", () => {
   });
 
   test("registers a singleton style-guide entity type", async () => {
-    const plugin = new StyleGuidePlugin();
+    const plugin = styleGuidePlugin();
     await harness.installPlugin(plugin);
 
+    expect(plugin.id).toBe("style-guide");
     expect(plugin.adapter.isSingleton).toBe(true);
     expect(harness.getEntityService().getEntityTypes()).toContain(
       "style-guide",
     );
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("style-guide"),
+    ).toMatchObject({ classification: "system", embeddable: false });
   });
 
-  test("creates a neutral default only after initial directory sync", async () => {
-    await harness.installPlugin(new StyleGuidePlugin());
+  // The declared seed is planted once startup content has settled: after the
+  // initial directory sync, or at boot when no sync was pending.
+  test("creates a neutral default only once startup content has settled", async () => {
+    await harness.installPlugin(styleGuidePlugin());
 
     expect(
       await harness.getEntityService().getEntity({
@@ -32,7 +40,11 @@ describe("StyleGuidePlugin", () => {
       }),
     ).toBeNull();
 
-    await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+    );
 
     const entity = await harness.getEntityService().getEntity({
       entityType: "style-guide",
@@ -40,15 +52,15 @@ describe("StyleGuidePlugin", () => {
     });
     expect(entity).not.toBeNull();
     if (!entity) throw new Error("Style guide was not created");
-    expect(styleGuideAdapter.parseStyleGuide(entity.content)).toEqual({
+    expect(styleGuideFromRecord(entity)).toEqual({
       name: "Default style guide",
       guidance: "",
     });
   });
 
   test("does not overwrite style imported by directory sync", async () => {
-    await harness.installPlugin(new StyleGuidePlugin());
-    const content = styleGuideAdapter.createStyleGuideContent({
+    await harness.installPlugin(styleGuidePlugin());
+    const content = createStyleGuideContent({
       name: "Imported style",
       voice: { summary: "Warm and exact" },
     });
@@ -57,15 +69,24 @@ describe("StyleGuidePlugin", () => {
         id: "style-guide",
         entityType: "style-guide",
         content,
-        metadata: {},
+        metadata: {
+          name: "Imported style",
+          voice: { summary: "Warm and exact" },
+        },
       },
     });
 
-    await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.startupContentSettled,
+      {},
+      "shell",
+    );
 
-    const entity = await harness.getEntityService().getEntity({
+    // The stored document, as an editor reads it.
+    const entity = await harness.getEntityService().getEntityRaw({
       entityType: "style-guide",
       id: "style-guide",
+      source: true,
     });
     expect(entity?.content).toBe(content);
   });

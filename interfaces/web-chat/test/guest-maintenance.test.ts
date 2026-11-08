@@ -197,9 +197,9 @@ describe("guest state maintenance", () => {
       await store.set(key, original);
       let raced = false;
       const concurrent: IRuntimeStateNamespace = {
-        scoped: <T>(
-          options: RuntimeStateScopeOptions<T>,
-        ): IRuntimeStateStore<T> => {
+        scoped: <T, TInput = T>(
+          options: RuntimeStateScopeOptions<T, TInput>,
+        ): IRuntimeStateStore<T, TInput> => {
           const scoped = state.scoped(options);
           return {
             ...scoped,
@@ -243,9 +243,9 @@ describe("guest state maintenance", () => {
     await store.set(nextKey, original);
     let attempts = 0;
     const busy: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const scoped = state.scoped(options);
         return {
           ...scoped,

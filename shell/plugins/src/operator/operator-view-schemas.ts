@@ -189,7 +189,6 @@ const listItemSchema = z
     id: rowIdentifierSchema,
     title: shortTextSchema,
     description: textSchema.optional(),
-    meta: shortTextSchema.optional(),
     metadata: z.array(shortTextSchema).max(20).optional(),
     tags: z.array(labelSchema).max(30).optional(),
     // When the item happened; a log presentation reads rows by it.

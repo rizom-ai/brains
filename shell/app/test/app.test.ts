@@ -1,10 +1,10 @@
 import { describe, it, expect, mock, afterEach, spyOn } from "bun:test";
+import { App } from "../src/app";
 import {
-  App,
   STARTUP_CHECK_API_KEY,
   buildShellConfig,
   toAppConfig,
-} from "../src/app";
+} from "../src/shell-config";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
 import { Shell } from "@brains/core";

@@ -42,10 +42,7 @@
 + mcp|handler|OPTIONS|/mcp|exact|true
 + mcp|handler|POST|/mcp|exact|true
 + studio|handler|DELETE|/studio/api/entities|exact|true
-+ studio|handler|GET|/account|prefix|true
-+ studio|handler|GET|/admin|prefix|true
 + studio|handler|GET|/chat|exact|true
-+ studio|handler|GET|/cms|prefix|true
 + studio|handler|GET|/studio/api/agents|exact|true
 + studio|handler|GET|/studio/api/entities|exact|true
 + studio|handler|GET|/studio/api/groups/catalog|exact|true

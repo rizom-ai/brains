@@ -26,7 +26,7 @@ function findRoute(
 }
 
 describe("studio plugin", () => {
-  it("uses the canonical Studio identity and redirects legacy CMS paths", async () => {
+  it("uses the canonical Studio identity and leaves the retired surface paths free", async () => {
     const shell = createStudioTestShell();
     const plugin = studioPlugin();
 
@@ -36,48 +36,16 @@ describe("studio plugin", () => {
     expect(paths).toContain("/chat");
     expect(paths).toContain("/studio");
     expect(paths).toContain("/studio/api/entities");
-    expect(paths).toContain("/cms");
-    expect(paths).toContain("/account");
-    expect(paths).toContain("/admin");
-
-    const legacyRoute = findRoute(plugin.getWebRoutes(), "/cms");
-    const redirects: ReadonlyArray<{
-      source: string;
-      destination: string;
-    }> = [
-      { source: "/cms?from=bookmark", destination: "/studio?from=bookmark" },
-      {
-        source: "/cms/entities/note/journal%2Fday-one?view=edit",
-        destination: "/studio/entities/note/journal%2Fday-one?view=edit",
-      },
-      {
-        source: "/cms/workspaces/site-builder%3Asite?tab=preview",
-        destination: "/studio/workspaces/site-builder%3Asite?tab=preview",
-      },
-    ];
-    for (const { source, destination } of redirects) {
-      const redirect = await legacyRoute.handler(
-        new Request(`https://yeehaa.io${source}`),
-      );
-      expect(redirect.status).toBe(308);
-      expect(redirect.headers.get("location")).toBe(destination);
+    for (const retired of ["/cms", "/account", "/admin"]) {
+      expect(
+        plugin
+          .getWebRoutes()
+          .some(
+            (route) =>
+              route.path === retired || route.path.startsWith(`${retired}/`),
+          ),
+      ).toBe(false);
     }
-
-    const accountRedirect = await findRoute(
-      plugin.getWebRoutes(),
-      "/account",
-    ).handler(new Request("https://yeehaa.io/account?section=passkeys"));
-    expect(accountRedirect.status).toBe(308);
-    expect(accountRedirect.headers.get("location")).toBe(
-      "/studio/workspaces/studio%3Aaccount?section=passkeys",
-    );
-
-    const adminRedirect = await findRoute(
-      plugin.getWebRoutes(),
-      "/admin",
-    ).handler(new Request("https://yeehaa.io/admin/people?person=private"));
-    expect(adminRedirect.status).toBe(308);
-    expect(adminRedirect.headers.get("location")).toBe("/studio");
 
     expect(shell.listEndpoints()).toContainEqual(
       expect.objectContaining({
@@ -101,9 +69,6 @@ describe("studio plugin", () => {
           `${route.method ?? "GET"} ${route.path} ${route.match ?? "exact"}`,
       ),
     ).toEqual([
-      "GET /cms prefix",
-      "GET /account prefix",
-      "GET /admin prefix",
       "GET /chat exact",
       "GET /studio exact",
       "GET /studio/entities prefix",
@@ -206,13 +171,18 @@ describe("studio plugin", () => {
     );
   });
 
-  it("rejects the retired CMS mount as Studio's canonical route", () => {
-    expect(() => studioPlugin({ routePath: "/cms" })).toThrow(
-      /reserved for Studio redirects/i,
-    );
+  it("mounts at a retired surface path like any other", async () => {
+    const shell = createStudioTestShell();
+    const plugin = studioPlugin({ routePath: "/admin" });
+
+    await plugin.register(shell);
+
+    const paths = plugin.getWebRoutes().map((route) => route.path);
+    expect(paths).toContain("/admin");
+    expect(paths).toContain("/admin/api/entities");
   });
 
-  it("respects a custom route path while retaining the legacy redirect", async () => {
+  it("respects a custom route path", async () => {
     const shell = createStudioTestShell();
     const plugin = studioPlugin({ routePath: "/authoring" });
 
@@ -221,7 +191,6 @@ describe("studio plugin", () => {
     const paths = plugin.getWebRoutes().map((route) => route.path);
     expect(paths).toContain("/authoring");
     expect(paths).toContain("/authoring/api/entities");
-    expect(paths).toContain("/cms");
   });
 
   it("advertises the Studio endpoint so the dashboard can link to it", async () => {

@@ -1,9 +1,9 @@
 import {
-  createTemplate,
-  type Template,
   contentVisibilitySchema,
+  createTemplate,
   paginationInfoSchema,
-} from "@brains/plugins";
+  type Template,
+} from "@brains/sdk/internal/presentation";
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { docsChromeSchema } from "@brains/docs-chrome";

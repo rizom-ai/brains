@@ -68,7 +68,6 @@ export function normalizeStudioListItem(
       id: item.id,
       title: item.title,
       ...(item.description ? { description: item.description } : {}),
-      ...(item.meta ? { meta: item.meta } : {}),
       ...(item.metadata ? { metadata: item.metadata } : {}),
       ...(item.at ? { at: item.at } : {}),
       ...(item.tags ? { tags: item.tags } : {}),

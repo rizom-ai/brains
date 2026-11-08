@@ -7,11 +7,15 @@ export type PluginPackageFamily =
 
 // Total map so adding a family is a compile error here, and the deliberate
 // collapse of message interfaces onto the interface plugin type is explicit.
-const FAMILY_PLUGIN_TYPE: Record<PluginPackageFamily, Plugin["type"]> = {
-  entity: "entity",
-  service: "service",
-  interface: "interface",
-  "message-interface": "interface",
+// A service package also installs an entity plugin for each type it owns.
+const FAMILY_PLUGIN_TYPES: Record<
+  PluginPackageFamily,
+  readonly Plugin["type"][]
+> = {
+  entity: ["entity"],
+  service: ["service", "entity"],
+  interface: ["interface"],
+  "message-interface": ["interface"],
 };
 
 export type AnyPluginConfigSchema = z.ZodType<object, object>;
@@ -39,10 +43,25 @@ export interface InstalledPluginPackageMetadata {
   readonly version: string;
 }
 
-interface PluginPackageInstantiationContext<TConfig extends object> {
+export interface PluginPackageInstantiationContext<TConfig extends object> {
   readonly config: TConfig;
   readonly package: InstalledPluginPackageMetadata;
   scope(localId: string): string;
+  /** The plugin id a first-party entity package keeps from its class. */
+  readonly pluginId?: string | undefined;
+}
+
+/**
+ * How a composer instantiates a definition. Internal: only the first-party
+ * composer names these, and package source never does.
+ */
+export interface PluginPackageInstantiationOptions {
+  /**
+   * The plugin id a converted first-party entity package keeps from its
+   * class, with every name derived from it (templates, data sources, jobs,
+   * channels). The package still owns its state and channels by name.
+   */
+  readonly pluginId?: string | undefined;
 }
 
 type PluginPackageRuntimeFactory<TConfig extends object> = (
@@ -177,6 +196,26 @@ function runtimeDefinition(
   return definition;
 }
 
+/**
+ * The plugins a definition declared inside another package creates, under
+ * that package's parsed config, metadata and scope: a package that declares
+ * several definitions instantiates each as its own.
+ */
+export function instantiateWithinPackage<TConfig extends object>(
+  definition: PluginPackageDefinition,
+  context: PluginPackageInstantiationContext<TConfig>,
+): Plugin[] {
+  const created = runtimeDefinition(definition)[runtimeFactory](context);
+  return isSeveral(created) ? [...created] : [created];
+}
+
+// `Array.isArray` alone leaves the readonly array in the else branch.
+function isSeveral(
+  created: Plugin | readonly Plugin[],
+): created is readonly Plugin[] {
+  return Array.isArray(created);
+}
+
 export function bindPluginPackageMetadata(
   definition: PluginPackageDefinition,
   metadata: InstalledPluginPackageMetadata,
@@ -209,7 +248,17 @@ export function instantiatePluginPackageDefinition(
   definition: PluginPackageDefinition,
   rawConfig: unknown,
   metadata: InstalledPluginPackageMetadata,
+  options: PluginPackageInstantiationOptions = {},
 ): Plugin[] {
+  const { pluginId } = options;
+  if (pluginId !== undefined) {
+    assertIdentifier(pluginId, "Legacy plugin id");
+    if (definition.family !== "entity") {
+      throw new Error(
+        `Plugin definition "" is not an entity package; only an entity package keeps a legacy plugin id`,
+      );
+    }
+  }
   if (!metadata.name || !metadata.version) {
     throw new Error(
       `Installed package metadata is incomplete for plugin definition "${definition.id}"`,
@@ -232,9 +281,10 @@ export function instantiatePluginPackageDefinition(
       assertIdentifier(localId, "Local plugin id");
       return `${metadata.name}:${localId}`;
     },
+    ...(pluginId !== undefined && { pluginId }),
   });
-  const plugins = Array.isArray(created) ? [...created] : [created];
-  const expectedType = FAMILY_PLUGIN_TYPE[definition.family];
+  const plugins = isSeveral(created) ? [...created] : [created];
+  const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
 
   for (const plugin of plugins) {
     if (
@@ -245,7 +295,7 @@ export function instantiatePluginPackageDefinition(
         `Plugin definition "${metadata.name}:${definition.id}" produced metadata that does not match its installed package`,
       );
     }
-    if (plugin.type !== expectedType) {
+    if (!expectedTypes.includes(plugin.type)) {
       throw new Error(
         `Plugin definition "${metadata.name}:${definition.id}" declared family "${definition.family}" but produced plugin type "${plugin.type}"`,
       );

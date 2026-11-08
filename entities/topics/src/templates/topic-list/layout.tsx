@@ -1,13 +1,7 @@
 import type { JSX } from "react";
 import type { TopicListData } from "./schema";
-import {
-  Card,
-  CardTitle,
-  CardMetadata,
-  ListPageHeader,
-  EmptyState,
-  formatDate,
-} from "@brains/ui-library";
+import { Card, CardTitle, CardMetadata, formatDate } from "@rizom/brain-ui";
+import { ListPageHeader, EmptyState } from "@rizom/brain-ui/internal";
 
 export const TopicListLayout = ({
   topics,

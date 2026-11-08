@@ -52,6 +52,15 @@ describe("DashboardPlugin", () => {
       expect(Object.hasOwn(plugin, "dependencies")).toBe(false);
     });
 
+    it("keeps its dashboard data off the shared data-source registry", () => {
+      expect(
+        harness
+          .getMockShell()
+          .getDataSourceRegistry()
+          .has("dashboard:dashboard"),
+      ).toBe(false);
+    });
+
     it("should expose no tools", async () => {
       const fresh = createPluginHarness({ dataDir: "/tmp/test-datadir" });
       const capabilities = await fresh.installPlugin(new DashboardPlugin());
@@ -1049,6 +1058,7 @@ describe("DashboardPlugin", () => {
       expect(response).toEqual({
         success: false,
         error: "Invalid dashboard:unregister-widget request",
+        code: "invalid_input",
       });
     });
 
@@ -1073,6 +1083,7 @@ describe("DashboardPlugin", () => {
       expect(response).toEqual({
         success: false,
         error: "Invalid dashboard:register-widget request",
+        code: "invalid_input",
       });
       const registry = plugin.getWidgetRegistry();
       const testPluginWidgets =

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { A2AInterface } from "../src/a2a-interface";
 import {
+  SDK_ERROR_MESSAGE_MAX_LENGTH,
   a2aAgentsContract,
   a2aAskContract,
   a2aCallContract,
@@ -68,11 +69,14 @@ describe("A2A call message handlers", () => {
   });
 
   it("lists only approved directory agents", async () => {
-    const response = await harness.getMockShell().getMessageBus().send({
-      type: a2aAgentsContract.name,
-      payload: {},
-      sender: "studio",
-    });
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: a2aAgentsContract.name,
+        payload: { userPermissionLevel: "trusted" },
+        sender: "studio",
+      });
 
     expect(response).toEqual({
       success: true,
@@ -92,6 +96,7 @@ describe("A2A call message handlers", () => {
           agent: "approved.example",
           instruction: "Is this accurate?",
           selection: "Selected markdown",
+          userPermissionLevel: "trusted",
         },
         sender: "studio",
       });
@@ -121,10 +126,19 @@ describe("A2A call message handlers", () => {
         .getMessageBus()
         .send({
           type: a2aCallContract.name,
-          payload: { agent, instruction: "Review", selection: "Text" },
+          payload: {
+            agent,
+            instruction: "Review",
+            selection: "Text",
+            userPermissionLevel: "admin",
+          },
           sender: "studio",
         });
-      expect("success" in response && response.success).toBe(false);
+      expect(response).toMatchObject({
+        success: false,
+        code: "permission_denied",
+        error: expect.stringContaining(agent),
+      });
     }
     expect(fetchFn).not.toHaveBeenCalled();
   });
@@ -139,13 +153,95 @@ describe("A2A call message handlers", () => {
           agent: "unknown.example",
           instruction: "Review",
           selection: "Text",
+          userPermissionLevel: "admin",
         },
         sender: "studio",
       });
 
-    expect("success" in response && response.success).toBe(false);
-    expect(response).toHaveProperty("error", expect.stringContaining("saved"));
+    expect(response).toMatchObject({
+      success: false,
+      code: "permission_denied",
+      error: expect.stringContaining("saved"),
+    });
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  describe("at the requester's access", () => {
+    beforeEach(() => {
+      harness.addEntities([
+        {
+          id: "restricted.example",
+          entityType: "agent",
+          content: "Restricted",
+          visibility: "restricted",
+          metadata: { name: "Restricted Agent", status: "approved" },
+        },
+      ]);
+    });
+
+    type Bus = ReturnType<
+      ReturnType<
+        ReturnType<typeof createPluginHarness>["getMockShell"]
+      >["getMessageBus"]
+    >;
+    const call = (
+      userPermissionLevel: "admin" | "trusted",
+    ): ReturnType<Bus["send"]> =>
+      harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: a2aCallContract.name,
+          payload: {
+            agent: "restricted.example",
+            instruction: "Review",
+            selection: "Text",
+            userPermissionLevel,
+          },
+          sender: "studio",
+        });
+
+    it("refuses a trusted author an agent saved restricted, before network contact", async () => {
+      expect(await call("trusted")).toMatchObject({
+        success: false,
+        code: "permission_denied",
+        error: "Agent restricted.example is not saved or approved.",
+      });
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("calls an agent saved restricted for an admin", async () => {
+      const response = await call("admin");
+
+      expect(response).toHaveProperty("data.response", "Agent answer");
+    });
+
+    it("lists only the agents the requester can see", async () => {
+      const list = (
+        userPermissionLevel: "admin" | "trusted",
+      ): ReturnType<Bus["send"]> =>
+        harness.getMockShell().getMessageBus().send({
+          type: a2aAgentsContract.name,
+          payload: { userPermissionLevel },
+          sender: "studio",
+        });
+
+      expect(await list("trusted")).toEqual({
+        success: true,
+        data: {
+          agents: [{ id: "approved.example", label: "Approved Agent" }],
+        },
+      });
+      expect(await list("admin")).toEqual({
+        success: true,
+        data: {
+          agents: [
+            { id: "approved.example", label: "Approved Agent" },
+            { id: "restricted.example", label: "Restricted Agent" },
+          ],
+        },
+      });
+    });
   });
 });
 
@@ -274,39 +370,55 @@ describe("A2A network ask channel", () => {
     }
   });
 
-  it("treats a peer's refusal as no answer", async () => {
-    const fetchFn = mock(
-      async (input: string | URL | Request): Promise<Response> => {
-        const url = String(input);
-        if (url.endsWith("/.well-known/agent-card.json")) {
-          const origin = url.replace("/.well-known/agent-card.json", "");
-          return new Response(
-            JSON.stringify({ name: "Remote", url: `${origin}/a2a` }),
-          );
-        }
+  /** A peer that turns the question down with `text`. */
+  function refusingFetch(text: string): ReturnType<typeof mock> {
+    return mock(async (input: string | URL | Request): Promise<Response> => {
+      const url = String(input);
+      if (url.endsWith("/.well-known/agent-card.json")) {
+        const origin = url.replace("/.well-known/agent-card.json", "");
         return new Response(
-          `data: ${JSON.stringify({
-            result: {
-              kind: "status-update",
-              final: true,
-              status: {
-                state: "failed",
-                message: {
-                  parts: [{ kind: "text", text: "Over for today." }],
-                },
-              },
-            },
-          })}\n\n`,
-          { headers: { "Content-Type": "text/event-stream" } },
+          JSON.stringify({ name: "Remote", url: `${origin}/a2a` }),
         );
-      },
-    );
-    const harness = await installed(fetchFn);
+      }
+      return new Response(
+        `data: ${JSON.stringify({
+          result: {
+            kind: "status-update",
+            final: true,
+            status: {
+              state: "failed",
+              message: { parts: [{ kind: "text", text }] },
+            },
+          },
+        })}\n\n`,
+        { headers: { "Content-Type": "text/event-stream" } },
+      );
+    });
+  }
+
+  it("treats a peer's refusal as no answer, in the peer's words", async () => {
+    const harness = await installed(refusingFetch("Over for today."));
     try {
       expect(await ask(harness, "approved.example")).toEqual({
         success: false,
         error: "approved.example did not answer: Over for today.",
+        code: "handler_failed",
       });
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
+  it("cuts a peer's long refusal to the public message bound", async () => {
+    const harness = await installed(refusingFetch("No. ".repeat(600)));
+    try {
+      const response = await ask(harness, "approved.example");
+      const error = "error" in response ? (response.error ?? "") : "";
+      expect(error).toHaveLength(SDK_ERROR_MESSAGE_MAX_LENGTH);
+      expect(error.startsWith("approved.example did not answer: No. ")).toBe(
+        true,
+      );
+      expect(error.endsWith("…")).toBe(true);
     } finally {
       await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
     }
@@ -318,8 +430,35 @@ describe("A2A network ask channel", () => {
     try {
       for (const agent of ["discovered.example", "unknown.example"]) {
         const response = await ask(harness, agent);
-        expect("success" in response && response.success).toBe(false);
+        expect(response).toMatchObject({
+          success: false,
+          code: "permission_denied",
+        });
       }
+      expect(fetchFn).not.toHaveBeenCalled();
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
+  it("asks only peers saved public, as network_ask picks them", async () => {
+    const fetchFn = citingFetch();
+    const harness = await installed(fetchFn);
+    harness.addEntities([
+      {
+        id: "shared.example",
+        entityType: "agent",
+        content: "Shared",
+        visibility: "shared",
+        metadata: { name: "Shared Agent", status: "approved" },
+      },
+    ]);
+    try {
+      expect(await ask(harness, "shared.example")).toMatchObject({
+        success: false,
+        code: "permission_denied",
+        error: "Agent shared.example is not saved or approved.",
+      });
       expect(fetchFn).not.toHaveBeenCalled();
     } finally {
       await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
@@ -334,6 +473,7 @@ describe("A2A network ask channel", () => {
       expect(response).toEqual({
         success: false,
         error: "approved.example did not answer within 20 ms",
+        code: "deadline_exceeded",
       });
     } finally {
       await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");

@@ -44,6 +44,7 @@ export function toInternalResponse(
     response.success,
     response.data,
     response.error,
+    response.code,
   );
 }
 
@@ -60,10 +61,12 @@ export function toMessageResponse(
     return { success: true, data: response.data };
   }
 
+  const code = response?.error?.code;
   return {
     success: false,
     error:
       response?.error?.message ?? `No handler found for message type: ${type}`,
+    ...(code !== undefined && { code }),
   };
 }
 
@@ -72,6 +75,7 @@ function createInternalResponse(
   success: boolean,
   data?: unknown,
   error?: string,
+  code?: string,
 ): InternalMessageResponse {
   return {
     id: createId("resp"),
@@ -79,7 +83,9 @@ function createInternalResponse(
     timestamp: createTimestamp(),
     success,
     data,
-    error: error ? { message: error } : undefined,
+    error: error
+      ? { message: error, ...(code !== undefined && { code }) }
+      : undefined,
   };
 }
 

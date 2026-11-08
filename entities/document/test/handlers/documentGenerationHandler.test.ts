@@ -10,18 +10,26 @@ import {
   createServicePluginContext,
   emptyFrontmatterSchema,
   type BaseEntity,
+  type MockShell,
   type ServicePluginContext,
 } from "@brains/plugins/test";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
+import { createPdfDataUrl } from "@brains/document";
+import type { Logger } from "@brains/utils/logger";
 import {
-  createPdfDataUrl,
-  documentAdapter,
-  documentSchema,
-} from "@brains/document";
-import {
-  DocumentGenerationJobHandler,
   getDocumentId,
-} from "../../src/handlers/documentGenerationHandler";
+  type DocumentGenerationHandlerDeps,
+  type DocumentGenerationResult,
+  type RenderPdf,
+} from "../../src";
+import { z } from "@brains/utils/zod";
+
+const resultSchema = z.object({
+  success: z.literal(true),
+  documentId: z.string(),
+  reused: z.boolean(),
+});
+import { documentPlugin } from "../document-plugin";
 
 const socialPostStubSchema = baseEntitySchema;
 
@@ -57,14 +65,63 @@ function expectErrorMessage(error: unknown, message: string): void {
   expect(error.message).toContain(message);
 }
 
+// The renderer the installed job renders with, as each test gives it.
+let currentRenderPdf: RenderPdf = async (): Promise<Buffer> => {
+  throw new Error("No renderer given");
+};
+let shell: MockShell;
+let shellLogger: ReturnType<typeof createMockLogger>;
+
+/**
+ * The installed `document:generate` job, run as the worker runs it: its
+ * data parsed by its contract, then processed. The renderer is the test's;
+ * the job logs through the package's logger.
+ */
+function DocumentGenerationJob(
+  _logger: Logger,
+  _context: ServicePluginContext,
+  deps: DocumentGenerationHandlerDeps,
+): {
+  process(
+    data: unknown,
+    jobId: string,
+    reporter: ProgressReporter,
+  ): Promise<DocumentGenerationResult>;
+} {
+  if (deps.renderPdf) currentRenderPdf = deps.renderPdf;
+  return {
+    process: async (
+      data,
+      jobId,
+      reporter,
+    ): Promise<DocumentGenerationResult> => {
+      const handler = shell
+        .getJobQueueService()
+        .getHandler("document:generate");
+      if (!handler) throw new Error("document:generate is not registered");
+      const parsed = handler.validateAndParse(data);
+      if (parsed === null) throw new Error("Invalid document:generate data");
+      return resultSchema.parse(
+        await handler.process(
+          parsed,
+          jobId,
+          reporter,
+          new AbortController().signal,
+        ),
+      );
+    },
+  };
+}
+
 describe("DocumentGenerationJobHandler", () => {
   let context: ServicePluginContext;
 
-  beforeEach((): void => {
-    const shell = createMockShell({ logger: createSilentLogger() });
-    shell
-      .getEntityRegistry()
-      .registerEntityType("document", documentSchema, documentAdapter);
+  beforeEach(async (): Promise<void> => {
+    shellLogger = createMockLogger();
+    shell = createMockShell({ logger: shellLogger });
+    await documentPlugin({
+      renderPdf: (url, options) => currentRenderPdf(url, options),
+    }).register(shell);
     shell
       .getEntityRegistry()
       .registerEntityType(
@@ -76,11 +133,9 @@ describe("DocumentGenerationJobHandler", () => {
   });
 
   it("renders and stores a generated PDF document", async () => {
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => pdfBuffer,
+    });
 
     const result = await handler.process(
       {
@@ -137,11 +192,9 @@ describe("DocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => pdfBuffer,
+    });
 
     await handler.process(
       {
@@ -184,15 +237,11 @@ describe("DocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("render failed");
-        },
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("render failed");
       },
-    );
+    });
 
     try {
       await handler.process(
@@ -234,15 +283,11 @@ describe("DocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should not render");
-        },
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("should not render");
       },
-    );
+    });
 
     const result = await handler.process(
       {
@@ -278,11 +323,9 @@ describe("DocumentGenerationJobHandler", () => {
     });
 
     const requestedPdf = Buffer.from("%PDF-1.7\n%requested");
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => requestedPdf },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => requestedPdf,
+    });
 
     const result = await handler.process(
       {
@@ -341,15 +384,11 @@ describe("DocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should not render");
-        },
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("should not render");
       },
-    );
+    });
 
     const result = await handler.process(
       {
@@ -395,11 +434,9 @@ describe("DocumentGenerationJobHandler", () => {
     });
 
     const replacementPdf = Buffer.from("%PDF-1.7\n%replacement");
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => replacementPdf },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => replacementPdf,
+    });
 
     const result = await handler.process(
       {
@@ -440,15 +477,11 @@ describe("DocumentGenerationJobHandler", () => {
         filename: "from-provider.pdf",
       }),
     });
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should resolve attachment instead of render URL");
-        },
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("should resolve attachment instead of render URL");
       },
-    );
+    });
 
     const result = await handler.process(
       {
@@ -503,15 +536,11 @@ describe("DocumentGenerationJobHandler", () => {
     });
     if (!source) throw new Error("source not created");
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should resolve attachment instead of render URL");
-        },
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("should resolve attachment instead of render URL");
       },
-    );
+    });
 
     await handler.process(
       {
@@ -566,11 +595,9 @@ describe("DocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => pdfBuffer,
+    });
 
     await handler.process(
       {
@@ -633,11 +660,9 @@ describe("DocumentGenerationJobHandler", () => {
       },
     });
 
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => Buffer.from("%PDF-new") },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => Buffer.from("%PDF-new"),
+    });
 
     const result = await handler.process(
       {
@@ -663,6 +688,59 @@ describe("DocumentGenerationJobHandler", () => {
     expect(post?.content).toContain(`id: ${result.documentId}`);
   });
 
+  it("replace true keeps a reference to a same-source document it cannot read public", async () => {
+    // The document plugin read the referenced documents public, so a
+    // restricted one was not found and stayed listed.
+    await context.entityService.createEntity({
+      entity: {
+        id: "private-carousel",
+        entityType: "document",
+        content: createPdfDataUrl(pdfBuffer),
+        visibility: "restricted",
+        metadata: {
+          mimeType: "application/pdf",
+          filename: "private.pdf",
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
+      },
+    });
+    await context.entityService.createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "social-post",
+        content: `---\ntitle: Test\ndocuments:\n  - id: private-carousel\n---\nPost body`,
+        metadata: { title: "Test" },
+      },
+    });
+
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => Buffer.from("%PDF-new"),
+    });
+
+    const result = await handler.process(
+      {
+        renderUrl: "http://localhost/_media/carousel/deck-1",
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+        replace: true,
+        targetEntityType: "social-post",
+        targetEntityId: "post-1",
+      },
+      "job-1",
+      progressReporter(),
+    );
+
+    const post = await context.entityService.getEntity({
+      entityType: "social-post",
+      id: "post-1",
+    });
+    expect(post?.content).toContain("id: private-carousel");
+    expect(post?.content).toContain(`id: ${result.documentId}`);
+  });
+
   it("warns when multiple documents share a dedup key and reuses the first", async () => {
     for (const id of ["dup-a", "dup-b"]) {
       await context.entityService.createEntity({
@@ -679,8 +757,8 @@ describe("DocumentGenerationJobHandler", () => {
       });
     }
 
-    const logger = createMockLogger();
-    const handler = new DocumentGenerationJobHandler(logger, context, {
+    const logger = shellLogger;
+    const handler = DocumentGenerationJob(logger, context, {
       renderPdf: async (): Promise<Buffer> => {
         throw new Error("should not render");
       },
@@ -703,15 +781,11 @@ describe("DocumentGenerationJobHandler", () => {
   });
 
   it("rejects jobs exceeding the max page count before rendering", async () => {
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should not render");
-        },
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => {
+        throw new Error("should not render");
       },
-    );
+    });
 
     try {
       await handler.process(
@@ -736,11 +810,9 @@ describe("DocumentGenerationJobHandler", () => {
     const oversizedPdf = Buffer.from(
       `%PDF-1.7\n${"\n/Type /Pages /Count 30\n".repeat(1)}%%EOF`,
     );
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => oversizedPdf },
-    );
+    const handler = DocumentGenerationJob(createSilentLogger(), context, {
+      renderPdf: async (): Promise<Buffer> => oversizedPdf,
+    });
 
     try {
       await handler.process(

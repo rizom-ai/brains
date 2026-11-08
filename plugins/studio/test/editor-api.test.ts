@@ -973,12 +973,13 @@ describe("studio editor api", () => {
     expect(stored?.content).not.toContain("The claim is accurate.");
   });
 
-  it("returns a clear 4xx when the a2a handler refuses an agent", async () => {
+  it("answers an agent the a2a handler refuses with the refusal's code and status", async () => {
     const shell = createEditorTestShell();
     await seedPost(shell, { id: "hello-world", body: "Text" });
     shell.getMessageBus().subscribe(a2aCallContract.name, async () => ({
       success: false,
       error: "Agent unknown.example is not saved or approved.",
+      code: "permission_denied",
     }));
     const cookie = await createSessionCookie(shell);
     const plugin = await registerPlugin(shell);
@@ -1001,9 +1002,45 @@ describe("studio editor api", () => {
       }),
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     expect(await response.json()).toEqual({
       error: "Agent unknown.example is not saved or approved.",
+      code: "permission_denied",
+    });
+  });
+
+  it("keeps an a2a failure's diagnostic out of the author's answer", async () => {
+    const shell = createEditorTestShell();
+    await seedPost(shell, { id: "hello-world", body: "Text" });
+    shell.getMessageBus().subscribe(a2aCallContract.name, async () => ({
+      success: false,
+      error: "socket hang up at 10.0.0.7:443",
+    }));
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/studio/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          entityType: "post",
+          id: "hello-world",
+          agent: "approved.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "The operation failed",
+      code: "handler_failed",
     });
   });
 

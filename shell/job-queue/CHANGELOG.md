@@ -1,5 +1,182 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/db@0.2.0-alpha.658
+  - @brains/operation-context@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/mcp-service@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/db@0.2.0-alpha.657
+  - @brains/operation-context@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/mcp-service@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/db@0.2.0-alpha.656
+  - @brains/operation-context@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/mcp-service@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/db@0.2.0-alpha.655
+  - @brains/operation-context@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/mcp-service@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/db@0.2.0-alpha.654
+  - @brains/operation-context@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/mcp-service@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies [[`2260166`](https://github.com/rizom-ai/brains/commit/226016664a9c4d82759ce864b23a6371eb827856)]:
+  - @brains/db@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/operation-context@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/mcp-service@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/db@0.2.0-alpha.652
+  - @brains/operation-context@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/mcp-service@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/db@0.2.0-alpha.651
+  - @brains/operation-context@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/mcp-service@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/db@0.2.0-alpha.650
+  - @brains/operation-context@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/mcp-service@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/db@0.2.0-alpha.649
+  - @brains/operation-context@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/mcp-service@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/db@0.2.0-alpha.648
+  - @brains/operation-context@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/mcp-service@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/db@0.2.0-alpha.647
+  - @brains/operation-context@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+  - @brains/mcp-service@0.2.0-alpha.647
+
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/db@0.2.0-alpha.646
+  - @brains/operation-context@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+  - @brains/mcp-service@0.2.0-alpha.646
+
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/db@0.2.0-alpha.645
+  - @brains/operation-context@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/mcp-service@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`8d9a2e1`](https://github.com/rizom-ai/brains/commit/8d9a2e1dcd4135d25c71763af4d5587e9e825c98) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A durable job's failure is recorded in its public form, the `SdkError` data `{ code, message }`, beside the diagnostic message, in a new `lastErrorPublic` column. `jobs.status()` on a service job reports that `code` and, as `error`, its public message: an `SdkError`'s `publicMessage` when it was given one, else the code's standard message, never the message a failure was thrown with, so a status reader never sees what a handler meant only for operators. A failure recorded without a valid public form reads as `handler_failed`. A thrown `SdkError` keeps its code, any other error is `handler_failed`, an answer outside the job's output schema is `invalid_response`, a requester whose account is gone is `permission_denied`, a job no package handles is `no_handler`, a superseded one `cancelled`, and an expired attempt `deadline_exceeded`.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/mcp-service@0.2.0-alpha.644
+  - @brains/operation-context@0.2.0-alpha.644
+  - @brains/db@0.2.0-alpha.644
+
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.643
+  - @brains/db@0.2.0-alpha.643
+  - @brains/operation-context@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/mcp-service@0.2.0-alpha.643
+
 ## 0.2.0-alpha.642
 
 ### Patch Changes

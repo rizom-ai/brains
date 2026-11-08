@@ -1,3 +1,4 @@
+import { JOB_CHANNELS, defineChannel, type Channel } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 // Import JobContextSchema from types file (no Drizzle dependencies)
 import { JobContextSchema } from "./schema/types";
@@ -189,3 +190,10 @@ export const JobProgressEventSchema: JobProgressEventSchema = z.object({
 
 /** Derived from the schema so the two can never drift. */
 export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;
+
+/** Broadcast by the job progress monitor as a job or batch moves on. */
+export const jobProgressChannel: Channel<
+  JobProgressEvent,
+  unknown,
+  typeof JOB_CHANNELS.progress
+> = defineChannel(JOB_CHANNELS.progress, JobProgressEventSchema);

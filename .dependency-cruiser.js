@@ -12,6 +12,24 @@ module.exports = {
       },
     },
     {
+      name: "public-entries-never-reach-the-first-party-entity-runtime",
+      severity: "error",
+      comment:
+        "entityRuntime(context) is internal to first-party packages: no public entry of @rizom/brain or the SDK may import it",
+      from: {
+        path: [
+          "^packages/brain-cli/src/entries/",
+          "^packages/brain-sdk/src/(index|entities|services|interfaces)\\.ts$",
+        ],
+      },
+      to: {
+        path: [
+          "^packages/brain-sdk/src/internal/",
+          "^shell/plugins/src/entity/entity-runtime\\.ts$",
+        ],
+      },
+    },
+    {
       name: "not-to-unresolvable",
       severity: "error",
       comment:
@@ -72,7 +90,8 @@ module.exports = {
     {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
-      comment: "Plugins can only import from shell/* and shared/* packages",
+      comment:
+        "Plugins can only import from shell/* and shared/* packages, and the published component library (packages/ui, @rizom/brain-ui)",
       from: {
         path: "^plugins/",
         // Covered by the companion rule below with a wider builtin allowlist
@@ -82,7 +101,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins
@@ -131,22 +150,40 @@ module.exports = {
         "Entity packages should not import from other entity packages - use shared packages instead",
       from: {
         path: "^entities/([^/]+)/",
-        pathNot: "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow integration tests
+        pathNot: [
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow integration tests
+          "^entities/[^/]+/src/eval/", // Eval-only entries; see the rule below
+        ],
       },
       to: {
         path: "^entities/(?!$1/)",
       },
     },
     {
+      name: "eval-entries-stay-out-of-production",
+      severity: "error",
+      comment:
+        "An entity's eval-only entry (src/eval/, its ./eval subpath, named by evals/eval.yaml) may compose other entities as devDependencies; nothing but tests imports it, so none of that reaches a brain",
+      from: {
+        pathNot: [
+          "^entities/[^/]+/src/eval/",
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$",
+        ],
+      },
+      to: {
+        path: "^entities/[^/]+/src/eval/",
+      },
+    },
+    {
       name: "entities-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Entity packages can only import from shell/* and shared/* packages",
+        "Entity packages can only import from shell/* and shared/* packages, the published component library (packages/ui, @rizom/brain-ui), and the authoring SDK (packages/brain-sdk, @brains/sdk) that converted packages are written against",
       from: {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/ui/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins

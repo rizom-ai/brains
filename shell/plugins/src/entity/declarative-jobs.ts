@@ -1,16 +1,25 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
+  SdkError,
+  type ImageAspectRatio,
   fetchVoiceGuidance,
   generateReportFailureContract,
   generateReportSuccessContract,
+  type GenerationResult,
 } from "@brains/contracts";
 import {
+  canWriteVisibility,
   canonicalContentVisibilitySchema,
   internalFullScope,
+  isVisibleWithinScope,
+  type ContentVisibility,
 } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
+import type { EntityActionRequiredLevel } from "@brains/templates";
+import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -21,8 +30,19 @@ import {
   BaseGenerationJobHandler,
   type GeneratedContent,
 } from "../service/base-generation-job-handler";
+import {
+  createPackageEntityReader,
+  packageReadScope,
+  packageSelfCall,
+  queuedJobCall,
+  serviceJobDataSchema,
+  type PackageCall,
+  type QueuedJobCall,
+  type ServiceJobData,
+} from "../service/job-authority";
 import type { EntityPluginContext } from "./context";
 import type {
+  AnyEntityDefinition,
   EntityEvalFixtures,
   EntityGenerationAI,
   EntityGenerationContext,
@@ -32,9 +52,17 @@ import type {
   EntityJobDeclaration,
   EntityJobMessaging,
   EntityJobProgress,
+  EntityReader,
+  OwnedEntityWriter,
 } from "./entity-definition-contract";
-import { createEntityReader } from "./entity-reader";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
+import { withEntityRuntime } from "./entity-runtime";
+import { sharedUploadScope } from "../service/upload-registry";
+import type { AttachmentResolveRequest } from "../service/attachment-registry";
+import {
+  assertOwnedWriteAllowed,
+  createOwnedEntityWriter,
+} from "./owned-entity-writer-runtime";
 
 /**
  * Template generation through main's AI path: a template this type declares,
@@ -133,12 +161,120 @@ export function createEvalFixtures(
   });
 }
 
+/**
+ * What a declared job reads and writes as: whoever started it, resolved again
+ * when it runs, or the package itself when the package queued it. Acting as
+ * itself, the package reads and writes the package's own types at every
+ * visibility and past the action policy, as a service package does; any
+ * other type, and every type for a requester, is held to the run's access.
+ */
+export interface EntityRunAuthority {
+  /** Definition-typed reads, each type at `scope`. */
+  readonly entities: EntityReader;
+  /** Where a read of the type looks. */
+  scope(entityType: string): ContentVisibility;
+  /** Why the run may not take this action on the type, when it may not. */
+  refusal(entityType: string, action: "create" | "update"): string | undefined;
+  /** Why the run may not write the type at this visibility, when it may not. */
+  visibilityRefusal(
+    entityType: string,
+    visibility: ContentVisibility,
+  ): string | undefined;
+}
+
+/** A queued job's authority, for a call resolved when the job runs. */
+async function runAuthority(
+  context: EntityPluginContext,
+  call: PackageCall,
+  ownsType: (entityType: string) => boolean,
+): Promise<EntityRunAuthority> {
+  const access = await call.access();
+  const ownedByPackage = (entityType: string): boolean =>
+    call.asPackage === true && ownsType(entityType);
+  return Object.freeze({
+    entities: createPackageEntityReader(
+      context.entityService,
+      () => call,
+      ownsType,
+    ),
+    scope: (entityType: string): ContentVisibility =>
+      packageReadScope(call, ownsType(entityType), access),
+    refusal: (
+      entityType: string,
+      action: "create" | "update",
+    ): string | undefined => {
+      if (ownedByPackage(entityType)) return undefined;
+      try {
+        context.permissions.assertEntityActionAllowed(entityType, action, {
+          userPermissionLevel: access.permissionLevel,
+        });
+        return undefined;
+      } catch (error) {
+        // The policy's refusal names the action and the level it needs.
+        return getErrorMessage(error);
+      }
+    },
+    visibilityRefusal: (
+      entityType: string,
+      visibility: ContentVisibility,
+    ): string | undefined =>
+      ownedByPackage(entityType) ||
+      canWriteVisibility(access.permissionLevel, visibility)
+        ? undefined
+        : `A ${access.permissionLevel} requester cannot write a ${visibility} ${entityType}`,
+  });
+}
+
+const generationSourceSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  ids: z.ZodArray<z.ZodString>;
+}> = z.object({
+  entityType: z.string().min(1),
+  ids: z.array(z.string().min(1)).min(1),
+});
+
+/** The entries a generation is written from, as the runtime records them. */
+export type GenerationSource = z.output<typeof generationSourceSchema>;
+
+/**
+ * The source a generation's queued data names, in the fields the content
+ * pipeline, `system_generate` and a create request write it in:
+ * `sourceEntityType` with `sourceEntityId` or `sourceEntityIds`.
+ */
+export function generationSource(fields: {
+  readonly sourceEntityType?: unknown;
+  readonly sourceEntityId?: unknown;
+  readonly sourceEntityIds?: unknown;
+}): GenerationSource | undefined {
+  const { sourceEntityType, sourceEntityId, sourceEntityIds } = fields;
+  if (typeof sourceEntityType !== "string" || sourceEntityType === "") {
+    return undefined;
+  }
+  const named = [
+    ...(typeof sourceEntityId === "string" ? [sourceEntityId] : []),
+    ...(Array.isArray(sourceEntityIds)
+      ? sourceEntityIds.filter((id): id is string => typeof id === "string")
+      : []),
+  ].filter((id) => id !== "");
+  const ids = [...new Set(named)];
+  return ids.length > 0 ? { entityType: sourceEntityType, ids } : undefined;
+}
+
+/** The more private of two visibilities. */
+function morePrivate(
+  held: ContentVisibility | undefined,
+  next: ContentVisibility,
+): ContentVisibility {
+  return held === undefined || isVisibleWithinScope(held, next) ? next : held;
+}
+
 /** The parts of a job's context every declared job shares, frozen. */
 function jobContext<TInput>(
   context: EntityPluginContext,
   input: TInput,
   progress: ProgressReporter,
   signal: AbortSignal,
+  entities: EntityReader,
 ): EntityJobContext<TInput> {
   const messaging: EntityJobMessaging = Object.freeze({
     publish: async (message: {
@@ -166,45 +302,250 @@ function jobContext<TInput>(
   });
   return Object.freeze({
     input,
-    // Jobs run as the package, as declarative service jobs do.
-    entities: createEntityReader(
-      context.entityService,
-      internalFullScope("declared entity jobs read as their package"),
-    ),
+    entities,
     messaging,
     progress: reporter,
     signal,
   });
 }
 
-/** Bind a declared job that does its own work. */
+/** What a declared job may write, and the policy its writes are held to. */
+export interface EntityJobWrites {
+  /** The type whose `jobs` slot declares the job: the one type it writes. */
+  readonly declaring: AnyEntityDefinition;
+  /** The level a type's action needs under the brain's policy. */
+  requiredLevel(
+    entityType: string,
+    action: "create" | "update" | "delete",
+  ): EntityActionRequiredLevel | undefined;
+}
+
+/**
+ * The writes a declared job's `handle` makes: the declaring type's records,
+ * as the run's authority, with the service writer's semantics. A requester
+ * is also held to the visibility they may write.
+ */
+function entityJobWriter(
+  context: EntityPluginContext,
+  call: QueuedJobCall,
+  authority: EntityRunAuthority,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): OwnedEntityWriter<AnyEntityDefinition> {
+  const { declaring } = writes;
+  return createOwnedEntityWriter({
+    entityService: context.entityService,
+    owned: (definition) => {
+      if (definition.type !== declaring.type) {
+        throw new SdkError("permission_denied", {
+          message: `A ${declaring.type} job may only write ${declaring.type} records, and "${definition.type}" is not its type`,
+        });
+      }
+      return declaring;
+    },
+    currentCall: () => call,
+    assertWriteAllowed: (entityType, action, current) =>
+      assertOwnedWriteAllowed(
+        writes.requiredLevel(entityType, action),
+        entityType,
+        action,
+        current,
+      ),
+    readScope: (current, entityType, access) =>
+      packageReadScope(current, ownsType(entityType), access),
+    assertCreateVisibility: async (entityType, visibility) => {
+      const refusal = authority.visibilityRefusal(entityType, visibility);
+      if (refusal) {
+        throw new SdkError("permission_denied", {
+          message: refusal,
+          publicMessage: refusal,
+        });
+      }
+    },
+  });
+}
+
+/**
+ * Bind a declared job that does its own work. It reads as whoever started
+ * it, as a service package's job does, and writes the declaring type's
+ * records as them.
+ */
 export function entityJobHandler(
   declaration: EntityJobDeclaration,
   context: EntityPluginContext,
-): JobHandler<string, unknown, unknown> {
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): JobHandler<string, ServiceJobData, unknown> {
+  // Queued data names who started the job; data without it is invalid.
+  const dataSchema = serviceJobDataSchema(declaration.input);
   return {
-    validateAndParse(data): unknown | null {
-      const parsed = declaration.input.safeParse(data);
+    // The queue checks a job's data when it is queued and when it runs, and
+    // keeps what this answers: the input as written, so it is parsed once.
+    validateAndParse(data): ServiceJobData | null {
+      const parsed = dataSchema.safeParse(data);
       return parsed.success ? parsed.data : null;
     },
-    process: (input, _jobId, progress, signal): Promise<unknown> =>
-      declaration.handle(jobContext(context, input, progress, signal)),
+    async process(job, _jobId, progress, signal): Promise<unknown> {
+      // Its requester's current access, never more than it was admitted at;
+      // a revoked or rebound requester is refused before the job reads.
+      const call = await queuedJobCall(context.jobAuthority, job);
+      const authority = await runAuthority(context, call, ownsType);
+      const base = jobContext(
+        context,
+        parseWithSchema(declaration.input, job.input),
+        progress,
+        signal,
+        authority.entities,
+      );
+      return declaration.handle(
+        Object.freeze({
+          ...base,
+          entities: Object.freeze({
+            ...authority.entities,
+            ...entityJobWriter(context, call, authority, ownsType, writes),
+          }),
+        }),
+      );
+    },
   };
 }
 
 /**
- * Why a link cannot be made, checked before anything is saved: a missing
- * target, or a cover on a type that never declared one — the same refusal
- * `system_update` makes.
+ * Bind a first-party job another package queues through its contract. Its
+ * queued data is the contract's input as written, with no requester beside
+ * it, so it runs as the package, as the entity plugin classes' job handlers
+ * did: it writes its own type at every visibility past the policy, reads
+ * other types at the package's grant, and links what it made into a target
+ * past the target's action policy.
+ */
+export function contractJobHandler(
+  declaration: EntityJobDeclaration,
+  context: EntityPluginContext,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+  pluginId: string,
+): JobHandler<string, unknown, unknown> {
+  return {
+    validateAndParse(data): unknown {
+      const parsed = declaration.input.safeParse(data);
+      return parsed.success ? parsed.data : null;
+    },
+    async process(data, _jobId, progress, signal): Promise<unknown> {
+      const call: QueuedJobCall = {
+        ...packageSelfCall(context.jobAuthority),
+        eventContext: { actor: { kind: "service", serviceId: pluginId } },
+      };
+      const authority = await runAuthority(context, call, ownsType);
+      const uploads = context.uploads.scoped(sharedUploadScope);
+      const base = jobContext(
+        context,
+        data,
+        progress,
+        signal,
+        authority.entities,
+      );
+      return declaration.handle(
+        withEntityRuntime(
+          {
+            ...base,
+            entities: Object.freeze({
+              ...authority.entities,
+              ...entityJobWriter(context, call, authority, ownsType, writes),
+            }),
+          },
+          {
+            where: "a contract job",
+            reader: authority.entities,
+            packageReader: authority.entities,
+            ownsType,
+            searchWithDistances: (request) =>
+              context.entityService.searchWithDistances(request),
+            generateObject: (prompt, schema) =>
+              context.ai.generateObject(prompt, schema),
+            anyEntities: {
+              service: context.entityService,
+              // Public, as the entity plugin classes' job handlers read
+              // through the store's default scope; the typed reads and
+              // writes reach the package's own types at every visibility.
+              scope: () => "public",
+            },
+            job: {
+              logger: context.logger,
+              images: Object.freeze({
+                canGenerate: (): boolean => context.ai.canGenerateImages(),
+                generate: async (
+                  prompt: string,
+                  options?: {
+                    readonly aspectRatio?: ImageAspectRatio | undefined;
+                  },
+                ): Promise<{ readonly dataUrl: string }> => {
+                  const { dataUrl } = await context.ai.generateImage(
+                    prompt,
+                    definedFields({ aspectRatio: options?.aspectRatio }),
+                  );
+                  return { dataUrl };
+                },
+              }),
+              attachments: Object.freeze({
+                resolve: (request: AttachmentResolveRequest) =>
+                  context.attachments.resolve({ ...request }),
+              }),
+              uploads: Object.freeze({
+                read: (uploadId: string) => uploads.read(uploadId),
+                readRecord: (uploadId: string) => uploads.readRecord(uploadId),
+              }),
+              linkInto: async (
+                entityId: string,
+                link: EntityGenerationLink,
+              ): Promise<void> => {
+                const problem = await linkTargetProblem(
+                  context,
+                  link,
+                  authority,
+                );
+                if (problem) throw new Error(problem);
+                await writeGenerationLink(context, entityId, link, authority);
+              },
+            },
+          },
+        ),
+      );
+    },
+  };
+}
+
+/**
+ * Why a link cannot be made, checked before anything is saved: a write of the
+ * target its run may not make, a target the run cannot see, or a cover on a
+ * type that never declared one — the same refusal `system_update` makes.
  */
 export async function generationLinkProblem(
   context: EntityPluginContext,
   link: EntityGenerationLink,
+  authority: EntityRunAuthority,
 ): Promise<string | undefined> {
+  return (
+    authority.refusal(link.entityType, "update") ??
+    (await linkTargetProblem(context, link, authority))
+  );
+}
+
+/**
+ * Why a link's target cannot hold it: one the run cannot see, a cover on a
+ * type that never declared one, or a field or list a declared type's
+ * metadata cannot hold. The target's action policy is not asked.
+ */
+export async function linkTargetProblem(
+  context: EntityPluginContext,
+  link: EntityGenerationLink,
+  authority: EntityRunAuthority,
+): Promise<string | undefined> {
+  // A target the run cannot see is not there for it, so the link never
+  // writes an entry its requester may not write.
   const target = await context.entityService.getEntity({
     entityType: link.entityType,
     id: link.entityId,
-    visibilityScope: internalFullScope("generation checks its link target"),
+    visibilityScope: authority.scope(link.entityType),
   });
   if (!target) {
     return `Target entity not found: ${link.entityType}/${link.entityId}`;
@@ -216,7 +557,39 @@ export async function generationLinkProblem(
   ) {
     return `Entity type '${link.entityType}' doesn't support cover images`;
   }
-  return undefined;
+  // A declared type's metadata is its frontmatter, so a link writes one of
+  // its metadata fields; one the schema does not declare would be stored
+  // where no read reaches it. Other types keep free-form frontmatter.
+  if (
+    context.entities.getAdapter(link.entityType)?.metadataFromFrontmatter !==
+    true
+  ) {
+    return undefined;
+  }
+  const schema = context.entities.getEffectiveFrontmatterSchema(
+    link.entityType,
+  );
+  if (!schema) return undefined;
+  const linked = "field" in link ? link.field : link.list;
+  // The metadata as the link would leave it, with a stand-in for the id.
+  const probe = {
+    ...target.metadata,
+    [linked]:
+      "field" in link
+        ? "linked-entity"
+        : appendToList(target.metadata[link.list], link, "linked-entity"),
+  };
+  let parsed: unknown;
+  try {
+    parsed = schema.parse(probe);
+  } catch {
+    return `Entity type '${link.entityType}' field '${linked}' cannot hold a link`;
+  }
+  return typeof parsed === "object" &&
+    parsed !== null &&
+    Object.hasOwn(parsed, linked)
+    ? undefined
+    : `Entity type '${link.entityType}' declares no metadata field '${linked}' to link into`;
 }
 
 /**
@@ -224,14 +597,13 @@ export async function generationLinkProblem(
  * order, without listing an entity twice.
  */
 function appendToList(
-  content: string,
+  held: unknown,
   link: {
     readonly list: string;
     readonly replaces?: readonly string[] | undefined;
   },
   entityId: string,
 ): { id: string }[] {
-  const held = parseMarkdown(content).frontmatter[link.list];
   const dropped = new Set(link.replaces ?? []);
   const kept = (Array.isArray(held) ? held : []).flatMap((item: unknown) =>
     typeof item === "object" &&
@@ -252,29 +624,44 @@ export async function writeGenerationLink(
   context: EntityPluginContext,
   entityId: string,
   link: EntityGenerationLink,
+  authority: EntityRunAuthority,
 ): Promise<void> {
-  const target = await context.entityService.getEntity({
+  // As stored, so the target is written back with its own references rather
+  // than their resolved data; read as the run reads, as the check was.
+  const target = await context.entityService.getEntityRaw({
     entityType: link.entityType,
     id: link.entityId,
-    visibilityScope: internalFullScope("generation links into its target"),
+    visibilityScope: authority.scope(link.entityType),
   });
   if (!target) {
     throw new Error(
       `Cannot link ${entityId} into ${link.entityType}/${link.entityId}, which does not exist`,
     );
   }
+  // A declared type's metadata is its frontmatter and its content is the
+  // body, so the link is a metadata write. Other types keep the field in the
+  // file, and their content is the file.
+  const declared =
+    context.entities.getAdapter(link.entityType)?.metadataFromFrontmatter ===
+    true;
+  const fields = declared
+    ? target.metadata
+    : parseMarkdown(target.content).frontmatter;
   const [field, value] =
     "field" in link
       ? [link.field, entityId]
-      : [link.list, appendToList(target.content, link, entityId)];
+      : [link.list, appendToList(fields[link.list], link, entityId)];
   await context.entityService.updateEntity({
     entity: {
       ...target,
-      content: updateFrontmatterField(target.content, field, value),
+      content: declared
+        ? target.content
+        : updateFrontmatterField(target.content, field, value),
       // Metadata that already carries the field must agree with the file.
-      metadata: Object.hasOwn(target.metadata, field)
-        ? { ...target.metadata, [field]: value }
-        : target.metadata,
+      metadata:
+        declared || Object.hasOwn(target.metadata, field)
+          ? { ...target.metadata, [field]: value }
+          : target.metadata,
     },
   });
 }
@@ -303,20 +690,42 @@ export interface GenerationTarget {
   readonly jobTypeName: string;
   /** The registered name of a template this type declares. */
   readonly template: (localName: string) => string;
+  /** Whether a type is one the declaring package owns. */
+  readonly ownsType: (entityType: string) => boolean;
   readonly retries?: RetryScope | undefined;
   /** Tell the content pipeline how each run went: the type is scheduled. */
   readonly reportsToPipeline?: boolean | undefined;
 }
 
 /**
+ * A generation's queued data: a package job's, with the entity it fills and
+ * the entries it is written from beside its input; the runtime alone writes
+ * both. The input is checked by the base handler, which also reads a cover
+ * request from it.
+ */
+const generationJobDataSchema = serviceJobDataSchema(z.unknown()).extend({
+  entityId: z.string().optional(),
+  source: generationSourceSchema.optional(),
+});
+
+/** One running generation: its signal, its input, and whom it acts as. */
+interface GenerationRun {
+  readonly signal: AbortSignal;
+  readonly input: unknown;
+  readonly authority: EntityRunAuthority;
+  readonly source: GenerationSource | undefined;
+}
+
+/**
  * A declared generation on main's generation lifecycle: the base handler
  * fills a pre-allocated stub (keeping edits made while it generated), marks
  * it failed on refusal, error or terminal failure, and creates the entity
- * when nothing was allocated. This class only supplies the declared
- * `generate` and the link write.
+ * when nothing was allocated. This class supplies the declared `generate`,
+ * the link write, and whom both act as: the generation's requester, or the
+ * package when the package queued it.
  */
 export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unknown> {
-  private readonly signals = new AsyncLocalStorage<AbortSignal>();
+  private readonly runs = new AsyncLocalStorage<GenerationRun>();
   private readonly declaration: EntityGenerationDeclaration;
   private readonly target: GenerationTarget;
 
@@ -336,13 +745,42 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     this.target = target;
   }
 
-  override process(
+  /**
+   * Queued data names who started the generation; data without it is
+   * invalid. The input is checked as the base handler checks it, which also
+   * reads a cover request from it, and kept as written, since the queue
+   * stores what this answers: `generate` parses it once.
+   */
+  override validateAndParse(data: unknown): unknown {
+    const job = generationJobDataSchema.safeParse(data);
+    if (!job.success) return null;
+    const checked = super.validateAndParse(job.data.input);
+    if (checked === null) return null;
+    return {
+      ...job.data,
+      ...definedFields({
+        coverImage: isPlainRecord(checked) ? checked["coverImage"] : undefined,
+      }),
+    };
+  }
+
+  override async process(
     data: unknown,
     jobId: string,
     progressReporter: ProgressReporter,
     signal?: AbortSignal,
-  ): ReturnType<BaseGenerationJobHandler<unknown>["process"]> {
-    return this.signals.run(signal ?? new AbortController().signal, () =>
+  ): Promise<GenerationResult> {
+    const job = generationJobDataSchema.parse(data);
+    // Its requester's current access, never more than it was admitted at; a
+    // revoked or rebound requester is refused before anything runs.
+    const call = await queuedJobCall(this.context.jobAuthority, job);
+    const run: GenerationRun = {
+      signal: signal ?? new AbortController().signal,
+      input: job.input,
+      authority: await runAuthority(this.context, call, this.target.ownsType),
+      source: job.source,
+    };
+    return this.runs.run(run, () =>
       super.process(data, jobId, progressReporter),
     );
   }
@@ -351,20 +789,60 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     data: unknown,
     progressReporter: ProgressReporter,
   ): Promise<GeneratedContent> {
-    const signal = this.signals.getStore() ?? new AbortController().signal;
+    const { signal, input, authority, source } = this.currentRun();
     const entityId = allocatedEntityId(data);
+    // Written as its requester: a create of this type is held to its policy,
+    // and an allocated entity is filled only while they may still see it, so
+    // the write never lands at a visibility they may not write. A new entity
+    // is written without one, which is public.
+    const refused = authority.refusal(this.entityType, "create");
+    if (refused) this.failEarly(refused);
+    const allocated =
+      entityId === undefined
+        ? undefined
+        : await this.context.entityService.getEntity({
+            entityType: this.entityType,
+            id: entityId,
+            visibilityScope: authority.scope(this.entityType),
+          });
+    if (entityId !== undefined && !allocated) {
+      this.failEarly(
+        `Pre-allocated entity stub not found: ${this.entityType}/${entityId}`,
+      );
+    }
     const result = await this.declaration.generate(
       Object.freeze({
-        ...jobContext(this.context, data, progressReporter, signal),
+        ...jobContext(
+          this.context,
+          parseWithSchema(this.declaration.input, input),
+          progressReporter,
+          signal,
+          authority.entities,
+        ),
         entityId,
         ai: this.generationAI(signal),
       }) satisfies EntityGenerationContext<unknown>,
     );
     if (!result.success) this.failEarly(result.error);
 
+    // No more visible than what it was written from, as a projected entry
+    // is, unless the generation says otherwise; and never more visible than
+    // its requester may write.
+    const fromSource = await this.sourceVisibility(source);
+    const visibility =
+      result.visibility ??
+      (fromSource && morePrivate(allocated?.visibility, fromSource));
+    const unwritable =
+      visibility && authority.visibilityRefusal(this.entityType, visibility);
+    if (unwritable) this.failEarly(unwritable);
+
     const link = result.linkInto;
     if (link) {
-      const problem = await generationLinkProblem(this.context, link);
+      const problem = await generationLinkProblem(
+        this.context,
+        link,
+        authority,
+      );
       if (problem) this.failEarly(problem);
     }
     const metadata: Record<string, unknown> = { ...result.metadata };
@@ -379,6 +857,7 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         resultExtras: result.resultExtras && { ...result.resultExtras },
       }),
       ...(link && { linkInto: link }),
+      ...(visibility && { visibility }),
     };
   }
 
@@ -389,7 +868,12 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     generated: GeneratedContent,
   ): Promise<void> {
     if (isLinked(generated)) {
-      await writeGenerationLink(this.context, entityId, generated.linkInto);
+      await writeGenerationLink(
+        this.context,
+        entityId,
+        generated.linkInto,
+        this.currentRun().authority,
+      );
     }
     if (this.target.reportsToPipeline) {
       await this.context.messaging.command(generateReportSuccessContract, {
@@ -413,5 +897,38 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
 
   private generationAI(signal: AbortSignal): EntityGenerationAI {
     return createGenerationAI(this.context, this.target.template, signal);
+  }
+
+  /**
+   * The most private visibility among the entries a generation is written
+   * from. Only their visibility is read, so a source its requester cannot
+   * see still keeps the output private; one that is gone limits nothing.
+   */
+  private async sourceVisibility(
+    source: GenerationSource | undefined,
+  ): Promise<ContentVisibility | undefined> {
+    if (!source) return undefined;
+    const entries = await Promise.all(
+      source.ids.map((id) =>
+        this.context.entityService.getEntity({
+          entityType: source.entityType,
+          id,
+          visibilityScope: internalFullScope(
+            "a generation is no more visible than its source; only the visibility is read",
+          ),
+        }),
+      ),
+    );
+    return entries.reduce<ContentVisibility | undefined>(
+      (held, entry) => (entry ? morePrivate(held, entry.visibility) : held),
+      undefined,
+    );
+  }
+
+  /** The generation `process` is running; the base handler calls back inside it. */
+  private currentRun(): GenerationRun {
+    const run = this.runs.getStore();
+    if (!run) throw new Error(`${this.jobTypeName} ran outside its job`);
+    return run;
   }
 }

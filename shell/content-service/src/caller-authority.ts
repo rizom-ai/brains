@@ -83,6 +83,9 @@ export interface CallerAdmission {
 }
 
 export class CallerAuthorizationError extends Error {
+  /** Its SDK error code, so a durable job refused this way reports as denied. */
+  public readonly code = "permission_denied";
+
   constructor(message = "The requester is not permitted") {
     super(message);
     this.name = "CallerAuthorizationError";

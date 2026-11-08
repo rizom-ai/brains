@@ -77,7 +77,6 @@ describe("shell config", () => {
       apiKey: "test-key",
       model: "gpt-4o-mini",
       temperature: 0.7,
-      maxTokens: 1000,
       webSearch: true,
     });
     expect(config.embedding).toEqual({ enabled: true });

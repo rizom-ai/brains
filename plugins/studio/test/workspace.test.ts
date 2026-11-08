@@ -785,6 +785,7 @@ describe("optional Studio workspaces", () => {
     expect(duplicate).toEqual({
       success: false,
       error: "Studio workspace already registered: site",
+      code: "conflict",
     });
   });
 
@@ -901,11 +902,16 @@ describe("Studio namespace on the workspace contracts", () => {
     await studioPlugin().register(shell);
     const context = createServicePluginContext(shell, "content-pipeline");
 
-    expect(
-      context.studio.registerWorkspace({ ...publishing, id: "studio:account" }),
-    ).rejects.toThrow(
-      "Studio workspace register failed: Studio workspace id is reserved by the host: studio:account",
-    );
+    const refusal: unknown = await context.studio
+      .registerWorkspace({ ...publishing, id: "studio:account" })
+      .catch((error: unknown) => error);
+    expect(refusal).toMatchObject({
+      code: "invalid_input",
+      publicMessage:
+        "Studio workspace id is reserved by the host: studio:account",
+      message:
+        "Studio workspace register failed: Studio workspace id is reserved by the host: studio:account",
+    });
   });
 
   it("unregisters the plugin's workspace so its id is free again", async () => {
@@ -914,9 +920,15 @@ describe("Studio namespace on the workspace contracts", () => {
     const context = createServicePluginContext(shell, "content-pipeline");
     await context.studio.registerWorkspace(publishing);
 
-    expect(context.studio.registerWorkspace(publishing)).rejects.toThrow(
-      "Studio workspace register failed: Studio workspace already registered: publishing",
-    );
+    const refusal: unknown = await context.studio
+      .registerWorkspace(publishing)
+      .catch((error: unknown) => error);
+    expect(refusal).toMatchObject({
+      code: "conflict",
+      publicMessage: "Studio workspace already registered: publishing",
+      message:
+        "Studio workspace register failed: Studio workspace already registered: publishing",
+    });
     expect(await context.studio.unregisterWorkspace("publishing")).toBe(true);
     expect(await context.studio.registerWorkspace(publishing)).toEqual({
       workspaceUrl: "/studio/workspaces/publishing",

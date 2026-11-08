@@ -1,5 +1,7 @@
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   playbookAdapter,
   playbookPlugin,
@@ -113,7 +115,16 @@ describe("OnboardingPlugin", () => {
 
   it("does not overwrite existing onboarding playbooks", async () => {
     const harness = await installHarness();
-    const existingContent = "---\ntitle: Custom Onboarding\n---\n\n# Custom";
+    // A playbook the owner rewrote: still one the playbook type can read.
+    const bundled = await readFile(
+      join(import.meta.dir, "..", "content", "playbook", "onboarding.md"),
+      "utf8",
+    );
+    const existingContent = bundled.replace(
+      "title: Brain Onboarding",
+      "title: Custom Onboarding",
+    );
+    expect(existingContent).not.toBe(bundled);
     harness.addEntities([
       {
         id: "onboarding",
