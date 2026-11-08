@@ -24,6 +24,7 @@ import {
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
 import { openAIReasoningOptions } from "./generation-options";
+import { createToolCallRepair } from "./tool-call-repair";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -133,6 +134,21 @@ export function createBrainAgentFactory(
   } = options;
   const capabilities = resolveTextModelCapabilities(modelId);
 
+  // A call that fails validation is generated again by the model that made
+  // it, reasoning as it did, with the tool's schema constraining the
+  // arguments, so malformed or misplaced arguments cannot recur.
+  const repairToolCall = createToolCallRepair(
+    model,
+    capabilities.provider === "openai" && reasoningEffort
+      ? {
+          openai: openAIReasoningOptions(
+            reasoningEffort,
+            capabilities.supportsTemperature,
+          ),
+        }
+      : undefined,
+  );
+
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
 
@@ -231,6 +247,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
+      experimental_repairToolCall: repairToolCall,
       stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
     });
     return {
