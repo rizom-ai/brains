@@ -1,5 +1,15 @@
 # @brains/doc
 
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.661
+  - @rizom/brain-ui@0.2.0-alpha.661
+  - @brains/docs-chrome@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+
 ## 0.2.0-alpha.660
 
 ### Patch Changes

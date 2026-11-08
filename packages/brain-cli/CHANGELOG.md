@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.661
+
+### Minor Changes
+
+- [#841](https://github.com/rizom-ai/brains/pull/841) [`fef3596`](https://github.com/rizom-ai/brains/commit/fef3596dae7c9380bf214b97915df283197463ba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_create` takes an upload's id in the source itself: `source: { kind: "upload", id, transform }`, and each file of a save of several uploads is `{ id, transform }`; the nested `upload: { kind: "upload", id }` object is removed. A `system_update` operation is named by the one field it carries: `{ fields }`, `{ content }`, `{ edits }` or `{ source }`, without a `kind`; a second field or a `kind` is rejected with a message naming what to send. A confirmed save of an upload returns its `uploadId` and `entityType` beside the entity id. Direct callers and MCP clients send the new shapes.
+
 ## 0.2.0-alpha.660
 
 ### Patch Changes

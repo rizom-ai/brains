@@ -1,5 +1,22 @@
 # @brains/core
 
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.661
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/image@0.2.0-alpha.661
+  - @brains/operation-context@0.2.0-alpha.661
+  - @brains/site-composition@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+  - @brains/plugins@0.2.0-alpha.661
+  - @brains/recurring-checks@0.2.0-alpha.661
+  - @brains/runtime-state@0.2.0-alpha.661
+  - @brains/scheduler@0.2.0-alpha.661
+  - @brains/templates@0.2.0-alpha.661
+
 ## 0.2.0-alpha.660
 
 ### Patch Changes
