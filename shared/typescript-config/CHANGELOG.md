@@ -1,5 +1,9 @@
 # @brains/typescript-config
 
+## 0.2.0-alpha.660
+
+No changes in this release.
+
 ## 0.2.0-alpha.659
 
 No changes in this release.

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- [#850](https://github.com/rizom-ai/brains/pull/850) [`d2ea890`](https://github.com/rizom-ai/brains/commit/d2ea890759fe54f572a9be21382987f917ac0df1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A confirmed `system_update` reads the entity back from storage after writing and shows what it now holds after the completion: the changed lines as stored, the lines an edit removed, or the fields that changed. A tool's success response can carry a `completionDetail` for what a confirmed action verified; the brain shows it beneath the completion summary.
+
 ## 0.2.0-alpha.659
 
 ### Patch Changes

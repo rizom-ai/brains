@@ -1,5 +1,13 @@
 # @brains/unified-inbox
 
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+
 ## 0.2.0-alpha.659
 
 ### Patch Changes

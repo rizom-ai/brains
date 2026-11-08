@@ -1,5 +1,17 @@
 # @brains/blog
 
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.660
+  - @brains/atproto-contracts@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/media-page-composer@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+
 ## 0.2.0-alpha.659
 
 ### Patch Changes
