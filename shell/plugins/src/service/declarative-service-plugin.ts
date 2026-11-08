@@ -68,6 +68,7 @@ import {
   createOwnedEntityWriter,
 } from "../entity/owned-entity-writer-runtime";
 import { packageRuntimeState } from "../internal/state-namespace";
+import { withServiceRuntime } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -962,14 +963,16 @@ class DeclarativeServicePlugin<
       );
       return binding;
     };
-    const bindings = this.definition.subscriptions({
-      config: this.config,
-      state: this.requireState(),
-      entities: this.entityAccess(),
-      jobs: this.jobs(),
-      messaging: this.messaging(),
-      answer,
-    });
+    const bindings = this.definition.subscriptions(
+      this.withRuntime(context, {
+        config: this.config,
+        state: this.requireState(),
+        entities: this.entityAccess(),
+        jobs: this.jobs(),
+        messaging: this.messaging(),
+        answer,
+      }),
+    );
     const channels = new Set<string>();
     for (const binding of bindings) {
       const register = registrations.get(binding);
@@ -986,6 +989,27 @@ class DeclarativeServicePlugin<
       channels.add(binding.contract.name);
       this.answered.push(register());
     }
+  }
+
+  /**
+   * A slot context with the first-party runtime attached: answers and
+   * channels heard through it act as the package, and are released when it
+   * shuts down.
+   */
+  private withRuntime<TContext extends object>(
+    context: ServicePluginContext,
+    slotContext: TContext,
+  ): TContext {
+    return withServiceRuntime(slotContext, {
+      logger: this.logger,
+      messaging: context.messaging,
+      deliveryProvider: (channelType) =>
+        context.channels.getDeliveryProvider(channelType),
+      asPackage: (run) => this.calls.run(this.packageCall(), run),
+      onRelease: (release) => {
+        this.answered.push(release);
+      },
+    });
   }
 
   /** The declaration that grants a write, or a refusal. */

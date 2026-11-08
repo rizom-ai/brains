@@ -231,13 +231,13 @@
         "packages/brain-sdk/src/internal/service-runtime.ts",
         "shell/plugins/src/service/service-runtime.ts"
       ],
-      "symbol": "firstPartyTool",
+      "symbol": "serviceRuntime(context), firstPartyTool",
       "owner": "@brains/plugins",
       "class": "runtime-compatibility",
-      "behavior": "Gives a first-party service converted from a class what the public service contract does not offer: tools whose local names keep the underscore their class gave them (`atproto-registry_check_contracts`), which the public `defineTool` refuses.",
-      "currentConsumers": "First-party service packages converted to declarative definitions whose class tools were named in snake case (atproto-registry).",
-      "removalPrerequisite": "Rename the snake-case tools to kebab case, with their evals, docs and agent instructions, or promote the underscore to the public tool-name rule once a third-party package needs it.",
-      "rollbackDependency": "None: a tool name is registered per run and stores nothing.",
+      "behavior": "Gives a first-party service converted from a class what the public service contract does not offer: tools whose local names keep the underscore their class gave them (`atproto-registry_check_contracts`), which the public `defineTool` refuses; and, through `serviceRuntime(context)` on its subscriptions slot context, answers to first-party contracts under the channels they already have (`notifications:send`), in job workers too with `everyProcess`, system and broadcast channels heard as the class subscribed, observed or heard them in every process, the package's logger, and the delivery provider registered for a channel type. Answers and channels act as the package and are released when it shuts down; a context the runtime did not build is refused.",
+      "currentConsumers": "First-party service packages converted to declarative definitions whose class tools were named in snake case (atproto-registry), or that answer first-party contracts and hear system channels as their classes did (notifications).",
+      "removalPrerequisite": "Rename the snake-case tools to kebab case, with their evals, docs and agent instructions, or promote the underscore to the public tool-name rule; move first-party contracts to owner-named channels or promote cross-process answers and system-channel listening to the public service contract once a third-party package needs them.",
+      "rollbackDependency": "None: tool names, answers and subscriptions are registered per run and store nothing.",
       "targetRelease": "0.3.0-or-later"
     },
     {
