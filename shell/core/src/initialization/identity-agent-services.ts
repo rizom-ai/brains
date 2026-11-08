@@ -260,7 +260,6 @@ export function initializeIdentityAndAgentServices(
     guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
     answerModel: aiService.getAnswerModel?.(),
-    visionModel: aiService.getVisionModel?.(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,

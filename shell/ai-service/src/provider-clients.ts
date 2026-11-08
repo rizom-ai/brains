@@ -2,10 +2,13 @@ import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { wrapLanguageModel, type ImageModel, type LanguageModel } from "ai";
+import type { ImageModel, LanguageModel } from "ai";
 import type { AIModelConfig } from "./types";
 import { resolveTextProvider, selectTextProvider } from "./provider-selection";
-import { requiredToolChoice } from "./required-tool-choice";
+import {
+  withLocalRuntime,
+  type LocalRuntimeOptions,
+} from "./local-runtime-model";
 
 export interface ProviderClients {
   anthropicProvider: typeof anthropic;
@@ -61,20 +64,20 @@ export function createLocalRuntimeClient(
   });
 }
 
-/** A chat model on the model runtime, which may ignore a required tool choice. */
+/** A chat model on the model runtime, with what the runtime does not do for it. */
 export function localChatModel(
   client: ReturnType<typeof createOpenAICompatible>,
   modelId: string,
+  options: LocalRuntimeOptions = {},
 ): LanguageModel {
-  return wrapLanguageModel({
-    model: client.chatModel(modelId),
-    middleware: requiredToolChoice,
-  });
+  return withLocalRuntime(client.chatModel(modelId), options);
 }
 
+/** `local` options apply to a model on the model runtime. */
 export function getLanguageModel(
   clients: ProviderClients,
   model: string,
+  local: LocalRuntimeOptions = {},
 ): LanguageModel {
   const resolvedModel = resolveTextProvider(model);
 
@@ -90,7 +93,7 @@ export function getLanguageModel(
     if (!clients.localProvider) {
       throw new Error(`${model} needs modelRuntime.url`);
     }
-    return localChatModel(clients.localProvider, resolvedModel.modelId);
+    return localChatModel(clients.localProvider, resolvedModel.modelId, local);
   }
 
   return clients.anthropicProvider(resolvedModel.modelId);

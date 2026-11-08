@@ -67,9 +67,14 @@ export class AIService implements IAIService {
    * Get the language model instance for the configured provider.
    */
   public getModel(): LanguageModel {
+    // Without an answer model, a local model answers tool results itself.
     this.cachedModel ??= getLanguageModel(
       this.providers,
       this.requireTextModel(),
+      {
+        describeImagesWith: this.getVisionModel(),
+        answersWithoutThinking: !this.config.answerModel,
+      },
     );
     return this.cachedModel;
   }
@@ -78,15 +83,19 @@ export class AIService implements IAIService {
   public getAnswerModel(): LanguageModel | undefined {
     const answerModel = this.config.answerModel;
     if (!answerModel) return undefined;
-    this.cachedAnswerModel ??= getLanguageModel(this.providers, answerModel);
+    this.cachedAnswerModel ??= getLanguageModel(this.providers, answerModel, {
+      describeImagesWith: this.getVisionModel(),
+    });
     return this.cachedAnswerModel;
   }
 
   /** The model that describes images, when one is configured. */
-  public getVisionModel(): LanguageModel | undefined {
+  private getVisionModel(): LanguageModel | undefined {
     const visionModel = this.config.visionModel;
     if (!visionModel) return undefined;
-    this.cachedVisionModel ??= getLanguageModel(this.providers, visionModel);
+    this.cachedVisionModel ??= getLanguageModel(this.providers, visionModel, {
+      readsImages: true,
+    });
     return this.cachedVisionModel;
   }
 
@@ -235,7 +244,15 @@ export class AIService implements IAIService {
       this.providers = createProviderClients(this.config);
       this.cachedModel = null;
     }
-    if (keyFieldsChanged || config.answerModel !== undefined) {
+    // A local model is built with the answer and vision models it relies on.
+    if (config.answerModel !== undefined || config.visionModel !== undefined) {
+      this.cachedModel = null;
+    }
+    if (
+      keyFieldsChanged ||
+      config.answerModel !== undefined ||
+      config.visionModel !== undefined
+    ) {
       this.cachedAnswerModel = null;
     }
     if (keyFieldsChanged || config.visionModel !== undefined) {

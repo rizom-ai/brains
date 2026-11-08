@@ -88,8 +88,6 @@ export interface IAIService {
 
   /** The model that answers tool results, when one is configured. */
   getAnswerModel?(): LanguageModel | undefined;
-  /** The model that describes images for a model reading only text. */
-  getVisionModel?(): LanguageModel | undefined;
 
   /**
    * Generate an image from a text prompt
