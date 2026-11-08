@@ -519,7 +519,14 @@ describe("entityRuntime(context) in a data source", () => {
           nearest: await refusalOf(() =>
             runtime.nearest(wishShape, "a tide wish"),
           ),
-          create: await refusalOf(() => runtime.ordinaryCreate()),
+          linkInto: await refusalOf(() =>
+            runtime.linkInto("tide", {
+              entityType: "other",
+              entityId: "foreign-tide",
+              field: "coverImageId",
+            }),
+          ),
+          images: await refusalOf(() => runtime.images.canGenerate()),
         };
         return { members: [], hidden: null };
       },
@@ -534,33 +541,66 @@ describe("entityRuntime(context) in a data source", () => {
     await source.fetch({}, output, { entityService: service });
 
     expect(refusals).toEqual({
-      reads: ["getEntity", "getEntityTypes", "listEntities"],
+      reads: ["find", "getEntity", "getEntityTypes", "listEntities"],
       nearest: expect.stringContaining(
-        "nearest is not available to a data source",
+        "nearest is not available in a data source",
       ),
-      create: expect.stringContaining(
-        "ordinaryCreate is not available to a data source",
+      linkInto: expect.stringContaining(
+        "linkInto is not available in a data source",
+      ),
+      images: expect.stringContaining(
+        "images is not available in a data source",
       ),
     });
   });
 
-  it("is refused outside a data source, where no build scope stands behind it", async () => {
-    const { shell } = await store(
-      observing(async (context) =>
-        refusalOf(() =>
-          entityRuntime(context).anyEntities.listEntities({
-            entityType: "other",
-          }),
-        ),
-      ),
+  it("reads any type public in a create route, as the entity plugin classes read targets", async () => {
+    const { service, shell } = await store(
+      observing(async (context) => {
+        const reads = entityRuntime(context).anyEntities;
+        return {
+          listed: (await reads.listEntities({ entityType: "other" }))
+            .map(({ id }) => id)
+            .sort(),
+          hidden: (await reads.find("other", "hidden-tide"))?.id ?? null,
+          found: (await reads.find("other", "foreign-tide"))?.id ?? null,
+        };
+      }),
       {},
     );
+    await service.createEntity({
+      entity: {
+        id: "hidden-tide",
+        entityType: "other",
+        content: "About hidden-tide",
+        metadata: { title: "hidden-tide" },
+        visibility: "restricted",
+      },
+    });
     await create(shell, "admin");
 
-    expect(observed).toEqual(
-      expect.stringContaining(
-        "anyEntities reads only in a data source, not in an entity callback",
-      ),
+    expect(observed).toEqual({
+      listed: ["foreign-tide"],
+      hidden: null,
+      found: "foreign-tide",
+    });
+  });
+
+  it("is refused in an eval, where no read scope across types stands behind it", async () => {
+    const { evals } = await store(
+      observing(async () => null),
+      {
+        reads: async (_input, context) =>
+          refusalOf(() =>
+            entityRuntime(context).anyEntities.listEntities({
+              entityType: "other",
+            }),
+          ),
+      },
+    );
+
+    expect(await evals.get("reads")?.({})).toEqual(
+      expect.stringContaining("anyEntities is not available in an eval"),
     );
   });
 });

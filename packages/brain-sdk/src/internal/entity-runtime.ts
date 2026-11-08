@@ -9,10 +9,16 @@
  */
 
 export {
+  contractJob,
   entityRuntime,
   type AnyEntityReads,
   type EntityRuntime,
+  type EntityRuntimeAttachments,
+  type EntityRuntimeImages,
   type OrdinaryCreateDocument,
+  type OrdinaryCreateOptions,
+  type QueuedCreate,
+  type StoredCreate,
 } from "@brains/plugins";
 export {
   checkEntityText,

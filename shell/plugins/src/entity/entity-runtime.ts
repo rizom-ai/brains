@@ -1,16 +1,29 @@
-import { SdkError } from "@brains/contracts";
-import type {
-  BaseEntity,
-  IEntityService,
-  SearchWithDistancesRequest,
+import {
+  SdkError,
+  type ImageAspectRatio,
+  type JobContract,
+  type PublishMediaData,
+} from "@brains/contracts";
+import {
+  findEntityByIdentifier,
+  type BaseEntity,
+  type ContentVisibility,
+  type CreateResultAttachment,
+  type IEntityService,
+  type SearchWithDistancesRequest,
 } from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 import type { AIGenerationSchema } from "./ai-types";
 import type {
   AnyEntityDefinition,
   DataSourceListOptions,
+  EntityCreateUploadReader,
+  EntityGenerationLink,
+  EntityJobDeclaration,
+  EntityJobHandleContext,
   EntityOf,
   EntityReader,
+  EntityVisibility,
 } from "./entity-definition-contract";
 
 /**
@@ -47,20 +60,54 @@ export interface EntityRuntime {
    * A create route's answer that hands the request to the ordinary create,
    * as an entity plugin's interceptor continued it: unchanged, or with this
    * title and content in place of the request's and its stated fields
-   * folded in. The runtime performs it at the caller's authority, choosing
-   * the id from the title and making it unique, as the direct create does.
+   * folded in, and with the target it resolved. The runtime performs it at
+   * the caller's authority, choosing the id from the title and making it
+   * unique, as the direct create does. Outside the brain's runtime it is a
+   * refusal.
+   */
+  ordinaryCreate(
+    document?: OrdinaryCreateDocument,
+    options?: OrdinaryCreateOptions,
+  ): { readonly refuse: string };
+  /**
+   * A create route's answer that writes a pending placeholder and queues a
+   * contract job to fill it, as an entity plugin's interceptor did: an
+   * existing record with the placeholder's id is reused, not written over,
+   * and one at a different visibility than the request asks is refused. The
+   * placeholder is written as the caller, and the route is answered
+   * `generating` with the job's id. Outside the brain's runtime it is a
+   * refusal.
+   */
+  queued(create: QueuedCreate): { readonly refuse: string };
+  /**
+   * A create route's answer that writes a complete record as the caller,
+   * under the next free id when this one is taken, and answers `created`.
    * Outside the brain's runtime it is a refusal.
    */
-  ordinaryCreate(document?: OrdinaryCreateDocument): {
-    readonly refuse: string;
-  };
+  stored(create: StoredCreate): { readonly refuse: string };
   /**
-   * Untyped reads of any entity type, at exactly the build's own scope
-   * (public, and only published records in a production build), for a data
-   * source that reads across types it has no definitions for. Data sources
-   * only; it never widens the scope and never writes.
+   * Untyped reads of any entity type, at the call's own scope: a data
+   * source's build scope (public, and only published records in a
+   * production build), a create route's public scope, which the entity
+   * plugin classes read targets and sources at, or a contract job's run.
+   * They never widen the scope and never write.
    */
   readonly anyEntities: AnyEntityReads;
+  /** The brain's image model. Contract jobs only. */
+  readonly images: EntityRuntimeImages;
+  /** Attachments other types provide, such as a rendered PDF. Contract jobs only. */
+  readonly attachments: EntityRuntimeAttachments;
+  /** The runtime's shared upload store. Contract jobs only. */
+  readonly uploads: EntityCreateUploadReader;
+  /**
+   * Point a target at a record of the declaring type: set a field, or add
+   * to a list, dropping entries the record supersedes. The generation-link
+   * rules hold, and the target must be visible at the run's read scope, but
+   * the target's action policy does not: the write is the runtime's own
+   * follow-up on a target the enqueuer named, as the entity plugin classes'
+   * job handlers made it. Contract jobs only.
+   */
+  linkInto(entityId: string, link: EntityGenerationLink): Promise<void>;
 }
 
 /** Read-only, untyped reads across entity types. */
@@ -84,12 +131,30 @@ export interface AnyEntityReads {
     readonly entityType: string;
     readonly id: string;
   }): Promise<BaseEntity | null>;
+  /** A record by its id, else its slug, else its title. */
+  find(entityType: string, identifier: string): Promise<BaseEntity | null>;
 }
 
-/** The build-scoped reads a data source's runtime reads through. */
+export interface EntityRuntimeImages {
+  canGenerate(): boolean;
+  generate(
+    prompt: string,
+    options?: { readonly aspectRatio?: ImageAspectRatio | undefined },
+  ): Promise<{ readonly dataUrl: string }>;
+}
+
+export interface EntityRuntimeAttachments {
+  resolve(request: {
+    readonly sourceEntityType: string;
+    readonly sourceEntityId: string;
+    readonly attachmentType: string;
+  }): Promise<PublishMediaData | undefined>;
+}
+
+/** The reads an untyped view reads through. */
 export type AnyEntityService = Pick<
   IEntityService,
-  "getEntityTypes" | "listEntities" | "getEntity"
+  "getEntityTypes" | "listEntities" | "getEntity" | "getEntityRaw"
 >;
 
 /** What an ordinary create takes in place of the request's own. */
@@ -99,8 +164,60 @@ export interface OrdinaryCreateDocument {
   readonly fields?: Readonly<Record<string, unknown>> | undefined;
 }
 
+export interface OrdinaryCreateOptions {
+  /** The request's target, resolved from the identifier it named. */
+  readonly targetEntityId?: string | undefined;
+}
+
+export interface QueuedCreate {
+  /** The record the job fills, and the answer names. */
+  readonly entityId: string;
+  /** Unset, the job fills a record that already exists. */
+  readonly placeholder?:
+    | {
+        readonly content: string;
+        readonly metadata: Readonly<Record<string, unknown>>;
+        /** Unset, the store's default; set, a record that exists at another is refused. */
+        readonly visibility?: EntityVisibility | undefined;
+      }
+    | undefined;
+  readonly job: {
+    readonly contract: JobContract<z.ZodType>;
+    readonly data: unknown;
+    /** Queue the job with the caller as its requester, for attribution. */
+    readonly attributed?: boolean | undefined;
+  };
+  readonly attachment: CreateResultAttachment;
+}
+
+export interface StoredCreate {
+  readonly record: {
+    readonly id: string;
+    readonly content: string;
+    readonly metadata: Readonly<Record<string, unknown>>;
+  };
+  attachment(written: { readonly entityId: string }): CreateResultAttachment;
+}
+
+/** Where an untyped view reads, and the scope it reads each type at. */
+export interface AnyEntityBinding {
+  readonly service: AnyEntityService;
+  /** Unset, the service is already scoped, as a build's is. */
+  readonly scope?: ((entityType: string) => ContentVisibility) | undefined;
+}
+
+/** What a contract job's own capabilities are bound to. */
+export interface ContractJobRuntimeBinding {
+  readonly images: EntityRuntimeImages;
+  readonly attachments: EntityRuntimeAttachments;
+  readonly uploads: EntityCreateUploadReader;
+  linkInto(entityId: string, link: EntityGenerationLink): Promise<void>;
+}
+
 /** What binding a call's runtime needs. */
 export interface EntityRuntimeBinding {
+  /** Where the call is, for the refusals of what it does not offer. */
+  readonly where: string;
   /** Reads at the call's visibility. */
   readonly reader: EntityReader;
   /** Reads as the package acting as itself. */
@@ -115,22 +232,80 @@ export interface EntityRuntimeBinding {
     prompt: string,
     schema: AIGenerationSchema<T>,
   ) => Promise<{ object: T }>;
+  readonly anyEntities?: AnyEntityBinding | undefined;
+  readonly job?: ContractJobRuntimeBinding | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
 const ordinaryCreateKey = Symbol("rizom.ordinary-create");
+const queuedCreateKey = Symbol("rizom.queued-create");
+const storedCreateKey = Symbol("rizom.stored-create");
+const contractJobKey = Symbol("rizom.contract-job");
+
+/** A resolution only the runtime's accessor marks; elsewhere, a refusal. */
+function marked(
+  key: symbol,
+  refuse: string,
+  value: object,
+): {
+  readonly refuse: string;
+} {
+  const resolution = { refuse };
+  Object.defineProperty(resolution, key, {
+    value: Object.freeze(value),
+    enumerable: false,
+  });
+  return Object.freeze(resolution);
+}
 
 /**
  * The ordinary create a route answered, when it did: the document it hands
- * on, or `null` for the request as made.
+ * on, or `null` for the request as made, and the target it resolved.
  */
-export function ordinaryCreateOf(
-  resolution: object,
-): { document: OrdinaryCreateDocument | null } | undefined {
-  const marked: unknown = Reflect.get(resolution, ordinaryCreateKey);
-  if (typeof marked !== "object" || marked === null) return undefined;
-  const document: unknown = Reflect.get(marked, "document");
-  return { document: isOrdinaryCreateDocument(document) ? document : null };
+export function ordinaryCreateOf(resolution: object):
+  | {
+      document: OrdinaryCreateDocument | null;
+      options: OrdinaryCreateOptions;
+    }
+  | undefined {
+  const found: unknown = Reflect.get(resolution, ordinaryCreateKey);
+  if (typeof found !== "object" || found === null) return undefined;
+  const document: unknown = Reflect.get(found, "document");
+  const targetEntityId: unknown = Reflect.get(found, "targetEntityId");
+  return {
+    document: isOrdinaryCreateDocument(document) ? document : null,
+    options: typeof targetEntityId === "string" ? { targetEntityId } : {},
+  };
+}
+
+/** The queued create a route answered, when it did. */
+export function queuedCreateOf(resolution: object): QueuedCreate | undefined {
+  const found: unknown = Reflect.get(resolution, queuedCreateKey);
+  return isQueuedCreate(found) ? found : undefined;
+}
+
+/** The stored create a route answered, when it did. */
+export function storedCreateOf(resolution: object): StoredCreate | undefined {
+  const found: unknown = Reflect.get(resolution, storedCreateKey);
+  return isStoredCreate(found) ? found : undefined;
+}
+
+function isQueuedCreate(value: unknown): value is QueuedCreate {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof Reflect.get(value, "entityId") === "string" &&
+    typeof Reflect.get(value, "job") === "object"
+  );
+}
+
+function isStoredCreate(value: unknown): value is StoredCreate {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof Reflect.get(value, "record") === "object" &&
+    typeof Reflect.get(value, "attachment") === "function"
+  );
 }
 
 function isOrdinaryCreateDocument(
@@ -141,6 +316,39 @@ function isOrdinaryCreateDocument(
     value !== null &&
     typeof Reflect.get(value, "content") === "string"
   );
+}
+
+/**
+ * A first-party job another package queues through its contract: the
+ * queued data is the contract's input, as written, with no requester
+ * beside it, and the job runs as the package, as the entity plugin
+ * classes' job handlers did. Declared in a type's `jobs` under the local
+ * name its contract's type scopes to; the runtime refuses any other.
+ */
+export function contractJob<TInputSchema extends z.ZodType>(
+  contract: JobContract<TInputSchema>,
+  declaration: {
+    handle(
+      context: EntityJobHandleContext<z.output<TInputSchema>>,
+    ): Promise<unknown>;
+  },
+): EntityJobDeclaration<TInputSchema> {
+  const job = { input: contract.input, handle: declaration.handle };
+  Object.defineProperty(job, contractJobKey, {
+    value: Object.freeze({ type: contract.type }),
+    enumerable: false,
+  });
+  return Object.freeze(job);
+}
+
+/** The contract a declared job answers, when it is a contract job. */
+export function contractJobOf(
+  declaration: object,
+): { readonly type: string } | undefined {
+  const found: unknown = Reflect.get(declaration, contractJobKey);
+  if (typeof found !== "object" || found === null) return undefined;
+  const type: unknown = Reflect.get(found, "type");
+  return typeof type === "string" ? { type } : undefined;
 }
 
 function ownTypesOnly(
@@ -176,7 +384,98 @@ function ownTypesOnly(
   });
 }
 
+/** A capability a call does not offer, refused with where it is. */
+function unavailable(name: string, where: string): () => never {
+  return (): never => {
+    throw new Error(`${name} is not available in ${where}`);
+  };
+}
+
+function unavailableAnyEntities(where: string): AnyEntityReads {
+  const refuse = unavailable("anyEntities", where);
+  return Object.freeze({
+    getEntityTypes: refuse,
+    listEntities: refuse,
+    getEntity: refuse,
+    find: refuse,
+  });
+}
+
+function unavailableJob(where: string): ContractJobRuntimeBinding {
+  return {
+    images: Object.freeze({
+      canGenerate: unavailable("images", where),
+      generate: unavailable("images", where),
+    }),
+    attachments: Object.freeze({
+      resolve: unavailable("attachments", where),
+    }),
+    uploads: Object.freeze({
+      read: unavailable("uploads", where),
+      readRecord: unavailable("uploads", where),
+    }),
+    linkInto: unavailable("linkInto", where),
+  };
+}
+
+/**
+ * Untyped reads through the service the call is bound to. Requests are
+ * rebuilt from the fields the view names, so no scope or option a caller
+ * passes can widen what the call may read.
+ */
+function scopedAnyEntities({
+  service,
+  scope,
+}: AnyEntityBinding): AnyEntityReads {
+  const visibility = (
+    entityType: string,
+  ): { visibilityScope?: ContentVisibility } =>
+    scope ? { visibilityScope: scope(entityType) } : {};
+  return Object.freeze({
+    getEntityTypes: (): string[] => service.getEntityTypes(),
+    listEntities: (
+      request: Parameters<AnyEntityReads["listEntities"]>[0],
+    ): Promise<BaseEntity[]> => {
+      const metadata = request.options?.filter?.metadata;
+      const limit = request.options?.limit;
+      const scoped = visibility(request.entityType);
+      return service.listEntities({
+        entityType: request.entityType,
+        options: {
+          ...((metadata !== undefined || scoped.visibilityScope) && {
+            filter: {
+              ...(metadata !== undefined && { metadata: { ...metadata } }),
+              ...scoped,
+            },
+          }),
+          ...(limit !== undefined && { limit }),
+        },
+      });
+    },
+    getEntity: (
+      request: Parameters<AnyEntityReads["getEntity"]>[0],
+    ): Promise<BaseEntity | null> =>
+      service.getEntity({
+        entityType: request.entityType,
+        id: request.id,
+        ...visibility(request.entityType),
+      }),
+    find: (
+      entityType: string,
+      identifier: string,
+    ): Promise<BaseEntity | null> =>
+      findEntityByIdentifier(
+        service,
+        entityType,
+        identifier,
+        undefined,
+        scope ? scope(entityType) : undefined,
+      ),
+  });
+}
+
 function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
+  const job = binding.job ?? unavailableJob(binding.where);
   return Object.freeze({
     async nearest<TDefinition extends AnyEntityDefinition>(
       definition: TDefinition,
@@ -218,64 +517,40 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       return schema.parse(object);
     },
     packageEntities: ownTypesOnly(binding.packageReader, binding.ownsType),
-    ordinaryCreate(document?: OrdinaryCreateDocument): {
-      readonly refuse: string;
-    } {
-      const resolution = {
-        refuse:
-          "This create hands on to the ordinary create, which only the brain's runtime performs",
-      };
-      Object.defineProperty(resolution, ordinaryCreateKey, {
-        value: Object.freeze({
+    ordinaryCreate: (
+      document?: OrdinaryCreateDocument,
+      options?: OrdinaryCreateOptions,
+    ): { readonly refuse: string } =>
+      marked(
+        ordinaryCreateKey,
+        "This create hands on to the ordinary create, which only the brain's runtime performs",
+        {
           document: document ? Object.freeze({ ...document }) : null,
-        }),
-        enumerable: false,
-      });
-      return Object.freeze(resolution);
-    },
-    anyEntities: unavailableAnyEntities("an entity callback"),
-  });
-}
-
-/** An untyped read refused where no build scope stands behind it. */
-function unavailableAnyEntities(where: string): AnyEntityReads {
-  const refuse = (): never => {
-    throw new Error(`anyEntities reads only in a data source, not in ${where}`);
-  };
-  return Object.freeze({
-    getEntityTypes: refuse,
-    listEntities: refuse,
-    getEntity: refuse,
-  });
-}
-
-/**
- * Untyped reads through the build-scoped entity service a data source is
- * handed. Requests are rebuilt from the fields the view names, so no scope
- * or option a caller passes can widen what the build may read.
- */
-function buildScopedAnyEntities(service: AnyEntityService): AnyEntityReads {
-  return Object.freeze({
-    getEntityTypes: (): string[] => service.getEntityTypes(),
-    listEntities: (
-      request: Parameters<AnyEntityReads["listEntities"]>[0],
-    ): Promise<BaseEntity[]> => {
-      const metadata = request.options?.filter?.metadata;
-      const limit = request.options?.limit;
-      return service.listEntities({
-        entityType: request.entityType,
-        options: {
-          ...(metadata !== undefined && {
-            filter: { metadata: { ...metadata } },
+          ...(options?.targetEntityId !== undefined && {
+            targetEntityId: options.targetEntityId,
           }),
-          ...(limit !== undefined && { limit }),
         },
-      });
-    },
-    getEntity: (
-      request: Parameters<AnyEntityReads["getEntity"]>[0],
-    ): Promise<BaseEntity | null> =>
-      service.getEntity({ entityType: request.entityType, id: request.id }),
+      ),
+    queued: (create: QueuedCreate): { readonly refuse: string } =>
+      marked(
+        queuedCreateKey,
+        "This create queues a job, which only the brain's runtime performs",
+        { ...create },
+      ),
+    stored: (create: StoredCreate): { readonly refuse: string } =>
+      marked(
+        storedCreateKey,
+        "This create stores a record, which only the brain's runtime performs",
+        { ...create },
+      ),
+    anyEntities: binding.anyEntities
+      ? scopedAnyEntities(binding.anyEntities)
+      : unavailableAnyEntities(binding.where),
+    images: job.images,
+    attachments: job.attachments,
+    uploads: job.uploads,
+    linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
+      job.linkInto(entityId, link),
   });
 }
 
@@ -288,19 +563,20 @@ export function withDataSourceRuntime<TContext extends object>(
   context: TContext,
   service: AnyEntityService,
 ): Readonly<TContext> {
-  const refuse = (name: string) => (): never => {
-    throw new Error(`${name} is not available to a data source`);
-  };
-  const runtime: EntityRuntime = Object.freeze({
-    nearest: refuse("nearest"),
-    generateObject: refuse("generateObject"),
-    packageEntities: Object.freeze({
-      get: refuse("packageEntities"),
-      list: refuse("packageEntities"),
-      count: refuse("packageEntities"),
-    }),
-    ordinaryCreate: refuse("ordinaryCreate"),
-    anyEntities: buildScopedAnyEntities(service),
+  const where = "a data source";
+  const refusingReader: EntityReader = Object.freeze({
+    get: unavailable("packageEntities", where),
+    list: unavailable("packageEntities", where),
+    count: unavailable("packageEntities", where),
+  });
+  const runtime = bindEntityRuntime({
+    where,
+    reader: refusingReader,
+    packageReader: refusingReader,
+    ownsType: () => true,
+    searchWithDistances: unavailable("nearest", where),
+    generateObject: unavailable("generateObject", where),
+    anyEntities: { service },
   });
   Object.defineProperty(context, entityRuntimeKey, {
     value: runtime,

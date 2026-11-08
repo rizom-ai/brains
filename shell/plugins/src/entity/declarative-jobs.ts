@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   SdkError,
+  type ImageAspectRatio,
   fetchVoiceGuidance,
   generateReportFailureContract,
   generateReportSuccessContract,
@@ -32,6 +33,7 @@ import {
 import {
   createPackageEntityReader,
   packageReadScope,
+  packageSelfCall,
   queuedJobCall,
   serviceJobDataSchema,
   type PackageCall,
@@ -54,6 +56,9 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
+import { withEntityRuntime } from "./entity-runtime";
+import { sharedUploadScope } from "../service/upload-registry";
+import type { AttachmentResolveRequest } from "../service/attachment-registry";
 import {
   assertOwnedWriteAllowed,
   createOwnedEntityWriter,
@@ -406,6 +411,109 @@ export function entityJobHandler(
 }
 
 /**
+ * Bind a first-party job another package queues through its contract. Its
+ * queued data is the contract's input as written, with no requester beside
+ * it, so it runs as the package, as the entity plugin classes' job handlers
+ * did: it writes its own type at every visibility past the policy, reads
+ * other types at the package's grant, and links what it made into a target
+ * past the target's action policy.
+ */
+export function contractJobHandler(
+  declaration: EntityJobDeclaration,
+  context: EntityPluginContext,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+  pluginId: string,
+): JobHandler<string, unknown, unknown> {
+  return {
+    validateAndParse(data): unknown {
+      const parsed = declaration.input.safeParse(data);
+      return parsed.success ? parsed.data : null;
+    },
+    async process(data, _jobId, progress, signal): Promise<unknown> {
+      const call: QueuedJobCall = {
+        ...packageSelfCall(context.jobAuthority),
+        eventContext: { actor: { kind: "service", serviceId: pluginId } },
+      };
+      const authority = await runAuthority(context, call, ownsType);
+      const uploads = context.uploads.scoped(sharedUploadScope);
+      const base = jobContext(
+        context,
+        data,
+        progress,
+        signal,
+        authority.entities,
+      );
+      return declaration.handle(
+        withEntityRuntime(
+          {
+            ...base,
+            entities: Object.freeze({
+              ...authority.entities,
+              ...entityJobWriter(context, call, authority, ownsType, writes),
+            }),
+          },
+          {
+            where: "a contract job",
+            reader: authority.entities,
+            packageReader: authority.entities,
+            ownsType,
+            searchWithDistances: (request) =>
+              context.entityService.searchWithDistances(request),
+            generateObject: (prompt, schema) =>
+              context.ai.generateObject(prompt, schema),
+            anyEntities: {
+              service: context.entityService,
+              // Public, as the entity plugin classes' job handlers read
+              // through the store's default scope; the typed reads and
+              // writes reach the package's own types at every visibility.
+              scope: () => "public",
+            },
+            job: {
+              images: Object.freeze({
+                canGenerate: (): boolean => context.ai.canGenerateImages(),
+                generate: async (
+                  prompt: string,
+                  options?: {
+                    readonly aspectRatio?: ImageAspectRatio | undefined;
+                  },
+                ): Promise<{ readonly dataUrl: string }> => {
+                  const { dataUrl } = await context.ai.generateImage(
+                    prompt,
+                    definedFields({ aspectRatio: options?.aspectRatio }),
+                  );
+                  return { dataUrl };
+                },
+              }),
+              attachments: Object.freeze({
+                resolve: (request: AttachmentResolveRequest) =>
+                  context.attachments.resolve({ ...request }),
+              }),
+              uploads: Object.freeze({
+                read: (uploadId: string) => uploads.read(uploadId),
+                readRecord: (uploadId: string) => uploads.readRecord(uploadId),
+              }),
+              linkInto: async (
+                entityId: string,
+                link: EntityGenerationLink,
+              ): Promise<void> => {
+                const problem = await linkTargetProblem(
+                  context,
+                  link,
+                  authority,
+                );
+                if (problem) throw new Error(problem);
+                await writeGenerationLink(context, entityId, link, authority);
+              },
+            },
+          },
+        ),
+      );
+    },
+  };
+}
+
+/**
  * Why a link cannot be made, checked before anything is saved: a write of the
  * target its run may not make, a target the run cannot see, or a cover on a
  * type that never declared one — the same refusal `system_update` makes.
@@ -415,8 +523,22 @@ export async function generationLinkProblem(
   link: EntityGenerationLink,
   authority: EntityRunAuthority,
 ): Promise<string | undefined> {
-  const refused = authority.refusal(link.entityType, "update");
-  if (refused) return refused;
+  return (
+    authority.refusal(link.entityType, "update") ??
+    (await linkTargetProblem(context, link, authority))
+  );
+}
+
+/**
+ * Why a link's target cannot hold it: one the run cannot see, a cover on a
+ * type that never declared one, or a field or list a declared type's
+ * metadata cannot hold. The target's action policy is not asked.
+ */
+export async function linkTargetProblem(
+  context: EntityPluginContext,
+  link: EntityGenerationLink,
+  authority: EntityRunAuthority,
+): Promise<string | undefined> {
   // A target the run cannot see is not there for it, so the link never
   // writes an entry its requester may not write.
   const target = await context.entityService.getEntity({

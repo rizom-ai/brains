@@ -59,9 +59,15 @@ import type { EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import {
+  contractJobOf,
   ordinaryCreateOf,
+  queuedCreateOf,
+  storedCreateOf,
   withEntityRuntime,
+  type AnyEntityBinding,
   type EntityRuntimeBinding,
+  type QueuedCreate,
+  type StoredCreate,
 } from "./entity-runtime";
 import { createUploadSaveHandler } from "./upload-save";
 import { sharedUploadScope } from "../service/upload-registry";
@@ -76,10 +82,13 @@ import {
   DeclarativeGenerationHandler,
   createEvalFixtures,
   createGenerationAI,
+  contractJobHandler,
   entityJobHandler,
+  type EntityJobWrites,
   generationSource,
 } from "./declarative-jobs";
-import type { JobHandler } from "@brains/job-queue";
+import type { JobHandler, JobOptions } from "@brains/job-queue";
+import { createPendingEntity } from "./pending-ingestion";
 import {
   currentMetadata,
   entitySchema,
@@ -175,6 +184,39 @@ function deepFrozen<T>(value: T): T {
     Object.freeze(value);
   }
   return value;
+}
+
+/** Who a create is attributed to in the store. */
+function eventContextOf(executionContext: CreateExecutionContext): {
+  readonly actor: CreateExecutionContext["actor"];
+  readonly interfaceType: string;
+} {
+  return {
+    actor: executionContext.actor,
+    interfaceType: executionContext.interfaceType,
+  };
+}
+
+/**
+ * A queued job's attribution to the caller who asked for it, as the entity
+ * plugin classes queued their own jobs.
+ */
+function attributionJobOptions(
+  source: string,
+  executionContext: CreateExecutionContext,
+): JobOptions {
+  return {
+    source,
+    metadata: {
+      operationType: "content_operations",
+      interfaceType: executionContext.interfaceType,
+      requestedByActor: executionContext.actor,
+      ...(executionContext.actor.kind === "user"
+        ? { requestedByUserId: executionContext.actor.userId }
+        : {}),
+      requestedByInterface: executionContext.interfaceType,
+    },
+  };
 }
 
 function createFailure(error: string): CreateResult {
@@ -937,20 +979,38 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     // Local names: the jobs namespace scopes each to this type's plugin.
     Object.entries(this.jobs).forEach(([name, declaration]) => {
+      const writes: EntityJobWrites = {
+        declaring: this.definition,
+        requiredLevel: (entityType, action) =>
+          this.requiredLevel(entityType, action),
+      };
+      const ownsType = (entityType: string): boolean =>
+        this.ownsType(entityType);
+      const contract = contractJobOf(declaration);
+      if (contract) {
+        // Other packages queue it by its contract's type, so the name it
+        // is registered under must scope to exactly that.
+        if (contract.type !== `${this.id}:${name}`) {
+          throw new Error(
+            `Job "${name}" of ${this.entityType} answers "${contract.type}" but is declared as "${this.id}:${name}"`,
+          );
+        }
+        if ("generate" in declaration) {
+          throw new Error(
+            `Contract job "${contract.type}" handles its own work`,
+          );
+        }
+        context.jobs.registerHandler(
+          name,
+          contractJobHandler(declaration, context, ownsType, writes, this.id),
+        );
+        return;
+      }
       context.jobs.registerHandler(
         name,
         "generate" in declaration
           ? this.generationHandler(context, declaration, name)
-          : entityJobHandler(
-              declaration,
-              context,
-              (entityType) => this.ownsType(entityType),
-              {
-                declaring: this.definition,
-                requiredLevel: (entityType, action) =>
-                  this.requiredLevel(entityType, action),
-              },
-            ),
+          : entityJobHandler(declaration, context, ownsType, writes),
       );
     });
 
@@ -999,7 +1059,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             },
             // An eval runs with no caller, so its searches read as the
             // package.
-            this.runtimeBinding(context, this.asPackage(context)),
+            this.runtimeBinding(context, this.asPackage(context), "an eval"),
           ),
         ),
       );
@@ -1508,8 +1568,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     // create performs at the caller's authority.
     const ordinary = ordinaryCreateOf(resolution);
     if (ordinary) {
-      if (!ordinary.document) return { kind: "continue", input };
-      const { fields: _folded, ...request } = input;
+      const { targetEntityId } = ordinary.options;
+      const targeted: CreateInput = {
+        ...input,
+        ...(targetEntityId !== undefined && { targetEntityId }),
+      };
+      if (!ordinary.document) return { kind: "continue", input: targeted };
+      const { fields: _folded, ...request } = targeted;
       const { title, content, fields } = ordinary.document;
       return {
         kind: "continue",
@@ -1519,6 +1584,32 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           content,
           ...(fields !== undefined && { fields: { ...fields } }),
         },
+      };
+    }
+    // First-party routes that queue a contract job, or store a complete
+    // record, as an entity plugin's interceptor did.
+    const queued = queuedCreateOf(resolution);
+    if (queued) {
+      return {
+        kind: "handled",
+        result: await this.applyQueuedCreate(
+          context,
+          queued,
+          input,
+          executionContext,
+        ),
+      };
+    }
+    const stored = storedCreateOf(resolution);
+    if (stored) {
+      return {
+        kind: "handled",
+        result: await this.applyStoredCreate(
+          context,
+          stored,
+          input,
+          executionContext,
+        ),
       };
     }
     return {
@@ -1553,7 +1644,12 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         entities,
         uploads: reader,
       },
-      this.runtimeBinding(context, entities),
+      this.runtimeBinding(context, entities, "a create route", {
+        // Targets and sources are read public, as the entity plugin
+        // classes' create interceptors read them.
+        service: context.entityService,
+        scope: () => "public",
+      }),
     );
   }
 
@@ -1565,9 +1661,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private runtimeBinding(
     context: EntityPluginContext,
     reader: EntityReader,
+    where: string,
+    anyEntities?: AnyEntityBinding,
   ): EntityRuntimeBinding {
     return {
+      where,
       reader,
+      ...(anyEntities && { anyEntities }),
       packageReader: this.asPackage(context),
       ownsType: (entityType) => this.ownsType(entityType),
       searchWithDistances: (request) =>
@@ -1835,6 +1935,110 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       },
     });
     return { entityId: written.entityId, written: written.entityId };
+  }
+
+  /**
+   * Write a first-party route's pending placeholder and queue the contract
+   * job that fills it, as an entity plugin's interceptor did: a record that
+   * already has the id is reused rather than written over, and one at a
+   * different visibility than asked is refused.
+   */
+  private async applyQueuedCreate(
+    context: EntityPluginContext,
+    queued: QueuedCreate,
+    _input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateResult> {
+    const attributed = queued.job.attributed === true;
+    const placeholder = queued.placeholder;
+    if (placeholder) {
+      const metadata = this.definition.metadata.safeParse(placeholder.metadata);
+      if (!metadata.success) return createFailure(this.invalid(metadata.error));
+      const now = new Date().toISOString();
+      const pending = await createPendingEntity({
+        entityService: context.entityService,
+        entity: {
+          id: queued.entityId,
+          entityType: this.entityType,
+          content: placeholder.content,
+          metadata: metadata.data,
+          ...(placeholder.visibility !== undefined && {
+            visibility: placeholder.visibility,
+          }),
+          created: now,
+          updated: now,
+        },
+        ...(attributed && {
+          options: { eventContext: eventContextOf(executionContext) },
+        }),
+      });
+      if (
+        placeholder.visibility !== undefined &&
+        pending.existingEntity !== undefined &&
+        pending.existingEntity.visibility !== placeholder.visibility
+      ) {
+        throw new Error(
+          `Existing ${this.entityType} visibility "${pending.existingEntity.visibility}" does not match requested visibility "${placeholder.visibility}".`,
+        );
+      }
+    }
+    const jobId = await context.jobs.enqueue(
+      queued.job.contract,
+      queued.job.data,
+      ...(attributed
+        ? [{ options: attributionJobOptions(this.id, executionContext) }]
+        : []),
+    );
+    return {
+      success: true,
+      data: {
+        entityId: queued.entityId,
+        status: "generating",
+        jobId,
+        attachment: createResultAttachmentSchema.parse(queued.attachment),
+      },
+    };
+  }
+
+  /**
+   * Store a first-party route's complete record as the caller, under the
+   * next free id when this one is taken, as an entity plugin's interceptor
+   * did.
+   */
+  private async applyStoredCreate(
+    context: EntityPluginContext,
+    stored: StoredCreate,
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateResult> {
+    const metadata = this.definition.metadata.safeParse(stored.record.metadata);
+    if (!metadata.success) return createFailure(this.invalid(metadata.error));
+    const now = new Date().toISOString();
+    const written = await context.entityService.createEntity({
+      entity: {
+        id: stored.record.id,
+        entityType: this.entityType,
+        content: stored.record.content,
+        metadata: metadata.data,
+        ...(input.visibility !== undefined && { visibility: input.visibility }),
+        created: now,
+        updated: now,
+      },
+      options: {
+        deduplicateId: true,
+        eventContext: eventContextOf(executionContext),
+      },
+    });
+    return {
+      success: true,
+      data: {
+        entityId: written.entityId,
+        status: "created",
+        attachment: createResultAttachmentSchema.parse(
+          stored.attachment({ entityId: written.entityId }),
+        ),
+      },
+    };
   }
 
   private createSuccess(

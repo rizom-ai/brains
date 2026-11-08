@@ -965,10 +965,16 @@ export {
 // First-party entity callbacks reach their call's internal runtime here;
 // the public contexts never name it.
 export {
+  contractJob,
   entityRuntime,
   type AnyEntityReads,
   type EntityRuntime,
+  type EntityRuntimeAttachments,
+  type EntityRuntimeImages,
   type OrdinaryCreateDocument,
+  type OrdinaryCreateOptions,
+  type QueuedCreate,
+  type StoredCreate,
 } from "./entity/entity-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
