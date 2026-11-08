@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/internal/presentation";
 
 /**
  * Schema for AI-generated blog post

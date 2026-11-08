@@ -13,7 +13,10 @@ import type {
 export const defaultBlogMetadata: BlogPostMetadata = {
   title: "Test Post",
   slug: "test-post",
+  authoredSlug: true,
   status: "draft",
+  excerpt: "Test excerpt",
+  author: "Test Author",
 };
 
 /**
@@ -121,13 +124,17 @@ export function createMockPost(
   return createTestEntity<BlogPost>("post", {
     id,
     content,
+    // A store row: the stored document, its frontmatter decoded beside it.
     metadata: {
       title,
       slug,
+      authoredSlug: true,
       status,
-      publishedAt: opts.publishedAt,
-      seriesName: opts.seriesName,
-      seriesIndex: opts.seriesIndex,
+      excerpt: `Excerpt for ${title}`,
+      author: "Test Author",
+      ...(opts.publishedAt !== undefined && { publishedAt: opts.publishedAt }),
+      ...(opts.seriesName !== undefined && { seriesName: opts.seriesName }),
+      ...(opts.seriesIndex !== undefined && { seriesIndex: opts.seriesIndex }),
     },
   });
 }

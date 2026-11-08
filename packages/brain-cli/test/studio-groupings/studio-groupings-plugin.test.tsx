@@ -7,7 +7,7 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import notePackage from "@brains/note";
 import { declaredType } from "../helpers/declared-type";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import blogPackage from "@brains/blog";
 import { createImageEntity } from "@brains/image";
 import imagePackage from "@brains/image-plugin";
 import {
@@ -109,7 +109,9 @@ async function fixture(): Promise<{
     const note = declaredType(notePackage, "@brains/note", "note");
     registry.registerEntityType("note", note.schema, note.adapter);
   }
-  registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+  // The declared post, as the canonical brain installs it.
+  const post = declaredType(blogPackage, "@brains/blog", "blog");
+  registry.registerEntityType("post", post.schema, post.adapter);
   // The image type as the canonical brain installs it.
   const [images] = instantiatePluginPackageDefinition(
     imagePackage,

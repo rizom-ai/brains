@@ -49,6 +49,8 @@ export interface DeclaredEntityStore {
     content: string,
     metadata: string,
   ): Promise<void>;
+  /** Date a row as written at another time, as an older record is. */
+  setCreated(entityType: string, id: string, created: number): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -173,6 +175,12 @@ export async function declaredEntityStore(
       await db.execute({
         sql: "UPDATE entities SET content = ?, contentHash = ?, metadata = ? WHERE entityType = ? AND id = ?",
         args: [content, computeContentHash(content), metadata, entityType, id],
+      });
+    },
+    async setCreated(entityType, id, created): Promise<void> {
+      await db.execute({
+        sql: "UPDATE entities SET created = ?, updated = ? WHERE entityType = ? AND id = ?",
+        args: [created, created, entityType, id],
       });
     },
     async close(): Promise<void> {

@@ -1,13 +1,13 @@
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import { createPluginHarness, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { BlogDataSource } from "../src/datasources/blog-datasource";
-import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  DataSource,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { createMockLogger } from "@brains/test-utils";
-
+import { blogPlugin } from "./blog-plugin";
 import { createMockPost } from "./fixtures/blog-entities";
-import { getTemplates } from "../src/lib/register-templates";
 
 const singlePostSchema = z.object({
   post: z.any(),
@@ -50,22 +50,24 @@ const seriesSchema = z.object({
   posts: z.array(z.any()),
 });
 
-describe("BlogDataSource", () => {
-  let datasource: BlogDataSource;
+describe("the blog data source", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+  let datasource: DataSource & Required<Pick<DataSource, "fetch">>;
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   function seed(posts: BaseEntity[]): void {
     shell.addEntities(posts);
   }
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
-    shell = createMockShell();
+  beforeEach(async () => {
+    harness = createPluginHarness();
+    await harness.installPlugin(blogPlugin());
+    shell = harness.getMockShell();
     mockContext = { entityService: shell.getEntityService() };
-
-    datasource = new BlogDataSource(mockLogger);
+    const registered = harness.getDataSources().get("blog:entities");
+    if (!registered?.fetch) throw new Error("No blog data source");
+    datasource = { ...registered, fetch: registered.fetch.bind(registered) };
   });
 
   describe("fetchLatestPost", () => {
@@ -313,7 +315,9 @@ describe("BlogDataSource", () => {
         }),
       ]);
 
-      const templateSchema = getTemplates()["post-list"]?.schema;
+      const templateSchema = harness
+        .getTemplates()
+        .get("blog:post-list")?.schema;
       if (!templateSchema) throw new Error("post-list template not found");
 
       const result = await datasource.fetch(

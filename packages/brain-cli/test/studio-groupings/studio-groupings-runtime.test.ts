@@ -16,7 +16,7 @@ import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
 import notePackage from "@brains/note";
 import { declaredType } from "../helpers/declared-type";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import blogPackage from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
 import promptPackage from "@brains/prompt";
 import wishlistPackage from "@brains/wishlist";
@@ -115,7 +115,9 @@ async function open(
     const note = declaredType(notePackage, "@brains/note", "note");
     registry.registerEntityType("note", note.schema, note.adapter);
   }
-  registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+  // The declared post, as the canonical brain installs it.
+  const post = declaredType(blogPackage, "@brains/blog", "blog");
+  registry.registerEntityType("post", post.schema, post.adapter);
   configure?.(registry);
   const service = EntityService.createFresh({
     dbConfig,

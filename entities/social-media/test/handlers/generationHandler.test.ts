@@ -401,7 +401,13 @@ describe("GenerationJobHandler", () => {
         metadata: { title: "Tidal Systems", slug: "tidal-systems" },
       },
       {
-        kind: "a post document",
+        kind: "a declared post",
+        sourceEntityType: "post" as const,
+        content: "# Tidal Systems\n\n---\n\nHow tides move",
+        metadata: { title: "Tidal Systems", slug: "tidal-systems" },
+      },
+      {
+        kind: "a stored post document",
         sourceEntityType: "post" as const,
         content:
           "---\ntitle: Tidal Systems\nslug: tidal-systems\n---\n# Tidal Systems\n\n---\n\nHow tides move\n",

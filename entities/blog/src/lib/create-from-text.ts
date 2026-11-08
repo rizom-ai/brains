@@ -1,26 +1,26 @@
 import type {
-  CreateCheckResult,
-  CreateExecutionContext,
-  CreateInput,
-  CreateInterceptionResult,
-  EntityPluginContext,
-} from "@brains/plugins";
+  EntityCreateContext,
+  EntityCreateRoute,
+} from "@brains/sdk/entities";
 import {
   checkEntityText,
+  entityRuntime,
   entityTextError,
   readEntityText,
   statedDateSchema,
-} from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils/error";
+} from "@brains/sdk/internal/entity-runtime";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { blogPostAdapter } from "../adapters/blog-post-adapter";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  type blogPostMetadataSchema,
+} from "../schemas/blog-post";
+import { postStub } from "./post-markdown";
 
 /**
  * Post fields a writer can state for their own text: in its frontmatter, or
  * as system_create `fields` (when and where an essay was first published).
- * Everything else a post needs is filled in by the generation job.
+ * Everything else a post needs is filled in by the generation.
  */
 const postTextFieldsSchema = z.object({
   status: z.enum(["draft", "queued", "published"]).optional(),
@@ -34,9 +34,9 @@ const postTextFieldsSchema = z.object({
 });
 
 function readPostText(
-  input: CreateInput,
+  context: EntityCreateContext,
 ): ReturnType<typeof readEntityText<typeof postTextFieldsSchema>> {
-  return readEntityText(input, {
+  return readEntityText(context.input, {
     noun: "post",
     fieldsSchema: postTextFieldsSchema,
     isComplete: (frontmatter) =>
@@ -45,78 +45,38 @@ function readPostText(
 }
 
 /**
- * Before a post from the writer's text is confirmed: ask for a title the
- * text does not give, and fill in the one it does.
- */
-export function checkPostText(input: CreateInput): CreateCheckResult {
-  return checkEntityText(readPostText(input), ({ title }) => ({ title }));
-}
-
-/**
  * system_create for a post from the writer's own text: the text stays as
- * written, and the generation job adds what a post needs around it (an
- * excerpt, the author, a status). A complete post document is left to the
- * direct create, which stores it as given.
+ * written, and the post's own generation adds what a post needs around it
+ * (an excerpt, the author, a status), filling the placeholder it was
+ * queued for, for the caller who asked. Before the save is confirmed it
+ * asks for a title the text does not give, and fills in the one it does. A
+ * complete post document, or anything that is not the writer's text, goes
+ * on to the ordinary create, which stores it as given.
  */
-export async function createPostFromText(
-  input: CreateInput,
-  executionContext: CreateExecutionContext,
-  context: EntityPluginContext,
-  pluginId: string,
-): Promise<CreateInterceptionResult> {
-  const read = readPostText(input);
-  if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind !== "text") return entityTextError(read);
-  const { title, body, fields } = read.text;
-
-  let entityId: string;
-  try {
+export const postFromText: EntityCreateRoute<typeof blogPostMetadataSchema> = {
+  check: async (context) =>
+    checkEntityText(readPostText(context), ({ title }) => ({ title })),
+  resolve: async (context) => {
+    const read = readPostText(context);
+    if (read.kind === "not-text")
+      return entityRuntime(context).ordinaryCreate();
+    if (read.kind !== "text") {
+      const refused = entityTextError(read);
+      return {
+        refuse:
+          refused.kind === "handled" && !refused.result.success
+            ? refused.result.error
+            : "This text cannot be saved as a post",
+      };
+    }
+    const { title, body, fields } = read.text;
     const id = slugify(title);
-    const stub = blogPostAdapter.buildStub({ id, title });
-    const now = new Date().toISOString();
-    const created = await context.entityService.createEntity({
-      entity: {
-        id,
-        entityType: "post",
-        content: stub.content,
-        metadata: stub.metadata,
-        ...(input.visibility !== undefined && {
-          visibility: input.visibility,
-        }),
-        created: now,
-        updated: now,
-      },
-      options: { deduplicateId: true },
-    });
-    entityId = created.entityId;
-  } catch (error) {
-    return entityTextError(getErrorMessage(error, "Failed to create the post"));
-  }
-
-  try {
-    const jobId = await context.jobs.enqueue({
-      type: "post:generation",
-      data: { entityId, title, content: body, ...fields },
-      toolContext: executionContext,
-      options: {
-        source: pluginId,
-        metadata: { operationType: "content_operations" },
-      },
-    });
     return {
-      kind: "handled",
-      result: {
-        success: true,
-        data: { entityId, status: "generating", jobId },
+      create: { id, ...postStub({ id, title }) },
+      delegate: {
+        job: "generation",
+        input: { title, content: body, ...fields },
       },
     };
-  } catch (error) {
-    // No job will fill the stub; left behind it would stay "generating".
-    await context.entityService
-      .deleteEntity({ entityType: "post", id: entityId })
-      .catch(() => undefined);
-    return entityTextError(
-      getErrorMessage(error, "Failed to queue the post's completion"),
-    );
-  }
-}
+  },
+};

@@ -25,7 +25,7 @@ import {
 import { migrateEntities } from "@brains/entity-service/migrate";
 import notePackage, { noteSchema } from "@brains/note";
 import { declaredType } from "./helpers/declared-type";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import blogPackage, { blogPostSchema } from "@brains/blog";
 import { createMockShell } from "@brains/plugins/test";
 import {
   createSilentLogger,
@@ -62,7 +62,9 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       const note = declaredType(notePackage, "@brains/note", "note");
       registry.registerEntityType("note", note.schema, note.adapter);
     }
-    registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+    // The declared post, as the canonical brain installs it.
+    const post = declaredType(blogPackage, "@brains/blog", "blog");
+    registry.registerEntityType("post", post.schema, post.adapter);
     if (enabled) registry.registerGrouping(clients);
     const service = EntityService.createFresh({
       dbConfig,

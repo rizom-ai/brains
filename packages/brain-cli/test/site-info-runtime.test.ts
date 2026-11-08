@@ -7,7 +7,8 @@ import {
   createTestEntityAdapter,
 } from "@brains/plugins/test";
 import siteInfoPackage, { fetchSiteInfo } from "@brains/site-info";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import blogPackage from "@brains/blog";
+import { declaredType } from "./helpers/declared-type";
 import decksPackage, { siteThemeMode } from "@brains/decks";
 import { HomepageListDataSource } from "@brains/site-professional";
 import { HomepageDataSource } from "@brains/site-personal";
@@ -185,7 +186,9 @@ describe("site-info's readers on the entity store", () => {
           baseEntitySchema,
           createTestEntityAdapter("anchor-profile", { isSingleton: true }),
         );
-        registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+        // The declared post, as the canonical brain installs it.
+        const post = declaredType(blogPackage, "@brains/blog", "blog");
+        registry.registerEntityType("post", post.schema, post.adapter);
       },
     );
     stores.push(opened);
