@@ -11,18 +11,15 @@ Portfolio showcase for projects and case studies.
 
 ## Usage
 
-```typescript
-import { portfolioPlugin } from "@brains/portfolio";
+The package default-exports a declarative entity package. The canonical brain composes it under the plugin id `portfolio`, so its templates and data source keep the `portfolio:` names:
 
-const config = defineConfig({
-  plugins: [portfolioPlugin()],
-});
+```typescript
+import portfolioPackage from "@brains/portfolio";
 ```
 
 ## Tools
 
-- `portfolio:create` - Create a new project
-- `portfolio:publish` - Publish a project
+None of its own. Projects are written from text with `system_create` and generated from a prompt with `system_generate`; a prompt that names the year the project began queues `project:generation`.
 
 ## Templates
 
@@ -36,13 +33,17 @@ Projects are stored as entities:
 ```yaml
 ---
 title: Project Name
+slug: project-name
 status: draft
 description: Brief project summary
-client: Client Name
 year: 2025
-tags:
-  - web
-  - design
+url: https://example.com
 ---
-Full project description and case study...
+## Context
+
+## Problem
+
+## Solution
+
+## Outcome
 ```

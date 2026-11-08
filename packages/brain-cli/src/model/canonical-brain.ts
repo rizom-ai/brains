@@ -49,7 +49,7 @@ import {
 } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
-import { portfolioPlugin } from "@brains/portfolio";
+import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
@@ -236,7 +236,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("series", "@brains/series", seriesPackage, {
       pluginId: "series",
     }),
-    ["portfolio", portfolioPlugin, undefined],
+    packageCapability("portfolio", "@brains/portfolio", portfolioPackage, {
+      pluginId: "portfolio",
+    }),
     ["content-pipeline", contentPipelinePlugin, undefined],
     ["social-media", socialMediaPlugin, undefined],
     ["newsletter", newsletter, undefined],
