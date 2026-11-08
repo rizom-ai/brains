@@ -50,7 +50,7 @@ import {
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
-import { profilePlugin } from "@brains/profile";
+import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
@@ -149,7 +149,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("prompt", "@brains/prompt", promptPackage, {
       pluginId: "prompt",
     }),
-    ["profile", profilePlugin, undefined],
+    packageCapability("profile", "@brains/profile", profilePackage, {
+      pluginId: "profile",
+    }),
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage, {
       pluginId: "style-guide",
     }),

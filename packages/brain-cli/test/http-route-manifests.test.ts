@@ -10,7 +10,11 @@ import {
   type Plugin,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import {
+  baseEntitySchema,
+  createMockShell,
+  createTestEntityAdapter,
+} from "@brains/plugins/test";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 interface WebRoutePlugin extends Plugin {
@@ -82,6 +86,21 @@ function readExpected(name: string): string[] {
   return contents.length > 0 ? contents.split("\n") : [];
 }
 
+/** A mock shell with the identity types the shell registers before any plugin. */
+function shellWithIdentityTypes(): ReturnType<typeof createMockShell> {
+  const shell = createMockShell();
+  for (const type of ["anchor-profile", "brain-character"]) {
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        type,
+        baseEntitySchema,
+        createTestEntityAdapter(type, { isSingleton: true }),
+      );
+  }
+  return shell;
+}
+
 /**
  * A test app's plugins, with the routes the shell collects from them: a
  * declared service builds its routes when it registers, so it is registered
@@ -101,7 +120,7 @@ async function resolveTestApp(name: string): Promise<Plugin[]> {
   const plugins = resolve(canonicalBrain, {}, overrides).plugins ?? [];
   for (const plugin of plugins) {
     if (plugin.type === "service" && isPackageDefinitionPlugin(plugin)) {
-      await plugin.register(createMockShell());
+      await plugin.register(shellWithIdentityTypes());
     }
   }
   return plugins;

@@ -21,6 +21,7 @@ export {
   type ServiceRuntime,
 } from "@brains/plugins";
 export { withOwnedDataSources } from "@brains/plugins";
+export { internalFullScope } from "@brains/plugins";
 export {
   SYSTEM_CHANNELS,
   entityCreatedChannel,

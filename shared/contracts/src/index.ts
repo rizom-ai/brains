@@ -322,6 +322,19 @@ export {
   type PlaybookSeedResult,
 } from "./playbook-seed";
 export {
+  profileImportApplyContract,
+  profileImportFieldNameSchema,
+  profileImportFieldNames,
+  profileImportFieldSchema,
+  profileImportFieldsSchema,
+  profileImportOutcomeSchema,
+  profileImportPreviewContract,
+  type ProfileImportField,
+  type ProfileImportFieldName,
+  type ProfileImportFields,
+  type ProfileImportOutcome,
+} from "./profile-import";
+export {
   publishAssetDefinitionSchema,
   publishAssetRegisterContract,
   publishRegisterContract,
