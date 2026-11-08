@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- [#881](https://github.com/rizom-ai/brains/pull/881) [`1ccda3f`](https://github.com/rizom-ai/brains/commit/1ccda3fbcfeb28c3d4973faf2facf5748fa82362) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_update` now reads a grouping or other frontmatter-extension field on a declared type, such as a doc or a wish, from the type's stored document. The confirmation shows the stored value, and the update keeps every other field the document carries. Before, the confirmation showed the stored value as absent and the update dropped the document's other grouping fields.
+
 ## 0.2.0-alpha.664
 
 ### Patch Changes
