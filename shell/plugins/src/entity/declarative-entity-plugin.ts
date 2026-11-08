@@ -70,6 +70,7 @@ import {
   type AnyEntityBinding,
   type EntityRuntimeBinding,
   type QueuedCreate,
+  type QueuedPlaceholder,
   type StoredCreate,
 } from "./entity-runtime";
 import { createUploadSaveHandler } from "./upload-save";
@@ -2034,6 +2035,14 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   ): Promise<CreateResult> {
     const attributed = queued.job.attributed === true;
     const placeholder = queued.placeholder;
+    if (placeholder?.deduplicate === true) {
+      return this.applyDeduplicatedQueuedCreate(
+        context,
+        queued,
+        placeholder,
+        executionContext,
+      );
+    }
     if (placeholder) {
       const metadata = this.definition.metadata.safeParse(placeholder.metadata);
       if (!metadata.success) return createFailure(this.invalid(metadata.error));
@@ -2065,20 +2074,93 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         );
       }
     }
+    return this.queueFill(context, queued, executionContext, queued.entityId);
+  }
+
+  /**
+   * A queued create whose placeholder lands beside a record that has its id,
+   * as an entity plugin's interceptor wrote one with `deduplicateId`: the
+   * job is queued for, and the answer names, the id written, and the job's
+   * input may be built from the placeholder as stored.
+   */
+  private async applyDeduplicatedQueuedCreate(
+    context: EntityPluginContext,
+    queued: QueuedCreate,
+    placeholder: NonNullable<QueuedCreate["placeholder"]>,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateResult> {
+    const metadata = this.definition.metadata.safeParse(placeholder.metadata);
+    if (!metadata.success) return createFailure(this.invalid(metadata.error));
+    const now = new Date().toISOString();
+    const created = await context.entityService.createEntity({
+      entity: {
+        id: queued.entityId,
+        entityType: this.entityType,
+        content: placeholder.content,
+        metadata: metadata.data,
+        ...(placeholder.visibility !== undefined && {
+          visibility: placeholder.visibility,
+        }),
+        created: now,
+        updated: now,
+      },
+      options: {
+        deduplicateId: true,
+        ...(queued.job.attributed === true && {
+          eventContext: eventContextOf(executionContext),
+        }),
+      },
+    });
+    return this.queueFill(context, queued, executionContext, created.entityId);
+  }
+
+  /** The record a queued create's job fills, as it is stored now. */
+  private async writtenPlaceholder(
+    context: EntityPluginContext,
+    entityId: string,
+  ): Promise<QueuedPlaceholder> {
+    const written = await context.entityService.getEntity({
+      entityType: this.entityType,
+      id: entityId,
+      visibilityScope: internalFullScope(
+        "read back the placeholder a queued create wrote; only its hash is handed on",
+      ),
+    });
+    if (!written) {
+      throw new Error(
+        `The ${this.entityType} placeholder "${entityId}" could not be read back`,
+      );
+    }
+    return { entityId: written.id, contentHash: written.contentHash };
+  }
+
+  /** Queue a queued create's job and answer generating. */
+  private async queueFill(
+    context: EntityPluginContext,
+    queued: QueuedCreate,
+    executionContext: CreateExecutionContext,
+    entityId: string,
+  ): Promise<CreateResult> {
+    const { data } = queued.job;
+    // Input built from the placeholder reads it back as it was stored.
     const jobId = await context.jobs.enqueue(
       queued.job.contract,
-      queued.job.data,
-      ...(attributed
+      typeof data === "function"
+        ? data(await this.writtenPlaceholder(context, entityId))
+        : data,
+      ...(queued.job.attributed === true
         ? [{ options: attributionJobOptions(this.id, executionContext) }]
         : []),
     );
     return {
       success: true,
       data: {
-        entityId: queued.entityId,
+        entityId,
         status: "generating",
         jobId,
-        attachment: createResultAttachmentSchema.parse(queued.attachment),
+        ...(queued.attachment !== undefined && {
+          attachment: createResultAttachmentSchema.parse(queued.attachment),
+        }),
       },
     };
   }

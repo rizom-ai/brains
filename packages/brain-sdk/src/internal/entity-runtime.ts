@@ -25,6 +25,7 @@ export {
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,
   type QueuedCreate,
+  type QueuedPlaceholder,
   type StoredCreate,
 } from "@brains/plugins";
 export {

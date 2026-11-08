@@ -981,6 +981,7 @@ export {
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,
   type QueuedCreate,
+  type QueuedPlaceholder,
   type StoredCreate,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public

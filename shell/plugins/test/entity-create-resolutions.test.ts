@@ -248,6 +248,80 @@ describe("a queued create", () => {
   });
 });
 
+describe("a queued create that lands beside a taken id", () => {
+  const importContract = defineJobContract({
+    type: "scans:scan",
+    input: z.object({
+      scanId: z.string(),
+      prompt: z.string(),
+      stubHash: z.string(),
+    }),
+  });
+
+  it("writes the placeholder under the next free id and queues the job from what it wrote", async () => {
+    const { shell, service } = await install();
+    await service.createEntity({
+      entity: {
+        id: "dot",
+        entityType: "scan",
+        content: "done",
+        metadata: { title: "Dot", status: "draft" },
+      },
+    });
+    answer = (context): { readonly refuse: string } =>
+      entityRuntime(context).queued({
+        entityId: "dot",
+        placeholder: {
+          content: "pending",
+          metadata: { title: "Dot", status: "pending" },
+          deduplicate: true,
+        },
+        job: {
+          contract: importContract,
+          data: (written) => ({
+            scanId: written.entityId,
+            prompt: context.input.prompt ?? "",
+            stubHash: written.contentHash,
+          }),
+        },
+      });
+
+    const outcome = z
+      .object({
+        kind: z.literal("handled"),
+        result: z.object({
+          success: z.literal(true),
+          data: z.looseObject({ jobId: z.string() }),
+        }),
+      })
+      .parse(await create(shell));
+
+    // No attachment: the answer names what was written and the job.
+    expect(outcome.result.data).toEqual({
+      entityId: "dot-2",
+      status: "generating",
+      jobId: outcome.result.data.jobId,
+    });
+    const written = await service.getEntity({
+      entityType: "scan",
+      id: "dot-2",
+    });
+    expect(written?.metadata).toEqual({ title: "Dot", status: "pending" });
+    const job = await shell
+      .getJobQueueService()
+      .getStatus(outcome.result.data.jobId);
+    expect(JSON.parse(job?.data ?? "{}")).toEqual({
+      scanId: "dot-2",
+      prompt: "A dot",
+      stubHash: written?.contentHash,
+    });
+    // The record that held the id is left as it was.
+    expect(
+      (await service.getEntity({ entityType: "scan", id: "dot" }))?.metadata,
+    ).toEqual({ title: "Dot", status: "draft" });
+  });
+});
+
 describe("a stored create", () => {
   it("stores the record under the next free id and answers created with its link", async () => {
     const { shell, service } = await install();

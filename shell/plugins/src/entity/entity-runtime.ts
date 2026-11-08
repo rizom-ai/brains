@@ -201,6 +201,12 @@ export interface OrdinaryCreateOptions {
   readonly targetEntityId?: string | undefined;
 }
 
+/** The placeholder a queued create wrote, which its job fills. */
+export interface QueuedPlaceholder {
+  readonly entityId: string;
+  readonly contentHash: string;
+}
+
 export interface QueuedCreate {
   /** The record the job fills, and the answer names. */
   readonly entityId: string;
@@ -211,15 +217,28 @@ export interface QueuedCreate {
         readonly metadata: Readonly<Record<string, unknown>>;
         /** Unset, the store's default; set, a record that exists at another is refused. */
         readonly visibility?: EntityVisibility | undefined;
+        /**
+         * Write it under the next free id when `entityId` is taken, rather
+         * than reuse the record that has it; the job fills, and the answer
+         * names, the id written.
+         */
+        readonly deduplicate?: boolean | undefined;
       }
     | undefined;
   readonly job: {
     readonly contract: JobContract<z.ZodType>;
-    readonly data: unknown;
+    /**
+     * The job's input, or the input built from the placeholder as written:
+     * its id and the content hash of what was stored.
+     */
+    readonly data:
+      | Readonly<Record<string, unknown>>
+      | ((written: QueuedPlaceholder) => unknown);
     /** Queue the job with the caller as its requester, for attribution. */
     readonly attributed?: boolean | undefined;
   };
-  readonly attachment: CreateResultAttachment;
+  /** Unset, the answer names no attachment. */
+  readonly attachment?: CreateResultAttachment | undefined;
 }
 
 export interface StoredCreate {
