@@ -31,7 +31,6 @@ permissions:
         argsContain:
           entityType: "agent"
           id: "approval-candidate.io"
-          operation.kind: fields
           operation.fields.status: "approved"
       - toolName: agent_connect
         shouldBeCalled: false
@@ -46,7 +45,6 @@ permissions:
         argsContain:
           entityType: "agent"
           id: "approval-candidate.io"
-          operation.kind: fields
           operation.fields.status: "approved"
         argsAbsent:
           - confirmed

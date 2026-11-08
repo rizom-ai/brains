@@ -1,5 +1,44 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.661
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/image@0.2.0-alpha.661
+  - @brains/site-composition@0.2.0-alpha.661
+  - @brains/site-engine@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+  - @brains/plugins@0.2.0-alpha.661
+
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/image@0.2.0-alpha.660
+  - @brains/site-composition@0.2.0-alpha.660
+  - @brains/site-engine@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.659
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/image@0.2.0-alpha.659
+  - @brains/site-composition@0.2.0-alpha.659
+  - @brains/site-engine@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/plugins@0.2.0-alpha.659
+
 ## 0.2.0-alpha.658
 
 ### Patch Changes

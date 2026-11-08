@@ -7,12 +7,13 @@ import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import { updateInputSchema } from "./schemas";
+import { updateInputSchema, exactlyOneUpdateOperation } from "./schemas";
 import { applyContentEdits } from "./content-edits";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
   applyUpdateOperation,
   buildUpdateDiff,
+  describeStoredChange,
   requiredUpdateAction,
   resolveReplacementContent,
   validateUpdateOperation,
@@ -69,34 +70,31 @@ async function normalizeOperation(
     );
 
   const requested = input.operation;
-  switch (requested.kind) {
-    case "fields":
-      return { operation: requested };
-    case "edits":
-      return {
-        operation: {
-          kind: "content",
-          content: applyContentEdits(entity.content, requested.edits),
-        },
-      };
-    case "content":
-      return withReplacementContent(services, entity, requested.content);
-    case "source": {
-      const resolved = await resolveConversationMessageContent(
-        services,
-        requested.source,
-        context,
-        { confirmed: input.confirmed === true },
-      );
-      if (!resolved.success) return resolved;
-      return withReplacementContent(
-        services,
-        entity,
-        resolved.content,
-        freezeUserMessageSource(requested.source, resolved),
-      );
-    }
-  }
+  if (requested.fields !== undefined)
+    return { operation: { kind: "fields", fields: requested.fields } };
+  if (requested.edits !== undefined)
+    return {
+      operation: {
+        kind: "content",
+        content: applyContentEdits(entity.content, requested.edits),
+      },
+    };
+  if (requested.content !== undefined)
+    return withReplacementContent(services, entity, requested.content);
+  if (requested.source === undefined) return failure(exactlyOneUpdateOperation);
+  const resolved = await resolveConversationMessageContent(
+    services,
+    requested.source,
+    context,
+    { confirmed: input.confirmed === true },
+  );
+  if (!resolved.success) return resolved;
+  return withReplacementContent(
+    services,
+    entity,
+    resolved.content,
+    freezeUserMessageSource(requested.source, resolved),
+  );
 }
 
 function withReplacementContent(
@@ -160,7 +158,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     } catch (error) {
       return failure(getErrorMessage(error, "Failed to update entity"));
     }
-    return { success: true, data: { updated: entity.id } };
+    // Read the entity back, so the confirmation shows what storage holds.
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope: permissionToVisibilityScope(context.userPermissionLevel),
+    });
+    const completionDetail = stored
+      ? describeStoredChange(entity, stored)
+      : undefined;
+    return {
+      success: true,
+      data: { updated: entity.id },
+      ...(completionDetail !== undefined && { completionDetail }),
+    };
   };
 
   const proposeUpdate = (
@@ -179,7 +190,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       preview: buildUpdateDiff(entity, operation, entityRegistry),
       args: confirmationGate.buildArgs((confirmationToken) => ({
         ...input,
-        ...(source ? { operation: { kind: "source", source } } : {}),
+        ...(source ? { operation: { source } } : {}),
         id: entity.id,
         confirmed: true,
         confirmationToken,

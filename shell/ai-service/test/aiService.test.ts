@@ -205,14 +205,12 @@ describe("AIService", () => {
 
       expect(config.model).toBeUndefined();
       expect(config.temperature).toBe(0.7);
-      expect(config.maxTokens).toBe(1000);
     });
 
     it("should accept custom configuration", () => {
       const customConfig = {
         model: "claude-3-opus-20240229",
         temperature: 0.5,
-        maxTokens: 2000,
         apiKey: "test-key",
       };
 
@@ -221,7 +219,6 @@ describe("AIService", () => {
 
       expect(config.model).toBe(customConfig.model);
       expect(config.temperature).toBe(customConfig.temperature);
-      expect(config.maxTokens).toBe(customConfig.maxTokens);
     });
 
     it("should update configuration", () => {
@@ -238,7 +235,6 @@ describe("AIService", () => {
       const config = service.getConfig();
       expect(config.model).toBe("claude-3-haiku-20240307");
       expect(config.temperature).toBe(0.9);
-      expect(config.maxTokens).toBe(1000); // Should retain original value
     });
 
     it("should rebuild providers when configuration changes", async () => {
@@ -286,8 +282,6 @@ describe("AIService", () => {
         system: systemPrompt,
         prompt: userPrompt,
         temperature: 0.7,
-        maxTokens: 1000,
-        webSearch: true,
       });
     });
 
@@ -376,27 +370,20 @@ describe("AIService", () => {
       );
     });
 
-    it("should respect custom temperature and maxTokens", async () => {
+    it("should respect a custom temperature", async () => {
       const service = AIService.createFresh(
-        {
-          model: DEFAULT_TEXT_MODEL,
-          temperature: 0.3,
-          maxTokens: 500,
-        },
+        { model: DEFAULT_TEXT_MODEL, temperature: 0.3 },
         logger,
       );
 
       await service.generateText("System", "User");
 
       expect(generateTextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          temperature: 0.3,
-          maxTokens: 500,
-        }),
+        expect.objectContaining({ temperature: 0.3 }),
       );
     });
 
-    it("should use defaults when temperature and maxTokens are not specified", async () => {
+    it("should use the default temperature when none is specified", async () => {
       const service = AIService.createFresh(
         { model: DEFAULT_TEXT_MODEL },
         logger,
@@ -405,11 +392,26 @@ describe("AIService", () => {
       await service.generateText("System", "User");
 
       expect(generateTextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          temperature: 0.7,
-          maxTokens: 1000,
-        }),
+        expect.objectContaining({ temperature: 0.7 }),
       );
+    });
+
+    // The AI SDK reads neither: an output cap is maxOutputTokens, and web
+    // search is a provider option. Passing them configures nothing.
+    it("passes no setting the AI SDK does not read", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL, webSearch: true },
+        logger,
+      );
+
+      await service.generateText("System", "User");
+      await service.generateObject("System", "User", z.object({}));
+
+      for (const spy of [generateTextSpy, generateObjectSpy]) {
+        const [settings] = spy.mock.calls.at(-1) ?? [];
+        expect(settings).not.toHaveProperty("maxTokens");
+        expect(settings).not.toHaveProperty("webSearch");
+      }
     });
 
     it("should strip explicit provider prefix before passing model to SDK", async () => {
@@ -437,9 +439,6 @@ describe("AIService", () => {
 
       expect(generateTextSpy).toHaveBeenCalledWith(
         expect.not.objectContaining({ temperature: expect.anything() }),
-      );
-      expect(generateTextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ maxTokens: 1000 }),
       );
     });
 
@@ -576,8 +575,6 @@ describe("AIService", () => {
         prompt: userPrompt,
         schema: testSchema,
         temperature: 0.7,
-        maxTokens: 1000,
-        webSearch: true,
         providerOptions: {
           anthropic: { structuredOutputMode: "jsonTool" },
         },
@@ -660,7 +657,6 @@ describe("AIService", () => {
         {
           model: "claude-3-opus-20240229",
           temperature: 0.2,
-          maxTokens: 1500,
         },
         logger,
       );
@@ -668,10 +664,7 @@ describe("AIService", () => {
       await service.generateObject("System", "User", testSchema);
 
       expect(generateObjectSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          temperature: 0.2,
-          maxTokens: 1500,
-        }),
+        expect.objectContaining({ temperature: 0.2 }),
       );
     });
 
@@ -688,9 +681,6 @@ describe("AIService", () => {
 
       expect(generateObjectSpy).toHaveBeenCalledWith(
         expect.not.objectContaining({ temperature: expect.anything() }),
-      );
-      expect(generateObjectSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ maxTokens: 1000 }),
       );
     });
 

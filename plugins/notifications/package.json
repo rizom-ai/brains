@@ -1,7 +1,7 @@
 {
   "name": "@brains/notifications",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.658",
+  "version": "0.2.0-alpha.661",
   "description": "Generic notification routing for transactional and administrative messages",
   "dependencies": {
     "@brains/contracts": "workspace:*",

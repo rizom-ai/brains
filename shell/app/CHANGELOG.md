@@ -1,5 +1,68 @@
 # @brains/app
 
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.661
+  - @brains/sdk@0.2.0-alpha.661
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/site-composition@0.2.0-alpha.661
+  - @brains/theme-base@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+  - @brains/conversation-service@0.2.0-alpha.661
+  - @brains/core@0.2.0-alpha.661
+  - @brains/entity-service@0.2.0-alpha.661
+  - @brains/job-queue@0.2.0-alpha.661
+  - @brains/mcp-service@0.2.0-alpha.661
+  - @brains/messaging-service@0.2.0-alpha.661
+  - @brains/plugins@0.2.0-alpha.661
+  - @brains/runtime-state@0.2.0-alpha.661
+  - @brains/templates@0.2.0-alpha.661
+
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.660
+  - @brains/sdk@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/site-composition@0.2.0-alpha.660
+  - @brains/theme-base@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/conversation-service@0.2.0-alpha.660
+  - @brains/core@0.2.0-alpha.660
+  - @brains/entity-service@0.2.0-alpha.660
+  - @brains/job-queue@0.2.0-alpha.660
+  - @brains/mcp-service@0.2.0-alpha.660
+  - @brains/messaging-service@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+  - @brains/runtime-state@0.2.0-alpha.660
+  - @brains/templates@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.659
+  - @brains/sdk@0.2.0-alpha.659
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/site-composition@0.2.0-alpha.659
+  - @brains/theme-base@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/conversation-service@0.2.0-alpha.659
+  - @brains/core@0.2.0-alpha.659
+  - @brains/entity-service@0.2.0-alpha.659
+  - @brains/job-queue@0.2.0-alpha.659
+  - @brains/mcp-service@0.2.0-alpha.659
+  - @brains/messaging-service@0.2.0-alpha.659
+  - @brains/plugins@0.2.0-alpha.659
+  - @brains/runtime-state@0.2.0-alpha.659
+  - @brains/templates@0.2.0-alpha.659
+
 ## 0.2.0-alpha.658
 
 ### Patch Changes
