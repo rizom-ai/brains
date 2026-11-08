@@ -1,154 +1,108 @@
-import { createMockEntityPluginContext } from "@brains/plugins/test";
-import { describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import {
-  CallbackProgressReporter,
-  type ProgressReporter,
-} from "@brains/utils/progress";
-import { createSilentLogger } from "@brains/test-utils";
-import type { BaseEntity, GetEntityRequest } from "@brains/plugins";
-import { SourceImageRenderJobHandler } from "../../src/handlers/source-image-render-handler";
+  VALID_PNG_BASE64,
+  VALID_PNG_DATA_URL,
+  imageJobs,
+  seedPost,
+  type ImageJobs,
+} from "../image-job-harness";
 
-const TINY_PNG_BASE64 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-const TINY_PNG = Buffer.from(TINY_PNG_BASE64, "base64");
+/**
+ * `image:image-render-source`, as content-pipeline queues it by contract:
+ * the job renders an image from a source attachment and points the
+ * target's OG image at it.
+ */
 
-function createProgressReporter(): ProgressReporter {
-  const reporter = CallbackProgressReporter.from(async () => {});
-  if (!reporter) throw new Error("Failed to create progress reporter");
-  return reporter;
-}
+const TINY_PNG = Buffer.from(VALID_PNG_BASE64, "base64");
+
+let opened: ImageJobs | undefined;
+afterEach(async () => {
+  await opened?.close();
+  opened = undefined;
+});
+
+const render = {
+  sourceEntityType: "post",
+  sourceEntityId: "post-1",
+  attachmentType: "og-image",
+  imageId: "og-post-post-1",
+  targetEntityType: "post",
+  targetEntityId: "post-1",
+  targetImageField: "ogImageId",
+} as const;
 
 describe("SourceImageRenderJobHandler", () => {
   it("creates an image entity from a source attachment and sets ogImageId", async () => {
-    const target = {
-      id: "post-1",
-      entityType: "post",
-      content: "---\ntitle: Post\n---\nBody",
-      metadata: { title: "Post", slug: "post-1" },
-      contentHash: "hash",
-      visibility: "public" as const,
-      created: "2026-01-01T00:00:00.000Z",
-      updated: "2026-01-01T00:00:00.000Z",
-    };
-    const context = createMockEntityPluginContext({
-      returns: {
-        entityService: {
-          getEntity: null,
-        },
-        attachmentsResolve: async () => ({
-          type: "image" as const,
-          data: TINY_PNG,
-          mimeType: "image/png" as const,
-          filename: "post-og.png",
-        }),
+    const jobs = await imageJobs({
+      attachment: {
+        type: "image",
+        data: TINY_PNG,
+        mimeType: "image/png",
+        filename: "post-og.png",
       },
-      listEntitiesImpl: async (request) =>
-        request.entityType === "post" ? [target] : [],
+    });
+    opened = jobs;
+    await seedPost(jobs.service, {
+      id: "post-1",
+      title: "Post",
+      slug: "post-1",
+      body: "Body",
     });
 
-    const handler = new SourceImageRenderJobHandler(
-      context,
-      createSilentLogger(),
-    );
-    const result = await handler.process(
-      {
-        sourceEntityType: "post",
-        sourceEntityId: "post-1",
-        attachmentType: "og-image",
-        imageId: "og-post-post-1",
-        targetEntityType: "post",
-        targetEntityId: "post-1",
-        targetImageField: "ogImageId",
-      },
-      "job-1",
-      createProgressReporter(),
-    );
+    const result = await jobs.run("image:image-render-source", render);
 
     expect(result).toEqual({
       success: true,
       imageId: "og-post-post-1",
       reused: false,
     });
-    expect(context.entityService.createEntity).toHaveBeenCalledWith({
-      entity: expect.objectContaining({
-        id: "og-post-post-1",
-        entityType: "image",
-        content: expect.stringContaining("data:image/png;base64,"),
-        metadata: expect.objectContaining({
-          attachmentType: "og-image",
-          sourceEntityType: "post",
-          sourceEntityId: "post-1",
-        }),
+    expect(await jobs.stored("image", "og-post-post-1")).toMatchObject({
+      id: "og-post-post-1",
+      entityType: "image",
+      content: expect.stringContaining("data:image/png;base64,"),
+      metadata: expect.objectContaining({
+        attachmentType: "og-image",
+        sourceEntityType: "post",
+        sourceEntityId: "post-1",
       }),
     });
-    expect(context.entities.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "post-1",
-        content: expect.stringContaining("ogImageId: og-post-post-1"),
-      }),
-    );
+    expect(await jobs.stored("post", "post-1")).toMatchObject({
+      id: "post-1",
+      content: expect.stringContaining("ogImageId: og-post-post-1"),
+    });
   });
 
   it("writes the target's stored body back, never one with resolved image references", async () => {
-    const stored = {
-      id: "post-1",
-      entityType: "post",
-      content: "---\ntitle: Post\n---\nBody ![Figure](entity://image/figure)",
-      metadata: { title: "Post", slug: "post-1" },
-      contentHash: "hash",
-      visibility: "public" as const,
-      created: "2026-01-01T00:00:00.000Z",
-      updated: "2026-01-01T00:00:00.000Z",
-    };
-    const context = createMockEntityPluginContext({
-      returns: {
-        attachmentsResolve: async () => ({
-          type: "image" as const,
-          data: TINY_PNG,
-          mimeType: "image/png" as const,
-          filename: "post-og.png",
-        }),
+    const jobs = await imageJobs({
+      attachment: {
+        type: "image",
+        data: TINY_PNG,
+        mimeType: "image/png",
+        filename: "post-og.png",
       },
     });
-    // A resolving read inlines the body image; only the stored read is safe to write back.
-    spyOn(context.entityService, "getEntity").mockImplementation(
-      async (request: GetEntityRequest): Promise<BaseEntity | null> =>
-        request.entityType === "post"
-          ? {
-              ...stored,
-              content: stored.content.replace(
-                "entity://image/figure",
-                `data:image/png;base64,${TINY_PNG_BASE64}`,
-              ),
-            }
-          : null,
-    );
-    spyOn(context.entityService, "getEntityRaw").mockImplementation(
-      async (request: GetEntityRequest): Promise<BaseEntity | null> =>
-        request.entityType === "post" ? stored : null,
-    );
-
-    await new SourceImageRenderJobHandler(
-      context,
-      createSilentLogger(),
-    ).process(
-      {
-        sourceEntityType: "post",
-        sourceEntityId: "post-1",
-        attachmentType: "og-image",
-        imageId: "og-post-post-1",
-        targetEntityType: "post",
-        targetEntityId: "post-1",
-        targetImageField: "ogImageId",
+    opened = jobs;
+    // A resolving read inlines the body image; only the stored read is safe
+    // to write back.
+    await jobs.service.createEntity({
+      entity: {
+        id: "figure",
+        entityType: "image",
+        content: VALID_PNG_DATA_URL,
+        metadata: { title: "Figure", format: "png", width: 1, height: 1 },
       },
-      "job-1",
-      createProgressReporter(),
-    );
+    });
+    await seedPost(jobs.service, {
+      id: "post-1",
+      title: "Post",
+      slug: "post-1",
+      body: "Body ![Figure](entity://image/figure)",
+    });
 
-    expect(context.entities.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: expect.stringContaining("![Figure](entity://image/figure)"),
-      }),
-    );
+    await jobs.run("image:image-render-source", render);
+
+    expect(await jobs.stored("post", "post-1")).toMatchObject({
+      content: expect.stringContaining("![Figure](entity://image/figure)"),
+    });
   });
 });

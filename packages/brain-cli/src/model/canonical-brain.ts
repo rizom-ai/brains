@@ -34,7 +34,7 @@ import { bookPlugin } from "@brains/book";
 import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
-import { imagePlugin } from "@brains/image-plugin";
+import imagePackage from "@brains/image-plugin";
 import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
@@ -153,7 +153,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("ask-content", "@brains/ask-content", askContentPackage, {
       pluginId: "ask-content",
     }),
-    ["image", imagePlugin, undefined],
+    packageCapability("image", "@brains/image-plugin", imagePackage, {
+      pluginId: "image",
+    }),
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],
     ["link", linkPlugin, undefined],

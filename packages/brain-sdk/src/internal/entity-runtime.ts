@@ -25,5 +25,6 @@ export {
   entityTextError,
   readEntityText,
   statedDateSchema,
+  uploadTitle,
   type EntityTextResult,
 } from "@brains/plugins";
