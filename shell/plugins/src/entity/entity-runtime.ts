@@ -20,6 +20,7 @@ import type {
   AnyEntityDefinition,
   DataSourceListOptions,
   EntityCreateUploadReader,
+  EntityGenerationAI,
   EntityGenerationLink,
   EntityJobDeclaration,
   EntityJobHandleContext,
@@ -56,6 +57,13 @@ export interface EntityRuntime {
     prompt: string,
     schema: TSchema,
   ): Promise<z.output<TSchema>>;
+  /**
+   * Generate through a template the declaring type declares, named
+   * locally, in the brain's voice when asked, as the entity plugin classes
+   * generated through their own templates from create routes, checks and
+   * job handlers. A template the type does not declare is refused.
+   */
+  readonly generate: EntityGenerationAI["generate"];
   /** Reads of the declaring package's own types, at every visibility. */
   readonly packageEntities: EntityReader;
   /**
@@ -244,6 +252,8 @@ export interface EntityRuntimeBinding {
     schema: AIGenerationSchema<T>,
   ) => Promise<{ object: T }>;
   readonly anyEntities?: AnyEntityBinding | undefined;
+  /** Template generation for the declaring type; unset, refused. */
+  readonly generate?: EntityGenerationAI["generate"] | undefined;
   /** The package's logger; unset, a contract job's, else refused. */
   readonly logger?: Logger | undefined;
   readonly identity?: EntityRuntimeIdentity | undefined;
@@ -405,6 +415,12 @@ function unavailable(name: string, where: string): () => never {
   };
 }
 
+function unavailableGenerate(where: string): EntityGenerationAI["generate"] {
+  return async (): Promise<never> => {
+    throw new Error(`generate is not available in ${where}`);
+  };
+}
+
 function unavailableAnyEntities(where: string): AnyEntityReads {
   const refuse = unavailable("anyEntities", where);
   return Object.freeze({
@@ -546,6 +562,7 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       const { object } = await binding.generateObject(prompt, schema);
       return schema.parse(object);
     },
+    generate: binding.generate ?? unavailableGenerate(binding.where),
     packageEntities: ownTypesOnly(binding.packageReader, binding.ownsType),
     ordinaryCreate: (
       document?: OrdinaryCreateDocument,

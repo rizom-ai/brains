@@ -224,3 +224,152 @@ describe("entityRuntime(context) in a declared job", () => {
     }
   });
 });
+
+const descriptionTemplate = createTemplate({
+  name: "description",
+  description: "Describes a memo",
+  schema: z.object({ description: z.string() }),
+  requiredPermission: "public",
+  dataSourceId: "shell:ai-content",
+  basePrompt: "Describe the memo.",
+});
+
+const admin = {
+  interfaceType: "cli",
+  actor: { kind: "user", userId: "tester" },
+  userPermissionLevel: "admin",
+} as const;
+
+describe("entityRuntime(context).generate", () => {
+  it("generates through a template the type declares, from a create check", async () => {
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { description: descriptionTemplate },
+      create: {
+        fromContent: {
+          check: async (context) => {
+            const { description } = await entityRuntime(context).generate(
+              {
+                template: "description",
+                prompt: `Describe: ${context.input.content ?? ""}`,
+                data: { length: "short" },
+                representedIdentity: "none",
+              },
+              z.object({ description: z.string() }),
+            );
+            return { kind: "ready", title: description };
+          },
+          resolve: async () => ({ refuse: "checked only" }),
+        },
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      const configs: unknown[] = [];
+      harness.getMockShell().generateContent = async (
+        config,
+      ): Promise<unknown> => {
+        configs.push(config);
+        return { description: "A short memo" };
+      };
+      const check = harness
+        .getMockShell()
+        .getEntityRegistry()
+        .getCreateCheck("memo");
+      if (!check) throw new Error("No memo create check");
+      expect(
+        await check({ entityType: "memo", content: "Remember milk" }, admin),
+      ).toEqual({ kind: "ready", title: "A short memo" });
+      expect(configs).toEqual([
+        {
+          prompt: "Describe: Remember milk",
+          templateName: "@fixture/memos:memo:description",
+          data: { length: "short" },
+          representedIdentity: "none",
+        },
+      ]);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("generates through a template the type declares, from a declared job", async () => {
+    let described: string | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { description: descriptionTemplate },
+      jobs: {
+        describe: defineEntityJob({
+          input: z.object({ text: z.string() }),
+          handle: async (context) => {
+            ({ description: described } = await entityRuntime(context).generate(
+              { template: "description", prompt: context.input.text },
+              z.object({ description: z.string() }),
+            ));
+            return { done: true };
+          },
+        }),
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      const templates: string[] = [];
+      harness.getMockShell().generateContent = async (
+        config,
+      ): Promise<unknown> => {
+        templates.push(config.templateName);
+        return { description: "Described" };
+      };
+      await run(
+        harness,
+        "@fixture/memos:memo:describe",
+        queuedByPackage("@fixture/memos:memo", { text: "Memo text" }),
+      );
+      expect(described).toBe("Described");
+      expect(templates).toEqual(["@fixture/memos:memo:description"]);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("refuses a template the type does not declare", async () => {
+    let refusal = "";
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      jobs: {
+        describe: defineEntityJob({
+          input: z.object({}),
+          handle: async (context) => {
+            refusal = await entityRuntime(context)
+              .generate(
+                { template: "missing", prompt: "p" },
+                z.object({ description: z.string() }),
+              )
+              .then(
+                () => "not refused",
+                (error: unknown) => String(error),
+              );
+            return { done: true };
+          },
+        }),
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      await run(
+        harness,
+        "@fixture/memos:memo:describe",
+        queuedByPackage("@fixture/memos:memo", {}),
+      );
+      expect(refusal).toContain('declares no template named "missing"');
+    } finally {
+      await harness.reset();
+    }
+  });
+});

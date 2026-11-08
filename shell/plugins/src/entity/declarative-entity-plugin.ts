@@ -1688,6 +1688,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         context.entityService.searchWithDistances(request),
       generateObject: (prompt, schema) =>
         context.ai.generateObject(prompt, schema),
+      generate: createGenerationAI(context, (localName) =>
+        this.templateName(localName),
+      ).generate,
       logger: context.logger,
       identity: Object.freeze({
         getProfile: () => context.identity.getProfile(),
