@@ -15,7 +15,7 @@ import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
-import type { JobHandler, JobInfo } from "@brains/job-queue";
+import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createConfirmationGate,
@@ -65,11 +65,9 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import { createEntityReader } from "../entity/entity-reader";
 import type {
   AnyEntityDefinition,
   EntityOf,
-  EntityReader,
 } from "../entity/entity-definition-contract";
 import { packageRuntimeState } from "../internal/state-namespace";
 import { ServicePlugin } from "./service-plugin";
@@ -104,11 +102,17 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
-import { publicJobFailure, readJobResult } from "./job-status";
+import { serviceJobStatus } from "./job-status";
 import {
+  admitPackageJob,
   anonymousCaller,
+  createPackageEntityReader,
+  packageReadScope,
+  packageSelfCall,
+  queuedJobCall,
   serviceJobDataSchema,
   toolCaller,
+  type PackageCall,
   type ServiceJobData,
 } from "./job-authority";
 import {
@@ -125,17 +129,11 @@ const confirmationTokenField = "_rizomConfirmationToken";
  * Who a slot's `entities` acts as right now: the access it reads and writes
  * at, and whom a write is attributed to.
  */
-interface ServiceCall {
-  access(): Promise<CallerAccess>;
+interface ServiceCall extends PackageCall {
   /** Who a job started now is admitted as; unset, the package itself. */
   readonly caller?: Caller | undefined;
   /** The account the caller signed in as, when it has one. */
   account?(): Promise<AccountHolder | undefined>;
-  /**
-   * The package acting as itself, with no caller: its own types are its to
-   * read and write, as a class plugin's are, past the policy callers meet.
-   */
-  readonly asPackage?: boolean;
   readonly eventContext: {
     readonly actor: ActorRef;
     readonly interfaceType?: string;
@@ -197,20 +195,6 @@ function promptInput(value: string | undefined): unknown {
   }
 }
 
-function statusFor<TDefinition extends AnyServiceJobDefinition>(
-  definition: TDefinition,
-  job: JobInfo,
-): ServiceJobStatus<z.output<TDefinition["output"]>> {
-  const result = readJobResult<TDefinition["output"]>(definition.output, job);
-  return {
-    id: job.id,
-    status: job.status,
-    progress: job.progress,
-    ...(result !== undefined ? { result } : {}),
-    ...publicJobFailure(job),
-  };
-}
-
 function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
@@ -229,20 +213,16 @@ function runtimeJobHandler(
       return parsed.success ? parsed.data : null;
     },
     async process(
-      { authority, input, byPackage }: ServiceJobData,
+      job: ServiceJobData,
       _jobId: string,
       progress: ProgressReporter,
       signal: AbortSignal,
     ): Promise<unknown> {
       // The job reads and writes with its requester's current access, never
       // more than it was admitted at; a revoked requester's job is refused here.
-      const access = await context.jobAuthority.resolve(authority);
-      const call: ServiceCall = {
-        access: () => Promise.resolve(access),
-        // A job the package queued for itself runs as the package.
-        asPackage: byPackage === true,
-        eventContext: { actor: authority.actor },
-      };
+      // A job the package queued for itself runs as the package.
+      const call: ServiceCall = await queuedJobCall(context.jobAuthority, job);
+      const { input } = job;
       const output = await withCall(call, () =>
         handler({ input, signal, progress }),
       );
@@ -897,8 +877,7 @@ class DeclarativeServicePlugin<
   private packageCall(): ServiceCall {
     const context = this.getContext();
     return {
-      access: () => context.jobAuthority.access(undefined),
-      asPackage: true,
+      ...packageSelfCall(context.jobAuthority),
       eventContext: { actor: { kind: "service", serviceId: this.id } },
     };
   }
@@ -917,9 +896,7 @@ class DeclarativeServicePlugin<
     entityType: string,
     access: CallerAccess,
   ): CallerAccess["visibilityScope"] {
-    return call.asPackage === true && this.ownsType(entityType)
-      ? internalFullScope("a package acting as itself reads its own types")
-      : access.visibilityScope;
+    return packageReadScope(call, this.ownsType(entityType), access);
   }
 
   /** Asking other packages over the bus, as this package. */
@@ -1111,20 +1088,12 @@ class DeclarativeServicePlugin<
   private entityAccess(): ServiceEntityAccess<TEntities[number]> {
     if (this.entityAccessCache) return this.entityAccessCache;
     const context = this.getContext();
-    const reader = async (entityType: string): Promise<EntityReader> => {
-      const call = this.currentCall();
-      return createEntityReader(
-        context.entityService,
-        this.readScope(call, entityType, await call.access()),
-      );
-    };
     const access: ServiceEntityAccess<AnyEntityDefinition> = {
-      get: async (definition, id) =>
-        (await reader(definition.type)).get(definition, id),
-      list: async (definition, options) =>
-        (await reader(definition.type)).list(definition, options),
-      count: async (definition) =>
-        (await reader(definition.type)).count(definition),
+      ...createPackageEntityReader(
+        context.entityService,
+        () => this.currentCall(),
+        (entityType) => this.ownsType(entityType),
+      ),
       create: async (definition, input) => {
         const declared = this.ownedDefinition(definition);
         const call = this.currentCall();
@@ -1225,7 +1194,7 @@ class DeclarativeServicePlugin<
     ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> => {
       const job = await context.jobs.getStatus(id);
       return job?.type === `${this.id}:${definition.name}`
-        ? statusFor(definition, job)
+        ? serviceJobStatus(definition, job)
         : null;
     };
     return {
@@ -1241,21 +1210,20 @@ class DeclarativeServicePlugin<
         // Refused here, but queued as written: the worker parses it, once.
         definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
-        // A tool's or a route's caller starts the job; outside one, this service.
-        const call = this.calls.getStore();
-        const authority = await context.jobAuthority.admit(call?.caller);
-        // Queued by the package acting as itself, the job runs as the package.
-        const byPackage = call === undefined || call.asPackage === true;
+        // A tool's or a route's caller starts the job; outside one, this
+        // service, and queued by the package acting as itself, the job runs
+        // as the package.
+        const data = await admitPackageJob(
+          context.jobAuthority,
+          this.calls.getStore()?.caller,
+          input,
+        );
         const maxRetries = definition.retry
           ? definition.retry.attempts - 1
           : undefined;
         const id = await context.jobs.enqueue({
           type: definition.name,
-          data: {
-            authority,
-            input,
-            ...(byPackage && { byPackage: true }),
-          },
+          data,
           ...(toolContext ? { toolContext } : {}),
           options: {
             source: this.id,

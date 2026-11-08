@@ -38,6 +38,7 @@ export type {
 export {
   siteMetadataContract,
   siteMetadataRequestSchema,
+  siteMetadataUpdatedChannel,
   SITE_METADATA_UPDATED_CHANNEL,
   siteLayoutInfoSchema,
   siteMetadataCTASchema,

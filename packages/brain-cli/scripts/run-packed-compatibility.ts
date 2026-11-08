@@ -3,6 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  preparedManifestPackageDirs,
+  runWithPreparedPublishManifests,
+} from "@brains/build-tools";
+import { getPackages } from "@manypkg/get-packages";
+import {
   PACKED_BRAIN_TARBALL_ENV,
   PACKED_COMPATIBILITY_EVIDENCE_ENV,
 } from "../test/helpers/packed-evidence";
@@ -18,6 +23,7 @@ const compatibilityTests = [
   "packages/brain-cli/test/public-authoring-phase4-packed.test.ts",
   "packages/brain-cli/test/public-authoring-phase5-packed.test.ts",
   "packages/brain-cli/test/public-authoring-phase6-packed.test.ts",
+  "packages/brain-cli/test/public-authoring-testing-packed.test.ts",
 ] as const;
 
 let activeChild: ReturnType<typeof Bun.spawn> | undefined;
@@ -57,12 +63,24 @@ async function run(
   }
 }
 
+/**
+ * Build and pack the brain the way Core Release publishes it: while every
+ * core-lane publish manifest is prepared, as the publish wrapper leaves them
+ * for the whole of `changeset publish`. A build that only resolves against
+ * source manifests fails here rather than at release.
+ */
 async function packBrain(destination: string): Promise<string> {
-  await run(["bun", "run", "build"], packageDirectory);
+  const { packages } = await getPackages(repositoryRoot);
   const before = new Set(await readdir(destination));
-  await run(
-    ["bun", "pm", "pack", "--destination", destination, "--quiet"],
-    packageDirectory,
+  await runWithPreparedPublishManifests(
+    preparedManifestPackageDirs(packages, "core"),
+    async () => {
+      await run(["bun", "run", "build"], packageDirectory);
+      await run(
+        ["bun", "pm", "pack", "--destination", destination, "--quiet"],
+        packageDirectory,
+      );
+    },
   );
   const tarball = (await readdir(destination)).find(
     (entry) => !before.has(entry) && entry.endsWith(".tgz"),

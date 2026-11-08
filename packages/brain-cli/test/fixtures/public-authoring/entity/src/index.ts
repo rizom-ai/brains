@@ -53,8 +53,9 @@ const bookmarkDigest = defineProjection({
   },
 });
 
-// Presentation templates belong in a service that imports these definitions.
-// One default package definition is the loader-facing contract.
+// This package declares no presentation; the presentation canary shows an
+// entity's templates and feed. One default package definition is the
+// loader-facing contract.
 export default defineEntityPackage({
   id: "reading-library",
   entities: [bookmark, readingDigest],

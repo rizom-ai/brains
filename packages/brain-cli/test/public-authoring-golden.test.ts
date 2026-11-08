@@ -24,6 +24,9 @@ const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
 const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
 const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
 const nominatedSiteVersion = "0.2.0-alpha.233";
+// The first release that publishes the component library. It versions with
+// @rizom/brain, so its floor is a Brain release number.
+const nominatedBrainUiVersion = "0.2.0-alpha.649";
 
 const categories = [
   "stable",
@@ -106,7 +109,12 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "reminders",
     packageName: "@fixture/reminders",
-    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    publicEntryPoints: [
+      "@rizom/brain",
+      "@rizom/brain/entities",
+      "@rizom/brain/services",
+      "@rizom/brain/testing",
+    ],
     requiredVocabulary: [
       "entities: [reminder]",
       "runtimeState(",
@@ -114,13 +122,27 @@ const goldenPackages: GoldenPackageExpectation[] = [
       "fireReminder.handle(",
       "defineRoute(",
       "templates.format(",
+      "startTestBrain({ plugins: [use(reminders)] })",
+      "brain.jobs.wait(fireReminder",
+      "brain.request(dueCount",
     ],
   },
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoints: ["@rizom/site"],
-    requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
+    publicEntryPoints: ["@rizom/site", "@rizom/brain-ui"],
+    requiredVocabulary: [
+      "defineSection",
+      "defineSite",
+      "sectionGroup",
+      "z",
+      "<Card",
+      "<CardTitle",
+      "<CardMetadata",
+      "<TagsList",
+      "<MarkdownContent",
+      "formatDate(",
+    ],
   },
   {
     directory: "interface",
@@ -201,7 +223,7 @@ function publicNamedImports(source: string): Map<string, string[]> {
   const imports = new Map<string, string[]>();
 
   for (const match of source.matchAll(
-    /import\s+\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
+    /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain-ui|brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
   )) {
     const specifier = match[2];
     if (!specifier) continue;
@@ -312,7 +334,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the entity, service and interface canaries and the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity, service, interface and site canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "entity",
@@ -339,11 +361,15 @@ describe("public authoring 0.2 golden packages", () => {
       {
         directory: "reminders",
         paths: {
+          "@rizom/brain": ["./packages/brain-cli/src/entries/index.ts"],
           "@rizom/brain/entities": [
             "./packages/brain-cli/src/entries/entities.ts",
           ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/testing": [
+            "./packages/brain-cli/src/entries/testing.ts",
           ],
         },
       },
@@ -425,6 +451,45 @@ describe("public authoring 0.2 golden packages", () => {
           ],
         },
       },
+      {
+        directory: "site",
+        paths: {
+          "@rizom/site": ["./packages/site/src/index.ts"],
+          "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
+        },
+      },
+      {
+        directory: "brain-definition",
+        paths: {
+          "@rizom/brain": ["./packages/brain-cli/src/entries/index.ts"],
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@rizom/site": ["./packages/site/src/index.ts"],
+          "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+          "@fixture/reading-webhook": [
+            "./packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts",
+          ],
+          "@fixture/campfire-interface": [
+            "./packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts",
+          ],
+          "@fixture/reading-site": [
+            "./packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx",
+          ],
+        },
+      },
     ] as const;
 
     // Each case is a whole tsc run over the public entries, and none reads
@@ -454,6 +519,8 @@ describe("public authoring 0.2 golden packages", () => {
               include: [
                 `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
                 `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
+                // A package's own tests and their canaries compile with it.
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/test/**/*.ts`,
               ],
             }),
           );
@@ -552,6 +619,9 @@ describe("public authoring 0.2 golden packages", () => {
         expect(manifest.dependencies?.["@rizom/site"]).toBe(
           nominatedSiteVersion,
         );
+        expect(manifest.dependencies?.["@rizom/brain-ui"]).toBe(
+          nominatedBrainUiVersion,
+        );
       }
       expect(
         tsconfig.extends,
@@ -579,6 +649,7 @@ describe("public authoring 0.2 golden packages", () => {
     for (const forbidden of [
       "@brains/",
       "@rizom/brain/site",
+      "@rizom/brain-ui/internal",
       "@rizom/site-sections",
       'from "zod',
       "package.json",
@@ -692,6 +763,11 @@ describe("public authoring 0.2 export ledger", () => {
       expect(missing, `${specifier} has unclassified current exports`).toEqual(
         [],
       );
+      const listed = [...entry.stable, ...entry["advanced-with-consumer"]];
+      expect(
+        listed.filter((name) => !current.includes(name)),
+        `${specifier} lists exports its source does not have`,
+      ).toEqual([]);
       const removable = current.filter((name) =>
         entry["internal/removable"].includes(name),
       );
@@ -724,6 +800,32 @@ describe("public authoring 0.2 export ledger", () => {
     }
   });
 
+  it("has a fixture that imports every stable name", () => {
+    const ledger = readLedger();
+    // The authoring fixtures with their own tests and canaries, the packed
+    // operator consumer, and the headless Chat consumer.
+    const consumers = [
+      fixtureRoot,
+      join(import.meta.dir, "fixtures", "public-authoring-operator-consumer"),
+      join(import.meta.dir, "fixtures", "public-chat-consumer"),
+    ];
+    const imports = publicNamedImports(
+      consumers
+        .flatMap((directory) => listSourceFiles(directory))
+        .filter((path) => !path.includes("/node_modules/"))
+        .map((path) => readFileSync(path, "utf8"))
+        .join("\n"),
+    );
+
+    for (const [specifier, entry] of Object.entries(ledger.entries)) {
+      const imported = imports.get(specifier) ?? [];
+      expect(
+        entry.stable.filter((name) => !imported.includes(name)),
+        `${specifier} has stable names no fixture imports`,
+      ).toEqual([]);
+    }
+  });
+
   it("uses only named exports the scanner can classify in ledger sources", () => {
     const ledger = readLedger();
 
@@ -750,6 +852,8 @@ describe("public authoring 0.2 export ledger", () => {
     expect(ledger.entries["@rizom/brain/site"]).toBeUndefined();
     expect(ledger.entries["@rizom/site-sections"]).toBeUndefined();
     expect(brainManifest.exports["./site"]).toBeUndefined();
+    expect(brainManifest.exports["./plugins"]).toBeUndefined();
+    expect(brainManifest.exports["./templates"]).toBeUndefined();
     expect(
       existsSync(join(repositoryRoot, "packages/site-sections")),
     ).toBeFalse();
@@ -770,18 +874,12 @@ describe("public authoring 0.2 export ledger", () => {
         "z",
       ]),
     );
+    // The class API's subpaths are gone, with everything they carried.
+    expect(ledger.entries["@rizom/brain/plugins"]).toBeUndefined();
+    expect(ledger.entries["@rizom/brain/templates"]).toBeUndefined();
     expect(
-      ledger.entries["@rizom/brain/plugins"]?.["internal/removable"],
-    ).toEqual(
-      expect.arrayContaining([
-        "EntityPlugin",
-        "InterfacePlugin",
-        "MessageInterfacePlugin",
-        "ServicePlugin",
-        "createTool",
-        "toolSuccess",
-      ]),
-    );
+      ledger.entries["@rizom/brain/entities"]?.["internal/removable"],
+    ).toContain("BaseEntity");
     expect(
       ledger.entries["@rizom/brain/interfaces"]?.["internal/removable"],
     ).toContain("WebRouteDefinition");

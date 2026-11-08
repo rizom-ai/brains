@@ -20,8 +20,6 @@ export {
   createStarterAnchorProfileContent,
   createStarterBrainCharacterContent,
   deriveStarterIdentity,
-  isLegacyAnchorProfileContent,
-  isLegacyBrainCharacterContent,
   resolveStarterIdentityIdentifier,
   seedOrMigrateStarterIdentity,
   type StarterCharacterGenerationRequest,

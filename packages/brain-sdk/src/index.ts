@@ -6,7 +6,6 @@ export type {
   BrainAnchorConfigKind,
   BrainDefinition,
   BrainIdentity,
-  BrainMode,
   BundleConfigContribution,
   BundlePermissionContribution,
   CapabilityBundleDefinition,

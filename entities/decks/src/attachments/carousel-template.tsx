@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
+import { splitWordmark, useMarkdownToHtml } from "@rizom/brain-ui/internal";
 import { z } from "@brains/utils/zod";
 import { createTemplate, type Template } from "@brains/plugins";
 

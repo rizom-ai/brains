@@ -1,13 +1,13 @@
 {
   "name": "@brains/guide",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.648",
+  "version": "0.2.0-alpha.658",
   "description": "Guide entity type — moving-in walkthroughs for kinds of brain users",
   "dependencies": {
     "@brains/docs-chrome": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

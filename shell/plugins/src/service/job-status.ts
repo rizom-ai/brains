@@ -2,6 +2,10 @@ import { SdkError, sdkErrorSchema, type SdkErrorCode } from "@brains/contracts";
 import type { JobInfo } from "@brains/job-queue";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import type { z } from "@brains/utils/zod";
+import type {
+  AnyServiceJobDefinition,
+  ServiceJobStatus,
+} from "./service-definition-contract";
 
 /**
  * What a status reader is told of a failure: its recorded public form, as an
@@ -30,4 +34,22 @@ export function readJobResult<TSchema extends z.ZodType<unknown, unknown>>(
   return job.status === "completed" && job.result !== undefined
     ? parseWithSchema<TSchema>(schema, job.result)
     : undefined;
+}
+
+/**
+ * A job's status as a service's reader is told it: its result parsed by the
+ * job's output schema, and a failure in its public form.
+ */
+export function serviceJobStatus<TDefinition extends AnyServiceJobDefinition>(
+  definition: TDefinition,
+  job: JobInfo,
+): ServiceJobStatus<z.output<TDefinition["output"]>> {
+  const result = readJobResult<TDefinition["output"]>(definition.output, job);
+  return {
+    id: job.id,
+    status: job.status,
+    progress: job.progress,
+    ...(result !== undefined ? { result } : {}),
+    ...publicJobFailure(job),
+  };
 }

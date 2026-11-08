@@ -1,13 +1,13 @@
 import {
   internalFullScope,
   BaseJobHandler,
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
   SYSTEM_CHANNELS,
+  conversationMessageAddedChannel,
+  jobProgressChannel,
   type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
 import {
-  JOB_CHANNELS,
   spaceNoticeActionContract,
   spaceNoticeContract,
 } from "@brains/contracts";
@@ -165,9 +165,9 @@ export function registerChannelActionItems(
     },
   };
   context.messaging.subscribe(
-    CONVERSATION_MESSAGE_ADDED_CHANNEL,
+    conversationMessageAddedChannel,
     async (message) => {
-      await wakeUpChannel(trigger, message.payload);
+      await wakeUpChannel(trigger, message);
       return { success: true };
     },
   );
@@ -203,8 +203,8 @@ export function registerChannelActionItems(
         action,
       )) ?? null,
   );
-  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
-    const conversationId = finishedPickupOf(message.payload);
+  context.messaging.subscribe(jobProgressChannel, async (event) => {
+    const conversationId = finishedPickupOf(event);
     if (conversationId) await postPendingNotices(notices, conversationId);
     return { success: true };
   });

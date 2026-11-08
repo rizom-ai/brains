@@ -51,8 +51,6 @@ type AgentActionResponseSchema = z.ZodNullable<
 export const agentActionResponseSchema: AgentActionResponseSchema =
   agentResponseAnswerSchema.nullable();
 
-export type AgentActionResponse = z.output<typeof agentActionResponseSchema>;
-
 /**
  * A chat interface hands a rendered action (a button press) to the runtime
  * that rendered it, such as the playbook run the action advances.

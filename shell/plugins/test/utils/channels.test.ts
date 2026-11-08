@@ -2,7 +2,7 @@ import { createMockShell } from "../../src/test/mock-shell";
 import { describe, it, expect, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import type { BaseMessage } from "@brains/messaging-service";
-import { defineChannel, isChannel } from "../../src/utils/channels";
+import { defineChannel } from "../../src";
 import { createBasePluginContext } from "../../src/base/context";
 
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
@@ -15,22 +15,6 @@ describe("Typed Message Channels", () => {
 
       expect(channel.name).toBe("test-channel");
       expect(channel.schema).toBe(schema);
-    });
-  });
-
-  describe("isChannel", () => {
-    it("should return true for Channel objects", () => {
-      const channel = defineChannel("test", z.object({}));
-      expect(isChannel(channel)).toBe(true);
-    });
-
-    it("should return false for strings", () => {
-      expect(isChannel("test-channel")).toBe(false);
-    });
-
-    it("should return false for null and undefined", () => {
-      expect(isChannel(null)).toBe(false);
-      expect(isChannel(undefined)).toBe(false);
     });
   });
 

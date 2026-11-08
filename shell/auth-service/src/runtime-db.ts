@@ -1,5 +1,5 @@
 import { type Client, type Config } from "@libsql/client";
-import { createSqliteClient } from "@brains/db";
+import { createSqliteClient, resolveMigrationsFolder } from "@brains/db";
 import { chmod, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
@@ -156,7 +156,12 @@ export class AuthRuntimeDatabase {
     try {
       if (this.replica) await client.sync();
       await this.configureConnection(client);
-      await migrate(db, { migrationsFolder: authMigrationsFolder() });
+      await migrate(db, {
+        migrationsFolder: resolveMigrationsFolder(
+          import.meta.url,
+          "auth-service",
+        ),
+      });
       await this.secureLocalDatabaseFile();
       this.active = { client, db, url: this.url };
     } catch (error) {
@@ -185,12 +190,6 @@ export class AuthRuntimeDatabase {
     const path = localPathFromFileUrl(this.url);
     if (path) await chmod(path, 0o600);
   }
-}
-
-function authMigrationsFolder(): string {
-  return import.meta.url.includes("/dist/")
-    ? new URL("./migrations/auth-service", import.meta.url).pathname
-    : new URL("../drizzle", import.meta.url).pathname;
 }
 
 function isLocalFileUrl(url: string): boolean {

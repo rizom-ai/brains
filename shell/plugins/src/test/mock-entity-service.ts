@@ -33,8 +33,9 @@ export function createMockEntityService(
   // decoded body among them) replace the stored ones. Metadata and visibility
   // stay as stored, as the database columns are the source of truth there. A
   // row the adapter cannot parse is unreadable, as it is to the real service:
-  // a get finds nothing and a list leaves it out.
-  function readEntity(entity: BaseEntity): BaseEntity | null {
+  // a get finds nothing and a list leaves it out. A source read hands a
+  // declared type's stored markdown back, as the real service does.
+  function readEntity(entity: BaseEntity, source?: boolean): BaseEntity | null {
     const adapter = store.adapters.get(entity.entityType);
     if (typeof adapter?.fromMarkdown !== "function") return entity;
     let fields: Partial<BaseEntity>;
@@ -50,7 +51,15 @@ export function createMockEntityService(
       visibility: _parsedVisibility,
       ...parsed
     } = fields;
-    return { ...entity, ...parsed, metadata: entity.metadata };
+    return {
+      ...entity,
+      ...parsed,
+      ...(source === true &&
+        adapter.metadataFromFrontmatter === true && {
+          content: entity.content,
+        }),
+      metadata: entity.metadata,
+    };
   }
 
   // Overloaded like the real service: without a schema reads return the
@@ -73,7 +82,7 @@ export function createMockEntityService(
       request.visibilityScope ?? "public",
     ).includes(entity.visibility);
     if (!visible) return null;
-    const read = readEntity(entity);
+    const read = readEntity(entity, request.source);
     if (!read) return null;
     return schema ? schema.parse(read) : read;
   }
@@ -184,7 +193,7 @@ export function createMockEntityService(
     const results = filterEntitiesFake(request)
       .sort((left, right) => compareBySortFields(left, right, sortFields))
       .slice(offset, limit === undefined ? undefined : offset + limit)
-      .flatMap((entity) => readEntity(entity) ?? []);
+      .flatMap((entity) => readEntity(entity, request.options?.source) ?? []);
     return schema ? results.map((entity) => schema.parse(entity)) : results;
   }
 

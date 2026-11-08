@@ -19,7 +19,7 @@ import {
   HeadProvider,
   ImageRendererProvider,
   type HeadProps,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 import type { ReactNode } from "react";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";
