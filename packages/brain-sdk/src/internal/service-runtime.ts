@@ -18,4 +18,5 @@ export {
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "@brains/plugins";
+export { withOwnedDataSources } from "@brains/plugins";
 export { SYSTEM_CHANNELS, initialSyncCompletedChannel } from "@brains/plugins";

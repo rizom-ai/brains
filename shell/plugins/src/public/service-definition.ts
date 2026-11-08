@@ -10,6 +10,8 @@ import {
   type TwoStageSlots,
 } from "../internal/two-stage-declaration";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
+import type { AnyDataSourceDeclaration } from "../entity/entity-definition-contract";
+import { assertDataSources } from "./entity-definition";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
@@ -145,9 +147,13 @@ function createServicePackage<
     TTemplateDefinitions,
     TEntities
   >,
+  // Installed on the owned types, as an entity package installs its own:
+  // a first-party service keeps the data sources its class registered.
+  dataSources: readonly AnyDataSourceDeclaration[] = [],
 ): ServicePackageDefinition<TConfigSchema> {
   const entities = definition.entities;
-  return createPluginPackageDefinition({
+  assertDataSources(definition.id, new Set(entities), dataSources);
+  const created = createPluginPackageDefinition({
     family: "service",
     id: definition.id,
     config: definition.config,
@@ -167,6 +173,7 @@ function createServicePackage<
         pluginId === undefined
           ? scope
           : legacyOwnedScope(definition.id, entities, pluginId),
+        dataSources,
       ),
       createDeclarativeServicePlugin(
         definition,
@@ -177,6 +184,41 @@ function createServicePackage<
       ),
     ],
   });
+  rebuilders.set(created, (sources) =>
+    createServicePackage(definition, sources),
+  );
+  return created;
+}
+
+/** How each service package is rebuilt with data sources on its owned types. */
+const rebuilders = new WeakMap<
+  PluginPackageDefinition,
+  (
+    dataSources: readonly AnyDataSourceDeclaration[],
+  ) => ServicePackageDefinition<z.ZodType<object, object>>
+>();
+
+/**
+ * Internal, first-party only: a service package that also installs data
+ * sources on the types its header owns, as an entity package installs its
+ * own: scoped as the owned type's plugin is, read at the build's scope. A
+ * first-party service converted from an entity plugin class keeps the data
+ * sources its class registered, such as site-info's `site-info:entities`.
+ * The public service contract declares no data sources.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
+ */
+export function withOwnedDataSources(
+  definition: ServicePackageDefinition<z.ZodType<object, object>>,
+  dataSources: readonly AnyDataSourceDeclaration[],
+): ServicePackageDefinition<z.ZodType<object, object>> {
+  const rebuild = rebuilders.get(definition);
+  if (!rebuild) {
+    throw new Error(
+      `Service definition "${definition.id}" was not created by defineServicePlugin`,
+    );
+  }
+  return rebuild(Object.freeze([...dataSources]));
 }
 
 /**

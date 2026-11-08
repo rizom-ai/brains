@@ -979,6 +979,7 @@ export {
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public
 // service contract does not offer here.
+export { withOwnedDataSources } from "./public/service-definition";
 export {
   firstPartyTool,
   serviceRuntime,
