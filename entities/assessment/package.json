@@ -1,7 +1,7 @@
 {
   "name": "@brains/assessment",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.652",
+  "version": "0.2.0-alpha.663",
   "description": "Assessment outputs and capability-profile analysis",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -11,6 +11,7 @@
     "react": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/agent-discovery": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
@@ -21,7 +22,8 @@
     "typescript": "^7.0.2"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./eval": "./src/eval/swot-eval-plugin.ts"
   },
   "private": true,
   "scripts": {

@@ -15,7 +15,8 @@ import { parseFormMarkdown } from "@brains/forms";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
-import { NotificationsPlugin } from "@brains/notifications";
+import notificationsPackage from "@brains/notifications";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
   SITE_METADATA_UPDATED_CHANNEL,
   siteBuilderPagesContract,
@@ -137,11 +138,16 @@ async function setup(
     },
   });
   channels.finalize();
-  await new NotificationsPlugin(
+  const [notifications] = instantiatePluginPackageDefinition(
+    notificationsPackage,
     wiring.noRecipient
       ? {}
       : { defaultRecipient: { type: "email", address: "owner@example.com" } },
-  ).register(shell, { executionOnly });
+    { name: "@brains/notifications", version: "0.0.0-test" },
+    { pluginId: "notifications" },
+  );
+  if (!notifications) throw new Error("Notifications installs no plugin");
+  await notifications.register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
   return { h, shell, checks, sent, pages, transport, plugin, handlers };
 }
@@ -308,6 +314,14 @@ describe("contact runtime", () => {
     await bus.send({
       type: SITE_METADATA_UPDATED_CHANNEL,
       payload: { ...site, themeMode: "dark" },
+      sender: "site-info",
+      broadcast: true,
+    });
+    expect(await theme()).toBe("dark");
+    // A malformed update is refused; it no longer clears the theme.
+    await bus.send({
+      type: SITE_METADATA_UPDATED_CHANNEL,
+      payload: { ...site, themeMode: "sepia" },
       sender: "site-info",
       broadcast: true,
     });

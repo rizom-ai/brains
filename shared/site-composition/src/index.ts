@@ -41,6 +41,7 @@ export type {
 export {
   siteMetadataContract,
   siteMetadataRequestSchema,
+  siteMetadataUpdatedChannel,
   SITE_METADATA_UPDATED_CHANNEL,
   siteLayoutInfoSchema,
   siteMetadataCTASchema,
@@ -76,7 +77,7 @@ export {
 } from "./section-templates";
 export {
   fetchSiteInfo,
-  parseSiteInfoContent,
+  siteInfoFromRecord,
   siteInfoBodySchema,
   siteInfoCTASchema,
 } from "./site-info";

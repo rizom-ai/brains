@@ -164,14 +164,15 @@ describe("items stored before the trim", () => {
     });
   });
 
-  it("read legacy actor ids as actor ids", () => {
-    const metadata = actionItemSchema.parse(
-      entity({
-        ...stored,
-        assignedTo: [{ actorId: "discord:user-sam", displayName: "Sam" }],
-      }),
-    ).metadata;
-    expect(metadata.assignedTo?.[0]?.name).toBe("Sam");
-    expect(metadata.assignedTo?.[0]?.id).toMatch(/^external:ext_/);
+  it("refuse people stored as bare actor ids, which are no longer read", () => {
+    const bare = { actorId: "discord:user-sam", displayName: "Sam" };
+    expect(
+      actionItemSchema.safeParse(entity({ ...stored, assignedTo: [bare] }))
+        .success,
+    ).toBe(false);
+    expect(
+      actionItemSchema.safeParse(entity({ ...stored, requestedBy: [bare] }))
+        .success,
+    ).toBe(false);
   });
 });

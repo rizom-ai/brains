@@ -71,6 +71,29 @@ describe("SiteBuilder - URL Enrichment", () => {
     expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
   });
 
+  it("prepares the cover a declared type names in its stored frontmatter", async () => {
+    // A declared type reads back its body alone; its stored record keeps
+    // the frontmatter that names its cover.
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "series",
+    ]);
+    spyOn(mockContext.entityService, "listEntities").mockImplementation(
+      async (request: ListEntitiesRequest) => [
+        createTestEntity("series", {
+          id: "systems",
+          content:
+            request.options?.source === true
+              ? "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n# Systems\n"
+              : "# Systems\n",
+        }),
+      ],
+    );
+
+    expect(await collectAllImageIds(mockContext.entityService, logger)).toEqual(
+      ["systems-cover"],
+    );
+  });
+
   it("prepares the image an anchor profile's photo names", async () => {
     spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
       "anchor-profile",

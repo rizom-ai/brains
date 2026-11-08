@@ -2,7 +2,11 @@ import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { McpServer } from "@modelcontextprotocol/server";
 import { MCPInterface } from "../src/mcp-interface";
-import { createPluginHarness } from "@brains/plugins/test";
+import { FatalPluginConfigurationError } from "@brains/plugins";
+import {
+  createMockAuthBackend,
+  createPluginHarness,
+} from "@brains/plugins/test";
 import type { IMCPService } from "@brains/mcp-service";
 import { createSilentLogger } from "@brains/test-utils";
 
@@ -288,6 +292,69 @@ describe("MCPInterface", () => {
           );
         },
       );
+    });
+
+    describe("static bearer token", () => {
+      function createProductionHarness(): ReturnType<
+        typeof createPluginHarness
+      > {
+        harness = createPluginHarness({
+          logger: createSilentLogger("mcp-test"),
+          production: true,
+        });
+        installWebserverPlugin();
+        return harness;
+      }
+
+      it("is refused by a production brain with a boot-fatal error", async () => {
+        const productionHarness = createProductionHarness();
+        const plugin = new MCPInterface({
+          transport: "http",
+          authToken: "static-token",
+        });
+
+        const refusal = await productionHarness.installPlugin(plugin).then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+
+        expect(refusal).toBeInstanceOf(FatalPluginConfigurationError);
+        expect(refusal).toHaveProperty(
+          "message",
+          "MCP static bearer token (plugins.mcp.authToken / MCP_AUTH_TOKEN) is for local development only; a production brain refuses it. Remove it and connect MCP clients through OAuth with passkeys.",
+        );
+      });
+
+      it("leaves a production brain with OAuth verification booting", async () => {
+        const productionHarness = createProductionHarness();
+        productionHarness
+          .getMockShell()
+          .getAuthRegistry()
+          .bindBackend(createMockAuthBackend());
+        const plugin = new MCPInterface({ transport: "http" });
+
+        const capabilities = await productionHarness.installPlugin(plugin);
+
+        expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+          "chat",
+          "confirm",
+        ]);
+      });
+
+      it("keeps working outside production", async () => {
+        installWebserverPlugin();
+        const plugin = new MCPInterface({
+          transport: "http",
+          authToken: "static-token",
+        });
+
+        const capabilities = await harness.installPlugin(plugin);
+
+        expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+          "chat",
+          "confirm",
+        ]);
+      });
     });
 
     it("should require webserver for http transport", async () => {

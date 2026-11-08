@@ -1883,6 +1883,7 @@ describe("WebChatInterface", () => {
           toolName: "playbook_manage",
           conversationId,
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: conversationId,
         });
         return {
@@ -1932,12 +1933,14 @@ describe("WebChatInterface", () => {
           toolName: "system_create",
           conversationId,
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: conversationId,
         });
         await harness.sendMessage("tool:completed", {
           toolName: "system_create",
           conversationId,
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: conversationId,
         });
         return {
@@ -1995,6 +1998,7 @@ describe("WebChatInterface", () => {
           toolName: "background_tool",
           conversationId: "other-conversation",
           interfaceType: "web-chat",
+          actor: { kind: "agent", agentId: "brain-agent" },
           channelId: "other-conversation",
         });
         return {

@@ -1,20 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import type { PublishCompletedPayload } from "@brains/contracts";
 import type { ICoreEntityService } from "@brains/plugins";
 import type { NewsletterDeliveryProvider } from "./contracts";
 import { blogPostSourceSchema } from "./types";
-
-/**
- * Payload from publish:completed message
- */
-export interface PublishCompletedPayload {
-  entityType: string;
-  entityId: string;
-  result: {
-    id: string;
-    url?: string;
-  };
-}
 
 /**
  * Result of handling publish completed event

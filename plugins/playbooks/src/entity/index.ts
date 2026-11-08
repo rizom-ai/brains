@@ -1,5 +1,10 @@
-import type { EntityTypeConfig, Plugin } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { playbookSeedContract } from "@brains/contracts";
+import type {
+  EntityPluginContext,
+  EntityTypeConfig,
+  Plugin,
+} from "@brains/plugins";
+import { EntityPlugin, internalFullScope } from "@brains/plugins";
 import {
   playbookAdapter,
   type PlaybookAdapter,
@@ -33,6 +38,28 @@ export class PlaybookPlugin extends EntityPlugin<
       projectionSource: false,
       projectionSourceRole: "excluded",
     };
+  }
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    // Another package plants a playbook it bundles through the type's
+    // steward: only where none with that id exists at any visibility, so a
+    // seed never overwrites what an owner wrote.
+    context.messaging.answer(playbookSeedContract, async ({ id, markdown }) => {
+      const existing = await context.entityService.getEntity({
+        entityType: playbookEntityType,
+        id,
+        visibilityScope: internalFullScope(
+          "bundled playbook seed existence check",
+        ),
+      });
+      if (existing) return { created: false };
+      await context.entityService.createEntityFromMarkdown({
+        input: { entityType: playbookEntityType, id, markdown },
+      });
+      return { created: true };
+    });
   }
 
   protected override async getInstructions(): Promise<string> {

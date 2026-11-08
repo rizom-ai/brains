@@ -1,5 +1,6 @@
 import type { z } from "@brains/utils/zod";
 import {
+  assertIdentifier,
   createPluginPackageDefinition,
   type PluginPackageDefinition,
 } from "../package-definition";
@@ -9,6 +10,8 @@ import {
   type TwoStageSlots,
 } from "../internal/two-stage-declaration";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
+import type { AnyDataSourceDeclaration } from "../entity/entity-definition-contract";
+import { assertDataSources } from "./entity-definition";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
@@ -144,24 +147,107 @@ function createServicePackage<
     TTemplateDefinitions,
     TEntities
   >,
+  // Installed on the owned types, as an entity package installs its own:
+  // a first-party service keeps the data sources its class registered.
+  dataSources: readonly AnyDataSourceDeclaration[] = [],
 ): ServicePackageDefinition<TConfigSchema> {
   const entities = definition.entities;
-  return createPluginPackageDefinition({
+  assertDataSources(definition.id, new Set(entities), dataSources);
+  const created = createPluginPackageDefinition({
     family: "service",
     id: definition.id,
     config: definition.config,
     // The owned types come first, so each exists before the service that
     // writes it registers, exactly as an entity package installs them.
-    instantiate: ({ config, package: metadata, scope }) => [
-      ...createEntityPackagePlugins(entities, [], metadata, scope),
+    instantiate: ({
+      config,
+      package: metadata,
+      scope,
+      pluginId,
+      dependencies,
+    }) => [
+      ...createEntityPackagePlugins(
+        entities,
+        [],
+        metadata,
+        pluginId === undefined
+          ? scope
+          : legacyOwnedScope(definition.id, entities, pluginId),
+        dataSources,
+      ),
       createDeclarativeServicePlugin(
         definition,
         config,
         metadata,
-        scope(definition.id),
+        pluginId ?? scope(definition.id),
+        dependencies ?? [],
       ),
     ],
   });
+  rebuilders.set(created, (sources) =>
+    createServicePackage(definition, sources),
+  );
+  return created;
+}
+
+/** How each service package is rebuilt with data sources on its owned types. */
+const rebuilders = new WeakMap<
+  PluginPackageDefinition,
+  (
+    dataSources: readonly AnyDataSourceDeclaration[],
+  ) => ServicePackageDefinition<z.ZodType<object, object>>
+>();
+
+/**
+ * Internal, first-party only: a service package that also installs data
+ * sources on the types its header owns, as an entity package installs its
+ * own: scoped as the owned type's plugin is, read at the build's scope. A
+ * first-party service converted from an entity plugin class keeps the data
+ * sources its class registered, such as site-info's `site-info:entities`.
+ * The public service contract declares no data sources.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
+ */
+export function withOwnedDataSources(
+  definition: ServicePackageDefinition<z.ZodType<object, object>>,
+  dataSources: readonly AnyDataSourceDeclaration[],
+): ServicePackageDefinition<z.ZodType<object, object>> {
+  const rebuild = rebuilders.get(definition);
+  if (!rebuild) {
+    throw new Error(
+      `Service definition "${definition.id}" was not created by defineServicePlugin`,
+    );
+  }
+  return rebuild(Object.freeze([...dataSources]));
+}
+
+/**
+ * Names for the type a first-party service keeps from its class: installed
+ * under the type itself, as an entity plugin class was named after the type
+ * it registered, with every name scoped to it following that id.
+ */
+function legacyOwnedScope(
+  serviceId: string,
+  entities: readonly AnyEntityDefinition[],
+  pluginId: string,
+): (localId: string) => string {
+  const [only, ...rest] = entities;
+  if (rest.length > 0) {
+    throw new Error(
+      `Service "${serviceId}" keeps a legacy plugin id only when it owns at most one entity type`,
+    );
+  }
+  if (only?.type === pluginId) {
+    throw new Error(
+      `Service "${serviceId}" cannot keep legacy plugin id "${pluginId}", which its entity type is installed under`,
+    );
+  }
+  return (localId) => {
+    assertIdentifier(localId, "Local plugin id");
+    return only === undefined || localId === only.type
+      ? localId
+      : `${only.type}:${localId}`;
+  };
 }
 
 /** What a service header and its behavior may declare. */

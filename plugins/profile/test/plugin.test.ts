@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { ProfilePlugin } from "../src";
+import profilePackage from "../src";
+import { installProfile } from "./profile-plugin";
 
 function createHarness(
   profileKind?: string,
@@ -24,13 +25,33 @@ function captureExtendedFields(
   return fields;
 }
 
-describe("ProfilePlugin composition", () => {
+describe("profile composition", () => {
+  test("default-exports its service package definition", () => {
+    expect(profilePackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "profile",
+    });
+  });
+
+  test("registers under the plugin id its class had, with no tools", async () => {
+    const harness = createHarness();
+    const plugin = await installProfile(harness, {
+      starterIdentity: { enabled: false },
+    });
+
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "profile",
+      "service",
+      "@brains/profile",
+    ]);
+    expect(harness.getCapabilities().tools).toEqual([]);
+  });
+
   test("installs only base profile fields when no kind is selected", async () => {
     const harness = createHarness();
     const fields = captureExtendedFields(harness);
-    await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
-    );
+    await installProfile(harness, { starterIdentity: { enabled: false } });
     await harness.finalizeRegistration();
 
     expect(fields).toContain("tagline");
@@ -41,9 +62,7 @@ describe("ProfilePlugin composition", () => {
   test("installs fields for the composition-selected kind", async () => {
     const harness = createHarness("professional");
     const fields = captureExtendedFields(harness);
-    await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
-    );
+    await installProfile(harness, { starterIdentity: { enabled: false } });
     await harness.finalizeRegistration();
 
     expect(fields).toContain("role");
@@ -70,9 +89,7 @@ describe("ProfilePlugin composition", () => {
         labels: { singular: "Artist", plural: "Artists" },
       });
     const fields = captureExtendedFields(harness);
-    await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
-    );
+    await installProfile(harness, { starterIdentity: { enabled: false } });
     await harness.finalizeRegistration();
 
     expect(fields).toContain("mediums");
@@ -81,9 +98,7 @@ describe("ProfilePlugin composition", () => {
 
   test("rejects an unknown selected kind before profile finalization", async () => {
     const harness = createHarness("artist");
-    await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
-    );
+    await installProfile(harness, { starterIdentity: { enabled: false } });
 
     expect(harness.finalizeRegistration()).rejects.toThrow(
       'Selected profile kind "artist" is not registered',
@@ -101,9 +116,7 @@ describe("ProfilePlugin composition", () => {
         fields: z.object({ mission: z.string().optional() }),
         labels: { singular: "Duplicate", plural: "Duplicates" },
       });
-    await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
-    );
+    await installProfile(harness, { starterIdentity: { enabled: false } });
 
     expect(harness.finalizeRegistration()).rejects.toThrow(
       'Profile kind "professional" is registered by multiple plugins',

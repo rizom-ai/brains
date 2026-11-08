@@ -486,8 +486,13 @@ describe("system_create tool", () => {
     if (typeof url === "string" && url.trim().length > 0) {
       return { ...rest, source: { kind: "url", url } };
     }
-    if (upload && transform === "extract-markdown") {
-      return { ...rest, source: { kind: "upload", upload, transform } };
+    if (
+      typeof upload === "object" &&
+      upload !== null &&
+      "id" in upload &&
+      transform === "extract-markdown"
+    ) {
+      return { ...rest, source: { kind: "upload", id: upload.id, transform } };
     }
     if (sourceAttachment && typeof sourceAttachment === "object") {
       return { ...rest, source: { kind: "attachment", ...sourceAttachment } };
@@ -1151,7 +1156,12 @@ status: draft
 
     expect(result).toEqual({
       success: true,
-      data: { status: "created", entityId: "brief" },
+      data: {
+        status: "created",
+        entityId: "brief",
+        entityType: "note",
+        uploadId: "upload-00000000-0000-4000-8000-000000000301",
+      },
     });
     expect(capturedInput).toEqual({
       entityType: "note",
@@ -1229,7 +1239,12 @@ status: draft
 
       expect(result).toEqual({
         success: true,
-        data: { status: "created", entityId: "brief-note" },
+        data: {
+          status: "created",
+          entityId: "brief-note",
+          entityType,
+          uploadId: "upload-00000000-0000-4000-8000-000000000304",
+        },
       });
       expect(capturedInput).toEqual({
         entityType,
@@ -1410,7 +1425,12 @@ status: draft
 
     expect(result).toEqual({
       success: true,
-      data: { status: "created", entityId: "brief" },
+      data: {
+        status: "created",
+        entityId: "brief",
+        entityType: "note",
+        uploadId: "upload-00000000-0000-4000-8000-000000000303",
+      },
     });
     expect(capturedInput?.from).toEqual({
       kind: "upload",
@@ -2251,7 +2271,7 @@ A saved research link.`;
         entityType: "note",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: "upload-1" },
+          id: "upload-1",
           transform: "extract-markdown",
         },
       },

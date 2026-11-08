@@ -174,7 +174,6 @@ describe("materializePrompts", () => {
       retitled: [],
       staleOverrides: [],
       unverifiedOverrides: [],
-      removedLegacy: [],
       failed: [],
     });
   });
@@ -403,16 +402,16 @@ describe("materializePrompts", () => {
     ).toBe("professional-site:about-highlights");
   });
 
-  it("removes a copy materialized under the template's short name", async () => {
+  it("leaves a copy stored under the template's short name", async () => {
     const { service, prompts } = createPromptStore();
-    const legacy = seed(
+    seed(
       prompts,
       "about-highlights",
       { title: "About Highlights", target: "about-highlights" },
       "Highlights.",
     );
 
-    const report = await materializePrompts(
+    await materializePrompts(
       registry([
         [
           "professional-site:about-highlights",
@@ -422,59 +421,7 @@ describe("materializePrompts", () => {
       service,
     );
 
-    expect(report.removedLegacy).toEqual(["about-highlights"]);
-    expect(prompts.has("about-highlights")).toBe(false);
-    expect(service.deleteEntity).toHaveBeenCalledWith({
-      entityType: "prompt",
-      id: "about-highlights",
-      options: { expectedContentHash: legacy.contentHash },
-    });
-  });
-
-  it("keeps a short-name prompt that targets something else", async () => {
-    const { service, prompts } = createPromptStore();
-    seed(
-      prompts,
-      "about-highlights",
-      { title: "Mine", target: "my-own:prompt" },
-      "Mine.",
-    );
-
-    const report = await materializePrompts(
-      registry([
-        [
-          "professional-site:about-highlights",
-          template("about-highlights", "Highlights."),
-        ],
-      ]),
-      service,
-    );
-
-    expect(report.removedLegacy).toEqual([]);
     expect(prompts.has("about-highlights")).toBe(true);
-  });
-
-  it("keeps a short-name prompt that another registry key reads", async () => {
-    const { service, prompts } = createPromptStore();
-    seed(
-      prompts,
-      "about-highlights",
-      { title: "About Highlights", target: "about-highlights" },
-      "Plain.",
-    );
-
-    const report = await materializePrompts(
-      registry([
-        ["about-highlights", template("about-highlights", "Plain.")],
-        [
-          "professional-site:about-highlights",
-          template("about-highlights", "Highlights."),
-        ],
-      ]),
-      service,
-    );
-
-    expect(report.removedLegacy).toEqual([]);
-    expect(prompts.has("about-highlights")).toBe(true);
+    expect(service.deleteEntity).not.toHaveBeenCalled();
   });
 });

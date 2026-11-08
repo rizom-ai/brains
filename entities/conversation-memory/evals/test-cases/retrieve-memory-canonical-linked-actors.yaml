@@ -29,9 +29,16 @@ input:
       score: 0.7
       status: active
       updated: "2026-05-04T11:00:00Z"
+      # Identities are createExternalActorId(source, subject): Daniel as
+      # ("canonical", "person:daniel"), seen in Discord as
+      # ("discord", "discord:user-daniel").
       decidedBy:
-        - actorId: discord:user-daniel
-          canonicalId: person:daniel
+        - identity:
+            kind: external
+            externalActorId: ext_f3d6254c34db30bd8cc1244e862d4851c16b92f4aa95a2ced2c83f221f18fe1b
+          identityAliases:
+            - kind: external
+              externalActorId: ext_a607573c22c2ecc1b439889dc8aff9c5b0166b900cebb58f35eda3c229c360be
           displayName: Daniel D.
     - id: mcp-action-daniel
       entityType: action-item
@@ -43,10 +50,12 @@ input:
       score: 0.8
       status: open
       updated: "2026-05-04T11:01:00Z"
+      # Daniel ("canonical", "person:daniel"), seen in MCP as ("mcp", "mcp:daniel").
       assignedTo:
-        - actorId: mcp:daniel
-          canonicalId: person:daniel
-          displayName: Daniel
+        - name: Daniel
+          id: external:ext_f3d6254c34db30bd8cc1244e862d4851c16b92f4aa95a2ced2c83f221f18fe1b
+          aliases:
+            - external:ext_e4d2f8cc72f97fd2add7ba608117650c0ebd93929036e687769161f3ca1a34d5
     - id: unlinked-daniel
       entityType: decision
       conversationId: other-conv
@@ -57,8 +66,11 @@ input:
       score: 0.99
       status: active
       updated: "2026-05-04T11:02:00Z"
+      # Another Daniel, ("discord", "discord:user-other-daniel"), with no canonical link.
       decidedBy:
-        - actorId: discord:user-other-daniel
+        - identity:
+            kind: external
+            externalActorId: ext_cdece56a33e3d342cfade33ddd02696dbe2519cf50e6a325633a873fc1dd6296
           displayName: Daniel
 
 expectedOutput:

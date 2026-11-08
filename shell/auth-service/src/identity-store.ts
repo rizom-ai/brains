@@ -27,8 +27,6 @@ export const AUTH_RESERVED_IDENTITY_TYPES = [
   "mcp",
 ] as const;
 
-const LEGACY_CHANNEL_IDENTITY_TYPES = ["email", "discord"] as const;
-
 export interface AuthIdentityStoreOptions {
   isChannelTypeRegistered?: (type: string) => boolean;
 }
@@ -327,11 +325,7 @@ export function assertValidIdentityType(
 ): void {
   if (
     AUTH_RESERVED_IDENTITY_TYPES.some((reserved) => reserved === type) ||
-    (isChannelTypeRegistered
-      ? isChannelTypeRegistered(type)
-      : LEGACY_CHANNEL_IDENTITY_TYPES.some(
-          (channelType) => channelType === type,
-        ))
+    (isChannelTypeRegistered?.(type) ?? false)
   ) {
     return;
   }

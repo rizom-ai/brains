@@ -85,7 +85,7 @@ For creation, omit `visibility` for public content, use `shared` for content rea
 brain tool system_update '{
   "entityType":"post",
   "id":"my-first-post",
-  "operation":{"kind":"fields","fields":{"title":"A revised title"}}
+  "operation":{"fields":{"title":"A revised title"}}
 }'
 ```
 
@@ -95,7 +95,7 @@ For small content changes, fetch the entity first and use the `edits` operation 
 brain tool system_update '{
   "entityType":"note",
   "id":"working-plan",
-  "operation":{"kind":"edits","edits":[{"oldText":"Review cadence: monthly.","newText":"Review cadence: weekly."}]}
+  "operation":{"edits":[{"oldText":"Review cadence: monthly.","newText":"Review cadence: weekly."}]}
 }'
 ```
 

@@ -5,6 +5,7 @@ import {
   type GenerationEnqueuer,
   type EntityAdapter,
   type IEntityRegistry,
+  type PersistValidator,
   type UploadSaveHandlerRegistration,
 } from "@brains/entity-service";
 import type { MockEntityStore } from "./mock-entity-store";
@@ -23,6 +24,7 @@ export function createMockEntityRegistry(
   const createChecks = new Map<string, CreateCheck>();
   const generationEnqueuers = new Map<string, GenerationEnqueuer>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
+  const persistValidators = new Map<string, PersistValidator>();
   // The types registered here, apart from the store's, which the service
   // double also fills when a test writes an entity of a type nobody registered.
   const registered = new Set<string>();
@@ -107,8 +109,21 @@ export function createMockEntityRegistry(
             : mediaType === pattern,
         ),
       ),
-    registerPersistValidator: (): void => {},
-    getPersistValidator: () => undefined,
+    // As the real registry: a type's validators are kept for its writes,
+    // each run after the ones registered before it.
+    registerPersistValidator: (type, validator): void => {
+      const existing = persistValidators.get(type);
+      persistValidators.set(
+        type,
+        existing
+          ? async (entity, context): Promise<void> => {
+              await existing(entity, context);
+              await validator(entity, context);
+            }
+          : validator,
+      );
+    },
+    getPersistValidator: (type) => persistValidators.get(type),
     extendFrontmatterSchema: (): void => {},
     // As the real registry: the adapter's schema, with the extensions this
     // double never records merged in.

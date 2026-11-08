@@ -1,10 +1,11 @@
 import {
   matchSpaceSelector,
-  JobProgressEventSchema,
   conversationMessageMetadataSchema,
+  type ConversationMessageAddedPayload,
   type IConversationsNamespace,
   type IRuntimeStateStore,
   type JobOptions,
+  type JobProgressEvent,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { SUMMARY_PLUGIN_ID } from "../constants";
@@ -57,10 +58,8 @@ export function channelPickupJob(conversationId: string): {
  * web process hears every process's job completions, so this is how it
  * learns a worker's pickup recorded notices to post.
  */
-export function finishedPickupOf(payload: unknown): string | undefined {
-  const event = JobProgressEventSchema.safeParse(payload);
-  if (!event.success) return undefined;
-  const { status, jobDetails, metadata } = event.data;
+export function finishedPickupOf(event: JobProgressEvent): string | undefined {
+  const { status, jobDetails, metadata } = event;
   if (status !== "completed" || jobDetails?.jobType !== QUEUED_JOB_TYPE) {
     return undefined;
   }
@@ -81,11 +80,6 @@ export interface ChannelTriggerDeps {
   enqueue: (conversationId: string) => Promise<void>;
 }
 
-const messageAddedSchema = z.object({
-  conversationId: z.string().min(1),
-  metadata: z.unknown().optional(),
-});
-
 /** The configured space a stored message belongs to, as the chat interface recorded it. */
 function spaceIdOf(metadata: unknown): string | undefined {
   const parsed = conversationMessageMetadataSchema.safeParse(metadata ?? {});
@@ -105,12 +99,10 @@ function inSpace(
 /** A message was stored: queue its conversation's pickup when it is in a space. */
 export async function wakeUpChannel(
   deps: ChannelTriggerDeps,
-  payload: unknown,
+  message: ConversationMessageAddedPayload,
 ): Promise<void> {
-  const parsed = messageAddedSchema.safeParse(payload);
-  if (!parsed.success) return;
-  if (!inSpace(spaceIdOf(parsed.data.metadata), deps.spaces)) return;
-  await deps.enqueue(parsed.data.conversationId);
+  if (!inSpace(spaceIdOf(message.metadata), deps.spaces)) return;
+  await deps.enqueue(message.conversationId);
 }
 
 /** How many conversations one catch-up looks at, newest active first. */

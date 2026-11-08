@@ -3,6 +3,7 @@ import {
   PluginConfigValidationError,
   createPluginPackageDefinition,
   instantiatePluginPackageDefinition,
+  isPackageDefinitionPlugin,
   isPluginPackageDefinition,
   type Plugin,
   type PluginCapabilities,
@@ -135,6 +136,37 @@ describe("plugin package definitions", () => {
       expect(error.message).toContain("brain.yaml");
       expect(error.message).toContain("use() configuration");
     }
+  });
+
+  it("tells a plugin a definition created from one built by hand", () => {
+    const definition = createPluginPackageDefinition({
+      family: "service",
+      id: "reading-insights",
+      config: z.object({}),
+      instantiate: ({ package: metadata, scope }) =>
+        testPlugin({
+          id: scope("reading-insights"),
+          packageName: metadata.name,
+          version: metadata.version,
+        }),
+    });
+    const [created] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/reading", version: "0.1.0" },
+    );
+    if (!created) throw new Error("The definition created no plugin");
+
+    expect(isPackageDefinitionPlugin(created)).toBe(true);
+    expect(
+      isPackageDefinitionPlugin(
+        testPlugin({
+          id: "@fixture/reading:reading-insights",
+          packageName: "@fixture/reading",
+          version: "0.1.0",
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects hand-written package objects and invalid local ids", () => {

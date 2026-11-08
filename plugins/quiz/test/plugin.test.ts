@@ -8,9 +8,10 @@ import {
   type ChannelDeliveryInput,
   type JobHandler,
   type WebRouteDefinition,
+  instantiatePluginPackageDefinition,
 } from "@brains/plugins";
 import { parseFormMarkdown } from "@brains/forms";
-import { NotificationsPlugin } from "@brains/notifications";
+import notificationsPackage from "@brains/notifications";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import {
   quizPlugin,
@@ -139,9 +140,14 @@ async function setup(): Promise<{
     },
   });
   channels.finalize();
-  await new NotificationsPlugin({
-    defaultRecipient: { type: "email", address: "owner@example.com" },
-  }).register(shell);
+  const [notifications] = instantiatePluginPackageDefinition(
+    notificationsPackage,
+    { defaultRecipient: { type: "email", address: "owner@example.com" } },
+    { name: "@brains/notifications", version: "0.0.0-test" },
+    { pluginId: "notifications" },
+  );
+  if (!notifications) throw new Error("Notifications installs no plugin");
+  await notifications.register(shell);
   const [results, plugin] = quizPlugin();
   await results.register(shell);
   await plugin.register(shell);

@@ -12,14 +12,23 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
-import { PromptPlugin } from "@brains/prompt";
-import { createServicePluginContext } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import promptPackage from "@brains/prompt";
+import wishlistPackage from "@brains/wishlist";
+import { z } from "@brains/utils/zod";
+import {
+  EntityPlugin,
+  createServicePluginContext,
+  defineEntity,
+  defineEntityPackage,
+  instantiatePluginPackageDefinition,
+  type EntityTypeConfig,
+} from "@brains/plugins";
+import { createMockShell, createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
   generateMarkdown,
@@ -35,6 +44,38 @@ import {
   createEditorRoutes,
   StudioWorkspaceRegistry,
 } from "@brains/studio/test";
+
+/** The entity plugin the prompt package installs, as a brain composes it. */
+function promptPlugin(): EntityPlugin<
+  BaseEntity,
+  Record<string, never>,
+  Record<string, never>
+> {
+  const [plugin] = instantiatePluginPackageDefinition(
+    promptPackage,
+    {},
+    { name: "@brains/prompt", version: "0.0.0-test" },
+  );
+  if (!(plugin instanceof EntityPlugin)) throw new Error("No prompt plugin");
+  return plugin;
+}
+
+/** The type config a plugin registers, read from a registry it installs into. */
+async function registeredConfig(
+  plugin: EntityPlugin<
+    BaseEntity,
+    Record<string, never>,
+    Record<string, never>
+  >,
+): Promise<EntityTypeConfig> {
+  const harness = createPluginHarness({ logger: createSilentLogger() });
+  await harness.installPlugin(plugin);
+  const config = harness
+    .getEntityRegistry()
+    .getEntityTypeConfig(plugin.entityType);
+  await harness.reset();
+  return config;
+}
 
 const type = "grouping-definitions";
 const areas = { label: "Areas", multiple: true };
@@ -173,7 +214,8 @@ function content(values: string[], entityType = "note"): string {
 describe("document-backed runtime definitions with real adapters", () => {
   test("system classification removes real prompts from groupings without rewriting authored source", async () => {
     const dir = await directory();
-    const plugin = new PromptPlugin();
+    const plugin = promptPlugin();
+    const promptConfig = await registeredConfig(plugin);
     const legacy = await open(dir, (registry) =>
       registry.registerEntityType(
         plugin.entityType,
@@ -219,7 +261,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         plugin.entityType,
         plugin.schema,
         plugin.adapter,
-        plugin.getEntityTypeConfig(),
+        promptConfig,
       ),
     );
     const after = await current.service.getEntityRaw({
@@ -271,14 +313,13 @@ describe("document-backed runtime definitions with real adapters", () => {
         })
       ).status,
     ).toBe(200);
-    const edited = await current.service.getEntityRaw({
-      entityType: "prompt",
-      id: "guidance",
-      visibilityScope: "shared",
-    });
-    expect(parseMarkdown(edited?.content ?? "").frontmatter["areas"]).toEqual(
-      exact,
-    );
+    // A declared type reads back its body alone; the authored source is the
+    // stored markdown.
+    expect(
+      parseMarkdown(await storedContent(dir, "prompt", "guidance")).frontmatter[
+        "areas"
+      ],
+    ).toEqual(exact);
     expect(
       (
         await save(
@@ -1994,5 +2035,244 @@ describe("document-backed runtime definitions with real adapters", () => {
         })
       ).total,
     ).toBe(2);
+  });
+});
+
+// Declared types, as packages written with defineEntity install them: a read
+// hands back the body alone, and the frontmatter is the metadata.
+const guidance = defineEntity({
+  type: "guidance",
+  classification: "system",
+  purpose: "Instructions the brain follows",
+  metadata: z.object({ title: z.string(), target: z.string() }),
+});
+const card = defineEntity({
+  type: "card",
+  purpose: "A card with a heading and a tone",
+  metadata: z.object({ title: z.string(), tone: z.enum(["plain", "warm"]) }),
+});
+
+function declaredPlugins(): Array<
+  EntityPlugin<BaseEntity, Record<string, never>, Record<string, never>>
+> {
+  return instantiatePluginPackageDefinition(
+    defineEntityPackage({ id: "declared", entities: [guidance, card] }),
+    {},
+    { name: "@fixture/declared", version: "0.1.0" },
+  ).flatMap((plugin) => (plugin instanceof EntityPlugin ? [plugin] : []));
+}
+
+function registerDeclared(registry: EntityRegistry): void {
+  for (const plugin of declaredPlugins()) {
+    registry.registerEntityType(
+      plugin.entityType,
+      plugin.schema,
+      plugin.adapter,
+      plugin.entityType === "guidance" ? { classification: "system" } : {},
+    );
+  }
+}
+
+/** An entity's stored markdown, as the database row holds it. */
+async function storedContent(
+  dir: string,
+  entityType: string,
+  id: string,
+): Promise<string> {
+  const database = createClient({ url: `file:${dir}/entities.db` });
+  try {
+    const result = await database.execute({
+      sql: "SELECT content FROM entities WHERE entityType = ? AND id = ?",
+      args: [entityType, id],
+    });
+    return String(result.rows[0]?.["content"] ?? "");
+  } finally {
+    database.close();
+  }
+}
+
+describe("declared types in the editor", () => {
+  test("system classification removes declared types from groupings without rewriting authored source", async () => {
+    const dir = await directory();
+    const fixture = await open(dir, registerDeclared);
+    const exact = [" Ka21, exact ", " Ka21, exact ", "Stray"];
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "guidance",
+        id: "guidance",
+        markdown: generateMarkdown(
+          {
+            title: "Guidance",
+            target: "note:test",
+            areas: exact,
+            visibility: "shared",
+          },
+          "Keep these instructions.",
+        ),
+      },
+    });
+    await fixture.service.createEntityFromMarkdown({
+      input: { entityType: "note", id: "content", markdown: content(["Acme"]) },
+    });
+    expect(
+      (
+        await save(fixture, {
+          areas: { ...areas, multiple: false, values: ["Acme"] },
+        })
+      ).status,
+    ).toBe(201);
+
+    expect(
+      (
+        await fixture.request("PUT", "entities", {
+          entityType: "guidance",
+          id: "guidance",
+          frontmatter: {
+            title: "Guidance",
+            target: "note:test",
+            visibility: "shared",
+          },
+          body: "Edited instructions.",
+        })
+      ).status,
+    ).toBe(200);
+    const edited = parseMarkdown(
+      await storedContent(dir, "guidance", "guidance"),
+    );
+    expect(edited.frontmatter["areas"]).toEqual(exact);
+    expect(edited.frontmatter["title"]).toBe("Guidance");
+    expect(edited.content.trim()).toBe("Edited instructions.");
+  });
+
+  test("opens a declared entry with its frontmatter and saves it keeping what it does not own", async () => {
+    const dir = await directory();
+    const fixture = await open(dir, registerDeclared);
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "card",
+        id: "tide",
+        markdown:
+          "---\ntitle: Tide\ntone: warm\nowner: Ana\n---\nA card about tides.\n",
+      },
+    });
+
+    const opened = await (
+      await fixture.request("GET", "entities?type=card&id=tide")
+    ).json();
+    expect(opened.entity).toMatchObject({
+      frontmatter: {
+        title: "Tide",
+        tone: "warm",
+        owner: "Ana",
+        visibility: "public",
+      },
+      displayTitle: "Tide",
+    });
+    expect(opened.entity.body.trim()).toBe("A card about tides.");
+
+    const listed = await (
+      await fixture.request("GET", "entities?type=card")
+    ).json();
+    expect(listed.entities).toEqual([
+      expect.objectContaining({
+        id: "tide",
+        frontmatter: expect.objectContaining({ title: "Tide", tone: "warm" }),
+        displayTitle: "Tide",
+      }),
+    ]);
+
+    expect(
+      (
+        await fixture.request("PUT", "entities", {
+          entityType: "card",
+          id: "tide",
+          frontmatter: { title: "Ebb", tone: "plain", visibility: "public" },
+          body: "A card about the ebb.",
+          baseContentHash: opened.entity.contentHash,
+        })
+      ).status,
+    ).toBe(200);
+
+    const stored = parseMarkdown(await storedContent(dir, "card", "tide"));
+    expect(stored.frontmatter).toEqual({
+      title: "Ebb",
+      tone: "plain",
+      owner: "Ana",
+    });
+    expect(stored.content.trim()).toBe("A card about the ebb.");
+    const reopened = await (
+      await fixture.request("GET", "entities?type=card&id=tide")
+    ).json();
+    expect(reopened.entity.frontmatter).toMatchObject({
+      title: "Ebb",
+      tone: "plain",
+    });
+    expect(
+      (await fixture.service.getEntity({ entityType: "card", id: "tide" }))
+        ?.metadata,
+    ).toEqual({ title: "Ebb", tone: "plain" });
+  });
+});
+
+/** A first-party declared package's types, registered as the brain does. */
+function registerPackage(
+  definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
+  packageName: string,
+  pluginId: string,
+): (registry: EntityRegistry) => void {
+  return (registry) => {
+    for (const plugin of instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: packageName, version: "0.0.0-test" },
+      { pluginId },
+    )) {
+      if (plugin instanceof EntityPlugin) {
+        registry.registerEntityType(
+          plugin.entityType,
+          plugin.schema,
+          plugin.adapter,
+        );
+      }
+    }
+  };
+}
+
+describe("first-party declared types in the editor", () => {
+  test("saves a wish edited in the editor, its derived slug left out of the file", async () => {
+    const dir = await directory();
+    const fixture = await open(
+      dir,
+      registerPackage(wishlistPackage, "@brains/wishlist", "wishlist"),
+    );
+    const authored =
+      "---\ntitle: Send emails\nstatus: new\npriority: medium\nrequested: 2\n---\nUser wants email integration\n";
+    await fixture.service.createEntityFromMarkdown({
+      input: { entityType: "wish", id: "send-emails", markdown: authored },
+    });
+    const opened = await (
+      await fixture.request("GET", "entities?type=wish&id=send-emails")
+    ).json();
+
+    const saved = await fixture.request("PUT", "entities", {
+      entityType: "wish",
+      id: "send-emails",
+      frontmatter: { ...opened.entity.frontmatter, priority: "high" },
+      body: opened.entity.body,
+      baseContentHash: opened.entity.contentHash,
+    });
+
+    expect(saved.status).toBe(200);
+    expect(
+      parseMarkdown(await storedContent(dir, "wish", "send-emails")),
+    ).toEqual({
+      frontmatter: {
+        title: "Send emails",
+        status: "new",
+        priority: "high",
+        requested: 2,
+      },
+      content: expect.stringContaining("User wants email integration"),
+    });
   });
 });

@@ -679,7 +679,15 @@ export interface ListOptions<
   };
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly?: boolean;
+  source?: SourceReadOption;
 }
+
+/**
+ * Hand back each record's content as stored: the markdown document, its
+ * frontmatter included, as an editor edits it. A declared type's ordinary
+ * reads carry its body alone; every other type reads the same either way.
+ */
+export type SourceReadOption = boolean | undefined;
 
 /**
  * Search options
@@ -789,6 +797,7 @@ export interface GetEntityRequest extends EntityReadOptions {
   visibilityScope?: ContentVisibility | undefined;
   /** Only an entity its type counts as published, as for published-only listings. */
   publishedOnly?: boolean | undefined;
+  source?: SourceReadOption;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -822,6 +831,7 @@ export interface QueryEntityHierarchyRequest {
       }
     | undefined;
   signal?: AbortSignal | undefined;
+  source?: SourceReadOption;
 }
 
 export interface EntityHierarchyPage {
@@ -1386,6 +1396,8 @@ export interface EntityServiceClient extends ICoreEntityService {
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
   /** Rewrite stored entities whose content still carries a retired frontmatter field. */
   rewriteRetiredFields(): Promise<{ rewritten: number }>;
+  /** Re-derive declared types' stored metadata from their stored markdown, the metadata column alone. */
+  reconcileDeclaredMetadata(): Promise<{ reconciled: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

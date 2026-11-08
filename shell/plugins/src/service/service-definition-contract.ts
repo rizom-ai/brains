@@ -367,6 +367,20 @@ export function defineTool<
   >,
 ): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {
   assertIdentifier(definition.name, "Tool name");
+  return buildServiceTool(definition);
+}
+
+/** A tool declaration whose name its helper has already checked. */
+export function buildServiceTool<
+  const TName extends string,
+  TInputSchema extends ServiceInputSchema,
+  const TOutputSchema extends ServiceSchema,
+>(
+  definition: Omit<
+    ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,
+    "kind"
+  >,
+): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {
   if (!definition.description.trim()) {
     throw new Error(`Tool "${definition.name}" description must not be empty`);
   }

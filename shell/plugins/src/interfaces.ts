@@ -234,6 +234,7 @@ export interface IShell {
   getDomain(): string | undefined;
   getLocalSiteUrl(): string | undefined;
   shouldPreferLocalUrls(): boolean;
+  isProduction(): boolean;
   getThemeCSS(): string;
 
   // Shared conversation spaces for this brain/team

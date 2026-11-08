@@ -77,7 +77,7 @@ describe("an upload saved after a clarifying question", () => {
         entityType: "note",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: draftUpload.id },
+          id: draftUpload.id,
           transform: "extract-markdown",
         },
       },
@@ -105,11 +105,11 @@ describe("an upload saved after a clarifying question", () => {
           kind: "uploads",
           items: [
             {
-              upload: { kind: "upload", id: draftUpload.id },
+              id: draftUpload.id,
               transform: "extract-markdown",
             },
             {
-              upload: { kind: "upload", id: essayUpload.id },
+              id: essayUpload.id,
               transform: "extract-markdown",
             },
           ],

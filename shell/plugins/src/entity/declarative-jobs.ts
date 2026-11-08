@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
+  SdkError,
+  type ImageAspectRatio,
   fetchVoiceGuidance,
   generateReportFailureContract,
   generateReportSuccessContract,
@@ -13,6 +15,7 @@ import {
   type ContentVisibility,
 } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
+import type { EntityActionRequiredLevel } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
 import { parseWithSchema } from "@brains/utils/parse-schema";
@@ -30,13 +33,16 @@ import {
 import {
   createPackageEntityReader,
   packageReadScope,
+  packageSelfCall,
   queuedJobCall,
   serviceJobDataSchema,
   type PackageCall,
+  type QueuedJobCall,
   type ServiceJobData,
 } from "../service/job-authority";
 import type { EntityPluginContext } from "./context";
 import type {
+  AnyEntityDefinition,
   EntityEvalFixtures,
   EntityGenerationAI,
   EntityGenerationContext,
@@ -47,8 +53,16 @@ import type {
   EntityJobMessaging,
   EntityJobProgress,
   EntityReader,
+  OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
+import { withEntityRuntime } from "./entity-runtime";
+import { sharedUploadScope } from "../service/upload-registry";
+import type { AttachmentResolveRequest } from "../service/attachment-registry";
+import {
+  assertOwnedWriteAllowed,
+  createOwnedEntityWriter,
+} from "./owned-entity-writer-runtime";
 
 /**
  * Template generation through main's AI path: a template this type declares,
@@ -295,14 +309,72 @@ function jobContext<TInput>(
   });
 }
 
+/** What a declared job may write, and the policy its writes are held to. */
+export interface EntityJobWrites {
+  /** The type whose `jobs` slot declares the job: the one type it writes. */
+  readonly declaring: AnyEntityDefinition;
+  /** The level a type's action needs under the brain's policy. */
+  requiredLevel(
+    entityType: string,
+    action: "create" | "update" | "delete",
+  ): EntityActionRequiredLevel | undefined;
+}
+
+/**
+ * The writes a declared job's `handle` makes: the declaring type's records,
+ * as the run's authority, with the service writer's semantics. A requester
+ * is also held to the visibility they may write.
+ */
+function entityJobWriter(
+  context: EntityPluginContext,
+  call: QueuedJobCall,
+  authority: EntityRunAuthority,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): OwnedEntityWriter<AnyEntityDefinition> {
+  const { declaring } = writes;
+  return createOwnedEntityWriter({
+    entityService: context.entityService,
+    owned: (definition) => {
+      if (definition.type !== declaring.type) {
+        throw new SdkError("permission_denied", {
+          message: `A ${declaring.type} job may only write ${declaring.type} records, and "${definition.type}" is not its type`,
+        });
+      }
+      return declaring;
+    },
+    currentCall: () => call,
+    assertWriteAllowed: (entityType, action, current) =>
+      assertOwnedWriteAllowed(
+        writes.requiredLevel(entityType, action),
+        entityType,
+        action,
+        current,
+      ),
+    readScope: (current, entityType, access) =>
+      packageReadScope(current, ownsType(entityType), access),
+    assertCreateVisibility: async (entityType, visibility) => {
+      const refusal = authority.visibilityRefusal(entityType, visibility);
+      if (refusal) {
+        throw new SdkError("permission_denied", {
+          message: refusal,
+          publicMessage: refusal,
+        });
+      }
+    },
+  });
+}
+
 /**
  * Bind a declared job that does its own work. It reads as whoever started
- * it, as a service package's job does.
+ * it, as a service package's job does, and writes the declaring type's
+ * records as them.
  */
 export function entityJobHandler(
   declaration: EntityJobDeclaration,
   context: EntityPluginContext,
   ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
 ): JobHandler<string, ServiceJobData, unknown> {
   // Queued data names who started the job; data without it is invalid.
   const dataSchema = serviceJobDataSchema(declaration.input);
@@ -317,17 +389,125 @@ export function entityJobHandler(
       // Its requester's current access, never more than it was admitted at;
       // a revoked or rebound requester is refused before the job reads.
       const call = await queuedJobCall(context.jobAuthority, job);
+      const authority = await runAuthority(context, call, ownsType);
+      const base = jobContext(
+        context,
+        parseWithSchema(declaration.input, job.input),
+        progress,
+        signal,
+        authority.entities,
+      );
       return declaration.handle(
-        jobContext(
-          context,
-          parseWithSchema(declaration.input, job.input),
-          progress,
-          signal,
-          createPackageEntityReader(
-            context.entityService,
-            () => call,
+        Object.freeze({
+          ...base,
+          entities: Object.freeze({
+            ...authority.entities,
+            ...entityJobWriter(context, call, authority, ownsType, writes),
+          }),
+        }),
+      );
+    },
+  };
+}
+
+/**
+ * Bind a first-party job another package queues through its contract. Its
+ * queued data is the contract's input as written, with no requester beside
+ * it, so it runs as the package, as the entity plugin classes' job handlers
+ * did: it writes its own type at every visibility past the policy, reads
+ * other types at the package's grant, and links what it made into a target
+ * past the target's action policy.
+ */
+export function contractJobHandler(
+  declaration: EntityJobDeclaration,
+  context: EntityPluginContext,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+  pluginId: string,
+): JobHandler<string, unknown, unknown> {
+  return {
+    validateAndParse(data): unknown {
+      const parsed = declaration.input.safeParse(data);
+      return parsed.success ? parsed.data : null;
+    },
+    async process(data, _jobId, progress, signal): Promise<unknown> {
+      const call: QueuedJobCall = {
+        ...packageSelfCall(context.jobAuthority),
+        eventContext: { actor: { kind: "service", serviceId: pluginId } },
+      };
+      const authority = await runAuthority(context, call, ownsType);
+      const uploads = context.uploads.scoped(sharedUploadScope);
+      const base = jobContext(
+        context,
+        data,
+        progress,
+        signal,
+        authority.entities,
+      );
+      return declaration.handle(
+        withEntityRuntime(
+          {
+            ...base,
+            entities: Object.freeze({
+              ...authority.entities,
+              ...entityJobWriter(context, call, authority, ownsType, writes),
+            }),
+          },
+          {
+            where: "a contract job",
+            reader: authority.entities,
+            packageReader: authority.entities,
             ownsType,
-          ),
+            searchWithDistances: (request) =>
+              context.entityService.searchWithDistances(request),
+            generateObject: (prompt, schema) =>
+              context.ai.generateObject(prompt, schema),
+            anyEntities: {
+              service: context.entityService,
+              // Public, as the entity plugin classes' job handlers read
+              // through the store's default scope; the typed reads and
+              // writes reach the package's own types at every visibility.
+              scope: () => "public",
+            },
+            job: {
+              logger: context.logger,
+              images: Object.freeze({
+                canGenerate: (): boolean => context.ai.canGenerateImages(),
+                generate: async (
+                  prompt: string,
+                  options?: {
+                    readonly aspectRatio?: ImageAspectRatio | undefined;
+                  },
+                ): Promise<{ readonly dataUrl: string }> => {
+                  const { dataUrl } = await context.ai.generateImage(
+                    prompt,
+                    definedFields({ aspectRatio: options?.aspectRatio }),
+                  );
+                  return { dataUrl };
+                },
+              }),
+              attachments: Object.freeze({
+                resolve: (request: AttachmentResolveRequest) =>
+                  context.attachments.resolve({ ...request }),
+              }),
+              uploads: Object.freeze({
+                read: (uploadId: string) => uploads.read(uploadId),
+                readRecord: (uploadId: string) => uploads.readRecord(uploadId),
+              }),
+              linkInto: async (
+                entityId: string,
+                link: EntityGenerationLink,
+              ): Promise<void> => {
+                const problem = await linkTargetProblem(
+                  context,
+                  link,
+                  authority,
+                );
+                if (problem) throw new Error(problem);
+                await writeGenerationLink(context, entityId, link, authority);
+              },
+            },
+          },
         ),
       );
     },
@@ -344,8 +524,22 @@ export async function generationLinkProblem(
   link: EntityGenerationLink,
   authority: EntityRunAuthority,
 ): Promise<string | undefined> {
-  const refused = authority.refusal(link.entityType, "update");
-  if (refused) return refused;
+  return (
+    authority.refusal(link.entityType, "update") ??
+    (await linkTargetProblem(context, link, authority))
+  );
+}
+
+/**
+ * Why a link's target cannot hold it: one the run cannot see, a cover on a
+ * type that never declared one, or a field or list a declared type's
+ * metadata cannot hold. The target's action policy is not asked.
+ */
+export async function linkTargetProblem(
+  context: EntityPluginContext,
+  link: EntityGenerationLink,
+  authority: EntityRunAuthority,
+): Promise<string | undefined> {
   // A target the run cannot see is not there for it, so the link never
   // writes an entry its requester may not write.
   const target = await context.entityService.getEntity({

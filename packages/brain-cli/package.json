@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.652",
+  "version": "0.2.0-alpha.663",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
@@ -70,6 +70,7 @@
     "@brains/guide": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",
+    "@brains/knowledge-map": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/linkedin-import": "workspace:*",
     "@brains/mcp": "workspace:*",
@@ -137,10 +138,6 @@
       "types": "./dist/model.d.ts",
       "import": "./dist/model.js"
     },
-    "./plugins": {
-      "types": "./dist/plugins.d.ts",
-      "import": "./dist/plugins.js"
-    },
     "./entities": {
       "types": "./dist/entities.d.ts",
       "import": "./dist/entities.js"
@@ -153,9 +150,9 @@
       "types": "./dist/interfaces.d.ts",
       "import": "./dist/interfaces.js"
     },
-    "./templates": {
-      "types": "./dist/templates.d.ts",
-      "import": "./dist/templates.js"
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
     },
     "./deploy": {
       "types": "./dist/deploy.d.ts",

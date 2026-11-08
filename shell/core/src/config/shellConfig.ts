@@ -83,7 +83,6 @@ export const shellConfigSchema: z.ZodObject<{
     imageApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
     temperature: z.ZodDefault<z.ZodNumber>;
-    maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   }>;
@@ -105,6 +104,7 @@ export const shellConfigSchema: z.ZodObject<{
   siteBaseUrl: z.ZodOptional<z.ZodString>;
   localSiteUrl: z.ZodOptional<z.ZodString>;
   preferLocalUrls: z.ZodDefault<z.ZodBoolean>;
+  production: z.ZodDefault<z.ZodBoolean>;
   themeCSS: z.ZodDefault<z.ZodString>;
   entityDisplay: z.ZodOptional<
     z.ZodRecord<z.ZodString, typeof entityDisplayEntrySchema>
@@ -131,7 +131,6 @@ export const shellConfigSchema: z.ZodObject<{
     imageApiKey: z.string().optional(),
     model: z.string(),
     temperature: z.number().min(0).max(2).default(0.7),
-    maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
     reasoningEffort: reasoningEffortSchema.optional(),
   }),
@@ -164,6 +163,8 @@ export const shellConfigSchema: z.ZodObject<{
   siteBaseUrl: z.string().optional(),
   localSiteUrl: z.string().optional(),
   preferLocalUrls: z.boolean().default(false),
+  /** Whether the runtime environment is production, read by the app layer. */
+  production: z.boolean().default(false),
   themeCSS: z.string().default(""),
   entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
   profileKind: z.string().trim().min(1).optional(),

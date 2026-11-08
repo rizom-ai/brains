@@ -202,6 +202,8 @@ describe("canonical brain core", () => {
       "note",
       "link",
       "topics",
+      // The knowledge map comes with topics.
+      "knowledge-map",
       "directory-sync",
       "agent-discovery",
       "agent",

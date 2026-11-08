@@ -2,6 +2,7 @@ import { collectContract } from "@brains/messaging-service";
 import { projectionWaveReadyContract } from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
+  initialSyncOutcomeSchema,
   materializePrompts,
   pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
@@ -26,8 +27,6 @@ import {
 } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
-
-const initialSyncOutcomeSchema = z.object({ success: z.boolean() });
 
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({
@@ -278,6 +277,16 @@ export class ShellBootloader {
           rewritten: retired.rewritten,
         });
       }
+      // A type converted from an entity plugin class to a declaration reads
+      // its frontmatter as metadata; rows the class wrote get it before
+      // startup content settles and seeds look for them.
+      const declared =
+        await this.services.entityService.reconcileDeclaredMetadata();
+      if (declared.reconciled > 0) {
+        this.services.logger.info("Re-derived declared entity metadata", {
+          reconciled: declared.reconciled,
+        });
+      }
 
       if (initialSyncPending) {
         pendingStartupContent = initialSync.promise
@@ -416,14 +425,6 @@ export class ShellBootloader {
       logger.info(
         "Prompts without provenance differ from their default and are kept; delete one to restore its default",
         { targets: prompts.unverifiedOverrides },
-      );
-    }
-    if (prompts.removedLegacy.length > 0) {
-      logger.info(
-        "Removed prompt copies stored under ids generation never read",
-        {
-          ids: prompts.removedLegacy,
-        },
       );
     }
     for (const { target, error } of prompts.failed) {

@@ -506,9 +506,8 @@ describe("canonical eval recipe ladder", () => {
             id,
             operation:
               mode === "content"
-                ? { kind: "content", content: expected }
+                ? { content: expected }
                 : {
-                    kind: "edits",
                     edits: [
                       { oldText: "# Working Plan", newText: "# Approved Plan" },
                       {
@@ -746,7 +745,6 @@ describe("canonical eval recipe ladder", () => {
             entityType: "note",
             id: "mcp-verbatim-update",
             operation: {
-              kind: "source",
               source: {
                 kind: "user-message",
                 ...boundaries,
@@ -763,7 +761,6 @@ describe("canonical eval recipe ladder", () => {
           .parse(proposal);
         expect(approval.args).toMatchObject({
           operation: {
-            kind: "source",
             source: {
               contentHash: computeContentHash(
                 mode === "line" ? content : content.replace(/\n$/, ""),

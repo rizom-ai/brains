@@ -1,15 +1,15 @@
 {
   "name": "@brains/notifications",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.652",
+  "version": "0.2.0-alpha.663",
   "description": "Generic notification routing for transactional and administrative messages",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/sdk": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

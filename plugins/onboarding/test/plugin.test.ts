@@ -10,7 +10,8 @@ import {
 import { createPluginHarness } from "@brains/plugins/test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { onboardingPlugin } from "../src";
+import onboardingPackage from "../src";
+import { onboardingPlugin } from "./onboarding-plugin";
 
 /** The `playbooks:lifecycle-starters` answer, as the plugin builds it. */
 const startersAnswerSchema = z.object({ starters: z.array(z.unknown()) });
@@ -35,7 +36,36 @@ async function installHarness(): Promise<
   return harness;
 }
 
-describe("OnboardingPlugin", () => {
+describe("onboarding", () => {
+  it("default-exports its service package definition", () => {
+    expect(onboardingPackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "onboarding",
+    });
+  });
+
+  it("registers under the plugin id its class had, after the playbook plugins", async () => {
+    const harness = await installHarness();
+    const plugin = onboardingPlugin({ enabled: true });
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "onboarding",
+      "service",
+      "@brains/onboarding",
+    ]);
+    expect(plugin.dependencies).toEqual(["playbook", "playbooks"]);
+    expect(capabilities.tools).toEqual([]);
+    expect(capabilities.resources).toEqual([]);
+  });
+
+  it("refuses an unknown config key", () => {
+    // The config is strict, as the class's was.
+    const config = { enabled: true, extra: 1 };
+    expect(() => onboardingPlugin(config)).toThrow(/extra/);
+  });
+
   it("does nothing when disabled", async () => {
     const harness = await installHarness();
     const plugin = onboardingPlugin({});
@@ -93,9 +123,7 @@ describe("OnboardingPlugin", () => {
       lifecycle: "onboarding",
     });
     expect(
-      setup?.content.match(
-        /operation: \{ kind: "content", content: <full markdown> \}/g,
-      ),
+      setup?.content.match(/operation: \{ content: <full markdown> \}/g),
     ).toHaveLength(2);
     expect(setup?.content).not.toContain("the `content` argument");
     expect(firstLoop?.metadata).toMatchObject({

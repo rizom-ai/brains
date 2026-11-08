@@ -183,11 +183,41 @@ export function formatVisualGuidance(styleGuide: StyleGuide): string {
  * structurally by the entity service so entity and plugin packages can share
  * the lookup without depending on each other.
  */
+/**
+ * A stored record of a type whose fields are frontmatter: as an entity
+ * plugin class reads it, the content carries the frontmatter; as a declared
+ * type reads it, the content is the body and the frontmatter its metadata.
+ */
+export interface FrontmatterRecord {
+  readonly content: string;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+/** The record's frontmatter fields and its body, whichever way it was read. */
+export function frontmatterRecordFields(record: FrontmatterRecord): {
+  fields: unknown;
+  body: string;
+} {
+  const parsed = parseMarkdown(record.content);
+  return Object.keys(parsed.frontmatter).length > 0
+    ? { fields: parsed.frontmatter, body: parsed.content }
+    : { fields: record.metadata ?? {}, body: parsed.content };
+}
+
+/** The style guide a stored style-guide record holds. */
+export function styleGuideFromRecord(record: FrontmatterRecord): StyleGuide {
+  const { fields, body } = frontmatterRecordFields(record);
+  return {
+    ...styleGuideFrontmatterSchema.parse(fields),
+    guidance: body,
+  };
+}
+
 export interface StyleGuideEntityReader {
   getEntity(request: {
     entityType: string;
     id: string;
-  }): Promise<{ id: string; content: string } | null>;
+  }): Promise<({ id: string } & FrontmatterRecord) | null>;
 }
 
 export async function fetchStyleGuide(
@@ -198,7 +228,7 @@ export async function fetchStyleGuide(
     id: "style-guide",
   });
   return entity?.id === "style-guide"
-    ? parseStyleGuideContent(entity.content)
+    ? styleGuideFromRecord(entity)
     : DEFAULT_STYLE_GUIDE;
 }
 

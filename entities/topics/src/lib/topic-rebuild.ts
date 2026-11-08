@@ -42,8 +42,6 @@ export async function replaceAllTopics(
     minRelevanceScore: config.minRelevanceScore,
     createRelevanceThreshold: config.createRelevanceThreshold,
     reinforceRelevanceThreshold: config.reinforceRelevanceThreshold,
-    sourceWeights: config.sourceWeights,
-    mintableEntityTypes: config.mintableEntityTypes,
     sourceRolePolicies: config.sourceRolePolicies,
     sourceRoleOverrides: config.sourceRoleOverrides,
     sourceEntityCount: entities.length,

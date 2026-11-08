@@ -1,9 +1,10 @@
 import { z } from "@brains/utils/zod";
 import type { GuestConversationOwnership } from "@brains/contracts/chat";
 import {
-  actorRefFromLegacy,
   actorRefSchema,
+  defineChannel,
   messageRoleSchema,
+  type Channel,
   type MessageRole,
 } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
@@ -22,6 +23,72 @@ export const CONVERSATION_MESSAGE_ADDED_CHANNEL = "conversation:messageAdded";
  */
 export const CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL =
   "conversation:guestMessageAdded";
+
+type ConversationMessageAddedPayloadSchema = z.ZodObject<{
+  conversationId: z.ZodString;
+  messageId: z.ZodString;
+  role: typeof messageRoleSchema;
+  content: z.ZodString;
+  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  timestamp: z.ZodString;
+}>;
+
+/**
+ * A message was stored, with what it says and the metadata its writer gave
+ * it. Each metadata key belongs to whoever writes it, so a subscriber reads
+ * the keys it knows with their own schemas.
+ */
+export const conversationMessageAddedPayloadSchema: ConversationMessageAddedPayloadSchema =
+  z.object({
+    conversationId: z.string().min(1),
+    messageId: z.string().min(1),
+    role: messageRoleSchema,
+    content: z.string(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    timestamp: z.string(),
+  });
+
+export type ConversationMessageAddedPayload = z.output<
+  typeof conversationMessageAddedPayloadSchema
+>;
+
+export const conversationMessageAddedChannel: Channel<
+  ConversationMessageAddedPayload,
+  unknown,
+  typeof CONVERSATION_MESSAGE_ADDED_CHANNEL
+> = defineChannel(
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  conversationMessageAddedPayloadSchema,
+);
+
+type ConversationGuestMessageAddedPayloadSchema = z.ZodObject<{
+  conversationId: z.ZodString;
+  messageId: z.ZodString;
+  role: typeof messageRoleSchema;
+  position: z.ZodNumber;
+}>;
+
+/** A guest message was stored: where it is, never what it says. */
+export const conversationGuestMessageAddedPayloadSchema: ConversationGuestMessageAddedPayloadSchema =
+  z.object({
+    conversationId: z.string().min(1),
+    messageId: z.string().min(1),
+    role: messageRoleSchema,
+    position: z.number().int().positive(),
+  });
+
+export type ConversationGuestMessageAddedPayload = z.output<
+  typeof conversationGuestMessageAddedPayloadSchema
+>;
+
+export const conversationGuestMessageAddedChannel: Channel<
+  ConversationGuestMessageAddedPayload,
+  unknown,
+  typeof CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL
+> = defineChannel(
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+  conversationGuestMessageAddedPayloadSchema,
+);
 
 /** Bus channel emitted when a new conversation is started. */
 export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
@@ -79,50 +146,6 @@ export type ConversationMessageActor = z.output<
   typeof conversationMessageActorSchema
 >;
 
-const conversationMessageActorParserSchema: z.ZodPreprocess<
-  typeof conversationMessageActorSchema
-> = z.preprocess(
-  normalizeLegacyConversationMessageActor,
-  conversationMessageActorSchema,
-);
-
-function normalizeLegacyConversationMessageActor(value: unknown): unknown {
-  if (!isRecord(value) || "identity" in value) return value;
-  const actorId = value["actorId"];
-  const interfaceType = value["interfaceType"];
-  const role = value["role"];
-  if (
-    typeof actorId !== "string" ||
-    typeof interfaceType !== "string" ||
-    (role !== "user" && role !== "assistant")
-  ) {
-    return value;
-  }
-
-  const userId = value["userId"];
-  const canonicalId = value["canonicalId"];
-  const identity = actorRefFromLegacy({
-    actorId,
-    interfaceType,
-    role,
-    ...(typeof userId === "string" ? { userId } : {}),
-    ...(typeof canonicalId === "string" ? { canonicalId } : {}),
-  });
-
-  return {
-    identity,
-    interfaceType,
-    role,
-    ...(typeof value["displayName"] === "string"
-      ? { displayName: value["displayName"] }
-      : {}),
-    ...(typeof value["username"] === "string"
-      ? { username: value["username"] }
-      : {}),
-    ...(typeof value["isBot"] === "boolean" ? { isBot: value["isBot"] } : {}),
-  };
-}
-
 export const conversationMessageSourceSchema: z.ZodObject<{
   messageId: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
@@ -143,13 +166,13 @@ export type ConversationMessageSource = z.output<
 
 export const conversationMessageMetadataSchema: z.ZodObject<
   {
-    actor: z.ZodOptional<typeof conversationMessageActorParserSchema>;
+    actor: z.ZodOptional<typeof conversationMessageActorSchema>;
     source: z.ZodOptional<typeof conversationMessageSourceSchema>;
     spaceId: z.ZodOptional<z.ZodString>;
   },
   z.core.$loose
 > = z.looseObject({
-  actor: conversationMessageActorParserSchema.optional(),
+  actor: conversationMessageActorSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
   /** The configured space a passively stored message belongs to, e.g. "discord:<channel id>". */
   spaceId: z.string().min(1).optional(),

@@ -11,10 +11,7 @@ import {
 } from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import {
-  RuntimePasskeyStore,
-  type StoredPasskeyCredential,
-} from "./credential-store";
+import { RuntimePasskeyStore, type StoredPasskey } from "./credential-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
 const DEFAULT_USER_NAME = "Anchor";
@@ -103,10 +100,10 @@ export class PasskeyService {
 
     const storedChallenge =
       await this.store.consumeRegistrationChallenge(challenge);
+    const subject = storedChallenge?.userId;
     if (
-      !storedChallenge ||
-      (expectedSubject !== undefined &&
-        storedChallenge.subject !== expectedSubject)
+      subject === undefined ||
+      (expectedSubject !== undefined && subject !== expectedSubject)
     ) {
       return { verified: false };
     }
@@ -123,28 +120,24 @@ export class PasskeyService {
       return { verified: false };
     }
 
-    const now = Math.floor(Date.now() / 1000);
     const credential = result.registrationInfo.credential;
     await this.store.addCredential({
       id: credential.id,
-      public_key: bytesToBase64Url(credential.publicKey),
+      userId: subject,
+      publicKey: bytesToBase64Url(credential.publicKey),
       counter: credential.counter,
       ...(credential.transports ? { transports: credential.transports } : {}),
-      subject: storedChallenge.subject,
-      user_name: DEFAULT_USER_NAME,
-      credential_device_type: result.registrationInfo.credentialDeviceType,
-      credential_backed_up: result.registrationInfo.credentialBackedUp,
-      created_at: now,
-      updated_at: now,
+      credentialDeviceType: result.registrationInfo.credentialDeviceType,
+      credentialBackedUp: result.registrationInfo.credentialBackedUp,
     });
 
     this.logger?.info("Registered passkey credential", {
       credentialId: credential.id,
     });
-    return { verified: true, subject: storedChallenge.subject };
+    return { verified: true, subject };
   }
 
-  async listCredentials(): Promise<StoredPasskeyCredential[]> {
+  async listCredentials(): Promise<StoredPasskey[]> {
     return this.store.listCredentials();
   }
 
@@ -199,7 +192,7 @@ export class PasskeyService {
       result.authenticationInfo.credentialID,
       result.authenticationInfo.newCounter,
     );
-    return { verified: true, subject: credential.subject };
+    return { verified: true, subject: credential.userId };
   }
 }
 
@@ -216,12 +209,10 @@ function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   return new Uint8Array(arrayBuffer);
 }
 
-function toWebAuthnCredential(
-  credential: StoredPasskeyCredential,
-): WebAuthnCredential {
+function toWebAuthnCredential(credential: StoredPasskey): WebAuthnCredential {
   return {
     id: credential.id,
-    publicKey: base64UrlToBytes(credential.public_key),
+    publicKey: base64UrlToBytes(credential.publicKey),
     counter: credential.counter,
     ...(credential.transports ? { transports: credential.transports } : {}),
   };

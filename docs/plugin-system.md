@@ -34,7 +34,7 @@ The stable entries are:
 - `@rizom/brain/interfaces` — route, daemon, and message-interface definitions; and
 - `@rizom/site` — site and schema-first section definitions.
 
-`@rizom/brain/plugins` contains only nominated advanced shared contracts. It is not a class-first fallback authoring API.
+`@rizom/brain/testing` runs a package's own tests on the runtime. There is no class-first fallback authoring API.
 
 ## Configuration and package identity
 

@@ -1,5 +1,148 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.663
+  - @brains/contracts@0.2.0-alpha.663
+  - @brains/image@0.2.0-alpha.663
+  - @brains/site-composition@0.2.0-alpha.663
+  - @brains/site-engine@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/plugins@0.2.0-alpha.663
+
+## 0.2.0-alpha.662
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.662
+  - @brains/contracts@0.2.0-alpha.662
+  - @brains/image@0.2.0-alpha.662
+  - @brains/site-composition@0.2.0-alpha.662
+  - @brains/site-engine@0.2.0-alpha.662
+  - @brains/utils@0.2.0-alpha.662
+  - @brains/plugins@0.2.0-alpha.662
+
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.661
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/image@0.2.0-alpha.661
+  - @brains/site-composition@0.2.0-alpha.661
+  - @brains/site-engine@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+  - @brains/plugins@0.2.0-alpha.661
+
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.660
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/image@0.2.0-alpha.660
+  - @brains/site-composition@0.2.0-alpha.660
+  - @brains/site-engine@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/plugins@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.659
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/image@0.2.0-alpha.659
+  - @brains/site-composition@0.2.0-alpha.659
+  - @brains/site-engine@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/plugins@0.2.0-alpha.659
+
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.658
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/image@0.2.0-alpha.658
+  - @brains/site-composition@0.2.0-alpha.658
+  - @brains/site-engine@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/plugins@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.657
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/image@0.2.0-alpha.657
+  - @brains/site-composition@0.2.0-alpha.657
+  - @brains/site-engine@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/plugins@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.656
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/image@0.2.0-alpha.656
+  - @brains/site-composition@0.2.0-alpha.656
+  - @brains/site-engine@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/plugins@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.655
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/image@0.2.0-alpha.655
+  - @brains/site-composition@0.2.0-alpha.655
+  - @brains/site-engine@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/plugins@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.654
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/image@0.2.0-alpha.654
+  - @brains/site-composition@0.2.0-alpha.654
+  - @brains/site-engine@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/plugins@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies [[`8db0c6d`](https://github.com/rizom-ai/brains/commit/8db0c6dec369bceb061939f3633f3b9846ba483f)]:
+  - @brains/plugins@0.2.0-alpha.653
+  - @brains/image@0.2.0-alpha.653
+  - @brains/site-engine@0.2.0-alpha.653
+  - @rizom/brain-ui@0.2.0-alpha.653
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/site-composition@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+
 ## 0.2.0-alpha.652
 
 ### Patch Changes

@@ -12,10 +12,10 @@ import type {
   WebRouteTransportContext,
 } from "@brains/plugins";
 import {
-  SITE_METADATA_UPDATED_CHANNEL,
   siteBuilderPagesContract,
   siteBuilderRouteRegisterContract,
   siteMetadataContract,
+  siteMetadataUpdatedChannel,
 } from "@brains/site-composition";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -87,10 +87,6 @@ const maintenanceStatusSchema = z.strictObject({
   failed: z.boolean(),
 });
 type MaintenanceStatus = z.output<typeof maintenanceStatusSchema>;
-/** Only the theme is read from the site's metadata. */
-const siteThemeSchema = z.looseObject({
-  themeMode: z.enum(["light", "dark"]).optional(),
-});
 
 /** One form as it runs: its definition and its own admission, ledger,
  * intake, delivery and pages. */
@@ -231,14 +227,10 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       },
     });
     if (!context.executionOnly)
-      context.messaging.subscribe<unknown, { success: boolean }>(
-        SITE_METADATA_UPDATED_CHANNEL,
-        async (message) => {
-          this.siteTheme = siteThemeSchema.safeParse(message.payload).data
-            ?.themeMode;
-          return { success: true };
-        },
-      );
+      context.messaging.subscribe(siteMetadataUpdatedChannel, async (site) => {
+        this.siteTheme = site.themeMode;
+        return { success: true };
+      });
     for (const { form, definition } of definitions)
       if (form.endpoint)
         context.endpoints.register({

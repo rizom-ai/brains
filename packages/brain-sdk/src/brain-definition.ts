@@ -14,11 +14,7 @@ import type { BrainAnchorConfigKind, BrainIdentity } from "./brain-config";
 
 export type { PluginPackageDefinition };
 export type { ConfiguredPluginDefinition } from "./configured-plugin";
-export type {
-  BrainAnchorConfigKind,
-  BrainIdentity,
-  BrainMode,
-} from "./brain-config";
+export type { BrainAnchorConfigKind, BrainIdentity } from "./brain-config";
 export type { DeploymentConfigInput, ReasoningEffort } from "./brain-config";
 export type { PermissionConfig } from "@brains/templates";
 export type { SiteDefinition } from "@rizom/site";

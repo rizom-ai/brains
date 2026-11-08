@@ -18,8 +18,8 @@ import type {
   EntityGenerationContext,
   EntityGenerationDeclaration,
   EntityGenerationResult,
-  EntityJobContext,
   EntityJobDeclaration,
+  EntityJobHandleContext,
   EntityAttachmentDeclaration,
   EntityCreateRouting,
   EntityDefinition,
@@ -75,6 +75,7 @@ export type {
   EntityGenerationResult,
   EntityJobContext,
   EntityJobDeclaration,
+  EntityJobHandleContext,
   EntityJobMessaging,
   EntityJobProgress,
   EntityAttachmentDeclaration,
@@ -180,6 +181,15 @@ export function defineEntity<
   if (!definition.purpose.trim()) {
     throw new Error(`Entity "${definition.type}" purpose must not be empty`);
   }
+  // A cover is recorded in frontmatter, which binary content has none of.
+  if (
+    definition.config?.binaryStorage !== undefined &&
+    definition.coverImage === true
+  ) {
+    throw new Error(
+      `Entity "${definition.type}" stores binary content, which carries no cover image`,
+    );
+  }
   assertPublishAssets(definition);
   // Local ids: the runtime scopes each check to the declaring plugin, and
   // two checks of one type would claim one schedule.
@@ -248,7 +258,9 @@ export function defineEntityAnalyticsReport<TParams extends z.ZodObject>(
  */
 export function defineEntityJob<TInputSchema extends z.ZodType>(declaration: {
   readonly input: TInputSchema;
-  handle(context: EntityJobContext<z.output<TInputSchema>>): Promise<unknown>;
+  handle(
+    context: EntityJobHandleContext<z.output<TInputSchema>>,
+  ): Promise<unknown>;
 }): EntityJobDeclaration<TInputSchema>;
 export function defineEntityJob<TInputSchema extends z.ZodType>(declaration: {
   readonly input: TInputSchema;
@@ -284,40 +296,195 @@ export function defineProjection<
 
 const entityPackageConfig: z.ZodObject<Record<string, never>> = z.object({});
 
+/** The config schema an entity package may declare: an object of settings. */
+export type EntityPackageConfigSchema = z.ZodObject<z.ZodRawShape>;
+
+/**
+ * The config-dependent slots of one entity in its package, bound by
+ * `configure`: only the slots a package needs its config for. A slot the
+ * entity already declares statically is refused.
+ */
+export type EntitySlotBinding<TEntity extends AnyEntityDefinition> =
+  TEntity extends EntityDefinition<string, infer TMetadataSchema>
+    ? {
+        readonly entity: TEntity;
+        readonly create?: EntityCreateRouting<TMetadataSchema> | undefined;
+        readonly evals?: EntityEvalDeclaration | undefined;
+      }
+    : never;
+
+/**
+ * What an entity package's `configure` answers for its parsed config: data
+ * sources that read it, which join the static ones, and the slots of its
+ * entities that read it.
+ */
+export interface EntityPackageConfiguration<
+  TEntities extends readonly AnyEntityDefinition[] =
+    readonly AnyEntityDefinition[],
+> {
+  readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
+  readonly entities?:
+    readonly EntitySlotBinding<TEntities[number]>[] | undefined;
+}
+
+/**
+ * Names under the plugin id a converted first-party package keeps from its
+ * class: the one entity plugin is that id, and every name scoped to it
+ * (data sources, projections) follows it, as the class's did.
+ */
+function legacyScope(
+  packageId: string,
+  entities: readonly AnyEntityDefinition[],
+  pluginId: string,
+): (localId: string) => string {
+  const [only, ...rest] = entities;
+  if (!only || rest.length > 0) {
+    throw new Error(
+      `Entity package "${packageId}" keeps a legacy plugin id only when it installs one plugin`,
+    );
+  }
+  return (localId) => {
+    assertLocalId(localId, "Local plugin id");
+    return localId === only.type ? pluginId : `${pluginId}:${localId}`;
+  };
+}
+
 export interface EntityPackageDefinition<
   TEntities extends readonly AnyEntityDefinition[] =
     readonly AnyEntityDefinition[],
   TProjections extends readonly ProjectionDefinition[] =
     readonly ProjectionDefinition[],
-> extends PluginPackageDefinition<typeof entityPackageConfig, "entity"> {
+  TConfigSchema extends EntityPackageConfigSchema = typeof entityPackageConfig,
+> extends PluginPackageDefinition<TConfigSchema, "entity"> {
   readonly entities: TEntities;
   readonly projections: TProjections;
+  /** The data sources declared statically; `configure` may add more. */
   readonly dataSources: readonly AnyDataSourceDeclaration[];
+}
+
+/**
+ * The data sources a package installs: every id once, each with entities
+ * to install it, and an entity data source reading one of the package's.
+ */
+export function assertDataSources(
+  packageId: string,
+  entitySet: ReadonlySet<AnyEntityDefinition>,
+  dataSources: readonly AnyDataSourceDeclaration[],
+): void {
+  // Data source ids are scoped to the package, so one id twice would
+  // collide when the second registers.
+  const dataSourceIds = dataSources.map(({ id }) => id);
+  if (new Set(dataSourceIds).size !== dataSourceIds.length) {
+    throw new Error(
+      `Entity package "${packageId}" contains duplicate data source ids`,
+    );
+  }
+  if (dataSources.length > 0 && entitySet.size === 0) {
+    throw new Error(
+      `Entity package "${packageId}" declares data sources but no entities to install them`,
+    );
+  }
+  const strayDataSource = dataSources.find(
+    (source) =>
+      source.kind === "rizom-entity-data-source" &&
+      !entitySet.has(source.entity),
+  );
+  if (strayDataSource) {
+    throw new Error(
+      `Entity package "${packageId}" data source "${strayDataSource.id}" reads an entity outside its package`,
+    );
+  }
+}
+
+/**
+ * The package's entities with the slots `configure` bound: each binding
+ * names an entity of the package once, and binds only slots the entity
+ * leaves undeclared.
+ */
+function boundSlots(
+  packageId: string,
+  entitySet: ReadonlySet<AnyEntityDefinition>,
+  bindings: readonly EntitySlotBinding<AnyEntityDefinition>[],
+): ReadonlyMap<AnyEntityDefinition, AnyEntityDefinition> {
+  const bound = new Map<AnyEntityDefinition, AnyEntityDefinition>();
+  for (const binding of bindings) {
+    const { entity } = binding;
+    if (!entitySet.has(entity)) {
+      throw new Error(
+        `Entity package "${packageId}" configures "${entity.type}", which is outside its package`,
+      );
+    }
+    if (bound.has(entity)) {
+      throw new Error(
+        `Entity package "${packageId}" configures "${entity.type}" twice`,
+      );
+    }
+    for (const slot of ["create", "evals"] as const) {
+      if (binding[slot] !== undefined && entity[slot] !== undefined) {
+        throw new Error(
+          `Entity package "${packageId}" configures the ${slot} of "${entity.type}", which declares it already`,
+        );
+      }
+    }
+    bound.set(
+      entity,
+      Object.freeze({
+        ...entity,
+        ...(binding.create !== undefined && { create: binding.create }),
+        ...(binding.evals !== undefined && { evals: binding.evals }),
+      }),
+    );
+  }
+  return bound;
 }
 
 export function defineEntityPackage<
   const TEntities extends readonly AnyEntityDefinition[],
   const TProjections extends readonly ProjectionDefinition[],
+  TConfigSchema extends EntityPackageConfigSchema = typeof entityPackageConfig,
 >(definition: {
   readonly id: string;
+  readonly config?: TConfigSchema | undefined;
   readonly entities: TEntities;
   readonly projections: TProjections;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
-}): EntityPackageDefinition<TEntities, TProjections>;
+  readonly configure?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+      }) => EntityPackageConfiguration<TEntities>)
+    | undefined;
+}): EntityPackageDefinition<TEntities, TProjections, TConfigSchema>;
 export function defineEntityPackage<
   const TEntities extends readonly AnyEntityDefinition[],
+  TConfigSchema extends EntityPackageConfigSchema = typeof entityPackageConfig,
 >(definition: {
   readonly id: string;
+  readonly config?: TConfigSchema | undefined;
   readonly entities: TEntities;
   readonly projections?: undefined;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
-}): EntityPackageDefinition<TEntities, readonly []>;
+  readonly configure?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+      }) => EntityPackageConfiguration<TEntities>)
+    | undefined;
+}): EntityPackageDefinition<TEntities, readonly [], TConfigSchema>;
 export function defineEntityPackage(definition: {
   readonly id: string;
+  readonly config?: EntityPackageConfigSchema | undefined;
   readonly entities: readonly AnyEntityDefinition[];
   readonly projections?: readonly ProjectionDefinition[] | undefined;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
-}): EntityPackageDefinition {
+  readonly configure?:
+    | ((context: {
+        readonly config: Record<string, unknown>;
+      }) => EntityPackageConfiguration)
+    | undefined;
+}): EntityPackageDefinition<
+  readonly AnyEntityDefinition[],
+  readonly ProjectionDefinition[],
+  EntityPackageConfigSchema
+> {
   const entities = Object.freeze([...definition.entities]);
   const projections = Object.freeze([...(definition.projections ?? [])]);
   const dataSources = Object.freeze([...(definition.dataSources ?? [])]);
@@ -328,29 +495,7 @@ export function defineEntityPackage(definition: {
       `Entity package "${definition.id}" contains duplicate entity types`,
     );
   }
-  // Data source ids are scoped to the package, so one id twice would
-  // collide when the second registers.
-  const dataSourceIds = dataSources.map(({ id }) => id);
-  if (new Set(dataSourceIds).size !== dataSourceIds.length) {
-    throw new Error(
-      `Entity package "${definition.id}" contains duplicate data source ids`,
-    );
-  }
-  if (dataSources.length > 0 && entities.length === 0) {
-    throw new Error(
-      `Entity package "${definition.id}" declares data sources but no entities to install them`,
-    );
-  }
-  const strayDataSource = dataSources.find(
-    (source) =>
-      source.kind === "rizom-entity-data-source" &&
-      !entitySet.has(source.entity),
-  );
-  if (strayDataSource) {
-    throw new Error(
-      `Entity package "${definition.id}" data source "${strayDataSource.id}" reads an entity outside its package`,
-    );
-  }
+  assertDataSources(definition.id, entitySet, dataSources);
   const projectionIds = projections.map(({ id }) => id);
   if (new Set(projectionIds).size !== projectionIds.length) {
     throw new Error(
@@ -365,6 +510,7 @@ export function defineEntityPackage(definition: {
       `Entity package "${definition.id}" projection "${invalidProjection.id}" references an entity outside its package`,
     );
   }
+  const configure = definition.configure;
 
   const publicDefinition = {
     entities,
@@ -374,15 +520,27 @@ export function defineEntityPackage(definition: {
   return createPluginPackageDefinition({
     family: "entity",
     id: definition.id,
-    config: entityPackageConfig,
+    config: definition.config ?? entityPackageConfig,
     public: publicDefinition,
-    instantiate: ({ package: metadata, scope }) =>
-      createEntityPackagePlugins(
+    instantiate: ({ config, package: metadata, scope, pluginId }) => {
+      // Run once per instantiation, with the config the brain gave it; what
+      // it adds is held to the same checks as what was declared.
+      const configured = configure?.({ config }) ?? {};
+      const installed = Object.freeze([
+        ...dataSources,
+        ...(configured.dataSources ?? []),
+      ]);
+      assertDataSources(definition.id, entitySet, installed);
+      return createEntityPackagePlugins(
         entities,
         projections,
         metadata,
-        scope,
-        dataSources,
-      ),
+        pluginId === undefined
+          ? scope
+          : legacyScope(definition.id, entities, pluginId),
+        installed,
+        boundSlots(definition.id, entitySet, configured.entities ?? []),
+      );
+    },
   });
 }

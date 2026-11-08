@@ -554,8 +554,12 @@ export function registerTopicEvalHandlers(params: {
       createEntityFromInput(entity, `-batch-${index}`),
     );
 
+    // Each source weighs and mints by its role, as a rebuild weighs it: the
+    // brain's role policies and the overrides its config names.
     const result = await extractTopicsBatched(entities, context, logger, {
       minRelevanceScore: config.minRelevanceScore,
+      sourceRolePolicies: config.sourceRolePolicies,
+      sourceRoleOverrides: config.sourceRoleOverrides,
     });
 
     // Return created topics so the eval can inspect them

@@ -1,2 +1,3 @@
-plugin: "@brains/assessment"
+plugin: "@brains/assessment/eval"
+export: swotEvalPlugin
 model: gpt-5.4-mini

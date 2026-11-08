@@ -1,15 +1,12 @@
-// Plugin exports
-export { PromptPlugin, promptPlugin } from "./plugin";
+import { promptPackage } from "./definition";
 
-// Schema exports
+export default promptPackage;
+
+export { prompt, promptPackage, type Prompt } from "./definition";
+
 export {
-  promptSchema,
   promptFrontmatterSchema,
   promptMetadataSchema,
-  type Prompt,
   type PromptFrontmatter,
   type PromptMetadata,
 } from "./schemas/prompt";
-
-// Adapter exports
-export { PromptAdapter, promptAdapter } from "./adapters/prompt-adapter";

@@ -1,10 +1,10 @@
 import { describe, it, expect, mock, afterEach, spyOn } from "bun:test";
+import { App } from "../src/app";
 import {
-  App,
   STARTUP_CHECK_API_KEY,
   buildShellConfig,
   toAppConfig,
-} from "../src/app";
+} from "../src/shell-config";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
 import { Shell } from "@brains/core";
@@ -274,6 +274,7 @@ describe("buildShellConfig", () => {
     expect(shellConfig.siteBaseUrl).toBe("brain.example.com");
     expect(shellConfig.localSiteUrl).toBe("http://localhost:9090");
     expect(shellConfig.preferLocalUrls).toBe(true);
+    expect(shellConfig.production).toBe(false);
   });
 
   it("prefers public URLs in production", () => {
@@ -289,6 +290,7 @@ describe("buildShellConfig", () => {
     );
 
     expect(shellConfig.preferLocalUrls).toBe(false);
+    expect(shellConfig.production).toBe(true);
   });
 
   it("passes a configured identity through", () => {

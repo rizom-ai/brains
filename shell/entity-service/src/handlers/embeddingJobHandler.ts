@@ -73,12 +73,15 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
       // Fetch fresh entity - content is NOT stored in job data to avoid
       // large base64 data bloating job queue and dashboard hydration props.
+      // The embedding is of the stored record: a declared type reads back
+      // its body alone, and its frontmatter is part of what search matches.
       const currentEntity = await this.entityService.getEntity({
         entityType: data.entityType,
         id: data.id,
         visibilityScope: internalFullScope(
           "embedding regeneration must index every entity, no user surface",
         ),
+        source: true,
       });
 
       if (!currentEntity) {

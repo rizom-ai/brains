@@ -10,6 +10,8 @@ import {
   createSilentLogger,
   createTestDirectory,
 } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils/hash";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import { createEntityReader } from "../src/entity/entity-reader";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
@@ -616,5 +618,146 @@ describe("a generation refuses a link its declared target cannot hold", () => {
         visibilityScope: "restricted",
       }),
     ).toBeNull();
+  });
+});
+
+describe("a declared type's authored source", () => {
+  // `owner` is authored frontmatter the card type does not own.
+  const authored =
+    "---\nheading: Tide\ntone: warm\nowner: Ana\n---\nA card about tides.\n";
+
+  async function authoredCard(): Promise<EntityService> {
+    const { service } = await realShell([card]);
+    await service.createEntityFromMarkdown({
+      input: { entityType: "card", id: "tide", markdown: authored },
+    });
+    return service;
+  }
+
+  async function source(service: EntityService): Promise<{
+    content: string;
+    contentHash: string;
+  }> {
+    const record = await service.getEntityRaw({
+      entityType: "card",
+      id: "tide",
+      visibilityScope: "restricted",
+      source: true,
+    });
+    if (!record) throw new Error("Missing card");
+    return { content: record.content, contentHash: record.contentHash };
+  }
+
+  it("reads back as stored when its source is asked for", async () => {
+    const service = await authoredCard();
+
+    const stored = await source(service);
+    expect(parseMarkdown(stored.content).frontmatter).toEqual({
+      heading: "Tide",
+      tone: "warm",
+      owner: "Ana",
+    });
+    expect(parseMarkdown(stored.content).content.trim()).toBe(
+      "A card about tides.",
+    );
+    // The stored hash is the stored markdown's: this is the row itself.
+    expect(computeContentHash(stored.content)).toBe(stored.contentHash);
+    // An ordinary read still hands back the body alone.
+    expect(
+      (
+        await service.getEntityRaw({
+          entityType: "card",
+          id: "tide",
+          visibilityScope: "restricted",
+        })
+      )?.content.trim(),
+    ).toBe("A card about tides.");
+  });
+
+  it("lists and browses as stored when its source is asked for", async () => {
+    const service = await authoredCard();
+
+    const listed = await service.listEntities({
+      entityType: "card",
+      options: { filter: { visibilityScope: "restricted" }, source: true },
+    });
+    const browsed = await service.queryEntityHierarchy({
+      entityType: "card",
+      visibilityScope: "restricted",
+      source: true,
+    });
+    for (const record of [
+      ...listed,
+      ...browsed.entities.map(({ entity }) => entity),
+    ]) {
+      expect(parseMarkdown(record.content).frontmatter["owner"]).toBe("Ana");
+    }
+    expect(listed).toHaveLength(1);
+    expect(browsed.entities).toHaveLength(1);
+  });
+
+  it("keeps authored frontmatter it does not own through a body-only update", async () => {
+    const service = await authoredCard();
+    const read = await service.getEntity({
+      entityType: "card",
+      id: "tide",
+      visibilityScope: "restricted",
+    });
+    if (!read) throw new Error("Missing card");
+
+    await service.updateEntity({
+      entity: { ...read, content: "A card about the moon.\n" },
+    });
+
+    const stored = parseMarkdown((await source(service)).content);
+    expect(stored.frontmatter).toEqual({
+      heading: "Tide",
+      tone: "warm",
+      owner: "Ana",
+    });
+    expect(stored.content.trim()).toBe("A card about the moon.");
+  });
+
+  it("keeps it through a metadata-only update", async () => {
+    const service = await authoredCard();
+    const read = await service.getEntity({
+      entityType: "card",
+      id: "tide",
+      visibilityScope: "restricted",
+    });
+    if (!read) throw new Error("Missing card");
+
+    await service.updateEntity({
+      entity: { ...read, metadata: { title: "Ebb", tone: "plain" } },
+    });
+
+    expect(parseMarkdown((await source(service)).content).frontmatter).toEqual({
+      heading: "Ebb",
+      tone: "plain",
+      owner: "Ana",
+    });
+  });
+
+  it("lets a writer that sends the whole document drop it", async () => {
+    const service = await authoredCard();
+    const read = await service.getEntityRaw({
+      entityType: "card",
+      id: "tide",
+      visibilityScope: "restricted",
+    });
+    if (!read) throw new Error("Missing card");
+
+    // A file import sends the document as written: what it leaves out is gone.
+    await service.updateEntity({
+      entity: {
+        ...read,
+        content: "---\nheading: Tide\ntone: warm\n---\nA card about tides.\n",
+      },
+    });
+
+    expect(parseMarkdown((await source(service)).content).frontmatter).toEqual({
+      heading: "Tide",
+      tone: "warm",
+    });
   });
 });

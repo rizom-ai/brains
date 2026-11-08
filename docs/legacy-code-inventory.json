@@ -2,23 +2,6 @@
   "version": 1,
   "entries": [
     {
-      "id": "conversation-memory-actor-fallback",
-      "paths": [
-        "entities/conversation-memory/src/lib/eval-handlers.ts",
-        "entities/conversation-memory/src/schemas/conversation-memory.ts",
-        "entities/conversation-memory/src/schemas/summary.ts",
-        "shared/action-items/src/schema.ts"
-      ],
-      "symbol": "actor reference fallback",
-      "owner": "@brains/conversation-memory",
-      "class": "durable-data-compatibility",
-      "behavior": "Reads actor identifiers written before interface provenance was stored.",
-      "currentConsumers": "Persisted conversation summaries and evaluation fixtures with unqualified actor IDs.",
-      "removalPrerequisite": "Backfill persisted actor references and observe zero unqualified actor IDs across supported upgrade sources.",
-      "rollbackDependency": "Older summary records remain readable throughout the backfill rollback window.",
-      "targetRelease": "0.3.0-or-later"
-    },
-    {
       "id": "memory-colon-ids",
       "paths": ["entities/conversation-memory/src/lib/flat-memory-ids.ts"],
       "symbol": "Startup move of action items and decisions to flat ids",
@@ -36,8 +19,8 @@
       "symbol": "action-item stored metadata read path",
       "owner": "@brains/action-items",
       "class": "durable-data-compatibility",
-      "behavior": "Reads action items stored before the frontmatter trim: takes capturedAt from timeRange.end, flattens nested or legacy-actorId people to { name, id, aliases }, and ignores spaceId, sourceSummaryId, sourceMessageCount and projectionVersion. The next write stores the trimmed shape.",
-      "currentConsumers": "Action items stored in deployed brains before the trim, and eval fixtures seeding legacy people.",
+      "behavior": "Reads action items stored before the frontmatter trim: takes capturedAt from timeRange.end, flattens nested-identity people to { name, id, aliases }, and ignores spaceId, sourceSummaryId, sourceMessageCount and projectionVersion. The next write stores the trimmed shape.",
+      "currentConsumers": "Action items stored in deployed brains before the trim.",
       "removalPrerequisite": "Observe zero stored action items carrying a retired field or a nested person across supported upgrade sources, or rewrite them in place.",
       "rollbackDependency": "A brain rolled back to a release before the trim reads only the old shape; items rewritten in the trimmed shape need the forward release.",
       "targetRelease": "0.3.0-or-later"
@@ -170,7 +153,10 @@
     },
     {
       "id": "standalone-deploy-shape-normalization",
-      "paths": ["shared/deploy-support/src/index.ts"],
+      "paths": [
+        "shared/deploy-support/src/index.ts",
+        "packages/brain-cli/src/commands/init.ts"
+      ],
       "symbol": "normalizeStandaloneDeployYmlForComparison",
       "owner": "@brains/deploy-support",
       "class": "runtime-compatibility",
@@ -191,6 +177,54 @@
       "removalPrerequisite": "Migrate all supported site packages and public declarations away from SitePackage.plugin.",
       "rollbackDependency": "Prior site package versions require the factory while they remain supported rollback targets.",
       "targetRelease": "0.3.0"
+    },
+    {
+      "id": "first-party-legacy-plugin-ids",
+      "paths": [
+        "shell/ai-evaluation/src/eval-yaml-loader.ts",
+        "shell/plugins/src/package-definition.ts",
+        "shell/plugins/src/public/entity-definition.ts",
+        "shell/plugins/src/public/service-definition.ts"
+      ],
+      "symbol": "PluginPackageInstantiationOptions.pluginId, PluginPackageInstantiationOptions.dependencies",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Instantiates a first-party entity or service package converted from a class under the plugin id its class had, so its template, data source, job and channel names stay those sites, brains and queued jobs use; a service that owns one type installs it under the type itself, as an entity plugin class was named after its type; and a converted service keeps the plugin dependencies its class declared, registering after them and not starting without them. Only the canonical brain's composer and a plugin eval's eval.yaml (`pluginId`) name it; package source never does.",
+      "currentConsumers": "First-party entity and service packages converted to declarative definitions and composed by the canonical brain, and their plugin evals (wishlist); onboarding's dependency on playbook and playbooks.",
+      "removalPrerequisite": "Decide whether first-party packages adopt package-scoped names; if they do, migrate site template references, brain configs and queued job types to the scoped names.",
+      "rollbackDependency": "A brain rolled back to a release with class plugins reads the same plugin, template, data source and job names.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "first-party-entity-runtime",
+      "paths": [
+        "packages/brain-sdk/src/internal/entity-runtime.ts",
+        "packages/brain-sdk/src/internal/presentation.ts",
+        "shell/plugins/src/entity/entity-runtime.ts"
+      ],
+      "symbol": "entityRuntime(context)",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Gives a first-party entity definition internal capabilities bound to the create route, eval, data source fetch or contract job it was handed: nearest records by embedding distance at the call's visibility, a free-form structured AI answer, reads of the package's own types at every visibility, read-only untyped reads of every type at the call's scope (a data source fetch's build scope, a create route's public scope, a contract job's run), a create route's hand-off to the ordinary create (with the target it resolved), its pending placeholder with a queued contract job, and its complete record under the next free id; contract jobs (`contractJob`), which other packages queue by their contract's type with the input as written and which run as the package, with the image model, attachment resolution, the shared upload store, and links into a target under the generation-link rules and its visibility, past its action policy, as the entity plugin classes' job handlers wrote them; the entity-text helpers; and the template builder and record schemas a definition's rendered templates use. The public context types never name them; a context the runtime did not build is refused.",
+      "currentConsumers": "First-party entity packages converted to declarative definitions whose create routes or evals need search, structured checks or package-wide placement (wishlist, doc), whose data sources read across types (series), or whose jobs other packages queue by contract and whose routes queue them (image, document).",
+      "removalPrerequisite": "Promote each capability to the public entity contract once a third-party package needs it, or retire it when no first-party package does.",
+      "rollbackDependency": "None: the capabilities are bound per call and store nothing.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "first-party-service-runtime",
+      "paths": [
+        "packages/brain-sdk/src/internal/service-runtime.ts",
+        "shell/plugins/src/service/service-runtime.ts"
+      ],
+      "symbol": "serviceRuntime(context), firstPartyTool, withOwnedDataSources, claimableSystemTypes",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Gives a first-party service converted from a class what the public service contract does not offer: tools whose local names keep the underscore their class gave them (`atproto-registry_check_contracts`), which the public `defineTool` refuses; and, through `serviceRuntime(context)` on its subscriptions slot context, answers to first-party contracts under the channels they already have (`notifications:send`), in job workers too with `everyProcess`, system and broadcast channels heard as the class subscribed, observed or heard them in every process, the package's logger, the delivery provider registered for a channel type, handlers run once the brain is ready, where the class's onReady ran, handlers run once every plugin has registered, in every process, where its onRegistrationComplete ran (a failure fails registration), the shape of every registered entity type (its frontmatter schema, whether it is a singleton, its body template), the brain's data directory, and the brain's character, its anchor's profile and its domain as the shell keeps them, read-only reads of the entity service (types, counts, a page, one record) at the scope each call names, and a claim on a shell system type (anchor-profile, brain-character): its stored records read and written as the package, past the action policy and with expectedContentHash honored, its frontmatter extension and persist validator, one package per type, refused for a type a plugin registers or nobody registered, the brain's profile-kind catalog, one structured answer from the brain's AI, and a data source, a built template and a self-drawing Dashboard widget under the plugin's id, reading the corpus (lists, counts, nearest records, the semantic projection) at the build's or the viewer's scope; and, through `withOwnedDataSources(definition, dataSources)`, data sources installed on the types its header owns, scoped and read as an entity package's are, as its entity plugin class registered them (`site-info:entities`). Answers, channels and ready handlers act as the package and are released when it shuts down; a context the runtime did not build is refused.",
+      "currentConsumers": "First-party service packages converted to declarative definitions whose class tools were named in snake case (atproto-registry), or that answer first-party contracts and hear system channels as their classes did (notifications), or render every entity type once the brain is ready (obsidian-vault), or seed through another package's steward and register a starter as their classes did (onboarding), or answer for the site's metadata in every process with their type's data source as their entity plugin class did (site-info), or extend, validate and keep the shell's identity types as their class did (profile), or serve a map of the corpus to sites and the Dashboard (knowledge-map).",
+      "removalPrerequisite": "Rename the snake-case tools to kebab case, with their evals, docs and agent instructions, or promote the underscore to the public tool-name rule; move first-party contracts to owner-named channels or promote cross-process answers and system-channel listening to the public service contract once a third-party package needs them.",
+      "rollbackDependency": "None: tool names, answers and subscriptions are registered per run and store nothing.",
+      "targetRelease": "0.3.0-or-later"
     },
     {
       "id": "site-analytics-script-field",
@@ -350,6 +384,24 @@
       "paths": ["shared/document/src/lib/pdf-markdown.ts"],
       "class": "third-party-naming",
       "reason": "pdfjs-dist/legacy is an upstream package export path and cannot be renamed locally."
+    },
+    {
+      "id": "dependency-cruiser-deprecated-rule",
+      "paths": [".dependency-cruiser.js"],
+      "class": "third-party-naming",
+      "reason": "deprecated is dependency-cruiser's dependency type for npm packages their authors deprecated; the rule forbids depending on them."
+    },
+    {
+      "id": "npm-registry-deprecated-field",
+      "paths": ["scripts/verify-retired-package-deprecations.ts"],
+      "class": "third-party-naming",
+      "reason": "deprecated is the npm registry's version metadata field; the script verifies that retired packages carry it."
+    },
+    {
+      "id": "atproto-lexicon-deprecated-status",
+      "paths": ["shared/atproto-contracts/src/lexicon.ts"],
+      "class": "domain-vocabulary",
+      "reason": "deprecated and deprecatedBy are lifecycle values of published ATProto lexicon metadata; they describe a lexicon's status, not compatibility code here."
     }
   ]
 }

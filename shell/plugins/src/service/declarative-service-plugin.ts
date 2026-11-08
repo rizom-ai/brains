@@ -11,11 +11,23 @@ import {
   type SdkErrorCode,
 } from "@brains/contracts";
 import type { Caller, CallerAccess } from "@brains/content-service";
-import { internalFullScope, type BaseEntity } from "@brains/entity-service";
-import { definedFields } from "@brains/utils/strip-undefined";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
-import type { JobHandler, JobInfo } from "@brains/job-queue";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  CountEntitiesRequest,
+  DataSource,
+  DataSourceSchema,
+  EntityMutationResult,
+  GetEntityRequest,
+  ListEntitiesRequest,
+  NearestEntity,
+  NearestToEntityRequest,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
+import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createConfirmationGate,
@@ -27,7 +39,6 @@ import {
 } from "@brains/mcp-service";
 import {
   createTemplate,
-  PermissionService,
   type ComponentType,
   type Template,
 } from "@brains/templates";
@@ -38,6 +49,7 @@ import {
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import { emptyPluginState } from "../base/empty-state";
+import { SYSTEM_CHANNELS } from "../system-channels";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -50,7 +62,10 @@ import {
 } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
-import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
+import {
+  createDeclarativeDashboardWidgetRegistration,
+  registerBuiltInDashboardWidget,
+} from "../operator/dashboard-widget-runtime";
 import type {
   OperatorCallScope,
   OperatorRunAs,
@@ -65,11 +80,21 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
+import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import {
+  assertOwnedWriteAllowed,
+  createOwnedEntityWriter,
+} from "../entity/owned-entity-writer-runtime";
 import { packageRuntimeState } from "../internal/state-namespace";
+import {
+  claimableSystemTypes,
+  withServiceRuntime,
+  type ClaimedSystemType,
+  type ServiceCorpusReads,
+  type ServiceDataSourceDeclaration,
+  type ServiceEntityReads,
+  type ServiceEntityShapes,
+} from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -102,7 +127,7 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
-import { publicJobFailure, readJobResult } from "./job-status";
+import { serviceJobStatus } from "./job-status";
 import {
   admitPackageJob,
   anonymousCaller,
@@ -195,20 +220,6 @@ function promptInput(value: string | undefined): unknown {
   }
 }
 
-function statusFor<TDefinition extends AnyServiceJobDefinition>(
-  definition: TDefinition,
-  job: JobInfo,
-): ServiceJobStatus<z.output<TDefinition["output"]>> {
-  const result = readJobResult<TDefinition["output"]>(definition.output, job);
-  return {
-    id: job.id,
-    status: job.status,
-    progress: job.progress,
-    ...(result !== undefined ? { result } : {}),
-    ...publicJobFailure(job),
-  };
-}
-
 function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
@@ -275,11 +286,17 @@ class DeclarativeServicePlugin<
   private readonly calls = new AsyncLocalStorage<ServiceCall>();
   private entityAccessCache: ServiceEntityAccess<TEntities[number]> | undefined;
   private readonly publicId: string;
+  /** Registered before this plugin; a first-party class's, named by the composer. */
+  public readonly dependencies: string[];
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
   /** Releases the contracts this package answers. */
   private readonly answered: Array<() => void> = [];
+  /** What a first-party package runs once the brain is ready. */
+  private readonly readyHandlers: Array<() => Promise<void>> = [];
+  /** What a first-party package runs once every plugin has registered. */
+  private readonly registeredHandlers: Array<() => Promise<void>> = [];
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -324,10 +341,12 @@ class DeclarativeServicePlugin<
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
     id: string,
+    dependencies: readonly string[],
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
     this.publicId = definition.id;
+    this.dependencies = [...dependencies];
   }
 
   public override register(
@@ -446,6 +465,8 @@ class DeclarativeServicePlugin<
         `Service "${this.publicId}" account settings require auth-service and an account settings encryption key`,
       );
     }
+    // In every process, as the class's onRegistrationComplete ran.
+    for (const handler of this.registeredHandlers) await handler();
     if (context.executionOnly) return;
     this.bindOperatorDefinitions(context);
 
@@ -580,6 +601,10 @@ class DeclarativeServicePlugin<
     });
   }
 
+  protected override async onReady(): Promise<void> {
+    for (const handler of this.readyHandlers) await handler();
+  }
+
   protected override async onShutdown(): Promise<void> {
     this.operatorAbortController.abort(
       new Error(`Service "${this.publicId}" is shutting down`),
@@ -604,6 +629,8 @@ class DeclarativeServicePlugin<
     }
     this.registeredJobs.clear();
     for (const release of this.answered.splice(0).reverse()) release();
+    this.readyHandlers.splice(0);
+    this.registeredHandlers.splice(0);
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
@@ -978,14 +1005,16 @@ class DeclarativeServicePlugin<
       );
       return binding;
     };
-    const bindings = this.definition.subscriptions({
-      config: this.config,
-      state: this.requireState(),
-      entities: this.entityAccess(),
-      jobs: this.jobs(),
-      messaging: this.messaging(),
-      answer,
-    });
+    const bindings = this.definition.subscriptions(
+      this.withRuntime(context, {
+        config: this.config,
+        state: this.requireState(),
+        entities: this.entityAccess(),
+        jobs: this.jobs(),
+        messaging: this.messaging(),
+        answer,
+      }),
+    );
     const channels = new Set<string>();
     for (const binding of bindings) {
       const register = registrations.get(binding);
@@ -1002,6 +1031,142 @@ class DeclarativeServicePlugin<
       channels.add(binding.contract.name);
       this.answered.push(register());
     }
+  }
+
+  /**
+   * A slot context with the first-party runtime attached: answers and
+   * channels heard through it act as the package, and are released when it
+   * shuts down.
+   */
+  private withRuntime<TContext extends object>(
+    context: ServicePluginContext,
+    slotContext: TContext,
+  ): TContext {
+    return withServiceRuntime(slotContext, {
+      logger: this.logger,
+      messaging: context.messaging,
+      deliveryProvider: (channelType) =>
+        context.channels.getDeliveryProvider(channelType),
+      asPackage: (run) => this.calls.run(this.packageCall(), run),
+      onRelease: (release) => {
+        this.answered.push(release);
+      },
+      onReady: (handler) => {
+        this.readyHandlers.push(handler);
+      },
+      onRegistered: (handler) => {
+        this.registeredHandlers.push(handler);
+      },
+      entityShapes: entityShapesOf(context),
+      dataDir: context.dataDir,
+      identity: Object.freeze({
+        get: () => context.identity.get(),
+        getProfile: () => context.identity.getProfile(),
+      }),
+      domain: context.domain,
+      entityReads: entityReadsOf(context),
+      claim: (type) => this.claimSystemType(context, type),
+      profileKinds: context.profileKinds,
+      ai: Object.freeze({
+        generateObject: (prompt, schema, signal) =>
+          context.ai.generateObject(prompt, schema, signal),
+      }),
+      dataSource: (declaration): void => {
+        context.entities.registerDataSource(
+          firstPartyDataSource(`${this.id}:${declaration.id}`, declaration),
+        );
+      },
+      template: (name, template): void => {
+        context.templates.register({ [name]: template }, this.id);
+      },
+      dashboardWidget: (widget): void => {
+        // Once the Dashboard host has mounted, as the class registered it.
+        this.answered.push(
+          context.messaging.subscribe(
+            SYSTEM_CHANNELS.pluginsRegistered,
+            async (): Promise<{ success: true }> => {
+              await registerBuiltInDashboardWidget({
+                context,
+                definition: widget.definition,
+                render: widget.render,
+                load: ({ visibilityScope, signal }) =>
+                  widget.load({
+                    corpus: corpusReadsOf(context.entityService),
+                    visibilityScope,
+                    signal,
+                  }),
+                runtimeSignal: this.operatorAbortController.signal,
+              });
+              return { success: true };
+            },
+          ),
+        );
+      },
+    });
+  }
+
+  /**
+   * Claim a shell system type for this package, as the class kept it: one
+   * package per type, released when it shuts down.
+   */
+  private claimSystemType(
+    context: ServicePluginContext,
+    type: string,
+  ): ClaimedSystemType {
+    if (!claimableSystemTypes.has(type)) {
+      throw new Error(
+        `Service "${this.publicId}" cannot claim entity type "${type}": it is not a shell system type`,
+      );
+    }
+    const { entityService } = context;
+    if (!entityService.hasEntityType(type)) {
+      throw new Error(
+        `Service "${this.publicId}" cannot claim shell system type "${type}": it is not registered`,
+      );
+    }
+    const claims = claimsOf(this.requireShell());
+    const owner = claims.get(type);
+    if (owner !== undefined && owner !== this.id) {
+      throw new Error(
+        `Service "${this.publicId}" cannot claim shell system type "${type}": it is already claimed by "${owner}"`,
+      );
+    }
+    claims.set(type, this.id);
+    this.answered.push(() => {
+      if (claims.get(type) === this.id) claims.delete(type);
+    });
+    const claimed = (requested: string): void => {
+      if (requested !== type) {
+        throw new SdkError("permission_denied", {
+          message: `Service "${this.publicId}" claimed "${type}", not "${requested}"`,
+        });
+      }
+    };
+    return Object.freeze({
+      type,
+      getEntity: async (request): Promise<BaseEntity | null> => {
+        claimed(request.entityType);
+        return entityService.getEntity(request);
+      },
+      listEntities: async (request): Promise<BaseEntity[]> => {
+        claimed(request.entityType);
+        return entityService.listEntities(request);
+      },
+      createEntity: async (request): Promise<EntityMutationResult> => {
+        claimed(request.entity.entityType);
+        return entityService.createEntity(request);
+      },
+      updateEntity: async (request): Promise<EntityMutationResult> => {
+        claimed(request.entity.entityType);
+        return entityService.updateEntity(request);
+      },
+      extendFrontmatterSchema: (extension): void => {
+        context.entities.extendFrontmatterSchema(type, extension);
+      },
+      registerPersistValidator: (validator): void => {
+        context.entities.registerPersistValidator(type, validator);
+      },
+    } satisfies ClaimedSystemType);
   }
 
   /** The declaration that grants a write, or a refusal. */
@@ -1030,69 +1195,14 @@ class DeclarativeServicePlugin<
     action: "create" | "update" | "delete",
     call: ServiceCall,
   ): Promise<void> {
-    if (call.asPackage === true) return;
-    const access = await call.access();
-    const required = this.requireShell()
-      .getPermissionService()
-      .getEntityActionRequiredLevel(entityType, action);
-    if (
-      required === undefined ||
-      required === "never" ||
-      PermissionService.hasPermission(access.permissionLevel, required)
-    ) {
-      return;
-    }
-    const refusal = `Writing ${entityType} (${action}) requires ${required} permission; the caller has ${access.permissionLevel}`;
-    throw new SdkError("permission_denied", {
-      message: refusal,
-      publicMessage: refusal,
-    });
-  }
-
-  private parseOwnedMetadata(
-    definition: AnyEntityDefinition,
-    metadata: unknown,
-  ): Record<string, unknown> {
-    const parsed = definition.metadata.safeParse(metadata);
-    if (!parsed.success) {
-      throw new SdkError("invalid_input", {
-        message: `Invalid ${definition.type} metadata: ${parsed.error.message}`,
-        cause: parsed.error,
-      });
-    }
-    return parsed.data;
-  }
-
-  /** The stored record as the current authority sees it, unchanged since it was read. */
-  private async currentRecord(
-    definition: AnyEntityDefinition,
-    record: EntityOf<AnyEntityDefinition>,
-    call: ServiceCall,
-  ): Promise<BaseEntity> {
-    const access = await call.access();
-    if (record.entityType !== definition.type) {
-      throw new SdkError("permission_denied", {
-        message: `A ${definition.type} write cannot change a ${record.entityType}`,
-      });
-    }
-    // As stored, so content written back unchanged is the stored body.
-    const stored = await this.getContext().entityService.getEntityRaw({
-      entityType: definition.type,
-      id: record.id,
-      visibilityScope: this.readScope(call, definition.type, access),
-    });
-    if (!stored) {
-      throw new SdkError("not_found", {
-        message: `No ${definition.type} "${record.id}" is visible to the caller`,
-      });
-    }
-    if (stored.contentHash !== record.contentHash) {
-      throw new SdkError("conflict", {
-        message: `The ${definition.type} "${record.id}" changed after it was read`,
-        publicMessage: "The record changed after it was read; read it again",
-      });
-    }
-    return stored;
+    await assertOwnedWriteAllowed(
+      this.requireShell()
+        .getPermissionService()
+        .getEntityActionRequiredLevel(entityType, action),
+      entityType,
+      action,
+      call,
+    );
   }
 
   /**
@@ -1108,91 +1218,15 @@ class DeclarativeServicePlugin<
         () => this.currentCall(),
         (entityType) => this.ownsType(entityType),
       ),
-      create: async (definition, input) => {
-        const declared = this.ownedDefinition(definition);
-        const call = this.currentCall();
-        await this.assertWriteAllowed(declared.type, "create", call);
-        const metadata = this.parseOwnedMetadata(declared, input.metadata);
-        // Create-if-absent: an id taken at any visibility is not written
-        // over, even one the caller cannot see.
-        if (input.id !== undefined) {
-          const taken = await context.entityService.getEntity({
-            entityType: declared.type,
-            id: input.id,
-            visibilityScope: internalFullScope(
-              "an owned create checks whether its id is taken; no content returned",
-            ),
-          });
-          if (taken) {
-            throw new SdkError("conflict", {
-              message: `A ${declared.type} "${input.id}" already exists`,
-            });
-          }
-        }
-        const written = await context.entityService.createEntity({
-          entity: {
-            ...definedFields({ id: input.id, visibility: input.visibility }),
-            entityType: declared.type,
-            content: input.content,
-            metadata,
-          },
-          options: {
-            ...(input.id !== undefined && {
-              conditionalWrite: { expectedRevision: null },
-            }),
-            eventContext: call.eventContext,
-          },
-        });
-        return { id: written.entityId };
-      },
-      update: async (definition, record, change) => {
-        const declared = this.ownedDefinition(definition);
-        const call = this.currentCall();
-        await this.assertWriteAllowed(declared.type, "update", call);
-        const stored = await this.currentRecord(declared, record, call);
-        const written = await context.entityService.updateEntity({
-          entity: {
-            ...stored,
-            content: change.content ?? stored.content,
-            metadata: this.parseOwnedMetadata(
-              declared,
-              change.metadata ?? record.metadata,
-            ),
-          },
-          options: {
-            expectedContentHash: record.contentHash,
-            eventContext: call.eventContext,
-          },
-        });
-        if (written.skipReason === "content-conflict") {
-          throw new SdkError("conflict", {
-            message: `The ${declared.type} "${record.id}" changed after it was read`,
-            publicMessage:
-              "The record changed after it was read; read it again",
-          });
-        }
-      },
-      delete: async (definition, record) => {
-        const declared = this.ownedDefinition(definition);
-        const call = this.currentCall();
-        await this.assertWriteAllowed(declared.type, "delete", call);
-        await this.currentRecord(declared, record, call);
-        const deleted = await context.entityService.deleteEntity({
-          entityType: declared.type,
-          id: record.id,
-          options: {
-            expectedContentHash: record.contentHash,
-            eventContext: call.eventContext,
-          },
-        });
-        if (!deleted) {
-          throw new SdkError("conflict", {
-            message: `The ${declared.type} "${record.id}" changed after it was read`,
-            publicMessage:
-              "The record changed after it was read; read it again",
-          });
-        }
-      },
+      ...createOwnedEntityWriter({
+        entityService: context.entityService,
+        owned: (definition) => this.ownedDefinition(definition),
+        currentCall: () => this.currentCall(),
+        assertWriteAllowed: (entityType, action, call) =>
+          this.assertWriteAllowed(entityType, action, call),
+        readScope: (call, entityType, callerAccess) =>
+          this.readScope(call, entityType, callerAccess),
+      }),
     };
     this.entityAccessCache = Object.freeze(access);
     return this.entityAccessCache;
@@ -1208,7 +1242,7 @@ class DeclarativeServicePlugin<
     ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> => {
       const job = await context.jobs.getStatus(id);
       return job?.type === `${this.id}:${definition.name}`
-        ? statusFor(definition, job)
+        ? serviceJobStatus(definition, job)
         : null;
     };
     return {
@@ -1558,6 +1592,89 @@ class DeclarativeServicePlugin<
   }
 }
 
+/** The corpus reads a map draws from, each bound on its own so no write rides along. */
+function corpusReadsOf(
+  entityService: ServicePluginContext["entityService"],
+): ServiceCorpusReads {
+  return Object.freeze({
+    listEntities: (request: ListEntitiesRequest): Promise<BaseEntity[]> =>
+      entityService.listEntities(request),
+    getEntity: (request: GetEntityRequest): Promise<BaseEntity | null> =>
+      entityService.getEntity(request),
+    countEntities: (request: CountEntitiesRequest): Promise<number> =>
+      entityService.countEntities(request),
+    nearestToEntity: (
+      request: NearestToEntityRequest,
+    ): Promise<NearestEntity[]> => entityService.nearestToEntity(request),
+    projectSemanticSpace: (
+      request: ProjectSemanticSpaceRequest,
+    ): Promise<SemanticSpaceProjection> =>
+      entityService.projectSemanticSpace(request),
+  });
+}
+
+/**
+ * A first-party data source as the registry serves it: reading the corpus
+ * through the entity service the build hands it, validated against the
+ * caller's schema.
+ */
+function firstPartyDataSource(
+  id: string,
+  declaration: ServiceDataSourceDeclaration,
+): DataSource {
+  return {
+    id,
+    name: declaration.name,
+    description: declaration.description,
+    fetch: async <T>(
+      query: unknown,
+      outputSchema: DataSourceSchema<T>,
+      context: BaseDataSourceContext,
+    ): Promise<T> =>
+      outputSchema.parse(
+        await declaration.fetch(query, {
+          corpus: corpusReadsOf(context.entityService),
+          publishedOnly: context.publishedOnly === true,
+        }),
+      ),
+  };
+}
+
+/** Which package claimed each shell system type, per shell. */
+const systemTypeClaims = new WeakMap<IShell, Map<string, string>>();
+
+function claimsOf(shell: IShell): Map<string, string> {
+  const existing = systemTypeClaims.get(shell);
+  if (existing) return existing;
+  const claims = new Map<string, string>();
+  systemTypeClaims.set(shell, claims);
+  return claims;
+}
+
+/** The entity service's reads, each bound on its own so no write rides along. */
+function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
+  const { entityService } = context;
+  return Object.freeze({
+    getEntityTypes: () => entityService.getEntityTypes(),
+    getEntityCounts: (scope) => entityService.getEntityCounts(scope),
+    listEntities: (request) => entityService.listEntities(request),
+    getEntity: (request) => entityService.getEntity(request),
+  } satisfies ServiceEntityReads);
+}
+
+/** What every registered entity type looks like, read through the plugin's context. */
+function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
+  return Object.freeze({
+    types: () => context.entityService.getEntityTypes(),
+    frontmatterSchema: (type: string) =>
+      context.entities.getEffectiveFrontmatterSchema(type),
+    isSingleton: (type: string) =>
+      context.entities.getAdapter(type)?.isSingleton === true,
+    bodyTemplate: (type: string) =>
+      context.entities.getAdapter(type)?.getBodyTemplate() ?? "",
+  });
+}
+
 export function createDeclarativeServicePlugin<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
@@ -1579,6 +1696,8 @@ export function createDeclarativeServicePlugin<
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,
+  /** The plugins a first-party class declared it depends on; none otherwise. */
+  dependencies: readonly string[] = [],
 ): DeclarativeServicePlugin<
   TConfigSchema,
   TState,
@@ -1588,5 +1707,11 @@ export function createDeclarativeServicePlugin<
   TTemplateDefinitions,
   TEntities
 > {
-  return new DeclarativeServicePlugin(definition, config, metadata, id);
+  return new DeclarativeServicePlugin(
+    definition,
+    config,
+    metadata,
+    id,
+    dependencies,
+  );
 }
