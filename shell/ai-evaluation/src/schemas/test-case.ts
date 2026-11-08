@@ -1,6 +1,5 @@
 import {
   conversationMessageActorSchema,
-  conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -253,13 +252,6 @@ const userPermissionLevelSchema: z.ZodEnum<{
   public: "public";
 }> = z.enum(["admin", "trusted", "public"]);
 
-const evalConversationMessageActorSchema: z.ZodPreprocess<
-  typeof conversationMessageActorSchema
-> = z.preprocess((value) => {
-  const parsed = conversationMessageMetadataSchema.safeParse({ actor: value });
-  return parsed.success ? parsed.data.actor : value;
-}, conversationMessageActorSchema);
-
 export type ConversationMessageSource = z.output<
   typeof conversationMessageSourceSchema
 >;
@@ -270,7 +262,7 @@ type TurnContextSchema = z.ZodObject<{
   interfaceType: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
-  actor: z.ZodOptional<typeof evalConversationMessageActorSchema>;
+  actor: z.ZodOptional<typeof conversationMessageActorSchema>;
   source: z.ZodOptional<typeof conversationMessageSourceSchema>;
 }>;
 
@@ -280,7 +272,7 @@ export const turnContextSchema: TurnContextSchema = z.object({
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
-  actor: evalConversationMessageActorSchema.optional(),
+  actor: conversationMessageActorSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
 });
 

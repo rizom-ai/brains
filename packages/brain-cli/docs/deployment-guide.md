@@ -163,7 +163,7 @@ Recommended local values:
 | `AI_API_KEY`                 | runtime                                       |
 | `AI_IMAGE_KEY`               | optional runtime                              |
 | `GIT_SYNC_TOKEN`             | git-backed content sync                       |
-| `MCP_AUTH_TOKEN`             | deprecated static fallback for MCP HTTP auth  |
+| `MCP_AUTH_TOKEN`             | static MCP HTTP token, local development only |
 | `DISCORD_BOT_TOKEN`          | optional Discord bot                          |
 | `KAMAL_REGISTRY_PASSWORD`    | GHCR pull token for the server                |
 | `HCLOUD_TOKEN`               | Hetzner provisioning                          |

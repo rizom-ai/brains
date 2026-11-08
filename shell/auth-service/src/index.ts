@@ -87,8 +87,6 @@ export type {
   SaveWebAuthnChallengeInput,
   StoredAuthChallenge,
   StoredPasskey,
-  StoredPasskeyCredential,
-  StoredWebAuthnChallenge,
   WebAuthnChallengeKind,
 } from "./credential-store";
 export type {

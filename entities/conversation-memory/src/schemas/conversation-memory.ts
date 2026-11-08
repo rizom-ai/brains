@@ -1,5 +1,4 @@
 import {
-  memoryActorReferenceParserSchema,
   memoryActorReferenceSchema,
   type ActionItemEntity,
 } from "@brains/action-items";
@@ -45,27 +44,18 @@ export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
     .meta({ studioWidget: "people" }),
 });
 
-const decisionEntityMetadataParserSchema: z.ZodObject<
-  Omit<DecisionMetadataSchema["shape"], "decidedBy" | "mentionedBy"> & {
-    decidedBy: z.ZodOptional<
-      z.ZodArray<typeof memoryActorReferenceParserSchema>
-    >;
-    mentionedBy: z.ZodOptional<
-      z.ZodArray<typeof memoryActorReferenceParserSchema>
-    >;
-  }
-> = z.object({
+const decisionEntityMetadataParserSchema: DecisionMetadataSchema = z.object({
   conversationId: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
   timeRange: summaryTimeRangeSchema,
   status: z.enum(["active", "superseded"]),
-  decidedBy: z.array(memoryActorReferenceParserSchema).optional(),
-  mentionedBy: z.array(memoryActorReferenceParserSchema).optional(),
+  decidedBy: z.array(memoryActorReferenceSchema).optional(),
+  mentionedBy: z.array(memoryActorReferenceSchema).optional(),
 });
 
-/** Decision entity metadata, as parsed from stored (possibly legacy) records. */
+/** Decision entity metadata, as parsed from stored records. */
 export type DecisionMetadata = z.output<
   typeof decisionEntityMetadataParserSchema
 >;

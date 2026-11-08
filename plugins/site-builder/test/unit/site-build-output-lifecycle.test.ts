@@ -78,7 +78,7 @@ describe("TransactionalSiteBuildOutput", () => {
 
   it("validates a generation, writes its manifest, and migrates a legacy directory", async () => {
     await fs.mkdir(outputDir, { recursive: true });
-    await fs.writeFile(join(outputDir, "index.html"), "legacy output");
+    await fs.writeFile(join(outputDir, "index.html"), "old output");
     const preparedBuild = createPreparedBuild("build-one");
     const target = await lifecycle.begin({
       outputDir,
@@ -169,13 +169,9 @@ describe("TransactionalSiteBuildOutput", () => {
     );
   });
 
-  it("preserves a pre-upgrade image cache while migrating", async () => {
-    // `sharedImagesDir` defaults outside the site directory, but older layouts
-    // kept the sharp cache at `<output>/images` — main's clean() skips exactly
-    // that path. It is the only content here that a rebuild cannot cheaply
-    // reproduce, so it moves to the shared cache instead of being discarded.
+  it("discards an image cache inside the pre-transactional output while migrating", async () => {
     await fs.mkdir(join(outputDir, "images"), { recursive: true });
-    await fs.writeFile(join(outputDir, "index.html"), "legacy output");
+    await fs.writeFile(join(outputDir, "index.html"), "old output");
     await fs.writeFile(join(outputDir, "images", "hero.webp"), "derivative");
 
     const preparedBuild = createPreparedBuild("build-images");
@@ -194,8 +190,11 @@ describe("TransactionalSiteBuildOutput", () => {
 
     expect((await fs.lstat(outputDir)).isSymbolicLink()).toBe(true);
     expect(
-      await fs.readFile(join(testDir, "images", "hero.webp"), "utf8"),
-    ).toBe("derivative");
+      await fs
+        .access(join(testDir, "images"))
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(false);
     expect(await fs.readdir(target.environmentDir)).toEqual(["build-images"]);
   });
 
@@ -388,7 +387,7 @@ describe("TransactionalSiteBuildOutput", () => {
 
   it("rolls a legacy directory back when its first pointer switch fails", async () => {
     await fs.mkdir(outputDir, { recursive: true });
-    await fs.writeFile(join(outputDir, "index.html"), "legacy output");
+    await fs.writeFile(join(outputDir, "index.html"), "old output");
     const preparedBuild = createPreparedBuild("build-rollback");
     const target = await lifecycle.begin({
       outputDir,
@@ -422,7 +421,7 @@ describe("TransactionalSiteBuildOutput", () => {
       ).rejects.toThrow("injected pointer switch failure");
       expect((await fs.lstat(outputDir)).isDirectory()).toBe(true);
       expect(await fs.readFile(join(outputDir, "index.html"), "utf8")).toBe(
-        "legacy output",
+        "old output",
       );
     } finally {
       rename.mockRestore();

@@ -379,8 +379,7 @@ Test agent.
     });
   });
 
-  describe("agents saved before the kinds were renamed", () => {
-    // Until 22 July 2026 an agent's kind named its brain, not its anchor.
+  describe("agents whose kind names a brain rather than an anchor", () => {
     const saved = (kind: string): string =>
       [
         "---",
@@ -398,24 +397,32 @@ Test agent.
         "",
       ].join("\n");
 
-    it("reads a professional brain as a person, and keeps that in its content", () => {
-      const partial = adapter.fromMarkdown(saved("professional"));
-      expect(partial.metadata?.name).toBe("Brain");
-      expect(partial.content).toContain("kind: person\n");
-      expect(partial.content).not.toContain("professional");
-      expect(partial.content).toContain(
-        "Brain is Karim's Knowledge assistant.",
-      );
-    });
+    it.each(["professional", "collective", "guild"])(
+      "refuses kind %s like any other invalid file",
+      (kind) => {
+        expect(() => adapter.fromMarkdown(saved(kind))).toThrow();
+      },
+    );
 
-    it("reads a collective as an organization", () => {
-      expect(adapter.fromMarkdown(saved("collective")).content).toContain(
-        "kind: organization\n",
-      );
-    });
-
-    it("still refuses a kind it has never known", () => {
-      expect(() => adapter.fromMarkdown(saved("guild"))).toThrow();
+    it("refuses it when parsing a stored entity", () => {
+      expect(() =>
+        adapter.parseEntity({
+          id: "karim-rizom-ai",
+          entityType: "agent",
+          content: saved("professional"),
+          contentHash: "hash",
+          created: "2026-07-15T15:38:08.033Z",
+          updated: "2026-07-15T15:38:08.033Z",
+          visibility: "public",
+          metadata: {
+            name: "Brain",
+            url: "https://karim.rizom.ai/a2a",
+            status: "discovered",
+            discoveredAt: "2026-07-15T15:38:08.033Z",
+            slug: "karim-rizom-ai",
+          },
+        }),
+      ).toThrow();
     });
   });
 

@@ -13,7 +13,7 @@ import { scaffold } from "../src/commands/init";
 import { buildInstanceEnvSchema } from "../src/lib/env-schema";
 import { renderDockerfile } from "@brains/deploy-support";
 
-const legacyEnvExample = `# Required
+const priorEnvExample = `# Required
 AI_API_KEY=
 
 # Optional: separate key for image generation (defaults to AI_API_KEY)
@@ -614,7 +614,7 @@ describe("brain init", () => {
           "",
         ].join("\n"),
       );
-      writeFileSync(join(testDir, ".env.example"), legacyEnvExample);
+      writeFileSync(join(testDir, ".env.example"), priorEnvExample);
       mkdirSync(join(testDir, "config"), { recursive: true });
       writeFileSync(
         join(testDir, "config", "deploy.yml"),
@@ -634,10 +634,10 @@ describe("brain init", () => {
 
       scaffold(testDir, { recipe: "personal", deploy: true });
 
-      const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
-      expect(envExample).toContain("HCLOUD_SSH_KEY_NAME=");
-      expect(envExample).not.toContain("SERVER_IP=");
-      expect(envExample).not.toContain("CLOUDFLARE_API_TOKEN=");
+      // An .env.example from an old init version is no longer recognized.
+      expect(readFileSync(join(testDir, ".env.example"), "utf-8")).toBe(
+        priorEnvExample,
+      );
 
       const deploy = readFileSync(
         join(testDir, "config", "deploy.yml"),
@@ -673,6 +673,57 @@ describe("brain init", () => {
       );
       expect(workflow).not.toContain("VERSION: latest");
       expect(workflow).not.toContain("SERVER_IP: ${{ secrets.SERVER_IP }}");
+    });
+
+    it("leaves a deploy.yml from the first init version as it is", () => {
+      const firstDeployYml = `service: brain
+image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl: true
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>:80
+    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: rizom-ai
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain-dist:/app/dist
+  - /opt/brain.yaml:/app/brain.yaml
+`;
+      mkdirSync(join(testDir, "config"), { recursive: true });
+      writeFileSync(join(testDir, "config", "deploy.yml"), firstDeployYml);
+
+      scaffold(testDir, { recipe: "personal", deploy: true });
+
+      expect(readFileSync(join(testDir, "config", "deploy.yml"), "utf-8")).toBe(
+        firstDeployYml,
+      );
     });
 
     it("should reconcile prior generated deploy scripts when --deploy is used", () => {

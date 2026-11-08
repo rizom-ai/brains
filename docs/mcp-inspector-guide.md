@@ -125,6 +125,6 @@ Always use HTTPS in production. Preserve the deployment volume that backs `/app/
 ## Security notes
 
 - Prefer OAuth/passkeys over `MCP_AUTH_TOKEN`
-- Never share production tokens if you use the deprecated static fallback
+- Use the static token only in local development; deployed brains use OAuth
 - Rotate fallback tokens regularly
 - Keep auth state outside `brain-data`

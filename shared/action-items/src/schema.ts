@@ -1,8 +1,4 @@
-import {
-  actorRefFromLegacy,
-  actorRefKey,
-  actorRefSchema,
-} from "@brains/contracts";
+import { actorRefSchema } from "@brains/contracts";
 import { baseEntityParserSchema } from "@brains/plugins";
 import { fillCapturedAt, flattenStoredPerson } from "./stored-shape";
 import { z } from "@brains/utils/zod";
@@ -29,14 +25,6 @@ export const memoryActorReferenceSchema: z.ZodObject<{
 });
 
 export type MemoryActorReference = z.output<typeof memoryActorReferenceSchema>;
-
-/** Reads stored actor references, including legacy shapes. */
-export const memoryActorReferenceParserSchema: z.ZodPreprocess<
-  typeof memoryActorReferenceSchema
-> = z.preprocess(
-  (value) => normalizeLegacyMemoryActorReference(value, true),
-  memoryActorReferenceSchema,
-);
 
 /** An actor's canonical id, as `actorRefKey` writes it: `user:usr_…`, `external:ext_…`. */
 const actorIdSchema: z.ZodString = z
@@ -74,73 +62,10 @@ export type ActionItemAssignee = z.output<typeof actionItemAssigneeSchema>;
 export type ActionItemRequester = z.output<typeof actionItemRequesterSchema>;
 
 const storedAssigneeSchema: z.ZodPreprocess<typeof actionItemAssigneeSchema> =
-  z.preprocess(
-    (value) =>
-      flattenStoredPerson(value, (stored) =>
-        normalizeLegacyMemoryActorReference(stored, false),
-      ),
-    actionItemAssigneeSchema,
-  );
+  z.preprocess(flattenStoredPerson, actionItemAssigneeSchema);
 
 const storedRequesterSchema: z.ZodPreprocess<typeof actionItemRequesterSchema> =
-  z.preprocess(
-    (value) =>
-      flattenStoredPerson(value, (stored) =>
-        normalizeLegacyMemoryActorReference(stored, true),
-      ),
-    actionItemRequesterSchema,
-  );
-
-function normalizeLegacyMemoryActorReference(
-  value: unknown,
-  identityRequired: boolean,
-): unknown {
-  if (!isRecord(value) || "identity" in value) return value;
-  const actorId = value["actorId"];
-  if (typeof actorId !== "string") {
-    return identityRequired ? value : { displayName: value["displayName"] };
-  }
-  const separator = actorId.indexOf(":");
-  const canonicalId = value["canonicalId"];
-  const role = actorId.startsWith("brain:") ? "assistant" : "user";
-  const sourceActorIds = Array.isArray(value["sourceActorIds"])
-    ? value["sourceActorIds"].filter(
-        (candidate): candidate is string => typeof candidate === "string",
-      )
-    : [];
-  const identityAliases = Array.from(
-    new Map(
-      [actorId, ...sourceActorIds].map((legacyActorId) => {
-        const sourceSeparator = legacyActorId.indexOf(":");
-        const alias = actorRefFromLegacy({
-          actorId: legacyActorId,
-          interfaceType:
-            sourceSeparator > 0
-              ? legacyActorId.slice(0, sourceSeparator)
-              : "legacy",
-          role,
-        });
-        return [actorRefKey(alias), alias];
-      }),
-    ).values(),
-  );
-  return {
-    identity: actorRefFromLegacy({
-      actorId,
-      interfaceType: separator > 0 ? actorId.slice(0, separator) : "legacy",
-      role,
-      ...(typeof canonicalId === "string" ? { canonicalId } : {}),
-    }),
-    ...(identityAliases.length > 0 ? { identityAliases } : {}),
-    ...(typeof value["displayName"] === "string"
-      ? { displayName: value["displayName"] }
-      : {}),
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+  z.preprocess(flattenStoredPerson, actionItemRequesterSchema);
 
 type ActionItemStatusSchema = z.ZodEnum<{
   open: "open";
