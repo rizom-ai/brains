@@ -113,7 +113,6 @@ export {
   type AssistantTurn,
 } from "./assistant-turn";
 export {
-  actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
   authenticatedUserId,

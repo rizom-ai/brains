@@ -1,6 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
-import type { IConversationService } from "@brains/plugins";
+import type {
+  IConversationService,
+  RuntimeUploadScopeOptions,
+} from "@brains/plugins";
 import {
   createCanonicalChatUploadStoreScope,
   createDiscordChatUploadStoreScope,
@@ -792,7 +795,9 @@ describe("ChatInterface uploads", () => {
     );
   });
 
-  it("restores prior uploads from stored conversation metadata after restart", async () => {
+  async function restoreAfterRestart(
+    scope: RuntimeUploadScopeOptions,
+  ): Promise<{ image: Buffer; attachments: unknown }> {
     suite.harness.setPermissionService(
       new PermissionService({
         rules: [{ pattern: "discord:*", level: "trusted" }],
@@ -802,7 +807,7 @@ describe("ChatInterface uploads", () => {
     const uploadStore = suite.harness
       .getMockShell()
       .getRuntimeUploadRegistry()
-      .scoped(createDiscordChatUploadStoreScope());
+      .scoped(scope);
     const record = await uploadStore.save({
       filename: "stored-robot.png",
       mediaType: "image/png",
@@ -856,7 +861,18 @@ describe("ChatInterface uploads", () => {
     expect(suite.agentService.chat.mock.calls[0]?.[0]).toBe(
       "describe stored-robot.png",
     );
-    expect(suite.agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
+    return {
+      image,
+      attachments: suite.agentService.chat.mock.calls[0]?.[2]?.attachments,
+    };
+  }
+
+  it("restores prior uploads from stored conversation metadata after restart", async () => {
+    const { image, attachments } = await restoreAfterRestart(
+      createCanonicalChatUploadStoreScope(),
+    );
+
+    expect(attachments).toEqual([
       expect.objectContaining({
         kind: "file",
         filename: "stored-robot.png",
@@ -865,5 +881,13 @@ describe("ChatInterface uploads", () => {
         source: expect.objectContaining({ kind: "upload" }),
       }),
     ]);
+  });
+
+  it("does not restore prior uploads stored under a platform upload kind", async () => {
+    const { attachments } = await restoreAfterRestart(
+      createDiscordChatUploadStoreScope(),
+    );
+
+    expect(attachments).toBeUndefined();
   });
 });

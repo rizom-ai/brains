@@ -14,8 +14,6 @@ import {
   createCanonicalChatUploadStoreScope,
   createDiscordChatUploadStoreScope,
   createSlackChatUploadStoreScope,
-  discordChatUploadRefKind,
-  slackChatUploadRefKind,
 } from "./upload-store";
 
 interface ChatUploadCoordinatorDeps {
@@ -27,8 +25,8 @@ interface ChatUploadCoordinatorDeps {
 
 /**
  * Owns upload-store selection and cross-turn upload continuity for every Chat
- * SDK platform. Platform upload stores remain isolated while restored
- * agent-facing attachments are migrated to canonical runtime upload refs.
+ * SDK platform. Platform upload stores remain isolated; prior uploads are
+ * restored from the canonical runtime upload store.
  */
 export class ChatUploadCoordinator {
   private readonly deps: ChatUploadCoordinatorDeps;
@@ -103,11 +101,6 @@ export class ChatUploadCoordinator {
   private createContinuity(platform: ChatPlatform): MessageUploadContinuity {
     return new MessageUploadContinuity({
       sourceKind: canonicalChatUploadRefKind,
-      legacySourceKinds: [
-        platform === "discord"
-          ? discordChatUploadRefKind
-          : slackChatUploadRefKind,
-      ],
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
         return (
           (await this.deps
@@ -115,34 +108,10 @@ export class ChatUploadCoordinator {
             ?.conversations.getMessages(conversationId, { limit: 50 })) ?? []
         );
       },
-      restoreAttachment: async (
-        uploadId,
-        sourceKind,
-      ): Promise<ChatAttachment> => {
-        const uploadStore =
-          sourceKind === canonicalChatUploadRefKind
-            ? this.getCanonicalStore()
-            : this.getPlatformStore(platform);
+      restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
+        const uploadStore = this.getCanonicalStore();
         if (!uploadStore) throw new Error("Chat upload store unavailable");
         const resolved = await uploadStore.read(uploadId);
-        if (sourceKind !== canonicalChatUploadRefKind) {
-          const canonicalStore = this.getCanonicalStore();
-          if (!canonicalStore) throw new Error("Chat upload store unavailable");
-          const canonical = await canonicalStore.save({
-            filename: resolved.record.filename,
-            mediaType: resolved.record.mediaType,
-            content: resolved.content,
-            ...(resolved.record.metadata
-              ? { metadata: resolved.record.metadata }
-              : {}),
-          });
-          return chatAttachmentFromStoredUpload(
-            canonical.filename,
-            canonical.mediaType,
-            resolved.content,
-            canonical.ref,
-          );
-        }
         return chatAttachmentFromStoredUpload(
           resolved.record.filename,
           resolved.record.mediaType,

@@ -10,26 +10,6 @@ import type { AuthRuntimeDatabase } from "./runtime-db";
 
 export type WebAuthnChallengeKind = "registration" | "authentication";
 
-export interface StoredPasskeyCredential {
-  id: string;
-  public_key: string;
-  counter: number;
-  transports?: AuthenticatorTransportFuture[];
-  subject: string;
-  user_name: string;
-  credential_device_type: string;
-  credential_backed_up: boolean;
-  created_at: number;
-  updated_at: number;
-}
-
-export interface StoredWebAuthnChallenge {
-  challenge: string;
-  subject: string;
-  created_at: number;
-  expires_at: number;
-}
-
 export interface SaveWebAuthnChallengeInput {
   challenge: string;
   kind: WebAuthnChallengeKind;
@@ -72,7 +52,6 @@ export interface StoredPasskey {
 }
 
 const CHALLENGE_TTL_MS = 10 * 60 * 1000;
-const AUTHENTICATION_CHALLENGE_SUBJECT = "passkey-authentication";
 
 export class RuntimePasskeyStore {
   private readonly database: AuthRuntimeDatabase;
@@ -85,42 +64,29 @@ export class RuntimePasskeyStore {
     return (await this.store().listPasskeys()).length > 0;
   }
 
-  async listCredentials(subject?: string): Promise<StoredPasskeyCredential[]> {
-    return (await this.store().listPasskeys(subject)).map(toLegacyPasskeyShape);
+  listCredentials(userId?: string): Promise<StoredPasskey[]> {
+    return this.store().listPasskeys(userId);
   }
 
-  async getCredential(
-    id: string,
-  ): Promise<StoredPasskeyCredential | undefined> {
-    const credential = await this.store().getPasskey(id);
-    return credential ? toLegacyPasskeyShape(credential) : undefined;
+  getCredential(id: string): Promise<StoredPasskey | undefined> {
+    return this.store().getPasskey(id);
   }
 
-  async addCredential(credential: StoredPasskeyCredential): Promise<void> {
-    await this.store().addPasskey({
-      id: credential.id,
-      userId: credential.subject,
-      publicKey: credential.public_key,
-      counter: credential.counter,
-      ...(credential.transports ? { transports: credential.transports } : {}),
-      credentialDeviceType: credential.credential_device_type,
-      credentialBackedUp: credential.credential_backed_up,
-      createdAt: timestampToMilliseconds(credential.created_at),
-      updatedAt: timestampToMilliseconds(credential.updated_at),
-    });
+  async addCredential(input: AddPasskeyInput): Promise<void> {
+    const credential = await this.store().addPasskey(input);
     await new AuthIdentityStore(this.database.db).ensureIdentity({
-      userId: credential.subject,
+      userId: credential.userId,
       type: "passkey",
       subject: credential.id,
       label: "Passkey credential",
-      verifiedAt: timestampToMilliseconds(credential.created_at),
+      verifiedAt: credential.createdAt,
       source: { kind: "provider", id: "webauthn" },
     });
     await new AuthAuditStore(this.database.db).append({
       action: "auth.passkey.registered",
       targetType: "passkey",
       targetId: credential.id,
-      metadata: { userId: credential.subject },
+      metadata: { userId: credential.userId },
     });
   }
 
@@ -140,14 +106,10 @@ export class RuntimePasskeyStore {
     });
   }
 
-  async consumeRegistrationChallenge(
+  consumeRegistrationChallenge(
     challenge: string,
-  ): Promise<StoredWebAuthnChallenge | undefined> {
-    const stored = await this.store().consumeChallenge(
-      challenge,
-      "registration",
-    );
-    return stored ? toLegacyChallengeShape(challenge, stored) : undefined;
+  ): Promise<StoredAuthChallenge | undefined> {
+    return this.store().consumeChallenge(challenge, "registration");
   }
 
   async saveAuthenticationChallenge(challenge: string): Promise<void> {
@@ -158,20 +120,10 @@ export class RuntimePasskeyStore {
     });
   }
 
-  async consumeAuthenticationChallenge(
+  consumeAuthenticationChallenge(
     challenge: string,
-  ): Promise<StoredWebAuthnChallenge | undefined> {
-    const stored = await this.store().consumeChallenge(
-      challenge,
-      "authentication",
-    );
-    return stored
-      ? toLegacyChallengeShape(
-          challenge,
-          stored,
-          AUTHENTICATION_CHALLENGE_SUBJECT,
-        )
-      : undefined;
+  ): Promise<StoredAuthChallenge | undefined> {
+    return this.store().consumeChallenge(challenge, "authentication");
   }
 
   private store(): AuthCredentialStore {
@@ -348,40 +300,6 @@ export class AuthCredentialStore {
         }
       : undefined;
   }
-}
-
-function toLegacyPasskeyShape(
-  credential: StoredPasskey,
-): StoredPasskeyCredential {
-  return {
-    id: credential.id,
-    public_key: credential.publicKey,
-    counter: credential.counter,
-    ...(credential.transports ? { transports: credential.transports } : {}),
-    subject: credential.userId,
-    user_name: "",
-    credential_device_type: credential.credentialDeviceType ?? "unknown",
-    credential_backed_up: credential.credentialBackedUp,
-    created_at: Math.floor(credential.createdAt / 1000),
-    updated_at: Math.floor(credential.updatedAt / 1000),
-  };
-}
-
-function toLegacyChallengeShape(
-  challenge: string,
-  stored: StoredAuthChallenge,
-  fallbackSubject = "",
-): StoredWebAuthnChallenge {
-  return {
-    challenge,
-    subject: stored.userId ?? fallbackSubject,
-    created_at: Math.floor(stored.createdAt / 1000),
-    expires_at: Math.floor(stored.expiresAt / 1000),
-  };
-}
-
-function timestampToMilliseconds(timestamp: number): number {
-  return timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp;
 }
 
 function passkeyFromRow(
