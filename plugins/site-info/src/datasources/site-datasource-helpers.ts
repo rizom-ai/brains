@@ -7,7 +7,7 @@ import {
   sortByPublicationDate,
   type EntityWithPublishedAt,
 } from "@brains/utils/sort";
-import type { SiteInfoCTA } from "../schemas/site-info-schema";
+import type { SiteInfoCTA } from "@brains/site-composition";
 
 /**
  * Shared building blocks for site homepage/about datasources.

@@ -1,23 +1,36 @@
 import { describe, it, expect } from "bun:test";
-import { SiteInfoDataSource } from "../src/datasources/site-info-datasource";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
+import { siteInfoPlugins } from "./site-info-plugin";
 
 const outputSchema = z.record(z.string(), z.unknown());
 
-describe("SiteInfoDataSource", () => {
-  it("should have correct id", () => {
-    const ds = new SiteInfoDataSource(createSilentLogger());
-    expect(ds.id).toBe("site-info:entities");
+async function installed(): Promise<ReturnType<typeof createPluginHarness>> {
+  const harness = createPluginHarness();
+  for (const plugin of siteInfoPlugins()) await harness.installPlugin(plugin);
+  return harness;
+}
+
+async function fetchSiteInfo(
+  harness: ReturnType<typeof createPluginHarness>,
+): Promise<Record<string, unknown>> {
+  const source = harness.getDataSources().get("site-info:entities");
+  if (!source?.fetch) throw new Error("No site-info:entities data source");
+  return source.fetch({}, outputSchema, {
+    entityService: harness.getEntityService(),
+  });
+}
+
+describe("the site-info data source", () => {
+  it("registers under the id its class had", async () => {
+    const harness = await installed();
+    expect([...harness.getDataSources().keys()]).toEqual([
+      "site-info:entities",
+    ]);
   });
 
   it("should return defaults when no entity exists", async () => {
-    const ds = new SiteInfoDataSource(createSilentLogger());
-    const shell = createMockShell();
-    const entityService = shell.getEntityService();
-
-    const result = await ds.fetch({}, outputSchema, { entityService });
+    const result = await fetchSiteInfo(await installed());
 
     expect(result["title"]).toBe("Brain");
     expect(result["description"]).toBe("A knowledge management system");
@@ -25,9 +38,8 @@ describe("SiteInfoDataSource", () => {
   });
 
   it("should return entity data when site-info exists", async () => {
-    const ds = new SiteInfoDataSource(createSilentLogger());
-    const shell = createMockShell();
-    shell.addEntities([
+    const harness = await installed();
+    harness.addEntities([
       {
         id: "site-info",
         entityType: "site-info",
@@ -35,14 +47,17 @@ describe("SiteInfoDataSource", () => {
           "---\ntitle: My Brain\ndescription: My knowledge base\ncopyright: © Me\n---\n",
         contentHash: "abc",
         visibility: "public",
-        metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
+        // Stored as the declared type stores it: its frontmatter is its
+        // metadata.
+        metadata: {
+          title: "My Brain",
+          description: "My knowledge base",
+          copyright: "© Me",
+        },
       },
     ]);
-    const entityService = shell.getEntityService();
 
-    const result = await ds.fetch({}, outputSchema, { entityService });
+    const result = await fetchSiteInfo(harness);
 
     expect(result["title"]).toBe("My Brain");
     expect(result["description"]).toBe("My knowledge base");
@@ -50,18 +65,15 @@ describe("SiteInfoDataSource", () => {
   });
 
   it("does not mix anchor profile data into site channel configuration", async () => {
-    const ds = new SiteInfoDataSource(createSilentLogger());
-    const shell = createMockShell();
-    shell.addEntities([
+    const harness = await installed();
+    harness.addEntities([
       {
         id: "site-info",
         entityType: "site-info",
         content: "---\ntitle: Test\ndescription: Desc\n---\n",
         contentHash: "abc",
         visibility: "public",
-        metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
+        metadata: { title: "Test", description: "Desc" },
       },
       {
         id: "anchor-profile",
@@ -72,14 +84,10 @@ describe("SiteInfoDataSource", () => {
         metadata: {
           socialLinks: [{ platform: "github", url: "https://github.com/test" }],
         },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
       },
     ]);
 
-    const result = await ds.fetch({}, outputSchema, {
-      entityService: shell.getEntityService(),
-    });
+    const result = await fetchSiteInfo(harness);
 
     expect(result["socialLinks"]).toBeUndefined();
   });

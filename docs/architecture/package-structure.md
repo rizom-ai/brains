@@ -71,7 +71,6 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/image`               | AI-generated images                                 |
 | `entities/series`              | Derived from posts                                  |
 | `entities/prompt`              | Editable AI prompts                                 |
-| `entities/site-info`           | Site metadata                                       |
 | `entities/agent-discovery`     | Agent + skill entities (A2A)                        |
 | `entities/assessment`          | Derived assessment outputs (SWOT)                   |
 | `entities/doc`                 | Generic docs entity backing `/docs`                 |
@@ -94,6 +93,7 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/obsidian-vault`   | Obsidian template generation                                     |
 | `plugins/stock-photo`      | Unsplash stock photo search                                      |
 | `plugins/site-content`     | Site section content generation                                  |
+| `plugins/site-info`        | Compound site-info singleton + site metadata service             |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
 | `plugins/notifications`    | Notification routing for transactional + administrative messages |

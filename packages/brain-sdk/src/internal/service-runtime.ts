@@ -2,7 +2,7 @@
  * Internal, first-party only: what a first-party service converted from a
  * class needs and the public service contract does not offer, reached with
  * `serviceRuntime(context)` on a slot context the brain built, tools that
- * keep snake-case names, and the system channels such a service hears. No
+ * keep snake-case names, and the system and entity channels such a service hears. No
  * public entry exports this module.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
@@ -19,4 +19,10 @@ export {
   type ServiceRuntime,
 } from "@brains/plugins";
 export { withOwnedDataSources } from "@brains/plugins";
-export { SYSTEM_CHANNELS, initialSyncCompletedChannel } from "@brains/plugins";
+export {
+  SYSTEM_CHANNELS,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  initialSyncCompletedChannel,
+} from "@brains/plugins";
