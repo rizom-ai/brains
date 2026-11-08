@@ -274,6 +274,7 @@ describe("buildShellConfig", () => {
     expect(shellConfig.siteBaseUrl).toBe("brain.example.com");
     expect(shellConfig.localSiteUrl).toBe("http://localhost:9090");
     expect(shellConfig.preferLocalUrls).toBe(true);
+    expect(shellConfig.production).toBe(false);
   });
 
   it("prefers public URLs in production", () => {
@@ -289,6 +290,7 @@ describe("buildShellConfig", () => {
     );
 
     expect(shellConfig.preferLocalUrls).toBe(false);
+    expect(shellConfig.production).toBe(true);
   });
 
   it("passes a configured identity through", () => {

@@ -1191,7 +1191,7 @@ export type {
 export { PluginManager } from "./manager";
 
 // Error handling
-export { PluginError } from "./errors";
+export { FatalPluginConfigurationError, PluginError } from "./errors";
 export {
   deriveConsoleSurfaces,
   type ConsoleSurface,

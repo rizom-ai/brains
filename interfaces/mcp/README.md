@@ -34,7 +34,7 @@ const stdioInterface = new MCPInterface({
   mode: "basic", // default: chat/confirm only
 });
 
-// For authenticated HTTP transport
+// For HTTP transport with a static token (local development only; a production brain refuses it)
 const httpInterface = new MCPInterface({
   transport: "http",
   httpPort: 3333,
@@ -187,7 +187,7 @@ interface MCPConfig {
   transport: "stdio" | "http";
   mode?: "basic" | "debug"; // default: "basic"
   httpPort?: number; // For HTTP transport
-  authToken?: string; // Bearer token for HTTP transport
+  authToken?: string; // Static bearer token: local development only; a production brain refuses it
 }
 ```
 

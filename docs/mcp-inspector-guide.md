@@ -60,9 +60,9 @@ plugins:
 
 Use `debug` only when you intentionally want to bypass the agent-gated command path for inspection or development.
 
-## Deprecated static-token fallback
+## Static-token mode for local development
 
-Only use this for clients or Inspector versions that cannot complete OAuth.
+The static token is for local development only; a production brain refuses it. Use it against a local brain with clients or Inspector versions that cannot complete OAuth.
 
 1. Configure a fallback token:
 
@@ -94,7 +94,7 @@ For production servers:
 
 - **Server URL**: `https://yourdomain.com/mcp`
 - **Transport**: Streamable HTTP
-- **Authentication**: OAuth/passkey flow preferred
+- **Authentication**: OAuth/passkey flow; a production brain refuses the static token
 
 Always use HTTPS in production. Preserve the deployment volume that backs `/app/data/auth`; losing it invalidates passkeys, sessions, OAuth clients, signing keys, authorization codes, and refresh tokens.
 
@@ -125,6 +125,6 @@ Always use HTTPS in production. Preserve the deployment volume that backs `/app/
 ## Security notes
 
 - Prefer OAuth/passkeys over `MCP_AUTH_TOKEN`
-- Use the static token only in local development; deployed brains use OAuth
+- Use the static token only in local development; a production brain refuses it
 - Rotate fallback tokens regularly
 - Keep auth state outside `brain-data`
