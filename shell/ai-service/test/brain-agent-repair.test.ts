@@ -108,6 +108,11 @@ describe("a tool call that fails validation", () => {
       type: "json",
       schema: expect.objectContaining({ type: "object" }),
     });
+    // OpenAI's strict structured outputs reject the tools' schemas, so the
+    // repair asks for the schema without strict mode.
+    expect(repair?.providerOptions).toMatchObject({
+      openai: { strictJsonSchema: false },
+    });
   });
 
   it("is left to the model to retry when the repair fails", async () => {

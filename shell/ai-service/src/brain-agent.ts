@@ -136,15 +136,21 @@ export function createBrainAgentFactory(
 
   // A call that fails validation is generated again by the model that made
   // it, reasoning as it did, with the tool's schema constraining the
-  // arguments, so malformed or misplaced arguments cannot recur.
+  // arguments, so malformed or misplaced arguments cannot recur. OpenAI's
+  // strict structured outputs reject the tools' schemas (optional fields,
+  // open records), so its repair asks for the schema without strict mode.
   const repairToolCall = createToolCallRepair(
     model,
-    capabilities.provider === "openai" && reasoningEffort
+    capabilities.provider === "openai"
       ? {
-          openai: openAIReasoningOptions(
-            reasoningEffort,
-            capabilities.supportsTemperature,
-          ),
+          openai: {
+            strictJsonSchema: false,
+            ...(reasoningEffort &&
+              openAIReasoningOptions(
+                reasoningEffort,
+                capabilities.supportsTemperature,
+              )),
+          },
         }
       : undefined,
   );
