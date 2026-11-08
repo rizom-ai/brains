@@ -1,6 +1,7 @@
 import { extractPdfMarkdown } from "@brains/document";
 import { getErrorMessage } from "@brains/utils/error";
 import type { FilePart, ModelMessage, TextPart } from "ai";
+import { fileBytes } from "./file-bytes";
 import type { ImageDescriber } from "./image-description";
 
 /**
@@ -66,10 +67,4 @@ async function describeFile(
       text: `User uploaded a PDF ${name}. Its text could not be read: ${getErrorMessage(error)}`,
     };
   }
-}
-
-export function fileBytes(data: FilePart["data"]): Buffer | undefined {
-  if (typeof data === "string") return Buffer.from(data, "base64");
-  if (data instanceof URL) return undefined;
-  return Buffer.from(data instanceof ArrayBuffer ? new Uint8Array(data) : data);
 }
