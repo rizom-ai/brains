@@ -22,6 +22,7 @@ import type {
   EntityCreateUploadReader,
   EntityGenerationAI,
   EntityGenerationLink,
+  EntityGenerationResult,
   EntityJobDeclaration,
   EntityJobHandleContext,
   EntityOf,
@@ -64,6 +65,15 @@ export interface EntityRuntime {
    * job handlers. A template the type does not declare is refused.
    */
   readonly generate: EntityGenerationAI["generate"];
+  /**
+   * A generation's result, marked so the runtime creates it under the next
+   * free id when its own is taken, as the entity plugin classes' generations
+   * created with `deduplicateId`. A generation filling an allocated entity
+   * keeps that entity's id. Elsewhere the mark has no effect.
+   */
+  deduplicated<TResult extends EntityGenerationResult>(
+    result: TResult,
+  ): TResult;
   /** Reads of the declaring package's own types, at every visibility. */
   readonly packageEntities: EntityReader;
   /**
@@ -265,6 +275,12 @@ const ordinaryCreateKey = Symbol("rizom.ordinary-create");
 const queuedCreateKey = Symbol("rizom.queued-create");
 const storedCreateKey = Symbol("rizom.stored-create");
 const contractJobKey = Symbol("rizom.contract-job");
+const deduplicatedKey = Symbol("rizom.deduplicated-generation");
+
+/** Whether a generation's result asks to land under the next free id. */
+export function isDeduplicated(result: object): boolean {
+  return Reflect.get(result, deduplicatedKey) === true;
+}
 
 /** A resolution only the runtime's accessor marks; elsewhere, a refusal. */
 function marked(
@@ -563,6 +579,16 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       return schema.parse(object);
     },
     generate: binding.generate ?? unavailableGenerate(binding.where),
+    deduplicated: <TResult extends EntityGenerationResult>(
+      result: TResult,
+    ): TResult => {
+      const marked = { ...result };
+      Object.defineProperty(marked, deduplicatedKey, {
+        value: true,
+        enumerable: false,
+      });
+      return marked;
+    },
     packageEntities: ownTypesOnly(binding.packageReader, binding.ownsType),
     ordinaryCreate: (
       document?: OrdinaryCreateDocument,

@@ -56,7 +56,11 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
-import { withEntityRuntime, type EntityRuntimeBinding } from "./entity-runtime";
+import {
+  isDeduplicated,
+  withEntityRuntime,
+  type EntityRuntimeBinding,
+} from "./entity-runtime";
 import { sharedUploadScope } from "../service/upload-registry";
 import type { AttachmentResolveRequest } from "../service/attachment-registry";
 import {
@@ -865,6 +869,10 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       }),
       ...(link && { linkInto: link }),
       ...(visibility && { visibility }),
+      // A generation that asks lands beside a record holding its id; one
+      // filling an allocated entity keeps that entity.
+      ...(entityId === undefined &&
+        isDeduplicated(result) && { createOptions: { deduplicateId: true } }),
     };
   }
 
