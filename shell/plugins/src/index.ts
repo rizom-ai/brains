@@ -971,6 +971,7 @@ export {
   entityAnswer,
   entityRuntime,
   uniqueTitleContext,
+  withBodyTemplate,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
   type AnyEntityReads,

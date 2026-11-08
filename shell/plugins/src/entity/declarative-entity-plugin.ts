@@ -63,6 +63,7 @@ import { createEntityReader } from "./entity-reader";
 import {
   contractJobOf,
   entityAnswersOf,
+  bodyTemplateOf,
   ordinaryCreateOf,
   queuedCreateOf,
   storedCreateOf,
@@ -442,7 +443,7 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
       ? markdownStorage(definition)
       : binaryStorage(definition)),
     extractMetadata: (entity) => entity.metadata,
-    getBodyTemplate: () => "",
+    getBodyTemplate: () => bodyTemplateOf(definition),
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.
     ...(stub && {

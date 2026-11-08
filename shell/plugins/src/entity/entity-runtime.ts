@@ -776,6 +776,27 @@ export function entityAnswersOf(
   return Array.isArray(found) ? found : [];
 }
 
+const bodyTemplateKey = Symbol("rizom.body-template");
+
+/**
+ * A first-party definition whose body has a shape of its own: the
+ * definition, carrying the scaffold its body starts from under a key no
+ * public type names, which the runtime gives as its adapter's body template
+ * (the vault's template for a new record).
+ */
+export function withBodyTemplate<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  template: string,
+): TDefinition {
+  return Object.freeze({ ...definition, [bodyTemplateKey]: template });
+}
+
+/** The body template a definition carries, or none. */
+export function bodyTemplateOf(definition: object): string {
+  const found: unknown = Reflect.get(definition, bodyTemplateKey);
+  return typeof found === "string" ? found : "";
+}
+
 /**
  * What `ensureUniqueTitle` reads, through a call's runtime: a record of
  * the title's id at the call's scope, one structured answer, and the

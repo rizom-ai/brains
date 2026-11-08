@@ -15,6 +15,7 @@ export {
   ensureUniqueTitle,
   entityRuntime,
   uniqueTitleContext,
+  withBodyTemplate,
   type AnyEntityReads,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
