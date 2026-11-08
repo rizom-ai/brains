@@ -435,3 +435,52 @@ describe("a first-party service's runtime, reading the brain", () => {
     expect(read).toEqual([undefined]);
   });
 });
+
+describe("a first-party service's runtime, once every plugin has registered", () => {
+  function finalizing(
+    order: string[],
+    fail = false,
+  ): Parameters<typeof instantiatePluginPackageDefinition>[0] {
+    return defineServicePlugin(
+      { id: "probe", config: z.object({}) },
+      {
+        subscriptions: (context) => {
+          const runtime = serviceRuntime(context);
+          runtime.registered(() => {
+            order.push("first");
+          });
+          runtime.registered(async () => {
+            order.push("second");
+            if (fail) throw new Error("Selected kind is not registered");
+          });
+          return [];
+        },
+      },
+    );
+  }
+
+  it("runs its handlers when registration completes, in order, and not before", async () => {
+    const order: string[] = [];
+    const plugin = await install(createMockShell(), finalizing(order));
+    expect(order).toEqual([]);
+
+    await plugin.finalizeRegistration?.();
+    expect(order).toEqual(["first", "second"]);
+  });
+
+  it("runs them in a worker too", async () => {
+    const order: string[] = [];
+    const plugin = await install(createMockShell(), finalizing(order), true);
+
+    await plugin.finalizeRegistration?.();
+    expect(order).toEqual(["first", "second"]);
+  });
+
+  it("fails registration when a handler fails", async () => {
+    const plugin = await install(createMockShell(), finalizing([], true));
+
+    expect(plugin.finalizeRegistration?.()).rejects.toThrow(
+      "Selected kind is not registered",
+    );
+  });
+});

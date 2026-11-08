@@ -272,6 +272,8 @@ class DeclarativeServicePlugin<
   private readonly answered: Array<() => void> = [];
   /** What a first-party package runs once the brain is ready. */
   private readonly readyHandlers: Array<() => Promise<void>> = [];
+  /** What a first-party package runs once every plugin has registered. */
+  private readonly registeredHandlers: Array<() => Promise<void>> = [];
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -440,6 +442,8 @@ class DeclarativeServicePlugin<
         `Service "${this.publicId}" account settings require auth-service and an account settings encryption key`,
       );
     }
+    // In every process, as the class's onRegistrationComplete ran.
+    for (const handler of this.registeredHandlers) await handler();
     if (context.executionOnly) return;
     this.bindOperatorDefinitions(context);
 
@@ -603,6 +607,7 @@ class DeclarativeServicePlugin<
     this.registeredJobs.clear();
     for (const release of this.answered.splice(0).reverse()) release();
     this.readyHandlers.splice(0);
+    this.registeredHandlers.splice(0);
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
@@ -1025,6 +1030,9 @@ class DeclarativeServicePlugin<
       },
       onReady: (handler) => {
         this.readyHandlers.push(handler);
+      },
+      onRegistered: (handler) => {
+        this.registeredHandlers.push(handler);
       },
       entityShapes: entityShapesOf(context),
       dataDir: context.dataDir,

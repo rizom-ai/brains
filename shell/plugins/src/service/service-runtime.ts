@@ -117,6 +117,13 @@ export interface ServiceRuntime {
    * onReady ran. Handlers run in the order they were given.
    */
   ready(handler: () => void | Promise<void>): void;
+  /**
+   * Run once every plugin has registered, as the package, in every process,
+   * where the class's onRegistrationComplete ran: before the initial sync,
+   * after every package has registered what it contributes. A handler that
+   * fails fails the brain's registration. Handlers run in order.
+   */
+  registered(handler: () => void | Promise<void>): void;
   /** The shape of every registered entity type, read-only. */
   readonly entityShapes: ServiceEntityShapes;
   /** Where the brain keeps its data on disk. */
@@ -149,6 +156,8 @@ export interface ServiceRuntimeBinding {
   readonly onRelease: (release: () => void) => void;
   /** Keeps a handler to run once the brain is ready. */
   readonly onReady: (handler: () => Promise<void>) => void;
+  /** Keeps a handler to run once every plugin has registered. */
+  readonly onRegistered: (handler: () => Promise<void>) => void;
   readonly entityShapes: ServiceEntityShapes;
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
@@ -158,7 +167,7 @@ export interface ServiceRuntimeBinding {
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
 
 function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
-  const { messaging, asPackage, onRelease, onReady } = binding;
+  const { messaging, asPackage, onRelease, onReady, onRegistered } = binding;
   const runtime: ServiceRuntime = {
     logger: binding.logger,
     deliveryProvider: binding.deliveryProvider,
@@ -168,6 +177,9 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     domain: binding.domain,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
+    },
+    registered(handler): void {
+      onRegistered(() => asPackage(async () => handler()));
     },
     answer(contract, handler, options = {}): void {
       // The bus checks the answer against the contract's own schema, as the
