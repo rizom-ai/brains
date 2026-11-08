@@ -290,6 +290,64 @@ describe("declared generation", () => {
     }
   });
 
+  // A job queued before its type was declared carries the class handler's
+  // raw input, with no requester recorded: it runs as the package.
+  it("runs a job queued in the class handler's raw shape, as the package", async () => {
+    const seen: { context?: EntityGenerationContext<unknown> } = {};
+    const harness = await install([memoWithGeneration(seen)]);
+    try {
+      expect(
+        await run(harness, "memo:generation", {
+          prompt: "tides",
+          title: "Raw memo",
+        }),
+      ).toMatchObject({ success: true, entityId: "raw-memo" });
+      expect(seen.context?.input).toEqual({
+        prompt: "tides",
+        title: "Raw memo",
+      });
+      const written = await stored(harness, "memo", "raw-memo");
+      expect(written?.content).toBe("About: tides");
+
+      const stub = buildGenerationStubEntity(harness.getEntityRegistry(), {
+        entityType: "memo",
+        id: "allocated",
+        title: "Allocated",
+      });
+      if (!stub) throw new Error("The declared stub was not used");
+      await harness.getEntityService().createEntity({ entity: stub });
+      expect(
+        await run(harness, "memo:generation", {
+          prompt: "harbours",
+          entityId: "allocated",
+        }),
+      ).toMatchObject({ success: true, entityId: "allocated" });
+      expect(seen.context?.entityId).toBe("allocated");
+      expect((await stored(harness, "memo", "allocated"))?.content).toBe(
+        "About: harbours",
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("refuses queued data that names a requester but whose input does not fit", () => {
+    return install([memoWithGeneration({})]).then(async (harness) => {
+      try {
+        const handler = handlerFor(harness, "memo:generation");
+        expect(
+          handler.validateAndParse({
+            authority: callerAuthority,
+            input: { prompt: 42 },
+          }),
+        ).toBeNull();
+        expect(handler.validateAndParse({ prompt: 42 })).toBeNull();
+      } finally {
+        await harness.reset();
+      }
+    });
+  });
+
   it("marks the allocated entity failed when generation refuses or throws", async () => {
     const harness = await install([memoWithGeneration({})]);
     try {

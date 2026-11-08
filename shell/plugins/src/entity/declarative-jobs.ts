@@ -703,6 +703,14 @@ export interface GenerationTarget {
   readonly retries?: RetryScope | undefined;
   /** Tell the content pipeline how each run went: the type is scheduled. */
   readonly reportsToPipeline?: boolean | undefined;
+  /**
+   * Whether this is the type's own `{type}:generation`, which an entity
+   * plugin class queued in its handler's raw shape before the type was
+   * declared; no other declared job ever was.
+   */
+  readonly readsLegacyRawData?: boolean | undefined;
+  /** The plugin a job queued in the class handler's raw shape runs as. */
+  readonly pluginId: string;
   /** The internal runtime a run reaches, at the run's authority. */
   readonly runtime: (authority: EntityRunAuthority) => EntityRuntimeBinding;
 }
@@ -717,6 +725,38 @@ const generationJobDataSchema = serviceJobDataSchema(z.unknown()).extend({
   entityId: z.string().optional(),
   source: generationSourceSchema.optional(),
 });
+
+/**
+ * A generation queued before its type was declared, in the class handler's
+ * raw shape: its input as written, with the entity it fills beside it and
+ * no requester recorded. Tracked in docs/legacy-code-inventory.json
+ * (legacy-raw-generation-data) for removal once no such job can be pending.
+ */
+const legacyGenerationDataSchema = z.object({
+  legacyRawData: z.literal(true),
+  input: z.unknown(),
+  entityId: z.string().optional(),
+  source: generationSourceSchema.optional(),
+});
+
+type LegacyGenerationData = z.output<typeof legacyGenerationDataSchema>;
+
+/**
+ * Queued data in the class handler's raw shape, read as a legacy job; data
+ * that names a requester is a package job's, whose envelope it failed.
+ */
+function legacyGenerationData(data: unknown): LegacyGenerationData | null {
+  const stored = legacyGenerationDataSchema.safeParse(data);
+  if (stored.success) return stored.data;
+  if (!isPlainRecord(data) || "authority" in data) return null;
+  const { entityId, ...input } = data;
+  return {
+    legacyRawData: true,
+    input,
+    ...(typeof entityId === "string" && { entityId }),
+    ...definedFields({ source: generationSource(data) }),
+  };
+}
 
 /** One running generation: its signal, its input, and whom it acts as. */
 interface GenerationRun {
@@ -763,11 +803,16 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
    */
   override validateAndParse(data: unknown): unknown {
     const job = generationJobDataSchema.safeParse(data);
-    if (!job.success) return null;
-    const checked = super.validateAndParse(job.data.input);
+    const queued = job.success
+      ? job.data
+      : this.target.readsLegacyRawData === true
+        ? legacyGenerationData(data)
+        : null;
+    if (!queued) return null;
+    const checked = super.validateAndParse(queued.input);
     if (checked === null) return null;
     return {
-      ...job.data,
+      ...queued,
       ...definedFields({
         coverImage: isPlainRecord(checked) ? checked["coverImage"] : undefined,
       }),
@@ -780,10 +825,23 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     progressReporter: ProgressReporter,
     signal?: AbortSignal,
   ): Promise<GenerationResult> {
-    const job = generationJobDataSchema.parse(data);
+    const envelope = generationJobDataSchema.safeParse(data);
+    const job = envelope.success
+      ? envelope.data
+      : legacyGenerationDataSchema.parse(data);
     // Its requester's current access, never more than it was admitted at; a
-    // revoked or rebound requester is refused before anything runs.
-    const call = await queuedJobCall(this.context.jobAuthority, job);
+    // revoked or rebound requester is refused before anything runs. A job
+    // queued in the class handler's raw shape recorded none, and runs as
+    // the package, as the class handler ran it.
+    const call: QueuedJobCall =
+      "legacyRawData" in job
+        ? {
+            ...packageSelfCall(this.context.jobAuthority),
+            eventContext: {
+              actor: { kind: "service", serviceId: this.target.pluginId },
+            },
+          }
+        : await queuedJobCall(this.context.jobAuthority, job);
     const run: GenerationRun = {
       signal: signal ?? new AbortController().signal,
       input: job.input,

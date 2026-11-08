@@ -499,12 +499,18 @@ describe("entity package jobs read as their requester", () => {
         entityId: "drafted",
       }),
     ).toBeNull();
+    // The type's own generation, which its entity plugin class queued in
+    // this shape, reads it as a legacy job the package runs.
     expect(
       handlerFor(shell, "memo:generation").validateAndParse({
         prompt: "tides",
         entityId: "prompted",
       }),
-    ).toBeNull();
+    ).toEqual({
+      legacyRawData: true,
+      input: { prompt: "tides" },
+      entityId: "prompted",
+    });
   });
 
   it("refuses a job and a generation whose requester is revoked before they run", async () => {

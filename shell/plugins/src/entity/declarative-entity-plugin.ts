@@ -784,6 +784,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     declaration: NonNullable<AnyEntityDefinition["generation"]>,
     jobTypeName: string,
     reportsToPipeline = false,
+    readsLegacyRawData = false,
   ): DeclarativeGenerationHandler {
     return new DeclarativeGenerationHandler(this.logger, context, declaration, {
       entityType: this.entityType,
@@ -792,6 +793,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ownsType: (entityType) => this.ownsType(entityType),
       retries: this.retries,
       reportsToPipeline,
+      readsLegacyRawData,
+      pluginId: this.id,
       runtime: (authority) =>
         this.runBinding(context, authority, "a generation"),
     });
@@ -917,6 +920,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           this.generation,
           `${this.entityType}:generation`,
           this.definition.scheduledGeneration !== undefined,
+          true,
         )
       : null;
   }

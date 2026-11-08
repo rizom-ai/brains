@@ -305,6 +305,21 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "legacy-raw-generation-data",
+      "paths": [
+        "shell/plugins/src/entity/declarative-jobs.ts",
+        "shell/plugins/src/entity/declarative-entity-plugin.ts"
+      ],
+      "symbol": "legacyGenerationData",
+      "owner": "@brains/plugins",
+      "class": "durable-data-compatibility",
+      "behavior": "Runs a declared {type}:generation job whose queued data is the entity plugin class handler's raw input (with the entity it fills beside it) rather than the runtime's package-job envelope: the input is checked by the generation's schema and the job runs as the package, since no requester was recorded. Data that names a requester is held to the envelope.",
+      "currentConsumers": "Generation jobs of the publishing entities (post, deck, project, social-post, link, note) queued by their class plugins before the conversion and still pending or retrying at upgrade.",
+      "removalPrerequisite": "Phase 2 close-out (slice 10): observe zero pending or retrying {type}:generation rows in the raw shape on supported runtime databases.",
+      "rollbackDependency": "None: a rolled-back class handler reads the raw shape it wrote.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "retired-projection-job-recovery",
       "paths": [
         "packages/brains-ops/src/legacy-projection-job-recovery.ts",
