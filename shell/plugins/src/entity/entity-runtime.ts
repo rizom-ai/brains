@@ -13,6 +13,7 @@ import {
   type IEntityService,
   type SearchWithDistancesRequest,
 } from "@brains/entity-service";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { AnchorProfile } from "../contracts/identity";
@@ -795,6 +796,40 @@ export function withBodyTemplate<TDefinition extends AnyEntityDefinition>(
 export function bodyTemplateOf(definition: object): string {
   const found: unknown = Reflect.get(definition, bodyTemplateKey);
   return typeof found === "string" ? found : "";
+}
+
+const restatedMetadataKey = Symbol("rizom.restated-metadata");
+
+/** The metadata as the document a type wrote states it. */
+export type RestateMetadata = (
+  metadata: Readonly<Record<string, unknown>>,
+) => Record<string, unknown>;
+
+/**
+ * A first-party definition whose encode writes what its metadata did not
+ * state, such as a slug resolved from the title: the definition, carrying
+ * how its metadata reads once that document is written, under a key no
+ * public type names. The runtime stores the restated metadata beside the
+ * document, so the next write reads what the file now says.
+ */
+export function restatingMetadata<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  restate: RestateMetadata,
+): TDefinition {
+  return Object.freeze({ ...definition, [restatedMetadataKey]: restate });
+}
+
+/** How a definition restates its stored metadata, when it does. */
+export function restatedMetadataOf(
+  definition: object,
+): RestateMetadata | undefined {
+  const found: unknown = Reflect.get(definition, restatedMetadataKey);
+  return typeof found === "function"
+    ? (metadata): Record<string, unknown> => {
+        const restated: unknown = Reflect.apply(found, undefined, [metadata]);
+        return isPlainRecord(restated) ? restated : { ...metadata };
+      }
+    : undefined;
 }
 
 /**

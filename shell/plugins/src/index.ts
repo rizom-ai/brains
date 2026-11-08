@@ -971,6 +971,7 @@ export {
   entityAnswer,
   entityRuntime,
   uniqueTitleContext,
+  restatingMetadata,
   withBodyTemplate,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
@@ -984,6 +985,7 @@ export {
   type QueuedCreate,
   type QueuedPlaceholder,
   type StoredCreate,
+  type RestateMetadata,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public
 // service contract does not offer here.

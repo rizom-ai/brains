@@ -65,6 +65,7 @@ import {
   entityAnswersOf,
   bodyTemplateOf,
   ordinaryCreateOf,
+  restatedMetadataOf,
   queuedCreateOf,
   storedCreateOf,
   withEntityRuntime,
@@ -442,7 +443,10 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     ...(definition.config?.binaryStorage === undefined
       ? markdownStorage(definition)
       : binaryStorage(definition)),
-    extractMetadata: (entity) => entity.metadata,
+    // A first-party type that restates its metadata stores it as the
+    // document it wrote states it.
+    extractMetadata: (entity) =>
+      restatedMetadataOf(definition)?.(entity.metadata) ?? entity.metadata,
     getBodyTemplate: () => bodyTemplateOf(definition),
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.
