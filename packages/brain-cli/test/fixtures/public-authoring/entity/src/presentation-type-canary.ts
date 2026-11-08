@@ -116,9 +116,11 @@ function noteItem(
       };
 }
 
+// The channel's title and description when the site config gives none.
 const noteFeed: EntityFeedDeclaration<SyndicatedNote> = {
   path: "notes.xml",
   title: "Notes",
+  description: "Short notes the site syndicates",
   toItem: noteItem,
 };
 
@@ -207,6 +209,15 @@ export const invalidEntity = defineDataSource<typeof bookmark, string, Titles>({
   transform: (): string => "",
   list: (items): Titles => ({ titles: [...items] }),
 });
+
+export const invalidFeedChannel: EntityFeedDeclaration<SyndicatedNote> = {
+  path: "invalid-channel.xml",
+  // @ts-expect-error A feed's fallback channel title is text.
+  title: 42,
+  // @ts-expect-error A feed's fallback channel description is text.
+  description: ["Short notes"],
+  toItem: noteItem,
+};
 
 export const invalidFeedItem: EntityFeedDeclaration<SyndicatedNote> = {
   path: "invalid.xml",
