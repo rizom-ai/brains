@@ -148,6 +148,9 @@ describe("the social media package's registered surface", () => {
     const { harness } = await installed();
     expect(
       harness.getMockShell().getAtprotoProjectionRegistry().get("social-post"),
-    ).toMatchObject({ collection: "ai.rizom.brain.socialPost" });
+    ).toMatchObject({
+      collection: "ai.rizom.brain.socialPost",
+      validate: false,
+    });
   });
 });

@@ -422,6 +422,7 @@
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
       },
