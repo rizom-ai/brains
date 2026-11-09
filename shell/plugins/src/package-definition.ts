@@ -288,7 +288,8 @@ export function instantiatePluginPackageDefinition(
   const parsed = definition.config.safeParse(rawConfig);
   if (!parsed.success) {
     throw PluginConfigValidationError.fromZod(
-      `${metadata.name}:${definition.id}`,
+      // A first-party package names itself as its class did.
+      pluginId ?? `${metadata.name}:${definition.id}`,
       parsed.error,
       rawConfig,
     );

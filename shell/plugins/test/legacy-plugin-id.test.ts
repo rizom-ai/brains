@@ -398,3 +398,28 @@ describe("an interface package instantiated under a legacy plugin id", () => {
     );
   });
 });
+
+describe("a refused config under a legacy plugin id", () => {
+  it("names the plugin by the id its class had, as the class's refusal did", () => {
+    const strict = defineInterface({
+      id: "listener",
+      config: z.object({ port: z.number() }),
+    });
+
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        strict,
+        { port: "x" },
+        { name: "@brains/listener", version: "0.1.0" },
+        { pluginId: "listener" },
+      ),
+    ).toThrow("Invalid plugin config for listener at port");
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        strict,
+        { port: "x" },
+        { name: "@brains/listener", version: "0.1.0" },
+      ),
+    ).toThrow("Invalid plugin config for @brains/listener:listener at port");
+  });
+});

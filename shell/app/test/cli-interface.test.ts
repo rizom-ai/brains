@@ -31,6 +31,6 @@ describe("the CLI interface the app registers with --cli", () => {
         // @ts-expect-error a theme color the schema refuses, as brain.yaml may carry one
         theme: { primaryColor: 1, accentColor: "#ffffff" },
       }),
-    ).rejects.toThrow("Invalid plugin config for @brains/chat-repl:cli");
+    ).rejects.toThrow("Invalid plugin config for cli at theme.primaryColor");
   });
 });
