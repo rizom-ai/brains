@@ -15,6 +15,7 @@ export {
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,
+  type ServiceAI,
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,

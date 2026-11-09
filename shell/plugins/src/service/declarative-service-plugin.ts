@@ -98,6 +98,7 @@ import {
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceAI,
   type ServiceStudio,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
@@ -1130,9 +1131,10 @@ class DeclarativeServicePlugin<
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,
-      ai: Object.freeze({
+      ai: Object.freeze<ServiceAI>({
         generateObject: (prompt, schema, signal) =>
           context.ai.generateObject(prompt, schema, signal),
+        judge: (input) => context.judge(input),
       }),
       dataSource: (declaration): void => {
         context.entities.registerDataSource(
@@ -1724,6 +1726,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntityCounts: (scope) => entityService.getEntityCounts(scope),
     listEntities: (request) => entityService.listEntities(request),
     getEntity: (request) => entityService.getEntity(request),
+    search: (request) => entityService.search(request),
   } satisfies ServiceEntityReads);
 }
 

@@ -584,6 +584,7 @@ describe("a first-party service's read-only view of the entity service", () => {
       "getEntityCounts",
       "getEntityTypes",
       "listEntities",
+      "search",
     ]);
   });
 });

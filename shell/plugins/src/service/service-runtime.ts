@@ -5,6 +5,7 @@ import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
+import type { IShell } from "../interfaces";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
   IInboxFollowUpsNamespace,
@@ -27,6 +28,8 @@ import type {
   EntityMutationResult,
   GetEntityRequest,
   ListEntitiesRequest,
+  EntitySearchRequest,
+  SearchResult,
   NearestEntity,
   NearestToEntityRequest,
   PersistValidator,
@@ -264,8 +267,11 @@ export interface ServiceRuntime {
    * it and read the selected one once registration completed.
    */
   readonly profileKinds: IProfileKindsNamespace;
-  /** One structured answer from the brain's AI, as the class asked it. */
-  readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  /**
+   * One structured answer from the brain's AI, and a bounded verdict from
+   * its judge, as the class asked them.
+   */
+  readonly ai: ServiceAI;
   /**
    * Serve a data source under `<plugin id>:<id>`, as an entity plugin class
    * registered one: `fetch` reads the corpus at the build's scope, through
@@ -372,6 +378,13 @@ export interface ServiceEntityReads {
   ): Promise<Array<{ entityType: string; count: number }>>;
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  /** A search of the brain at the scope the request names. */
+  search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
+}
+
+/** What a first-party service asks the brain's AI. */
+export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
+  readonly judge: IShell["judge"];
 }
 
 /** Who the brain is and whom it represents, as the shell keeps them. */
@@ -416,7 +429,7 @@ export interface ServiceRuntimeBinding {
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
-  readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  readonly ai: ServiceAI;
   readonly dataSource: (declaration: ServiceDataSourceDeclaration) => void;
   readonly template: (name: string, template: Template) => void;
   readonly dashboardWidget: <TDefinition extends AnyDashboardWidgetDefinition>(
