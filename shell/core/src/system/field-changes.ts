@@ -81,7 +81,10 @@ export function fieldChangeListSchema(
   options: { on: FieldsOn; omit?: string[] },
 ): z.ZodArray<z.ZodType> {
   const values = new Map<string, Map<string, z.ZodType>>();
-  for (const type of registry.getAllEntityTypes()) {
+  // The entity types that take each field, for the model to read.
+  const takenBy = new Map<string, string[]>();
+  const types = registry.getAllEntityTypes();
+  for (const type of types) {
     const settable = fieldsOn(registry, type, options.on);
     for (const [name, field] of Object.entries(settable?.shape ?? {})) {
       if (options.omit?.includes(name)) continue;
@@ -91,6 +94,7 @@ export function fieldChangeListSchema(
       const forName = values.get(name) ?? new Map<string, z.ZodType>();
       forName.set(JSON.stringify(json), value);
       values.set(name, forName);
+      takenBy.set(name, [...(takenBy.get(name) ?? []), type]);
     }
   }
   // Fields whose values take the same schema share one change, naming
@@ -107,11 +111,17 @@ export function fieldChangeListSchema(
   }
   const changes = [...groups.values()].map(({ value, names }) => {
     const [name, ...others] = names;
+    const owners = names
+      .map((field) => {
+        const owning = takenBy.get(field) ?? [];
+        return `${field} (${owning.length === types.length ? "every type" : owning.join(", ")})`;
+      })
+      .join("; ");
     return z.strictObject({
-      name:
-        others.length > 0 && name !== undefined
-          ? z.enum([name, ...others])
-          : z.literal(name ?? ""),
+      name: (others.length > 0 && name !== undefined
+        ? z.enum([name, ...others])
+        : z.literal(name ?? "")
+      ).describe(`The field, set only on the entity types named: ${owners}.`),
       value: options.on === "update" ? value.nullable() : value,
     });
   });

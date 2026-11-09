@@ -108,6 +108,15 @@ describe("a list of field changes", () => {
     ).toBe(true);
   });
 
+  it("names the entity types that take each field", () => {
+    const json = JSON.stringify(
+      jsonOf(fieldChangeListSchema(registry, { on: "create" })),
+    );
+
+    expect(json).toContain("title (every type)");
+    expect(json).toContain("publishedAt (post)");
+  });
+
   it("becomes the map of fields a tool takes", () => {
     expect(
       fieldsFromChanges([
