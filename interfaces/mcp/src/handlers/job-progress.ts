@@ -1,4 +1,4 @@
-import type { InterfacePluginContext } from "@brains/plugins";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { jobProgressChannel } from "@brains/plugins";
 
@@ -7,12 +7,12 @@ import { jobProgressChannel } from "@brains/plugins";
  * This is primarily for debugging and logging purposes
  */
 export function setupJobProgressListener(
-  context: InterfacePluginContext,
+  runtime: Pick<InterfaceRuntime, "listen">,
   logger: Logger,
 ): void {
   // Subscribe to job-progress events for debugging; the channel refuses and
   // logs a malformed one.
-  context.messaging.subscribe(jobProgressChannel, async (event) => {
+  runtime.listen(jobProgressChannel, ({ payload: event }) => {
     // Log different types of progress events
     const eventType = event.type; // "job" or "batch"
     const status = event.status;
@@ -44,8 +44,6 @@ export function setupJobProgressListener(
         retryCount: event.jobDetails.retryCount,
       });
     }
-
-    return { success: true };
   });
 
   logger.debug("Subscribed to job progress events");

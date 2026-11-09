@@ -38,7 +38,7 @@ import emailInterface from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
-import { MCPInterface } from "@brains/mcp";
+import mcpInterface from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
@@ -322,13 +322,15 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
   ],
   interfaces: [
-    [
+    packageInterface(
       "mcp",
-      (config): Plugin => new MCPInterface(config),
+      "@brains/mcp",
+      mcpInterface,
       (env): PluginConfig => ({
         ...(env["MCP_AUTH_TOKEN"] ? { authToken: env["MCP_AUTH_TOKEN"] } : {}),
       }),
-    ],
+      { pluginId: "mcp" },
+    ),
     packageInterface(
       "email",
       "@brains/email",

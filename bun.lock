@@ -588,6 +588,7 @@
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "@modelcontextprotocol/server": "^2.3.1",
       },

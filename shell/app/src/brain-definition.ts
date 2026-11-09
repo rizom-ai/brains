@@ -194,7 +194,7 @@ export interface BrainDefinition {
  * ```typescript
  * import { defineBrain } from "@brains/app";
  * import { notePlugin } from "@brains/note";
- * import { MCPInterface } from "@brains/mcp";
+ * import { WebserverInterface } from "@brains/webserver";
  *
  * export default defineBrain({
  *   name: "my-brain",
@@ -209,7 +209,7 @@ export interface BrainDefinition {
  *     ["note", notePlugin, {}],
  *   ],
  *   interfaces: [
- *     ["mcp", (config) => new MCPInterface(config), (env) => ({ domain: env.DOMAIN })],
+ *     ["webserver", (config) => new WebserverInterface(config), () => ({})],
  *   ],
  * });
  * ```

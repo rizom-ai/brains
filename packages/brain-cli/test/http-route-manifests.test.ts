@@ -103,9 +103,9 @@ function shellWithIdentityTypes(): ReturnType<typeof createMockShell> {
 
 /**
  * A test app's plugins, with the routes the shell collects from them: a
- * declared service builds its routes when it registers, so it is registered
- * on a mock shell first, as the shell registers every plugin before it
- * collects routes.
+ * declared service or interface builds its routes when it registers, so it
+ * is registered on a mock shell first, among the app's other plugins, as
+ * the shell registers every plugin before it collects routes.
  */
 async function resolveTestApp(name: string): Promise<Plugin[]> {
   const source = readFileSync(
@@ -119,8 +119,10 @@ async function resolveTestApp(name: string): Promise<Plugin[]> {
   } = parseInstanceOverrides(source);
   const plugins = resolve(canonicalBrain, {}, overrides).plugins ?? [];
   for (const plugin of plugins) {
-    if (plugin.type === "service" && isPackageDefinitionPlugin(plugin)) {
-      await plugin.register(shellWithIdentityTypes());
+    if (isPackageDefinitionPlugin(plugin)) {
+      const shell = shellWithIdentityTypes();
+      for (const other of plugins) shell.addPlugin(other);
+      await plugin.register(shell);
     }
   }
   return plugins;
