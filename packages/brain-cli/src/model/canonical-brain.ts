@@ -63,7 +63,7 @@ import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
-import { unifiedInboxPlugin } from "@brains/unified-inbox";
+import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
@@ -281,7 +281,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { autoSync: true },
     ),
     ["email-workflows", emailWorkflows, undefined],
-    ["unified-inbox", unifiedInboxPlugin, undefined],
+    packageCapability(
+      "unified-inbox",
+      "@brains/unified-inbox",
+      unifiedInboxPackage,
+      { pluginId: "unified-inbox" },
+    ),
     ["linkedin-import", linkedInImportPlugin, undefined],
     [
       "oauth-broker",
