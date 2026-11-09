@@ -1,7 +1,7 @@
 {
   "name": "@brains/oauth-broker",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.666",
+  "version": "0.2.0-alpha.667",
   "description": "Managed OAuth broker: one central callback per provider, one-time grants for instance brains",
   "dependencies": {
     "@brains/contracts": "workspace:*",

@@ -1,5 +1,16 @@
 # @brains/sdk
 
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies [[`d726625`](https://github.com/rizom-ai/brains/commit/d72662546b43ab95f286ca2a408bc85ab677e309)]:
+  - @brains/entity-service@0.2.0-alpha.667
+  - @brains/plugins@0.2.0-alpha.667
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/templates@0.2.0-alpha.667
+
 ## 0.2.0-alpha.666
 
 ### Patch Changes
