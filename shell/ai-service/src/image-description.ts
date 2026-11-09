@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { generateText, type FilePart, type LanguageModel } from "ai";
-import { fileBytes } from "./text-only-messages";
+import { fileBytes } from "./file-part-bytes";
 
 /** Describes an uploaded image as text; undefined when it cannot. */
 export type ImageDescriber = (part: FilePart) => Promise<string | undefined>;
