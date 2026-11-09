@@ -1,6 +1,8 @@
-import type { AuthBackend } from "@brains/plugins";
+import type {
+  AuthBackend,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
@@ -9,7 +11,6 @@ import {
   type RuntimeStudioOperatorBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import {
@@ -481,12 +482,11 @@ function setupResult(
 }
 
 export function createInvitationsTabSource(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): AdminWorkspaceSource {
-  const authService = requireAuthBackend(context);
+  const authService = requireAuthBackend(runtime);
   const pendingManualDeliveries = new Map<string, string>();
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const registration = runtime.studio.source({
     definition: studioInvitationsWorkspace,
     bind: (bindingContext) => {
       const create = createInvitation.bind(

@@ -818,6 +818,15 @@ interface BuiltInStudioWorkspaceInput<
   readonly runtimeSignal?: AbortSignal | undefined;
 }
 
+/**
+ * A first-party workspace a service builds through its runtime: the
+ * definition and its binding, without the plugin context the runtime
+ * supplies.
+ */
+export type BuiltInStudioWorkspaceSource<
+  TDefinition extends AnyStudioWorkspaceDefinition,
+> = Omit<BuiltInStudioWorkspaceInput<TDefinition>, "context" | "runtimeSignal">;
+
 /** Bind a first-party definition without exposing its executor to providers. */
 export function createBuiltInStudioWorkspaceRegistration<
   TDefinition extends AnyStudioWorkspaceDefinition,

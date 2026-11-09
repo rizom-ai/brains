@@ -14,6 +14,10 @@ export {
   type ClaimedSystemType,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
+  type ServiceInteraction,
+  type ServiceAI,
+  type ServiceStudio,
+  type ServiceToolCall,
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
@@ -25,7 +29,7 @@ export {
 } from "@brains/plugins";
 export { withOwnedDataSources } from "@brains/plugins";
 export { internalFullScope } from "@brains/plugins";
-export type { ContentVisibility } from "@brains/plugins";
+export type { AuthBackend, ContentVisibility } from "@brains/plugins";
 export {
   SYSTEM_CHANNELS,
   entityCreatedChannel,

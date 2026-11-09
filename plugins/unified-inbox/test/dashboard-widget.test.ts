@@ -4,10 +4,8 @@ import {
   type DashboardWidgetRegistration,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  inboxDashboardDataSchema,
-  registerUnifiedInboxDashboardWidget,
-} from "../src";
+import { inboxDashboardDataSchema } from "../src";
+import { createUnifiedInboxPlugin } from "./unified-inbox-plugin";
 
 const dashboardData = inboxDashboardDataSchema.parse({
   summary: {
@@ -43,10 +41,35 @@ describe("Unified Inbox declarative Dashboard widget", () => {
         return { success: true };
       },
     );
-    await registerUnifiedInboxDashboardWidget(
-      harness.getServiceContext("unified-inbox"),
-      { dashboard: async () => dashboardData },
-    );
+    // Sources that hold the fixture's summary: two online, one down.
+    const registry = harness.getMockShell().getInboxRegistry();
+    for (const [index, entry] of dashboardData.entries.entries()) {
+      registry.registerSource(`source-${index}`, {
+        sourceId: `source-${index}`,
+        displayName: entry.sourceLabel,
+        list: async () => [
+          {
+            id: `item-${index}`,
+            title: entry.title,
+            receivedAt: entry.receivedAt,
+            urgency: entry.urgency,
+            actions: [],
+          },
+        ],
+        act: async () => undefined,
+      });
+    }
+    registry.registerSource("source-down", {
+      sourceId: "source-down",
+      displayName: "Offline",
+      list: async () => {
+        throw new Error("Source down");
+      },
+      act: async () => undefined,
+    });
+    registry.finalize();
+    await harness.installPlugin(createUnifiedInboxPlugin());
+    await harness.finalizeRegistration();
 
     expect(registration).toMatchObject({
       id: "inbox",

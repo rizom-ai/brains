@@ -1,6 +1,8 @@
-import type { AuthBackend } from "@brains/plugins";
+import type {
+  AuthBackend,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
@@ -9,7 +11,6 @@ import {
   type RuntimeStudioOperatorBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -754,11 +755,10 @@ async function loadBrainAnchor(
 }
 
 export function createPeopleTabSource(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): AdminWorkspaceSource {
-  const authService = requireAuthBackend(context);
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const authService = requireAuthBackend(runtime);
+  const registration = runtime.studio.source({
     definition: peopleWorkspace,
     bind: (bindingContext) => {
       const role = updateRole.bind(
