@@ -1578,6 +1578,16 @@ export interface EntityRegistry {
   getEffectiveFrontmatterSchema(
     type: string,
   ): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields of an entity type's effective frontmatter that callers may
+   * set through the brain's create and update tools, typed as the
+   * frontmatter types them: every field but those a schema marks as the
+   * brain's own record, `studioWidget: "provenance"` or `"hidden"`, the
+   * marks by which Studio shows a field read-only or leaves it off its
+   * form. Undefined when the type has no frontmatter.
+   */
+  getEditableFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**

@@ -219,6 +219,16 @@ export interface Tool<TOutput = ToolResponse> {
   directMcpExposure?: DirectMcpExposure;
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
   annotations?: ToolAnnotations;
+  /**
+   * The input the agent's model writes, when it differs from inputSchema: a
+   * shape read from the brain's state as the tool list is sent, and how a
+   * call in it becomes this tool's input, which inputSchema then validates.
+   * Absent: the model writes inputSchema.
+   */
+  modelInput?: {
+    inputSchema: () => ToolInputSchema;
+    toToolInput: (input: Record<string, unknown>) => Record<string, unknown>;
+  };
   /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
   cli?: {
     /** CLI command name (e.g. "list", "sync", "build") */

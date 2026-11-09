@@ -130,11 +130,19 @@ export function toModelVisibleInputSchema(
   return visibleSchema;
 }
 
+/** A model input of its own, and the tool input it becomes. */
+interface ModelInputView {
+  shape: ModelVisibleInputSchema;
+  toToolInput: (input: Record<string, unknown>) => Record<string, unknown>;
+}
+
 function toSDKInputSchema(
   shape: ModelVisibleInputSchema,
   strictTools: boolean,
+  modelInput?: ModelInputView,
 ): { inputSchema: Schema<Record<string, unknown>>; strict: boolean } {
-  const schema = z.strictObject(shape);
+  const toolSchema = z.strictObject(shape);
+  const schema = modelInput ? z.strictObject(modelInput.shape) : toolSchema;
   // The SDK's automatic Zod conversion closes every object, including
   // records whose keys belong to plugins. Preserve Zod's actual JSON schema:
   // strict operation branches stay closed, while field maps stay open.
@@ -146,6 +154,9 @@ function toSDKInputSchema(
     z.toJSONSchema(schema, {
       target: "draft-7",
       io: "input",
+      // A schema used twice, such as a list of field changes, is written
+      // once and referred to: tool schemas are resent on every step.
+      reused: "ref",
     });
   // A model that takes strict tools is held to the tool's strict form; the
   // nulls it writes there for left-out fields are dropped before the tool's
@@ -159,9 +170,16 @@ function toSDKInputSchema(
           const parsed = await schema.safeParseAsync(
             strictSchema ? dropModelNulls(value, draft7) : value,
           );
-          return parsed.success
-            ? { success: true, value: parsed.data }
-            : { success: false, error: parsed.error };
+          if (!parsed.success) return { success: false, error: parsed.error };
+          if (!modelInput) return { success: true, value: parsed.data };
+          // A call in the model's own input is checked there, then becomes
+          // the tool's input, which the tool's schema validates.
+          const toolInput = await toolSchema.safeParseAsync(
+            modelInput.toToolInput(parsed.data),
+          );
+          return toolInput.success
+            ? { success: true, value: toolInput.data }
+            : { success: false, error: toolInput.error };
         },
       },
     ),
@@ -307,17 +325,25 @@ export function convertToSDKTools(
       guest ? undefined : emitter,
     );
 
-    const { inputSchema, strict } = toSDKInputSchema(
-      toModelVisibleInputSchema(t.inputSchema, {
-        toolName: t.name,
-        ...(contextInfo.enableCreateUpload !== undefined && {
-          enableCreateUpload: contextInfo.enableCreateUpload,
-        }),
-        ...(contextInfo.enableCreateTransform !== undefined && {
-          enableCreateTransform: contextInfo.enableCreateTransform,
-        }),
+    const visibility = {
+      toolName: t.name,
+      ...(contextInfo.enableCreateUpload !== undefined && {
+        enableCreateUpload: contextInfo.enableCreateUpload,
       }),
+      ...(contextInfo.enableCreateTransform !== undefined && {
+        enableCreateTransform: contextInfo.enableCreateTransform,
+      }),
+    };
+    const { inputSchema, strict } = toSDKInputSchema(
+      toModelVisibleInputSchema(t.inputSchema, visibility),
       options.strictTools ?? false,
+      t.modelInput && {
+        shape: toModelVisibleInputSchema(
+          t.modelInput.inputSchema(),
+          visibility,
+        ),
+        toToolInput: t.modelInput.toToolInput,
+      },
     );
     sdkTools[t.name] = dynamicTool({
       description: t.description,

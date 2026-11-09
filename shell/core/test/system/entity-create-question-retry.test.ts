@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { describe, expect, test } from "bun:test";
 import {
   expectConfirmationArgs,
@@ -63,7 +64,19 @@ function fixture(
         messages.filter((entry) => entry.conversationId === id),
     },
   });
-  services.registerEntityTypes(["project", "note"]);
+  // The fields a project's frontmatter declares, as the portfolio's does.
+  services.registerEntityTypes(["project", "note"], {
+    project: z.object({
+      title: z.string(),
+      status: z.enum(["draft", "published"]),
+      publishedAt: z.string().optional(),
+      description: z.string().optional(),
+      year: z.number().int().optional(),
+      coverImageId: z.string().optional(),
+      ogImageId: z.string().optional(),
+      url: z.string().optional(),
+    }),
+  });
   services.entityRegistry.registerCreateCheck(
     "project",
     check ??

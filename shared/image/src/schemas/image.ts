@@ -47,23 +47,26 @@ type ImageMetadataSchema = z.ZodObject<{
   dedupKey: z.ZodOptional<z.ZodString>;
 }>;
 
+// A person names and describes an image; the rest records the file.
 export const imageMetadataSchema: ImageMetadataSchema = z.object({
   title: z.string().optional(),
   alt: z.string().optional(),
-  format: imageFormatSchema,
-  width: z.number(),
-  height: z.number(),
-  status: imageIngestionStatusSchema.optional(),
-  processingJobId: z.string().optional(),
-  processingError: z.string().optional(),
-  sourceUrl: z.url().optional(),
-  sourceEntityType: z.string().optional(),
-  sourceEntityId: z.string().optional(),
-  sourceUploadId: z.string().optional(),
-  sourceFilename: z.string().optional(),
-  sourceMediaType: z.string().optional(),
-  attachmentType: z.string().optional(),
-  dedupKey: z.string().optional(),
+  format: imageFormatSchema.meta({ studioWidget: "provenance" }),
+  width: z.number().meta({ studioWidget: "provenance" }),
+  height: z.number().meta({ studioWidget: "provenance" }),
+  status: imageIngestionStatusSchema
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  processingJobId: z.string().optional().meta({ studioWidget: "hidden" }),
+  processingError: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceUrl: z.url().optional().meta({ studioWidget: "provenance" }),
+  sourceEntityType: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceEntityId: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceUploadId: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceFilename: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceMediaType: z.string().optional().meta({ studioWidget: "provenance" }),
+  attachmentType: z.string().optional().meta({ studioWidget: "provenance" }),
+  dedupKey: z.string().optional().meta({ studioWidget: "hidden" }),
 });
 
 export type ImageMetadata = z.output<typeof imageMetadataSchema>;

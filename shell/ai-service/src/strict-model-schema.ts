@@ -13,6 +13,22 @@ const UNSUPPORTED = [
 
 const nullSchema = { type: "null" };
 
+/**
+ * String formats strict mode holds output to. Another format is left out of
+ * the model's schema; the tool's own schema still checks the value.
+ */
+const STRICT_FORMATS = new Set([
+  "date-time",
+  "time",
+  "date",
+  "duration",
+  "email",
+  "hostname",
+  "ipv4",
+  "ipv6",
+  "uuid",
+]);
+
 /** Keywords whose values are schemas; every other keyword's value is data. */
 const SCHEMA_LISTS = ["anyOf", "oneOf", "prefixItems"];
 const SCHEMA_MAPS = ["$defs", "definitions"];
@@ -54,12 +70,25 @@ function strictValue(key: string, value: unknown): unknown {
 
 function strictNode(schema: unknown): unknown {
   if (!isPlainRecord(schema)) return schema;
+  // A schema used twice is written once and referred to; Zod wraps the
+  // reference in a one-schema allOf, which says no more than the reference.
+  const allOf = schema["allOf"];
+  if (Array.isArray(allOf) && allOf.length === 1) {
+    const { allOf: _wrapper, ...rest } = schema;
+    return strictNode({ ...rest, ...allOf[0] });
+  }
+  // Strict mode takes a reference alone: one with keywords beside it is
+  // the only branch of an anyOf, the keywords kept on the anyOf.
+  const { $ref: reference, ...besides } = schema;
+  if (typeof reference === "string" && Object.keys(besides).length > 0)
+    return strictNode({ ...besides, anyOf: [{ $ref: reference }] });
   if (UNSUPPORTED.some((keyword) => keyword in schema)) return undefined;
   if (isOpenObject(schema)) return undefined;
 
   const out: JsonSchema = {};
   for (const [key, value] of Object.entries(schema)) {
     if (key === "properties" || key === "required") continue;
+    if (key === "format" && !STRICT_FORMATS.has(String(value))) continue;
     // A discriminated union's branches exclude each other by their
     // discriminator, so anyOf says the same; strict mode only has anyOf.
     const target = key === "oneOf" ? "anyOf" : key;
@@ -130,15 +159,25 @@ function matchingBranches(branches: unknown[], value: unknown): unknown[] {
  * dropped, read against the tool's own schema: a null that field accepts
  * stays.
  */
-export function dropModelNulls(value: unknown, schema: unknown): unknown {
+export function dropModelNulls(
+  value: unknown,
+  schema: unknown,
+  root: unknown = schema,
+): unknown {
   if (!isPlainRecord(schema)) return value;
+  const reference = schema["$ref"];
+  if (typeof reference === "string")
+    return dropModelNulls(value, resolveReference(reference, root), root);
+  const allOf = schema["allOf"];
+  if (Array.isArray(allOf) && allOf.length === 1)
+    return dropModelNulls(value, allOf[0], root);
   const branches = schema["anyOf"] ?? schema["oneOf"];
   if (Array.isArray(branches)) {
     const [branch] = matchingBranches(branches, value);
-    return branch === undefined ? value : dropModelNulls(value, branch);
+    return branch === undefined ? value : dropModelNulls(value, branch, root);
   }
   if (Array.isArray(value))
-    return value.map((item) => dropModelNulls(item, schema["items"]));
+    return value.map((item) => dropModelNulls(item, schema["items"], root));
   if (!isPlainRecord(value) || !isPlainRecord(schema["properties"]))
     return value;
   const properties = schema["properties"];
@@ -150,7 +189,18 @@ export function dropModelNulls(value: unknown, schema: unknown): unknown {
       const property = properties[name];
       if (field === null && !required.has(name) && !acceptsNull(property))
         return [];
-      return [[name, dropModelNulls(field, property)]];
+      return [[name, dropModelNulls(field, property, root)]];
     }),
   );
+}
+
+/** The schema a local reference names, such as `#/definitions/x`. */
+function resolveReference(reference: string, root: unknown): unknown {
+  return reference
+    .replace(/^#\//, "")
+    .split("/")
+    .reduce<unknown>(
+      (node, key) => (isPlainRecord(node) ? node[key] : undefined),
+      root,
+    );
 }

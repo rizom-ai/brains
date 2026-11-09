@@ -175,7 +175,7 @@ type UploadsSourceInputSchema = StrictObjectSchema<{
 }>;
 
 /** Several uploads saved from one request under one confirmation. */
-const uploadsSourceInputSchema: UploadsSourceInputSchema = z
+export const uploadsSourceInputSchema: UploadsSourceInputSchema = z
   .object({
     kind: z
       .literal("uploads")

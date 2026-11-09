@@ -1,0 +1,191 @@
+import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
+import {
+  fieldChangeListSchema,
+  fieldsFromChanges,
+} from "../../src/system/field-changes";
+import { createSystemTools } from "../../src/system/tools";
+import { createMockSystemServices } from "./mock-services";
+
+/** The editable fields of two entity types: one shared, others their own. */
+const editable: Record<string, z.ZodObject> = {
+  post: z.object({
+    title: z.string(),
+    status: z.enum(["draft", "published"]),
+    publishedAt: z.string().optional(),
+    coverImageId: z.string().optional(),
+    visibility: z.enum(["public", "shared"]).optional(),
+  }),
+  topic: z.object({
+    title: z.string(),
+    status: z.enum(["draft", "published"]),
+    aliases: z.record(z.string(), z.unknown()).optional(),
+  }),
+};
+
+/** A frontmatter field the brain keeps for itself, not editable. */
+const internal = { cardCid: z.string().optional() };
+
+const registry = {
+  getAllEntityTypes: (): string[] => Object.keys(editable),
+  getEffectiveFrontmatterSchema: (type: string): z.ZodObject | undefined =>
+    editable[type]?.extend(internal),
+  getEditableFieldsSchema: (type: string): z.ZodObject | undefined =>
+    editable[type],
+};
+
+function jsonOf(schema: z.ZodType): unknown {
+  const { $schema: _draft, ...json }: Record<string, unknown> = z.toJSONSchema(
+    schema,
+    { target: "draft-7", io: "input" },
+  );
+  return json;
+}
+
+describe("a list of field changes", () => {
+  it("offers each frontmatter field once, typed by the field", () => {
+    const list = fieldChangeListSchema(registry, { removable: false });
+
+    expect(
+      list.safeParse([{ name: "status", value: "published" }]).success,
+    ).toBe(true);
+    expect(
+      list.safeParse([{ name: "status", value: "archived" }]).success,
+    ).toBe(false);
+    expect(
+      list.safeParse([{ name: "publishedAt", value: "2025-03-12" }]).success,
+    ).toBe(true);
+    expect(list.safeParse([{ name: "unknown", value: "x" }]).success).toBe(
+      false,
+    );
+  });
+
+  it("removes a field with null only where a field can be removed", () => {
+    const remove = [{ name: "coverImageId", value: null }];
+
+    expect(
+      fieldChangeListSchema(registry, { removable: true }).safeParse(remove)
+        .success,
+    ).toBe(true);
+    expect(
+      fieldChangeListSchema(registry, { removable: false }).safeParse(remove)
+        .success,
+    ).toBe(false);
+  });
+
+  it("leaves out a field the brain keeps, one the caller sets elsewhere, and one of any keys", () => {
+    const names = JSON.stringify(
+      jsonOf(
+        fieldChangeListSchema(registry, {
+          removable: false,
+          omit: ["visibility"],
+        }),
+      ),
+    );
+
+    expect(names).not.toContain('"visibility"');
+    expect(names).not.toContain('"aliases"');
+    expect(names).not.toContain('"cardCid"');
+    expect(names).toContain('"publishedAt"');
+  });
+
+  it("writes fields of the same value type once, naming each", () => {
+    const json = JSON.stringify(
+      jsonOf(fieldChangeListSchema(registry, { removable: false })),
+    );
+
+    // title, publishedAt and coverImageId are all text: one branch names them.
+    expect(json).toContain('"enum":["title","publishedAt","coverImageId"]');
+    expect(
+      fieldChangeListSchema(registry, { removable: false }).safeParse([
+        { name: "coverImageId", value: "image-1" },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it("becomes the map of fields a tool takes", () => {
+    expect(
+      fieldsFromChanges([
+        { name: "status", value: "published" },
+        { name: "coverImageId", value: null },
+      ]),
+    ).toEqual({ status: "published", coverImageId: null });
+  });
+});
+
+function toolNamed(name: string): ReturnType<typeof createSystemTools>[number] {
+  const services = createMockSystemServices();
+  const tool = createSystemTools({
+    ...services,
+    entityRegistry: { ...services.entityRegistry, ...registry },
+  }).find((candidate) => candidate.name === name);
+  if (!tool?.modelInput) throw new Error(`${name} has no model input`);
+  return tool;
+}
+
+describe("system_create's model input", () => {
+  it("takes field changes for the entity and for each uploaded file", () => {
+    const { modelInput } = toolNamed("system_create");
+    if (!modelInput) throw new Error("Expected a model input");
+
+    expect(
+      modelInput.toToolInput({
+        entityType: "post",
+        fields: [{ name: "status", value: "published" }],
+        source: {
+          kind: "uploads",
+          items: [
+            {
+              id: "upload-1",
+              transform: "extract-markdown",
+              fields: [{ name: "publishedAt", value: "2025-03-12" }],
+            },
+            { id: "upload-2", transform: "extract-markdown" },
+          ],
+        },
+      }),
+    ).toEqual({
+      entityType: "post",
+      fields: { status: "published" },
+      source: {
+        kind: "uploads",
+        items: [
+          {
+            id: "upload-1",
+            transform: "extract-markdown",
+            fields: { publishedAt: "2025-03-12" },
+          },
+          { id: "upload-2", transform: "extract-markdown" },
+        ],
+      },
+    });
+  });
+
+  it("shows the model field changes, not a map of any keys", () => {
+    const { modelInput } = toolNamed("system_create");
+    if (!modelInput) throw new Error("Expected a model input");
+
+    const json = JSON.stringify(jsonOf(z.object(modelInput.inputSchema())));
+    expect(json).not.toContain('"propertyNames"');
+    expect(json).toContain('"publishedAt"');
+  });
+});
+
+describe("system_update's model input", () => {
+  it("takes field changes, a null removing the field", () => {
+    const { modelInput } = toolNamed("system_update");
+    if (!modelInput) throw new Error("Expected a model input");
+
+    expect(
+      modelInput.toToolInput({
+        entityType: "post",
+        id: "on-patience",
+        operation: { fields: [{ name: "coverImageId", value: null }] },
+      }),
+    ).toEqual({
+      entityType: "post",
+      id: "on-patience",
+      operation: { fields: { coverImageId: null } },
+    });
+  });
+});

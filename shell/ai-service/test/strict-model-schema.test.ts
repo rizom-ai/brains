@@ -118,6 +118,22 @@ describe("a tool's strict model schema", () => {
     });
   });
 
+  it("keeps a string format strict mode supports and drops one it does not", () => {
+    expect(
+      toStrictModelSchema(
+        jsonOf(z.object({ url: z.url(), at: z.iso.datetime() })),
+      ),
+    ).toMatchObject({
+      properties: {
+        url: { type: "string" },
+        at: { type: "string", format: "date-time" },
+      },
+    });
+    expect(
+      JSON.stringify(toStrictModelSchema(jsonOf(z.object({ url: z.url() })))),
+    ).not.toContain('"format"');
+  });
+
   it("leaves a field's default value as it is", () => {
     // A default is a value, not a schema: one shaped like an object schema
     // is still written as the value it is.
@@ -149,6 +165,76 @@ describe("a tool's strict model schema", () => {
     ["an object that keeps unknown keys", z.looseObject({ a: z.string() })],
   ])("is not written for %s, which strict mode cannot express", (_, field) => {
     expect(toStrictModelSchema(jsonOf(z.object({ field })))).toBeUndefined();
+  });
+});
+
+describe("a schema written once and referred to twice", () => {
+  const change = z.strictObject({
+    name: z.literal("title"),
+    note: z.string().optional(),
+  });
+  const json = (): Record<string, unknown> => {
+    const { $schema: _draft, ...rest }: Record<string, unknown> =
+      z.toJSONSchema(
+        z.object({
+          fields: z.array(change).optional(),
+          items: z.array(z.object({ fields: z.array(change).optional() })),
+        }),
+        { target: "draft-7", io: "input", reused: "ref" },
+      );
+    return rest;
+  };
+
+  it("stays one definition, referred to without allOf", () => {
+    const strict = JSON.stringify(toStrictModelSchema(json()));
+
+    expect(strict).toContain('"$ref":"#/definitions/');
+    expect(strict).not.toContain('"allOf"');
+    expect(strict.split('"const":"title"').length - 1).toBe(1);
+  });
+
+  it("is referred to alone, its description and default kept beside it", () => {
+    expect(
+      toStrictModelSchema({
+        type: "object",
+        properties: {
+          action: {
+            $ref: "#/definitions/action",
+            description: "What to do",
+            default: "sync",
+          },
+        },
+        required: ["action"],
+        definitions: { action: { type: "string", enum: ["sync", "status"] } },
+      }),
+    ).toEqual({
+      type: "object",
+      properties: {
+        action: {
+          anyOf: [{ $ref: "#/definitions/action" }],
+          description: "What to do",
+          default: "sync",
+        },
+      },
+      required: ["action"],
+      additionalProperties: false,
+      definitions: { action: { type: "string", enum: ["sync", "status"] } },
+    });
+  });
+
+  it("has a null the model writes inside it dropped", () => {
+    expect(
+      dropModelNulls(
+        {
+          fields: [{ name: "title", note: null }],
+          items: [{ fields: [{ name: "title", note: null }] }],
+        },
+        json(),
+      ),
+    ).toEqual({
+      fields: [{ name: "title" }],
+      items: [{ fields: [{ name: "title" }] }],
+    });
   });
 });
 
@@ -246,5 +332,87 @@ describe("a converted tool", () => {
     expect(await asSchema(sdkTool.inputSchema).jsonSchema).toMatchObject({
       required: ["entityType"],
     });
+  });
+});
+
+describe("a tool with its own model input", () => {
+  // The model writes field changes as a list; the tool takes them as a map.
+  const fieldChange = z.union([
+    z.strictObject({
+      name: z.literal("status"),
+      value: z.enum(["draft", "published"]),
+    }),
+    z.strictObject({
+      name: z.literal("coverImageId"),
+      value: z.string().nullable(),
+    }),
+  ]);
+  const tool: Tool = {
+    ...createTool({
+      entityType: z.string(),
+      fields: z.record(z.string(), z.unknown()).optional(),
+    }),
+    modelInput: {
+      inputSchema: () => ({
+        entityType: z.string(),
+        fields: z.array(fieldChange).optional(),
+      }),
+      toToolInput: ({ fields, ...input }) => ({
+        ...input,
+        ...(Array.isArray(fields) && {
+          fields: Object.fromEntries(
+            fields.map((change) => [change.name, change.value]),
+          ),
+        }),
+      }),
+    },
+  };
+
+  it("is shown to the model in its own shape, strict", async () => {
+    const sdkTool = convertToSDKTools([tool], context, emitter, {
+      strictTools: true,
+    })["publishing_manage"];
+    if (!sdkTool) throw new Error("Expected the converted tool");
+
+    expect(sdkTool.strict).toBe(true);
+    expect(await asSchema(sdkTool.inputSchema).jsonSchema).toMatchObject({
+      properties: { fields: { anyOf: [{ type: "array" }, { type: "null" }] } },
+    });
+  });
+
+  it("runs on the tool's own input, a removal kept", async () => {
+    const sdkTool = convertToSDKTools([tool], context, emitter, {
+      strictTools: true,
+    })["publishing_manage"];
+    if (!sdkTool) throw new Error("Expected the converted tool");
+
+    expect(
+      await asSchema(sdkTool.inputSchema).validate?.({
+        entityType: "post",
+        fields: [
+          { name: "status", value: "published" },
+          { name: "coverImageId", value: null },
+        ],
+      }),
+    ).toEqual({
+      success: true,
+      value: {
+        entityType: "post",
+        fields: { status: "published", coverImageId: null },
+      },
+    });
+  });
+
+  it("refuses a change the model input has no form for", async () => {
+    const sdkTool = convertToSDKTools([tool], context, emitter, {
+      strictTools: true,
+    })["publishing_manage"];
+    if (!sdkTool) throw new Error("Expected the converted tool");
+
+    const validated = await asSchema(sdkTool.inputSchema).validate?.({
+      entityType: "post",
+      fields: [{ name: "status", value: "archived" }],
+    });
+    expect(validated?.success).toBe(false);
   });
 });

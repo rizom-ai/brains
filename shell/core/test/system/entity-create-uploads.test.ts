@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from "bun:test";
 import type { CreateInput } from "@brains/entity-service";
 import { createInputSchema } from "../../src/system/schemas";
+import { postFrontmatter } from "./mock-services";
 import { uploadContext, uploadFixture } from "./upload-fixtures";
 
 const draftUpload = {
@@ -308,7 +309,8 @@ function withPostType(
   fixture: ReturnType<typeof uploadFixture>,
 ): CreateInput[] {
   const posts: CreateInput[] = [];
-  fixture.services.registerEntityTypes(["post"]);
+  // The fields a post's frontmatter declares, as the blog plugin's does.
+  fixture.services.registerEntityTypes(["post"], { post: postFrontmatter });
   fixture.services.entityRegistry.registerCreateInterceptor(
     "post",
     async (input) => {
