@@ -9,6 +9,7 @@ import {
   EvalHandlerRegistry,
   resolveEvalSelection,
   resolveEvalConfig,
+  shellTestCasesDirectory,
   YAMLLoader,
   type EvalSelection,
   type SuccessCriteria,
@@ -76,6 +77,7 @@ const suiteNames = [
   "personal",
   "professional",
   "providers",
+  "network",
   "team",
   "docs",
 ] as const;
@@ -94,16 +96,19 @@ const expectedMembers: Record<SuiteName, string> = {
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   providers:
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  network:
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   docs: "a2a admin agents analytics ask-content auth-service blog chat conversation-memory dashboard decks directory-sync docs email faq guides link mcp note notifications profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
   team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
-  headless: 19,
-  personal: 31,
-  professional: 102,
+  headless: 28,
+  personal: 29,
+  professional: 101,
   providers: 2,
-  team: 40,
-  docs: 5,
+  network: 17,
+  team: 45,
+  docs: 8,
 };
 const tempDirectories: string[] = [];
 
@@ -271,6 +276,10 @@ describe("canonical eval recipe ladder", () => {
         "stock-photo": { apiKey: expect.any(String) },
       },
     });
+    expect(suiteSelection("network")).toMatchObject({
+      bundles: suiteSelection("professional").bundles,
+      tags: ["recipe-network"],
+    });
     expect(suiteSelection("team")).toMatchObject({
       anchor: "team",
       kind: "team",
@@ -308,11 +317,19 @@ describe("canonical eval recipe ladder", () => {
   });
 
   test("boots every categorized suite with compatible cases and imported fixtures", async () => {
-    const testCases = await YAMLLoader.createFresh({
-      directory: testCasesDirectory,
-      recursive: true,
-    }).loadTestCases();
-    expect(testCases.length).toBe(233);
+    // The shell's own cases load into every brain eval run, so they are
+    // categorized like the brain's.
+    const testCases = (
+      await Promise.all(
+        [testCasesDirectory, shellTestCasesDirectory].map((directory) =>
+          YAMLLoader.createFresh({
+            directory,
+            recursive: true,
+          }).loadTestCases(),
+        ),
+      )
+    ).flat();
+    expect(testCases.length).toBe(235);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(

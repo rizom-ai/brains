@@ -257,6 +257,25 @@ bun run eval --skip-llm-judge --max-parallel 1
 bun run eval --samples 5 --min-pass-rate 0.8
 ```
 
+`bun run eval` builds the brain first, so a run evaluates the current source rather than the last build. Each suite in `brain.eval.yaml` boots one composition and runs the cases tagged for it (`recipe-<suite>`): `headless`, `personal`, `professional`, `providers`, `network`, `team` and `docs`. `network` calls live third-party hosts, such as peer brains and the pages links are saved from, so the other suites never depend on them.
+
+```bash
+bun run eval --suite network
+```
+
+Cases tagged `requires-supervised-git` need the supervised Git broker, which an in-process eval brain does not run. They run against the publishing test app through its MCP endpoint, authenticated with a local development token:
+
+```bash
+# Terminal 1: needs AI_API_KEY, from the environment or test-apps/publishing/.env;
+# the app seeds itself and creates its local git remote on first boot
+MCP_AUTH_TOKEN=dev-token sh scripts/start-test-app.sh publishing
+
+# Terminal 2
+MCP_AUTH_TOKEN=dev-token bun run eval:git
+```
+
+`--mcp-basic --url` evaluates any running brain this way. Its static token is a non-Anchor Admin, so cases that need another caller are refused.
+
 ### Plugin evals
 
 A package's plugin evals live in `evals/` and run with the package's `bun run eval`. `evals/eval.yaml` names the plugin they run against:

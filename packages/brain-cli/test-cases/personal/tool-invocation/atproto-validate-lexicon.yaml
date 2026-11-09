@@ -1,0 +1,30 @@
+id: tool-invocation-atproto-validate-lexicon
+name: Validate a record against an AT Protocol lexicon
+description: Tests that a request to check a record against a lexicon runs the registry's validation instead of judging the record by eye.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - federation
+  - atproto
+
+turns:
+  - userMessage: >-
+      Is this a valid ai.rizom.brain.note record? {"title": 42}
+
+successCriteria:
+  expectedTools:
+    - toolName: atproto-registry_validate_lexicon
+      shouldBeCalled: true
+      argsContain:
+        nsid: ai.rizom.brain.note
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  responseCriteria:
+    - "Reports the validation result the registry returned, including why the record is invalid if it is."
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

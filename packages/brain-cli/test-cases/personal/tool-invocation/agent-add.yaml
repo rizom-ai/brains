@@ -5,7 +5,7 @@ type: tool_invocation
 setup:
   interfaceType: evaluation
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - tool-invocation
   - permissions

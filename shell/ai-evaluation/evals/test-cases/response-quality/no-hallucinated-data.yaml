@@ -9,7 +9,7 @@ tags:
   - quality
   - accuracy
   - hallucination
-  - preset-core
+  - recipe-professional
 
 turns:
   - userMessage: "Tell me about my blog post on quantum computing"

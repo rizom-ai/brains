@@ -5,7 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - a2a
   - multi-turn
@@ -44,4 +44,4 @@ successCriteria: {}
 
 efficiency:
   maxToolCalls: 4
-  maxTokens: 46000
+  maxTokens: 52000

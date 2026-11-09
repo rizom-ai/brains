@@ -1,0 +1,27 @@
+id: tool-invocation-network-ask
+name: Ask the network what it thinks
+description: Tests that asking what the user's network thinks asks the connected peer brains and attributes each answer to the brain that gave it.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-network
+  - agents
+  - network
+
+turns:
+  - userMessage: "What does my network think about ecosystem architecture?"
+
+successCriteria:
+  expectedTools:
+    - toolName: network_ask
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  responseCriteria:
+    - "Attributes each answer to the peer brain that gave it, and does not present an answer from a brain that did not respond."
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 45000

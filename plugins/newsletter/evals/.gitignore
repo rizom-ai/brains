@@ -1,0 +1,9 @@
+# Ignore data folder (SQLite databases, evaluation results)
+data/
+
+# Ignore cache folder (model embeddings, etc.)
+cache/
+
+# Environment variables (keep the example)
+.env
+!.env.example

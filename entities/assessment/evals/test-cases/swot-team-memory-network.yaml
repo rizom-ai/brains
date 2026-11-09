@@ -1,14 +1,13 @@
-id: team-plugin-swot-agent-network
+id: swot-team-memory-network
 name: Derive Team Brain SWOT from team-memory agent network
 description: Exercises Team Brain's normal assessment plugin against an explicit Team Brain team-memory capability network.
 type: plugin
 tags:
-  - requires-member-assessment
   - team
   - plugin
   - assessment
   - swot
-plugin: swot
+plugin: assessment
 handler: deriveSwot
 
 input:
