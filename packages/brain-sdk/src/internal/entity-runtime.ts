@@ -20,6 +20,7 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   afterGeneration,
+  loggedProvider,
   type AnyEntityReads,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,

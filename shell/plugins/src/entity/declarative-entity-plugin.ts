@@ -69,6 +69,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  builtProvider,
   queuedCreateOf,
   storedCreateOf,
   withEntityRuntime,
@@ -1187,6 +1188,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const feed = this.feed;
     const atproto = this.definition.atproto;
     const publish = this.definition.publish;
+    // Built once, with the plugin's logger, when it is built with one.
+    const publishProvider =
+      publish && builtProvider(publish.provider, this.logger);
     const publishAssets = this.definition.publishAssets ?? [];
     // Registered through the plugin's scoped analytics, which removes them
     // when the plugin goes.
@@ -1362,7 +1366,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                 if (publish) {
                   await context.messaging.command(publishRegisterContract, {
                     entityType: this.entityType,
-                    provider: publish.provider,
+                    provider: publishProvider ?? publish.provider,
                     config: {
                       executionMode: "provider",
                       ...definedFields({

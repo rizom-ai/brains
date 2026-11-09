@@ -994,6 +994,7 @@ export {
   type QueuedPlaceholder,
   type StoredCreate,
   afterGeneration,
+  loggedProvider,
   type GenerationOutcome,
   type GenerationOutcomeContext,
   type GenerationStep,

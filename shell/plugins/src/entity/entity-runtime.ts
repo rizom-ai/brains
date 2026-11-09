@@ -5,6 +5,7 @@ import {
   type ImageAspectRatio,
   type JobContract,
   type PublishMediaData,
+  type PublishProvider,
 } from "@brains/contracts";
 import {
   findEntityByIdentifier,
@@ -986,6 +987,41 @@ export interface GenerationOutcomeContext<TInput> {
 export type GenerationStep<TInput> = (
   context: GenerationOutcomeContext<TInput>,
 ) => Promise<void>;
+
+const providerBuilders = new WeakMap<
+  PublishProvider,
+  (logger: Logger) => PublishProvider
+>();
+
+/**
+ * A first-party publish provider built with the plugin's logger, as an
+ * entity plugin class built its client with a child of its own: the runtime
+ * builds it when it hands the provider to the publish pipeline. Until then
+ * it carries its name and refuses to publish.
+ */
+export function loggedProvider(
+  name: string,
+  build: (logger: Logger) => PublishProvider,
+): PublishProvider {
+  const provider: PublishProvider = Object.freeze({
+    name,
+    publish: async (): Promise<never> => {
+      throw new Error(
+        `Publish provider "${name}" is built by the brain's runtime`,
+      );
+    },
+  });
+  providerBuilders.set(provider, build);
+  return provider;
+}
+
+/** The provider to hand the publish pipeline: built, when it is built with a logger. */
+export function builtProvider(
+  provider: PublishProvider,
+  logger: Logger,
+): PublishProvider {
+  return providerBuilders.get(provider)?.(logger) ?? provider;
+}
 
 const afterGenerationKey = Symbol("rizom.after-generation");
 
