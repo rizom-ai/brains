@@ -1,5 +1,116 @@
 # @rizom/brain
 
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`2f28b39`](https://github.com/rizom-ai/brains/commit/2f28b39069b19d4f4402dd0a89f8ee8654e371b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party generation can carry a step that runs after it. Once the record is written, the step is given the id written and the title it was written with; when the generation fails, it is given the reason. Either way it gets the generation's input, the package's jobs and its retry scope, as an entity plugin class's generation handler queued its follow-up work.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`a693fbb`](https://github.com/rizom-ai/brains/commit/a693fbb93fabb45ec81c9eac2d0999c7d58f5da5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The blog is a declarative entity package, composed under its plugin id `blog`. Its templates, `blog:entities` and `blog:rss` data sources, `post:generation` job, evals, printable and social-card attachments, publish and social-card registrations and AT Protocol records are unchanged. A post reads back as its body, with its frontmatter as its metadata, and is stored, imported, exported and published byte for byte as before.
+
+  - **Feed:** `feed.xml` is now written through the declared feed and is byte-identical to before. If the feed cannot be written, the build reports "post feed generation failed" instead of "RSS feed generation failed".
+  - **From the writer's text:** a post written from the writer's text still gets its placeholder and is filled by `post:generation`, queued for the caller who asked. The job now carries the caller's authority; a job queued in the old shape still runs.
+  - **Generation reads:** a generation counts a post's place in its series, and reads the entries it is written from, at the scope the run reads at.
+  - **Newsletter email:** a newsletter sent when a post is published carries the post's body under its title. Before, subscribers also received the post's frontmatter, rendered as a rule and a heading.
+  - **Newsletter from posts:** a newsletter generated from posts summarizes each post from its excerpt, which a post's metadata now carries. Before, it took the first 500 characters of the stored document.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`9f41c3f`](https://github.com/rizom-ai/brains/commit/9f41c3f3a74c0d090d136a8284b8d065499cd437) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `blog:entities` no longer answers a `latest` query or a `metadata.seriesName` query: nothing sends either. It still serves paged post lists, and a post by its slug with its neighbors and the other posts in its series. The series page reads its posts through the series package.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`d21b5aa`](https://github.com/rizom-ai/brains/commit/d21b5aafa167f4629e981854d3d576bdbfb63cdb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity package's `configure` can now bind an entity's `publish` provider, `projectionRules`, `jobs` and `generation` from the package's config, as it binds `create` and `evals`. For example, a provider or a job can read an API token. A binding that names a slot `configure` does not bind is refused when the package is instantiated; before, it was silently ignored.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`a93eeae`](https://github.com/rizom-ai/brains/commit/a93eeae4702f2abb9ae0250d395665211f9fe5af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The content pipeline reads a published record's cover image, attachments, source and asset fields whichever way the record was read: from the frontmatter of a stored document, or from the metadata of a declared type, which reads back as its body. Before this, a declared record went out without its cover image, and its social card was rendered again on every publish even when it had one.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`7f230f0`](https://github.com/rizom-ai/brains/commit/7f230f0e28431bfdae7f126155dcdb73831375d6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party contract job can generate through the templates its type declares, as other declared jobs and the entity plugin classes' job handlers do. Before, it was refused.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`0c876b3`](https://github.com/rizom-ai/brains/commit/0c876b32a848645daa50b3f23df544e427e5b327) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type that declares no generation can answer its generation job name with a contract job, so jobs queued under that name by its entity plugin class still run. A plain job of that name, or a contract job beside a declared generation, is still refused.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`3addfc4`](https://github.com/rizom-ai/brains/commit/3addfc40845d60c09761ab9e43c74e66654580ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create route and its check can read who asked: the interface, the signed-in user and the channel, when there is one. The entity plugin classes' interceptors read the same from their execution context.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`c330741`](https://github.com/rizom-ai/brains/commit/c330741bdd21d031febdaad4cb254ddb8a2abbf7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The decks are a declarative entity package, composed under their plugin id `decks`, with the same templates, data source, `deck:generation` job, attachments, publish registration and AT Protocol records. A deck reads back as its slides, its frontmatter its metadata, and is stored, imported and exported byte for byte as before. Two readers move with it: a site reading a deck takes its frontmatter from its metadata, and a social post written from a deck or a post now names the source's title on its own line above the source's body, in place of the source's raw frontmatter.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`dd2e00b`](https://github.com/rizom-ai/brains/commit/dd2e00b5b76879bf1427377fca4066d684cdec14) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A deck imported without a slug is written, on its next update, with the slug in the place a stated slug goes, as the deck adapter wrote it. Before this, the declared deck kept the resolved slug last.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`1be03d9`](https://github.com/rizom-ai/brains/commit/1be03d98da0a4c52babdd42a8afe256a00ae51b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity type handed a whole document, as an import or an editor hands one, writes its frontmatter in the type's own order, as an entity plugin class's adapter did, and keeps the frontmatter the type does not write after it, instead of keeping the document's order.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`677bf53`](https://github.com/rizom-ai/brains/commit/677bf53efbc089731165177bafb2c054ead10099) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity's generation can ask to land under the next free id when the record it generates already has its id, as the entity plugin classes' generations did. It is internal to the brain's own packages; the public entity contract does not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`177b330`](https://github.com/rizom-ai/brains/commit/177b330e7c635c6e2f0caabac4c9f3c1303f4480) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity type's create route can delegate to the type's own generation by naming `generation`: the runtime queues it as the type's `{type}:generation` job for the caller who asked, filling the placeholder an allocation writes or, with nothing allocated, writing a new record. A type can no longer declare a job named `generation`.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`2dea52c`](https://github.com/rizom-ai/brains/commit/2dea52ca20146dbe00af33b9141ec69fdb7d5c9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync exports each entity as the entity store holds it, so a declared entity type's file keeps the frontmatter the type does not write, as it was imported.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`1578e54`](https://github.com/rizom-ai/brains/commit/1578e54443e2a04d6018cd344930f07898082497) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync imports a file whole, as an import through the entity service does, so a declared entity type keeps the frontmatter it does not write, such as a seed's `checksum`, in the stored record and the exported file.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`57a64d7`](https://github.com/rizom-ai/brains/commit/57a64d7ea89906aa1f7cedefad99b7c1b927cd49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type that keeps each file's own frontmatter order also keeps the record dates and ids a hand-written file states, where the file states them, as an entity plugin class's adapter kept them, so directory sync no longer rewrites such a file to drop its `created` and `updated` lines.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`179ae99`](https://github.com/rizom-ai/brains/commit/179ae990feed4878f9e45cbb7e1750c1550fae76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type can give its body a template, which the Obsidian vault uses as the scaffold for a new record, as an entity plugin class's body formatter gave one.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`a3b27ed`](https://github.com/rizom-ai/brains/commit/a3b27ed3b381e1d4e5e39c59b7e7571c06590e85) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type can answer a first-party bus contract under the channel it already has, as its entity plugin class answered it, reading and writing its own type as the package. It is internal to the brain's own packages; the public entity contract does not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`6fc2abc`](https://github.com/rizom-ai/brains/commit/6fc2abc31d0d557e301662480a4a939f840f94b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type whose stored document states more than its metadata did, such as a slug resolved from the title, now stores its metadata as that document states it. Later writes then read what the file says, as the entity plugin classes did.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`0765c12`](https://github.com/rizom-ai/brains/commit/0765c12b985549df3ed817373414225b0311530e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity definition's own declared jobs and generations reach the internal entity runtime too: the package's logger, the anchor's profile, one structured AI answer, nearest records, the package's own types, and read-only reads of every type at the run's scope, its requester's or the package's when the package queued it. Create routes and evals reach the logger and the profile as well. The public entity contract and entries do not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`6c34672`](https://github.com/rizom-ai/brains/commit/6c34672681e163bcd723b6e021a40dae5afb4607) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity definition's create routes, create checks, declared jobs, generations and evals can generate through a template their type declares, named locally and in the brain's voice when asked, as the entity plugin classes generated from their interceptors and job handlers. It is internal to the brain's own packages; the public entity contract does not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`cbf6598`](https://github.com/rizom-ai/brains/commit/cbf659825f575f276aeccdccfd7473dd9a3e9343) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type's eval can run the type's own generation in process, as the package, writing its record to the store and answering the job's result and progress, as an entity plugin class's eval ran its generation handler. The social media `create` eval keeps checking that a generated post is persisted.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`3be0acb`](https://github.com/rizom-ai/brains/commit/3be0acbfd3259d5234f54035c486c0c96dd70a74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared type's feed now writes the feed the blog has always written, byte for byte:
+
+  - The channel links the site URL as configured, and the feed's self link is that URL, a slash and the path.
+  - The document ends at its closing tag.
+  - No copyright line is written.
+  - When the site config gives no title or description, the channel takes the type's own (`title`, `description`), else "Feed" and "Latest updates".
+  - `toItem` is told which build it serves (`{ environment }`), so a production feed can leave out what is not ready, such as a published post without a date.
+
+  `routePrefix` is gone from `EntityFeedDeclaration`; a declaration that still passes it no longer typechecks.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`d27ac3a`](https://github.com/rizom-ai/brains/commit/d27ac3a8318fa72f86441de1935eb751eaa4afb9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity's generation still runs a job queued in its entity plugin class's raw input shape, such as one pending or retrying at an upgrade, as the package; queued data that names a requester is still held to its envelope.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`bfefbe5`](https://github.com/rizom-ai/brains/commit/bfefbe56024945fe2890425c0f3744f07b72eb35) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The links are a declarative entity package, composed under their plugin id `link`. Their templates, `link:entities` data source, `link:capture` and `link:generation` jobs, eval and AT Protocol records are unchanged. A link reads back as its summary, with its frontmatter as its metadata, and is stored, imported and exported byte for byte as before; a hand-written link file keeps its own frontmatter order.
+
+  - **Capture:** a link is captured from the URL a request names, its URL alone included: a pending link first, then `link:capture`, attributed to the caller as data processing in their channel. The job's metadata now also records the interface it was requested from (`requestedByInterface`).
+  - **Full documents:** a full link document given as content that validates is saved as written, under its URL's slug. The link plugin class meant to save it that way, but on the brain's store its save never validated and fell back to a capture of the document's URL. A document that does not validate is still captured from its URL, as before, and so is one whose id is taken.
+  - **Visibility mismatch:** a link that exists at another visibility than asked is answered with a failed create, as before.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`4418d19`](https://github.com/rizom-ai/brains/commit/4418d1953667e56c263de25410108acd096b5101) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type's publish provider can be built with the plugin's logger when it is handed to the publish pipeline, as an entity plugin class built its client with a child of its own logger, so a provider bound from the package's config logs where the plugin logs.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`c40ded5`](https://github.com/rizom-ai/brains/commit/c40ded58f4623ce2d97ff5440c18f1eded791c47) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The notes are a declarative entity package, composed under their plugin id `note`, with the same `note:generation` and `note:upload-import` jobs, `note:generation` template, `note:capture` answer, eval and AT Protocol records. A note reads back as its body, its frontmatter its metadata, and is stored, imported and exported byte for byte as before: a plain note stays plain, a stated title stays stated. A note's metadata may leave out its title, which it takes from the body, so Studio creates a note without one, as before.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`dd4d5fc`](https://github.com/rizom-ai/brains/commit/dd4d5fc23d3b5e9e49f625dedc6a7c6f784fe4df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Obsidian vault's fileClasses, templates and bases leave out the fields a type marks `studioWidget: "hidden"`: internal bookkeeping no one authors, which Studio's form already leaves out. These fields no longer appear in the vault:
+
+  - action-item: `conversationId`, `channelId`, `projectedBodyHash`, `projectedAssigneeHash`, `projectedDueDate`
+  - agent: `cardLastError`, `cardFailureCount`, `cardUnavailableAt`, `cardStaleAfter`
+  - decision: `conversationId`, `channelId`
+  - prompt: `slug`, `defaultHash`
+  - summary: `channelId`, `sourceHash`
+  - doc: `authoredSlug`
+  - wish: `slug`
+  - book: `continuations`
+  - email-reply-draft: `revision`, `providerDeliveryId`
+
+  The declared deck's `error` and `authoredSlug` stay out of it, as the deck plugin class's vault output had them.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`5822541`](https://github.com/rizom-ai/brains/commit/582254128982c274cd34a28c8309ac14881196d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The portfolio is a declarative entity package, composed under its plugin id `portfolio`, with the same templates, data source, `project:generation` job, eval, printable and social-card attachments, publish registration and AT Protocol records. A project reads back as its case study, its frontmatter its metadata, and is stored, imported and exported byte for byte as before; the vault still scaffolds a new project with its four sections. A prompt that names the year the project began still queues `project:generation` for the caller who asked. The job now carries the caller's authority, and a job queued in the old shape still runs.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`8a58048`](https://github.com/rizom-ai/brains/commit/8a58048244fef93eb289cd8519a576a5ad47fa20) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create route that queues its job for the caller can attribute it as data processing in the caller's channel, so the job's progress reaches the conversation that asked, as the link plugin class queued its capture.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`4508802`](https://github.com/rizom-ai/brains/commit/4508802c3e2c30940722996f4f5cb38a5be25a56) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create route's queued create can write its placeholder under the next free id, build its job's input from the placeholder as stored, and answer without a link, as an entity plugin's upload import did. It is internal to the brain's own packages; a queued create that asks for none of these behaves as before.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`b6fab58`](https://github.com/rizom-ai/brains/commit/b6fab584ee2049ff5bc3894cf2b44d798bd0729d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create that queues a job for a record which already exists at another visibility now answers with a failed create naming both visibilities, as the entity plugin classes' interceptors did. Before, it threw. `system_create` already returned the same failure, but any other caller of the create got the thrown error.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`e909c5b`](https://github.com/rizom-ai/brains/commit/e909c5bd157820e41e11da01c407aa8a1eefafda) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Social posts are a declarative entity package, composed under their plugin id `social-media`. Their templates, `social-media:posts` data source, `social-post:generation` job, evals, LinkedIn publishing, the rule that drafts posts from queued blog posts and their AT Protocol records are unchanged. A post reads back as its text, with its frontmatter as its metadata, and is stored, imported and exported byte for byte as before.
+
+  - **Metadata:** a post's metadata now carries every frontmatter field, `coverImageId`, `documents`, `sourceEntityId` and `sourceEntityType` included, beside its slug and a failed publish's error.
+  - **Scheduled generation:** a scheduled social post skips a published blog post a social post was already written from. The plugin class looked for that in metadata that never carried the source, so every scheduled run could write another post from the same blog post. The run is queued as the `social-media` plugin rather than as `social-media-auto-generate`. Nothing to write from is reported as "No published post available to write a social-post from", where the class reported "No published posts available for social post generation" or "All recent posts already have social posts generated".
+  - **Drafts from blog posts:** the rule that drafts a LinkedIn post for a queued blog post writes it from the post's title and text (`Title:` line), as a declared blog post reads back as its body.
+  - **Progress:** a generation that queues its graphic no longer reports "Queueing image generation" as a step.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`98933b4`](https://github.com/rizom-ai/brains/commit/98933b4cbefb07b29cfe12f552a147b1005ae62f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity's generation can check that its title is free, and ask for another when it is taken, through the internal runtime it is handed, as the entity plugin classes' generations did. It is internal to the brain's own packages. The check now reads the taken title at the generation's own scope, its requester's or the package's, where the classes read at public scope: a title held by a record the requester can see but the public cannot is renamed, rather than its id deduplicated beside the hidden record.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`f1a30a2`](https://github.com/rizom-ai/brains/commit/f1a30a2dfcaf6efc53fb71e806cc4f60cca07cb6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type can decide a create from a URL alone, which is how `system_create` hands on a `source: { kind: "url" }` request. A URL that comes with content or a prompt still goes the way content or a prompt goes.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`f9a6d32`](https://github.com/rizom-ai/brains/commit/f9a6d325869b010e530afd310028e0855dc8c914) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type whose files people write by hand can keep each file's own frontmatter order. Written values land where the file has them, a nested value it writes unchanged keeps the file's key order, and a field the file lacks follows the rest, so directory sync leaves a file it only read as it was.
+
 ## 0.2.0-alpha.667
 
 ### Patch Changes
