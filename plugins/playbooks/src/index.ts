@@ -44,6 +44,7 @@ export {
   type LifecyclePlaybookConfig,
   type LifecycleStartersResponse,
   type PlaybooksConfig,
+  type PlaybooksConfigInput,
   type PlaybooksPluginDeps,
   type PlaybookStarter,
   type PlaybookStatusResponse,
