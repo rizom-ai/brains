@@ -1,5 +1,80 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.667
+  - @brains/faq@0.2.0-alpha.667
+  - @brains/profile@0.2.0-alpha.667
+  - @brains/plugins@0.2.0-alpha.667
+  - @brains/site-atlas@0.2.0-alpha.667
+  - @rizom/brain-ui@0.2.0-alpha.667
+  - @brains/site-composition@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/templates@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.666
+  - @brains/faq@0.2.0-alpha.666
+  - @rizom/brain-ui@0.2.0-alpha.666
+  - @brains/profile@0.2.0-alpha.666
+  - @brains/site-atlas@0.2.0-alpha.666
+  - @brains/site-composition@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/plugins@0.2.0-alpha.666
+  - @brains/templates@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.665
+  - @brains/faq@0.2.0-alpha.665
+  - @rizom/brain-ui@0.2.0-alpha.665
+  - @brains/profile@0.2.0-alpha.665
+  - @brains/site-atlas@0.2.0-alpha.665
+  - @brains/site-composition@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/plugins@0.2.0-alpha.665
+  - @brains/templates@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.664
+  - @brains/faq@0.2.0-alpha.664
+  - @rizom/brain-ui@0.2.0-alpha.664
+  - @brains/profile@0.2.0-alpha.664
+  - @brains/site-atlas@0.2.0-alpha.664
+  - @brains/site-composition@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/plugins@0.2.0-alpha.664
+  - @brains/templates@0.2.0-alpha.664
+
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.663
+  - @brains/faq@0.2.0-alpha.663
+  - @rizom/brain-ui@0.2.0-alpha.663
+  - @brains/profile@0.2.0-alpha.663
+  - @brains/site-atlas@0.2.0-alpha.663
+  - @brains/site-composition@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/plugins@0.2.0-alpha.663
+  - @brains/templates@0.2.0-alpha.663
+
 ## 0.2.0-alpha.662
 
 ### Patch Changes

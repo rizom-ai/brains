@@ -1,5 +1,63 @@
 # @rizom/brain
 
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- [#813](https://github.com/rizom-ai/brains/pull/813) [`d726625`](https://github.com/rizom-ai/brains/commit/d72662546b43ab95f286ca2a408bc85ab677e309) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain whose plugin set changed while a projection wave was still running now starts. Before, the next boot failed with `Projection wave "…" graph fingerprint does not match the finalized graph` and the web process exited before it was ready. The unfinished wave is now superseded: its inputs go back to the pending queue and a fresh wave plans them against the new plugin set. Jobs the old wave had queued for a removed plugin's rules finish as superseded instead of failing through their retries, including a job that a worker on the new plugin set picks up before any sweep has superseded the wave: that job supersedes the wave itself. In a brain with separate web and worker processes, the projection sweep no longer logs `Cannot claim projection wave while "…" is running` when the other process claimed the next wave first; it leaves that wave to the process that claimed it.
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- [#862](https://github.com/rizom-ai/brains/pull/862) [`5babad2`](https://github.com/rizom-ai/brains/commit/5babad2a69d023f8661f491af27447b43efd455a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A request to read, show or verify an entity reads it from storage in that turn: `system_get` says so, as `system_search` says to search afresh, since stored content can change outside the conversation.
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- [#881](https://github.com/rizom-ai/brains/pull/881) [`1ccda3f`](https://github.com/rizom-ai/brains/commit/1ccda3fbcfeb28c3d4973faf2facf5748fa82362) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_update` now reads a grouping or other frontmatter-extension field on a declared type, such as a doc or a wish, from the type's stored document. The confirmation shows the stored value, and the update keeps every other field the document carries. Before, the confirmation showed the stored value as absent and the update dropped the document's other grouping fields.
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- [#879](https://github.com/rizom-ai/brains/pull/879) [`050fdd6`](https://github.com/rizom-ai/brains/commit/050fdd629ad89f0dbe57c434bf562e16786590fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain running in production now refuses the static MCP bearer token (`plugins.mcp.authToken` / `MCP_AUTH_TOKEN`) at boot; the token is for local development only, so connect deployed brains through OAuth with passkeys.
+
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`1d5e0d8`](https://github.com/rizom-ai/brains/commit/1d5e0d8adedd21edc06f5b9e0f3bf253efe27eef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The AT Protocol lexicon registry is a declarative service. It serves the same public `/atproto/lexicons/index.json` and `/atproto/lexicons/<nsid>.json` routes, unchanged, under the same `atproto-registry` plugin, with the same `atproto-registry_list_lexicons`, `atproto-registry_validate_lexicon` and `atproto-registry_check_contracts` tools. The tools now declare that they only read, so MCP clients see them as read-only, and validating against an unknown lexicon is refused with the `not_found` code beside its message.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`0562a45`](https://github.com/rizom-ai/brains/commit/0562a45a94de78609452383e8573d411ea54b760) Thanks [@yeehaa123](https://github.com/yeehaa123)! - First-party services converted from classes reach internal runtime capabilities from their subscriptions slot: answering a first-party contract under the channel it already has, in job workers too when the class did, hearing system and broadcast channels as the class subscribed to them, the package's logger, the delivery provider registered for a channel type, work run once the brain is ready or once every plugin has registered, the shape of every registered entity type, the brain's data directory, the brain's character, its anchor's profile and its domain, read-only reads of the brain's entities, and a claim on one of the shell's own identity types, whose records the claiming package alone keeps, the profile-kind catalog, a structured AI answer, and a data source, template and self-drawing Dashboard widget of its own; and a service can install data sources on the types it owns, as its entity plugin class registered them. They are internal to the brain's own packages: the public service contract and entries do not change, and a context the runtime did not build is refused.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`633353e`](https://github.com/rizom-ai/brains/commit/633353e215ea8ab8bd4c4e33b06c3fc3b4792bc5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class keeps its tools' snake-case names, such as `atproto-registry_check_contracts`, through an internal helper. The public `defineTool` keeps its kebab-case rule.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`0eb9f10`](https://github.com/rizom-ai/brains/commit/0eb9f102b327a39ccf8381892a0274d953f5ba32) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The knowledge map is its own package, `@brains/knowledge-map`, installed with topics, which it draws its territories from. It renders and reads the same map: its site section template and data source are now `knowledge-map:knowledge-map` (they were `topics:knowledge-map`), and its Dashboard widget is `knowledge-map:knowledge-map` (it was `topics:topics-knowledge-map`). A site that names the old template or data source names the new one.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`c3fba73`](https://github.com/rizom-ai/brains/commit/c3fba73a46f1a9b371a94e71b0c4385dcf824f00) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The LinkedIn import fills the anchor profile by asking profile, its steward, instead of writing it itself. Studio shows and imports the same fields with the same outcomes, keeps what the owner wrote, and refuses a confirmation once the profile has changed; when the brain does not let LinkedIn import, the workspace says so. The import now reads LinkedIn before the profile, so a brain with no anchor profile and a refused LinkedIn token reports the token rather than the missing profile.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`f676da6`](https://github.com/rizom-ai/brains/commit/f676da694abb6adad69d15505deb13ce5482a4b3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Notifications is a declarative service. It answers `notifications:send` as before, in every process, under the same `notifications` plugin and config: delivering through the transport registered for the recipient's channel type, or the configured default recipient, and answering a missing recipient, a missing transport or a failed delivery as data with the same codes.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`bd52b54`](https://github.com/rizom-ai/brains/commit/bd52b54b39b51cc6a5678039e7188a6ceed6254c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Obsidian vault sync is a declarative service. Once the brain is ready it renders every entity type into the vault as before, under the same `obsidian-vault` plugin and `baseFolder` config: templates and fileClasses regenerated, bases written only where missing, bases under their earlier names moved to the current ones, and a vault it cannot write logged without stopping the brain.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`bc711ae`](https://github.com/rizom-ai/brains/commit/bc711ae3d90051713a4cc8c058aa8b0980ee3b8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Onboarding is a declarative service. Enabled, it plants its bundled playbooks once startup content settles, through the playbook type's steward, so a playbook with the same id is never overwritten, and registers its first web-chat starter once the brain is ready, as before, under the same `onboarding` plugin, after the playbook plugins it depends on.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`d2b63c9`](https://github.com/rizom-ai/brains/commit/d2b63c9ca6d3761ec36fad4326d9f4feddfb959a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The playbook type's steward plants a playbook another package bundles through `playbooks:seed`: it writes the playbook only where none with that id exists at any visibility, and answers whether it created one.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`fc365ad`](https://github.com/rizom-ai/brains/commit/fc365adb30f96bece27487510d2ef32ee1a874b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Profile is a declarative service and the steward of the brain's identity. It registers the built-in profile kinds, extends the anchor profile with the selected kind's fields and validates every anchor write, and seeds or migrates the starter identity, as before, under the same `profile` plugin and config. It now answers `@brains/profile:import-preview` and `@brains/profile:import-apply`, through which another package fills the anchor profile: what the owner wrote is kept, an import is refused as a conflict once the profile changed after its preview, and only the plugins named in profile's new `importers` setting (default `linkedin-import`) may ask.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`79ca417`](https://github.com/rizom-ai/brains/commit/79ca417b5c9902820bc3e3b5fa2ab343f865edaf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service package converted from a class keeps the plugin dependencies its class declared: it registers after them and does not start without them. Only the canonical brain's composer names them; a package that is not a service is refused.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`74c56ea`](https://github.com/rizom-ai/brains/commit/74c56eae81942909767ce00fa8ff65cd82cd16ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service package converted from a class can keep the plugin id its class had, as a first-party entity package already can, so its template, job and channel names stay those brains and queued jobs use; a service that owns one type installs it under the type itself. Only the canonical brain's composer names it. An interface package asking for a legacy id is refused with an error that names the package, where it named none before.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`04f8404`](https://github.com/rizom-ai/brains/commit/04f8404b4f5f766b28d61ebdbe0677d81c7c8c63) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site-info moved to `plugins/site-info` and is a declarative service that owns the `site-info` type. The type, its `site-info:entities` data source and the `siteInfo` defaults a brain gives under `plugins.site-info` are unchanged; its default record is still written after the initial sync, with the same bytes, and `site:metadata:get` is still answered in every process, with the site's title and description falling back to the brain or its anchor. Its frontmatter is now also its metadata, which startup re-derives for a site-info an earlier release wrote. The service half is the `site-metadata` plugin. Two things differ: a configured default the site-info schema refuses now stops the brain from starting with an error naming the package, where it was logged when the default was first written; and when a site-info record only some may see already exists, the default is skipped quietly, where it failed with a logged conflict.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`925349f`](https://github.com/rizom-ai/brains/commit/925349f7a905c04f19466460dd33ed1fd19510ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Which topic owns each source, and how many nearest sources stand for a topic, now live in `@brains/contracts`, shared by topics and the knowledge map. Topics judges duplicate topics by them as before.
+
+- [#876](https://github.com/rizom-ai/brains/pull/876) [`c95dc00`](https://github.com/rizom-ai/brains/commit/c95dc00a49b379f4ceba15d4fd96a186a108d07a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topics answers which entity types topics are drawn from in job workers too, so a site build there measures the knowledge map against the same sources.
+
 ## 0.2.0-alpha.662
 
 ### Patch Changes

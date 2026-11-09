@@ -355,6 +355,13 @@ export class ProjectionStore {
     return this.waves.supersedeWaveIfStale(waveId, supersededAt);
   }
 
+  public supersedeWave(
+    waveId: string,
+    supersededAt: number,
+  ): Promise<ProjectionWave> {
+    return this.waves.supersedeWave(waveId, supersededAt);
+  }
+
   public failWave(waveId: string, failedAt: number): Promise<ProjectionWave> {
     return this.waves.failWave(waveId, failedAt);
   }

@@ -319,7 +319,7 @@ AI_API_KEY=
 
 GIT_SYNC_TOKEN=
 
-# Optional static token for MCP HTTP clients in local development only; deployed brains use OAuth/passkeys
+# Optional static token for MCP HTTP clients: local development only; a production brain refuses it
 MCP_AUTH_TOKEN=
 
 # Optional

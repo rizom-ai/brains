@@ -40,6 +40,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   latestMarkedAt = 0;
   readonly completedRuleIds = new Set<string>();
   readonly failedWaveIds: string[] = [];
+  readonly supersededWaveIds: string[] = [];
   readonly incidents: ProjectionIncidentInput[] = [];
 
   constructor(inputs: ProjectionWaveInput[]) {
@@ -135,6 +136,21 @@ class MemoryProjectionStore implements ProjectionWaveStore {
       status: "failed",
       completedAt: failedAt,
     });
+  }
+
+  supersedeWave(waveId: string, supersededAt: number): Promise<ProjectionWave> {
+    this.supersededWaveIds.push(waveId);
+    const superseded: ProjectionWave = {
+      ...this.claimedWave,
+      status: "superseded",
+      completedAt: supersededAt,
+    };
+    this.active = false;
+    this.pending = true;
+    this.storedRules = [];
+    this.queuedRules = [];
+    this.completedRuleIds.clear();
+    return Promise.resolve(superseded);
   }
 
   failWaveWithIncident(
@@ -581,23 +597,59 @@ describe("ProjectionWaveScheduler", () => {
     expect(store.pending).toBe(true);
   });
 
-  it("refuses to resume a wave pinned to another graph", async () => {
+  it("supersedes a wave pinned to another graph and replans its inputs", async () => {
     const store = new MemoryProjectionStore(documentInputs(1));
     store.active = true;
+    store.pending = false;
     const queue = new MemoryProjectionQueue();
     const scheduler = new ProjectionWaveScheduler({
       store,
       queue,
       graph,
       rules: [topicRule, skillRule],
-      createWaveId: (): string => "unused",
+      createWaveId: (): string => "wave-2",
       now: (): number => 20,
     });
 
-    void expect(scheduler.startNextWave()).rejects.toThrow(
-      "graph fingerprint does not match",
+    expect(await scheduler.startNextWave()).toEqual(
+      expect.objectContaining({ id: "wave-1", status: "superseded" }),
     );
-    expect(queue.requests).toEqual([]);
+    expect(store.supersededWaveIds).toEqual(["wave-1"]);
+    expect(await store.getActiveWave()).toEqual(
+      expect.objectContaining({ id: "wave-2", graphFingerprint }),
+    );
+    expect(store.failedWaveIds).toEqual([]);
+    expect(store.incidents).toEqual([]);
+    expect(queue.requests).toEqual([
+      expect.objectContaining({
+        data: { waveId: "wave-2", ruleId: "topics" },
+      }),
+    ]);
+  });
+
+  it("continues past a wave pinned to another graph when a rule reports into it", async () => {
+    const store = new MemoryProjectionStore(documentInputs(1));
+    store.active = true;
+    store.pending = false;
+    const queue = new MemoryProjectionQueue();
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue,
+      graph,
+      rules: [topicRule, skillRule],
+      createWaveId: (): string => "wave-2",
+      now: (): number => 20,
+    });
+
+    expect(await scheduler.advanceActiveWave("wave-1")).toEqual(
+      expect.objectContaining({ id: "wave-1", status: "superseded" }),
+    );
+    expect(store.supersededWaveIds).toEqual(["wave-1"]);
+    expect(queue.requests).toEqual([
+      expect.objectContaining({
+        data: { waveId: "wave-2", ruleId: "topics" },
+      }),
+    ]);
   });
 
   it("keeps the wave active when its completion effect fails", async () => {
