@@ -226,12 +226,12 @@ export function defineInterface<
     family: "interface",
     id: definition.id,
     config: definition.config,
-    instantiate: ({ config, package: metadata, scope }) =>
+    instantiate: ({ config, package: metadata, scope, pluginId }) =>
       createDeclarativeInterfacePlugin(
         definition,
         config,
         metadata,
-        scope(definition.id),
+        pluginId ?? scope(definition.id),
       ),
   });
 }
@@ -282,12 +282,12 @@ export function defineMessageInterface<
     family: "message-interface",
     id: definition.id,
     config: definition.config,
-    instantiate: ({ config, package: metadata, scope }) =>
+    instantiate: ({ config, package: metadata, scope, pluginId }) =>
       createDeclarativeMessageInterfacePlugin(
         definition,
         config,
         metadata,
-        scope(definition.id),
+        pluginId ?? scope(definition.id),
       ),
   });
 }
@@ -339,6 +339,12 @@ export function defineMessageInterfacePackage<
     id: definition.id,
     config: definition.config,
     instantiate: (context) => {
+      // Each interface is its own plugin, so no one id names them all.
+      if (context.pluginId !== undefined) {
+        throw new Error(
+          `${label} keeps no legacy plugin id; each of its interfaces is its own plugin`,
+        );
+      }
       const interfaces = definition.interfaces({ config: context.config });
       const ids = new Set<string>();
       for (const declaration of interfaces) {
