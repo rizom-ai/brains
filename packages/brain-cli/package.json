@@ -195,7 +195,7 @@
     "start:personal": "sh scripts/start-test-app.sh personal",
     "start:publishing": "sh scripts/start-test-app.sh publishing",
     "start:team": "sh scripts/start-test-app.sh team",
-    "test": "bun test --parallel=4 --path-ignore-patterns='**/{boot-smoke,canonical-eval-suites,public-plugin-api,public-authoring-golden,public-authoring-docs,public-chat-contract,package-metadata,studio-groupings-plugin,studio-groupings-runtime,studio-groupings-processes}.test.{ts,tsx}'",
+    "test": "bun test --parallel=4 --path-ignore-patterns='**/{boot-smoke,canonical-eval-suites,public-plugin-api,public-authoring-golden,public-authoring-docs,public-chat-contract,package-metadata}.test.ts'",
     "test:boot-smoke": "bun run build && bun run test:boot-smoke:prebuilt",
     "test:boot-smoke:prebuilt": "bun test test/boot-smoke.test.ts",
     "test:evals": "bun test test/canonical-eval-suites.test.ts",
