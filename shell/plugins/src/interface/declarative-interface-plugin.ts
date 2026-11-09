@@ -76,6 +76,8 @@ class InterfaceDeclaration<
   private transport: MessageTransport | undefined;
   /** What the runtime answers for the interface, released at shutdown. */
   private readonly releases: Array<() => void> = [];
+  /** What runs once the brain is ready, in order. */
+  private readonly readyHandlers: Array<() => Promise<void>> = [];
   private readonly runtimes = new WeakMap<object, InterfaceRuntime>();
   private tools: Tool[] = [];
 
@@ -233,6 +235,11 @@ class InterfaceDeclaration<
     }
   }
 
+  /** Runs the ready handlers, in the order they were given. */
+  async ready(): Promise<void> {
+    for (const handler of this.readyHandlers) await handler();
+  }
+
   async registrationComplete(context: InterfacePluginContext): Promise<void> {
     if (
       this.accountSettingsRegistration &&
@@ -266,6 +273,7 @@ class InterfaceDeclaration<
     this.hasRequiredDaemon = false;
     this.state = undefined;
     this.transport = undefined;
+    this.readyHandlers.length = 0;
     this.tools = [];
     for (const release of this.releases.splice(0)) release();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
@@ -298,6 +306,14 @@ class InterfaceDeclaration<
       onRelease: (release) => {
         this.releases.push(release);
       },
+      onReady: (handler) => {
+        this.readyHandlers.push(handler);
+      },
+      identity: context.identity,
+      profileKinds: context.profileKinds,
+      publicSkills: context.publicSkills,
+      tools: context.tools,
+      entityReads: context.entityService,
       interfaceId: this.definition.id,
     });
     this.runtimes.set(context, runtime);
@@ -382,6 +398,10 @@ class DeclarativeInterfacePlugin<
     context: InterfacePluginContext,
   ): Promise<void> {
     await this.declaration.registrationComplete(context);
+  }
+
+  protected override async onReady(): Promise<void> {
+    await this.declaration.ready();
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -499,6 +519,10 @@ class DeclarativeTransportInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await this.declaration.registrationComplete(context);
+  }
+
+  protected override async onReady(): Promise<void> {
+    await this.declaration.ready();
   }
 
   protected override async getTools(): Promise<Tool[]> {

@@ -6,9 +6,15 @@ import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { z } from "@brains/utils/zod";
 import type {
   IEndpointsNamespace,
+  IIdentityNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
+  IProfileKindsNamespace,
 } from "../base/context-types";
+import type { IPublicSkillsNamespace } from "../a2a/public-skills";
+import type { ICoreEntityService } from "@brains/entity-service";
+import type { ToolInfo } from "@brains/mcp-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { Channel } from "@brains/contracts";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { AuthBackend } from "../contracts/auth";
@@ -107,6 +113,30 @@ export interface InterfaceRuntime {
    * so the records stored before the conversion are the ones it reads after.
    */
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  /**
+   * Run once the brain is ready, where the class's onReady ran: after every
+   * plugin has registered and the shell prepared its ready state. Handlers
+   * run in the order they were given.
+   */
+  ready(handler: () => void | Promise<void>): void;
+  /** The brain's character and its anchor's profile, as the shell keeps them. */
+  readonly identity: Pick<IIdentityNamespace, "get" | "getProfile">;
+  /** The profile kind the brain resolved, as the class read it. */
+  readonly profileKinds: Pick<IProfileKindsNamespace, "getResolved">;
+  /** The brain's public skills, as an Agent Card lists them. */
+  readonly publicSkills: IPublicSkillsNamespace;
+  /** The registered tools a permission level may call. */
+  readonly tools: {
+    listForPermissionLevel(level: UserPermissionLevel): ToolInfo[];
+  };
+  /**
+   * Read-only reads of the brain's entities, passed through to the entity
+   * service at the scope each call names, as the class read them.
+   */
+  readonly entityReads: Pick<
+    ICoreEntityService,
+    "hasEntityType" | "listEntities" | "getEntity"
+  >;
 }
 
 /** How a first-party message transport coordinates replies and job progress. */
@@ -149,6 +179,18 @@ export interface InterfaceRuntimeBinding {
   readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
   /** Keeps a release to run when the interface shuts down. */
   readonly onRelease: (release: () => void) => void;
+  /** Keeps a handler to run once the brain is ready. */
+  readonly onReady: (handler: () => Promise<void>) => void;
+  readonly identity: Pick<IIdentityNamespace, "get" | "getProfile">;
+  readonly profileKinds: Pick<IProfileKindsNamespace, "getResolved">;
+  readonly publicSkills: IPublicSkillsNamespace;
+  readonly tools: {
+    listForPermissionLevel(level: UserPermissionLevel): ToolInfo[];
+  };
+  readonly entityReads: Pick<
+    ICoreEntityService,
+    "hasEntityType" | "listEntities" | "getEntity"
+  >;
   /** The interface's id, to name it in a refusal. */
   readonly interfaceId: string;
 }
@@ -226,6 +268,28 @@ function bindInterfaceRuntime(
       binding.messaging.request(contract, request),
     classRuntimeState: Object.freeze({
       scoped: binding.runtimeState.scoped.bind(binding.runtimeState),
+    }),
+    ready(handler): void {
+      binding.onReady(async () => handler());
+    },
+    identity: Object.freeze({
+      get: () => binding.identity.get(),
+      getProfile: () => binding.identity.getProfile(),
+    }),
+    profileKinds: Object.freeze({
+      getResolved: () => binding.profileKinds.getResolved(),
+    }),
+    publicSkills: Object.freeze({
+      list: () => binding.publicSkills.list(),
+    }),
+    tools: Object.freeze({
+      listForPermissionLevel: (level: UserPermissionLevel) =>
+        binding.tools.listForPermissionLevel(level),
+    }),
+    entityReads: Object.freeze({
+      hasEntityType: (type: string) => binding.entityReads.hasEntityType(type),
+      listEntities: binding.entityReads.listEntities.bind(binding.entityReads),
+      getEntity: binding.entityReads.getEntity.bind(binding.entityReads),
     }),
     get messages(): InterfaceMessages {
       if (!messages) {

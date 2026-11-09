@@ -21,6 +21,7 @@ import {
   withTools,
   withWebRoutes,
   type Plugin,
+  type ToolInfo,
   type ToolResponse,
   type FirstPartyDaemon,
   type InterfaceRuntime,
@@ -937,3 +938,106 @@ function isPlugin(value: unknown): value is Plugin {
     "register" in value
   );
 }
+
+describe("interfaceRuntime for a federated interface", () => {
+  async function reach(
+    shell: ReturnType<typeof createMockShell>,
+  ): Promise<{ runtime: InterfaceRuntime; plugin: Plugin }> {
+    let reached: InterfaceRuntime | undefined;
+    const plugin = instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          reached = interfaceRuntime(context);
+          return {};
+        },
+      }),
+    );
+    await plugin.register(shell);
+    if (!reached) throw new Error("Setup did not run");
+    return { runtime: reached, plugin };
+  }
+
+  it("runs ready handlers in order once the brain is ready, not before", async () => {
+    const shell = createMockShell();
+    const { runtime, plugin } = await reach(shell);
+    const ran: string[] = [];
+    runtime.ready(() => {
+      ran.push("first");
+    });
+    runtime.ready(async () => {
+      ran.push("second");
+    });
+
+    expect(ran).toEqual([]);
+    await plugin.ready?.();
+
+    expect(ran).toEqual(["first", "second"]);
+  });
+
+  it("reads who the brain is, its profile kind, public skills and public tools", async () => {
+    const shell = createMockShell();
+    shell.listToolsForPermissionLevel = (level): ToolInfo[] =>
+      level === "public"
+        ? [{ name: "system_search", description: "Search", pluginId: "system" }]
+        : [];
+    shell.getProfileKindRegistry().finalize();
+    const { runtime } = await reach(shell);
+
+    expect(runtime.identity.get()).toEqual(shell.getIdentity());
+    expect(runtime.identity.getProfile()).toEqual(shell.getProfile());
+    expect(runtime.profileKinds.getResolved()).toEqual(
+      shell.getProfileKindRegistry().getResolved(),
+    );
+    expect(runtime.tools.listForPermissionLevel("public")).toEqual([
+      { name: "system_search", description: "Search", pluginId: "system" },
+    ]);
+    expect(await runtime.publicSkills.list()).toEqual([
+      expect.objectContaining({ id: "system_search" }),
+    ]);
+  });
+
+  it("reads entities at the scope each call names", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      {
+        id: "peer.example",
+        entityType: "agent",
+        content: "",
+        metadata: { name: "Peer", status: "approved" },
+        visibility: "public",
+        contentHash: "h-1",
+        created: "2026-11-01T00:00:00.000Z",
+        updated: "2026-11-01T00:00:00.000Z",
+      },
+      {
+        id: "private.example",
+        entityType: "agent",
+        content: "",
+        metadata: { name: "Private", status: "approved" },
+        visibility: "restricted",
+        contentHash: "h-2",
+        created: "2026-11-01T00:00:00.000Z",
+        updated: "2026-11-01T00:00:00.000Z",
+      },
+    ]);
+    const { runtime } = await reach(shell);
+
+    expect(
+      (
+        await runtime.entityReads.listEntities({
+          entityType: "agent",
+          options: { filter: { visibilityScope: "public" } },
+        })
+      ).map(({ id }) => id),
+    ).toEqual(["peer.example"]);
+    expect(
+      await runtime.entityReads.getEntity({
+        entityType: "agent",
+        id: "private.example",
+        visibilityScope: "public",
+      }),
+    ).toBeNull();
+  });
+});
