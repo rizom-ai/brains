@@ -986,6 +986,7 @@ export {
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,
   type QueuedCreate,
+  type EntityCreateCaller,
   type QueuedAttribution,
   type QueuedPlaceholder,
   type StoredCreate,

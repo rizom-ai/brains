@@ -1,5 +1,6 @@
 import {
   SdkError,
+  type ActorRef,
   type BusContract,
   type ImageAspectRatio,
   type JobContract,
@@ -130,6 +131,12 @@ export interface EntityRuntime {
   readonly uploads: EntityCreateUploadReader;
   /** The package's logger, as its entity plugin class logged. */
   readonly logger: Logger;
+  /**
+   * Who asked for a create: the interface, the signed-in user and the
+   * channel, when there is one, as the entity plugin classes' interceptors
+   * read their execution context. Create routes and their checks only.
+   */
+  readonly caller: EntityCreateCaller;
   /** The anchor's profile, as the shell's identity holds it now, read-only. */
   readonly identity: EntityRuntimeIdentity;
   /**
@@ -284,6 +291,16 @@ export interface ContractJobRuntimeBinding {
 }
 
 /** What binding a call's runtime needs. */
+/** Who asked for a create, as a first-party create route sees them. */
+export interface EntityCreateCaller {
+  readonly interfaceType: string;
+  readonly actor: ActorRef;
+  /** The signed-in user, when the actor is one. */
+  readonly userId?: string | undefined;
+  readonly channelId?: string | undefined;
+  readonly channelName?: string | undefined;
+}
+
 export interface EntityRuntimeBinding {
   /** Where the call is, for the refusals of what it does not offer. */
   readonly where: string;
@@ -308,6 +325,8 @@ export interface EntityRuntimeBinding {
   readonly logger?: Logger | undefined;
   readonly identity?: EntityRuntimeIdentity | undefined;
   readonly job?: ContractJobRuntimeBinding | undefined;
+  /** Who asked, for a create route and its check; unset, refused. */
+  readonly caller?: EntityCreateCaller | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -663,6 +682,12 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     attachments: job.attachments,
     uploads: job.uploads,
     logger: binding.logger ?? job.logger,
+    get caller(): EntityCreateCaller {
+      if (!binding.caller) {
+        throw new Error(`caller is not available in ${binding.where}`);
+      }
+      return binding.caller;
+    },
     identity:
       binding.identity ??
       Object.freeze({ getProfile: unavailable("identity", binding.where) }),

@@ -32,6 +32,7 @@ export {
   type QueuedCreate,
   type GenerationOutcome,
   type GenerationOutcomeContext,
+  type EntityCreateCaller,
   type QueuedAttribution,
   type QueuedPlaceholder,
   type StoredCreate,

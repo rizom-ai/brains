@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
+  authenticatedUserId,
   agentContextContract,
   generateExecuteContract,
   generateReportFailureContract,
@@ -74,6 +75,7 @@ import {
   type AnyEntityBinding,
   type EntityRuntimeBinding,
   type QueuedCreate,
+  type EntityCreateCaller,
   type QueuedAttribution,
   type QueuedPlaceholder,
   type StoredCreate,
@@ -204,6 +206,22 @@ function deepFrozen<T>(value: T): T {
 function isAttributed(queued: QueuedCreate): boolean {
   const { attributed } = queued.job;
   return attributed !== undefined && attributed !== false;
+}
+
+/** Who asked for a create, as a first-party route sees them. */
+function createCaller(
+  executionContext: CreateExecutionContext,
+): EntityCreateCaller {
+  const userId = authenticatedUserId(executionContext);
+  return Object.freeze({
+    interfaceType: executionContext.interfaceType,
+    actor: executionContext.actor,
+    ...definedFields({
+      userId,
+      channelId: executionContext.channelId,
+      channelName: executionContext.channelName,
+    }),
+  });
 }
 
 /** Who a create is attributed to in the store. */
@@ -1748,12 +1766,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         entities,
         uploads: reader,
       },
-      this.runtimeBinding(context, entities, "a create route", {
-        // Targets and sources are read public, as the entity plugin
-        // classes' create interceptors read them.
-        service: context.entityService,
-        scope: () => "public",
-      }),
+      {
+        ...this.runtimeBinding(context, entities, "a create route", {
+          // Targets and sources are read public, as the entity plugin
+          // classes' create interceptors read them.
+          service: context.entityService,
+          scope: () => "public",
+        }),
+        caller: createCaller(executionContext),
+      },
     );
   }
 
