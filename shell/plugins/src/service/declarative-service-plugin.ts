@@ -1109,18 +1109,6 @@ class DeclarativeServicePlugin<
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       siteUrl: context.siteUrl,
       routeByRole: (role) => context.webRoutes.findByRole(role),
-      importDocument: async (definition, document) => {
-        const owned = this.ownedDefinition(definition);
-        return this.calls.run(this.packageCall(), () =>
-          context.entityService.createEntityFromMarkdown({
-            input: {
-              entityType: owned.type,
-              id: document.id,
-              markdown: document.markdown,
-            },
-          }),
-        );
-      },
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);
       },

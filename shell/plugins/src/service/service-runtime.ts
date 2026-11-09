@@ -6,7 +6,6 @@ import type { ToolContext } from "@brains/mcp-service";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
   IInboxFollowUpsNamespace,
@@ -256,16 +255,6 @@ export interface ServiceRuntime {
    */
   evalHandler(handlerId: string, handler: EvalHandler): void;
   /**
-   * Store a document the package bundles as written, byte for byte, as an
-   * entity plugin class stored one through `createEntityFromMarkdown`, as
-   * the package, in one of the types its header owns; any other type is
-   * refused. The declared write path would restate its frontmatter.
-   */
-  importDocument(
-    definition: AnyEntityDefinition,
-    document: { readonly id: string; readonly markdown: string },
-  ): Promise<EntityMutationResult>;
-  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -443,10 +432,6 @@ export interface ServiceRuntimeBinding {
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
-  readonly importDocument: (
-    definition: AnyEntityDefinition,
-    document: { readonly id: string; readonly markdown: string },
-  ) => Promise<EntityMutationResult>;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -481,7 +466,6 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
-    importDocument: binding.importDocument,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
