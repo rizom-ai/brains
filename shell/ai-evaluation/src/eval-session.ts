@@ -7,7 +7,10 @@ import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import type { IndexReadinessGate } from "./types";
 import { RemoteAgentService } from "./remote-agent-service";
-import { MCPProtocolAgentService } from "./mcp-protocol-agent-service";
+import {
+  MCPProtocolAgentService,
+  type RemoteMCPConnectionOptions,
+} from "./mcp-protocol-agent-service";
 import { bootEvalApp, type BootEvalAppOptions } from "./eval-environment";
 import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
 
@@ -31,12 +34,17 @@ export interface EvalSessionDeps {
   connectMcpAgent: (
     shell: EvalSessionShell,
   ) => Promise<IAgentService & { close(): Promise<void> }>;
+  connectRemoteMcpAgent: (
+    remote: RemoteMCPConnectionOptions,
+  ) => Promise<IAgentService & { close(): Promise<void> }>;
 }
 
 const defaultDeps: EvalSessionDeps = {
   bootEvalApp,
   connectMcpAgent: (shell) =>
     MCPProtocolAgentService.connect(shell.getMCPService()),
+  connectRemoteMcpAgent: (remote) =>
+    MCPProtocolAgentService.connectRemote(remote),
 };
 
 export interface EvalSessionOptions {
@@ -88,15 +96,22 @@ export async function runEvalSession<T>(
   let mcpAgentService: (IAgentService & { close(): Promise<void> }) | undefined;
 
   try {
-    mcpAgentService = options.mcpBasic
-      ? await deps.connectMcpAgent(shell)
-      : undefined;
-    const agentService = options.remoteUrl
-      ? RemoteAgentService.createFresh({
-          baseUrl: options.remoteUrl,
-          authToken: options.authToken,
-        })
-      : (mcpAgentService ?? shell.getAgentService());
+    mcpAgentService = !options.mcpBasic
+      ? undefined
+      : options.remoteUrl
+        ? await deps.connectRemoteMcpAgent({
+            url: options.remoteUrl,
+            token: options.authToken,
+          })
+        : await deps.connectMcpAgent(shell);
+    const agentService =
+      mcpAgentService ??
+      (options.remoteUrl
+        ? RemoteAgentService.createFresh({
+            baseUrl: options.remoteUrl,
+            authToken: options.authToken,
+          })
+        : shell.getAgentService());
 
     const result = await run({
       agentService,

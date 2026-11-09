@@ -77,6 +77,7 @@ const suiteNames = [
   "personal",
   "professional",
   "providers",
+  "network",
   "team",
   "docs",
 ] as const;
@@ -95,15 +96,18 @@ const expectedMembers: Record<SuiteName, string> = {
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   providers:
     "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  network:
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   docs: "a2a admin agents analytics ask-content auth-service blog chat conversation-memory dashboard decks directory-sync docs email faq guides link mcp note notifications profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
   team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 29,
   personal: 31,
-  professional: 106,
+  professional: 108,
   providers: 2,
-  team: 40,
+  network: 20,
+  team: 43,
   docs: 6,
 };
 const tempDirectories: string[] = [];
@@ -272,6 +276,10 @@ describe("canonical eval recipe ladder", () => {
         "stock-photo": { apiKey: expect.any(String) },
       },
     });
+    expect(suiteSelection("network")).toMatchObject({
+      bundles: suiteSelection("professional").bundles,
+      tags: ["recipe-network"],
+    });
     expect(suiteSelection("team")).toMatchObject({
       anchor: "team",
       kind: "team",
@@ -321,7 +329,7 @@ describe("canonical eval recipe ladder", () => {
         ),
       )
     ).flat();
-    expect(testCases.length).toBe(248);
+    expect(testCases.length).toBe(244);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(

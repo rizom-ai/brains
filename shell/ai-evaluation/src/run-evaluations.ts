@@ -68,14 +68,12 @@ export async function main(): Promise<void> {
   } = parseCliOptions(args);
 
   try {
-    if (mcpBasic && remoteUrl) {
-      throw new Error("--mcp-basic cannot be combined with --url");
-    }
-
+    // With --url the brain under evaluation is the remote one; the local
+    // composition only judges, so it registers no MCP protocol of its own.
     const evalConfigResult = await loadEvalConfig({
       suite,
       tags,
-      mcpBasic,
+      mcpBasic: mcpBasic && !remoteUrl,
     });
     const {
       config,

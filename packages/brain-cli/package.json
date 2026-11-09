@@ -187,6 +187,7 @@
     "eval:personal": "bun run eval --suite personal",
     "eval:professional": "bun run eval --suite professional",
     "eval:team": "bun run eval --suite team",
+    "eval:git": "bun run eval --suite professional --tags requires-supervised-git --mcp-basic --url http://localhost:8080 --token $MCP_AUTH_TOKEN",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "prepublishOnly": "bun scripts/build.ts",
