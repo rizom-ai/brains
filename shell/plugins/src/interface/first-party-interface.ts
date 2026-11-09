@@ -5,6 +5,8 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { DaemonHealth } from "../manager/daemon-types";
+import type { Tool } from "@brains/mcp-service";
+import type { WebRouteDefinition } from "../types/web-routes";
 import type { MessageInterfaceOutput } from "../message-interface/progress-message-coordinator";
 import type { PluginPackageDefinition } from "../package-definition";
 import type { InterfaceConfigSchema } from "./interface-definition-contract";
@@ -95,6 +97,20 @@ export interface FirstPartyInterfaceDeclarations {
   readonly daemons: readonly FirstPartySlot<FirstPartyDaemon | undefined>[];
   readonly transport?: FirstPartySlot<MessageTransport> | undefined;
   readonly channels?: FirstPartyChannelsSlot | undefined;
+  readonly webRoutes?:
+    FirstPartySlot<readonly WebRouteDefinition[]> | undefined;
+  readonly tools?: FirstPartySlot<readonly Tool[]> | undefined;
+  readonly protocol?: FirstPartyProtocol | undefined;
+}
+
+/**
+ * The protocol-only registration a hosted interface builds of itself: another
+ * definition, instantiated under the same plugin id and package, with the
+ * config the host's config gives it.
+ */
+export interface FirstPartyProtocol {
+  readonly definition: PluginPackageDefinition;
+  config(hostConfig: unknown): unknown;
 }
 
 /** A channels slot as the runtime keeps it, its declared config kept by the method. */
@@ -233,5 +249,82 @@ export function withChannels<TConfigSchema extends InterfaceConfigSchema>(
     }
     const slot: FirstPartyChannelsSlot = { run: channels };
     return { ...declarations, channels: slot };
+  });
+}
+
+/**
+ * The HTTP routes its class served, as written: any response, a page, a
+ * stream, with the class's public, preview, role and match settings. Served
+ * once the interface registers, after the routes its definition declares.
+ * Declared once.
+ */
+export function withWebRoutes<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: InterfacePackage<TConfigSchema>,
+  routes: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly WebRouteDefinition[],
+): InterfacePackage<TConfigSchema> {
+  return rebuildWith(definition, "withWebRoutes", (declarations) => {
+    if (declarations.webRoutes) {
+      throw new Error(
+        `Interface "${definition.id}" declares its web routes more than once`,
+      );
+    }
+    return { ...declarations, webRoutes: erased(routes) };
+  });
+}
+
+/**
+ * The tools its class registered, under their names as written, with the
+ * class's visibility, side effects and MCP exposure, run with the call the
+ * brain hands them. Declared once.
+ */
+export function withTools<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: InterfacePackage<TConfigSchema>,
+  tools: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly Tool[],
+): InterfacePackage<TConfigSchema> {
+  return rebuildWith(definition, "withTools", (declarations) => {
+    if (declarations.tools) {
+      throw new Error(
+        `Interface "${definition.id}" declares its tools more than once`,
+      );
+    }
+    return { ...declarations, tools: erased(tools) };
+  });
+}
+
+/**
+ * A protocol-only registration of the interface, as its class built one for
+ * a host that serves the protocol itself (the eval harness): `protocol`,
+ * instantiated under the same plugin id and package, configured from the
+ * host's parsed config. Declared once.
+ */
+export function withProtocolPlugin<
+  TConfigSchema extends InterfaceConfigSchema,
+  TProtocolSchema extends InterfaceConfigSchema,
+>(
+  definition: InterfacePackage<TConfigSchema>,
+  protocol: InterfacePackage<TProtocolSchema>,
+  config: (hostConfig: z.output<TConfigSchema>) => z.input<TProtocolSchema>,
+): InterfacePackage<TConfigSchema> {
+  return rebuildWith(definition, "withProtocolPlugin", (declarations) => {
+    if (declarations.protocol) {
+      throw new Error(
+        `Interface "${definition.id}" declares a protocol plugin more than once`,
+      );
+    }
+    const declared: { config(hostConfig: z.output<TConfigSchema>): unknown } = {
+      config,
+    };
+    const kept: FirstPartyProtocol = { definition: protocol, ...declared };
+    return { ...declarations, protocol: kept };
   });
 }

@@ -2,19 +2,26 @@ import { describe, expect, it, mock } from "bun:test";
 import { PermissionService } from "@brains/templates";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { defineBusContract } from "@brains/contracts";
+import { defineBusContract, defineChannel } from "@brains/contracts";
 import type { IAgentService } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { createMockShell } from "../../src/test/mock-shell";
+import { createMockAuthBackend } from "../../src/test/mock-auth-backend";
 import {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
   instantiatePluginPackageDefinition,
   interfaceRuntime,
+  defineRoute,
   withChannels,
   withDaemon,
   withMessageTransport,
+  withProtocolPlugin,
+  withTools,
+  withWebRoutes,
+  type Plugin,
+  type ToolResponse,
   type FirstPartyDaemon,
   type InterfaceRuntime,
   type MessageTransportSend,
@@ -634,3 +641,299 @@ describe("interfaceRuntime on the bus and in runtime state", () => {
     ).toEqual({ uid: 5 });
   });
 });
+
+describe("withWebRoutes", () => {
+  const page = withWebRoutes(
+    defineInterface({ id: "terminal", config, setup: () => ({ title: "Hi" }) }),
+    ({ state }: { config: unknown; state: { title: string } }) => [
+      {
+        path: "/page",
+        method: "GET",
+        public: true,
+        preview: true,
+        handler: async (): Promise<Response> =>
+          new Response(`<h1>${state.title}</h1>`, {
+            headers: { "content-type": "text/html" },
+          }),
+      },
+    ],
+  );
+
+  it("serves each route as written, after the plugin registers", async () => {
+    const plugin = instantiate(page);
+    const routesOf = (): unknown[] =>
+      "getWebRoutes" in plugin && typeof plugin.getWebRoutes === "function"
+        ? plugin.getWebRoutes()
+        : [];
+    expect(routesOf()).toEqual([]);
+    await plugin.register(createMockShell());
+
+    const [route] =
+      "getWebRoutes" in plugin && typeof plugin.getWebRoutes === "function"
+        ? plugin.getWebRoutes()
+        : [];
+    expect(route).toMatchObject({
+      path: "/page",
+      method: "GET",
+      public: true,
+      preview: true,
+    });
+    const response = await route?.handler(new Request("http://brain/page"));
+    expect(response?.headers.get("content-type")).toBe("text/html");
+    expect(await response?.text()).toBe("<h1>Hi</h1>");
+  });
+
+  it("serves them after the routes the definition declares", async () => {
+    const both = withWebRoutes(
+      defineInterface(
+        { id: "terminal", config },
+        {
+          routes: () => [
+            defineRoute({
+              method: "GET",
+              path: "/declared",
+              security: { kind: "public" },
+              response: z.object({ ok: z.boolean() }),
+              handle: () => ({ ok: true }),
+            }),
+          ],
+        },
+      ),
+      () => [
+        {
+          path: "/raw",
+          method: "GET",
+          public: true,
+          handler: async (): Promise<Response> => new Response("raw"),
+        },
+      ],
+    );
+    const plugin = instantiate(both);
+    await plugin.register(createMockShell());
+
+    expect(
+      ("getWebRoutes" in plugin && typeof plugin.getWebRoutes === "function"
+        ? plugin.getWebRoutes()
+        : []
+      ).map((route) => route.path),
+    ).toEqual(["/declared", "/raw"]);
+  });
+});
+
+describe("withTools", () => {
+  const echoed: unknown[] = [];
+  const tooling = withTools(defineInterface({ id: "terminal", config }), () => [
+    {
+      name: "chat",
+      description: "Talk to the brain",
+      inputSchema: { message: z.string() },
+      visibility: "public",
+      sideEffects: "writes",
+      agentTool: false,
+      directMcpExposure: "basic",
+      handler: async (input, context): Promise<ToolResponse> => {
+        echoed.push({ input, interfaceType: context.interfaceType });
+        return { success: true, data: { echoed: input } };
+      },
+    },
+  ]);
+
+  it("registers each tool under its name as written, run when the bus asks", async () => {
+    echoed.length = 0;
+    const shell = createMockShell();
+    const capabilities = await instantiate(tooling).register(shell);
+
+    expect(
+      capabilities.tools.map(({ name, visibility, agentTool }) => ({
+        name,
+        visibility,
+        agentTool,
+      })),
+    ).toEqual([{ name: "chat", visibility: "public", agentTool: false }]);
+    const reply = await shell.getMessageBus().send({
+      type: "plugin:terminal:tool:execute",
+      payload: {
+        toolName: "chat",
+        args: { message: "hi" },
+        interfaceType: "mcp",
+        actor: { kind: "external", externalActorId: "mcp:http:someone" },
+      },
+      sender: "test",
+    });
+
+    expect(reply).toMatchObject({
+      success: true,
+      data: { success: true, data: { echoed: { message: "hi" } } },
+    });
+    expect(echoed).toEqual([
+      { input: { message: "hi" }, interfaceType: "mcp" },
+    ]);
+  });
+});
+
+describe("withProtocolPlugin", () => {
+  const protocolConfig = z.object({ mode: z.enum(["basic", "debug"]) });
+  const protocol = withTools(
+    defineInterface({ id: "terminal", config: protocolConfig }),
+    ({ config: parsed }: { config: { mode: string }; state: unknown }) => [
+      {
+        name: `chat-${parsed.mode}`,
+        description: "Talk",
+        inputSchema: {},
+        handler: async (): Promise<ToolResponse> => ({ success: true }),
+      },
+    ],
+  );
+  const hostConfig = z.object({
+    mode: z.enum(["basic", "debug"]),
+    port: z.number(),
+  });
+  const hosted = withProtocolPlugin(
+    withDaemon(defineInterface({ id: "terminal", config: hostConfig }), () =>
+      stoppedDaemon("terminal"),
+    ),
+    protocol,
+    ({ mode }) => ({ mode }),
+  );
+
+  it("builds the protocol definition under the same id and package, from the host's config", async () => {
+    const plugin = instantiate(hosted, { mode: "debug", port: 1 });
+    if (
+      !("createProtocolPlugin" in plugin) ||
+      typeof plugin.createProtocolPlugin !== "function"
+    ) {
+      throw new Error("The hosted plugin offers no protocol plugin");
+    }
+    const created: unknown = plugin.createProtocolPlugin();
+    if (!isPlugin(created)) throw new Error("Not a plugin");
+    const shell = createMockShell();
+    const capabilities = await created.register(shell);
+
+    expect([created.id, created.packageName, created.version]).toEqual([
+      plugin.id,
+      plugin.packageName,
+      plugin.version,
+    ]);
+    expect(capabilities.tools.map(({ name }) => name)).toEqual(["chat-debug"]);
+    expect(shell.getDaemonRegistry().getAll()).toEqual([]);
+  });
+
+  it("offers none for a definition that declares none", () => {
+    const plugin = instantiate(defineInterface({ id: "terminal", config }));
+
+    expect("createProtocolPlugin" in plugin).toBe(false);
+  });
+});
+
+describe("interfaceRuntime for a hosted protocol", () => {
+  it("reads the brain's deployment, plugins, auth, MCP transport and permission levels", async () => {
+    const shell = createMockShell({ domain: "brain.test", production: true });
+    shell.addPlugin({
+      id: "webserver",
+      version: "1.0.0",
+      type: "interface",
+      packageName: "@brains/webserver",
+      register: async () => ({ tools: [], resources: [] }),
+    });
+    const backend = createMockAuthBackend();
+    shell.getAuthRegistry().bindBackend(backend);
+    const permissions = new PermissionService({
+      rules: [{ pattern: "terminal:stdio", level: "admin" }],
+    });
+    shell.getPermissionService = (): PermissionService => permissions;
+    let runtime: InterfaceRuntime | undefined;
+    await instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          runtime = interfaceRuntime(context);
+          return {};
+        },
+      }),
+    ).register(shell);
+    if (!runtime) throw new Error("Setup did not run");
+
+    expect(runtime.production).toBe(true);
+    expect(runtime.domain).toBe("brain.test");
+    expect(runtime.hasPlugin("webserver")).toBe(true);
+    expect(runtime.hasPlugin("studio")).toBe(false);
+    expect(runtime.auth()).toBe(backend);
+    expect(runtime.mcpTransport).toBe(shell.getMCPService());
+    expect(runtime.permissions.getUserLevel("terminal", "stdio")).toBe("admin");
+    expect(runtime.permissions.getUserLevel("terminal", "http")).toBe("public");
+  });
+
+  it("registers its endpoint and way in under the plugin", async () => {
+    const shell = createMockShell();
+    await instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          const runtime = interfaceRuntime(context);
+          runtime.endpoint({ label: "Terminal", url: "/t", priority: 5 });
+          runtime.interaction({
+            id: "terminal",
+            label: "Terminal",
+            href: "/t",
+            kind: "protocol",
+          });
+          return {};
+        },
+      }),
+    ).register(shell);
+
+    expect(shell.listEndpoints()).toEqual([
+      expect.objectContaining({
+        label: "Terminal",
+        url: "/t",
+        pluginId: "terminal",
+      }),
+    ]);
+    expect(shell.listInteractions()).toEqual([
+      expect.objectContaining({ id: "terminal", pluginId: "terminal" }),
+    ]);
+  });
+
+  it("hears a typed channel until the interface shuts down", async () => {
+    const heard: unknown[] = [];
+    const ping = defineChannel("terminal:ping", z.object({ n: z.number() }));
+    const shell = createMockShell();
+    const plugin = instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          interfaceRuntime(context).listen(ping, ({ payload }) => {
+            heard.push(payload);
+          });
+          return {};
+        },
+      }),
+    );
+    await plugin.register(shell);
+    const send = (n: number): Promise<unknown> =>
+      shell.getMessageBus().send({
+        type: "terminal:ping",
+        payload: { n },
+        sender: "test",
+        broadcast: true,
+      });
+
+    await send(1);
+    await plugin.shutdown?.();
+    await send(2);
+
+    expect(heard).toEqual([{ n: 1 }]);
+  });
+});
+
+function isPlugin(value: unknown): value is Plugin {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    "register" in value
+  );
+}

@@ -4,7 +4,14 @@ import type { AgentNamespace } from "../contracts/agent";
 import type { BusContract, BusResult } from "@brains/contracts";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { z } from "@brains/utils/zod";
-import type { IMessagingNamespace } from "../base/context-types";
+import type {
+  IEndpointsNamespace,
+  IInteractionsNamespace,
+  IMessagingNamespace,
+} from "../base/context-types";
+import type { Channel } from "@brains/contracts";
+import type { IMCPTransport } from "@brains/mcp-service";
+import type { AuthBackend } from "../contracts/auth";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   attachFirstPartyRuntime,
@@ -34,8 +41,42 @@ export interface InterfaceRuntime {
   readonly agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
   /** A conversation's stored messages, as the class read them. */
   readonly conversations: Pick<IInterfaceConversationsNamespace, "getMessages">;
-  /** Whether a sender stands for the brain's anchor, as the class asked. */
-  readonly permissions: Pick<IPermissionsNamespace, "isAnchor">;
+  /**
+   * A sender's permission level on an interface and whether they stand for
+   * the brain's anchor, as the class asked.
+   */
+  readonly permissions: Pick<
+    IPermissionsNamespace,
+    "getUserLevel" | "isAnchor"
+  >;
+  /** Whether the brain runs in production, as the class read it. */
+  readonly production: boolean;
+  /** The brain's bare domain, when it has one. */
+  readonly domain: string | undefined;
+  /** Whether a plugin is registered on the brain, as the class asked. */
+  hasPlugin(pluginId: string): boolean;
+  /**
+   * The auth backend the brain bound, read when asked, as the class read
+   * `context.auth.get()`: none while the brain runs without auth-service.
+   */
+  auth(): AuthBackend | undefined;
+  /** The brain's MCP service, which a protocol transport connects to. */
+  readonly mcpTransport: IMCPTransport;
+  /** Advertise a URL of the interface, as the class registered one. */
+  endpoint(endpoint: Parameters<IEndpointsNamespace["register"]>[0]): void;
+  /** Offer a way into the brain, as the class registered one. */
+  interaction(
+    interaction: Parameters<IInteractionsNamespace["register"]>[0],
+  ): void;
+  /**
+   * Hear a typed channel, as the class subscribed to it in the main process:
+   * the payload is validated and a malformed one is never handed on.
+   * Released when the interface shuts down.
+   */
+  listen<TPayload>(
+    channel: Channel<TPayload>,
+    handler: (context: { readonly payload: TPayload }) => void | Promise<void>,
+  ): void;
   /**
    * The message coordination a message transport's class inherited: the
    * input it is answering, which holds job completions back until the reply
@@ -88,10 +129,23 @@ export interface InterfaceRuntimeBinding {
   readonly logger: Logger;
   readonly agent: AgentNamespace;
   readonly conversations: Pick<IInterfaceConversationsNamespace, "getMessages">;
-  readonly permissions: Pick<IPermissionsNamespace, "isAnchor">;
+  readonly permissions: Pick<
+    IPermissionsNamespace,
+    "getUserLevel" | "isAnchor"
+  >;
+  readonly production: boolean;
+  readonly domain: string | undefined;
+  readonly hasPlugin: (pluginId: string) => boolean;
+  readonly auth: () => AuthBackend | undefined;
+  readonly mcpTransport: IMCPTransport;
+  readonly endpoints: Pick<IEndpointsNamespace, "register">;
+  readonly interactions: Pick<IInteractionsNamespace, "register">;
   /** None unless the interface has a message transport. */
   readonly messages: InterfaceMessages | undefined;
-  readonly messaging: Pick<IMessagingNamespace, "answer" | "request">;
+  readonly messaging: Pick<
+    IMessagingNamespace,
+    "answer" | "request" | "subscribe"
+  >;
   readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
   /** Keeps a release to run when the interface shuts down. */
   readonly onRelease: (release: () => void) => void;
@@ -133,9 +187,30 @@ function bindInterfaceRuntime(
         conversations.getMessages(conversationId, options),
     }),
     permissions: Object.freeze({
+      getUserLevel: (interfaceType, userId, lookup) =>
+        permissions.getUserLevel(interfaceType, userId, lookup),
       isAnchor: (interfaceType, userId) =>
         permissions.isAnchor(interfaceType, userId),
     }),
+    production: binding.production,
+    domain: binding.domain,
+    hasPlugin: (pluginId) => binding.hasPlugin(pluginId),
+    auth: () => binding.auth(),
+    mcpTransport: binding.mcpTransport,
+    endpoint(endpoint): void {
+      binding.endpoints.register(endpoint);
+    },
+    interaction(interaction): void {
+      binding.interactions.register(interaction);
+    },
+    listen(channel, handler): void {
+      binding.onRelease(
+        binding.messaging.subscribe(channel, async (payload) => {
+          await handler({ payload });
+          return { success: true };
+        }),
+      );
+    },
     answer(contract, handler): void {
       // The bus checks the answer against the contract's own schema; erasing
       // the response type lets a handler typed by its contract hand it a

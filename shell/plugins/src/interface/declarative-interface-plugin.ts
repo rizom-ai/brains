@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Caller } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
+import type { Tool } from "@brains/mcp-service";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
@@ -8,8 +9,10 @@ import type { AccountSettingsRegistration } from "../operator/account-settings-r
 import type { z } from "@brains/utils/zod";
 import {
   identityConfigSchema,
+  instantiatePluginPackageDefinition,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
+import type { Plugin, ProtocolPluginProvider } from "../interfaces";
 import type {
   AnyDeclaredRouteDefinition,
   InterfaceDefinitionInput,
@@ -28,6 +31,7 @@ import { InterfacePlugin } from "./interface-plugin";
 import {
   noFirstPartyDeclarations,
   type FirstPartyInterfaceDeclarations,
+  type FirstPartyProtocol,
   type FirstPartySlotContext,
   type MessageTransport,
 } from "./first-party-interface";
@@ -73,6 +77,7 @@ class InterfaceDeclaration<
   /** What the runtime answers for the interface, released at shutdown. */
   private readonly releases: Array<() => void> = [];
   private readonly runtimes = new WeakMap<object, InterfaceRuntime>();
+  private tools: Tool[] = [];
 
   private readonly definition: InterfaceDefinitionInput<
     TConfigSchema,
@@ -189,6 +194,16 @@ class InterfaceDeclaration<
       context.daemons.register(daemon.id, daemon);
     }
     this.transport = this.declarations.transport?.run(slotContext());
+    // Served as its class served them, after the routes the definition declares.
+    this.routes.push(
+      ...(this.declarations.webRoutes?.run(slotContext()) ?? []),
+    );
+    this.tools = [...(this.declarations.tools?.run(slotContext()) ?? [])];
+  }
+
+  /** The tools its wrappers declared, as written. */
+  declaredTools(): Tool[] {
+    return [...this.tools];
   }
 
   /**
@@ -251,6 +266,7 @@ class InterfaceDeclaration<
     this.hasRequiredDaemon = false;
     this.state = undefined;
     this.transport = undefined;
+    this.tools = [];
     for (const release of this.releases.splice(0)) release();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
@@ -270,6 +286,13 @@ class InterfaceDeclaration<
       conversations: context.conversations,
       permissions: context.permissions,
       messages,
+      production: context.production,
+      domain: context.domain,
+      hasPlugin: (pluginId) => context.plugins.has(pluginId),
+      auth: () => context.auth.get(),
+      mcpTransport: context.mcpTransport,
+      endpoints: context.endpoints,
+      interactions: context.interactions,
       messaging: context.messaging,
       runtimeState: context.runtimeState,
       onRelease: (release) => {
@@ -361,6 +384,10 @@ class DeclarativeInterfacePlugin<
     await this.declaration.registrationComplete(context);
   }
 
+  protected override async getTools(): Promise<Tool[]> {
+    return this.declaration.declaredTools();
+  }
+
   override getWebRoutes(): WebRouteDefinition[] {
     return this.declaration.webRoutes();
   }
@@ -372,6 +399,51 @@ class DeclarativeInterfacePlugin<
   protected override async onShutdown(): Promise<void> {
     await this.declaration.shutdown();
     await super.onShutdown();
+  }
+}
+
+/**
+ * A generic interface that builds a protocol-only registration of itself,
+ * as its class did for a host that serves the protocol itself: the protocol
+ * definition its wrapper declared, under this plugin's id and package.
+ */
+class DeclarativeProtocolHostInterfacePlugin<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+>
+  extends DeclarativeInterfacePlugin<TConfigSchema, TState, TAccountSettings>
+  implements ProtocolPluginProvider
+{
+  private readonly protocol: FirstPartyProtocol;
+
+  constructor(
+    definition: InterfaceDefinitionInput<
+      TConfigSchema,
+      TState,
+      TAccountSettings
+    >,
+    declarations: FirstPartyInterfaceDeclarations,
+    protocol: FirstPartyProtocol,
+    config: z.output<TConfigSchema>,
+    metadata: InstalledPluginPackageMetadata,
+    id: string,
+  ) {
+    super(definition, declarations, config, metadata, id);
+    this.protocol = protocol;
+  }
+
+  createProtocolPlugin(): Plugin {
+    const [plugin] = instantiatePluginPackageDefinition(
+      this.protocol.definition,
+      this.protocol.config(this.config),
+      { name: this.packageName, version: this.version },
+      { pluginId: this.id },
+    );
+    if (!plugin) {
+      throw new Error(`Interface "${this.id}" built no protocol plugin`);
+    }
+    return plugin;
   }
 }
 
@@ -427,6 +499,10 @@ class DeclarativeTransportInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await this.declaration.registrationComplete(context);
+  }
+
+  protected override async getTools(): Promise<Tool[]> {
+    return this.declaration.declaredTools();
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -487,6 +563,16 @@ export function createDeclarativeInterfacePlugin<
   id: string,
   declarations: FirstPartyInterfaceDeclarations = noFirstPartyDeclarations,
 ): InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+  if (declarations.protocol) {
+    return new DeclarativeProtocolHostInterfacePlugin(
+      definition,
+      declarations,
+      declarations.protocol,
+      config,
+      metadata,
+      id,
+    );
+  }
   // A transport or channels make it a message interface, as its class was.
   return (declarations.transport ?? declarations.channels)
     ? new DeclarativeTransportInterfacePlugin(
