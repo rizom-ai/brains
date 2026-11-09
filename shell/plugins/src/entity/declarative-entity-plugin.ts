@@ -1090,7 +1090,14 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         }
         context.jobs.registerHandler(
           name,
-          contractJobHandler(declaration, context, ownsType, writes, this.id),
+          contractJobHandler(
+            declaration,
+            context,
+            ownsType,
+            writes,
+            this.id,
+            (localName) => this.templateName(localName),
+          ),
         );
         return;
       }

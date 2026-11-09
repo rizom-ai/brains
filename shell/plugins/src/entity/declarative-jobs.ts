@@ -456,6 +456,7 @@ export function contractJobHandler(
   ownsType: (entityType: string) => boolean,
   writes: EntityJobWrites,
   pluginId: string,
+  template: (localName: string) => string,
 ): JobHandler<string, unknown, unknown> {
   return {
     validateAndParse(data): unknown {
@@ -494,6 +495,9 @@ export function contractJobHandler(
               context.entityService.searchWithDistances(request),
             generateObject: (prompt, schema) =>
               context.ai.generateObject(prompt, schema),
+            // Through the templates its type declares, as the entity plugin
+            // classes' job handlers generated through their own.
+            generate: createGenerationAI(context, template, signal).generate,
             anyEntities: {
               service: context.entityService,
               // Public, as the entity plugin classes' job handlers read
