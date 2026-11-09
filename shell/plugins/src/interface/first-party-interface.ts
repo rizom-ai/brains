@@ -1,4 +1,9 @@
 import type { z } from "@brains/utils/zod";
+import type {
+  ChannelDeliveryInput,
+  ChannelDeliveryResult,
+  ChannelDescriptor,
+} from "../channel-registry";
 import type { DaemonHealth } from "../manager/daemon-types";
 import type { MessageInterfaceOutput } from "../message-interface/progress-message-coordinator";
 import type { PluginPackageDefinition } from "../package-definition";
@@ -36,6 +41,29 @@ export interface FirstPartyDaemon {
   healthCheck?(): Promise<DaemonHealth>;
 }
 
+/**
+ * A channel its class registered, in every process so background jobs can
+ * send on it: what recipients are validated against and, when the interface
+ * can send, how it delivers.
+ */
+export interface FirstPartyChannel {
+  readonly descriptor: ChannelDescriptor;
+  readonly delivery?:
+    | {
+        isAvailable(): Promise<boolean>;
+        send(input: ChannelDeliveryInput): Promise<ChannelDeliveryResult>;
+      }
+    | undefined;
+}
+
+/**
+ * What a channels slot is given: the parsed config, with the interface
+ * runtime attached. It runs in the worker too, so there is no state.
+ */
+export interface FirstPartyChannelsContext<TConfig> {
+  readonly config: TConfig;
+}
+
 /** A message the runtime sends on a message transport: job progress and completions. */
 export interface MessageTransportSend {
   /** The channel the job was started from; none for a single-channel interface. */
@@ -64,8 +92,16 @@ export interface FirstPartySlot<TResult> {
 
 /** What the wrappers have added to a definition, in the order they were added. */
 export interface FirstPartyInterfaceDeclarations {
-  readonly daemons: readonly FirstPartySlot<FirstPartyDaemon>[];
+  readonly daemons: readonly FirstPartySlot<FirstPartyDaemon | undefined>[];
   readonly transport?: FirstPartySlot<MessageTransport> | undefined;
+  readonly channels?: FirstPartyChannelsSlot | undefined;
+}
+
+/** A channels slot as the runtime keeps it, its declared config kept by the method. */
+export interface FirstPartyChannelsSlot {
+  run(
+    context: FirstPartyChannelsContext<unknown>,
+  ): readonly FirstPartyChannel[];
 }
 
 export const noFirstPartyDeclarations: FirstPartyInterfaceDeclarations =
@@ -134,7 +170,8 @@ function erased<TConfig, TState, TResult>(
 /**
  * A daemon its class registered, started and stopped by the brain under
  * `<plugin id>:<id>`, reporting its own health. Each call adds one; an id
- * declared twice is refused when the interface registers.
+ * declared twice is refused when the interface registers. A slot that
+ * returns none declares no daemon, as a class without one for its config.
  */
 export function withDaemon<
   TConfigSchema extends InterfaceConfigSchema,
@@ -143,7 +180,7 @@ export function withDaemon<
   definition: InterfacePackage<TConfigSchema>,
   daemon: (
     context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
-  ) => FirstPartyDaemon,
+  ) => FirstPartyDaemon | undefined,
 ): InterfacePackage<TConfigSchema> {
   return rebuildWith(definition, "withDaemon", (declarations) => ({
     ...declarations,
@@ -173,5 +210,28 @@ export function withMessageTransport<
       );
     }
     return { ...declarations, transport: erased(transport) };
+  });
+}
+
+/**
+ * The channels its class registered, in the worker as in the main process,
+ * so background jobs can send on them: each descriptor as written and, when
+ * it declares one, its delivery. The interface becomes a message interface,
+ * as its class was. Declared once.
+ */
+export function withChannels<TConfigSchema extends InterfaceConfigSchema>(
+  definition: InterfacePackage<TConfigSchema>,
+  channels: (
+    context: FirstPartyChannelsContext<z.output<TConfigSchema>>,
+  ) => readonly FirstPartyChannel[],
+): InterfacePackage<TConfigSchema> {
+  return rebuildWith(definition, "withChannels", (declarations) => {
+    if (declarations.channels) {
+      throw new Error(
+        `Interface "${definition.id}" declares its channels more than once`,
+      );
+    }
+    const slot: FirstPartyChannelsSlot = { run: channels };
+    return { ...declarations, channels: slot };
   });
 }

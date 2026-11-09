@@ -1026,8 +1026,11 @@ export {
   type InterfaceRuntime,
 } from "./interface/interface-runtime";
 export {
+  withChannels,
   withDaemon,
   withMessageTransport,
+  type FirstPartyChannel,
+  type FirstPartyChannelsContext,
   type FirstPartyDaemon,
   type FirstPartySlotContext,
   type MessageTransport,

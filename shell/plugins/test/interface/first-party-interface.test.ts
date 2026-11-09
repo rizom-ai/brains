@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { PermissionService } from "@brains/templates";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { defineBusContract } from "@brains/contracts";
 import type { IAgentService } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { createMockShell } from "../../src/test/mock-shell";
@@ -11,6 +12,7 @@ import {
   defineMessageInterface,
   instantiatePluginPackageDefinition,
   interfaceRuntime,
+  withChannels,
   withDaemon,
   withMessageTransport,
   type FirstPartyDaemon,
@@ -448,5 +450,187 @@ describe("withMessageTransport", () => {
     ).toThrow(
       'Interface "terminal" declares a message transport more than once',
     );
+  });
+});
+
+describe("withChannels", () => {
+  const recipients = defineInterface({
+    id: "terminal",
+    config: z.object({ apiKey: z.string().optional() }),
+  });
+  const deliveries: unknown[] = [];
+  const withMailChannel = withChannels(recipients, (context) => {
+    interfaceRuntime(context).logger.debug("channels");
+    return [
+      {
+        descriptor: {
+          type: "mail",
+          displayName: "Mail",
+          subjectLabel: "Address",
+          subjectPattern: { source: "^.+@.+$", flags: "i" },
+          manualDelivery: true,
+        },
+        ...(context.config.apiKey
+          ? {
+              delivery: {
+                isAvailable: async (): Promise<boolean> => true,
+                send: async (
+                  input: unknown,
+                ): Promise<{ status: "sent"; providerDeliveryId: string }> => {
+                  deliveries.push(input);
+                  return { status: "sent", providerDeliveryId: "m-1" };
+                },
+              },
+            }
+          : {}),
+      },
+    ];
+  });
+  const mailChannel = {
+    type: "mail",
+    displayName: "Mail",
+    subjectLabel: "Address",
+    subjectPattern: { source: "^.+@.+$", flags: "i" },
+    manualDelivery: true,
+  };
+  const input = {
+    recipient: "a@b.c",
+    subject: "Hi",
+    text: "Hello",
+    idempotencyKey: "k-1",
+    html: "<p>Hello</p>",
+    sensitivity: "secret" as const,
+    threading: { inReplyTo: "<m@b.c>", references: ["<m@b.c>"] },
+  };
+
+  it("registers each channel and its sender as written, in the main process", async () => {
+    deliveries.length = 0;
+    const shell = createMockShell();
+    await instantiate(withMailChannel, { apiKey: "key" }).register(shell);
+    const channels = shell.getChannelRegistry();
+    channels.finalize();
+
+    expect(channels.listDescriptors()).toEqual([mailChannel]);
+    const provider = channels.getDeliveryProvider("mail");
+    expect(await provider?.isAvailable()).toBe(true);
+    expect(await provider?.send(input)).toEqual({
+      status: "sent",
+      providerDeliveryId: "m-1",
+    });
+    expect(deliveries).toEqual([input]);
+  });
+
+  it("registers the same in the worker, and nothing else", async () => {
+    const worker = createMockShell();
+    const plugin = instantiate(withMailChannel, { apiKey: "key" });
+    await plugin.registerChannelsForExecution?.(worker);
+    worker.getChannelRegistry().finalize();
+
+    expect(worker.getChannelRegistry().listDescriptors()).toEqual([
+      mailChannel,
+    ]);
+    expect(
+      worker.getChannelRegistry().getDeliveryProvider("mail"),
+    ).toBeDefined();
+    expect(worker.getDaemonRegistry().getAll()).toEqual([]);
+  });
+
+  it("registers no sender for a channel that declares none", async () => {
+    const shell = createMockShell();
+    await instantiate(withMailChannel).register(shell);
+    shell.getChannelRegistry().finalize();
+
+    expect(shell.getChannelRegistry().listDescriptors()).toEqual([mailChannel]);
+    expect(
+      shell.getChannelRegistry().getDeliveryProvider("mail"),
+    ).toBeUndefined();
+  });
+
+  it("is refused when declared twice", () => {
+    expect(() => withChannels(withMailChannel, () => [])).toThrow(
+      'Interface "terminal" declares its channels more than once',
+    );
+  });
+});
+
+describe("a daemon slot that declares none", () => {
+  it("registers no daemon", async () => {
+    const terminal = withDaemon(
+      defineInterface({ id: "terminal", config }),
+      () => undefined,
+    );
+    const shell = createMockShell();
+    await instantiate(terminal).register(shell);
+
+    expect(shell.getDaemonRegistry().getAll()).toEqual([]);
+  });
+});
+
+describe("interfaceRuntime on the bus and in runtime state", () => {
+  const lookup = defineBusContract({
+    channel: "terminal:lookup",
+    delivery: "request",
+    request: z.object({ key: z.string() }),
+    response: z.object({ value: z.string() }),
+  });
+  const runSchema = z.object({ uid: z.number() });
+
+  async function installed(shell = createMockShell()): Promise<{
+    runtime: InterfaceRuntime;
+    plugin: ReturnType<typeof instantiate>;
+    shell: ReturnType<typeof createMockShell>;
+  }> {
+    let reached: InterfaceRuntime | undefined;
+    const terminal = defineInterface({
+      id: "terminal",
+      config,
+      setup: (context) => {
+        reached = interfaceRuntime(context);
+        reached.answer(lookup, ({ request, sender }) => ({
+          value: `${request.key} for ${sender}`,
+        }));
+        return {};
+      },
+    });
+    const plugin = instantiate(terminal);
+    await plugin.register(shell);
+    if (!reached) throw new Error("Setup did not run");
+    return { runtime: reached, plugin, shell };
+  }
+
+  it("answers a first-party contract under its channel, with the sender, until shutdown", async () => {
+    const { runtime, plugin } = await installed();
+
+    expect(await runtime.request(lookup, { key: "a" })).toEqual({
+      status: "answered",
+      data: { value: "a for terminal" },
+    });
+    await plugin.shutdown?.();
+
+    expect(await runtime.request(lookup, { key: "a" })).toEqual({
+      status: "unavailable",
+    });
+  });
+
+  it("keeps runtime state under the namespace its class named", async () => {
+    const shell = createMockShell();
+    await shell
+      .getRuntimeState()
+      .scoped({ namespace: "terminal.cursor", schema: runSchema })
+      .set("inbox", { uid: 4 });
+    const { runtime } = await installed(shell);
+    const cursor = runtime.classRuntimeState.scoped({
+      namespace: "terminal.cursor",
+      schema: runSchema,
+    });
+
+    expect(await cursor.get("inbox")).toEqual({ uid: 4 });
+    await cursor.set("inbox", { uid: 5 });
+    expect(
+      await shell
+        .getRuntimeState()
+        .scoped({ namespace: "terminal.cursor", schema: runSchema })
+        .get("inbox"),
+    ).toEqual({ uid: 5 });
   });
 });

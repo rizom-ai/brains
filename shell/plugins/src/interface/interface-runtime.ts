@@ -1,6 +1,11 @@
 import type { Logger } from "@brains/utils/logger";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { AgentNamespace } from "../contracts/agent";
+import type { BusContract, BusResult } from "@brains/contracts";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
+import type { z } from "@brains/utils/zod";
+import type { IMessagingNamespace } from "../base/context-types";
+import type { SchemaValue } from "../internal/schema-value";
 import {
   attachFirstPartyRuntime,
   firstPartyRuntimeOf,
@@ -38,6 +43,29 @@ export interface InterfaceRuntime {
    * with a message transport has it; any other is refused.
    */
   readonly messages: InterfaceMessages;
+  /**
+   * Answer a first-party contract under the channel it already has, such as
+   * `email:source-read`, as the class answered it, in the main process.
+   * Released when the interface shuts down.
+   */
+  answer<const TRequest extends z.ZodType, const TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse>,
+    handler: (context: {
+      readonly request: z.output<TRequest>;
+      readonly sender: string;
+    }) => SchemaValue<TResponse> | Promise<SchemaValue<TResponse>>,
+  ): void;
+  /** Ask a contract's owner, as the class asked through its messaging. */
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    request: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
+  /**
+   * The runtime state the class stored, under the namespace the class named
+   * (`email.inbound.uid-cursor`) rather than one qualified by the package,
+   * so the records stored before the conversion are the ones it reads after.
+   */
+  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
 }
 
 /** How a first-party message transport coordinates replies and job progress. */
@@ -63,6 +91,10 @@ export interface InterfaceRuntimeBinding {
   readonly permissions: Pick<IPermissionsNamespace, "isAnchor">;
   /** None unless the interface has a message transport. */
   readonly messages: InterfaceMessages | undefined;
+  readonly messaging: Pick<IMessagingNamespace, "answer" | "request">;
+  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  /** Keeps a release to run when the interface shuts down. */
+  readonly onRelease: (release: () => void) => void;
   /** The interface's id, to name it in a refusal. */
   readonly interfaceId: string;
 }
@@ -103,6 +135,22 @@ function bindInterfaceRuntime(
     permissions: Object.freeze({
       isAnchor: (interfaceType, userId) =>
         permissions.isAnchor(interfaceType, userId),
+    }),
+    answer(contract, handler): void {
+      // The bus checks the answer against the contract's own schema; erasing
+      // the response type lets a handler typed by its contract hand it a
+      // value it parses, as the service runtime's answer does.
+      const erased: BusContract<typeof contract.schema, z.ZodType> = contract;
+      binding.onRelease(
+        binding.messaging.answer(erased, async (request, { sender }) =>
+          handler({ request, sender }),
+        ),
+      );
+    },
+    request: (contract, request) =>
+      binding.messaging.request(contract, request),
+    classRuntimeState: Object.freeze({
+      scoped: binding.runtimeState.scoped.bind(binding.runtimeState),
     }),
     get messages(): InterfaceMessages {
       if (!messages) {

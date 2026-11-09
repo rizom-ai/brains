@@ -35,6 +35,7 @@ import {
   createInterfaceRuntime,
   withInterfaceRuntime,
   type InterfaceMessages,
+  type InterfaceRuntime,
 } from "./interface-runtime";
 import type { MessageInterfacePluginContext } from "./context";
 import { MessageInterfacePlugin } from "../message-interface/message-interface-plugin";
@@ -69,6 +70,9 @@ class InterfaceDeclaration<
   private readonly routeCaller = new AsyncLocalStorage<Caller>();
   /** What the runtime's message coordination sends through, once registered. */
   private transport: MessageTransport | undefined;
+  /** What the runtime answers for the interface, released at shutdown. */
+  private readonly releases: Array<() => void> = [];
+  private readonly runtimes = new WeakMap<object, InterfaceRuntime>();
 
   private readonly definition: InterfaceDefinitionInput<
     TConfigSchema,
@@ -107,14 +111,7 @@ class InterfaceDeclaration<
         definition: this.definition.accountSettings,
       });
     }
-    const runtime = createInterfaceRuntime({
-      logger: this.owner.logger(),
-      agent: context.agent,
-      conversations: context.conversations,
-      permissions: context.permissions,
-      messages,
-      interfaceId: this.definition.id,
-    });
+    const runtime = this.runtimeFor(context, messages);
     this.state = this.definition.setup
       ? await this.definition.setup(
           withInterfaceRuntime(
@@ -185,12 +182,40 @@ class InterfaceDeclaration<
       withInterfaceRuntime({ config: this.config, state }, runtime);
     for (const slot of this.declarations.daemons) {
       const daemon = slot.run(slotContext());
+      if (!daemon) continue;
       claimDaemonId(daemon.id);
       // As the class's daemon was: started and stopped by the brain, its
       // health its own, with no readiness to wait for.
       context.daemons.register(daemon.id, daemon);
     }
     this.transport = this.declarations.transport?.run(slotContext());
+  }
+
+  /**
+   * The channels its wrappers declared, with their senders: in the main
+   * process before anything else registers, and alone in the worker.
+   */
+  registerChannels(
+    context: MessageInterfacePluginContext,
+    messages: InterfaceMessages | undefined,
+  ): void {
+    const channels =
+      this.declarations.channels?.run(
+        withInterfaceRuntime(
+          { config: this.config },
+          this.runtimeFor(context, messages),
+        ),
+      ) ?? [];
+    for (const { descriptor, delivery } of channels) {
+      context.channels.registerDescriptor(descriptor);
+      if (delivery) {
+        context.channels.registerDeliveryProvider({
+          channelType: descriptor.type,
+          isAvailable: () => delivery.isAvailable(),
+          send: (input) => delivery.send(input),
+        });
+      }
+    }
   }
 
   async registrationComplete(context: InterfacePluginContext): Promise<void> {
@@ -226,9 +251,34 @@ class InterfaceDeclaration<
     this.hasRequiredDaemon = false;
     this.state = undefined;
     this.transport = undefined;
+    for (const release of this.releases.splice(0)) release();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
+  }
+
+  /** One runtime per plugin context: the registration's, or the worker's. */
+  private runtimeFor(
+    context: InterfacePluginContext,
+    messages: InterfaceMessages | undefined,
+  ): InterfaceRuntime {
+    const existing = this.runtimes.get(context);
+    if (existing) return existing;
+    const runtime = createInterfaceRuntime({
+      logger: this.owner.logger(),
+      agent: context.agent,
+      conversations: context.conversations,
+      permissions: context.permissions,
+      messages,
+      messaging: context.messaging,
+      runtimeState: context.runtimeState,
+      onRelease: (release) => {
+        this.releases.push(release);
+      },
+      interfaceId: this.definition.id,
+    });
+    this.runtimes.set(context, runtime);
+    return runtime;
   }
 
   private jobs(context: InterfacePluginContext): InterfaceJobs {
@@ -326,10 +376,11 @@ class DeclarativeInterfacePlugin<
 }
 
 /**
- * A generic interface declared with a message transport: the message
- * interface base's coordination (job progress, completions held back while
- * input is answered) runs for it and sends through its transport, as its
- * class extended that base.
+ * A generic interface declared with a message transport or channels: the
+ * message interface base's coordination (job progress, completions held
+ * back while input is answered) runs for it and sends through its
+ * transport, and its channels register in the worker too, as its class
+ * extended that base.
  */
 class DeclarativeTransportInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
@@ -386,6 +437,13 @@ class DeclarativeTransportInterfacePlugin<
     return this.declaration.requiresDaemonStartup();
   }
 
+  /** Its declared channels and senders; the worker runs only this. */
+  protected override registerChannels(
+    context: MessageInterfacePluginContext,
+  ): void {
+    this.declaration.registerChannels(context, this.messages());
+  }
+
   protected override sendMessageToChannel(
     request: SendMessageToChannelRequest,
   ): void {
@@ -429,7 +487,8 @@ export function createDeclarativeInterfacePlugin<
   id: string,
   declarations: FirstPartyInterfaceDeclarations = noFirstPartyDeclarations,
 ): InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
-  return declarations.transport
+  // A transport or channels make it a message interface, as its class was.
+  return (declarations.transport ?? declarations.channels)
     ? new DeclarativeTransportInterfacePlugin(
         definition,
         declarations,
