@@ -127,6 +127,15 @@ export async function declaredEntityStore(
   await service.initialize();
   const shell = createMockShell({ logger, entityService: service });
   for (const plugin of plugins) await plugin.register(shell);
+  // What a type validates before it is stored, as the shell's one registry
+  // holds it for the entity service the plugins write through.
+  for (const plugin of entityPlugins) {
+    const validator = shell
+      .getEntityRegistry()
+      .getPersistValidator(plugin.entityType);
+    if (validator)
+      registry.registerPersistValidator(plugin.entityType, validator);
+  }
   const db: Client = createClient(dbConfig);
   return {
     service,

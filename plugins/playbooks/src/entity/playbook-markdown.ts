@@ -1,85 +1,54 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
+import { definedFields } from "@brains/utils/strip-undefined";
 import { slugify } from "@brains/utils/string-utils";
-import { playbookBodyFormatter } from "../formatters/playbook-formatter";
+import { playbookBodyFormatter } from "./formatters/playbook-formatter";
 import {
   playbookFrontmatterSchema,
   playbookProofSourceSchema,
-  playbookSchema,
   type PlaybookBody,
-  type PlaybookEntity,
   type PlaybookFrontmatter,
-  type PlaybookMetadata,
   type PlaybookProofSource,
-} from "../schemas/playbook";
-import { assertValidPlaybookBody } from "../validation";
+} from "./schemas/playbook";
+import { assertValidPlaybookBody } from "./validation";
 
-export class PlaybookAdapter extends BaseEntityAdapter<
-  PlaybookEntity,
-  PlaybookMetadata
-> {
-  constructor() {
-    super({
-      entityType: "playbook",
-      purpose:
-        "A guided multi-step workflow the assistant runs together with the user.",
-      schema: playbookSchema,
-      frontmatterSchema: playbookFrontmatterSchema,
-    });
-  }
-
-  public createPlaybookContent(
-    frontmatter: PlaybookFrontmatter,
-    body: PlaybookBody,
-  ): string {
-    return this.buildMarkdown(playbookBodyFormatter.format(body), frontmatter);
-  }
-
-  public parsePlaybookContent(content: string): {
-    frontmatter: PlaybookFrontmatter;
-    body: PlaybookBody;
-    bodyMarkdown: string;
-  } {
-    const raw = this.parseFrontMatter(content, playbookFrontmatterSchema);
-    const bodyMarkdown = this.extractBody(content).trim();
-    const body = hasAuthoredSteps(bodyMarkdown)
-      ? parseAuthoredStepsBody(bodyMarkdown)
-      : playbookBodyFormatter.parse(bodyMarkdown);
-    assertValidPlaybookBody(body);
-    return {
-      frontmatter: playbookFrontmatterSchema.parse(raw),
-      body,
-      bodyMarkdown,
-    };
-  }
-
-  public fromMarkdown(markdown: string): Partial<PlaybookEntity> {
-    const { frontmatter } = this.parsePlaybookContent(markdown);
-    return {
-      content: markdown,
-      entityType: "playbook",
-      metadata: {
-        title: frontmatter.title,
-        status: frontmatter.status,
-        audience: frontmatter.audience,
-        ...(frontmatter.trigger ? { trigger: frontmatter.trigger } : {}),
-        ...(frontmatter.lifecycle ? { lifecycle: frontmatter.lifecycle } : {}),
-        ...(frontmatter.once !== undefined ? { once: frontmatter.once } : {}),
-        ...(frontmatter.starterText
-          ? { starterText: frontmatter.starterText }
-          : {}),
-        ...(frontmatter.description
-          ? { description: frontmatter.description }
-          : {}),
-        ...(frontmatter.starterPrompt
-          ? { starterPrompt: frontmatter.starterPrompt }
-          : {}),
-        completionMode: frontmatter.completionMode,
-      },
-    };
-  }
+/**
+ * A playbook's body, as its file writes it: authored `## Steps`, compiled
+ * into states and transitions, or the structured sections the body
+ * formatter writes. A body that is not a valid playbook throws.
+ */
+export function parsePlaybookBody(bodyMarkdown: string): PlaybookBody {
+  const markdown = bodyMarkdown.trim();
+  const body = hasAuthoredSteps(markdown)
+    ? parseAuthoredStepsBody(markdown)
+    : playbookBodyFormatter.parse(markdown);
+  assertValidPlaybookBody(body);
+  return body;
 }
 
-export const playbookAdapter: PlaybookAdapter = new PlaybookAdapter();
+/** A playbook file: its frontmatter, with its defaults, and its body. */
+export function parsePlaybookContent(content: string): {
+  frontmatter: PlaybookFrontmatter;
+  body: PlaybookBody;
+  bodyMarkdown: string;
+} {
+  const parsed = parseMarkdown(content);
+  return {
+    frontmatter: playbookFrontmatterSchema.parse(parsed.frontmatter),
+    body: parsePlaybookBody(parsed.content),
+    bodyMarkdown: parsed.content,
+  };
+}
+
+/** A playbook file written from its frontmatter and its structured body. */
+export function createPlaybookContent(
+  frontmatter: PlaybookFrontmatter,
+  body: PlaybookBody,
+): string {
+  return generateMarkdown(
+    definedFields(frontmatter),
+    playbookBodyFormatter.format(body),
+  );
+}
 
 interface AuthoredStep {
   title: string;

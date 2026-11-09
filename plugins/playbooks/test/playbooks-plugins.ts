@@ -1,18 +1,26 @@
-import type { Plugin } from "@brains/plugins";
 import {
-  playbookPlugin,
-  playbooksPlugin,
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import {
+  createPlaybooksPackage,
   type PlaybooksConfigInput,
-  type PlaybooksPluginDeps,
+  type PlaybooksPackageDeps,
 } from "../src";
 
 /**
  * The playbook type's plugin and the playbooks service, as the canonical
- * brain composes them, in the order they register.
+ * brain composes the package, in the order they register.
  */
 export function createPlaybooksPlugins(
   config: PlaybooksConfigInput = {},
-  deps: PlaybooksPluginDeps = {},
+  deps: PlaybooksPackageDeps = {},
 ): Plugin[] {
-  return [playbookPlugin(), playbooksPlugin(config, deps)];
+  return instantiatePluginPackageDefinition(
+    createPlaybooksPackage(deps),
+    config,
+    { name: "@brains/playbooks", version: "0.0.0-test" },
+    // Under the id its class had; its type installs as playbook.
+    { pluginId: "playbooks" },
+  );
 }

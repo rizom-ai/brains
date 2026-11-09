@@ -48,7 +48,7 @@ import {
   type OAuthBrokerPlugin,
 } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
-import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
+import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
@@ -217,8 +217,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "notifications" },
     ),
     ["contact", contactPlugin, undefined],
-    ["playbook", playbookPlugin, undefined],
-    ["playbooks", playbooksPlugin, undefined],
+    // The playbooks service owns the playbook type: one capability installs
+    // both plugins, playbook and playbooks, as the two capabilities did.
+    packageCapability("playbooks", "@brains/playbooks", playbooksPackage, {
+      pluginId: "playbooks",
+    }),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage, {
       pluginId: "onboarding",
       dependencies: ["playbook", "playbooks"],

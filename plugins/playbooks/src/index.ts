@@ -1,19 +1,19 @@
+export { default } from "./plugin";
 export {
   lifecycleStarterRegistrationContract,
   type LifecycleStarterRegistration,
   type LifecycleStarterRegistrationResult,
 } from "@brains/contracts";
 export {
-  PlaybookPlugin,
-  playbookPlugin,
-  PlaybookAdapter,
-  playbookAdapter,
+  playbookEntity,
+  createPlaybookContent,
+  parsePlaybookBody,
+  parsePlaybookContent,
   PlaybookBodyFormatter,
   playbookBodyFormatter,
   playbookAudienceSchema,
   playbookBodySchema,
   playbookCompletionModeSchema,
-  playbookConfigSchema,
   playbookFrontmatterSchema,
   playbookMetadataSchema,
   playbookSchema,
@@ -25,7 +25,6 @@ export {
   type PlaybookAudience,
   type PlaybookBody,
   type PlaybookCompletionMode,
-  type PlaybookConfig,
   type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
@@ -36,8 +35,8 @@ export {
 } from "./entity";
 export {
   PLAYBOOKS_LIFECYCLE_STARTERS,
-  PlaybooksPlugin,
-  playbooksPlugin,
+  createPlaybooksPackage,
+  lifecycleStartersContract,
   type GoalCheck,
   type GoalCheckInput,
   type GoalCheckResult,
@@ -45,7 +44,7 @@ export {
   type LifecycleStartersResponse,
   type PlaybooksConfig,
   type PlaybooksConfigInput,
-  type PlaybooksPluginDeps,
+  type PlaybooksPackageDeps,
   type PlaybookStarter,
   type PlaybookStatusResponse,
 } from "./plugin";

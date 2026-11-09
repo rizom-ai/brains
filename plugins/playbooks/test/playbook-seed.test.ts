@@ -5,7 +5,8 @@ import {
   createServicePluginContext,
   createTempDataDir,
 } from "@brains/plugins/test";
-import { playbookAdapter, playbookPlugin } from "../src";
+import { createPlaybookContent } from "../src";
+import { createPlaybooksPlugins } from "./playbooks-plugins";
 
 /**
  * The playbook type's steward plants a playbook another package bundles, as
@@ -14,7 +15,7 @@ import { playbookAdapter, playbookPlugin } from "../src";
  */
 
 // A playbook as a package bundles it: valid markdown the playbook type reads.
-const bundled = playbookAdapter.createPlaybookContent(
+const bundled = createPlaybookContent(
   {
     title: "Bundled Guide",
     status: "active",
@@ -46,7 +47,10 @@ async function installPlaybook(): Promise<
   const harness = createPluginHarness({
     dataDir: await createTempDataDir("brains-playbook-seed-"),
   });
-  await harness.installPlugin(playbookPlugin({}));
+  // The playbooks package steward the type: both its plugins install.
+  for (const plugin of createPlaybooksPlugins()) {
+    await harness.installPlugin(plugin);
+  }
   return harness;
 }
 
@@ -100,6 +104,8 @@ describe("seeding a bundled playbook", () => {
       entityType: "playbook",
       id: "bundled-guide",
       visibilityScope: "restricted",
+      // As stored: a declared type reads back its body alone.
+      source: true,
     });
     expect(stored?.content).toBe(owned);
   });
