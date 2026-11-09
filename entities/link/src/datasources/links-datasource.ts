@@ -1,141 +1,53 @@
-import { BaseEntityDataSource } from "@brains/plugins";
-import type {
-  BaseQuery,
-  NavigationResult,
-  PaginationInfo,
-  EntityDataSourceConfig,
-  IEntityService,
-} from "@brains/plugins";
-import { linkSchema, type LinkEntity } from "../schemas/link";
-import type { Logger } from "@brains/utils/logger";
-import { LinkAdapter } from "../adapters/link-adapter";
-import type { LinkSummary } from "../templates/link-list/schema";
+import {
+  defineDataSource,
+  type EntityDataSourceDefinition,
+  type EntityDefinition,
+  type EntityOf,
+} from "@brains/sdk/entities";
+import { linkSummary } from "../lib/link-markdown";
+import type { linkMetadataSchema } from "../schemas/link";
+import type { LinkListData, LinkSummary } from "../templates/link-list/schema";
 
-interface LinkDetailData {
-  link: LinkSummary;
-  prevLink: LinkSummary | null;
-  nextLink: LinkSummary | null;
-}
+type LinkDefinition = EntityDefinition<"link", typeof linkMetadataSchema>;
 
-interface LinkListData {
-  links: LinkSummary[];
-  totalCount: number;
+/** A link as the site reads it: its fields, its domain and its summary. */
+function linkData(entity: EntityOf<LinkDefinition>): LinkSummary {
+  const { metadata } = entity;
+  return {
+    id: entity.id,
+    status: metadata.status,
+    title: metadata.title,
+    url: metadata.url,
+    capturedAt: metadata.capturedAt,
+    source: metadata.source,
+    domain: new URL(metadata.url).hostname,
+    description: metadata.description ?? null,
+    summary: linkSummary(entity.content),
+  };
 }
 
 /**
- * DataSource for fetching and transforming link entities.
- * Handles list views and detail views with prev/next navigation.
- *
- * Overrides `fetchDetail` to use a single-pass approach: fetches
- * all entities once and derives the current item + navigation in memory,
- * avoiding a redundant second DB round-trip.
+ * Fetches and transforms links for rendering: every link, newest captured
+ * first, or one link by its id with its neighbors.
  */
-export class LinksDataSource extends BaseEntityDataSource<
-  LinkEntity,
-  LinkSummary,
-  LinkListData
-> {
-  readonly id = "link:entities";
-  readonly name = "Links Entity DataSource";
-  readonly description = "Fetches and transforms link entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<LinkEntity> = {
-    entityType: "link",
-    entitySchema: linkSchema,
-    defaultSort: [{ field: "capturedAt" as const, direction: "desc" as const }],
+export function linksDataSource(
+  link: LinkDefinition,
+): EntityDataSourceDefinition<LinkDefinition, LinkSummary, LinkListData> {
+  return defineDataSource({
+    id: "entities",
+    name: "Links Entity DataSource",
+    description: "Fetches and transforms link entities for rendering",
+    entity: link,
+    defaultSort: [{ field: "capturedAt", direction: "desc" }],
     defaultLimit: 1000,
-    lookupField: "id" as const,
+    lookupField: "id",
     enableNavigation: true,
-  };
-
-  private readonly adapter = new LinkAdapter();
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("LinksDataSource initialized");
-  }
-
-  protected transformEntity(entity: LinkEntity): LinkSummary {
-    const { frontmatter, summary } = this.adapter.parseLinkContent(
-      entity.content,
-    );
-    return {
-      id: entity.id,
-      ...frontmatter,
-      domain: new URL(frontmatter.url).hostname,
-      description: frontmatter.description ?? null,
-      summary,
-    };
-  }
-
-  protected override buildDetailResult(
-    item: LinkSummary,
-    navigation: NavigationResult<LinkSummary> | null,
-  ): LinkDetailData {
-    return {
+    transform: linkData,
+    list: (items) => ({ links: [...items], totalCount: items.length }),
+    detail: ({ item, navigation }) => ({
       link: item,
       prevLink: navigation?.prev ?? null,
       nextLink: navigation?.next ?? null,
-    };
-  }
-
-  protected buildListResult(
-    items: LinkSummary[],
-    _pagination: PaginationInfo | null,
-    _query: BaseQuery,
-  ): LinkListData {
-    return {
-      links: items,
-      totalCount: items.length,
-    };
-  }
-
-  /**
-   * Single-pass detail fetch: loads all entities once, finds the current
-   * item and prev/next in memory. Avoids the base class's two-call pattern
-   * (lookupEntity + resolveNavigation) since links are fetched in bulk anyway.
-   */
-  protected override async fetchDetail(
-    id: string,
-    entityService: IEntityService,
-  ): Promise<{
-    item: LinkSummary;
-    navigation: NavigationResult<LinkSummary> | null;
-  }> {
-    const allEntities = await entityService.listEntities(
-      {
-        entityType: this.config.entityType,
-        options: {
-          limit: this.config.navigationLimit ?? 1000,
-          sortFields: this.config.defaultSort,
-        },
-      },
-      linkSchema,
-    );
-
-    const currentIndex = allEntities.findIndex((e) => e.id === id);
-    if (currentIndex === -1) {
-      throw new Error(`${this.config.entityType} not found: ${id}`);
-    }
-
-    const current = allEntities[currentIndex];
-    if (!current) {
-      throw new Error(`${this.config.entityType} not found: ${id}`);
-    }
-    const item = this.transformEntity(current);
-    const prevEntity =
-      currentIndex > 0 ? allEntities[currentIndex - 1] : undefined;
-    const nextEntity =
-      currentIndex < allEntities.length - 1
-        ? allEntities[currentIndex + 1]
-        : undefined;
-
-    return {
-      item,
-      navigation: {
-        prev: prevEntity ? this.transformEntity(prevEntity) : null,
-        next: nextEntity ? this.transformEntity(nextEntity) : null,
-      },
-    };
-  }
+    }),
+  });
 }

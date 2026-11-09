@@ -17,7 +17,7 @@ import { createTestEntityAdapter } from "@brains/entity-service/test";
 import notePackage from "@brains/note";
 import { declaredType } from "../helpers/declared-type";
 import blogPackage from "@brains/blog";
-import { linkAdapter, linkSchema } from "@brains/link";
+import linkPackage from "@brains/link";
 import promptPackage from "@brains/prompt";
 import wishlistPackage from "@brains/wishlist";
 import { z } from "@brains/utils/zod";
@@ -1458,7 +1458,9 @@ describe("document-backed runtime definitions with real adapters", () => {
 
   test("real Links gain grouping fields by default and retain unclaimed source across exclusions", async () => {
     const fixture = await open(await directory(), (registry) => {
-      registry.registerEntityType("link", linkSchema, linkAdapter);
+      // The declared link, as the canonical brain installs it.
+      const link = declaredType(linkPackage, "@brains/link", "link");
+      registry.registerEntityType("link", link.schema, link.adapter);
     });
     const closed = { ...areas, multiple: false, values: ["Allowed"] };
     const exact = " Ka21, exact ";
@@ -1539,6 +1541,8 @@ describe("document-backed runtime definitions with real adapters", () => {
       entityType: "link",
       id: "member",
       visibilityScope: "shared",
+      // The stored document: a declared link reads back as its summary.
+      source: true,
     });
     expect(parseMarkdown(before?.content ?? "").frontmatter["areas"]).toEqual([
       exact,
@@ -1580,6 +1584,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         entityType: "link",
         id: "member",
         visibilityScope: "shared",
+        source: true,
       }),
     ).toEqual(before);
   });

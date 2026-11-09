@@ -664,11 +664,11 @@ export class EntityService {
 EntityPlugins auto-register their entity types during initialization:
 
 ```typescript
-// In LinkPlugin (entities/link/src/plugin.ts)
-export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
-  readonly entityType = linkAdapter.entityType;
-  readonly schema = linkSchema;
-  readonly adapter = linkAdapter;
+// In FaqPlugin (entities/faq/src/plugin.ts)
+export class FaqPlugin extends EntityPlugin<FaqEntity, FaqConfig> {
+  readonly entityType = "faq";
+  readonly schema = faqSchema;
+  readonly adapter = faqAdapter;
 
   // EntityPlugin base class auto-registers:
   // - Entity type + schema + adapter
