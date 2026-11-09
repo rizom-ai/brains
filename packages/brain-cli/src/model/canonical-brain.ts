@@ -21,7 +21,7 @@ import { atprotoPlugin } from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
-import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
+import chatInterface, { chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
@@ -350,11 +350,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       (config): Plugin => new WebChatInterface(config),
       (): PluginConfig => ({}),
     ],
-    [
+    packageInterface(
       "chat",
-      (config): Plugin => new ChatInterface(config),
+      "@brains/chat",
+      chatInterface,
       (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
-    ],
+      { pluginId: "chat" },
+    ),
     packageInterface(
       "a2a",
       "@brains/a2a",

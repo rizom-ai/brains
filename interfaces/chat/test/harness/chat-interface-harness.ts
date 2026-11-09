@@ -2,12 +2,21 @@ import { afterEach, beforeEach, expect, mock } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
+import {
+  instantiatePluginPackageDefinition,
+  type ChatContext,
+  type IShell,
+  type Plugin,
+  type ToolActivityEvent,
+  type WebRouteDefinition,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type {
+  ChatConfigInput,
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "../../src/config";
+import type { ChatFetch } from "../../src/chat-input-builder";
 import type {
   ChatAdapterMap,
   DiscordChatAdapter,
@@ -15,9 +24,6 @@ import type {
 } from "../../src/types";
 import type { Mock } from "bun:test";
 import type { ActionEvent, CardElement, StateAdapter } from "chat";
-// Type-only, so it is erased and cannot evaluate the module before the
-// mock.module() registrations below.
-import type * as ChatInterfaceModule from "../../src/chat-interface";
 import type { ChatIdentityAccess } from "../../src/chat-identity";
 
 export const discordExternalIdentity: {
@@ -465,25 +471,51 @@ function harnessIdentityAccess(): ChatIdentityAccess | undefined {
 
 // Imported dynamically so every mock.module() call above is registered before
 // the interface module — and its adapter/SDK imports — are first evaluated.
-// Suites must take ChatInterface from here rather than importing the module
+// Suites must build the plugin from here rather than importing the module
 // directly, or they get an unmocked copy.
-const { ChatInterface: LoadedChatInterface } =
-  await import("../../src/chat-interface");
+const { createChatInterface } = await import("../../src/chat-interface");
 
-export const ChatInterface: typeof ChatInterfaceModule.ChatInterface =
-  LoadedChatInterface;
+/** The chat plugin as the shell holds it: routes, daemons and channels. */
+export type ChatInterfaceInstance = Plugin & {
+  getWebRoutes(): WebRouteDefinition[];
+  requiresDaemonStartup(): boolean;
+  registerChannelsForExecution(shell: IShell): Promise<void>;
+};
 
-export type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
+function isChatInterfaceInstance(
+  plugin: Plugin,
+): plugin is ChatInterfaceInstance {
+  return (
+    typeof plugin.getWebRoutes === "function" &&
+    typeof plugin.requiresDaemonStartup === "function" &&
+    typeof plugin.registerChannelsForExecution === "function"
+  );
+}
 
 /**
  * The chat interface as the brain creates it, with the identity lookup and
- * collaborators a test hands it. The one place the suites name how it is
- * built, so they read the same before and after it is declared.
+ * collaborators a test hands it: the package's definition, under the plugin
+ * id its class had. The one place the suites name how it is built, so they
+ * read the same before and after it was declared.
  */
 export function createChatPlugin(
-  ...args: ConstructorParameters<typeof ChatInterface>
+  config: ChatConfigInput = {},
+  identityAccess?: () => ChatIdentityAccess | undefined,
+  deps: { fetch?: ChatFetch | undefined } = {},
 ): ChatInterfaceInstance {
-  return new ChatInterface(...args);
+  const [plugin] = instantiatePluginPackageDefinition(
+    createChatInterface({
+      ...deps,
+      ...(identityAccess ? { identityAccess } : {}),
+    }),
+    config,
+    { name: "@brains/chat", version: "0.0.0-test" },
+    { pluginId: "chat" },
+  );
+  if (!plugin || !isChatInterfaceInstance(plugin)) {
+    throw new Error("The chat definition created no message interface");
+  }
+  return plugin;
 }
 export type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
   handleToolActivityEvent(event: ToolActivityEvent): Promise<void>;

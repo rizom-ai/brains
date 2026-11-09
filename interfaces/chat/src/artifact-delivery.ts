@@ -1,10 +1,10 @@
+import type { ChatHost } from "./chat-host";
 import {
   canReceiveNativeArtifactFile,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
-  type InterfacePluginContext,
   type StructuredChatCard,
   type UserPermissionLevel,
 } from "@brains/plugins";
@@ -19,7 +19,7 @@ const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
 ]);
 
 interface ArtifactDeliveryDeps {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   getDisplayBaseUrl: () => string | undefined;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
@@ -93,7 +93,7 @@ export class ArtifactDeliveryResolver {
       entityRef,
       userLevel,
       getEntity: (ref, visibilityScope) =>
-        context.entityService.getEntity({ ...ref, visibilityScope }),
+        context.entityReads.getEntity({ ...ref, visibilityScope }),
     });
     if (access.status === "denied") return { denied: true };
     if (access.status !== "visible") return {};

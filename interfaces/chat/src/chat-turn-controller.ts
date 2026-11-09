@@ -1,9 +1,7 @@
+import type { ChatHost } from "./chat-host";
 import { spaceNoticeActionContract } from "@brains/contracts";
 import { matchSpaceSelector } from "@brains/plugins";
-import type {
-  InterfacePluginContext,
-  PermissionLookupContext,
-} from "@brains/plugins";
+import type { PermissionLookupContext } from "@brains/plugins";
 import type { ActionEvent, Message, MessageContext } from "chat";
 import type {
   ChatConfig,
@@ -58,7 +56,7 @@ const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 
 interface ChatTurnHost {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   startProcessingInput: (channelId: string) => void;
   endProcessingInput: () => void;
   extractCaptureableUrls: (
@@ -187,7 +185,7 @@ export class ChatTurnController {
       if (!shouldHandleChatAction(event.thread, platformConfig)) return;
       // Every plugin hears the click; only the notice's poster answers.
       await handleSpaceNoticeAction(async (action) => {
-        const gathered = await context.messaging.gather(
+        const gathered = await context.gather(
           spaceNoticeActionContract,
           action,
         );

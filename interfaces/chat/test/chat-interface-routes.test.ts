@@ -1,19 +1,20 @@
 import { describe, it, expect } from "bun:test";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import {
-  createDiscordChatUploadStoreScope,
-  createSlackChatUploadStoreScope,
-} from "../src/upload-store";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createPluginHarness } from "@brains/plugins/test";
 import {
   createChatPlugin,
   MockChatSdk,
+  baseDiscordConfig,
   baseSlackConfig,
   createPlugin,
   setupChatInterfaceTest,
+  type ChatInterfaceInstance,
 } from "./harness/chat-interface-harness";
 
-describe("ChatInterface webhook and upload routes", () => {
+describe("ChatInterface webhook routes", () => {
   const suite = setupChatInterfaceTest();
 
   it("delegates Discord webhook routes to Chat SDK", async () => {
@@ -78,223 +79,75 @@ describe("ChatInterface webhook and upload routes", () => {
     expect(await response?.text()).toBe("Discord chat webhook not configured");
   });
 
-  it("serves only Slack-scoped uploads from the Slack upload route", async () => {
-    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
-    await suite.harness.installPlugin(plugin);
-    const slackStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped(createSlackChatUploadStoreScope());
-    const discordStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped(createDiscordChatUploadStoreScope());
-    const slackRecord = await slackStore.save({
-      filename: "slack.txt",
-      mediaType: "text/plain",
-      content: Buffer.from("slack source"),
+  it("serves no platform upload route: the old upload URLs are not routed", async () => {
+    const plugin = createChatPlugin({
+      adapters: {
+        discord: baseDiscordConfig,
+        slack: baseSlackConfig,
+      },
     });
-    const discordRecord = await discordStore.save({
-      filename: "discord.txt",
-      mediaType: "text/plain",
-      content: Buffer.from("discord source"),
-    });
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/api/webhooks/chat/slack/uploads" &&
-          candidate.method === "GET",
-      );
-
-    const found = await route?.handler(
-      new Request(
-        `https://brain.test/api/webhooks/chat/slack/uploads?id=${slackRecord.id}`,
-      ),
-    );
-    const wrongScope = await route?.handler(
-      new Request(
-        `https://brain.test/api/webhooks/chat/slack/uploads?id=${discordRecord.id}`,
-      ),
-    );
-
-    expect(found?.status).toBe(200);
-    expect(found?.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(await found?.text()).toBe("slack source");
-    expect(wrongScope?.status).toBe(404);
-  });
-
-  it("returns 404 from Discord upload route when no Discord adapter is configured", async () => {
-    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/api/webhooks/chat/discord/uploads" &&
-          candidate.method === "GET",
-      );
 
-    const response = await route?.handler(
-      new Request(
-        "https://brain.test/api/webhooks/chat/discord/uploads?id=upload-00000000-0000-4000-8000-000000000000",
-      ),
-    );
-
-    expect(response?.status).toBe(404);
-    expect(await response?.text()).toBe("Discord chat uploads not configured");
+    expect(
+      plugin.getWebRoutes().map(({ method, path }) => `${method} ${path}`),
+    ).toEqual([
+      "POST /api/webhooks/chat/discord",
+      "POST /api/webhooks/chat/slack",
+    ]);
   });
+});
 
-  it("serves stored Discord upload refs through the upload route", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
-    const uploadStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped(createDiscordChatUploadStoreScope());
-    const record = await uploadStore.save({
-      filename: 'déck "draft".pdf',
-      mediaType: "application/pdf",
-      content: Buffer.from("%PDF-1.7"),
-    });
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/api/webhooks/chat/discord/uploads" &&
-          candidate.method === "GET",
-      );
+describe("ChatInterface retired platform uploads", () => {
+  const suite = setupChatInterfaceTest();
 
-    const inlineResponse = await route?.handler(
-      new Request(
-        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}`,
-      ),
-    );
-    const downloadResponse = await route?.handler(
-      new Request(
-        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}&download=1`,
-      ),
-    );
-
-    expect(inlineResponse?.status).toBe(200);
-    expect(inlineResponse?.headers.get("Content-Type")).toBe("application/pdf");
-    expect(inlineResponse?.headers.get("Cache-Control")).toBe(
-      "private, no-store",
-    );
-    expect(inlineResponse?.headers.get("X-Content-Type-Options")).toBe(
-      "nosniff",
-    );
-    expect(inlineResponse?.headers.get("Content-Disposition")).toBe(
-      "inline; filename=\"d_ck _draft_.pdf\"; filename*=UTF-8''d%C3%A9ck%20%22draft%22.pdf",
-    );
-    expect(await inlineResponse?.text()).toBe("%PDF-1.7");
-    expect(downloadResponse?.status).toBe(200);
-    expect(downloadResponse?.headers.get("Content-Disposition")).toBe(
-      "attachment; filename=\"d_ck _draft_.pdf\"; filename*=UTF-8''d%C3%A9ck%20%22draft%22.pdf",
-    );
-  });
-
-  it("reports unreadable stored metadata as a server fault, not a missing upload", async () => {
-    // "Upload not found" sends the caller looking for a problem on their side.
-    // Metadata we wrote and can no longer read is a problem on ours.
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
-    const uploadStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped(createDiscordChatUploadStoreScope());
-    const record = await uploadStore.save({
-      filename: "notes.pdf",
-      mediaType: "application/pdf",
-      content: Buffer.from("%PDF-1.7"),
-    });
-    await writeFile(
-      join(uploadStore.getUploadDir(record.id), "metadata.json"),
-      "{ not valid json",
-      "utf8",
-    );
-
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/api/webhooks/chat/discord/uploads" &&
-          candidate.method === "GET",
-      );
-    const response = await route?.handler(
-      new Request(
-        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}`,
-      ),
-    );
-
-    expect(response?.status).toBe(500);
-    expect(await response?.text()).toBe("Upload could not be read");
-  });
-
-  it("does not serve upload refs from other runtime upload scopes", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
-    const otherUploadStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped({
-        namespace: "web-chat",
-        refKind: "web-chat-upload",
-        routePath: "/api/chat/uploads",
+  async function dataDirWithRetiredUploads(): Promise<string> {
+    const dataDir = await mkdtemp(join(tmpdir(), "brains-chat-retired-"));
+    for (const namespace of ["discord-chat", "slack-chat"]) {
+      await mkdir(join(dataDir, namespace, "uploads", "upload-old"), {
+        recursive: true,
       });
-    const record = await otherUploadStore.save({
-      filename: "private.txt",
-      mediaType: "text/plain",
-      content: Buffer.from("not a discord source upload"),
+      await writeFile(
+        join(dataDir, namespace, "uploads", "upload-old", "content"),
+        "expired",
+      );
+    }
+    await mkdir(join(dataDir, "upload", "uploads", "upload-kept"), {
+      recursive: true,
     });
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/api/webhooks/chat/discord/uploads" &&
-          candidate.method === "GET",
+    await writeFile(join(dataDir, "discord-chat", "keep.txt"), "keep");
+    return dataDir;
+  }
+
+  it("deletes both platform upload directories at startup, touching nothing else", async () => {
+    const dataDir = await dataDirWithRetiredUploads();
+    try {
+      const harness = createPluginHarness<ChatInterfaceInstance>({ dataDir });
+      harness.setAgentService(suite.agentService);
+      await harness.installPlugin(
+        createChatPlugin({ adapters: { slack: baseSlackConfig } }),
       );
 
-    const response = await route?.handler(
-      new Request(
-        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}`,
-      ),
-    );
+      expect(existsSync(join(dataDir, "discord-chat", "uploads"))).toBe(false);
+      expect(existsSync(join(dataDir, "slack-chat", "uploads"))).toBe(false);
+      expect(existsSync(join(dataDir, "discord-chat", "keep.txt"))).toBe(true);
+      expect(
+        existsSync(join(dataDir, "upload", "uploads", "upload-kept")),
+      ).toBe(true);
 
-    expect(response?.status).toBe(404);
-    expect(await response?.text()).toBe("Upload not found");
-  });
-
-  it("rejects missing, malformed, or unknown Discord upload refs", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/api/webhooks/chat/discord/uploads" &&
-          candidate.method === "GET",
+      // A second start finds nothing to delete and changes nothing.
+      const restarted = createPluginHarness<ChatInterfaceInstance>({ dataDir });
+      restarted.setAgentService(suite.agentService);
+      await restarted.installPlugin(
+        createChatPlugin({ adapters: { slack: baseSlackConfig } }),
       );
-
-    const missing = await route?.handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads"),
-    );
-    const malformed = await route?.handler(
-      new Request(
-        "https://brain.test/api/webhooks/chat/discord/uploads?id=../secret",
-      ),
-    );
-    const unknown = await route?.handler(
-      new Request(
-        "https://brain.test/api/webhooks/chat/discord/uploads?id=upload-00000000-0000-4000-8000-000000000000",
-      ),
-    );
-
-    expect(missing?.status).toBe(400);
-    expect(await missing?.text()).toBe("Missing upload id");
-    expect(malformed?.status).toBe(404);
-    expect(await malformed?.text()).toBe("Upload not found");
-    expect(unknown?.status).toBe(404);
-    expect(await unknown?.text()).toBe("Upload not found");
+      expect(existsSync(join(dataDir, "discord-chat", "keep.txt"))).toBe(true);
+      expect(
+        existsSync(join(dataDir, "upload", "uploads", "upload-kept")),
+      ).toBe(true);
+      await harness.reset();
+      await restarted.reset();
+    } finally {
+      await rm(dataDir, { recursive: true, force: true });
+    }
   });
 });

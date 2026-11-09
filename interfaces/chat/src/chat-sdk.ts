@@ -22,7 +22,7 @@ interface CreateChatSdkAppOptions {
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
   gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
   slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
-  runtimeState: IRuntimeStateNamespace;
+  runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
 }
 
 function requireConfigValue(

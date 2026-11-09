@@ -2,9 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
-import { ChatInterface } from "@brains/chat";
+import chatInterface from "@brains/chat";
 import { newsletter } from "@brains/newsletter";
 import {
+  instantiatePluginPackageDefinition,
   isPackageDefinitionPlugin,
   type ApiRouteDefinition,
   type Plugin,
@@ -210,18 +211,24 @@ describe("canonical HTTP route manifests", () => {
     }
   });
 
-  test("records configured Chat SDK handler routes", () => {
-    const chat = new ChatInterface({
-      adapters: {
-        discord: {
-          applicationId: "fixture-application",
-          botToken: "fixture-token",
-          publicKey: "fixture-public-key",
+  test("records configured Chat SDK handler routes", async () => {
+    const chat = instantiatePluginPackageDefinition(
+      chatInterface,
+      {
+        adapters: {
+          discord: {
+            applicationId: "fixture-application",
+            botToken: "fixture-token",
+            publicKey: "fixture-public-key",
+          },
         },
       },
-    });
+      { name: "@brains/chat", version: "0.0.0-test" },
+      { pluginId: "chat" },
+    );
+    for (const plugin of chat) await plugin.register(shellWithIdentityTypes());
 
-    expect(routeManifest([chat])).toEqual(readExpected("chat-sdk"));
+    expect(routeManifest(chat)).toEqual(readExpected("chat-sdk"));
   });
 
   test("records configured newsletter provider routes", () => {

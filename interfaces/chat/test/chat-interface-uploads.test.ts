@@ -5,10 +5,6 @@ import type {
   RuntimeUploadScopeOptions,
 } from "@brains/plugins";
 import {
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-} from "../src/upload-store";
-import {
   createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
@@ -18,6 +14,20 @@ import {
   createThread,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
+
+/** The runtime's shared upload store, where chat keeps what it is sent. */
+const sharedUploadStoreScope: RuntimeUploadScopeOptions = {
+  namespace: "upload",
+  refKind: "upload",
+  routePath: "/api/chat/uploads",
+};
+
+/** The Discord upload store chat kept before it wrote the shared one. */
+const retiredDiscordUploadStoreScope: RuntimeUploadScopeOptions = {
+  namespace: "discord-chat",
+  refKind: "discord-chat-upload",
+  routePath: "/api/webhooks/chat/discord/uploads",
+};
 
 describe("ChatInterface uploads", () => {
   const suite = setupChatInterfaceTest();
@@ -202,7 +212,7 @@ describe("ChatInterface uploads", () => {
     const uploadStore = suite.harness
       .getMockShell()
       .getRuntimeUploadRegistry()
-      .scoped(createCanonicalChatUploadStoreScope());
+      .scoped(sharedUploadStoreScope);
     const record = await uploadStore.readRecord(source?.id ?? "");
     expect(record.metadata).toEqual({
       interfaceType: "discord",
@@ -869,7 +879,7 @@ describe("ChatInterface uploads", () => {
 
   it("restores prior uploads from stored conversation metadata after restart", async () => {
     const { image, attachments } = await restoreAfterRestart(
-      createCanonicalChatUploadStoreScope(),
+      sharedUploadStoreScope,
     );
 
     expect(attachments).toEqual([
@@ -885,7 +895,7 @@ describe("ChatInterface uploads", () => {
 
   it("does not restore prior uploads stored under a platform upload kind", async () => {
     const { attachments } = await restoreAfterRestart(
-      createDiscordChatUploadStoreScope(),
+      retiredDiscordUploadStoreScope,
     );
 
     expect(attachments).toBeUndefined();
