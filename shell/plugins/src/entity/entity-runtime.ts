@@ -847,6 +847,25 @@ export function restatedMetadataOf(
     : undefined;
 }
 
+const documentOrderKey = Symbol("rizom.document-order");
+
+/**
+ * A first-party definition whose files people write by hand: each write
+ * keeps the frontmatter order of the document it replaces, as an entity
+ * plugin class's adapter wrote over existing frontmatter, so directory sync
+ * leaves a file it only read as it was.
+ */
+export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+): TDefinition {
+  return Object.freeze({ ...definition, [documentOrderKey]: true });
+}
+
+/** Whether a definition writes in the order of the document it replaces. */
+export function writesInDocumentOrderOf(definition: object): boolean {
+  return Reflect.get(definition, documentOrderKey) === true;
+}
+
 /** How a first-party generation came out: the record it wrote, or why it failed. */
 export type GenerationOutcome =
   | { readonly written: { readonly entityId: string } }

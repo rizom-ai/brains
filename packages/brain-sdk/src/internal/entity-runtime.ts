@@ -17,6 +17,7 @@ export {
   uniqueTitleContext,
   restatingMetadata,
   withBodyTemplate,
+  writesInDocumentOrder,
   afterGeneration,
   type AnyEntityReads,
   type EntityAnswerContext,

@@ -66,6 +66,7 @@ import {
   bodyTemplateOf,
   ordinaryCreateOf,
   restatedMetadataOf,
+  writesInDocumentOrderOf,
   queuedCreateOf,
   storedCreateOf,
   withEntityRuntime,
@@ -460,6 +461,7 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     extractMetadata: (entity) =>
       restatedMetadataOf(definition)?.(entity.metadata) ?? entity.metadata,
     getBodyTemplate: () => bodyTemplateOf(definition),
+    ...(writesInDocumentOrderOf(definition) && { writesInDocumentOrder: true }),
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.
     ...(stub && {

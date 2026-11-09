@@ -20,6 +20,56 @@ import {
 } from "./frontmatter-extensions";
 
 /**
+ * Whether two frontmatter values are the same, whatever their keys' order:
+ * parsed YAML, so plain objects, arrays and scalars. The serializer runs in
+ * browser bundles too, so it cannot reach node:util.
+ */
+function sameValue(left: unknown, right: unknown): boolean {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => sameValue(item, right[index]))
+    );
+  }
+  if (isPlainRecord(left) && isPlainRecord(right)) {
+    const keys = Object.keys(left);
+    return (
+      keys.length === Object.keys(right).length &&
+      keys.every(
+        (key) => Object.hasOwn(right, key) && sameValue(left[key], right[key]),
+      )
+    );
+  }
+  return Object.is(left, right);
+}
+
+/**
+ * The written document's frontmatter in the order of the document it
+ * replaces: each written key where that document has it, the document's
+ * own value when it equals the written one (so a nested value keeps its
+ * key order), and the keys the document lacks after the rest.
+ */
+function inDocumentOrder(written: string, replaced: string): string {
+  const source = readMarkdownFrontmatter(replaced).data;
+  const target = readMarkdownFrontmatter(written);
+  if (!isPlainRecord(source) || !isPlainRecord(target.data)) return written;
+  const fields = target.data;
+  const ordered = [
+    ...Object.keys(source).filter((key) => Object.hasOwn(fields, key)),
+    ...Object.keys(fields).filter((key) => !Object.hasOwn(source, key)),
+  ];
+  const result = Object.fromEntries(
+    ordered.map((key) => [
+      key,
+      sameValue(source[key], fields[key]) ? source[key] : fields[key],
+    ]),
+  );
+  return generateMarkdown(result, target.content);
+}
+
+/**
  * EntitySerializer handles conversion between entities and markdown
  * Extracted from EntityService for single responsibility
  */
@@ -43,7 +93,7 @@ export class EntitySerializer {
       adapter.toMarkdown(entity),
       entity.visibility,
     );
-    return preserveSourceFrontmatter(
+    const written = preserveSourceFrontmatter(
       stored === undefined
         ? entity.content
         : unwrittenSource(stored, serialized),
@@ -61,6 +111,9 @@ export class EntitySerializer {
         this.entityRegistry.getEntityTypeConfig(entity.entityType),
       ),
     );
+    return adapter.writesInDocumentOrder === true
+      ? inDocumentOrder(written, stored ?? entity.content)
+      : written;
   }
 
   /**
