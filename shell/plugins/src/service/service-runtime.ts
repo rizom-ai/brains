@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
   IInboxFollowUpsNamespace,
@@ -232,6 +233,12 @@ export interface ServiceRuntime {
    */
   toolCall(): ServiceToolCall | undefined;
   /**
+   * The runtime state the class stored, under the namespace the class named
+   * (`playbooks.runs`) rather than one qualified by the package's name, so
+   * the records stored before the conversion are the ones it reads after.
+   */
+  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -397,6 +404,7 @@ export interface ServiceRuntimeBinding {
   readonly siteUrl: string | undefined;
   readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
   readonly toolCall: () => ServiceToolCall | undefined;
+  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -429,6 +437,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     siteUrl: binding.siteUrl,
     routeByRole: binding.routeByRole,
     toolCall: binding.toolCall,
+    classRuntimeState: binding.classRuntimeState,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,

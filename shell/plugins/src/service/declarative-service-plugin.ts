@@ -1108,6 +1108,9 @@ class DeclarativeServicePlugin<
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       siteUrl: context.siteUrl,
       routeByRole: (role) => context.webRoutes.findByRole(role),
+      classRuntimeState: Object.freeze({
+        scoped: context.runtimeState.scoped.bind(context.runtimeState),
+      }),
       toolCall: () => {
         const call = this.toolContext.getStore();
         return call
