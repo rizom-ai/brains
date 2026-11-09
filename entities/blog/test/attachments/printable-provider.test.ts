@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { normalizeRendererHtml } from "@brains/test-utils";
-import { BlogPlugin } from "../../src/plugin";
 import { createBlogPrintableProvider } from "../../src/attachments/printable-provider";
 import type { BlogPost } from "../../src/schemas/blog-post";
+import { blogPlugin, type BlogEntityPlugin } from "../blog-plugin";
 
 const samplePost: BlogPost = {
   id: "post-1",
@@ -12,24 +12,20 @@ const samplePost: BlogPost = {
   contentHash: "post-hash",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
-  content: `---
-title: Resilience Is Not Redundancy
-slug: resilience-is-not-redundancy
-status: published
-publishedAt: 2024-01-15T00:00:00.000Z
-excerpt: Resilience is about adaptive systems, not duplicated parts.
-author: Alex Chen
-canonicalUrl: https://example.com/posts/resilience-is-not-redundancy
----
-## Core idea
+  // As a declared post reads back: its body, its frontmatter its metadata.
+  content: `## Core idea
 
 Resilience is the capacity to change shape under pressure.
 `,
   metadata: {
     title: "Resilience Is Not Redundancy",
     slug: "resilience-is-not-redundancy",
+    authoredSlug: true,
     status: "published",
     publishedAt: "2024-01-15T00:00:00.000Z",
+    excerpt: "Resilience is about adaptive systems, not duplicated parts.",
+    author: "Alex Chen",
+    canonicalUrl: "https://example.com/posts/resilience-is-not-redundancy",
   },
 };
 
@@ -37,8 +33,8 @@ describe("Blog printable attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a post printable attachment provider", async () => {
-    const harness = createPluginHarness<BlogPlugin>();
-    await harness.installPlugin(new BlogPlugin());
+    const harness = createPluginHarness<BlogEntityPlugin>();
+    await harness.installPlugin(blogPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("post", "printable")).toBe(true);
@@ -46,8 +42,8 @@ describe("Blog printable attachment provider", () => {
   });
 
   it("returns undefined for non-printable requests", async () => {
-    const harness = createPluginHarness<BlogPlugin>();
-    await harness.installPlugin(new BlogPlugin());
+    const harness = createPluginHarness<BlogEntityPlugin>();
+    await harness.installPlugin(blogPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
     const provider = createBlogPrintableProvider({
@@ -82,8 +78,8 @@ describe("Blog printable attachment provider", () => {
       ).toMatchSnapshot();
       return Buffer.from("%PDF-post-printable");
     });
-    const harness = createPluginHarness<BlogPlugin>();
-    await harness.installPlugin(new BlogPlugin());
+    const harness = createPluginHarness<BlogEntityPlugin>();
+    await harness.installPlugin(blogPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
     const provider = createBlogPrintableProvider(

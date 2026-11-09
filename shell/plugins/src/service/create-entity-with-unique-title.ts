@@ -9,7 +9,12 @@ import { z } from "@brains/utils/zod";
  * the real ones.
  */
 export interface UniqueTitleContext {
-  entityService: Pick<EntityPluginContext["entityService"], "getEntity">;
+  entityService: {
+    getEntity(request: {
+      entityType: string;
+      id: string;
+    }): Promise<{ metadata: Record<string, unknown> } | null>;
+  };
   ai: Pick<EntityPluginContext["ai"], "generateObject">;
   logger: EntityPluginContext["logger"];
 }

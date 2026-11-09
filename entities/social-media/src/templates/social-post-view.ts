@@ -51,18 +51,30 @@ const metadataSchema: z.ZodObject<{
   title: z.ZodString;
   platform: typeof platformSchema;
   status: typeof socialPostStatusSchema;
+  coverImageId: typeof nullableString;
+  documents: z.ZodDefault<
+    z.ZodNullable<z.ZodArray<typeof documentAttachmentSchema>>
+  >;
   publishedAt: typeof nullableString;
   platformPostId: typeof nullableString;
+  sourceEntityId: typeof nullableString;
+  sourceEntityType: z.ZodDefault<z.ZodNullable<typeof sourceEntityTypeSchema>>;
   slug: z.ZodString;
   error: typeof nullableString;
+  statedSlug: typeof nullableString;
 }> = z.object({
   title: z.string(),
   platform: platformSchema,
   status: socialPostStatusSchema,
+  coverImageId: nullableString,
+  documents: z.array(documentAttachmentSchema).nullable().default(null),
   publishedAt: nullableString,
   platformPostId: nullableString,
+  sourceEntityId: nullableString,
+  sourceEntityType: sourceEntityTypeSchema.nullable().default(null),
   slug: z.string(),
   error: nullableString,
+  statedSlug: nullableString,
 });
 
 type JsonReady<T> = T extends undefined

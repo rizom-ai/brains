@@ -129,7 +129,10 @@ export async function persistImportEntity(
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
-      content: parsedEntity.content ?? rawEntity.content,
+      // The file itself, as createEntityFromMarkdown imports one: a declared
+      // type decodes it into its body, and the store keeps the frontmatter
+      // the type does not write only from the whole document.
+      content: rawEntity.content,
       visibility,
       metadata: { ...adapterMetadata, ...sidecarMetadata },
       created: existing?.created ?? rawEntity.created.toISOString(),

@@ -1,13 +1,12 @@
-import { BaseGenerationJobHandler } from "@brains/plugins";
-import type { GeneratedContent } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import { generationResultSchema } from "@brains/contracts";
+import type {
+  EntityGenerationDeclaration,
+  EntityGenerationResult,
+} from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { generationResultSchema } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { projectAdapter } from "../adapters/project-adapter";
+import { projectBody } from "../lib/project-markdown";
+import type { projectMetadataSchema } from "../schemas/project";
 
 /**
  * Input schema for project generation job
@@ -71,90 +70,57 @@ export const generatedProjectContentSchema: z.ZodObject<{
 });
 
 /**
- * Job handler for portfolio project generation
- * Handles AI-powered content generation and entity creation
+ * The project's `project:generation`: a case study written from a request
+ * and the year it began, as the anchor and in the brain's voice, saved as
+ * a draft under its title's slug.
  */
-export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
-  ProjectGenerationJobData,
-  ProjectGenerationResult
-> {
-  constructor(logger: Logger, context: EntityPluginContext) {
-    super(logger, context, {
-      schema: projectGenerationJobSchema,
-      jobTypeName: "project-generation",
-      entityType: "project",
-    });
-  }
-
-  protected async generate(
-    data: ProjectGenerationJobData,
-    progressReporter: ProgressReporter,
-  ): Promise<GeneratedContent> {
-    const { year } = data;
-
-    await this.reportProgress(progressReporter, {
+export const projectGeneration: EntityGenerationDeclaration<
+  typeof projectGenerationJobSchema,
+  typeof projectMetadataSchema
+> = {
+  input: projectGenerationJobSchema,
+  generate: async ({
+    input,
+    ai,
+    progress,
+  }): Promise<EntityGenerationResult<typeof projectMetadataSchema>> => {
+    await progress.report({
       progress: 10,
       message: "Generating project content with AI",
     });
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(this.context.entityService),
-    );
-    const generated = await this.context.ai.generate(
+    const generated = await ai.generate(
       {
-        prompt: buildProjectGenerationPrompt(data),
-        templateName: "portfolio:generation",
+        template: "generation",
+        prompt: buildProjectGenerationPrompt(input),
         representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        voice: true,
       },
       generatedProjectContentSchema,
     );
-
-    const title = data.title ?? generated.title;
+    const title = input.title ?? generated.title;
     const slug = slugify(title);
-
-    await this.reportProgress(progressReporter, {
+    await progress.report({
       progress: 50,
       message: `Generated project: "${title}"`,
     });
-
-    const frontmatter = {
-      title,
-      slug,
-      status: "draft" as const,
-      description: generated.description,
-      year,
-    };
-
-    const bodyContent = {
-      context: generated.context,
-      problem: generated.problem,
-      solution: generated.solution,
-      outcome: generated.outcome,
-    };
-
     return {
+      success: true,
       id: slug,
-      content: projectAdapter.createProjectContent(frontmatter, bodyContent),
+      content: projectBody({
+        context: generated.context,
+        problem: generated.problem,
+        solution: generated.solution,
+        outcome: generated.outcome,
+      }),
       metadata: {
         title,
         slug,
-        status: "draft",
-        year,
+        authoredSlug: true,
+        status: "draft" as const,
         description: generated.description,
+        year: input.year,
       },
-      title,
       resultExtras: { title },
     };
-  }
-
-  protected override summarizeDataForLog(
-    data: ProjectGenerationJobData,
-  ): Record<string, unknown> {
-    return {
-      prompt: data.prompt.substring(0, 100),
-      year: data.year,
-      title: data.title,
-    };
-  }
-}
+  },
+};

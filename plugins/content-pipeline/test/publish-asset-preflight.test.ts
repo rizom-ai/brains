@@ -134,6 +134,32 @@ Body`,
     expect(enqueue).not.toHaveBeenCalled();
   });
 
+  it("skips a declared record whose metadata carries the target field", async () => {
+    const { preflight, enqueue } = createPreflight();
+
+    // A declared type reads back as its body, its frontmatter its metadata.
+    const result = await preflight.ensureForEntity(
+      createPublishedPost({
+        content: "Body",
+        metadata: { status: "published", slug: "post-1", ogImageId: "og-1" },
+      }),
+    );
+
+    expect(result).toEqual({ checked: 1, enqueued: 0, skipped: 1 });
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("enqueues for a declared record whose metadata lacks the target field", async () => {
+    const { preflight, enqueue } = createPreflight();
+
+    const result = await preflight.ensureForEntity(
+      createPublishedPost({ content: "Body" }),
+    );
+
+    expect(result).toEqual({ checked: 1, enqueued: 1, skipped: 0 });
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
   it("skips when no attachment provider exists", async () => {
     const { preflight, enqueue } = createPreflight({ hasProvider: false });
 

@@ -1,17 +1,20 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { PortfolioPlugin } from "../src/plugin";
+import {
+  portfolioPlugin,
+  type PortfolioEntityPlugin,
+} from "./portfolio-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
-describe("PortfolioPlugin", () => {
+describe("the portfolio plugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: PortfolioPlugin;
+  let plugin: PortfolioEntityPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
 
-    plugin = new PortfolioPlugin({});
+    plugin = portfolioPlugin();
     capabilities = await harness.installPlugin(plugin);
   });
 
@@ -44,22 +47,37 @@ describe("PortfolioPlugin", () => {
       const localHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir-portfolio-enqueue",
         logContext: "portfolio-plugin-test",
+        // The caller who creates through system_create is signed in.
+        resolvePrincipal: async () => ({
+          userId: "test-user",
+          permissionLevel: "admin",
+        }),
       });
       try {
         const mockShell = localHarness.getMockShell();
         const origJobQueue = mockShell.getJobQueueService();
-        const enqueued: Array<{ type: string; data: unknown }> = [];
+        const enqueued: Array<{
+          type: string;
+          data: unknown;
+          source: unknown;
+          operationType: unknown;
+        }> = [];
         mockShell.getJobQueueService = (): ReturnType<
           typeof mockShell.getJobQueueService
         > => ({
           ...origJobQueue,
-          enqueue: async ({ type, data }): Promise<string> => {
-            enqueued.push({ type, data });
+          enqueue: async ({ type, data, options }): Promise<string> => {
+            enqueued.push({
+              type,
+              data,
+              source: options?.source,
+              operationType: options?.metadata.operationType,
+            });
             return "job-123";
           },
         });
 
-        await localHarness.installPlugin(new PortfolioPlugin({}));
+        await localHarness.installPlugin(portfolioPlugin());
 
         const interceptor = localHarness
           .getEntityRegistry()
@@ -77,6 +95,7 @@ describe("PortfolioPlugin", () => {
           {
             interfaceType: "test",
             actor: { kind: "user", userId: "test-user" },
+            userPermissionLevel: "admin",
           },
         );
 
@@ -92,11 +111,21 @@ describe("PortfolioPlugin", () => {
           {
             type: "project:generation",
             data: {
-              prompt:
-                "Create a portfolio case study for my API Gateway project from 2024",
-              title: "API Gateway",
-              year: 2024,
+              authority: {
+                actor: { kind: "user", userId: "test-user" },
+                permissionCeiling: "admin",
+                principalId: "test-user",
+              },
+              input: {
+                prompt:
+                  "Create a portfolio case study for my API Gateway project from 2024",
+                title: "API Gateway",
+                year: 2024,
+              },
             },
+            // As the class queued it: the portfolio's content work.
+            source: "portfolio",
+            operationType: "content_operations",
           },
         ]);
       } finally {

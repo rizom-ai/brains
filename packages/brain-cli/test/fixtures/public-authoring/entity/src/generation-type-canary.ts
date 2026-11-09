@@ -137,6 +137,19 @@ export const summary = defineEntity({
         delegate: { job: "recount", input: { reason: "pasted text" } },
       }),
     },
+    // "generation" names the type's own generation: with nothing
+    // allocated, it writes a new summary.
+    fromAttachment: {
+      resolve: async ({ input }) =>
+        input.sourceEntityId
+          ? {
+              delegate: {
+                job: "generation",
+                input: { bookmarkId: input.sourceEntityId },
+              },
+            }
+          : { refuse: "Name the bookmark to summarize" },
+    },
   },
 });
 

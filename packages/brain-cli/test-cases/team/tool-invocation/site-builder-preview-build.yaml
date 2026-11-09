@@ -8,7 +8,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - requires-built-site-runtime
+  - recipe-team
   - team
   - site-builder
   - default
@@ -33,7 +33,7 @@ successCriteria:
     - "I don't have access"
   minInstructionFollowingScore: 4
   responseCriteria:
-    - "Reports the result of building the Team Brain preview site."
+    - "Reports that the preview site build was requested, without claiming it has finished; the build runs in the background."
 
 efficiency:
   maxToolCalls: 3

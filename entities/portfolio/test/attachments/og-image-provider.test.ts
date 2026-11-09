@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { PortfolioPlugin } from "../../src/plugin";
 import { createProjectOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { Project } from "../../src/schemas/project";
+import {
+  portfolioPlugin,
+  type PortfolioEntityPlugin,
+} from "../portfolio-plugin";
 
 const sampleProject: Project = {
   id: "project-1",
@@ -11,25 +14,22 @@ const sampleProject: Project = {
   contentHash: "project-hash",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
-  content: `---
-title: Civic Signals
-slug: civic-signals
-status: published
-publishedAt: 2024-02-01T00:00:00.000Z
-description: A civic data project for surfacing slow infrastructure signals.
-year: 2024
-url: https://example.com/projects/civic-signals
----
-## Context
+  // As a declared project reads back: its sections, its frontmatter its
+  // metadata.
+  content: `## Context
 
 City teams needed a shared view of maintenance patterns.
 `,
   metadata: {
     title: "Civic Signals",
     slug: "civic-signals",
+    authoredSlug: true,
     status: "published",
     publishedAt: "2024-02-01T00:00:00.000Z",
+    description:
+      "A civic data project for surfacing slow infrastructure signals.",
     year: 2024,
+    url: "https://example.com/projects/civic-signals",
   },
 };
 
@@ -39,8 +39,8 @@ describe("Project OG image attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a project OG image attachment provider", async () => {
-    const harness = createPluginHarness<PortfolioPlugin>();
-    await harness.installPlugin(new PortfolioPlugin());
+    const harness = createPluginHarness<PortfolioEntityPlugin>();
+    await harness.installPlugin(portfolioPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("project", "og-image")).toBe(true);
@@ -56,8 +56,8 @@ describe("Project OG image attachment provider", () => {
       expect(html).toContain("slow infrastructure signals");
       return TINY_PNG;
     });
-    const harness = createPluginHarness<PortfolioPlugin>();
-    await harness.installPlugin(new PortfolioPlugin());
+    const harness = createPluginHarness<PortfolioEntityPlugin>();
+    await harness.installPlugin(portfolioPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
     const provider = createProjectOgImageProvider(

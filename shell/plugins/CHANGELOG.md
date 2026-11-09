@@ -1,5 +1,120 @@
 # @brains/plugins
 
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.668
+  - @brains/content-formatters@0.2.0-alpha.668
+  - @brains/contracts@0.2.0-alpha.668
+  - @brains/site-composition@0.2.0-alpha.668
+  - @brains/utils@0.2.0-alpha.668
+  - @brains/ai-service@0.2.0-alpha.668
+  - @brains/content-service@0.2.0-alpha.668
+  - @brains/conversation-service@0.2.0-alpha.668
+  - @brains/entity-service@0.2.0-alpha.668
+  - @brains/identity-service@0.2.0-alpha.668
+  - @brains/job-queue@0.2.0-alpha.668
+  - @brains/mcp-service@0.2.0-alpha.668
+  - @brains/messaging-service@0.2.0-alpha.668
+  - @brains/recurring-checks@0.2.0-alpha.668
+  - @brains/runtime-state@0.2.0-alpha.668
+  - @brains/scheduler@0.2.0-alpha.668
+  - @brains/templates@0.2.0-alpha.668
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies [[`d726625`](https://github.com/rizom-ai/brains/commit/d72662546b43ab95f286ca2a408bc85ab677e309)]:
+  - @brains/entity-service@0.2.0-alpha.667
+  - @brains/atproto-contracts@0.2.0-alpha.667
+  - @brains/ai-service@0.2.0-alpha.667
+  - @brains/content-service@0.2.0-alpha.667
+  - @brains/identity-service@0.2.0-alpha.667
+  - @brains/content-formatters@0.2.0-alpha.667
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/site-composition@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/conversation-service@0.2.0-alpha.667
+  - @brains/job-queue@0.2.0-alpha.667
+  - @brains/mcp-service@0.2.0-alpha.667
+  - @brains/messaging-service@0.2.0-alpha.667
+  - @brains/recurring-checks@0.2.0-alpha.667
+  - @brains/runtime-state@0.2.0-alpha.667
+  - @brains/scheduler@0.2.0-alpha.667
+  - @brains/templates@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.666
+  - @brains/content-formatters@0.2.0-alpha.666
+  - @brains/contracts@0.2.0-alpha.666
+  - @brains/site-composition@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/ai-service@0.2.0-alpha.666
+  - @brains/content-service@0.2.0-alpha.666
+  - @brains/conversation-service@0.2.0-alpha.666
+  - @brains/entity-service@0.2.0-alpha.666
+  - @brains/identity-service@0.2.0-alpha.666
+  - @brains/job-queue@0.2.0-alpha.666
+  - @brains/mcp-service@0.2.0-alpha.666
+  - @brains/messaging-service@0.2.0-alpha.666
+  - @brains/recurring-checks@0.2.0-alpha.666
+  - @brains/runtime-state@0.2.0-alpha.666
+  - @brains/scheduler@0.2.0-alpha.666
+  - @brains/templates@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.665
+  - @brains/content-formatters@0.2.0-alpha.665
+  - @brains/contracts@0.2.0-alpha.665
+  - @brains/site-composition@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/ai-service@0.2.0-alpha.665
+  - @brains/content-service@0.2.0-alpha.665
+  - @brains/conversation-service@0.2.0-alpha.665
+  - @brains/entity-service@0.2.0-alpha.665
+  - @brains/identity-service@0.2.0-alpha.665
+  - @brains/job-queue@0.2.0-alpha.665
+  - @brains/mcp-service@0.2.0-alpha.665
+  - @brains/messaging-service@0.2.0-alpha.665
+  - @brains/recurring-checks@0.2.0-alpha.665
+  - @brains/runtime-state@0.2.0-alpha.665
+  - @brains/scheduler@0.2.0-alpha.665
+  - @brains/templates@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.664
+  - @brains/content-formatters@0.2.0-alpha.664
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/site-composition@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/ai-service@0.2.0-alpha.664
+  - @brains/content-service@0.2.0-alpha.664
+  - @brains/conversation-service@0.2.0-alpha.664
+  - @brains/entity-service@0.2.0-alpha.664
+  - @brains/identity-service@0.2.0-alpha.664
+  - @brains/job-queue@0.2.0-alpha.664
+  - @brains/mcp-service@0.2.0-alpha.664
+  - @brains/messaging-service@0.2.0-alpha.664
+  - @brains/recurring-checks@0.2.0-alpha.664
+  - @brains/runtime-state@0.2.0-alpha.664
+  - @brains/scheduler@0.2.0-alpha.664
+  - @brains/templates@0.2.0-alpha.664
+
 ## 0.2.0-alpha.663
 
 ### Patch Changes

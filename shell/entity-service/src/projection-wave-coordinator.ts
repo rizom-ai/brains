@@ -99,11 +99,10 @@ export class ProjectionWaveCoordinator {
         .from(projectionWaves)
         .where(eq(projectionWaves.status, "running"))
         .limit(1);
-      if (active.length > 0) {
-        throw new Error(
-          `Cannot claim projection wave while "${active[0]?.id}" is running`,
-        );
-      }
+      // Another process's scheduler claimed a wave after this one last looked
+      // for an active wave. That wave is its claimant's to advance, so there
+      // is nothing to claim here.
+      if (active.length > 0) return null;
 
       if (await this.batches.hasActiveBatchInTransaction(transaction)) {
         return null;
@@ -273,6 +272,24 @@ export class ProjectionWaveCoordinator {
       if (wave.admissionEpoch === epoch) return false;
       await this.supersedeWaveInTransaction(transaction, wave, parsedAt);
       return true;
+    });
+  }
+
+  /**
+   * Supersede a wave whose work no longer applies, such as one claimed against
+   * a projection graph the brain no longer composes. Its inputs are requeued
+   * for a wave planned against the current graph.
+   */
+  public async supersedeWave(
+    waveId: string,
+    supersededAt: number,
+  ): Promise<ProjectionWave> {
+    const parsedWaveId = parseWaveId(waveId);
+    const parsedAt = parseWaveTimestamp(supersededAt);
+    return this.transactions.run(async (transaction) => {
+      const wave = await this.requireWave(transaction, parsedWaveId);
+      if (supersessionEffect(wave.status).kind !== "apply") return wave;
+      return this.supersedeWaveInTransaction(transaction, wave, parsedAt);
     });
   }
 

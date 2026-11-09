@@ -847,6 +847,85 @@ describe("ProjectionStore", () => {
     ]);
   });
 
+  it("supersedes a running wave and releases its inputs to the next claim", async () => {
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "doc-claimed",
+      revision: "hash-claimed",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.claimPendingWave({
+      waveId: "wave-retired-graph",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+
+    expect(await store.supersedeWave("wave-retired-graph", 30)).toEqual(
+      expect.objectContaining({
+        id: "wave-retired-graph",
+        status: "superseded",
+        completedAt: 30,
+      }),
+    );
+    expect(await store.supersedeWave("wave-retired-graph", 40)).toEqual(
+      expect.objectContaining({ status: "superseded", completedAt: 30 }),
+    );
+    expect(await store.getActiveWave()).toBeNull();
+    expect(await store.listPendingInputs()).toEqual([
+      expect.objectContaining({ sourceId: "doc-claimed", markedAt: 30 }),
+    ]);
+
+    const next = await store.claimPendingWave({
+      waveId: "wave-current-graph",
+      graphFingerprint: "graph-2",
+      startedAt: 50,
+    });
+    expect(next).toEqual(
+      expect.objectContaining({
+        id: "wave-current-graph",
+        graphFingerprint: "graph-2",
+      }),
+    );
+    expect(await store.listWaveInputs("wave-current-graph")).toEqual([
+      expect.objectContaining({ sourceId: "doc-claimed" }),
+    ]);
+  });
+
+  it("claims nothing while another scheduler's wave is running", async () => {
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "doc-first",
+      revision: "hash-first",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.claimPendingWave({
+      waveId: "wave-other-process",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "doc-second",
+      revision: "hash-second",
+      operation: "upsert",
+      markedAt: 30,
+    });
+
+    expect(
+      await store.claimPendingWave({
+        waveId: "wave-lost-race",
+        graphFingerprint: "graph-1",
+        startedAt: 40,
+      }),
+    ).toBeNull();
+    expect(await store.getWave("wave-lost-race")).toBeNull();
+    expect(await store.listPendingInputs()).toEqual([
+      expect.objectContaining({ sourceId: "doc-second" }),
+    ]);
+  });
+
   it("claims and requeues a wave larger than one statement can bind", async () => {
     // A corpus migration marks every entity twice: its old id deleted and its
     // new one written. Six columns a row, 7,462 rows outgrow SQLite's 32,766

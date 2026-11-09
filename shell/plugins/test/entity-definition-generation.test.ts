@@ -290,6 +290,64 @@ describe("declared generation", () => {
     }
   });
 
+  // A job queued before its type was declared carries the class handler's
+  // raw input, with no requester recorded: it runs as the package.
+  it("runs a job queued in the class handler's raw shape, as the package", async () => {
+    const seen: { context?: EntityGenerationContext<unknown> } = {};
+    const harness = await install([memoWithGeneration(seen)]);
+    try {
+      expect(
+        await run(harness, "memo:generation", {
+          prompt: "tides",
+          title: "Raw memo",
+        }),
+      ).toMatchObject({ success: true, entityId: "raw-memo" });
+      expect(seen.context?.input).toEqual({
+        prompt: "tides",
+        title: "Raw memo",
+      });
+      const written = await stored(harness, "memo", "raw-memo");
+      expect(written?.content).toBe("About: tides");
+
+      const stub = buildGenerationStubEntity(harness.getEntityRegistry(), {
+        entityType: "memo",
+        id: "allocated",
+        title: "Allocated",
+      });
+      if (!stub) throw new Error("The declared stub was not used");
+      await harness.getEntityService().createEntity({ entity: stub });
+      expect(
+        await run(harness, "memo:generation", {
+          prompt: "harbours",
+          entityId: "allocated",
+        }),
+      ).toMatchObject({ success: true, entityId: "allocated" });
+      expect(seen.context?.entityId).toBe("allocated");
+      expect((await stored(harness, "memo", "allocated"))?.content).toBe(
+        "About: harbours",
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("refuses queued data that names a requester but whose input does not fit", () => {
+    return install([memoWithGeneration({})]).then(async (harness) => {
+      try {
+        const handler = handlerFor(harness, "memo:generation");
+        expect(
+          handler.validateAndParse({
+            authority: callerAuthority,
+            input: { prompt: 42 },
+          }),
+        ).toBeNull();
+        expect(handler.validateAndParse({ prompt: 42 })).toBeNull();
+      } finally {
+        await harness.reset();
+      }
+    });
+  });
+
   it("marks the allocated entity failed when generation refuses or throws", async () => {
     const harness = await install([memoWithGeneration({})]);
     try {
@@ -850,6 +908,175 @@ describe("create routes that allocate and delegate", () => {
     } finally {
       await harness.reset();
     }
+  });
+});
+
+describe("create routes that delegate to the type's own generation", () => {
+  const brief = defineEntity({
+    type: "brief",
+    purpose: "Generates itself from a prompt.",
+    metadata: noteMetadata,
+    templates: {
+      draft: createTemplate({
+        name: "draft",
+        description: "Drafts a brief",
+        schema: z.object({ body: z.string() }),
+        basePrompt: "Draft a brief.",
+        requiredPermission: "public",
+      }),
+    },
+    stub: ({ title }) => ({
+      content: "",
+      metadata: { title, status: "generating" },
+    }),
+    generation: {
+      input: z.object({ prompt: z.string() }),
+      generate: async ({ input }) => ({
+        success: true,
+        content: `About: ${input.prompt}`,
+        metadata: { title: "Written" },
+      }),
+    },
+    create: {
+      fromPrompt: {
+        resolve: async ({ input }) =>
+          input.title === "placeholder"
+            ? {
+                create: {
+                  id: "placeholder",
+                  content: "",
+                  metadata: { title: "placeholder", status: "generating" },
+                },
+                delegate: {
+                  job: "generation",
+                  input: { prompt: input.prompt ?? "" },
+                },
+              }
+            : {
+                delegate: {
+                  job: "generation",
+                  input: { prompt: input.prompt ?? "" },
+                },
+              },
+      },
+    },
+  });
+
+  async function intercept(
+    harness: Harness,
+    input: CreateInput,
+  ): Promise<unknown> {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("brief");
+    if (!interceptor) throw new Error("No create interceptor registered");
+    return interceptor(input, caller);
+  }
+
+  it("writes the placeholder and queues the type's generation for it, as the caller", async () => {
+    const harness = await install([brief]);
+    try {
+      const outcome = await intercept(harness, {
+        entityType: "brief",
+        title: "placeholder",
+        prompt: "tides",
+      });
+      expect(outcome).toMatchObject({
+        kind: "handled",
+        result: {
+          success: true,
+          data: { status: "generating", entityId: "placeholder" },
+        },
+      });
+      const queued = await enqueued(harness);
+      expect(queued).toEqual([
+        {
+          type: "brief:generation",
+          data: {
+            authority: callerAuthority,
+            input: { prompt: "tides" },
+            entityId: "placeholder",
+          },
+        },
+      ]);
+      await run(harness, "brief:generation", queued[0]?.data);
+      expect((await stored(harness, "brief", "placeholder"))?.content).toBe(
+        "About: tides",
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("queues the type's generation with nothing allocated, which writes a new entry", async () => {
+    const harness = await install([brief]);
+    try {
+      const outcome = await intercept(harness, {
+        entityType: "brief",
+        prompt: "harbours",
+      });
+      expect(outcome).toMatchObject({
+        kind: "handled",
+        result: { success: true, data: { status: "generating" } },
+      });
+      expect(JSON.stringify(outcome)).not.toContain("entityId");
+      const queued = await enqueued(harness);
+      expect(queued).toEqual([
+        {
+          type: "brief:generation",
+          data: { authority: callerAuthority, input: { prompt: "harbours" } },
+        },
+      ]);
+      await run(harness, "brief:generation", queued[0]?.data);
+      expect((await stored(harness, "brief", "written"))?.content).toBe(
+        "About: harbours",
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("queues it as content work for the caller who asked", async () => {
+    const harness = await install([brief]);
+    try {
+      await intercept(harness, { entityType: "brief", prompt: "tides" });
+      const [job] = await harness
+        .getMockShell()
+        .getJobQueueService()
+        .getRecentJobs(undefined, 50);
+      expect(job?.metadata).toMatchObject({
+        operationType: "content_operations",
+        requestedByActor: caller.actor,
+        interfaceType: caller.interfaceType,
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("refuses a type that declares a job named generation", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        defineEntityPackage({
+          id: "notes",
+          entities: [
+            defineEntity({
+              type: "memo",
+              purpose: "Shadows its generation.",
+              metadata: noteMetadata,
+              jobs: {
+                generation: defineEntityJob({
+                  input: z.object({}),
+                  handle: async () => null,
+                }),
+              },
+            }),
+          ],
+        }),
+        {},
+        { name: "@fixture/notes", version: "0.1.0" },
+      ),
+    ).toThrow(/generation/);
   });
 });
 

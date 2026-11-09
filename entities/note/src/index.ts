@@ -1,9 +1,28 @@
-// Plugin exports
-export { NotePlugin, notePlugin } from "./plugin";
-export {
-  buildNoteAtprotoRecord,
-  createNoteAtprotoProjection,
-} from "./atproto-projection";
+import {
+  defineEntityPackage,
+  type EntityPackageDefinition,
+} from "@brains/sdk/entities";
+import { noteConfigSchema } from "./config";
+import { note } from "./note";
+
+/**
+ * The notes: one entity, a free-form markdown note, with the package's
+ * settings as the note plugin class took them.
+ */
+export const notePackage: EntityPackageDefinition<
+  readonly [typeof note],
+  readonly [],
+  typeof noteConfigSchema
+> = defineEntityPackage({
+  id: "note",
+  config: noteConfigSchema,
+  entities: [note],
+});
+
+export default notePackage;
+
+export { note } from "./note";
+export { buildNoteAtprotoRecord, noteAtproto } from "./atproto-projection";
 
 // Schema exports
 export {
@@ -18,9 +37,6 @@ export {
   type NoteWithData,
 } from "./schemas/note";
 
-// Adapter exports
-export { NoteAdapter, noteAdapter } from "./adapters/note-adapter";
-
 // Config exports
 export {
   noteConfigSchema,
@@ -28,14 +44,18 @@ export {
   type NoteConfigInput,
 } from "./config";
 
-// Handler exports
 export {
-  NoteGenerationJobHandler,
+  noteGeneration,
   noteGenerationJobSchema,
-  noteGenerationResultSchema,
+  generatedNoteSchema,
   type NoteGenerationJobData,
-  type NoteGenerationResult,
-} from "./handlers/noteGenerationJobHandler";
+} from "./generation";
+export {
+  uploadMarkdownImportJobContract,
+  uploadMarkdownImportJobSchema,
+  type UploadMarkdownImportJobData,
+  type UploadMarkdownImportJobResult,
+} from "./jobs/upload-import";
 
 // Template exports
 export {

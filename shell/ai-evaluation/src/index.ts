@@ -29,7 +29,11 @@ export type { RemoteAgentServiceConfig } from "./remote-agent-service";
 // Loaders
 export { YAMLLoader } from "./loaders";
 export type { YAMLLoaderOptions } from "./loaders/yaml-loader";
-export { resolveEvalSelection, resolveEvalConfig } from "./eval-config-loader";
+export {
+  resolveEvalSelection,
+  resolveEvalConfig,
+  shellTestCasesDirectory,
+} from "./eval-config-loader";
 export { loadPluginEvalConfig, parseEvalYaml } from "./eval-yaml-loader";
 export type { EvalYamlConfig, EvalYamlConfigInput } from "./eval-yaml-loader";
 export type {

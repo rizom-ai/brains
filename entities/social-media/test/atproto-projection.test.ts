@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
+import type { AtprotoProjection } from "@brains/atproto-contracts";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createSocialPostAtprotoProjection } from "../src/atproto-projection";
-import { SocialMediaPlugin } from "../src/plugin";
 import type { SocialPost } from "../src/schemas/social-post";
+import { socialMediaPlugin } from "./social-media-plugin";
 
+// A social post as a declared type reads it: its metadata and its text.
 const socialPost: SocialPost = {
   id: "social-post-1",
   entityType: "social-post",
-  content:
-    "---\ntitle: Launch Note\nplatform: linkedin\nstatus: published\npublishedAt: 2026-05-28T10:00:00.000Z\nplatformPostId: urn:li:share:123\nsourceEntityId: post-1\nsourceEntityType: post\n---\nSharing our launch note with the network.",
+  content: "Sharing our launch note with the network.",
   created: "2026-05-28T09:00:00.000Z",
   updated: "2026-05-28T11:00:00.000Z",
   visibility: "public",
@@ -20,14 +20,29 @@ const socialPost: SocialPost = {
     status: "published",
     publishedAt: "2026-05-28T10:00:00.000Z",
     platformPostId: "urn:li:share:123",
+    sourceEntityId: "post-1",
+    sourceEntityType: "post",
   },
 };
 
+async function projection(): Promise<AtprotoProjection> {
+  const harness = createPluginHarness({
+    dataDir: "/tmp/test-social-post-atproto",
+  });
+  await harness.installPlugin(socialMediaPlugin());
+  const found = harness
+    .getMockShell()
+    .getAtprotoProjectionRegistry()
+    .get("social-post");
+  if (!found) throw new Error("No social post projection");
+  return found;
+}
+
 describe("social-post ATProto projection", () => {
   it("maps social posts to ai.rizom.brain.socialPost records", async () => {
-    const projection = createSocialPostAtprotoProjection();
-
-    const record = await projection.buildRecord({
+    const record = await (
+      await projection()
+    ).buildRecord({
       entity: socialPost,
       context: createPluginHarness().getServiceContext("social-media"),
       config: {
@@ -55,37 +70,22 @@ describe("social-post ATProto projection", () => {
   });
 
   it("names its page when the site gives the social post one, and nothing otherwise", async () => {
-    const projection = createSocialPostAtprotoProjection();
+    const found = await projection();
     const context = createPluginHarness().getServiceContext("social-media");
-    const placed = await projection.buildRecord({
+    const placed = await found.buildRecord({
       entity: socialPost,
       context,
       config: {},
       pageUrl: "https://brain.example.com/social-posts/socialPost-1",
     });
-    expect(placed.canonicalUrl).toBe(
+    expect(placed["canonicalUrl"]).toBe(
       "https://brain.example.com/social-posts/socialPost-1",
     );
-    const unplaced = await projection.buildRecord({
+    const unplaced = await found.buildRecord({
       entity: socialPost,
       context,
       config: {},
     });
-    expect(unplaced.canonicalUrl).toBeUndefined();
-  });
-
-  it("registers the social-post projection when the social media plugin registers", async () => {
-    const harness = createPluginHarness({
-      dataDir: "/tmp/test-social-post-atproto",
-    });
-    await harness.installPlugin(new SocialMediaPlugin({}));
-
-    const projection = harness
-      .getMockShell()
-      .getAtprotoProjectionRegistry()
-      .get("social-post");
-
-    expect(projection).toBeDefined();
-    expect(projection?.collection).toBe("ai.rizom.brain.socialPost");
+    expect(unplaced["canonicalUrl"]).toBeUndefined();
   });
 });

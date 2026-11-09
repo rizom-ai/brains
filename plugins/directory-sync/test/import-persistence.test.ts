@@ -220,6 +220,33 @@ describe("persistImportEntity visibility", () => {
   });
 });
 
+describe("persistImportEntity of a declared type", () => {
+  // A declared type decodes a file into its body and its metadata; the file
+  // is what is imported, as createEntityFromMarkdown imports one, so the
+  // store keeps the frontmatter the type does not write.
+  it("persists the file whole, not the body it was decoded into", async () => {
+    const file = "---\ntitle: Note\nchecksum: seed\n---\n# Note\n\nBody.";
+    const f = setup();
+    const raw: RawEntity = {
+      entityType: "note",
+      id: "note-1",
+      content: file,
+      created: new Date("2026-01-01T00:00:00Z"),
+      updated: new Date("2026-01-02T00:00:00Z"),
+    };
+    await persistImportEntity(
+      f.deps,
+      raw,
+      { content: "# Note\n\nBody.", metadata: { title: "Note" } },
+      "note/note-1.md",
+      f.result,
+      null,
+    );
+    expect(f.entity().content).toBe(file);
+    expect(f.entity().metadata).toEqual({ title: "Note" });
+  });
+});
+
 describe("persistImportEntity with fields the brain no longer keeps", () => {
   const canonical = "---\ntitle: Note\nsource:\n  ref: a\n---\nBody\n";
   const withDropped =

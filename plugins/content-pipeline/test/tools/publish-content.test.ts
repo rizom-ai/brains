@@ -34,6 +34,7 @@ function createStubAdapter(entityType: string): EntityAdapter<BaseEntity> {
 
 function createPublishableEntity(
   content: string,
+  metadata: PublishableMetadata = { status: "draft" },
 ): BaseEntity<PublishableMetadata> {
   return {
     id: "post-1",
@@ -43,7 +44,7 @@ function createPublishableEntity(
     visibility: "public",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
-    metadata: { status: "draft" },
+    metadata,
   };
 }
 
@@ -127,6 +128,29 @@ Post with image.`;
     expect(result.bodyContent).toBe("Post with image.");
     expect(result.imageData?.mimeType).toBe("image/png");
     expect(new TextDecoder().decode(result.imageData?.data)).toBe("hello");
+  });
+
+  it("reads a declared record's cover image from its metadata", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "cover-image",
+        entityType: "image",
+        content: "data:image/png;base64,aGVsbG8=",
+        metadata: {},
+      },
+    });
+
+    // A declared type reads back as its body, its frontmatter its metadata.
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity("Post with image.", {
+        status: "draft",
+        coverImageId: "cover-image",
+      }),
+    );
+
+    expect(result.bodyContent).toBe("Post with image.");
+    expect(result.imageData?.mimeType).toBe("image/png");
   });
 
   it("should fetch structured document attachment data", async () => {

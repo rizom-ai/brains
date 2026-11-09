@@ -1,0 +1,29 @@
+id: tool-invocation-search-in-dutch
+name: A question in Dutch is searched and answered in Dutch
+description: Tests that a question about the user's own writing asked in Dutch is searched like any other and answered in the language it was asked in.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - search
+  - language
+
+turns:
+  - userMessage: "Wat heb ik geschreven over gedistribueerde systemen?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  responseCriteria:
+    - "Answers in Dutch."
+    - "Names at least one of the user's saved pieces about distributed systems."
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 40000

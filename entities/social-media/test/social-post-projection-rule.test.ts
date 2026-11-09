@@ -122,19 +122,39 @@ const existingSocialPost = entity({
   },
 });
 
+// A social post as a declared type reads it: its text, its source in its metadata.
+const declaredSocialPost = entity({
+  id: "linkedin-post-2",
+  entityType: "social-post",
+  content: "Declared body",
+  metadata: {
+    title: "Declared post",
+    slug: "linkedin-declared-post",
+    platform: "linkedin",
+    status: "draft",
+    sourceEntityType: "post",
+    sourceEntityId: "post-2",
+  },
+});
+
 describe("social post projection rule", () => {
   it("selects queued posts and records existing source-derived outputs", async () => {
-    const rule = createSocialPostProjectionRule();
+    const rule = createSocialPostProjectionRule("social-media:linkedin");
 
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
-      inputContext([queuedPost, draftPost, existingSocialPost]),
+      inputContext([
+        queuedPost,
+        draftPost,
+        existingSocialPost,
+        declaredSocialPost,
+      ]),
       new AbortController().signal,
     );
 
     expect(selected).toMatchObject({
       sources: [{ id: "post-1", title: "Queued source" }],
-      existingSourceIds: ["post-1"],
+      existingSourceIds: ["post-1", "post-2"],
       templatePrompt: "resolved LinkedIn prompt",
       model: "test-model",
       identity: { id: "brain" },
@@ -142,7 +162,7 @@ describe("social post projection rule", () => {
   });
 
   it("derives one stable social post for each missing queued source", async () => {
-    const rule = createSocialPostProjectionRule();
+    const rule = createSocialPostProjectionRule("social-media:linkedin");
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
       inputContext([queuedPost, draftPost]),
@@ -174,13 +194,30 @@ describe("social post projection rule", () => {
         visibility: "public",
       },
     });
+    expect(execution.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt:
+          "Write a linkedin post to share this post:\n\nSource: post/queued-source\n\nTitle: Queued source\n\nQueued source body",
+        templateName: "social-media:linkedin",
+        representedIdentity: "anchor",
+      }),
+      expect.anything(),
+    );
     expect(
-      intents[0]?.operation === "upsert" ? intents[0].entity.content : "",
-    ).toContain("sourceEntityId: post-1");
+      intents[0]?.operation === "upsert" ? intents[0].entity : undefined,
+    ).toMatchObject({
+      content:
+        "---\ntitle: A generated title\nplatform: linkedin\nstatus: draft\nsourceEntityId: post-1\nsourceEntityType: post\n---\nGenerated social body\n",
+      metadata: {
+        sourceEntityId: "post-1",
+        sourceEntityType: "post",
+        slug: "linkedin-a-generated-title",
+      },
+    });
   });
 
   it("does not call the model when every queued source already has an output", async () => {
-    const rule = createSocialPostProjectionRule();
+    const rule = createSocialPostProjectionRule("social-media:linkedin");
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
       inputContext([queuedPost, existingSocialPost]),

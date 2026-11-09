@@ -1,17 +1,17 @@
-import {
-  BaseGenerationJobHandler,
-  ensureUniqueTitle,
-  generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { GeneratedContent } from "@brains/plugins";
-import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
-import { slugify } from "@brains/utils/string-utils";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
+import type {
+  EntityGenerationDeclaration,
+  EntityGenerationResult,
+} from "@brains/sdk/entities";
+import {
+  ensureUniqueTitle,
+  entityRuntime,
+  uniqueTitleContext,
+} from "@brains/sdk/internal/entity-runtime";
+import { slugify } from "@brains/utils/string-utils";
+import { z } from "@brains/utils/zod";
 import { describeDeck } from "../lib/describe-deck";
+import type { deckMetadataSchema } from "../schemas/deck";
 
 /**
  * Input schema for deck generation job
@@ -59,38 +59,7 @@ export const generatedDeckSchema: z.ZodObject<{
   description: z.string(),
 });
 
-/**
- * Job handler for deck generation
- * Handles AI-powered content generation and entity creation
- */
-export class DeckGenerationJobHandler extends BaseGenerationJobHandler<
-  DeckGenerationJobData,
-  DeckGenerationResult
-> {
-  constructor(logger: Logger, context: EntityPluginContext) {
-    super(logger, context, {
-      schema: deckGenerationJobSchema,
-      jobTypeName: "deck-generation",
-      entityType: "deck",
-    });
-  }
-
-  protected async generate(
-    data: DeckGenerationJobData,
-    progressReporter: ProgressReporter,
-  ): Promise<GeneratedContent> {
-    const { prompt, author, event, skipAi } = data;
-    let { title, content, description } = data;
-
-    // skipAi mode: create skeleton deck with placeholders
-    if (skipAi) {
-      if (!title) {
-        this.failEarly("Title is required when skipAi is true");
-      }
-
-      content =
-        content ??
-        `# ${title}
+const SKELETON = (title: string): string => `# ${title}
 
 ---
 
@@ -110,74 +79,84 @@ Add your main content here
 
 Add your conclusion here`;
 
-      description = description ?? `Presentation: ${title}`;
+/**
+ * The deck's `deck:generation`: the slides, title and description from the
+ * AI, in the brain's voice and as the anchor, or a skeleton without it; a
+ * description written from given slides; a title that is taken asked for
+ * again; saved as a draft beside any deck that already has its id.
+ */
+export const deckGeneration: EntityGenerationDeclaration<
+  typeof deckGenerationJobSchema,
+  typeof deckMetadataSchema
+> = {
+  input: deckGenerationJobSchema,
+  generate: async (
+    context,
+  ): Promise<EntityGenerationResult<typeof deckMetadataSchema>> => {
+    const { input, ai, progress } = context;
+    const runtime = entityRuntime(context);
+    const { prompt, author, event, skipAi } = input;
+    let { title, content, description } = input;
 
-      await this.reportProgress(progressReporter, {
+    // skipAi mode: create skeleton deck with placeholders
+    if (skipAi) {
+      if (!title) {
+        return {
+          success: false,
+          error: "Title is required when skipAi is true",
+        };
+      }
+      content = content ?? SKELETON(title);
+      description = description ?? `Presentation: ${title}`;
+      await progress.report({
         progress: 50,
         message: "Creating skeleton deck",
       });
     }
     // Case 1: AI generates everything
     else if (!title || !content) {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 10,
         message: "Generating slide deck content with AI",
       });
-
-      const defaultPrompt =
+      const finalPrompt =
+        prompt ??
         "Create a presentation about an interesting topic from my knowledge base";
-      const finalPrompt = prompt ?? defaultPrompt;
-      const generationPrompt = `${finalPrompt}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`;
-
-      const voiceGuidance = formatVoiceGuidance(
-        await fetchStyleGuide(this.context.entityService),
-      );
-      const generated = await this.context.ai.generate(
+      const generated = await ai.generate(
         {
-          prompt: generationPrompt,
-          templateName: "decks:generation",
+          template: "generation",
+          prompt: `${finalPrompt}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`,
           representedIdentity: "anchor",
-          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+          voice: true,
         },
         generatedDeckSchema,
       );
-
       title = title ?? generated.title;
       content = content ?? generated.content;
       description = description ?? generated.description;
-
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
         message: `Generated deck: "${title}"`,
       });
     }
     // Case 2: User provided title+content, but no description
     else if (!description) {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 30,
         message: "Generating description with AI",
       });
-
-      description = await describeDeck(this.context, { title, content });
-
-      await this.reportProgress(progressReporter, {
-        progress: 50,
-        message: "Description generated",
-      });
+      description = await describeDeck(ai.generate, { title, content });
+      await progress.report({ progress: 50, message: "Description generated" });
     } else {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
         message: "Using provided content",
       });
     }
 
     if (!title || !content) {
-      this.failEarly("Title and content are required");
+      return { success: false, error: "Title and content are required" };
     }
-
-    const slug = slugify(title);
-
-    const metadata = { slug, title, status: "draft" as const };
 
     // Ensure title doesn't collide
     const finalTitle = await ensureUniqueTitle({
@@ -186,41 +165,24 @@ Add your conclusion here`;
       deriveId: (t) => t,
       regeneratePrompt:
         "Generate a different presentation deck title on the same topic.",
-      context: this.context,
+      context: uniqueTitleContext(runtime),
     });
+    const slug = slugify(finalTitle);
 
-    if (finalTitle !== title) {
-      metadata.title = finalTitle;
-      metadata.slug = slugify(finalTitle);
-    }
-
-    const frontmatter = {
-      title: metadata.title,
-      status: metadata.status,
-      slug: metadata.slug,
-      description,
-      author,
-      event,
-    };
-
-    const finalMarkdown = generateMarkdownWithFrontmatter(content, frontmatter);
-
-    return {
+    return runtime.deduplicated({
+      success: true,
       id: finalTitle,
-      content: finalMarkdown,
-      metadata,
-      title: finalTitle,
-      resultExtras: { title: finalTitle, slug: metadata.slug },
-      createOptions: { deduplicateId: true },
-    };
-  }
-
-  protected override summarizeDataForLog(
-    data: DeckGenerationJobData,
-  ): Record<string, unknown> {
-    return {
-      prompt: data.prompt,
-      title: data.title,
-    };
-  }
-}
+      content,
+      metadata: {
+        title: finalTitle,
+        slug,
+        authoredSlug: true,
+        status: "draft" as const,
+        description,
+        ...(author !== undefined && { author }),
+        ...(event !== undefined && { event }),
+      },
+      resultExtras: { title: finalTitle, slug },
+    });
+  },
+};

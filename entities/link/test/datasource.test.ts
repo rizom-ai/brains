@@ -1,17 +1,14 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import { createPluginHarness, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { LinksDataSource } from "../src/datasources/links-datasource";
-import type { BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { LinkStatus, LinkEntity } from "../src/schemas/link";
-import { createMockLogger } from "@brains/test-utils";
+import { linkPlugin } from "./link-plugin";
 
-describe("LinksDataSource", () => {
-  let datasource: LinksDataSource;
+describe("the links data source", () => {
+  let datasource: DataSource & Required<Pick<DataSource, "fetch">>;
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   // Helper to create mock link entities with frontmatter format
@@ -39,20 +36,26 @@ Summary for ${title}`;
       content,
       created: capturedAt,
       updated: capturedAt,
+      // A store row: the stored document, its frontmatter decoded beside it.
       metadata: {
-        title,
         status,
+        title,
+        url: `https://example.com/${id}`,
+        description: `Description for ${title}`,
         capturedAt,
+        source: { ref: "manual:local", label: "Manual" },
       },
     });
   };
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
-    shell = createMockShell();
+  beforeEach(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(linkPlugin());
+    shell = harness.getMockShell();
     mockContext = { entityService: shell.getEntityService() };
-
-    datasource = new LinksDataSource(mockLogger);
+    const registered = harness.getDataSources().get("link:entities");
+    if (!registered?.fetch) throw new Error("No links data source");
+    datasource = { ...registered, fetch: registered.fetch.bind(registered) };
   });
 
   describe("fetchLinkList", () => {
@@ -159,6 +162,53 @@ Summary for ${title}`;
         "link-mid",
         "link-old",
       ]);
+    });
+  });
+
+  describe("fetchLink", () => {
+    it("shows one link by its id, with its summary and its neighbors", async () => {
+      shell.addEntities([
+        createMockLink(
+          "link-old",
+          "Oldest",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+        ),
+        createMockLink(
+          "link-mid",
+          "Middle",
+          "draft",
+          "2025-01-02T10:00:00.000Z",
+        ),
+        createMockLink(
+          "link-new",
+          "Newest",
+          "published",
+          "2025-01-03T10:00:00.000Z",
+        ),
+      ]);
+      const result = await datasource.fetch(
+        { entityType: "link", query: { id: "link-mid" } },
+        z.looseObject({
+          link: z.looseObject({}),
+          prevLink: z.looseObject({ id: z.string() }).nullable(),
+          nextLink: z.looseObject({ id: z.string() }).nullable(),
+        }),
+        mockContext,
+      );
+      expect(result.link).toEqual({
+        id: "link-mid",
+        status: "draft",
+        title: "Middle",
+        url: "https://example.com/link-mid",
+        capturedAt: "2025-01-02T10:00:00.000Z",
+        source: { ref: "manual:local", label: "Manual" },
+        domain: "example.com",
+        description: "Description for Middle",
+        summary: "Summary for Middle",
+      });
+      expect(result.prevLink?.id).toBe("link-new");
+      expect(result.nextLink?.id).toBe("link-old");
     });
   });
 

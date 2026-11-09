@@ -86,7 +86,10 @@ export const mockLinkEntity = (
     metadata: {
       status: "draft",
       title: "Test Article",
+      url: "https://example.com/test",
+      description: "Test description",
       capturedAt: "2025-01-30T10:00:00.000Z",
+      source: { ref: "cli:local", label: "CLI" },
     },
     created: "2025-01-30T10:00:00.000Z",
     updated: "2025-01-30T10:00:00.000Z",
@@ -106,7 +109,10 @@ export function createMockLinkEntity(
     metadata: overrides.metadata ?? {
       status: "draft",
       title: "Test Link",
+      url: "https://example.com/test",
+      description: "Test description",
       capturedAt: "2025-01-30T10:00:00.000Z",
+      source: { ref: "cli:local", label: "CLI" },
     },
   });
 }

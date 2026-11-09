@@ -19,7 +19,7 @@ import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
-import { blogPlugin } from "@brains/blog";
+import blogPackage from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
@@ -29,7 +29,7 @@ import { quizPlugin } from "@brains/quiz";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
-import { decksPlugin } from "@brains/decks";
+import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
@@ -38,10 +38,10 @@ import documentPackage from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
-import { linkPlugin } from "@brains/link";
+import linkPackage from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
-import { notePlugin } from "@brains/note";
+import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
@@ -51,7 +51,7 @@ import {
 } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
-import { portfolioPlugin } from "@brains/portfolio";
+import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
@@ -59,7 +59,7 @@ import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import siteInfoPackage from "@brains/site-info";
-import { socialMediaPlugin } from "@brains/social-media";
+import socialMediaPackage from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
@@ -167,8 +167,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("document", "@brains/document-plugin", documentPackage, {
       pluginId: "document",
     }),
-    ["note", notePlugin, undefined],
-    ["link", linkPlugin, undefined],
+    packageCapability("note", "@brains/note", notePackage, {
+      pluginId: "note",
+    }),
+    packageCapability("link", "@brains/link", linkPackage, {
+      pluginId: "link",
+    }),
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
       pluginId: "wishlist",
     }),
@@ -187,7 +191,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       ],
       undefined,
     ],
-    ["decks", decksPlugin, undefined],
+    packageCapability("decks", "@brains/decks", decksPackage, {
+      pluginId: "decks",
+    }),
     [
       "directory-sync",
       directorySync,
@@ -232,13 +238,22 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["form", formPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
 
-    ["blog", blogPlugin, undefined],
+    packageCapability("blog", "@brains/blog", blogPackage, {
+      pluginId: "blog",
+    }),
     packageCapability("series", "@brains/series", seriesPackage, {
       pluginId: "series",
     }),
-    ["portfolio", portfolioPlugin, undefined],
+    packageCapability("portfolio", "@brains/portfolio", portfolioPackage, {
+      pluginId: "portfolio",
+    }),
     ["content-pipeline", contentPipelinePlugin, undefined],
-    ["social-media", socialMediaPlugin, undefined],
+    packageCapability(
+      "social-media",
+      "@brains/social-media",
+      socialMediaPackage,
+      { pluginId: "social-media" },
+    ),
     ["newsletter", newsletter, undefined],
     ["stock-photo", stockPhotoPlugin, undefined],
     [

@@ -7,6 +7,7 @@ import {
   type EntityReader,
   type EntityDataSourceDefinition,
   type EntityDefinition,
+  type EntityFeedBuild,
   type EntityFeedDeclaration,
   type EntityOf,
   type FeedItem,
@@ -94,8 +95,16 @@ type SyndicatedNote = EntityOf<
   EntityDefinition<"syndicated-note", typeof noteMetadata>
 >;
 
-function noteItem(note: SyndicatedNote): FeedItem | null {
-  return note.metadata.publishedAt === undefined
+// A production feed leaves out a note without a publication date; a
+// preview dates it by when it was written.
+function noteItem(
+  note: SyndicatedNote,
+  { environment }: EntityFeedBuild,
+): FeedItem | null {
+  const publishedAt =
+    note.metadata.publishedAt ??
+    (environment === "preview" ? note.created : undefined);
+  return publishedAt === undefined
     ? null
     : {
         title: note.metadata.title,
@@ -103,13 +112,15 @@ function noteItem(note: SyndicatedNote): FeedItem | null {
         description: note.content.slice(0, 160),
         content: note.content,
         author: "The reader",
-        publishedAt: note.metadata.publishedAt,
+        publishedAt,
       };
 }
 
+// The channel's title and description when the site config gives none.
 const noteFeed: EntityFeedDeclaration<SyndicatedNote> = {
   path: "notes.xml",
-  routePrefix: "notes",
+  title: "Notes",
+  description: "Short notes the site syndicates",
   toItem: noteItem,
 };
 
@@ -199,9 +210,17 @@ export const invalidEntity = defineDataSource<typeof bookmark, string, Titles>({
   list: (items): Titles => ({ titles: [...items] }),
 });
 
+export const invalidFeedChannel: EntityFeedDeclaration<SyndicatedNote> = {
+  path: "invalid-channel.xml",
+  // @ts-expect-error A feed's fallback channel title is text.
+  title: 42,
+  // @ts-expect-error A feed's fallback channel description is text.
+  description: ["Short notes"],
+  toItem: noteItem,
+};
+
 export const invalidFeedItem: EntityFeedDeclaration<SyndicatedNote> = {
   path: "invalid.xml",
-  routePrefix: "notes",
   // @ts-expect-error A feed item names its title, slug and publication date.
   toItem: (note) => ({ title: note.metadata.title }),
 };

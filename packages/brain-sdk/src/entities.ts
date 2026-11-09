@@ -50,6 +50,7 @@ export type {
   EntityEvalContext,
   EntityEvalDeclaration,
   EntityEvalFixtures,
+  EntityFeedBuild,
   EntityFeedDeclaration,
   EntityGenerationContext,
   EntityGenerationDeclaration,
