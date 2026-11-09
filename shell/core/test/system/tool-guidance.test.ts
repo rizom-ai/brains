@@ -103,6 +103,17 @@ describe("system tool descriptions carry their own guidance", () => {
     expect(search).toContain("run a fresh search for that turn");
     expect(search).toContain("How do I discuss X in my writing?");
   });
+
+  it("system_get: a requested read reads storage, not the conversation", () => {
+    const get = description("system_get");
+
+    expect(get).toContain(
+      "When the user asks to read, show or verify an entity, call system_get in that turn",
+    );
+    expect(get).toContain(
+      "stored content can change outside this conversation",
+    );
+  });
 });
 
 // The schema says what each field is; the description says when to use
