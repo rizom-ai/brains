@@ -28,7 +28,7 @@ import {
  * A first-party generation's step after it runs, as an entity plugin
  * class's generation handler queued its follow-up work once the record was
  * written and reported its failure otherwise: told the id written (the next
- * free one when its own was taken) or the failure, with the parsed input,
+ * free one when its own was taken) and its title, or the failure, with the parsed input,
  * the package's jobs and its retry scope.
  */
 
@@ -63,7 +63,7 @@ const memo = defineEntity({
           success: true,
           id: "taken",
           content: context.input.prompt,
-          metadata: { title: "Taken" },
+          metadata: { title: "A Taken Memo" },
         });
       },
     },
@@ -166,7 +166,7 @@ async function generate(
 }
 
 describe("a first-party generation's step after it runs", () => {
-  it("is told the id written and its input, and queues follow-up work", async () => {
+  it("is told the id and title written and its input, and queues follow-up work", async () => {
     outcomes.length = 0;
     const harness = await installed();
     try {
@@ -176,7 +176,9 @@ describe("a first-party generation's step after it runs", () => {
       expect(outcomes).toEqual([
         {
           input: { prompt: "Body", followUp: true },
-          outcome: { written: { entityId: "taken-2" } },
+          outcome: {
+            written: { entityId: "taken-2", title: "A Taken Memo" },
+          },
         },
       ]);
       const queued = await harness.shell

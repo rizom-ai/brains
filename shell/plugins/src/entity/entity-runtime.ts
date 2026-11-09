@@ -924,7 +924,13 @@ export function writesInDocumentOrderOf(definition: object): boolean {
 
 /** How a first-party generation came out: the record it wrote, or why it failed. */
 export type GenerationOutcome =
-  | { readonly written: { readonly entityId: string } }
+  | {
+      readonly written: {
+        readonly entityId: string;
+        /** The title the record was written with, when it has one. */
+        readonly title?: string | undefined;
+      };
+    }
   | { readonly failed: string };
 
 /**
@@ -949,7 +955,8 @@ const afterGenerationKey = Symbol("rizom.after-generation");
 
 /**
  * A first-party generation with a step after it runs: once its record is
- * written, told the id written (the next free one when its own was taken);
+ * written, told the id written (the next free one when its own was taken)
+ * and the title it was written with;
  * when it fails, told why. The step rides on the declaration under a key no
  * public type names.
  */

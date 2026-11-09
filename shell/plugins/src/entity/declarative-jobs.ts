@@ -976,7 +976,9 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
-    await this.runStep({ written: { entityId } });
+    await this.runStep({
+      written: { entityId, ...definedFields({ title: generated.title }) },
+    });
     if (this.target.reportsToPipeline) {
       await this.context.messaging.command(generateReportSuccessContract, {
         entityType: this.entityType,
