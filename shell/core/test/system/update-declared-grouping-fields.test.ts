@@ -137,7 +137,7 @@ test("confirms the stored value and keeps the document's other fields", async ()
   expect(proposal.preview).toContain('clients: ["Acme"] → ["Beta"]');
   expect(await exec(proposal.args)).toMatchObject({ success: true });
   expect(await stored()).toBe(
-    "---\nclients:\n  - Beta\nprojects:\n  - Launch\nunclaimed: null\ntitle: Renamed\n---\nBody\n",
+    "---\ntitle: Renamed\nclients:\n  - Beta\nprojects:\n  - Launch\nunclaimed: null\n---\nBody\n",
   );
 });
 
@@ -153,6 +153,6 @@ test("removes a field and keeps the others", async () => {
   expect(proposal.preview).toContain('clients: ["Acme"] → (removed)');
   expect(await exec(proposal.args)).toMatchObject({ success: true });
   expect(await stored()).toBe(
-    "---\nprojects:\n  - Launch\nunclaimed: null\ntitle: Member\n---\nBody\n",
+    "---\ntitle: Member\nprojects:\n  - Launch\nunclaimed: null\n---\nBody\n",
   );
 });

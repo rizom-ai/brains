@@ -1,9 +1,36 @@
-// Plugin and factory
-export { PortfolioPlugin, portfolioPlugin } from "./plugin";
+import {
+  defineEntityPackage,
+  type EntityPackageDefinition,
+} from "@brains/sdk/entities";
+import { portfolioConfigSchema } from "./config";
+import { projectDataSource } from "./datasources/project-datasource";
+import { project } from "./project";
+
+/**
+ * The portfolio: one entity, a project or case study, rendered by the
+ * project templates through the portfolio data source.
+ */
+export const portfolioPackage: EntityPackageDefinition<
+  readonly [typeof project],
+  readonly [],
+  typeof portfolioConfigSchema
+> = defineEntityPackage({
+  id: "portfolio",
+  config: portfolioConfigSchema,
+  entities: [project],
+  dataSources: [projectDataSource(project)],
+});
+
+export default portfolioPackage;
+
+export { project } from "./project";
 
 // Config
-export type { PortfolioConfig, PortfolioConfigInput } from "./config";
-export { portfolioConfigSchema } from "./config";
+export {
+  portfolioConfigSchema,
+  type PortfolioConfig,
+  type PortfolioConfigInput,
+} from "./config";
 
 // Schemas
 export type {
@@ -26,21 +53,14 @@ export {
   templateProjectSchema,
 } from "./schemas/project";
 
-// Adapter
-export { ProjectAdapter, projectAdapter } from "./adapters/project-adapter";
-
 export {
   buildProjectAtprotoRecord,
-  createProjectAtprotoProjection,
+  projectAtproto,
 } from "./atproto-projection";
-
-// DataSource
-export { ProjectDataSource } from "./datasources/project-datasource";
 
 // Templates
 export { ProjectListTemplate } from "./templates/project-list";
 export { ProjectDetailTemplate } from "./templates/project-detail";
 export { projectGenerationTemplate } from "./templates/generation-template";
 
-// Job Handler
-export { ProjectGenerationJobHandler } from "./handlers/generation-handler";
+export { projectGeneration } from "./handlers/generation-handler";

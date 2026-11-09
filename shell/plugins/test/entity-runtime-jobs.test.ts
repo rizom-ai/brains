@@ -1,0 +1,442 @@
+import { describe, expect, it } from "bun:test";
+import {
+  createMockProgressReporter,
+  createSilentLogger,
+} from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
+import { createPluginHarness } from "../src/test/harness";
+import { queuedByPackage } from "../src/test/package-job-data";
+import {
+  createTemplate,
+  defineEntity,
+  defineEntityJob,
+  defineEntityPackage,
+  ensureUniqueTitle,
+  entityRuntime,
+  instantiatePluginPackageDefinition,
+  uniqueTitleContext,
+  type AnyEntityDefinition,
+  type EntityRuntime,
+} from "../src";
+
+/**
+ * The internal runtime a first-party definition reaches with
+ * entityRuntime(context) inside its own generation and jobs: the package's
+ * logger, the anchor's profile, free-form structured AI and untyped reads at
+ * the run's own scope, as the entity plugin classes' handlers had them.
+ */
+
+type Harness = ReturnType<typeof createPluginHarness>;
+
+const metadata = z.object({ title: z.string(), status: z.string().optional() });
+const other = defineEntity({
+  type: "other",
+  purpose: "Another package's type.",
+  metadata: z.object({ title: z.string() }),
+});
+
+async function install(
+  entities: readonly AnyEntityDefinition[],
+): Promise<Harness> {
+  const harness = createPluginHarness({
+    logger: createSilentLogger("entity-runtime-jobs"),
+    // The requester a job records is signed in as an admin.
+    resolvePrincipal: async () => ({
+      userId: "tester",
+      permissionLevel: "admin",
+    }),
+  });
+  for (const plugin of [
+    ...instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "memos", entities }),
+      {},
+      { name: "@fixture/memos", version: "0.1.0" },
+    ),
+    ...instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "others", entities: [other] }),
+      {},
+      { name: "@fixture/others", version: "0.1.0" },
+    ),
+  ]) {
+    await harness.installPlugin(plugin);
+  }
+  for (const [id, visibility] of [
+    ["open", "public"],
+    ["kept", "restricted"],
+  ] as const) {
+    await harness.getEntityService().createEntity({
+      entity: {
+        id,
+        entityType: "other",
+        content: `About ${id}`,
+        metadata: { title: id },
+        visibility,
+      },
+    });
+  }
+  return harness;
+}
+
+async function run(
+  harness: Harness,
+  type: string,
+  data: unknown,
+): Promise<unknown> {
+  const handler = harness.getMockShell().getJobQueueService().getHandler(type);
+  if (!handler) throw new Error(`No job handler registered for ${type}`);
+  const parsed = handler.validateAndParse(data);
+  if (parsed === null) throw new Error(`Job data refused for ${type}`);
+  return handler.process(
+    parsed,
+    "job-under-test",
+    createMockProgressReporter(),
+    new AbortController().signal,
+  );
+}
+
+/** What a run reached through its runtime. */
+async function reach(runtime: EntityRuntime): Promise<Record<string, unknown>> {
+  runtime.logger.info("reached from the run");
+  const titled = await runtime.generateObject(
+    "Name it",
+    z.object({ title: z.string().default("Named") }),
+  );
+  const reads = await runtime.anyEntities.listEntities({ entityType: "other" });
+  return {
+    author: runtime.identity.getProfile().name,
+    title: titled.title,
+    others: reads.map(({ id }) => id).sort(),
+  };
+}
+
+const generationTemplate = createTemplate({
+  name: "generation",
+  description: "Writes a memo",
+  schema: z.object({ title: z.string() }),
+  requiredPermission: "public",
+  dataSourceId: "shell:ai-content",
+  basePrompt: "Write a memo.",
+});
+
+describe("entityRuntime(context) in a generation", () => {
+  it("reaches the logger, the profile, structured AI and reads at the run's scope", async () => {
+    let reached: Record<string, unknown> | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { generation: generationTemplate },
+      generation: {
+        input: z.object({}),
+        generate: async (context) => {
+          reached = await reach(entityRuntime(context));
+          return { success: true, content: "Body", metadata: { title: "M" } };
+        },
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      // Queued by the package for itself: it reads other types at its own
+      // grant, which is public.
+      await run(
+        harness,
+        "memo:generation",
+        queuedByPackage("@fixture/memos:memo", {}),
+      );
+      expect(reached).toEqual({
+        author: "Test Owner",
+        title: "Named",
+        others: ["open"],
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
+/** A job an admin started, as the runtime queues it. */
+function asAdmin(input: unknown): unknown {
+  return {
+    authority: {
+      actor: { kind: "user", userId: "tester" },
+      permissionCeiling: "admin",
+      principalId: "tester",
+    },
+    input,
+  };
+}
+
+describe("entityRuntime(context) reads as the run's requester", () => {
+  it("reads other types at the requester's visibility, not the package's", async () => {
+    let reached: Record<string, unknown> | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { generation: generationTemplate },
+      generation: {
+        input: z.object({}),
+        generate: async (context) => {
+          reached = await reach(entityRuntime(context));
+          return { success: true, content: "Body", metadata: { title: "M" } };
+        },
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      await run(harness, "memo:generation", asAdmin({}));
+      expect(reached?.["others"]).toEqual(["kept", "open"]);
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
+describe("entityRuntime(context) in a declared job", () => {
+  it("reaches the logger, the profile, structured AI and reads at the run's scope", async () => {
+    let reached: Record<string, unknown> | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      jobs: {
+        tally: defineEntityJob({
+          input: z.object({}),
+          handle: async (context) => {
+            reached = await reach(entityRuntime(context));
+            return { done: true };
+          },
+        }),
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      await run(
+        harness,
+        "@fixture/memos:memo:tally",
+        queuedByPackage("@fixture/memos:memo", {}),
+      );
+      expect(reached).toEqual({
+        author: "Test Owner",
+        title: "Named",
+        others: ["open"],
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
+const descriptionTemplate = createTemplate({
+  name: "description",
+  description: "Describes a memo",
+  schema: z.object({ description: z.string() }),
+  requiredPermission: "public",
+  dataSourceId: "shell:ai-content",
+  basePrompt: "Describe the memo.",
+});
+
+const admin = {
+  interfaceType: "cli",
+  actor: { kind: "user", userId: "tester" },
+  userPermissionLevel: "admin",
+} as const;
+
+describe("entityRuntime(context).generate", () => {
+  it("generates through a template the type declares, from a create check", async () => {
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { description: descriptionTemplate },
+      create: {
+        fromContent: {
+          check: async (context) => {
+            const { description } = await entityRuntime(context).generate(
+              {
+                template: "description",
+                prompt: `Describe: ${context.input.content ?? ""}`,
+                data: { length: "short" },
+                representedIdentity: "none",
+              },
+              z.object({ description: z.string() }),
+            );
+            return { kind: "ready", title: description };
+          },
+          resolve: async () => ({ refuse: "checked only" }),
+        },
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      const configs: unknown[] = [];
+      harness.getMockShell().generateContent = async (
+        config,
+      ): Promise<unknown> => {
+        configs.push(config);
+        return { description: "A short memo" };
+      };
+      const check = harness
+        .getMockShell()
+        .getEntityRegistry()
+        .getCreateCheck("memo");
+      if (!check) throw new Error("No memo create check");
+      expect(
+        await check({ entityType: "memo", content: "Remember milk" }, admin),
+      ).toEqual({ kind: "ready", title: "A short memo" });
+      expect(configs).toEqual([
+        {
+          prompt: "Describe: Remember milk",
+          templateName: "@fixture/memos:memo:description",
+          data: { length: "short" },
+          representedIdentity: "none",
+        },
+      ]);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("generates through a template the type declares, from a declared job", async () => {
+    let described: string | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { description: descriptionTemplate },
+      jobs: {
+        describe: defineEntityJob({
+          input: z.object({ text: z.string() }),
+          handle: async (context) => {
+            ({ description: described } = await entityRuntime(context).generate(
+              { template: "description", prompt: context.input.text },
+              z.object({ description: z.string() }),
+            ));
+            return { done: true };
+          },
+        }),
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      const templates: string[] = [];
+      harness.getMockShell().generateContent = async (
+        config,
+      ): Promise<unknown> => {
+        templates.push(config.templateName);
+        return { description: "Described" };
+      };
+      await run(
+        harness,
+        "@fixture/memos:memo:describe",
+        queuedByPackage("@fixture/memos:memo", { text: "Memo text" }),
+      );
+      expect(described).toBe("Described");
+      expect(templates).toEqual(["@fixture/memos:memo:description"]);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("refuses a template the type does not declare", async () => {
+    let refusal = "";
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      jobs: {
+        describe: defineEntityJob({
+          input: z.object({}),
+          handle: async (context) => {
+            refusal = await entityRuntime(context)
+              .generate(
+                { template: "missing", prompt: "p" },
+                z.object({ description: z.string() }),
+              )
+              .then(
+                () => "not refused",
+                (error: unknown) => String(error),
+              );
+            return { done: true };
+          },
+        }),
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      await run(
+        harness,
+        "@fixture/memos:memo:describe",
+        queuedByPackage("@fixture/memos:memo", {}),
+      );
+      expect(refusal).toContain('declares no template named "missing"');
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
+describe("uniqueTitleContext(entityRuntime(context))", () => {
+  it("lets a generation ask for a free title when its own is taken", async () => {
+    let titled: string | undefined;
+    const memo = defineEntity({
+      type: "memo",
+      purpose: "A memo.",
+      metadata,
+      templates: { generation: generationTemplate },
+      generation: {
+        input: z.object({ title: z.string() }),
+        generate: async (context) => {
+          titled = await ensureUniqueTitle({
+            entityType: "memo",
+            title: context.input.title,
+            deriveId: (title) => title.toLowerCase(),
+            regeneratePrompt: "Name it differently.",
+            context: uniqueTitleContext(entityRuntime(context)),
+          });
+          return {
+            success: true,
+            content: "Body",
+            metadata: { title: titled },
+          };
+        },
+      },
+    });
+    const harness = await install([memo]);
+    try {
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "taken",
+          entityType: "memo",
+          content: "Already here",
+          metadata: { title: "Taken" },
+        },
+      });
+      const prompts: string[] = [];
+      harness.getMockShell().generateObject = async <T>(
+        prompt: string,
+        schema: { parse(value: unknown): T },
+      ): Promise<{ object: T }> => {
+        prompts.push(prompt);
+        return { object: schema.parse({ title: "Fresh" }) };
+      };
+      await run(
+        harness,
+        "memo:generation",
+        queuedByPackage("@fixture/memos:memo", { title: "Taken" }),
+      );
+      expect(titled).toBe("Fresh");
+      expect(prompts).toEqual([
+        'The title "Taken" is already taken. Name it differently.',
+      ]);
+      await run(
+        harness,
+        "memo:generation",
+        queuedByPackage("@fixture/memos:memo", { title: "Untaken" }),
+      );
+      expect(titled).toBe("Untaken");
+    } finally {
+      await harness.reset();
+    }
+  });
+});

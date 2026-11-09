@@ -1,21 +1,23 @@
 import type {
-  CreateCheckResult,
-  CreateInput,
-  CreateInterceptionResult,
-  EntityPluginContext,
-  EntityTextResult,
-} from "@brains/plugins";
+  EntityCreateContext,
+  EntityCreateRoute,
+} from "@brains/sdk/entities";
 import {
   checkEntityText,
-  continueWithEntityText,
+  entityRuntime,
   entityTextError,
   readEntityText,
   statedDateSchema,
-} from "@brains/plugins";
+  type EntityTextResult,
+} from "@brains/sdk/internal/entity-runtime";
 import { getErrorMessage } from "@brains/utils/error";
+import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
-import { hasSlideSeparators } from "../adapters/deck-adapter";
-import { deckFrontmatterSchema } from "../schemas/deck";
+import {
+  deckFrontmatterSchema,
+  type deckMetadataSchema,
+} from "../schemas/deck";
+import { hasSlideSeparators } from "./deck-markdown";
 import { describeDeck } from "./describe-deck";
 import { splitSlides } from "./slides";
 
@@ -39,10 +41,9 @@ type DeckTextFields = z.output<typeof deckTextFieldsSchema>;
  * headings to split it on asks where the slides break.
  */
 async function readDeckText(
-  input: CreateInput,
-  context: Pick<EntityPluginContext, "ai" | "entityService" | "logger">,
+  context: EntityCreateContext,
 ): Promise<EntityTextResult<DeckTextFields>> {
-  const read = readEntityText(input, {
+  const read = readEntityText(context.input, {
     noun: "deck",
     fieldsSchema: deckTextFieldsSchema,
     keepTitleHeading: true,
@@ -67,12 +68,13 @@ async function readDeckText(
     };
   }
 
+  const runtime = entityRuntime(context);
   const description =
     fields.description ??
-    (await describeDeck(context, { title, content: slides }).catch(
+    (await describeDeck(runtime.generate, { title, content: slides }).catch(
       (error: unknown) => {
         // The description is optional: the deck is saved without one.
-        context.logger.warn("Could not describe the deck", {
+        runtime.logger.warn("Could not describe the deck", {
           title,
           error: getErrorMessage(error),
         });
@@ -90,56 +92,53 @@ async function readDeckText(
 }
 
 /**
- * Before a deck from the writer's text is confirmed: ask where the slides
- * break when nothing says, and fill in the title and description the
- * confirmation shows and the confirmed save receives.
+ * system_create for a deck from the writer's own text: the text stays as
+ * written, split into slides on its headings when it has no --- separators,
+ * titled from its first heading (which stays as the title slide), and saved
+ * as a draft with a description written from the slides. Before the save
+ * is confirmed it asks where the slides break when nothing says, and fills
+ * in the title and description the confirmation shows. A complete deck, or
+ * anything that is not the writer's text, goes on to the ordinary create.
  */
-export async function checkDeckText(
-  input: CreateInput,
-  context: Pick<EntityPluginContext, "ai" | "entityService" | "logger">,
-): Promise<CreateCheckResult> {
-  return checkEntityText(
-    await readDeckText(input, context),
-    ({ title, fields }) => ({
+export const deckFromText: EntityCreateRoute<typeof deckMetadataSchema> = {
+  check: async (context) =>
+    checkEntityText(await readDeckText(context), ({ title, fields }) => ({
       title,
       ...(fields.description !== undefined && {
         fields: { description: fields.description },
       }),
-    }),
-  );
-}
-
-/**
- * system_create for a deck from the writer's own text: the text stays as
- * written, split into slides on its headings when it has no --- separators,
- * titled from its first heading (which stays as the title slide), and saved
- * as a draft with a description written from the slides.
- */
-export async function createDeckFromText(
-  input: CreateInput,
-  context: Pick<EntityPluginContext, "ai" | "entityService" | "logger">,
-): Promise<CreateInterceptionResult> {
-  const read = await readDeckText(input, context);
-  if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind !== "text") return entityTextError(read);
-  const { title, body: slides, fields } = read.text;
-  const { description } = fields;
-
-  const status = fields.status ?? "draft";
-
-  return continueWithEntityText(input, {
-    title,
-    body: slides,
-    frontmatter: {
+    })),
+  resolve: async (context) => {
+    const read = await readDeckText(context);
+    const runtime = entityRuntime(context);
+    if (read.kind === "not-text") return runtime.ordinaryCreate();
+    if (read.kind !== "text") {
+      const refused = entityTextError(read);
+      return {
+        refuse:
+          refused.kind === "handled" && !refused.result.success
+            ? refused.result.error
+            : "This text cannot be saved as a deck",
+      };
+    }
+    const { title, body: slides, fields } = read.text;
+    const status = fields.status ?? "draft";
+    const frontmatter = Object.fromEntries(
+      Object.entries({
+        title,
+        status,
+        description: fields.description,
+        author: fields.author,
+        event: fields.event,
+        publishedAt:
+          fields.publishedAt ??
+          (status === "published" ? new Date().toISOString() : undefined),
+        coverImageId: fields.coverImageId,
+      }).filter(([, value]) => value !== undefined),
+    );
+    return runtime.ordinaryCreate({
       title,
-      status,
-      description,
-      author: fields.author,
-      event: fields.event,
-      publishedAt:
-        fields.publishedAt ??
-        (status === "published" ? new Date().toISOString() : undefined),
-      coverImageId: fields.coverImageId,
-    },
-  });
-}
+      content: generateMarkdown(frontmatter, slides),
+    });
+  },
+};

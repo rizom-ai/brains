@@ -1,0 +1,386 @@
+import { describe, it, expect, beforeAll } from "bun:test";
+import {
+  isEntityValidationError,
+  type BaseEntity,
+  type EntityAdapter,
+} from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import {
+  deckMetadataSchema,
+  publishedAtRequiredMessage,
+} from "../src/schemas/deck";
+import { decksPlugin } from "./decks-plugin";
+import { createMockDeckEntity } from "./fixtures/deck-entities";
+
+/** The deck's adapter, as the declared deck registers it. */
+describe("the deck adapter", () => {
+  let adapter: EntityAdapter<BaseEntity>;
+
+  beforeAll(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(decksPlugin());
+    adapter = harness.getEntityRegistry().getAdapter("deck");
+  });
+
+  describe("schema", () => {
+    it("should have a valid zod schema", () => {
+      const schema = adapter.schema;
+
+      const validDeck = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Test Presentation",
+        metadata: {
+          slug: "test-presentation",
+          title: "Test Presentation",
+          status: "draft",
+        },
+      });
+
+      expect(() => schema.parse(validDeck)).not.toThrow();
+    });
+
+    it("should reject invalid entity type", () => {
+      const schema = adapter.schema;
+
+      const invalidDeck = {
+        id: "test-deck",
+        entityType: "note", // Wrong type
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        contentHash: "abc",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
+      };
+
+      expect(() => schema.parse(invalidDeck)).toThrow();
+    });
+
+    it("should reject published metadata without publishedAt", () => {
+      const schema = adapter.schema;
+
+      const invalidDeck = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Published Without Date",
+        status: "published",
+        metadata: {
+          slug: "published-without-date",
+          title: "Published Without Date",
+          status: "published",
+        },
+      });
+
+      expect(() => schema.parse(invalidDeck)).toThrow(
+        publishedAtRequiredMessage,
+      );
+    });
+
+    it("should accept published metadata with publishedAt", () => {
+      const schema = adapter.schema;
+
+      const validDeck = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Published With Date",
+        status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
+        metadata: {
+          slug: "published-with-date",
+          title: "Published With Date",
+          status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        },
+      });
+
+      expect(() => schema.parse(validDeck)).not.toThrow();
+    });
+  });
+
+  describe("toMarkdown", () => {
+    it("should generate markdown with frontmatter", () => {
+      const entity = createMockDeckEntity({
+        content: "# Welcome\n\nIntro slide\n\n---\n\n# Main Content",
+        title: "Test Presentation",
+        description: "A test presentation",
+        author: "Jane Developer",
+        status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
+        metadata: {
+          slug: "test-deck",
+          authoredSlug: true,
+          title: "Test Presentation",
+          description: "A test presentation",
+          author: "Jane Developer",
+          status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        },
+      });
+
+      const markdown = adapter.toMarkdown(entity);
+
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("title: Test Presentation");
+      expect(markdown).toContain("description: A test presentation");
+      expect(markdown).toContain("author: Jane Developer");
+      expect(markdown).toContain("status: published");
+      expect(markdown).toContain("publishedAt: '2025-01-01T10:00:00.000Z'");
+      expect(markdown).toContain("# Welcome");
+      expect(markdown).toContain("# Main Content");
+    });
+
+    it("should throw error if content has no slide separators", () => {
+      const entity = createMockDeckEntity({
+        content: "# Just one slide without separators",
+        title: "Invalid Deck",
+      });
+
+      expect(() => adapter.toMarkdown(entity)).toThrow(
+        "Invalid deck: markdown must contain slide separators (---)",
+      );
+    });
+
+    it("should include optional fields when present", () => {
+      const entity = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Test Deck",
+        description: "Optional description",
+      });
+
+      const markdown = adapter.toMarkdown(entity);
+
+      expect(markdown).toContain("description: Optional description");
+    });
+  });
+
+  describe("fromMarkdown", () => {
+    it("should parse markdown with frontmatter", () => {
+      const markdown = `---
+title: Test Presentation
+description: A test presentation
+author: Jane Developer
+status: published
+publishedAt: '2025-01-01T10:00:00.000Z'
+---
+
+# Welcome
+
+Intro slide
+
+---
+
+# Main Content
+
+Key points`;
+
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.metadata?.["title"]).toBe("Test Presentation");
+      expect(result.metadata?.["slug"]).toBe("test-presentation");
+      expect(result.metadata?.["publishedAt"]).toBe("2025-01-01T10:00:00.000Z");
+      // A declared deck reads back as its slides; the frontmatter is its metadata.
+      expect(result.metadata?.["description"]).toBe("A test presentation");
+      expect(result.metadata?.["author"]).toBe("Jane Developer");
+      expect(result.content).not.toContain("title: Test Presentation");
+      expect(result.content).toContain("# Welcome");
+    });
+
+    it("should throw error if content has no slide separators", () => {
+      const markdown = `---
+title: Invalid Deck
+status: draft
+---
+
+# Just one slide`;
+
+      expect(() => adapter.fromMarkdown(markdown)).toThrow(
+        "Invalid deck: markdown must contain slide separators (---)",
+      );
+    });
+
+    it("should reject published decks without publishedAt", () => {
+      const markdown = `---
+title: Published Without Date
+status: published
+---
+
+# Slide 1
+
+---
+
+# Slide 2`;
+
+      expect(() => adapter.fromMarkdown(markdown)).toThrow(
+        publishedAtRequiredMessage,
+      );
+    });
+
+    it("should handle missing optional fields", () => {
+      const markdown = `---
+title: Minimal Deck
+status: draft
+---
+
+# Slide 1
+
+---
+
+# Slide 2`;
+
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.metadata?.["title"]).toBe("Minimal Deck");
+      expect(result.metadata?.["status"]).toBe("draft");
+    });
+  });
+
+  describe("extractMetadata", () => {
+    it("should extract deck metadata", () => {
+      const entity = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Test Deck",
+        status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
+        metadata: {
+          slug: "test-deck",
+          title: "Test Deck",
+          status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        },
+      });
+
+      const metadata = adapter.extractMetadata(entity);
+
+      expect(metadata["slug"]).toBe("test-deck");
+      expect(metadata["title"]).toBe("Test Deck");
+      expect(metadata["status"]).toBe("published");
+      expect(metadata["publishedAt"]).toBe("2025-01-01T10:00:00.000Z");
+    });
+
+    it("should handle missing optional metadata", () => {
+      const entity = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Test Deck",
+      });
+
+      const metadata = adapter.extractMetadata(entity);
+
+      expect(metadata["title"]).toBe("Test Deck");
+      expect(metadata["publishedAt"]).toBeUndefined();
+      expect(metadata["coverImageId"]).toBeUndefined();
+    });
+  });
+
+  describe("slide validation", () => {
+    it("should accept content with multiple slide separators", () => {
+      const markdown = `---
+title: Multi-slide Deck
+status: draft
+---
+
+# Slide 1
+
+---
+
+# Slide 2
+
+---
+
+# Slide 3
+
+---
+
+# Slide 4`;
+
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.metadata?.["title"]).toBe("Multi-slide Deck");
+    });
+
+    it("should validate slide separators as standalone lines", () => {
+      const markdown = `---
+title: Valid Deck
+status: draft
+---
+
+# Slide 1
+
+---
+
+# Slide 2`;
+
+      expect(() => adapter.fromMarkdown(markdown)).not.toThrow();
+    });
+  });
+
+  describe("generation stub", () => {
+    function stubEntity(): ReturnType<typeof createMockDeckEntity> {
+      const stub = adapter.buildStub?.({
+        id: "on-slowness",
+        title: "On slowness",
+      });
+      if (!stub) throw new Error("The deck builds no stub");
+      return {
+        ...createMockDeckEntity({ content: "---\n" }),
+        id: "on-slowness",
+        content: stub.content,
+        metadata: deckMetadataSchema.parse(stub.metadata),
+      };
+    }
+
+    it("keeps a slide separator in the stored stub", () => {
+      expect(adapter.toMarkdown(stubEntity())).toMatch(/\n---\n[\s\S]*^---$/m);
+    });
+
+    it("round-trips the stub through markdown, as a queued generation stores and fails it", () => {
+      const markdown = adapter.toMarkdown(stubEntity());
+      expect(adapter.fromMarkdown(markdown).metadata).toMatchObject({
+        title: "On slowness",
+        slug: "on-slowness",
+        status: "generating",
+      });
+    });
+  });
+
+  describe("slide separator validation", () => {
+    function caught(run: () => unknown): unknown {
+      try {
+        run();
+      } catch (error) {
+        return error;
+      }
+      throw new Error("Expected a validation error");
+    }
+
+    it("reports missing separators as a validation error on the body", () => {
+      const error = caught(() =>
+        adapter.fromMarkdown(
+          "---\ntitle: Draft\nstatus: draft\n---\n\n# One slide",
+        ),
+      );
+      expect(isEntityValidationError(error)).toBe(true);
+      expect(error).toMatchObject({
+        originalError: {
+          issues: [
+            {
+              path: ["body"],
+              message: expect.stringContaining("---"),
+            },
+          ],
+        },
+      });
+    });
+  });
+
+  describe("generateFrontMatter", () => {
+    it("should generate frontmatter for entity", () => {
+      const entity = createMockDeckEntity({
+        content: "# Slide 1\n\n---\n\n# Slide 2",
+        title: "Test Deck",
+        description: "Test description",
+      });
+
+      const result = adapter.generateFrontMatter(entity);
+
+      expect(result).toContain("title: Test Deck");
+      expect(result).toContain("description: Test description");
+    });
+  });
+});

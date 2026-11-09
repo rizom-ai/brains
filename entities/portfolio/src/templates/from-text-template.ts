@@ -1,5 +1,8 @@
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 
 /** What the brain derives for a project saved from the writer's own text. */
 export const projectFromTextSchema: z.ZodObject<{

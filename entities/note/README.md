@@ -16,19 +16,15 @@ Adapter titles prefer nonblank frontmatter titles, then body H1 headings, then t
 
 ## Usage
 
-```typescript
-import { notePlugin } from "@brains/note";
+The package default-exports a declarative entity package. The canonical brain composes it under the plugin id `note`, so its template and jobs keep the `note:` names:
 
-const config = defineConfig({
-  plugins: [notePlugin()],
-});
+```typescript
+import notePackage from "@brains/note";
 ```
 
 ## Tools
 
-- `note:create` - Create a new note
-- `note:update` - Update existing note
-- `note:list` - List all notes
+None of its own. Notes are written with `system_create`, generated with `system_generate` through `note:generation`, and imported from an upload through `note:upload-import`.
 
 ## Schema
 

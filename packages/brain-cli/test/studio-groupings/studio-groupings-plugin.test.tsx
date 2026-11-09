@@ -5,8 +5,9 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import { createClient } from "@libsql/client";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import notePackage from "@brains/note";
+import { declaredType } from "../helpers/declared-type";
+import blogPackage from "@brains/blog";
 import { createImageEntity } from "@brains/image";
 import imagePackage from "@brains/image-plugin";
 import {
@@ -103,8 +104,14 @@ async function fixture(): Promise<{
     await plugin.shutdown();
   });
   // Contributors may register after Studio, but before the finalization barrier.
-  registry.registerEntityType("note", noteSchema, noteAdapter);
-  registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+  {
+    // The declared note, as the canonical brain installs it.
+    const note = declaredType(notePackage, "@brains/note", "note");
+    registry.registerEntityType("note", note.schema, note.adapter);
+  }
+  // The declared post, as the canonical brain installs it.
+  const post = declaredType(blogPackage, "@brains/blog", "blog");
+  registry.registerEntityType("post", post.schema, post.adapter);
   // The image type as the canonical brain installs it.
   const [images] = instantiatePluginPackageDefinition(
     imagePackage,
@@ -228,6 +235,7 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
   expect(
     (
       await runtime.service.getEntityRaw({
+        source: true,
         entityType: "image",
         id: "reference",
         visibilityScope: "shared",
@@ -252,6 +260,7 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
       },
     });
     const rendered = await runtime.service.getEntity({
+      source: true,
       entityType,
       id: "literal-member",
       visibilityScope: "shared",
@@ -276,6 +285,7 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
       ).status,
     ).toBe(200);
     const stored = await runtime.service.getEntityRaw({
+      source: true,
       entityType,
       id: "literal-member",
       visibilityScope: "shared",
@@ -313,6 +323,7 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
       document.body.textContent.includes("Saved through the entity service."),
     );
     const saved = await runtime.service.getEntityRaw({
+      source: true,
       entityType: "note",
       id: "literal-member",
       visibilityScope: "shared",
@@ -364,6 +375,7 @@ test("production source creation refreshes a cached Note schema and supplies ope
     },
   });
   const before = await runtime.service.getEntityRaw({
+    source: true,
     entityType: "note",
     id: "existing",
   });
@@ -411,6 +423,7 @@ test("production source creation refreshes a cached Note schema and supplies ope
     expect(
       (
         await runtime.service.getEntityRaw({
+          source: true,
           entityType: "note",
           id: "existing",
         })
@@ -441,6 +454,7 @@ test("production source creation refreshes a cached Note schema and supplies ope
     await ui.click("Save changes");
     await waitForStudio(() => document.body.textContent.includes("Saved"));
     const saved = await runtime.service.getEntityRaw({
+      source: true,
       entityType: "note",
       id: "existing",
     });
@@ -526,6 +540,7 @@ test("a refused member save refreshes current rules without discarding its local
     },
   });
   const before = await runtime.service.getEntityRaw({
+    source: true,
     entityType: "note",
     id: "existing",
   });
@@ -568,6 +583,7 @@ test("a refused member save refreshes current rules without discarding its local
     ).toContain("Beta");
     expect(
       await runtime.service.getEntityRaw({
+        source: true,
         entityType: "note",
         id: "existing",
       }),

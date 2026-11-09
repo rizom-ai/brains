@@ -1,6 +1,6 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
+import type { EntityEvalDeclaration } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
+import { generatedBlogPostSchema, generatedExcerptSchema } from "../generation";
 
 const generatePostInputSchema = z.object({
   prompt: z.string(),
@@ -12,47 +12,33 @@ const generateExcerptInputSchema = z.object({
   content: z.string(),
 });
 
-type GeneratePostInput = z.output<typeof generatePostInputSchema>;
-type GenerateExcerptInput = z.output<typeof generateExcerptInputSchema>;
-
-export function registerEvalHandlers(context: EntityPluginContext): void {
-  context.eval.registerHandler("generatePost", async (input: unknown) => {
-    const parsed: GeneratePostInput = generatePostInputSchema.parse(input);
-    const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(context.entityService),
-    );
-    return context.ai.generate(
+/**
+ * The blog's evals: a post generated from a prompt as the anchor, and an
+ * excerpt written from a post, both in the brain's voice.
+ */
+export const postEvals: EntityEvalDeclaration = {
+  generatePost: async (input, { ai }) => {
+    const parsed = generatePostInputSchema.parse(input);
+    return ai.generate(
       {
-        prompt: generationPrompt,
-        templateName: "blog:generation",
+        template: "generation",
+        prompt: `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`,
         representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        voice: true,
       },
-      z.object({
-        title: z.string(),
-        content: z.string(),
-        excerpt: z.string(),
-      }),
+      generatedBlogPostSchema,
     );
-  });
-
-  context.eval.registerHandler("generateExcerpt", async (input: unknown) => {
-    const parsed: GenerateExcerptInput =
-      generateExcerptInputSchema.parse(input);
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(context.entityService),
-    );
-    return context.ai.generate(
+  },
+  generateExcerpt: async (input, { ai }) => {
+    const parsed = generateExcerptInputSchema.parse(input);
+    return ai.generate(
       {
+        template: "excerpt",
         prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-        templateName: "blog:excerpt",
         representedIdentity: "none",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        voice: true,
       },
-      z.object({ excerpt: z.string() }),
+      generatedExcerptSchema,
     );
-  });
-}
+  },
+};

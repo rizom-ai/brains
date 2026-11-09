@@ -2,6 +2,7 @@ import {
   getKind,
   readEnumValues,
   readLiteralValue,
+  readMetadata,
   unwrapField,
 } from "@brains/utils/zod-introspect";
 
@@ -48,6 +49,9 @@ export function introspectSchema(schema: ZodObjectLike): FieldInfo[] {
   const fields: FieldInfo[] = [];
 
   for (const [name, fieldSchema] of Object.entries(schema.shape)) {
+    // Bookkeeping the type hides from Studio's form is internal, not
+    // authored, and stays out of the vault.
+    if (readMetadata(fieldSchema)?.["studioWidget"] === "hidden") continue;
     const {
       inner,
       required,

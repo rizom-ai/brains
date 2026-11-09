@@ -1,105 +1,94 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockEntityPluginContext } from "@brains/plugins/test";
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import { beforeEach, describe, expect, it } from "bun:test";
+import type { ContentGenerationConfig, JobHandler } from "@brains/plugins";
 import type { StyleGuideEntity } from "@brains/style-guide";
-import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
-import {
-  DeckGenerationJobHandler,
-  generatedDeckSchema,
-} from "../src/handlers/deckGenerationJobHandler";
-import { generatedDeckDescriptionSchema } from "../src/lib/describe-deck";
+import { createMockProgressReporter } from "@brains/test-utils";
+import { decksPlugin } from "./decks-plugin";
 
-describe("DeckGenerationJobHandler", () => {
-  let handler: DeckGenerationJobHandler;
-  let mockContext: EntityPluginContext;
+/** A job the decks queued for themselves, as the runtime queues it. */
+function asPackage(input: unknown): unknown {
+  return {
+    authority: {
+      actor: { kind: "service", serviceId: "decks" },
+      permissionCeiling: "public",
+    },
+    input,
+    byPackage: true,
+  };
+}
 
-  beforeEach(() => {
-    mockContext = createMockEntityPluginContext({
-      returns: {
-        ai: {
-          generate: {
+describe("the deck generation", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+  let handler: JobHandler;
+  let configs: ContentGenerationConfig[];
+
+  beforeEach(async () => {
+    harness = createPluginHarness();
+    await harness.installPlugin(decksPlugin());
+    configs = [];
+    harness.getMockShell().generateContent = async (
+      config: ContentGenerationConfig,
+    ): Promise<unknown> => {
+      configs.push(config);
+      return config.templateName === "decks:description"
+        ? { description: "Generated description" }
+        : {
             title: "Generated Deck",
             content: "# Opening\n\n---\n\n# Close",
             description: "Generated description",
-          },
-        },
-        entityService: {
-          getEntity: null,
-          listEntities: [],
-          createEntity: {
-            entityId: "test-id",
-            jobId: "mock-job-id",
-            skipped: false,
-          },
-        },
-      },
-    });
-
-    handler = new DeckGenerationJobHandler(
-      createSilentLogger("test"),
-      mockContext,
-    );
-  });
-
-  describe("generation context", () => {
-    it("passes anchor voice style guidance into deck generation", async () => {
-      const styleEntity = createTestEntity<StyleGuideEntity>("style-guide", {
+          };
+    };
+    const registered = harness
+      .getMockShell()
+      .getJobQueueService()
+      .getHandler("deck:generation");
+    if (!registered) throw new Error("No deck generation");
+    handler = registered;
+    // As the declared style guide reads: the guidance is its metadata.
+    harness.getMockShell().addEntities([
+      createTestEntity<StyleGuideEntity>("style-guide", {
         id: "style-guide",
-        // As the declared style guide reads: the guidance is its metadata.
         content: "",
         metadata: {
           name: "Deck voice",
           voice: { summary: "Decisive and evidence-led" },
         },
-      });
-      const getEntity = spyOn(mockContext.entityService, "getEntity");
-      getEntity.mockResolvedValueOnce(styleEntity).mockResolvedValueOnce(null);
+      }),
+    ]);
+  });
 
-      await handler.process(
-        { prompt: "Create a deck about resilient systems" },
-        "job-123",
-        createMockProgressReporter(),
-      );
+  async function run(input: unknown): Promise<unknown> {
+    return handler.process(
+      handler.validateAndParse(asPackage(input)),
+      "job-123",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+  }
 
-      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+  describe("generation context", () => {
+    it("passes anchor voice style guidance into deck generation", async () => {
+      await run({ prompt: "Create a deck about resilient systems" });
+
+      expect(configs).toContainEqual(
         expect.objectContaining({
+          templateName: "decks:generation",
           representedIdentity: "anchor",
           styleGuide: {
             voice: expect.stringContaining("Decisive and evidence-led"),
           },
         }),
-        generatedDeckSchema,
       );
     });
 
     it("passes voice guidance to descriptions without injecting identity", async () => {
-      const styleEntity = createTestEntity<StyleGuideEntity>("style-guide", {
-        id: "style-guide",
-        // As the declared style guide reads: the guidance is its metadata.
-        content: "",
-        metadata: {
-          name: "Deck voice",
-          voice: { summary: "Decisive and evidence-led" },
-        },
+      await run({
+        title: "Existing Deck",
+        content: "# Opinionated opening\n\n---\n\n# Conclusion",
       });
-      spyOn(mockContext.entityService, "getEntity").mockResolvedValueOnce(
-        styleEntity,
-      );
 
-      await handler.process(
-        {
-          title: "Existing Deck",
-          content: "# Opinionated opening\n\n---\n\n# Conclusion",
-        },
-        "job-123",
-        createMockProgressReporter(),
-      );
-
-      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+      expect(configs).toEqual([
         expect.objectContaining({
           templateName: "decks:description",
           representedIdentity: "none",
@@ -107,29 +96,29 @@ describe("DeckGenerationJobHandler", () => {
             voice: expect.stringContaining("Decisive and evidence-led"),
           },
         }),
-        generatedDeckDescriptionSchema,
-      );
+      ]);
     });
   });
 
   describe("validateAndParse", () => {
     it("should validate correct job data", () => {
       const data = { prompt: "Create a presentation", title: "My Deck" };
-      const result = handler.validateAndParse(data);
+      const result = handler.validateAndParse(asPackage(data));
 
-      expect(result).not.toBeNull();
-      expect(result?.prompt).toBe("Create a presentation");
-      expect(result?.title).toBe("My Deck");
+      expect(result).toMatchObject({ input: data });
     });
 
     it("should accept empty object (all fields optional)", () => {
-      const result = handler.validateAndParse({});
-      expect(result).not.toBeNull();
+      expect(handler.validateAndParse(asPackage({}))).not.toBeNull();
+      // As the deck plugin class queued it, before the type was declared.
+      expect(handler.validateAndParse({})).not.toBeNull();
     });
 
     it("should return null for invalid data", () => {
-      const result = handler.validateAndParse({ skipAi: "not-a-boolean" });
-      expect(result).toBeNull();
+      expect(
+        handler.validateAndParse(asPackage({ skipAi: "not-a-boolean" })),
+      ).toBeNull();
+      expect(handler.validateAndParse({ skipAi: "not-a-boolean" })).toBeNull();
     });
   });
 });
