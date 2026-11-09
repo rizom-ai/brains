@@ -348,6 +348,34 @@ function assertBundleContract(
   );
 }
 
+/**
+ * Name, in the log, each brain.yaml `add` or `remove` entry that names no
+ * capability or interface of this brain: the resolver ignores it, so a typo
+ * or a capability a release folded away would otherwise go unnoticed. It is
+ * not refused, so a deployed brain that names a retired capability still
+ * boots.
+ */
+function warnUnknownSelections(
+  definition: BrainDefinition,
+  overrides: Omit<InstanceOverrides, "brain"> | undefined,
+  logger: Logger | undefined,
+): void {
+  if (!logger) return;
+  const known = [
+    ...definition.capabilities.map(([id]) => id),
+    ...definition.interfaces.map(([id]) => id),
+  ];
+  const catalog = new Set(known);
+  for (const list of ["add", "remove"] as const) {
+    for (const member of overrides?.[list] ?? []) {
+      if (catalog.has(member)) continue;
+      logger.warn(
+        `brain.yaml ${list} names "${member}", which is not a capability or interface of this brain; it is ignored. Known: ${[...new Set(known)].sort().join(", ")}`,
+      );
+    }
+  }
+}
+
 function resolveRuntimeDefinition(
   definition: BrainDefinition,
   env: BrainEnvironment,
@@ -356,6 +384,7 @@ function resolveRuntimeDefinition(
 ): AppConfig {
   assertBundleContract(definition, overrides);
   const selection = resolveBrainSelection(definition, overrides);
+  warnUnknownSelections(definition, overrides, logger);
   const activeIds = selection.activeIds;
   const bundlePermissions = resolveBundlePermissionConfig(
     selection.bundleDefinitions,
