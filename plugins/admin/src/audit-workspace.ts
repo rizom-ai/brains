@@ -1,10 +1,6 @@
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { AuthAuditEvent } from "@brains/contracts";
-import {
-  createBuiltInStudioWorkspaceRegistration,
-  defineStudioWorkspace,
-  type OperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import { defineStudioWorkspace, type OperatorViewBlock } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import {
@@ -252,15 +248,14 @@ const studioAuditWorkspace = defineStudioWorkspace({
 });
 
 export function createAuditTabSource(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): AdminWorkspaceSource {
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const registration = runtime.studio.source({
     definition: studioAuditWorkspace,
     bind: (bindingContext) =>
       studioAuditWorkspace.bind(bindingContext, {
         load: async ({ query }) => {
-          const authService = requireAuthBackend(context);
+          const authService = requireAuthBackend(runtime);
           const normalized = query.get(auditWorkspaceQuerySchema);
           const [audit, users] = await Promise.all([
             authService.queryAuditEvents({

@@ -12,7 +12,7 @@ import {
   type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
 import { A2AInterface } from "@brains/a2a";
-import { adminPlugin } from "@brains/admin";
+import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import { assessment } from "@brains/assessment";
@@ -225,7 +225,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     }),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
-    ["admin", adminPlugin, undefined],
+    packageCapability("admin", "@brains/admin", adminPackage, {
+      pluginId: "admin",
+    }),
 
     packageCapability("site-info", "@brains/site-info", siteInfoPackage, {
       pluginId: "site-metadata",
