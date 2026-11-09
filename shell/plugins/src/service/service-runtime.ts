@@ -46,7 +46,6 @@ import type {
 import type { SchemaValue } from "../internal/schema-value";
 import {
   buildServiceTool,
-  type ServiceBusDelivery,
   type ServiceInputSchema,
   type ServiceSchema,
   type ServiceToolDefinition,
@@ -138,11 +137,14 @@ export interface ServiceRuntime {
   /**
    * Answer a first-party contract under the channel it already has, such as
    * `notifications:send`, as the package; with `everyProcess`, in job
-   * workers too, as the class answered it. The public `answer` answers only
-   * channels its package names. Released when the package shuts down.
+   * workers too, as the class answered it. A request, a command, or a
+   * contract every owner answers and the asker gathers
+   * (`agent:context:request`), beside the others that answer it. The
+   * public `answer` answers only channels its package names and never a
+   * gathered one. Released when the package shuts down.
    */
   answer<const TRequest extends z.ZodType, const TResponse extends z.ZodType>(
-    contract: BusContract<TRequest, TResponse, ServiceBusDelivery>,
+    contract: BusContract<TRequest, TResponse>,
     handler: (context: {
       readonly request: z.output<TRequest>;
       readonly sender: string;

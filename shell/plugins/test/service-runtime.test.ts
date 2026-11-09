@@ -96,6 +96,45 @@ function emptyHeard(): Heard {
 }
 
 describe("a first-party service's runtime", () => {
+  it("answers a contract every owner answers, beside the others", async () => {
+    const gathered = defineBusContract({
+      channel: "probe:context",
+      request: z.object({ topic: z.string() }),
+      response: z.object({ items: z.array(z.string()) }),
+      delivery: "collect",
+    });
+    const shell = createMockShell();
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).answer(gathered, ({ request }) => ({
+              items: [`probe on ${request.topic}`],
+            }));
+            return [];
+          },
+        },
+      ),
+    );
+    createServicePluginContext(shell, "memory").messaging.answer(
+      gathered,
+      async ({ topic }) => ({ items: [`memory on ${topic}`] }),
+    );
+
+    const asked = await createServicePluginContext(
+      shell,
+      "agent",
+    ).messaging.gather(gathered, { topic: "tides" });
+    expect(asked.status).toBe("answered");
+    expect(
+      asked.status === "answered"
+        ? asked.answers.flatMap(({ items }) => items).sort()
+        : [],
+    ).toEqual(["memory on tides", "probe on tides"]);
+  });
+
   it("answers a first-party contract under its own channel, as the package", async () => {
     const shell = createMockShell();
     const heard = emptyHeard();
