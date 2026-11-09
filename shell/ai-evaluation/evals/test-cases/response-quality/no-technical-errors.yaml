@@ -13,7 +13,7 @@ tags:
   - quality
   - error-handling
   - user-experience
-  - preset-core
+  - recipe-headless
 
 turns:
   - userMessage: "List my foo items"

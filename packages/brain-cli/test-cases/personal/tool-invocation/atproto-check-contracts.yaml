@@ -1,0 +1,27 @@
+id: tool-invocation-atproto-check-contracts
+name: Check the AT Protocol lexicon contracts
+description: Tests that a request to check the federation contracts runs the registry's contract check.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - federation
+  - atproto
+
+turns:
+  - userMessage: "Check that this brain's AT Protocol lexicon contracts are all available."
+
+successCriteria:
+  expectedTools:
+    - toolName: atproto-registry_check_contracts
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  responseCriteria:
+    - "Reports how many lexicon contracts are available, as the check returned."
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 30000

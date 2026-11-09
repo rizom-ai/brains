@@ -9,7 +9,7 @@ tags:
   - site-builder
   - tool-invocation
   - anti-hallucination
-  - requires-built-site-runtime
+  - recipe-professional
 
 turns:
   - userMessage: "Build my website"
