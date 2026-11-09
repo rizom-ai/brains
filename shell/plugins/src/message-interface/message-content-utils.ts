@@ -1,4 +1,7 @@
 import { z } from "@brains/utils/zod";
+import type { PermissionLookupContext } from "@brains/templates";
+import type { AgentNamespace } from "../contracts/agent";
+import type { IPermissionsNamespace } from "../interface/context";
 
 /** Maximum size (in bytes) for an uploaded text file. */
 export const maxFileUploadBytes = 100_000;
@@ -98,5 +101,36 @@ export function extractCaptureableUrls(
     } catch {
       return false;
     }
+  });
+}
+
+/** What saving a link through the agent asks: the caller's level and a turn. */
+export interface LinkCaptureHost {
+  readonly agent: Pick<AgentNamespace, "chat">;
+  readonly permissions: Pick<IPermissionsNamespace, "getUserLevel">;
+}
+
+/**
+ * Save a URL via the agent (delegates to system_create for entityType link).
+ * Silent — no reply sent. Uses a dedicated conversation ID to avoid polluting
+ * the user's chat history.
+ */
+export async function captureUrlViaAgent(
+  host: LinkCaptureHost,
+  url: string,
+  channelId: string,
+  authorId: string,
+  interfaceType: string,
+  permissionContext?: PermissionLookupContext,
+): Promise<void> {
+  const userPermissionLevel = host.permissions.getUserLevel(
+    interfaceType,
+    authorId,
+    permissionContext,
+  );
+  await host.agent.chat(`Save this link: ${url}`, `links-${channelId}`, {
+    userPermissionLevel,
+    interfaceType,
+    channelId,
   });
 }

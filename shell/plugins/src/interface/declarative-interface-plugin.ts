@@ -43,7 +43,16 @@ import {
 } from "./interface-runtime";
 import type { MessageInterfacePluginContext } from "./context";
 import { MessageInterfacePlugin } from "../message-interface/message-interface-plugin";
-import type { SendMessageToChannelRequest } from "../message-interface/progress-message-coordinator";
+import type {
+  EditMessageRequest,
+  MessageInterfaceOutput,
+  SendMessageToChannelRequest,
+  SendMessageWithIdRequest,
+} from "../message-interface/progress-message-coordinator";
+import type { JobContext } from "@brains/job-queue";
+import type { ToolActivityEvent } from "../message-interface/tool-event-handler";
+import type { ToolStatusUpdate } from "../message-interface/tool-status";
+import type { AgentResponse } from "../contracts/agent";
 
 /** The plugin a declaration is registered as, as the declaration reads it. */
 interface DeclarationOwner {
@@ -259,6 +268,11 @@ class InterfaceDeclaration<
     return this.hasRequiredDaemon;
   }
 
+  /** The transport its wrapper declared, once registered. */
+  get messageTransport(): MessageTransport | undefined {
+    return this.transport;
+  }
+
   /** Sends a coordinated message, once the transport is registered. */
   send(request: SendMessageToChannelRequest): void {
     this.transport?.send({
@@ -294,6 +308,11 @@ class InterfaceDeclaration<
       conversations: context.conversations,
       permissions: context.permissions,
       messages,
+      uploads: context.uploads,
+      spaces: context.spaces,
+      siteUrl: context.siteUrl,
+      localSiteUrl: context.localSiteUrl,
+      preferLocalUrls: context.preferLocalUrls,
       production: context.production,
       domain: context.domain,
       hasPlugin: (pluginId) => context.plugins.has(pluginId),
@@ -550,6 +569,98 @@ class DeclarativeTransportInterfacePlugin<
     this.declaration.send(request);
   }
 
+  protected override async sendMessageWithId(
+    request: SendMessageWithIdRequest,
+  ): Promise<string | undefined> {
+    const transport = this.declaration.messageTransport;
+    return transport?.sendWithId
+      ? transport.sendWithId({
+          channelId: request.channelId,
+          message: request.message,
+        })
+      : super.sendMessageWithId(request);
+  }
+
+  protected override async editMessage(
+    request: EditMessageRequest,
+  ): Promise<boolean> {
+    const transport = this.declaration.messageTransport;
+    return transport?.edit
+      ? transport.edit({
+          channelId: request.channelId,
+          messageId: request.messageId,
+          message: request.newMessage,
+        })
+      : super.editMessage(request);
+  }
+
+  protected override supportsMessageEditing(): boolean {
+    return this.declaration.messageTransport?.edit !== undefined;
+  }
+
+  protected override formatProgressOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return (
+      this.declaration.messageTransport?.formatProgress?.(event) ??
+      super.formatProgressOutput(event)
+    );
+  }
+
+  protected override formatCompletionOutput(
+    event: JobProgressEvent,
+  ): MessageInterfaceOutput {
+    return (
+      this.declaration.messageTransport?.formatCompletion?.(event) ??
+      super.formatCompletionOutput(event)
+    );
+  }
+
+  protected override async handleProgressEvent(
+    event: JobProgressEvent,
+    context: JobContext,
+  ): Promise<void> {
+    const hook = this.declaration.messageTransport?.progressEvent;
+    if (!hook) {
+      await super.handleProgressEvent(event, context);
+      return;
+    }
+    await hook(event, (routed) =>
+      super.handleProgressEvent(routed, routed.metadata),
+    );
+  }
+
+  protected override async handleToolActivityEvent(
+    event: ToolActivityEvent,
+  ): Promise<void> {
+    const hook = this.declaration.messageTransport?.toolActivity;
+    if (!hook) {
+      await super.handleToolActivityEvent(event);
+      return;
+    }
+    await hook(event, (routed) => super.handleToolActivityEvent(routed));
+  }
+
+  protected override async handleToolStatusUpdate(
+    update: ToolStatusUpdate,
+  ): Promise<void> {
+    await this.declaration.messageTransport?.toolStatus?.(update);
+  }
+
+  protected override async handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void> {
+    const hook = this.declaration.messageTransport?.agentResponseToolStatuses;
+    if (!hook) {
+      await super.handleAgentResponseToolStatuses(response, conversationId);
+      return;
+    }
+    await hook(response, conversationId, () =>
+      super.handleAgentResponseToolStatuses(response, conversationId),
+    );
+  }
+
   protected override async onShutdown(): Promise<void> {
     await this.declaration.shutdown();
     await super.onShutdown();
@@ -572,6 +683,18 @@ class DeclarativeTransportInterfacePlugin<
         this.unregisterProgressCallback();
       },
       hasProgressCallback: (): boolean => this.hasProgressCallback(),
+      trackAgentResponseForJob: (
+        jobId: string,
+        messageId: string,
+        channelId: string,
+      ): void => {
+        this.trackAgentResponseForJob(jobId, messageId, channelId);
+      },
+      handleAgentResponseToolStatuses: (
+        response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+        conversationId: string,
+      ): Promise<void> =>
+        this.handleAgentResponseToolStatuses(response, conversationId),
     });
   }
 }

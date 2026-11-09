@@ -8,6 +8,10 @@ import type { DaemonHealth } from "../manager/daemon-types";
 import type { Tool } from "@brains/mcp-service";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { MessageInterfaceOutput } from "../message-interface/progress-message-coordinator";
+import type { JobProgressEvent } from "@brains/job-queue";
+import type { ToolActivityEvent } from "../message-interface/tool-event-handler";
+import type { ToolStatusUpdate } from "../message-interface/tool-status";
+import type { AgentResponse } from "../contracts/agent";
 import type { PluginPackageDefinition } from "../package-definition";
 import type { InterfaceConfigSchema } from "./interface-definition-contract";
 
@@ -78,8 +82,50 @@ export interface MessageTransportSend {
  * runtime's message coordination (job progress, completions held back while
  * input is answered) sends through it.
  */
+/** A message the runtime edits in place: progress, or a reply it tracks for a job. */
+export interface MessageTransportEdit {
+  readonly channelId: string | null;
+  readonly messageId: string;
+  readonly message: MessageInterfaceOutput;
+}
+
 export interface MessageTransport {
   send(request: MessageTransportSend): void;
+  /**
+   * Send and answer the sent message's id, so progress can be edited in
+   * place; none means the interface edits nothing.
+   */
+  sendWithId?(request: MessageTransportSend): Promise<string | undefined>;
+  /** Edit a sent message; declaring it means the interface edits progress. */
+  edit?(request: MessageTransportEdit): Promise<boolean>;
+  /** How a job's progress is rendered, in place of the runtime's text. */
+  formatProgress?(event: JobProgressEvent): MessageInterfaceOutput;
+  /** How a job's completion is rendered, in place of the runtime's text. */
+  formatCompletion?(event: JobProgressEvent): MessageInterfaceOutput;
+  /**
+   * A job progress event, before the runtime handles it: the transport may
+   * route it (`next`) as another event, or not at all.
+   */
+  progressEvent?(
+    event: JobProgressEvent,
+    next: (event: JobProgressEvent) => Promise<void>,
+  ): Promise<void>;
+  /** A tool event, before the runtime derives its status, routed by `next`. */
+  toolActivity?(
+    event: ToolActivityEvent,
+    next: (event: ToolActivityEvent) => Promise<void>,
+  ): Promise<void>;
+  /** A tool's status as the runtime derived it, to show on the platform. */
+  toolStatus?(update: ToolStatusUpdate): Promise<void>;
+  /**
+   * Tool completions the runtime held while input was answered, settled by
+   * the reply: around the runtime's own settling (`next`).
+   */
+  agentResponseToolStatuses?(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+    next: () => Promise<void>,
+  ): Promise<void>;
 }
 
 /**

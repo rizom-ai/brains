@@ -29,5 +29,6 @@ export {
   type InterfaceMessages,
   type InterfaceRuntime,
   type MessageTransport,
+  type MessageTransportEdit,
   type MessageTransportSend,
 } from "@brains/plugins";

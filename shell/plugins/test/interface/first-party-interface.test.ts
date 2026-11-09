@@ -6,8 +6,12 @@ import { defineBusContract, defineChannel } from "@brains/contracts";
 import type { IAgentService } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
 import { createMockShell } from "../../src/test/mock-shell";
+import { createTempDataDir } from "../../src/test/temp-dir";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { createMockAuthBackend } from "../../src/test/mock-auth-backend";
 import {
+  captureUrlViaAgent,
   defineDaemon,
   defineInterface,
   defineMessageInterface,
@@ -1039,5 +1043,385 @@ describe("interfaceRuntime for a federated interface", () => {
         visibilityScope: "public",
       }),
     ).toBeNull();
+  });
+});
+
+describe("interfaceRuntime uploads", () => {
+  async function reach(dataDir: string): Promise<InterfaceRuntime> {
+    let reached: InterfaceRuntime | undefined;
+    await instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          reached = interfaceRuntime(context);
+          return {};
+        },
+      }),
+    ).register(createMockShell({ dataDir }));
+    if (!reached) throw new Error("Setup did not run");
+    return reached;
+  }
+
+  it("writes the runtime's shared upload store, at the route it names", async () => {
+    const dataDir = await createTempDataDir("brains-shared-uploads-");
+    const runtime = await reach(dataDir);
+    const store = runtime.sharedUploads({ routePath: "/api/web/uploads" });
+
+    const record = await store.save({
+      filename: "notes.md",
+      mediaType: "text/markdown",
+      content: new TextEncoder().encode("# Notes"),
+    });
+
+    expect(record.ref).toEqual({ kind: "upload", id: record.id });
+    expect(store.toResponseBody(record).url).toBe(
+      `/api/web/uploads?id=${record.id}`,
+    );
+    expect(existsSync(join(dataDir, "upload", "uploads", record.id))).toBe(
+      true,
+    );
+    expect(runtime.sharedUploads().toResponseBody(record).url).toBe(
+      `/api/chat/uploads?id=${record.id}`,
+    );
+  });
+
+  it("retires a retired upload directory once, touching nothing else", async () => {
+    const dataDir = await createTempDataDir("brains-retired-uploads-");
+    mkdirSync(join(dataDir, "discord-chat", "uploads", "upload-1"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(dataDir, "discord-chat", "uploads", "upload-1", "content"),
+      "old",
+    );
+    writeFileSync(join(dataDir, "discord-chat", "keep.txt"), "keep");
+    mkdirSync(join(dataDir, "upload", "uploads", "upload-2"), {
+      recursive: true,
+    });
+    mkdirSync(join(dataDir, "slack-chat", "uploads"), { recursive: true });
+    const runtime = await reach(dataDir);
+
+    expect(await runtime.retireUploads("discord-chat")).toBe(true);
+    expect(existsSync(join(dataDir, "discord-chat", "uploads"))).toBe(false);
+    expect(existsSync(join(dataDir, "discord-chat", "keep.txt"))).toBe(true);
+    expect(existsSync(join(dataDir, "upload", "uploads", "upload-2"))).toBe(
+      true,
+    );
+    expect(existsSync(join(dataDir, "slack-chat", "uploads"))).toBe(true);
+    // Once gone, retiring it again changes nothing.
+    expect(await runtime.retireUploads("discord-chat")).toBe(false);
+    expect(existsSync(join(dataDir, "discord-chat", "keep.txt"))).toBe(true);
+  });
+
+  it("refuses to retire the shared store or a name outside the data directory", async () => {
+    const runtime = await reach(await createTempDataDir("brains-refuse-"));
+
+    expect(runtime.retireUploads("upload")).rejects.toThrow(
+      "the runtime's shared upload store is never retired",
+    );
+    expect(runtime.retireUploads("../upload")).rejects.toThrow(
+      "is not an upload namespace",
+    );
+  });
+});
+
+describe("interfaceRuntime for a chat platform", () => {
+  it("reads the brain's spaces and site URLs, gathers answers and writes conversations", async () => {
+    const started: unknown[] = [];
+    const added: unknown[] = [];
+    const shell = createMockShell({
+      spaces: ["discord:guild-1"],
+      domain: "brain.test",
+      localSiteUrl: "http://localhost:8080",
+      preferLocalUrls: true,
+      conversationService: {
+        startConversation: async (request) => {
+          started.push(request);
+          return "conv-1";
+        },
+        addMessage: async (request) => {
+          added.push(request);
+        },
+        getMessages: async () => [],
+        countMessages: async () => 0,
+        getConversation: async () => null,
+        listConversations: async () => [],
+        searchConversations: async () => [],
+        updateConversationMetadata: async () => false,
+        deleteConversation: async () => false,
+        deleteExpiredGuestConversations: async () => 0,
+        close: () => {},
+      },
+    });
+    const poll = defineBusContract({
+      channel: "terminal:poll",
+      delivery: "collect",
+      request: z.object({ q: z.string() }),
+      response: z.object({ a: z.string() }),
+    });
+    let runtime: InterfaceRuntime | undefined;
+    await instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          runtime = interfaceRuntime(context);
+          return {};
+        },
+      }),
+    ).register(shell);
+    if (!runtime) throw new Error("Setup did not run");
+    shell.getMessageBus().subscribe("terminal:poll", async () => ({
+      success: true,
+      data: { a: "yes" },
+    }));
+
+    expect(runtime.spaces).toEqual(["discord:guild-1"]);
+    expect(runtime.siteUrl).toBe("https://brain.test");
+    expect(runtime.localSiteUrl).toBe("http://localhost:8080");
+    expect(runtime.preferLocalUrls).toBe(true);
+    expect(await runtime.gather(poll, { q: "ok?" })).toMatchObject({
+      status: "answered",
+      answers: [{ a: "yes" }],
+    });
+    await runtime.conversations.start({
+      sessionId: "conv-1",
+      interfaceType: "terminal",
+      channelId: "room",
+      metadata: {
+        channelName: "Room",
+        interfaceType: "terminal",
+        channelId: "room",
+      },
+    });
+    await runtime.conversations.addMessage({
+      conversationId: "conv-1",
+      role: "user",
+      content: "hi",
+    });
+    expect(started).toEqual([
+      {
+        sessionId: "conv-1",
+        interfaceType: "terminal",
+        channelId: "room",
+        metadata: {
+          channelName: "Room",
+          interfaceType: "terminal",
+          channelId: "room",
+        },
+      },
+    ]);
+    expect(added).toEqual([
+      { conversationId: "conv-1", role: "user", content: "hi" },
+    ]);
+  });
+});
+
+describe("a message transport that renders and edits", () => {
+  interface Recorded {
+    sent: unknown[];
+    edits: unknown[];
+    statuses: unknown[];
+    rerouted: unknown[];
+  }
+
+  async function installed(): Promise<{
+    recorded: Recorded;
+    shell: ReturnType<typeof createMockShell>;
+    runtime: () => InterfaceRuntime;
+  }> {
+    const recorded: Recorded = {
+      sent: [],
+      edits: [],
+      statuses: [],
+      rerouted: [],
+    };
+    let reached: InterfaceRuntime | undefined;
+    const terminal = withMessageTransport(
+      defineInterface({ id: "terminal", config }),
+      (context) => {
+        reached = interfaceRuntime(context);
+        return {
+          send: (request): void => {
+            recorded.sent.push(request);
+          },
+          sendWithId: async (request): Promise<string> => {
+            recorded.sent.push(request);
+            return `message-${recorded.sent.length}`;
+          },
+          edit: async (request): Promise<boolean> => {
+            recorded.edits.push(request);
+            return true;
+          },
+          formatProgress: (event): { card: unknown; fallbackText: string } => ({
+            card: { progress: event.id },
+            fallbackText: `working on ${event.id}`,
+          }),
+          formatCompletion: (event): string => `done: ${event.id}`,
+          // A platform's own interface type is this one's.
+          progressEvent: async (event, next): Promise<void> => {
+            recorded.rerouted.push(event.metadata.interfaceType);
+            await next({
+              ...event,
+              metadata: { ...event.metadata, interfaceType: "terminal" },
+            });
+          },
+          toolActivity: async (event, next): Promise<void> => {
+            await next({ ...event, interfaceType: "terminal" });
+          },
+          toolStatus: async (update): Promise<void> => {
+            recorded.statuses.push({
+              tool: update.toolName,
+              state: update.state,
+            });
+          },
+        };
+      },
+    );
+    const shell = createMockShell();
+    await instantiate(terminal).register(shell);
+    return {
+      recorded,
+      shell,
+      runtime: (): InterfaceRuntime => {
+        if (!reached) throw new Error("The transport slot did not run");
+        return reached;
+      },
+    };
+  }
+
+  const progress = (
+    status: string,
+    interfaceType = "terminal-discord",
+  ): Record<string, unknown> => ({
+    id: "job-1",
+    type: "job",
+    status,
+    metadata: {
+      rootJobId: "job-1",
+      operationType: "file_operations",
+      interfaceType,
+      channelId: "room",
+    },
+  });
+  const publish = (
+    shell: ReturnType<typeof createMockShell>,
+    type: string,
+    payload: unknown,
+  ): Promise<unknown> =>
+    shell
+      .getMessageBus()
+      .send({ type, payload, sender: "test", broadcast: true });
+
+  it("sends progress through sendWithId, edits it on completion, as the transport renders it", async () => {
+    const { recorded, shell } = await installed();
+
+    await publish(shell, "job-progress", progress("processing"));
+    await publish(shell, "job-progress", progress("completed"));
+
+    expect(recorded.rerouted).toEqual(["terminal-discord", "terminal-discord"]);
+    expect(recorded.sent).toEqual([
+      {
+        channelId: "room",
+        message: {
+          card: { progress: "job-1" },
+          fallbackText: "working on job-1",
+        },
+      },
+    ]);
+    expect(recorded.edits).toEqual([
+      { channelId: "room", messageId: "message-1", message: "done: job-1" },
+    ]);
+  });
+
+  it("edits the reply it tracks for a job when the job completes", async () => {
+    const { recorded, shell, runtime } = await installed();
+
+    runtime().messages.trackAgentResponseForJob("job-1", "reply-1", "room");
+    await publish(shell, "job-progress", progress("completed"));
+
+    expect(recorded.edits).toEqual([
+      { channelId: "room", messageId: "reply-1", message: "done: job-1" },
+    ]);
+  });
+
+  it("hands tool statuses, rerouted by its tool-activity hook, to the transport", async () => {
+    const { recorded, shell } = await installed();
+    const event = {
+      toolName: "system_search",
+      conversationId: "conv-1",
+      interfaceType: "terminal-slack",
+      channelId: "room",
+      actor: { kind: "external", externalActorId: "terminal:someone" },
+    };
+
+    await publish(shell, "tool:invoking", event);
+    await publish(shell, "tool:failed", { ...event, error: "boom" });
+
+    expect(recorded.statuses).toEqual([
+      { tool: "system_search", state: "running" },
+      { tool: "system_search", state: "failed" },
+    ]);
+  });
+
+  it("resolves a tool completion held during input once the reply settles it", async () => {
+    const { recorded, shell, runtime } = await installed();
+    const event = {
+      toolName: "system_search",
+      conversationId: "conv-1",
+      interfaceType: "terminal",
+      channelId: "room",
+      actor: { kind: "external", externalActorId: "terminal:someone" },
+    };
+
+    runtime().messages.startProcessingInput("room");
+    await publish(shell, "tool:completed", event);
+    expect(recorded.statuses).toEqual([]);
+    await runtime().messages.handleAgentResponseToolStatuses(
+      { cards: [], pendingConfirmations: [] },
+      "conv-1",
+    );
+    runtime().messages.endProcessingInput();
+
+    expect(recorded.statuses).toEqual([
+      { tool: "system_search", state: "completed" },
+    ]);
+  });
+});
+
+describe("captureUrlViaAgent", () => {
+  it("asks the agent to save the link in the channel's link conversation, at the author's level", async () => {
+    const chat = mock<IAgentService["chat"]>(async () => ({
+      text: "Saved",
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    }));
+    const permissions = new PermissionService({
+      rules: [{ pattern: "discord:author-1", level: "trusted" }],
+    });
+
+    await captureUrlViaAgent(
+      {
+        agent: { chat },
+        permissions: {
+          getUserLevel: (type, id, lookup) =>
+            permissions.determineUserLevel(type, id, lookup),
+        },
+      },
+      "https://example.com/a",
+      "room-1",
+      "author-1",
+      "discord",
+    );
+
+    expect(chat).toHaveBeenCalledWith(
+      "Save this link: https://example.com/a",
+      "links-room-1",
+      {
+        userPermissionLevel: "trusted",
+        interfaceType: "discord",
+        channelId: "room-1",
+      },
+    );
   });
 });

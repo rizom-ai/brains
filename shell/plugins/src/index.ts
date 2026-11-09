@@ -894,6 +894,9 @@ export {
   resolveMessageArtifactAccess,
   sanitizeUploadFilename,
   urlCaptureConfigSchema,
+  captureUrlViaAgent,
+  extractCaptureableUrls,
+  type LinkCaptureHost,
   validateMessageUpload,
   validateTextUpload,
   type ArtifactCardState,
@@ -1037,6 +1040,7 @@ export {
   type FirstPartyDaemon,
   type FirstPartySlotContext,
   type MessageTransport,
+  type MessageTransportEdit,
   type MessageTransportSend,
 } from "./interface/first-party-interface";
 

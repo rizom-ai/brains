@@ -1,7 +1,12 @@
 import type { Logger } from "@brains/utils/logger";
 import type { JobProgressEvent } from "@brains/job-queue";
-import type { AgentNamespace } from "../contracts/agent";
-import type { BusContract, BusResult } from "@brains/contracts";
+import type { AgentNamespace, AgentResponse } from "../contracts/agent";
+import type { BusCollection, BusContract, BusResult } from "@brains/contracts";
+import {
+  sharedUploadScope,
+  type IRuntimeUploadsNamespace,
+  type ScopedRuntimeUploadStore,
+} from "../service/upload-registry";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { z } from "@brains/utils/zod";
 import type {
@@ -45,8 +50,14 @@ export interface InterfaceRuntime {
    * turn in a conversation, and the answer to an approval it is waiting on.
    */
   readonly agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
-  /** A conversation's stored messages, as the class read them. */
-  readonly conversations: Pick<IInterfaceConversationsNamespace, "getMessages">;
+  /**
+   * A conversation's stored messages, and the conversations and messages a
+   * platform's shared space records, as the class read and wrote them.
+   */
+  readonly conversations: Pick<
+    IInterfaceConversationsNamespace,
+    "getMessages" | "start" | "addMessage"
+  >;
   /**
    * A sender's permission level on an interface and whether they stand for
    * the brain's anchor, as the class asked.
@@ -137,6 +148,32 @@ export interface InterfaceRuntime {
     ICoreEntityService,
     "hasEntityType" | "listEntities" | "getEntity"
   >;
+  /**
+   * The runtime's shared upload store (`upload`), which create requests,
+   * attachment restore and entity promotion read: the store an interface
+   * that accepts files writes, served at `routePath` (by default
+   * `/api/chat/uploads`).
+   */
+  sharedUploads(options?: {
+    readonly routePath?: string | undefined;
+  }): ScopedRuntimeUploadStore;
+  /**
+   * Delete a retired upload namespace's directory and nothing beside it;
+   * answers whether there was one. The shared store is never retired.
+   */
+  retireUploads(namespace: string): Promise<boolean>;
+  /** Ask every owner of a collect contract, as the class gathered. */
+  gather<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "collect">,
+    request: z.input<TRequest>,
+  ): Promise<BusCollection<z.output<TResponse>>>;
+  /** The shared conversation spaces the brain is configured with. */
+  readonly spaces: readonly string[];
+  /** The brain's site URL, when it has a domain. */
+  readonly siteUrl: string | undefined;
+  /** The site's local URL, and whether links prefer it, as the class read them. */
+  readonly localSiteUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
 }
 
 /** How a first-party message transport coordinates replies and job progress. */
@@ -152,17 +189,39 @@ export interface InterfaceMessages {
   unregisterProgressCallback(): void;
   /** Whether anything follows job progress now. */
   hasProgressCallback(): boolean;
+  /** Edit a sent reply in place when the job it started completes. */
+  trackAgentResponseForJob(
+    jobId: string,
+    messageId: string,
+    channelId: string,
+  ): void;
+  /**
+   * Settle the tool completions held while input was answered, by the
+   * reply: through the transport's hook when it declares one.
+   */
+  handleAgentResponseToolStatuses(
+    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+    conversationId: string,
+  ): Promise<void>;
 }
 
 /** What the runtime binds a first-party interface's runtime to. */
 export interface InterfaceRuntimeBinding {
   readonly logger: Logger;
   readonly agent: AgentNamespace;
-  readonly conversations: Pick<IInterfaceConversationsNamespace, "getMessages">;
+  readonly conversations: Pick<
+    IInterfaceConversationsNamespace,
+    "getMessages" | "start" | "addMessage"
+  >;
   readonly permissions: Pick<
     IPermissionsNamespace,
     "getUserLevel" | "isAnchor"
   >;
+  readonly uploads: IRuntimeUploadsNamespace;
+  readonly spaces: readonly string[];
+  readonly siteUrl: string | undefined;
+  readonly localSiteUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
   readonly production: boolean;
   readonly domain: string | undefined;
   readonly hasPlugin: (pluginId: string) => boolean;
@@ -174,7 +233,7 @@ export interface InterfaceRuntimeBinding {
   readonly messages: InterfaceMessages | undefined;
   readonly messaging: Pick<
     IMessagingNamespace,
-    "answer" | "request" | "subscribe"
+    "answer" | "request" | "gather" | "subscribe"
   >;
   readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
   /** Keeps a release to run when the interface shuts down. */
@@ -227,7 +286,20 @@ function bindInterfaceRuntime(
     conversations: Object.freeze({
       getMessages: (conversationId, options) =>
         conversations.getMessages(conversationId, options),
+      start: (request) => conversations.start(request),
+      addMessage: (request) => conversations.addMessage(request),
     }),
+    sharedUploads: (options = {}) =>
+      binding.uploads.scoped({
+        ...sharedUploadScope,
+        ...(options.routePath ? { routePath: options.routePath } : {}),
+      }),
+    retireUploads: (namespace) => binding.uploads.retire(namespace),
+    gather: (contract, request) => binding.messaging.gather(contract, request),
+    spaces: Object.freeze([...binding.spaces]),
+    siteUrl: binding.siteUrl,
+    localSiteUrl: binding.localSiteUrl,
+    preferLocalUrls: binding.preferLocalUrls,
     permissions: Object.freeze({
       getUserLevel: (interfaceType, userId, lookup) =>
         permissions.getUserLevel(interfaceType, userId, lookup),
