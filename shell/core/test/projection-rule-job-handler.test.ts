@@ -58,6 +58,12 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   staleBeforeSelection = false;
   staleAtApply = false;
   waveStatus: ProjectionWave["status"] = "running";
+  waveGraphFingerprint = "graph";
+  waveCompletedAt: number | null = null;
+  readonly supersededWaves: Array<{ waveId: string; supersededAt: number }> =
+    [];
+  /** The scheduler's sweep supersedes the wave right after a handler reads it. */
+  sweepSupersedesAfterRead = false;
 
   constructor(inputCount: number) {
     this.inputs = Array.from({ length: inputCount }, (_unused, index) => ({
@@ -71,15 +77,35 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   }
 
   getWave(): Promise<ProjectionWave> {
-    return Promise.resolve({
+    const wave = this.currentWave();
+    if (this.sweepSupersedesAfterRead && this.waveStatus === "running") {
+      this.waveStatus = "superseded";
+      this.waveCompletedAt = 15;
+    }
+    return Promise.resolve(wave);
+  }
+
+  supersedeWave(waveId: string, supersededAt: number): Promise<ProjectionWave> {
+    // Like the durable store: only a running wave transitions, so a wave the
+    // sweep already superseded comes back as the sweep left it.
+    if (this.waveStatus === "running") {
+      this.waveStatus = "superseded";
+      this.waveCompletedAt = supersededAt;
+      this.supersededWaves.push({ waveId, supersededAt });
+    }
+    return Promise.resolve(this.currentWave());
+  }
+
+  private currentWave(): ProjectionWave {
+    return {
       id: "wave-1",
       cutoffGeneration: this.inputs.length,
-      graphFingerprint: "graph",
+      graphFingerprint: this.waveGraphFingerprint,
       admissionEpoch: 0,
       status: this.waveStatus,
       startedAt: 10,
-      completedAt: null,
-    });
+      completedAt: this.waveCompletedAt,
+    };
   }
 
   listPendingInputs(): Promise<ProjectionDirtyInput[]> {
@@ -216,6 +242,7 @@ describe("ProjectionRuleJobHandler", () => {
       onDiagnostic: (diagnostic): void => {
         diagnostics.push(diagnostic);
       },
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
@@ -294,6 +321,7 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
@@ -331,6 +359,7 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
@@ -358,6 +387,7 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
@@ -379,25 +409,112 @@ describe("ProjectionRuleJobHandler", () => {
     expect(coordinator.incidents).toEqual([]);
   });
 
-  it("refuses a running wave's job for a rule that is not executable", async () => {
+  it("supersedes a running wave on a retired graph when its rule left the composition", async () => {
+    const store = new MemoryExecutionStore(1);
+    store.waveGraphFingerprint = "retired-graph";
+    const coordinator = new MemoryCoordinator();
     const handler = new ProjectionRuleJobHandler({
       rules: [],
-      store: new MemoryExecutionStore(1),
+      store,
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
+      now: (): number => 20,
+    });
+
+    const result = await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-removed-plugin",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual({
+      waveId: "wave-1",
+      ruleId: "topics",
+      outcome: "superseded",
+      inputFingerprint: null,
+      changedTargets: [],
+    });
+    expect(store.supersededWaves).toEqual([
+      { waveId: "wave-1", supersededAt: 20 },
+    ]);
+    expect(await store.getWave()).toEqual(
+      expect.objectContaining({ status: "superseded", completedAt: 20 }),
+    );
+    expect(coordinator.continuedWaveIds).toEqual(["wave-1"]);
+    expect(coordinator.incidents).toEqual([]);
+  });
+
+  it("settles as superseded when the sweep supersedes the retired-graph wave first", async () => {
+    const store = new MemoryExecutionStore(1);
+    store.waveGraphFingerprint = "retired-graph";
+    store.sweepSupersedesAfterRead = true;
+    const coordinator = new MemoryCoordinator();
+    const handler = new ProjectionRuleJobHandler({
+      rules: [],
+      store,
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
+      now: (): number => 20,
+    });
+
+    const result = await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-removed-plugin",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual({
+      waveId: "wave-1",
+      ruleId: "topics",
+      outcome: "superseded",
+      inputFingerprint: null,
+      changedTargets: [],
+    });
+    expect(store.supersededWaves).toEqual([]);
+    expect(await store.getWave()).toEqual(
+      expect.objectContaining({ status: "superseded", completedAt: 15 }),
+    );
+    expect(coordinator.continuedWaveIds).toEqual(["wave-1"]);
+    expect(coordinator.incidents).toEqual([]);
+  });
+
+  it("refuses a running wave's job on the current graph for a rule that is not executable", async () => {
+    const store = new MemoryExecutionStore(1);
+    const handler = new ProjectionRuleJobHandler({
+      rules: [],
+      store,
       coordinator: new MemoryCoordinator(),
       inputContext,
       executionContext,
       reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
-    void expect(
-      handler.process(
+    const failure = await handler
+      .process(
         { waveId: "wave-1", ruleId: "topics" },
         "job-unknown-rule",
         progressReporter,
         new AbortController().signal,
-      ),
-    ).rejects.toThrow('Projection rule "topics" is not executable');
+      )
+      .catch((error: unknown) => error);
+
+    expect(failure).toEqual(
+      new Error('Projection rule "topics" is not executable'),
+    );
+    expect(store.supersededWaves).toEqual([]);
+    expect(await store.getWave()).toEqual(
+      expect.objectContaining({ status: "running" }),
+    );
   });
 
   it("does not reconcile intents when the epoch changes during derive", async () => {
@@ -424,6 +541,7 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets,
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
@@ -459,6 +577,7 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 
@@ -511,6 +630,7 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets: async (): Promise<void> => {},
+      graphFingerprint: "graph",
       now: (): number => 20,
     });
 

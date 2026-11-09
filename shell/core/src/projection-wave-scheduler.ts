@@ -88,7 +88,7 @@ export class ProjectionWaveScheduler {
   private readonly queue: ProjectionWaveQueue;
   private readonly graph: ProjectionGraph;
   private readonly ruleById: ReadonlyMap<string, ProjectionRule>;
-  private readonly graphFingerprint: string;
+  public readonly graphFingerprint: string;
   private readonly createWaveId: () => string;
   private readonly beforeWaveCompletion: (
     summary: ProjectionWaveReady,
