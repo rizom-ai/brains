@@ -558,16 +558,18 @@ class DeclarativeServicePlugin<
     if (this.tools) return this.tools;
     const state = this.requireState();
     const definitions =
-      this.definition.tools?.({
-        config: this.config,
-        state,
-        entities: this.entityAccess(),
-        jobs: this.jobs(),
-        messaging: this.messaging(),
-        accountSettings: this.accountSettingsWriter(),
-        templates: this.templateFormatter(),
-        content: this.content(),
-      }) ?? [];
+      this.definition.tools?.(
+        this.withRuntime(this.getContext(), {
+          config: this.config,
+          state,
+          entities: this.entityAccess(),
+          jobs: this.jobs(),
+          messaging: this.messaging(),
+          accountSettings: this.accountSettingsWriter(),
+          templates: this.templateFormatter(),
+          content: this.content(),
+        }),
+      ) ?? [];
     const names = new Set<string>();
     this.tools = definitions.map((definition) => {
       if (names.has(definition.name)) {
@@ -655,11 +657,13 @@ class DeclarativeServicePlugin<
 
   private bindOperatorDefinitions(context: ServicePluginContext): void {
     if (this.definition.dashboardWidgets && context.dashboard.isAvailable()) {
-      const bindings = this.definition.dashboardWidgets({
-        config: this.config,
-        state: this.requireState(),
-        accountSettings: this.definition.accountSettings,
-      });
+      const bindings = this.definition.dashboardWidgets(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.requireState(),
+          accountSettings: this.definition.accountSettings,
+        }),
+      );
       const ids = new Set<string>();
       for (const binding of bindings) {
         const id = binding.definition.id;
@@ -674,11 +678,13 @@ class DeclarativeServicePlugin<
     }
 
     if (this.definition.studioWorkspaces && context.studio.isAvailable()) {
-      const bindings = this.definition.studioWorkspaces({
-        config: this.config,
-        state: this.requireState(),
-        accountSettings: this.definition.accountSettings,
-      });
+      const bindings = this.definition.studioWorkspaces(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.requireState(),
+          accountSettings: this.definition.accountSettings,
+        }),
+      );
       const ids = new Set<string>();
       for (const binding of bindings) {
         const id = binding.definition.id;
