@@ -2150,7 +2150,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         pending.existingEntity !== undefined &&
         pending.existingEntity.visibility !== placeholder.visibility
       ) {
-        throw new Error(
+        // Answered, as an entity plugin's interceptor answered it.
+        return createFailure(
           `Existing ${this.entityType} visibility "${pending.existingEntity.visibility}" does not match requested visibility "${placeholder.visibility}".`,
         );
       }

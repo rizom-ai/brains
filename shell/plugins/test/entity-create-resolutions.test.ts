@@ -226,9 +226,16 @@ describe("a queued create", () => {
     answer = (context): { readonly refuse: string } =>
       queued(context, { visibility: "restricted" });
 
-    expect(create(shell)).rejects.toThrow(
-      'Existing scan visibility "public" does not match requested visibility "restricted".',
-    );
+    // Answered as a failed create, as an entity plugin's interceptor
+    // answered it, rather than thrown at whoever routed the create.
+    expect(await create(shell)).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error:
+          'Existing scan visibility "public" does not match requested visibility "restricted".',
+      },
+    });
   });
 
   it("attributes the job to the caller when asked", async () => {
