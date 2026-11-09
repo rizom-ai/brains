@@ -974,6 +974,7 @@ export {
   uniqueTitleContext,
   restatingMetadata,
   withBodyTemplate,
+  withUrlRoute,
   writesInDocumentOrder,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,

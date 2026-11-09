@@ -66,6 +66,7 @@ import {
   bodyTemplateOf,
   ordinaryCreateOf,
   restatedMetadataOf,
+  urlRouteOf,
   writesInDocumentOrderOf,
   queuedCreateOf,
   storedCreateOf,
@@ -169,12 +170,13 @@ const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 /**
  * Which route a create request takes, by how the caller expressed it: an
- * upload or attachment reference first, then content, then a prompt. A
- * conversation message arrives as content.
+ * upload or attachment reference first, then content, then a prompt, then
+ * a URL alone. A conversation message arrives as content.
  */
 function selectCreateRoute(
   routing: EntityCreateRouting,
   input: CreateInput,
+  urlRoute?: EntityCreateRoute,
 ): EntityCreateRoute | undefined {
   switch (input.from?.kind) {
     case "entity-attachment":
@@ -183,7 +185,9 @@ function selectCreateRoute(
       return routing.fromUpload;
     default:
       if (input.content) return routing.fromContent;
-      return input.prompt ? routing.fromPrompt : undefined;
+      if (input.prompt) return routing.fromPrompt;
+      // A first-party type may decide a create from a URL alone.
+      return input.url ? urlRoute : undefined;
   }
 }
 
@@ -1113,7 +1117,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     }
 
     const create = this.create;
-    if (create) this.registerCreateRouting(context, create);
+    const urlRoute = urlRouteOf(this.definition);
+    if (create || urlRoute) {
+      this.registerCreateRouting(context, create ?? {}, urlRoute);
+    }
 
     // Evals run with no caller, so as the package, with fixtures scoped to
     // this type.
@@ -1609,9 +1616,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private registerCreateRouting(
     context: EntityPluginContext,
     routing: EntityCreateRouting,
+    urlRoute: EntityCreateRoute | undefined,
   ): void {
     const interceptCreate: CreateInterceptor = (input, executionContext) =>
-      this.routeCreate(context, routing, input, executionContext);
+      this.routeCreate(context, routing, urlRoute, input, executionContext);
     context.entities.registerCreateInterceptor(
       this.entityType,
       interceptCreate,
@@ -1621,7 +1629,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     context.entities.registerCreateCheck(
       this.entityType,
       async (input, executionContext): Promise<CreateCheckResult> => {
-        const route = selectCreateRoute(routing, input);
+        const route = selectCreateRoute(routing, input, urlRoute);
         if (!route) return { kind: "ready" };
         if ("reject" in route) return { kind: "error", error: route.reject };
         return route.check
@@ -1648,10 +1656,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private async routeCreate(
     context: EntityPluginContext,
     routing: EntityCreateRouting,
+    urlRoute: EntityCreateRoute | undefined,
     input: CreateInput,
     executionContext: CreateExecutionContext,
   ): Promise<CreateInterceptionResult> {
-    const route = selectCreateRoute(routing, input);
+    const route = selectCreateRoute(routing, input, urlRoute);
     if (!route) return { kind: "continue", input };
     if ("reject" in route) {
       return { kind: "handled", result: createFailure(route.reject) };

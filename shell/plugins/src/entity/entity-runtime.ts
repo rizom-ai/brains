@@ -22,6 +22,7 @@ import type { UniqueTitleContext } from "../service/create-entity-with-unique-ti
 import type {
   AnyEntityDefinition,
   DataSourceListOptions,
+  EntityCreateRoute,
   EntityCreateUploadReader,
   EntityGenerationAI,
   EntityGenerationDeclaration,
@@ -845,6 +846,36 @@ export function restatedMetadataOf(
         return isPlainRecord(restated) ? restated : { ...metadata };
       }
     : undefined;
+}
+
+const urlRouteKey = Symbol("rizom.url-route");
+
+/**
+ * A first-party definition created from a URL alone, as system_create hands
+ * on a `source: { kind: "url" }` request and as the link plugin class's
+ * interceptor captured it: the route that decides such a create, carried
+ * under a key no public type names. A URL beside content or a prompt goes
+ * the way content or a prompt goes.
+ */
+export function withUrlRoute<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  route: EntityCreateRoute<TDefinition["metadata"]>,
+): TDefinition {
+  return Object.freeze({ ...definition, [urlRouteKey]: route });
+}
+
+/** The route a definition carries for a create from a URL alone. */
+export function urlRouteOf(definition: object): EntityCreateRoute | undefined {
+  const found: unknown = Reflect.get(definition, urlRouteKey);
+  return isCreateRoute(found) ? found : undefined;
+}
+
+function isCreateRoute(value: unknown): value is EntityCreateRoute {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof Reflect.get(value, "resolve") === "function"
+  );
 }
 
 const documentOrderKey = Symbol("rizom.document-order");

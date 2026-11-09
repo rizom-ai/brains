@@ -17,6 +17,7 @@ export {
   uniqueTitleContext,
   restatingMetadata,
   withBodyTemplate,
+  withUrlRoute,
   writesInDocumentOrder,
   afterGeneration,
   type AnyEntityReads,
