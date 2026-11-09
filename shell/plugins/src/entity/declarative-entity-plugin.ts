@@ -76,10 +76,13 @@ import {
   type EntityRuntimeBinding,
   type QueuedCreate,
   type EntityCreateCaller,
+  type EvalGenerationOptions,
+  type EvalGenerationResult,
   type QueuedAttribution,
   type QueuedPlaceholder,
   type StoredCreate,
 } from "./entity-runtime";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { createUploadSaveHandler } from "./upload-save";
 import { sharedUploadScope } from "../service/upload-registry";
 import {
@@ -1162,8 +1165,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               fixtures: createEvalFixtures(context, this.entityType),
             },
             // An eval runs with no caller, so its searches read as the
-            // package.
-            this.runtimeBinding(context, this.asPackage(context), "an eval"),
+            // package, and so does a generation it runs.
+            {
+              ...this.runtimeBinding(
+                context,
+                this.asPackage(context),
+                "an eval",
+              ),
+              runGeneration: (input, options) =>
+                this.runGenerationForEval(context, input, options),
+            },
           ),
         ),
       );
@@ -1814,6 +1825,45 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         getProfile: () => context.identity.getProfile(),
       }),
     };
+  }
+
+  /**
+   * Run this type's generation in process for an eval, queued as the
+   * package, as an entity plugin class's eval ran its generation handler.
+   */
+  private async runGenerationForEval(
+    context: EntityPluginContext,
+    input: unknown,
+    options: EvalGenerationOptions = {},
+  ): Promise<EvalGenerationResult> {
+    const generation = this.generation;
+    if (!generation) {
+      throw new Error(`Entity "${this.entityType}" declares no generation`);
+    }
+    const handler = this.generationHandler(
+      context,
+      generation,
+      `${this.entityType}:generation`,
+      this.definition.scheduledGeneration !== undefined,
+    );
+    const data = handler.validateAndParse(
+      await admitPackageJob(context.jobAuthority, undefined, input),
+    );
+    if (data === null) {
+      return { success: false, error: "Invalid generation input" };
+    }
+    const onProgress = options.onProgress;
+    const reporter = onProgress
+      ? CallbackProgressReporter.from(async ({ progress, message }) => {
+          await onProgress({ progress, ...definedFields({ message }) });
+        })
+      : undefined;
+    const result = await handler.process(
+      data,
+      `eval-${Date.now()}`,
+      reporter ?? CallbackProgressReporter.noop(),
+    );
+    return { ...result };
   }
 
   /**

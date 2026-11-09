@@ -140,6 +140,16 @@ export interface EntityRuntime {
   /** The anchor's profile, as the shell's identity holds it now, read-only. */
   readonly identity: EntityRuntimeIdentity;
   /**
+   * Run the declaring type's own generation on this input, in process and
+   * as the package, writing its record to the store, and answer the job's
+   * result, as the entity plugin classes' evals ran their generation
+   * handlers. Evals only.
+   */
+  runGeneration(
+    input: unknown,
+    options?: EvalGenerationOptions,
+  ): Promise<EvalGenerationResult>;
+  /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
    * rules hold, and the target must be visible at the run's read scope, but
@@ -149,6 +159,25 @@ export interface EntityRuntime {
    */
   linkInto(entityId: string, link: EntityGenerationLink): Promise<void>;
 }
+
+/** A step of an eval's generation run, as its job reported it. */
+export interface EvalGenerationProgress {
+  readonly progress: number;
+  readonly message?: string | undefined;
+}
+
+export interface EvalGenerationOptions {
+  /** Told each progress step the generation reports. */
+  readonly onProgress?:
+    ((step: EvalGenerationProgress) => void | Promise<void>) | undefined;
+}
+
+/** A generation job's result: whether it wrote, what, and its extras. */
+export type EvalGenerationResult = Readonly<Record<string, unknown>> & {
+  readonly success: boolean;
+  readonly entityId?: string | undefined;
+  readonly error?: string | undefined;
+};
 
 /** Read-only, untyped reads across entity types. */
 export interface AnyEntityReads {
@@ -327,6 +356,8 @@ export interface EntityRuntimeBinding {
   readonly job?: ContractJobRuntimeBinding | undefined;
   /** Who asked, for a create route and its check; unset, refused. */
   readonly caller?: EntityCreateCaller | undefined;
+  /** The declaring type's generation, run in process; unset, refused. */
+  readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -691,6 +722,11 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     identity:
       binding.identity ??
       Object.freeze({ getProfile: unavailable("identity", binding.where) }),
+    runGeneration:
+      binding.runGeneration ??
+      (async (): Promise<never> => {
+        throw new Error(`runGeneration is not available in ${binding.where}`);
+      }),
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),
   });
