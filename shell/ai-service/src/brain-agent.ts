@@ -132,6 +132,9 @@ export function createBrainAgentFactory(
     messageBus,
   } = options;
   const capabilities = resolveTextModelCapabilities(modelId);
+  // OpenAI holds the model to a tool's strict schema, so a call cannot leave
+  // out a required field or carry one the tool lacks.
+  const toolOptions = { strictTools: capabilities.provider === "openai" };
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -148,6 +151,7 @@ export function createBrainAgentFactory(
         interfaceType: "agent",
       },
       emitter,
+      toolOptions,
     );
 
     const agent = new ToolLoopAgent({
@@ -188,6 +192,7 @@ export function createBrainAgentFactory(
             enableCreateTransform: callOptions.enableCreateTransform,
           },
           emitter,
+          toolOptions,
         );
 
         return {

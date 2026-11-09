@@ -15,6 +15,7 @@ import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
 import { definedFields } from "@brains/utils/strip-undefined";
+import { dropModelNulls, toStrictModelSchema } from "./strict-model-schema";
 
 const GUEST_RETRIEVAL_UNAVAILABLE = {
   success: false,
@@ -131,33 +132,41 @@ export function toModelVisibleInputSchema(
 
 function toSDKInputSchema(
   shape: ModelVisibleInputSchema,
-): Schema<Record<string, unknown>> {
+  strictTools: boolean,
+): { inputSchema: Schema<Record<string, unknown>>; strict: boolean } {
   const schema = z.strictObject(shape);
   // The SDK's automatic Zod conversion closes every object, including
   // records whose keys belong to plugins. Preserve Zod's actual JSON schema:
   // strict operation branches stay closed, while field maps stay open.
-  return jsonSchema<Record<string, unknown>>(
-    () => {
-      // Zod's declared keyword types span drafts. The selected renderer
-      // produces the SDK's draft-7 contract; preserve the generated object.
-      // The `$schema` URI is dropped: it is resent on every agent step and
-      // tells the model nothing.
-      const { $schema: _draftUri, ...draft7 }: Record<string, unknown> =
-        z.toJSONSchema(schema, {
-          target: "draft-7",
-          io: "input",
-        });
-      return draft7;
-    },
-    {
-      validate: async (value) => {
-        const parsed = await schema.safeParseAsync(value);
-        return parsed.success
-          ? { success: true, value: parsed.data }
-          : { success: false, error: parsed.error };
+  // Zod's declared keyword types span drafts. The selected renderer
+  // produces the SDK's draft-7 contract; preserve the generated object.
+  // The `$schema` URI is dropped: it is resent on every agent step and
+  // tells the model nothing.
+  const { $schema: _draftUri, ...draft7 }: Record<string, unknown> =
+    z.toJSONSchema(schema, {
+      target: "draft-7",
+      io: "input",
+    });
+  // A model that takes strict tools is held to the tool's strict form; the
+  // nulls it writes there for left-out fields are dropped before the tool's
+  // own schema validates the call.
+  const strictSchema = strictTools ? toStrictModelSchema(draft7) : undefined;
+  return {
+    inputSchema: jsonSchema<Record<string, unknown>>(
+      () => strictSchema ?? draft7,
+      {
+        validate: async (value) => {
+          const parsed = await schema.safeParseAsync(
+            strictSchema ? dropModelNulls(value, draft7) : value,
+          );
+          return parsed.success
+            ? { success: true, value: parsed.data }
+            : { success: false, error: parsed.error };
+        },
       },
-    },
-  );
+    ),
+    strict: strictSchema !== undefined,
+  };
 }
 
 export function toModelToolOutput(output: unknown): {
@@ -213,6 +222,7 @@ export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
+  options: { strictTools?: boolean } = {},
 ): SDKToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -297,19 +307,22 @@ export function convertToSDKTools(
       guest ? undefined : emitter,
     );
 
+    const { inputSchema, strict } = toSDKInputSchema(
+      toModelVisibleInputSchema(t.inputSchema, {
+        toolName: t.name,
+        ...(contextInfo.enableCreateUpload !== undefined && {
+          enableCreateUpload: contextInfo.enableCreateUpload,
+        }),
+        ...(contextInfo.enableCreateTransform !== undefined && {
+          enableCreateTransform: contextInfo.enableCreateTransform,
+        }),
+      }),
+      options.strictTools ?? false,
+    );
     sdkTools[t.name] = dynamicTool({
       description: t.description,
-      inputSchema: toSDKInputSchema(
-        toModelVisibleInputSchema(t.inputSchema, {
-          toolName: t.name,
-          ...(contextInfo.enableCreateUpload !== undefined && {
-            enableCreateUpload: contextInfo.enableCreateUpload,
-          }),
-          ...(contextInfo.enableCreateTransform !== undefined && {
-            enableCreateTransform: contextInfo.enableCreateTransform,
-          }),
-        }),
-      ),
+      inputSchema,
+      ...(strict && { strict: true }),
       execute: wrappedExecute,
       toModelOutput: ({ output }) => toModelToolOutput(output),
     });

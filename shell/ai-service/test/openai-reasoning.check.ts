@@ -24,12 +24,30 @@ const requestSchema = z.discriminatedUnion("model", [
     reasoning: z.strictObject({ effort: z.literal("low") }),
     temperature: z.never().optional(),
     input: inputSchema,
+    tools: z
+      .array(
+        z.looseObject({
+          name: z.string(),
+          strict: z.boolean().optional(),
+          parameters: z.looseObject({ required: z.array(z.string()) }),
+        }),
+      )
+      .optional(),
   }),
   z.object({
     model: z.literal("gpt-4o-mini"),
     reasoning: z.never().optional(),
     temperature: z.literal(0.7),
     input: inputSchema,
+    tools: z
+      .array(
+        z.looseObject({
+          name: z.string(),
+          strict: z.boolean().optional(),
+          parameters: z.looseObject({ required: z.array(z.string()) }),
+        }),
+      )
+      .optional(),
   }),
 ]);
 
@@ -278,3 +296,48 @@ for (const guest of [false, true]) {
     else expect(result.guestSettlement).toBeUndefined();
   });
 }
+
+it("holds an OpenAI model to each tool's strict schema", async () => {
+  const requests = captureRequests("Answer");
+  const publish: Tool = {
+    name: "publishing_manage",
+    description: "Publish an entity.",
+    inputSchema: { entityType: z.string(), id: z.string().optional() },
+    visibility: "public",
+    handler: async () => ({ success: true as const, data: {} }),
+  };
+  const service = AIService.createFresh(
+    { apiKey: "test-key", model: "gpt-6-luna" },
+    createSilentLogger(),
+  );
+  const agent = createBrainAgentFactory({
+    model: service.getModel(),
+    modelId: "gpt-6-luna",
+    reasoningEffort: "low",
+    messageBus: createMockMessageBus(),
+  })({
+    identity: { name: "Brain", role: "Assistant", purpose: "Help", values: [] },
+    tools: [publish],
+    getToolsForPermission: () => [publish],
+  });
+
+  await agent.generate({
+    messages: [{ role: "user", content: "Publish it." }],
+    options: {
+      interfaceType: "evaluation",
+      userPermissionLevel: "public",
+      isAnchor: false,
+      conversationId: "test",
+    },
+  });
+
+  expect(
+    requests[0]?.tools?.map(({ name, strict, parameters }) => ({
+      name,
+      strict,
+      required: parameters.required,
+    })),
+  ).toEqual([
+    { name: "publishing_manage", strict: true, required: ["entityType", "id"] },
+  ]);
+});
