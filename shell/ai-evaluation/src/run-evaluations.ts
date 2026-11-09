@@ -7,7 +7,7 @@
  *   bun run eval --test tool-invocation-list  # Run specific test(s)
  *   bun run eval --filter my-test            # Alias for --test
  *   bun run eval --tags core                  # Run only tests with 'core' tag
- *   bun run eval --suite core                 # Run an eval suite from brain.eval.yaml
+ *   bun run eval --suite team                 # Run an eval suite from brain.eval.yaml
  *   bun run eval --tool-coverage              # Show agent vs asserted tool coverage
  *   bun run eval --tool-surface               # Show internal/agent/protocol/CLI tool surfaces
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring

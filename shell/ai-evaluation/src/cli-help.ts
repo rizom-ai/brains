@@ -38,9 +38,9 @@ Examples:
   bun run eval --filter my-test             Run single test (alias)
   bun run eval --test list,search           Run multiple tests
   bun run eval --tags core                  Run tests tagged 'core'
-  bun run eval --suite core                 Run the core eval suite
-  bun run eval --suite core --tool-coverage Check tool assertion coverage
-  bun run eval --suite core --tool-surface  Inspect tool surfaces
+  bun run eval --suite team                 Run the team eval suite
+  bun run eval --suite team --tool-coverage Check tool assertion coverage
+  bun run eval --suite team --tool-surface  Inspect tool surfaces
   bun run eval --type plugin                Run only plugin tests
   bun run eval --type agent                 Run only agent tests
   bun run eval --mcp-basic --test <ids>      Evaluate through basic MCP

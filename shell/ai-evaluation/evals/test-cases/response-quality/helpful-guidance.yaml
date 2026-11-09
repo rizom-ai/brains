@@ -9,7 +9,7 @@ tags:
   - quality
   - helpfulness
   - guidance
-  - preset-core
+  - recipe-headless
 
 turns:
   - userMessage: "What can you help me with?"
