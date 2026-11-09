@@ -100,6 +100,7 @@ export async function activateProjectionRuntime(
     inputContext: options.inputContext,
     executionContext: options.executionContext,
     reconcileTargets: options.reconcileTargets,
+    graphFingerprint: scheduler.graphFingerprint,
     now: options.now,
   });
 
