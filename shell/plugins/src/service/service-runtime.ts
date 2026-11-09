@@ -8,6 +8,7 @@ import type {
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
+import type { AuthBackend } from "../contracts/auth";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -158,6 +159,11 @@ export interface ServiceRuntime {
   /** The brain's bare domain, when it has one. */
   readonly domain: string | undefined;
   /**
+   * The auth backend the brain bound, read when asked, as the class read
+   * `context.auth.get()`: none while the brain runs without auth-service.
+   */
+  auth(): AuthBackend | undefined;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -276,6 +282,7 @@ export interface ServiceRuntimeBinding {
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
+  readonly auth: () => AuthBackend | undefined;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -298,6 +305,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     dataDir: binding.dataDir,
     identity: binding.identity,
     domain: binding.domain,
+    auth: binding.auth,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,

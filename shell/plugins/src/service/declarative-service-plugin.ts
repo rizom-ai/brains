@@ -1070,6 +1070,7 @@ class DeclarativeServicePlugin<
         getProfile: () => context.identity.getProfile(),
       }),
       domain: context.domain,
+      auth: () => context.auth.get(),
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,

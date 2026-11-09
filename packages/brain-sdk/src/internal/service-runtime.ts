@@ -25,7 +25,7 @@ export {
 } from "@brains/plugins";
 export { withOwnedDataSources } from "@brains/plugins";
 export { internalFullScope } from "@brains/plugins";
-export type { ContentVisibility } from "@brains/plugins";
+export type { AuthBackend, ContentVisibility } from "@brains/plugins";
 export {
   SYSTEM_CHANNELS,
   entityCreatedChannel,
