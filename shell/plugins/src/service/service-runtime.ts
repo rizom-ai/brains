@@ -45,6 +45,10 @@ import type {
 } from "../operator/operator-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
 import {
+  attachFirstPartyRuntime,
+  firstPartyRuntimeOf,
+} from "../internal/first-party-runtime";
+import {
   buildServiceTool,
   type ServiceInputSchema,
   type ServiceSchema,
@@ -445,6 +449,9 @@ export interface ServiceRuntimeBinding {
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
 
+/** Every runtime the brain bound, so one read back is known to be one. */
+const boundServiceRuntimes = new WeakSet<object>();
+
 function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
   const { messaging, asPackage, onRelease, onReady, onRegistered } = binding;
   const runtime: ServiceRuntime = {
@@ -569,17 +576,13 @@ export function withServiceRuntime<TContext extends object>(
   context: TContext,
   binding: ServiceRuntimeBinding,
 ): TContext {
-  Object.defineProperty(context, serviceRuntimeKey, {
-    value: bindServiceRuntime(binding),
-    enumerable: false,
-    writable: false,
-    configurable: false,
-  });
-  return context;
+  const runtime = bindServiceRuntime(binding);
+  boundServiceRuntimes.add(runtime);
+  return attachFirstPartyRuntime(context, serviceRuntimeKey, runtime);
 }
 
-function isServiceRuntime(value: unknown): value is ServiceRuntime {
-  return typeof value === "object" && value !== null;
+function isServiceRuntime(value: object | undefined): value is ServiceRuntime {
+  return value !== undefined && boundServiceRuntimes.has(value);
 }
 
 /**
@@ -588,7 +591,7 @@ function isServiceRuntime(value: unknown): value is ServiceRuntime {
  * such as a test double, has none, and is refused.
  */
 export function serviceRuntime(context: object): ServiceRuntime {
-  const runtime: unknown = Reflect.get(context, serviceRuntimeKey);
+  const runtime = firstPartyRuntimeOf(context, serviceRuntimeKey);
   if (!isServiceRuntime(runtime)) {
     throw new Error(
       "This context carries no service runtime: serviceRuntime() reaches internal capabilities of a slot context the brain's runtime built, for first-party packages only",

@@ -228,6 +228,22 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "first-party-interface-runtime",
+      "paths": [
+        "packages/brain-sdk/src/internal/interface-runtime.ts",
+        "shell/plugins/src/interface/first-party-interface.ts",
+        "shell/plugins/src/interface/interface-runtime.ts"
+      ],
+      "symbol": "interfaceRuntime(context), withDaemon, withMessageTransport",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Gives a first-party interface converted from a class what the public interface contract does not offer. Through `interfaceRuntime(context)` on its setup, routes and daemons contexts and on its first-party slots: the interface's logger; the brain's agent, a turn in a conversation and the answer to an approval it waits on, as the class reached them through context.agent; a conversation's stored messages; whether a sender stands for the brain's anchor; and, for an interface with a message transport only, the message coordination its class inherited (the input it is answering, which holds job completions back until the reply is out, and job progress a terminal UI follows). Beside a public `defineInterface` definition, as plain data and functions: `withDaemon(definition, slot)`, a daemon its class registered, started and stopped under `<plugin id>:<id>` with its own health and no readiness to wait for (`cli:cli`); and `withMessageTransport(definition, slot)`, which runs the runtime's message coordination for the interface and sends job progress and completions through the transport the slot returns, as its class extended the message interface base. A context the runtime did not build is refused, a daemon id declared twice is refused, a transport is declared once, and a definition defineInterface did not return is refused.",
+      "currentConsumers": "First-party interfaces converted to declarative definitions: the terminal (chat-repl), which answers through the agent with its own conversation and approvals, runs its Ink UI in a class-shaped daemon and shows job progress and completions through a message transport.",
+      "removalPrerequisite": "Promote each capability to the public interface contract once a third-party interface needs it, or retire it when no first-party interface does.",
+      "rollbackDependency": "None: the capabilities are bound per registration and store nothing.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "site-analytics-script-field",
       "paths": ["shared/site-engine/src/html-generator.ts"],
       "symbol": "analytics script fallback",

@@ -1018,6 +1018,21 @@ export {
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "./service/service-runtime";
+// First-party interfaces converted from a class reach what the public
+// interface contract does not offer here.
+export {
+  interfaceRuntime,
+  type InterfaceMessages,
+  type InterfaceRuntime,
+} from "./interface/interface-runtime";
+export {
+  withDaemon,
+  withMessageTransport,
+  type FirstPartyDaemon,
+  type FirstPartySlotContext,
+  type MessageTransport,
+  type MessageTransportSend,
+} from "./interface/first-party-interface";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
