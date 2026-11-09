@@ -52,7 +52,7 @@ function createMockPluginFactory(
 
 const mockPluginFactory = createMockPluginFactory();
 
-// Minimal mock interface constructor — satisfies InterfaceConstructor
+// Minimal mock interface, built by an interface entry's factory
 class MockInterface implements Plugin {
   public readonly id: string = "mock-interface";
   public readonly version: string = "1.0.0";
@@ -95,7 +95,7 @@ describe("defineBrain", () => {
       interfaces: [
         [
           "mock-interface",
-          MockInterface,
+          (config: PluginConfig): Plugin => new MockInterface(config),
           (env: BrainEnvironment): PluginConfig => ({ token: env["TOKEN"] }),
         ],
       ],
@@ -171,7 +171,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "mock-interface",
-          TrackingInterface,
+          (config: PluginConfig): Plugin => new TrackingInterface(config),
           (env: BrainEnvironment): PluginConfig => ({
             token: env["MY_TOKEN"],
             host: env["MY_HOST"],
@@ -324,7 +324,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "config-capture",
-          ConfigCapture,
+          (config: PluginConfig): Plugin => new ConfigCapture(config),
           (env: BrainEnvironment): PluginConfig => ({
             accessToken: env["TOKEN"] ?? "",
           }),
@@ -395,7 +395,13 @@ describe("resolve", () => {
       version: "1.0.0",
       bundles: [{ id: "core", members: [] }],
       capabilities: [],
-      interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "mock-interface",
+          (config: PluginConfig): Plugin => new MockInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {}, { bundles: ["core"] });
@@ -413,7 +419,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "mock-interface",
-          MockInterface,
+          (config: PluginConfig): Plugin => new MockInterface(config),
           (_env: BrainEnvironment): PluginConfig | null => null,
         ],
       ],
@@ -454,7 +460,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "validating",
-          ValidatingInterface,
+          (config: PluginConfig): Plugin => new ValidatingInterface(config),
           (): PluginConfig => ({}), // no botToken
         ],
       ],
@@ -499,7 +505,8 @@ describe("resolve", () => {
       interfaces: [
         [
           "bundled-validating",
-          BundledValidatingInterface,
+          (config: PluginConfig): Plugin =>
+            new BundledValidatingInterface(config),
           (): PluginConfig => ({}),
         ],
       ],
@@ -525,7 +532,13 @@ describe("resolve", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["buggy", BuggyInterface, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "buggy",
+          (config: PluginConfig): Plugin => new BuggyInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     expect(() => resolve(def, {})).toThrow("unexpected null reference");

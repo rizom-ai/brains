@@ -26,7 +26,6 @@
         "CapabilityConfig",
         "CapabilityContext",
         "CapabilityEntry",
-        "InterfaceConstructor",
         "InterfaceEntry",
         "PLUGIN_API_VERSION",
         "Plugin",

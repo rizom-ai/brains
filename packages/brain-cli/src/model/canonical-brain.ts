@@ -303,20 +303,36 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   interfaces: [
     [
       "mcp",
-      MCPInterface,
+      (config): Plugin => new MCPInterface(config),
       (env): PluginConfig => ({
         ...(env["MCP_AUTH_TOKEN"] ? { authToken: env["MCP_AUTH_TOKEN"] } : {}),
       }),
     ],
-    ["email", EmailInterface, (): PluginConfig => ({})],
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
-    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
+    [
+      "email",
+      (config): Plugin => new EmailInterface(config),
+      (): PluginConfig => ({}),
+    ],
+    [
+      "webserver",
+      (config): Plugin => new WebserverInterface(config),
+      (): PluginConfig => ({}),
+    ],
+    [
+      "web-chat",
+      (config): Plugin => new WebChatInterface(config),
+      (): PluginConfig => ({}),
+    ],
     [
       "chat",
-      ChatInterface,
+      (config): Plugin => new ChatInterface(config),
       (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
     ],
-    ["a2a", A2AInterface, (): PluginConfig => ({})],
+    [
+      "a2a",
+      (config): Plugin => new A2AInterface(config),
+      (): PluginConfig => ({}),
+    ],
   ],
   bundles: canonicalBundles,
   permissions: {
