@@ -12,7 +12,7 @@ import {
   type PluginPackageDefinition,
   type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
-import { A2AInterface } from "@brains/a2a";
+import a2aInterface from "@brains/a2a";
 import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
@@ -355,11 +355,15 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       (config): Plugin => new ChatInterface(config),
       (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
     ],
-    [
+    packageInterface(
       "a2a",
-      (config): Plugin => new A2AInterface(config),
+      "@brains/a2a",
+      a2aInterface,
       (): PluginConfig => ({}),
-    ],
+      {
+        pluginId: "a2a",
+      },
+    ),
   ],
   bundles: canonicalBundles,
   permissions: {

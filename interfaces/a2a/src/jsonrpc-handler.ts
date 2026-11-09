@@ -122,7 +122,7 @@ export type JsonRpcRequestInput = z.input<typeof jsonrpcRequestSchema>;
 export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
   turnSupervisor: A2ATurnSupervisor;
-  agentService: AgentNamespace;
+  agentService: Pick<AgentNamespace, "chat">;
   callerPermissionLevel: UserPermissionLevel;
   /** Whether the verified caller is configured as the brain's Anchor identity. */
   callerIsAnchor?: boolean;

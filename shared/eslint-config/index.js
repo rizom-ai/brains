@@ -56,7 +56,7 @@ const pluginClassBases = [
 ];
 
 /** Interface packages converted to declarative definitions. */
-const convertedInterfacePackages = ["chat-repl", "email", "mcp"];
+const convertedInterfacePackages = ["chat-repl", "email", "mcp", "a2a"];
 
 const classBaseBan = {
   name: "@brains/plugins",

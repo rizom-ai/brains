@@ -1,3 +1,8 @@
++ a2a|handler|GET|/.well-known/agent-card.json|exact|true
++ a2a|handler|GET|/.well-known/agent-directory.json|exact|true
++ a2a|handler|GET|/a2a|exact|true
++ a2a|handler|OPTIONS|/a2a|exact|true
++ a2a|handler|POST|/a2a|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.card.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.deck.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.link.json|exact|true

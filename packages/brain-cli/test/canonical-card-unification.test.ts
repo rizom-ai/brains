@@ -1,7 +1,10 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { A2AInterface } from "@brains/a2a";
-import type { Plugin } from "@brains/plugins";
+import a2aInterface from "@brains/a2a";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
 import {
   AtprotoPlugin,
   canonicalAtprotoLexicons,
@@ -250,5 +253,12 @@ const webserverPlugin: Plugin = {
 
 /** The A2A interface as the canonical brain creates it. */
 function createA2APlugin(): Plugin {
-  return new A2AInterface();
+  const [plugin] = instantiatePluginPackageDefinition(
+    a2aInterface,
+    {},
+    { name: "@brains/a2a", version: "0.0.0-test" },
+    { pluginId: "a2a" },
+  );
+  if (!plugin) throw new Error("The A2A definition created no plugin");
+  return plugin;
 }

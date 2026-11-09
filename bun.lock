@@ -504,6 +504,7 @@
         "@brains/contracts": "workspace:*",
         "@brains/http-signatures": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "hono": "^4.13.13",
       },

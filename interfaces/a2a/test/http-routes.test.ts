@@ -94,7 +94,10 @@ describe("A2A HTTP routes", () => {
       trustedTokens: { token: "remote.example" },
     };
 
-    expect(() => createA2APlugin(legacyConfig)).toThrow(/trustedTokens/);
+    expect(() =>
+      // @ts-expect-error a removed key, refused as brain.yaml may still carry it
+      createA2APlugin(legacyConfig),
+    ).toThrow(/trustedTokens legacy config is no longer supported/);
   });
 
   it("returns a helpful 405 for GET /a2a", async () => {
