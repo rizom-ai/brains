@@ -987,6 +987,10 @@ export {
   type QueuedAttribution,
   type QueuedPlaceholder,
   type StoredCreate,
+  afterGeneration,
+  type GenerationOutcome,
+  type GenerationOutcomeContext,
+  type GenerationStep,
   type RestateMetadata,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public

@@ -24,6 +24,7 @@ import type {
   DataSourceListOptions,
   EntityCreateUploadReader,
   EntityGenerationAI,
+  EntityGenerationDeclaration,
   EntityGenerationLink,
   EntityGenerationResult,
   EntityJobDeclaration,
@@ -34,6 +35,8 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
+import type { RetryScope } from "@brains/utils/retry-backoff";
+import type { EntityPluginContext } from "./context";
 
 /**
  * Internal runtime capabilities bound to one entity callback's call, for
@@ -841,6 +844,58 @@ export function restatedMetadataOf(
         const restated: unknown = Reflect.apply(found, undefined, [metadata]);
         return isPlainRecord(restated) ? restated : { ...metadata };
       }
+    : undefined;
+}
+
+/** How a first-party generation came out: the record it wrote, or why it failed. */
+export type GenerationOutcome =
+  | { readonly written: { readonly entityId: string } }
+  | { readonly failed: string };
+
+/**
+ * What a first-party generation's step after it runs is given: its parsed
+ * input (none when the input itself was refused), how it came out, and the
+ * package's messaging, jobs and retry scope, as an entity plugin class's
+ * generation handler had them.
+ */
+export interface GenerationOutcomeContext<TInput> {
+  readonly input: TInput | undefined;
+  readonly outcome: GenerationOutcome;
+  readonly messaging: EntityPluginContext["messaging"];
+  readonly jobs: EntityPluginContext["jobs"];
+  readonly retries: RetryScope;
+}
+
+export type GenerationStep<TInput> = (
+  context: GenerationOutcomeContext<TInput>,
+) => Promise<void>;
+
+const afterGenerationKey = Symbol("rizom.after-generation");
+
+/**
+ * A first-party generation with a step after it runs: once its record is
+ * written, told the id written (the next free one when its own was taken);
+ * when it fails, told why. The step rides on the declaration under a key no
+ * public type names.
+ */
+export function afterGeneration<
+  TInputSchema extends z.ZodType,
+  TMetadataSchema extends AnyEntityDefinition["metadata"],
+>(
+  generation: EntityGenerationDeclaration<TInputSchema, TMetadataSchema>,
+  step: GenerationStep<z.output<TInputSchema>>,
+): EntityGenerationDeclaration<TInputSchema, TMetadataSchema> {
+  return Object.freeze({ ...generation, [afterGenerationKey]: step });
+}
+
+/** The step a generation carries after it runs, when it carries one. */
+export function afterGenerationOf(
+  declaration: object,
+): GenerationStep<unknown> | undefined {
+  const found: unknown = Reflect.get(declaration, afterGenerationKey);
+  return typeof found === "function"
+    ? (context): Promise<void> =>
+        Promise.resolve(Reflect.apply(found, undefined, [context]))
     : undefined;
 }
 

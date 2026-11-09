@@ -57,9 +57,11 @@ import type {
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
 import {
+  afterGenerationOf,
   isDeduplicated,
   withEntityRuntime,
   type EntityRuntimeBinding,
+  type GenerationOutcome,
 } from "./entity-runtime";
 import { sharedUploadScope } from "../service/upload-registry";
 import type { AttachmentResolveRequest } from "../service/attachment-registry";
@@ -970,6 +972,7 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
+    await this.runStep({ written: { entityId } });
     if (this.target.reportsToPipeline) {
       await this.context.messaging.command(generateReportSuccessContract, {
         entityType: this.entityType,
@@ -982,12 +985,33 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     _data: unknown,
     error: string,
   ): Promise<void> {
+    await this.runStep({ failed: error });
     if (this.target.reportsToPipeline) {
       await this.context.messaging.command(generateReportFailureContract, {
         entityType: this.entityType,
         error,
       });
     }
+  }
+
+  /**
+   * The step a first-party generation carries after it runs, given the
+   * input as its schema reads it and the package's jobs and retries.
+   */
+  private async runStep(outcome: GenerationOutcome): Promise<void> {
+    const step = afterGenerationOf(this.declaration);
+    const retries = this.target.retries;
+    if (!step || !retries) return;
+    const parsed = this.declaration.input.safeParse(
+      this.runs.getStore()?.input,
+    );
+    await step({
+      input: parsed.success ? parsed.data : undefined,
+      outcome,
+      messaging: this.context.messaging,
+      jobs: this.context.jobs,
+      retries,
+    });
   }
 
   private generationAI(signal: AbortSignal): EntityGenerationAI {
