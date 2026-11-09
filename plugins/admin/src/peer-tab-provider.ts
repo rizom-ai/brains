@@ -1,12 +1,11 @@
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
   type OperatorViewBlock,
   type RuntimeStudioOperatorBlock,
   type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -286,11 +285,10 @@ function mutationContext(caller: OperatorCaller | null): {
 }
 
 export function createPeerTabSource(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): AdminWorkspaceSource {
-  const authService = requireAuthBackend(context);
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const authService = requireAuthBackend(runtime);
+  const registration = runtime.studio.source({
     definition: peerTabProvider,
     bind: (bindingContext) => {
       const invite = invitePeer.bind(

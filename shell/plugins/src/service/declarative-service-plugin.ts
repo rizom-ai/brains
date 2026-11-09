@@ -61,7 +61,10 @@ import {
   type SealedAccountSettingsValue,
 } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
-import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
+import {
+  createBuiltInStudioWorkspaceRegistration,
+  createDeclarativeStudioWorkspaceRegistration,
+} from "../operator/studio-workspace-runtime";
 import {
   createDeclarativeDashboardWidgetRegistration,
   registerBuiltInDashboardWidget,
@@ -88,12 +91,15 @@ import {
 import { packageRuntimeState } from "../internal/state-namespace";
 import {
   claimableSystemTypes,
+  isBareNamedTool,
   withServiceRuntime,
   type ClaimedSystemType,
   type ServiceCorpusReads,
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceAI,
+  type ServiceStudio,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -558,16 +564,18 @@ class DeclarativeServicePlugin<
     if (this.tools) return this.tools;
     const state = this.requireState();
     const definitions =
-      this.definition.tools?.({
-        config: this.config,
-        state,
-        entities: this.entityAccess(),
-        jobs: this.jobs(),
-        messaging: this.messaging(),
-        accountSettings: this.accountSettingsWriter(),
-        templates: this.templateFormatter(),
-        content: this.content(),
-      }) ?? [];
+      this.definition.tools?.(
+        this.withRuntime(this.getContext(), {
+          config: this.config,
+          state,
+          entities: this.entityAccess(),
+          jobs: this.jobs(),
+          messaging: this.messaging(),
+          accountSettings: this.accountSettingsWriter(),
+          templates: this.templateFormatter(),
+          content: this.content(),
+        }),
+      ) ?? [];
     const names = new Set<string>();
     this.tools = definitions.map((definition) => {
       if (names.has(definition.name)) {
@@ -655,11 +663,13 @@ class DeclarativeServicePlugin<
 
   private bindOperatorDefinitions(context: ServicePluginContext): void {
     if (this.definition.dashboardWidgets && context.dashboard.isAvailable()) {
-      const bindings = this.definition.dashboardWidgets({
-        config: this.config,
-        state: this.requireState(),
-        accountSettings: this.definition.accountSettings,
-      });
+      const bindings = this.definition.dashboardWidgets(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.requireState(),
+          accountSettings: this.definition.accountSettings,
+        }),
+      );
       const ids = new Set<string>();
       for (const binding of bindings) {
         const id = binding.definition.id;
@@ -674,11 +684,13 @@ class DeclarativeServicePlugin<
     }
 
     if (this.definition.studioWorkspaces && context.studio.isAvailable()) {
-      const bindings = this.definition.studioWorkspaces({
-        config: this.config,
-        state: this.requireState(),
-        accountSettings: this.definition.accountSettings,
-      });
+      const bindings = this.definition.studioWorkspaces(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.requireState(),
+          accountSettings: this.definition.accountSettings,
+        }),
+      );
       const ids = new Set<string>();
       for (const binding of bindings) {
         const id = binding.definition.id;
@@ -1064,12 +1076,65 @@ class DeclarativeServicePlugin<
         getProfile: () => context.identity.getProfile(),
       }),
       domain: context.domain,
+      auth: () => context.auth.get(),
+      studio: Object.freeze<ServiceStudio>({
+        isAvailable: (): boolean =>
+          !context.executionOnly && context.studio.isAvailable(),
+        source: (input) =>
+          createBuiltInStudioWorkspaceRegistration({ ...input, context }),
+        register: async (registration): Promise<string | undefined> => {
+          if (context.executionOnly || !context.studio.isAvailable()) {
+            return undefined;
+          }
+          const result = await context.studio.registerWorkspace(registration);
+          return result === false ? undefined : result.workspaceUrl;
+        },
+      }),
+      inbox: Object.freeze({
+        listSources: () => context.inbox.listSources(),
+        getSource: (sourceId: string) => context.inbox.getSource(sourceId),
+      }),
+      inboxFollowUps: Object.freeze({
+        resolve: (
+          input: Parameters<typeof context.inboxFollowUps.resolve>[0],
+        ) => context.inboxFollowUps.resolve(input),
+      }),
+      recurringCheck: (check): void => {
+        // As the class registered it: in every process, for as long as it runs.
+        context.recurringChecks.register(check);
+      },
+      interaction: (interaction): void => {
+        context.interactions.register(interaction);
+      },
+      workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
+      siteUrl: context.siteUrl,
+      routeByRole: (role) => context.webRoutes.findByRole(role),
+      evalHandler: (handlerId, handler): void => {
+        context.eval.registerHandler(handlerId, handler);
+      },
+      classRuntimeState: Object.freeze({
+        scoped: context.runtimeState.scoped.bind(context.runtimeState),
+      }),
+      toolCall: () => {
+        const call = this.toolContext.getStore();
+        return call
+          ? Object.freeze({
+              ...(call.conversationId !== undefined && {
+                conversationId: call.conversationId,
+              }),
+              ...(call.userPermissionLevel !== undefined && {
+                userPermissionLevel: call.userPermissionLevel,
+              }),
+            })
+          : undefined;
+      },
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,
-      ai: Object.freeze({
+      ai: Object.freeze<ServiceAI>({
         generateObject: (prompt, schema, signal) =>
           context.ai.generateObject(prompt, schema, signal),
+        judge: (input) => context.judge(input),
       }),
       dataSource: (declaration): void => {
         context.entities.registerDataSource(
@@ -1500,7 +1565,9 @@ class DeclarativeServicePlugin<
   }
 
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
-    const name = `${this.publicId}_${definition.name}`;
+    const name = isBareNamedTool(definition)
+      ? definition.name
+      : `${this.publicId}_${definition.name}`;
     const confirmations = createConfirmationGate({
       label: definition.name,
       requestNoun: "the operation",
@@ -1659,6 +1726,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntityCounts: (scope) => entityService.getEntityCounts(scope),
     listEntities: (request) => entityService.listEntities(request),
     getEntity: (request) => entityService.getEntity(request),
+    search: (request) => entityService.search(request),
   } satisfies ServiceEntityReads);
 }
 

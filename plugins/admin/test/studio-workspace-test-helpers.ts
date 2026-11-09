@@ -5,7 +5,7 @@ import {
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 
-import { adminPlugin } from "../src";
+import { createAdminPlugin } from "./admin-plugin";
 
 export const adminActor: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -43,9 +43,9 @@ export async function captureAdminWorkspaces(
         };
       },
     );
-  const plugin = adminPlugin();
+  const plugin = createAdminPlugin();
   await plugin.register(shell);
-  await plugin.finalizeRegistration();
+  await plugin.finalizeRegistration?.();
   return registrations;
 }
 

@@ -26,7 +26,6 @@ const expectedCatalogIds = [
   "notifications",
   "contact",
   "quiz",
-  "playbook",
   "playbooks",
   "onboarding",
   "studio",

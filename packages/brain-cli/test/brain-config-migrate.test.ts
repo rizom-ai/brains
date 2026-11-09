@@ -337,7 +337,8 @@ describe("brain config migration preview", () => {
           "studio",
           "unified-inbox",
         ],
-        removed: ["account", "assessment", "cms", "wishlist"],
+        // playbook folded into playbooks, which installs the playbook type.
+        removed: ["account", "assessment", "cms", "playbook", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
         model: "relay" as const,
@@ -361,6 +362,7 @@ describe("brain config migration preview", () => {
           "atproto-registry",
           "cms",
           "decks",
+          "playbook",
           "wishlist",
         ],
       })),

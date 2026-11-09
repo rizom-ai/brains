@@ -12,7 +12,7 @@ import {
   type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
 import { A2AInterface } from "@brains/a2a";
-import { adminPlugin } from "@brains/admin";
+import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import { assessment } from "@brains/assessment";
@@ -50,7 +50,7 @@ import {
   type OAuthBrokerPlugin,
 } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
-import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
+import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
@@ -65,7 +65,7 @@ import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
-import { unifiedInboxPlugin } from "@brains/unified-inbox";
+import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
@@ -220,15 +220,20 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ),
     ["contact", contactPlugin, undefined],
     ["quiz", quizPlugin, undefined],
-    ["playbook", playbookPlugin, undefined],
-    ["playbooks", playbooksPlugin, undefined],
+    // The playbooks service owns the playbook type: one capability installs
+    // both plugins, playbook and playbooks, as the two capabilities did.
+    packageCapability("playbooks", "@brains/playbooks", playbooksPackage, {
+      pluginId: "playbooks",
+    }),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage, {
       pluginId: "onboarding",
       dependencies: ["playbook", "playbooks"],
     }),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
-    ["admin", adminPlugin, undefined],
+    packageCapability("admin", "@brains/admin", adminPackage, {
+      pluginId: "admin",
+    }),
 
     packageCapability("site-info", "@brains/site-info", siteInfoPackage, {
       pluginId: "site-metadata",
@@ -283,7 +288,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { autoSync: true },
     ),
     ["email-workflows", emailWorkflows, undefined],
-    ["unified-inbox", unifiedInboxPlugin, undefined],
+    packageCapability(
+      "unified-inbox",
+      "@brains/unified-inbox",
+      unifiedInboxPackage,
+      { pluginId: "unified-inbox" },
+    ),
     ["linkedin-import", linkedInImportPlugin, undefined],
     [
       "oauth-broker",
