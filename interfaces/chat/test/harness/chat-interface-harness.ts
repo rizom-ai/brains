@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, mock } from "bun:test";
+import { afterEach, beforeEach, expect, mock, spyOn } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
@@ -862,6 +862,34 @@ export interface ChatInterfaceTestContext {
   agentService: MockAgentService;
 }
 
+/** The requests a test tried to send over the network: none may leave. */
+let networkAttempts: string[] = [];
+let networkSpy: { mockRestore(): void } | undefined;
+
+/**
+ * No chat test reaches the network: a real Slack or Discord adapter, or a
+ * download that skipped the fake fetch, is refused here and fails the test.
+ */
+function refuseNetwork(): void {
+  networkAttempts = [];
+  const refused: typeof fetch = Object.assign(
+    (input: string | URL | Request): Promise<Response> => {
+      networkAttempts.push(
+        input instanceof Request ? input.url : String(input),
+      );
+      return Promise.reject(new Error("Chat tests make no network calls"));
+    },
+    { preconnect: (): void => {} },
+  );
+  networkSpy = spyOn(globalThis, "fetch").mockImplementation(refused);
+}
+
+function expectNoNetwork(): void {
+  networkSpy?.mockRestore();
+  networkSpy = undefined;
+  expect(networkAttempts).toEqual([]);
+}
+
 /**
  * Installs the beforeEach/afterEach every ChatInterface suite needs: fresh
  * adapter mocks, a per-test fetch the plugin is built to use, and a plugin
@@ -874,6 +902,7 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     agentService: createAgentService(),
   };
   beforeEach(() => {
+    refuseNetwork();
     // A fresh holder per test: nothing from the previous test — or from a
     // suite that ran earlier in this process — is reachable.
     activeState = {
@@ -894,6 +923,7 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
   afterEach(async () => {
     await context.harness.reset();
     activeState = undefined;
+    expectNoNetwork();
   });
 
   return context;

@@ -9,6 +9,7 @@ import {
 } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
+import { refuseNetwork } from "./helpers/refuse-network";
 import { ServerManager, type ServerManagerOptions } from "@brains/webserver";
 
 type RegisteredHttpRoute = ReturnType<
@@ -24,6 +25,7 @@ type Dispatch = (request: Request) => Response | Promise<Response>;
  * serves.
  */
 describe("chat's retired platform upload URLs on the shared host", () => {
+  refuseNetwork();
   const dirs: string[] = [];
 
   afterEach(() => {

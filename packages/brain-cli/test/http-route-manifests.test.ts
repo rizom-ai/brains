@@ -17,6 +17,7 @@ import {
   createTestEntityAdapter,
 } from "@brains/plugins/test";
 import { canonicalBrain } from "../src/model/canonical-brain";
+import { refuseNetwork } from "./helpers/refuse-network";
 
 interface WebRoutePlugin extends Plugin {
   getWebRoutes(): WebRouteDefinition[];
@@ -139,6 +140,7 @@ const compositionCases: Array<[string, Plugin[]]> = [
 ];
 
 describe("canonical HTTP route manifests", () => {
+  refuseNetwork();
   test("normalizes only content-addressed CSS and JavaScript routes", () => {
     expect(
       normalizeRoutePath(
