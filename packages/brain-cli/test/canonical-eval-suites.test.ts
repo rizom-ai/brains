@@ -103,12 +103,12 @@ const expectedMembers: Record<SuiteName, string> = {
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 28,
-  personal: 28,
-  professional: 96,
+  personal: 29,
+  professional: 101,
   providers: 2,
-  network: 16,
-  team: 43,
-  docs: 6,
+  network: 17,
+  team: 45,
+  docs: 8,
 };
 const tempDirectories: string[] = [];
 
@@ -329,7 +329,7 @@ describe("canonical eval recipe ladder", () => {
         ),
       )
     ).flat();
-    expect(testCases.length).toBe(224);
+    expect(testCases.length).toBe(235);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
