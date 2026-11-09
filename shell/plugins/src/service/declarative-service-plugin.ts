@@ -1108,6 +1108,19 @@ class DeclarativeServicePlugin<
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       siteUrl: context.siteUrl,
       routeByRole: (role) => context.webRoutes.findByRole(role),
+      toolCall: () => {
+        const call = this.toolContext.getStore();
+        return call
+          ? Object.freeze({
+              ...(call.conversationId !== undefined && {
+                conversationId: call.conversationId,
+              }),
+              ...(call.userPermissionLevel !== undefined && {
+                userPermissionLevel: call.userPermissionLevel,
+              }),
+            })
+          : undefined;
+      },
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,

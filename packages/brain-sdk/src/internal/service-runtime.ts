@@ -16,6 +16,7 @@ export {
   type ServiceDashboardWidget,
   type ServiceInteraction,
   type ServiceStudio,
+  type ServiceToolCall,
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,

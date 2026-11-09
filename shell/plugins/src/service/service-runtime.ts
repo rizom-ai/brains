@@ -2,6 +2,7 @@ import type { BusContract, Channel, WebRouteRole } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
+import type { ToolContext } from "@brains/mcp-service";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
   IInboxFollowUpsNamespace,
@@ -225,6 +226,12 @@ export interface ServiceRuntime {
   /** The route another plugin mounts for a well-known role, if any. */
   routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
   /**
+   * The tool call that is running, as the class's handler was handed it:
+   * the conversation it was called in and the caller's permission level.
+   * None outside a tool call.
+   */
+  toolCall(): ServiceToolCall | undefined;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -267,6 +274,12 @@ export interface ServiceRuntime {
     widget: ServiceDashboardWidget<TDefinition>,
   ): void;
 }
+
+/** What a running tool call says about itself, as a class's handler read it. */
+export type ServiceToolCall = Pick<
+  ToolContext,
+  "conversationId" | "userPermissionLevel"
+>;
 
 /** A way into the brain, as `context.interactions` registers one. */
 export type ServiceInteraction = Parameters<
@@ -383,6 +396,7 @@ export interface ServiceRuntimeBinding {
   ) => string | undefined;
   readonly siteUrl: string | undefined;
   readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
+  readonly toolCall: () => ServiceToolCall | undefined;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -414,6 +428,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     workspaceUrl: binding.workspaceUrl,
     siteUrl: binding.siteUrl,
     routeByRole: binding.routeByRole,
+    toolCall: binding.toolCall,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
