@@ -7,13 +7,12 @@ import {
   mock,
   afterAll,
 } from "bun:test";
-import { CLIInterface } from "../src/cli-interface";
+import { startTerminal, type Terminal } from "./terminal";
+import { createCliPlugin } from "./cli-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 
-type MockAgentService = Parameters<
-  PluginTestHarness<CLIInterface>["setAgentService"]
->[0];
+type MockAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type MockAgentResponse = Awaited<ReturnType<MockAgentService["chat"]>>;
 
 // Mock console.clear
@@ -21,14 +20,14 @@ const originalClear = console.clear;
 console.clear = mock(() => {});
 
 describe("CLIInterface", () => {
-  let cliInterface: CLIInterface;
-  let harness: PluginTestHarness<CLIInterface>;
+  let terminal: Terminal;
+  let harness: PluginTestHarness;
 
   beforeEach(async () => {
     mock.restore();
 
     // Set up test harness
-    harness = createPluginHarness<CLIInterface>();
+    harness = createPluginHarness();
   });
 
   afterEach(async () => {
@@ -37,10 +36,9 @@ describe("CLIInterface", () => {
 
   describe("constructor and configuration", () => {
     it("should create instance with context and default config", async () => {
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      expect(cliInterface.id).toBe("cli");
-      expect(cliInterface.packageName).toBe("@brains/chat-repl");
+      terminal = await startTerminal(harness);
+      expect(harness.getPlugin().id).toBe("cli");
+      expect(harness.getPlugin().packageName).toBe("@brains/chat-repl");
     });
 
     it("should create instance with custom config", async () => {
@@ -50,28 +48,26 @@ describe("CLIInterface", () => {
           accentColor: "#00ff00",
         },
       };
-      cliInterface = new CLIInterface(config);
-      await harness.installPlugin(cliInterface);
+      terminal = await startTerminal(harness, config);
 
       // The install above throws on failure, so the claim is that a custom
       // theme still yields a working cli plugin — same identity as the
       // default-config case above.
-      expect(cliInterface.id).toBe("cli");
-      expect(cliInterface.packageName).toBe("@brains/chat-repl");
+      expect(harness.getPlugin().id).toBe("cli");
+      expect(harness.getPlugin().packageName).toBe("@brains/chat-repl");
     });
   });
 
   describe("processInput - Agent-based", () => {
     beforeEach(async () => {
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
+      terminal = await startTerminal(harness);
     });
 
     it("should route input to AgentService and receive response", async () => {
       const responseHandler = mock(() => {});
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("Hello world");
+      await terminal.processInput("Hello world");
 
       // The CLI now uses AgentService, which returns "Mock agent response" in tests
       expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
@@ -79,9 +75,9 @@ describe("CLIInterface", () => {
 
     it("should handle natural language queries", async () => {
       const responseHandler = mock(() => {});
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("What is my brain about?");
+      await terminal.processInput("What is my brain about?");
 
       // Agent responds to natural language
       expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
@@ -89,10 +85,10 @@ describe("CLIInterface", () => {
 
     it("should handle tool-like requests through agent", async () => {
       const responseHandler = mock(() => {});
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal.registerResponseCallback(responseHandler);
 
       // User can ask naturally, agent decides to use tools
-      await cliInterface.processInput("Search for notes about TypeScript");
+      await terminal.processInput("Search for notes about TypeScript");
 
       expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
     });
@@ -100,10 +96,10 @@ describe("CLIInterface", () => {
     it("should handle errors gracefully", async () => {
       // Test error handling by checking response callback is still functional
       const responseHandler = mock(() => {});
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal.registerResponseCallback(responseHandler);
 
       // Process a normal query
-      await cliInterface.processInput("Test query");
+      await terminal.processInput("Test query");
       expect(responseHandler).toHaveBeenCalled();
     });
 
@@ -130,7 +126,7 @@ describe("CLIInterface", () => {
         }),
       );
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
 
       const mockAgentService: MockAgentService = {
         chat: async (): Promise<MockAgentResponse> => ({
@@ -150,12 +146,11 @@ describe("CLIInterface", () => {
         invalidateAgent: (): void => {},
       };
       harness.setAgentService(mockAgentService);
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("delete it");
-      await cliInterface.processInput("yes");
+      await terminal.processInput("delete it");
+      await terminal.processInput("yes");
 
       expect(responseHandler).toHaveBeenCalledWith(
         expect.stringContaining("Please reply with **yes**"),
@@ -190,7 +185,7 @@ describe("CLIInterface", () => {
         }),
       );
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
 
       const mockAgentService: MockAgentService = {
         chat: async (): Promise<MockAgentResponse> => ({
@@ -210,12 +205,11 @@ describe("CLIInterface", () => {
         invalidateAgent: (): void => {},
       };
       harness.setAgentService(mockAgentService);
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("delete it");
-      await cliInterface.processInput("no");
+      await terminal.processInput("delete it");
+      await terminal.processInput("no");
 
       expect(confirmMock).toHaveBeenCalledWith(
         "cli",
@@ -264,7 +258,7 @@ describe("CLIInterface", () => {
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       }));
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
 
       const mockAgentService: MockAgentService = {
         chat: chatMock,
@@ -272,12 +266,11 @@ describe("CLIInterface", () => {
         invalidateAgent: (): void => {},
       };
       harness.setAgentService(mockAgentService);
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("delete it");
-      await cliInterface.processInput("actually tell me about Rover");
+      await terminal.processInput("delete it");
+      await terminal.processInput("actually tell me about Rover");
 
       expect(confirmMock).not.toHaveBeenCalled();
       expect(chatMock).toHaveBeenNthCalledWith(
@@ -324,7 +317,7 @@ describe("CLIInterface", () => {
         }),
       );
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
 
       const mockAgentService: MockAgentService = {
         chat: async (): Promise<MockAgentResponse> => ({
@@ -351,13 +344,12 @@ describe("CLIInterface", () => {
         invalidateAgent: (): void => {},
       };
       harness.setAgentService(mockAgentService);
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("delete both");
-      await cliInterface.processInput("yes 2");
-      await cliInterface.processInput("no");
+      await terminal.processInput("delete both");
+      await terminal.processInput("yes 2");
+      await terminal.processInput("no");
 
       expect(responseHandler).toHaveBeenCalledWith(
         expect.stringContaining("yes 1"),
@@ -391,61 +383,69 @@ describe("CLIInterface", () => {
 
   describe("callback registration", () => {
     beforeEach(async () => {
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
+      terminal = await startTerminal(harness);
     });
 
-    // Only that the registration calls are safe in sequence. Proving the
-    // callbacks actually fire needs sendMessageToChannel, which is protected,
-    // and reaching it would mean the cast this repo forbids in tests.
-    it("registers and unregisters callbacks without error", () => {
+    const jobRunning = {
+      id: "job-2",
+      type: "job",
+      status: "processing",
+      metadata: {
+        rootJobId: "job-2",
+        operationType: "file_operations",
+        interfaceType: "cli",
+        channelId: "cli",
+      },
+    };
+    const jobDone = { ...jobRunning, status: "completed" };
+
+    it("delivers to registered callbacks and to none once unregistered", async () => {
       const responseHandler = mock(() => {});
       const progressHandler = mock(() => {});
 
-      // Test registering callbacks
-      cliInterface.registerResponseCallback(responseHandler);
-      cliInterface.registerProgressCallback(progressHandler);
+      terminal.registerResponseCallback(responseHandler);
+      terminal.registerProgressCallback(progressHandler);
+      // The current progress arrives on registration, before any event.
+      expect(progressHandler).toHaveBeenLastCalledWith([]);
 
-      // Test unregistering callbacks
-      cliInterface.unregisterProgressCallback();
-      cliInterface.unregisterMessageCallbacks();
+      await harness.sendMessage("job-progress", jobRunning, "test", true);
+      expect(progressHandler).toHaveBeenLastCalledWith([
+        expect.objectContaining({ id: "job-2", status: "processing" }),
+      ]);
+
+      terminal.unregisterProgressCallback();
+      terminal.unregisterMessageCallbacks();
+      const progressCalls = progressHandler.mock.calls.length;
+      await harness.sendMessage("job-progress", jobDone, "test", true);
+
+      expect(progressHandler).toHaveBeenCalledTimes(progressCalls);
+      expect(responseHandler).not.toHaveBeenCalled();
     });
   });
 
   describe("daemon lifecycle", () => {
     beforeEach(async () => {
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
+      terminal = await startTerminal(harness);
     });
 
     it("should provide daemon capability", () => {
       // Interface plugins provide daemon capability
-      expect(cliInterface.type).toBe("interface");
+      expect(harness.getPlugin().type).toBe("interface");
     });
 
     it("should remove SIGINT/SIGTERM listeners on cleanup", async () => {
-      class SignalTestCLIInterface extends CLIInterface {
-        installSignalHandlers(): void {
-          this.registerSignalHandlers();
-        }
-        async teardown(): Promise<void> {
-          await this.cleanup();
-        }
-      }
-      const signalInterface = new SignalTestCLIInterface();
-      await harness.installPlugin(signalInterface);
-
+      await terminal.stop();
       const before = {
         sigint: process.listenerCount("SIGINT"),
         sigterm: process.listenerCount("SIGTERM"),
       };
 
-      signalInterface.installSignalHandlers();
+      await harness.getMockShell().getDaemonRegistry().start("cli:cli");
 
       expect(process.listenerCount("SIGINT")).toBe(before.sigint + 1);
       expect(process.listenerCount("SIGTERM")).toBe(before.sigterm + 1);
 
-      await signalInterface.teardown();
+      await terminal.stop();
 
       expect(process.listenerCount("SIGINT")).toBe(before.sigint);
       expect(process.listenerCount("SIGTERM")).toBe(before.sigterm);
@@ -456,7 +456,7 @@ describe("CLIInterface", () => {
     it("renders supplemental cards (sources) to the terminal", async () => {
       const responseHandler = mock(() => {});
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
       harness.setAgentService({
         chat: async (): Promise<MockAgentResponse> => ({
           text: "Here is what I found.",
@@ -483,11 +483,10 @@ describe("CLIInterface", () => {
         }),
         invalidateAgent: (): void => {},
       });
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("what do you know about TypeScript?");
+      await terminal.processInput("what do you know about TypeScript?");
 
       expect(responseHandler).toHaveBeenCalledWith(
         expect.stringContaining("Here is what I found."),
@@ -554,14 +553,13 @@ describe("CLIInterface", () => {
         }),
       );
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
       harness.setAgentService(twoApprovalsAgent(confirmMock));
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("delete both");
-      await cliInterface.processInput("yes approval:call-2");
+      await terminal.processInput("delete both");
+      await terminal.processInput("yes approval:call-2");
 
       expect(confirmMock).toHaveBeenCalledWith("cli", true, "approval:call-2", {
         userPermissionLevel: "admin",
@@ -577,14 +575,13 @@ describe("CLIInterface", () => {
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       }));
       await harness.reset();
-      harness = createPluginHarness<CLIInterface>();
+      harness = createPluginHarness();
       harness.setAgentService(twoApprovalsAgent(confirmMock));
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-      cliInterface.registerResponseCallback(responseHandler);
+      terminal = await startTerminal(harness);
+      terminal.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("delete both");
-      await cliInterface.processInput("yes");
+      await terminal.processInput("delete both");
+      await terminal.processInput("yes");
 
       expect(confirmMock).not.toHaveBeenCalled();
       expect(responseHandler).toHaveBeenCalledWith(
@@ -594,49 +591,49 @@ describe("CLIInterface", () => {
   });
 
   describe("system message routing", () => {
-    it("routes transport messages to the system callback, replies to the response callback", async () => {
-      class TransportProbe extends CLIInterface {
-        public deliverTransportMessage(text: string): void {
-          this.sendMessageToChannel({ channelId: null, message: text });
-        }
-      }
+    /** A job the CLI started finishing, as the job queue reports it. */
+    const jobFinished = {
+      id: "job-1",
+      type: "job",
+      status: "completed",
+      metadata: {
+        rootJobId: "job-1",
+        operationType: "file_operations",
+        interfaceType: "cli",
+        channelId: "cli",
+      },
+    };
+    const completionText = "✅ **file operations** completed";
 
+    it("routes transport messages to the system callback, replies to the response callback", async () => {
       const responseHandler = mock(() => {});
       const systemHandler = mock(() => {});
-      const probe = new TransportProbe();
-      await harness.installPlugin(probe);
+      const probe = await startTerminal(harness);
       probe.registerResponseCallback(responseHandler);
       probe.registerSystemMessageCallback(systemHandler);
 
       await probe.processInput("Hello world");
-      probe.deliverTransportMessage("✅ Job finished");
+      await harness.sendMessage("job-progress", jobFinished, "test", true);
 
       expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
-      expect(responseHandler).not.toHaveBeenCalledWith("✅ Job finished");
-      expect(systemHandler).toHaveBeenCalledWith("✅ Job finished");
+      expect(responseHandler).not.toHaveBeenCalledWith(completionText);
+      expect(systemHandler).toHaveBeenCalledWith(completionText);
     });
 
     it("falls back to the response callback when no system callback is registered", async () => {
-      class TransportProbe extends CLIInterface {
-        public deliverTransportMessage(text: string): void {
-          this.sendMessageToChannel({ channelId: null, message: text });
-        }
-      }
-
       const responseHandler = mock(() => {});
-      const probe = new TransportProbe();
-      await harness.installPlugin(probe);
+      const probe = await startTerminal(harness);
       probe.registerResponseCallback(responseHandler);
 
-      probe.deliverTransportMessage("✅ Job finished");
+      await harness.sendMessage("job-progress", jobFinished, "test", true);
 
-      expect(responseHandler).toHaveBeenCalledWith("✅ Job finished");
+      expect(responseHandler).toHaveBeenCalledWith(completionText);
     });
   });
 
   describe("Plugin Capabilities", () => {
     it("should register as interface plugin", async () => {
-      cliInterface = new CLIInterface({
+      const plugin = createCliPlugin({
         theme: {
           primaryColor: "#0066cc",
           accentColor: "#ff6600",
@@ -644,11 +641,11 @@ describe("CLIInterface", () => {
       });
 
       // Register the CLI interface
-      const capabilities = await harness.installPlugin(cliInterface);
+      const capabilities = await harness.installPlugin(plugin);
 
       // "registers as an interface plugin" is the plugin type; the arrays
       // being present is true of every plugin kind.
-      expect(cliInterface.type).toBe("interface");
+      expect(plugin.type).toBe("interface");
       expect(Array.isArray(capabilities.tools)).toBe(true);
       expect(Array.isArray(capabilities.resources)).toBe(true);
     });
