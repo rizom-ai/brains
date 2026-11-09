@@ -233,10 +233,6 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
-export {
-  createScheduledMaintenanceDaemon,
-  type ScheduledMaintenanceOptions,
-} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,

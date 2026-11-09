@@ -2,7 +2,6 @@ import {
   requireSameOriginJson,
   MessageInterfacePlugin,
   SitePageResponse,
-  createScheduledMaintenanceDaemon,
   type AgentResponse,
   type EditMessageRequest,
   type MessageInterfacePluginContext,
@@ -20,6 +19,7 @@ import {
 } from "@brains/plugins";
 import type { AuthPrincipal } from "@brains/contracts";
 import { join } from "path";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import {
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
