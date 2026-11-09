@@ -1097,6 +1097,16 @@ class DeclarativeServicePlugin<
           input: Parameters<typeof context.inboxFollowUps.resolve>[0],
         ) => context.inboxFollowUps.resolve(input),
       }),
+      recurringCheck: (check): void => {
+        // As the class registered it: in every process, for as long as it runs.
+        context.recurringChecks.register(check);
+      },
+      interaction: (interaction): void => {
+        context.interactions.register(interaction);
+      },
+      workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
+      siteUrl: context.siteUrl,
+      routeByRole: (role) => context.webRoutes.findByRole(role),
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,

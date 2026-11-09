@@ -1,9 +1,12 @@
-import type { BusContract, Channel } from "@brains/contracts";
+import type { BusContract, Channel, WebRouteRole } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
+import type { RecurringCheckDefinition } from "@brains/recurring-checks";
+import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
   IInboxFollowUpsNamespace,
   IInboxNamespace,
+  IInteractionsNamespace,
   IMessagingNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
@@ -187,6 +190,25 @@ export interface ServiceRuntime {
    */
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
   /**
+   * Register a recurring check under the plugin's id, in every process, as
+   * the class registered it through `context.recurringChecks`.
+   */
+  recurringCheck(check: RecurringCheckDefinition): void;
+  /**
+   * Offer a way into the brain, as the class registered one through
+   * `context.interactions`; a worker offers none.
+   */
+  interaction(interaction: ServiceInteraction): void;
+  /**
+   * The URL Studio serves one of this package's workspaces at, once Studio
+   * took it; none before, or without a Studio.
+   */
+  workspaceUrl(workspace: AnyStudioWorkspaceDefinition): string | undefined;
+  /** The brain's site URL, when it has a domain. */
+  readonly siteUrl: string | undefined;
+  /** The route another plugin mounts for a well-known role, if any. */
+  routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -229,6 +251,11 @@ export interface ServiceRuntime {
     widget: ServiceDashboardWidget<TDefinition>,
   ): void;
 }
+
+/** A way into the brain, as `context.interactions` registers one. */
+export type ServiceInteraction = Parameters<
+  IInteractionsNamespace["register"]
+>[0];
 
 /**
  * The Studio a first-party service composes a workspace for, as its class
@@ -333,6 +360,13 @@ export interface ServiceRuntimeBinding {
   readonly studio: ServiceStudio;
   readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
+  readonly recurringCheck: (check: RecurringCheckDefinition) => void;
+  readonly interaction: (interaction: ServiceInteraction) => void;
+  readonly workspaceUrl: (
+    workspace: AnyStudioWorkspaceDefinition,
+  ) => string | undefined;
+  readonly siteUrl: string | undefined;
+  readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -359,6 +393,11 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     studio: binding.studio,
     inbox: binding.inbox,
     inboxFollowUps: binding.inboxFollowUps,
+    recurringCheck: binding.recurringCheck,
+    interaction: binding.interaction,
+    workspaceUrl: binding.workspaceUrl,
+    siteUrl: binding.siteUrl,
+    routeByRole: binding.routeByRole,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
