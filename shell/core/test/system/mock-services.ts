@@ -144,6 +144,13 @@ export function createMockSystemServices(
     status: z.string().optional(),
   });
 
+  const editableFields = (type: string): z.ZodObject | undefined => {
+    const schema =
+      declaredFrontmatter.get(type) ??
+      (entityTypes.has(type) ? defaultFrontmatterSchema : undefined);
+    return schema && editableFieldsOf(schema);
+  };
+
   const parseFrontMatter = <T>(markdown: string, schema: Parser<T>): T =>
     parseMarkdownWithFrontmatter(markdown, schema).metadata;
 
@@ -267,12 +274,9 @@ export function createMockSystemServices(
     getEffectiveFrontmatterSchema: (type: string) =>
       declaredFrontmatter.get(type) ??
       (entityTypes.has(type) ? defaultFrontmatterSchema : undefined),
-    getEditableFieldsSchema: (type: string) => {
-      const schema =
-        declaredFrontmatter.get(type) ??
-        (entityTypes.has(type) ? defaultFrontmatterSchema : undefined);
-      return schema && editableFieldsOf(schema);
-    },
+    getEditableFieldsSchema: editableFields,
+    // The mock's types take no fields on create alone.
+    getCreateFieldsSchema: editableFields,
     registerCreateInterceptor: (
       type: string,
       interceptor: (...args: unknown[]) => Promise<unknown>,

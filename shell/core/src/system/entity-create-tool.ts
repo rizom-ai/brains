@@ -1101,7 +1101,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
             services.entityRegistry,
             input.entityType,
             fields,
-            ["visibility"],
+            { on: "create", allow: ["visibility"] },
           ),
         )
         .find((error) => error !== undefined);

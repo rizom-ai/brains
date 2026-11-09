@@ -211,7 +211,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         entityRegistry,
         input.entityType,
         input.operation.fields,
-        ["visibility", "coverImageId", "ogImageId"],
+        { on: "update", allow: ["visibility", "coverImageId", "ogImageId"] },
       );
       if (uneditable) return failure(uneditable);
       const resolved = await resolveEntityOrError(

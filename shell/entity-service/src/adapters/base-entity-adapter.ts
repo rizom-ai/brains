@@ -48,6 +48,7 @@ export interface BaseEntityAdapterConfig<
   purpose: string;
   schema: EntitySchema<TEntity>;
   frontmatterSchema: BaseEntityFrontmatterSchema<TFrontmatter>;
+  createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
   isSingleton?: boolean;
   hasBody?: boolean;
   supportsCoverImage?: boolean;
@@ -73,6 +74,7 @@ export abstract class BaseEntityAdapter<
   public readonly purpose: string;
   public readonly schema: EntitySchema<TEntity>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
+  public readonly createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
   public readonly hasBody?: boolean;
   public readonly supportsCoverImage?: boolean;
@@ -91,6 +93,8 @@ export abstract class BaseEntityAdapter<
     this.frontmatterSchema = config.frontmatterSchema;
     this.fmSchema = config.frontmatterSchema;
     this.bodyFormatter = config.bodyFormatter ?? defaultBodyFormatter;
+    if (config.createFieldsSchema !== undefined)
+      this.createFieldsSchema = config.createFieldsSchema;
     if (config.isSingleton !== undefined) this.isSingleton = config.isSingleton;
     if (config.hasBody !== undefined) this.hasBody = config.hasBody;
     if (config.supportsCoverImage !== undefined)

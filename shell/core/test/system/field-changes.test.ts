@@ -32,6 +32,11 @@ const registry = {
     editable[type]?.extend(internal),
   getEditableFieldsSchema: (type: string): z.ZodObject | undefined =>
     editable[type],
+  // A post also takes, on create alone, where its sections break.
+  getCreateFieldsSchema: (type: string): z.ZodObject | undefined =>
+    type === "post"
+      ? editable["post"]?.extend({ layout: z.enum(["wide", "narrow"]) })
+      : editable[type],
 };
 
 function jsonOf(schema: z.ZodType): unknown {
@@ -44,7 +49,7 @@ function jsonOf(schema: z.ZodType): unknown {
 
 describe("a list of field changes", () => {
   it("offers each frontmatter field once, typed by the field", () => {
-    const list = fieldChangeListSchema(registry, { removable: false });
+    const list = fieldChangeListSchema(registry, { on: "create" });
 
     expect(
       list.safeParse([{ name: "status", value: "published" }]).success,
@@ -64,11 +69,11 @@ describe("a list of field changes", () => {
     const remove = [{ name: "coverImageId", value: null }];
 
     expect(
-      fieldChangeListSchema(registry, { removable: true }).safeParse(remove)
+      fieldChangeListSchema(registry, { on: "update" }).safeParse(remove)
         .success,
     ).toBe(true);
     expect(
-      fieldChangeListSchema(registry, { removable: false }).safeParse(remove)
+      fieldChangeListSchema(registry, { on: "create" }).safeParse(remove)
         .success,
     ).toBe(false);
   });
@@ -77,7 +82,7 @@ describe("a list of field changes", () => {
     const names = JSON.stringify(
       jsonOf(
         fieldChangeListSchema(registry, {
-          removable: false,
+          on: "create",
           omit: ["visibility"],
         }),
       ),
@@ -91,13 +96,13 @@ describe("a list of field changes", () => {
 
   it("writes fields of the same value type once, naming each", () => {
     const json = JSON.stringify(
-      jsonOf(fieldChangeListSchema(registry, { removable: false })),
+      jsonOf(fieldChangeListSchema(registry, { on: "create" })),
     );
 
     // title, publishedAt and coverImageId are all text: one branch names them.
     expect(json).toContain('"enum":["title","publishedAt","coverImageId"]');
     expect(
-      fieldChangeListSchema(registry, { removable: false }).safeParse([
+      fieldChangeListSchema(registry, { on: "create" }).safeParse([
         { name: "coverImageId", value: "image-1" },
       ]).success,
     ).toBe(true);
@@ -168,6 +173,22 @@ describe("system_create's model input", () => {
     const json = JSON.stringify(jsonOf(z.object(modelInput.inputSchema())));
     expect(json).not.toContain('"propertyNames"');
     expect(json).toContain('"publishedAt"');
+  });
+});
+
+describe("a field a type takes only on create", () => {
+  const shown = (name: string): string => {
+    const { modelInput } = toolNamed(name);
+    if (!modelInput) throw new Error("Expected a model input");
+    return JSON.stringify(jsonOf(z.object(modelInput.inputSchema())));
+  };
+
+  it("is offered on create", () => {
+    expect(shown("system_create")).toContain('"layout"');
+  });
+
+  it("is not offered on update", () => {
+    expect(shown("system_update")).not.toContain('"layout"');
   });
 });
 

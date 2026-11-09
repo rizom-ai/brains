@@ -134,6 +134,15 @@ export function createMockEntityRegistry(
       const schema = store.adapters.get(type)?.frontmatterSchema;
       return schema && editableFieldsOf(schema);
     },
+    getCreateFieldsSchema: (type: string) => {
+      const adapter = store.adapters.get(type);
+      const editable =
+        adapter?.frontmatterSchema &&
+        editableFieldsOf(adapter.frontmatterSchema);
+      const createOnly = adapter?.createFieldsSchema;
+      if (!createOnly) return editable;
+      return editable ? editable.extend(createOnly.shape) : createOnly;
+    },
     getFrontmatterExtensions: () => [],
     getGroupings: () => [],
     registerGroupingSource: (): never => {

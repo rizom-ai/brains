@@ -11,6 +11,15 @@ describe("DeckAdapter", () => {
     adapter = new DeckAdapter();
   });
 
+  describe("create fields", () => {
+    it("take where the slides break, which a deck does not store", () => {
+      expect(
+        adapter.createFieldsSchema?.safeParse({ slides: "paragraphs" }).success,
+      ).toBe(true);
+      expect(adapter.frontmatterSchema.shape["slides"]).toBeUndefined();
+    });
+  });
+
   describe("schema", () => {
     it("should have a valid zod schema", () => {
       const schema = adapter.schema;

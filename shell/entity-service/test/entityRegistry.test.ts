@@ -636,6 +636,62 @@ This note has frontmatter metadata.`;
     });
   });
 
+  describe("create fields", () => {
+    const frontmatterSchema = z.object({
+      title: z.string(),
+      cardCid: z.string().optional().meta({ studioWidget: "provenance" }),
+    });
+    /** Where a deck's slides break: stated on create, never stored. */
+    const createFieldsSchema = z.object({
+      slides: z.enum(["headings", "paragraphs"]).optional(),
+    });
+
+    class DeckAdapter extends BaseEntityAdapter<Note> {
+      constructor() {
+        super({
+          entityType: "deck",
+          purpose: "Test deck entity for unit tests.",
+          schema: noteSchema,
+          frontmatterSchema,
+          createFieldsSchema,
+        });
+      }
+
+      public override toMarkdown(entity: Note): string {
+        return entity.content;
+      }
+
+      public fromMarkdown(markdown: string): Partial<Note> {
+        return { content: markdown };
+      }
+    }
+
+    function deckRegistry(): EntityRegistry {
+      const fresh = EntityRegistry.createFresh(logger);
+      fresh.registerEntityType("deck", noteSchema, new DeckAdapter());
+      return fresh;
+    }
+
+    test("are its editable fields and those it takes only on create", () => {
+      const create = deckRegistry().getCreateFieldsSchema("deck");
+
+      expect(Object.keys(create?.shape ?? {})).toEqual(["title", "slides"]);
+      expect(create?.shape["slides"]).toBe(createFieldsSchema.shape.slides);
+    });
+
+    test("taken only on create are not editable", () => {
+      expect(
+        Object.keys(
+          deckRegistry().getEditableFieldsSchema("deck")?.shape ?? {},
+        ),
+      ).toEqual(["title"]);
+    });
+
+    test("are none for a type it does not know", () => {
+      expect(registry.getCreateFieldsSchema("unregistered")).toBeUndefined();
+    });
+  });
+
   describe("extendFrontmatterSchema", () => {
     const baseFrontmatterSchema = z.object({
       name: z.string(),

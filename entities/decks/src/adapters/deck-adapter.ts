@@ -3,6 +3,7 @@ import { slugify } from "@brains/utils/string-utils";
 import {
   assertPublishedDeckHasPublishedAt,
   deckSchema,
+  deckCreateFieldsSchema,
   deckFrontmatterSchema,
   type DeckEntity,
   type DeckFrontmatter,
@@ -32,6 +33,7 @@ export class DeckAdapter extends BaseEntityAdapter<
       purpose: "A slide-deck presentation.",
       schema: deckSchema,
       frontmatterSchema: deckFrontmatterSchema,
+      createFieldsSchema: deckCreateFieldsSchema,
       supportsCoverImage: true,
     });
   }

@@ -10,6 +10,9 @@ const editable = z.object({
   status: z.enum(["draft", "published"]),
 });
 
+/** Where a post's sections break: stated on create, never stored. */
+const createOnly = z.object({ layout: z.enum(["wide", "narrow"]) });
+
 function toolsWithPost(): ReturnType<typeof createSystemTools> {
   const services = createMockSystemServices();
   services.addEntities([
@@ -27,6 +30,8 @@ function toolsWithPost(): ReturnType<typeof createSystemTools> {
   Object.assign(services.entityRegistry, {
     getEditableFieldsSchema: (type: string) =>
       type === "post" ? editable : undefined,
+    getCreateFieldsSchema: (type: string) =>
+      type === "post" ? editable.extend(createOnly.shape) : undefined,
   });
   return createSystemTools(services);
 }
@@ -79,6 +84,35 @@ describe("a field change", () => {
         source: { kind: "text", content: "Rest is part of the work." },
         fields: { cardCid: "bafy" },
       }),
-    ).toMatchObject(refusal);
+    ).toMatchObject({
+      success: false,
+      error:
+        'A post has no field "cardCid" a caller can set; its fields are title, status, layout.',
+    });
+  });
+
+  it("is not refused on create for a field the type takes only on create", async () => {
+    expect(
+      await call("system_create", {
+        entityType: "post",
+        title: "On Rest",
+        source: { kind: "text", content: "Rest is part of the work." },
+        fields: { layout: "wide" },
+      }),
+    ).not.toMatchObject({ error: expect.stringContaining("a caller can set") });
+  });
+
+  it("is refused on update for a field the type takes only on create", async () => {
+    expect(
+      await call("system_update", {
+        entityType: "post",
+        id: "on-patience",
+        operation: { fields: { layout: "wide" } },
+      }),
+    ).toMatchObject({
+      success: false,
+      error:
+        'A post has no field "layout" a caller can set; its fields are title, status.',
+    });
   });
 });

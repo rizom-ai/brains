@@ -15,7 +15,7 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { hasSlideSeparators } from "../adapters/deck-adapter";
-import { deckFrontmatterSchema } from "../schemas/deck";
+import { deckCreateFieldsSchema, deckFrontmatterSchema } from "../schemas/deck";
 import { describeDeck } from "./describe-deck";
 import { splitSlides } from "./slides";
 
@@ -27,8 +27,7 @@ const deckTextFieldsSchema = z.object({
   author: z.string().trim().min(1).optional(),
   event: z.string().trim().min(1).optional(),
   coverImageId: z.string().min(1).optional(),
-  /** Where the slides break in text without --- separators; not stored. */
-  slides: z.enum(["headings", "paragraphs"]).optional(),
+  slides: deckCreateFieldsSchema.shape.slides,
 });
 
 type DeckTextFields = z.output<typeof deckTextFieldsSchema>;

@@ -716,6 +716,13 @@ export class EntityRegistry implements IEntityRegistry {
       : undefined;
   }
 
+  getCreateFieldsSchema(type: string): FrontmatterSchema | undefined {
+    const editable = this.getEditableFieldsSchema(type);
+    const createOnly = this.entityAdapters.get(type)?.createFieldsSchema;
+    if (!createOnly) return editable;
+    return editable ? editable.extend(createOnly.shape) : createOnly;
+  }
+
   /**
    * Merge registered frontmatter extensions into a base schema.
    * Returns the base schema unchanged if no extensions exist,

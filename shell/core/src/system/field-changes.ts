@@ -15,8 +15,24 @@ type ToolInputSchema = Tool["inputSchema"];
 
 type FieldRegistry = Pick<
   IEntityRegistry,
-  "getAllEntityTypes" | "getEditableFieldsSchema"
+  "getAllEntityTypes" | "getEditableFieldsSchema" | "getCreateFieldsSchema"
 >;
+
+/** Which tool sets the fields: create also takes fields stated only then. */
+type FieldsOn = "create" | "update";
+
+function fieldsOn(
+  registry: Pick<
+    IEntityRegistry,
+    "getEditableFieldsSchema" | "getCreateFieldsSchema"
+  >,
+  type: string,
+  on: FieldsOn,
+): z.ZodObject | undefined {
+  return on === "create"
+    ? registry.getCreateFieldsSchema(type)
+    : registry.getEditableFieldsSchema(type);
+}
 
 /** A field's own value schema, without the optional or default around it. */
 function valueOf(field: z.core.$ZodType): z.ZodType | undefined {
@@ -54,20 +70,20 @@ function strictValue(json: Record<string, unknown>): boolean {
 
 /**
  * The fields a model may change, as a list of `{ name, value }` changes: one
- * branch per editable field of the registered entity types, its value typed
- * as each type declares the field. A field leaves the list when its
+ * branch per field a caller may set on the registered entity types, its value
+ * typed as each type declares the field. A field leaves the list when its
  * value is itself a map of any keys, which a strict schema cannot hold.
- * With `removable`, a null value removes the field. Read from the registry
- * each time, so fields registered while the brain runs are offered too.
+ * On update, a null value removes the field. Read from the registry each
+ * time, so fields registered while the brain runs are offered too.
  */
 export function fieldChangeListSchema(
   registry: FieldRegistry,
-  options: { removable: boolean; omit?: string[] },
+  options: { on: FieldsOn; omit?: string[] },
 ): z.ZodArray<z.ZodType> {
   const values = new Map<string, Map<string, z.ZodType>>();
   for (const type of registry.getAllEntityTypes()) {
-    const editable = registry.getEditableFieldsSchema(type);
-    for (const [name, field] of Object.entries(editable?.shape ?? {})) {
+    const settable = fieldsOn(registry, type, options.on);
+    for (const [name, field] of Object.entries(settable?.shape ?? {})) {
       if (options.omit?.includes(name)) continue;
       const value = valueOf(field);
       const json = value && jsonOf(value);
@@ -96,7 +112,7 @@ export function fieldChangeListSchema(
         others.length > 0 && name !== undefined
           ? z.enum([name, ...others])
           : z.literal(name ?? ""),
-      value: options.removable ? value.nullable() : value,
+      value: options.on === "update" ? value.nullable() : value,
     });
   });
   const [first, ...rest] = changes;
@@ -123,14 +139,18 @@ export function fieldsFromChanges(changes: unknown): Record<string, unknown> {
  * a tool handles apart from the frontmatter, such as visibility.
  */
 export function uneditableFieldsError(
-  registry: Pick<IEntityRegistry, "getEditableFieldsSchema">,
+  registry: Pick<
+    IEntityRegistry,
+    "getEditableFieldsSchema" | "getCreateFieldsSchema"
+  >,
   entityType: string,
   fields: Record<string, unknown> | undefined,
-  allow: readonly string[] = [],
+  options: { on: FieldsOn; allow: readonly string[] },
 ): string | undefined {
   if (!fields) return undefined;
+  const { allow } = options;
   const editable = new Set(
-    Object.keys(registry.getEditableFieldsSchema(entityType)?.shape ?? {}),
+    Object.keys(fieldsOn(registry, entityType, options.on)?.shape ?? {}),
   );
   const refused = Object.keys(fields).filter(
     (name) => !editable.has(name) && !allow.includes(name),
@@ -159,7 +179,7 @@ export function createModelInput(
     inputSchema: (): ToolInputSchema => {
       // Visibility is a parameter of its own on system_create.
       const changes = fieldChangeListSchema(registry, {
-        removable: false,
+        on: "create",
         omit: ["visibility"],
       });
       const item = uploadsSourceInputSchema.shape.items.element;
@@ -234,9 +254,7 @@ export function updateModelInput(
       operation: z
         .union([
           z.strictObject({
-            fields: fieldChangeListSchema(registry, {
-              removable: true,
-            }).describe(
+            fields: fieldChangeListSchema(registry, { on: "update" }).describe(
               "Change frontmatter or metadata fields, one { name, value } per field changed. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, change coverImageId to that image id. To remove a field, such as a cover image, give it the value null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
             ),
           }),
