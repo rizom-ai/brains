@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- [#862](https://github.com/rizom-ai/brains/pull/862) [`5babad2`](https://github.com/rizom-ai/brains/commit/5babad2a69d023f8661f491af27447b43efd455a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A request to read, show or verify an entity reads it from storage in that turn: `system_get` says so, as `system_search` says to search afresh, since stored content can change outside the conversation.
+
 ## 0.2.0-alpha.665
 
 ### Patch Changes
