@@ -213,22 +213,37 @@ export function createModelInput(
   };
 }
 
-/** system_update as the model writes it: a fields operation as a list. */
+/** An optional field made required, its description kept. */
+function required<T extends z.ZodType>(field: z.ZodOptional<T>): T {
+  const inner = field.unwrap();
+  return field.description ? inner.describe(field.description) : inner;
+}
+
+/**
+ * system_update as the model writes it: one operation alone, a fields
+ * operation as a list. Strict mode writes every key a shape shows, so each
+ * operation is a shape of its own rather than one key of four.
+ */
 export function updateModelInput(
   registry: FieldRegistry,
 ): NonNullable<Tool["modelInput"]> {
+  const { content, edits, source } = updateOperationInputSchema.shape;
   return {
     inputSchema: (): ToolInputSchema => ({
       ...updateInputSchema.shape,
       operation: z
-        .strictObject({
-          ...updateOperationInputSchema.shape,
-          fields: fieldChangeListSchema(registry, { removable: true })
-            .optional()
-            .describe(
+        .union([
+          z.strictObject({
+            fields: fieldChangeListSchema(registry, {
+              removable: true,
+            }).describe(
               "Change frontmatter or metadata fields, one { name, value } per field changed. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, change coverImageId to that image id. To remove a field, such as a cover image, give it the value null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
             ),
-        })
+          }),
+          z.strictObject({ content: required(content) }),
+          z.strictObject({ edits: required(edits) }),
+          z.strictObject({ source: required(source) }),
+        ])
         .describe("Exactly one update operation"),
     }),
     toToolInput: (input): Record<string, unknown> => {

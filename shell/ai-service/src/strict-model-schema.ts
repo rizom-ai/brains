@@ -138,20 +138,42 @@ export function toStrictModelSchema(
   return isPlainRecord(strict) ? strict : undefined;
 }
 
-/** The branches of a union a value can be, by the constants it matches. */
-function matchingBranches(branches: unknown[], value: unknown): unknown[] {
+/**
+ * The branches of a union a value can be: those whose constants it matches
+ * and, for a closed branch, whose properties hold every key it has.
+ */
+function matchingBranches(
+  branches: unknown[],
+  value: unknown,
+  root: unknown,
+): unknown[] {
   if (!isPlainRecord(value)) return branches;
-  return branches.filter((branch) => {
-    if (!isPlainRecord(branch) || !isPlainRecord(branch["properties"]))
-      return true;
-    return Object.entries(branch["properties"]).every(
-      ([name, property]) =>
-        !isPlainRecord(property) ||
-        !("const" in property) ||
-        value[name] === undefined ||
-        value[name] === property["const"],
-    );
-  });
+  return branches
+    .map((branch) => resolved(branch, root))
+    .filter((branch) => {
+      if (!isPlainRecord(branch) || !isPlainRecord(branch["properties"]))
+        return true;
+      const properties = branch["properties"];
+      if (
+        branch["additionalProperties"] === false &&
+        Object.keys(value).some((name) => !(name in properties))
+      )
+        return false;
+      return Object.entries(properties).every(
+        ([name, property]) =>
+          !isPlainRecord(property) ||
+          !("const" in property) ||
+          value[name] === undefined ||
+          value[name] === property["const"],
+      );
+    });
+}
+
+/** A schema with the reference it is, if any, followed. */
+function resolved(schema: unknown, root: unknown): unknown {
+  return isPlainRecord(schema) && typeof schema["$ref"] === "string"
+    ? resolved(resolveReference(schema["$ref"], root), root)
+    : schema;
 }
 
 /**
@@ -173,7 +195,7 @@ export function dropModelNulls(
     return dropModelNulls(value, allOf[0], root);
   const branches = schema["anyOf"] ?? schema["oneOf"];
   if (Array.isArray(branches)) {
-    const [branch] = matchingBranches(branches, value);
+    const [branch] = matchingBranches(branches, value, root);
     return branch === undefined ? value : dropModelNulls(value, branch, root);
   }
   if (Array.isArray(value))

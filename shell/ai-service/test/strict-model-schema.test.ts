@@ -416,3 +416,61 @@ describe("a tool with its own model input", () => {
     expect(validated?.success).toBe(false);
   });
 });
+
+describe("a null the model sends inside one branch of a union", () => {
+  // Each branch is used twice, so each is written once and referred to.
+  const text = z.strictObject({ kind: z.literal("text"), text: z.string() });
+  const uploads = z.strictObject({
+    kind: z.literal("uploads"),
+    items: z.array(
+      z.strictObject({ id: z.string(), title: z.string().optional() }),
+    ),
+  });
+  const schema = (): Record<string, unknown> => {
+    const { $schema: _draft, ...rest }: Record<string, unknown> =
+      z.toJSONSchema(
+        z.object({
+          source: z.discriminatedUnion("kind", [text, uploads]),
+          fallback: z.discriminatedUnion("kind", [text, uploads]).optional(),
+        }),
+        { target: "draft-7", io: "input", reused: "ref" },
+      );
+    return rest;
+  };
+
+  it("is dropped in the branch the value names, each branch referred to", () => {
+    expect(JSON.stringify(schema())).toContain('"oneOf":[{"$ref"');
+    expect(
+      dropModelNulls(
+        {
+          source: { kind: "uploads", items: [{ id: "a", title: null }] },
+          fallback: null,
+        },
+        schema(),
+      ),
+    ).toEqual({ source: { kind: "uploads", items: [{ id: "a" }] } });
+  });
+
+  it("is dropped in the one closed branch that has the value's keys", () => {
+    expect(
+      dropModelNulls(
+        { operation: { edits: ["x"], note: null } },
+        jsonOf(
+          z.object({
+            operation: z.union([
+              // Read against this branch, the null would stay.
+              z.strictObject({
+                fields: z.array(z.string()),
+                note: z.string().nullable().optional(),
+              }),
+              z.strictObject({
+                edits: z.array(z.string()),
+                note: z.string().optional(),
+              }),
+            ]),
+          }),
+        ),
+      ),
+    ).toEqual({ operation: { edits: ["x"] } });
+  });
+});

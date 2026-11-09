@@ -189,3 +189,43 @@ describe("system_update's model input", () => {
     });
   });
 });
+
+describe("system_update's model operation", () => {
+  const operation = (): z.core.$ZodType => {
+    const { modelInput } = toolNamed("system_update");
+    if (!modelInput) throw new Error("Expected a model input");
+    const schema = modelInput.inputSchema()["operation"];
+    if (!schema) throw new Error("Expected an operation");
+    return schema;
+  };
+
+  it("is one operation alone, as strict mode writes every key it shows", () => {
+    expect(
+      z.safeParse(operation(), {
+        edits: [{ oldText: "monthly", newText: "weekly" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      z.safeParse(operation(), {
+        fields: [],
+        edits: [{ oldText: "monthly", newText: "weekly" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("is shown as one closed shape per operation", () => {
+    const json = z.toJSONSchema(operation(), {
+      target: "draft-7",
+      io: "input",
+    });
+    const shapes = z
+      .object({ anyOf: z.array(z.object({ required: z.array(z.string()) })) })
+      .parse(json).anyOf;
+    expect(shapes.map((shape) => shape.required)).toEqual([
+      ["fields"],
+      ["content"],
+      ["edits"],
+      ["source"],
+    ]);
+  });
+});
