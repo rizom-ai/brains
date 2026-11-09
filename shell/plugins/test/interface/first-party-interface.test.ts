@@ -1425,3 +1425,103 @@ describe("captureUrlViaAgent", () => {
     );
   });
 });
+
+describe("interfaceRuntime for a web chat", () => {
+  async function reach(
+    shell: ReturnType<typeof createMockShell>,
+  ): Promise<{ runtime: InterfaceRuntime; plugin: Plugin }> {
+    let reached: InterfaceRuntime | undefined;
+    const plugin = instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          reached = interfaceRuntime(context);
+          return {};
+        },
+      }),
+    );
+    await plugin.register(shell);
+    if (!reached) throw new Error("Setup did not run");
+    return { runtime: reached, plugin };
+  }
+
+  it("reads the brain's app info, theme, preview URL, guest readiness and a role's route", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const { runtime } = await reach(shell);
+
+    expect((await runtime.identity.getAppInfo()).ai.model).toEqual(
+      expect.any(String),
+    );
+    expect(runtime.themeCSS).toEqual(expect.any(String));
+    expect(runtime.previewUrl).toBe("https://preview.brain.test");
+    expect(runtime.agent.guestReady).toBe(false);
+    expect(runtime.routeByRole("dashboard")).toBeUndefined();
+  });
+
+  it("reads and changes conversations as the class did", async () => {
+    const calls: string[] = [];
+    const shell = createMockShell({
+      conversationService: {
+        startConversation: async () => "conv-1",
+        addMessage: async () => {},
+        getMessages: async () => [],
+        countMessages: async () => 0,
+        getConversation: async (id) => {
+          calls.push(`get:${id}`);
+          return null;
+        },
+        listConversations: async () => {
+          calls.push("list");
+          return [];
+        },
+        searchConversations: async () => [],
+        updateConversationMetadata: async (request) => {
+          calls.push(`update:${request.conversationId}`);
+          return true;
+        },
+        deleteConversation: async (id) => {
+          calls.push(`delete:${id}`);
+          return true;
+        },
+        deleteExpiredGuestConversations: async () => 0,
+        close: () => {},
+      },
+    });
+    const { runtime } = await reach(shell);
+
+    await runtime.conversations.get("conv-1");
+    await runtime.conversations.list();
+    await runtime.conversations.updateMetadata({
+      conversationId: "conv-1",
+      metadata: { title: "Hi" },
+    });
+    await runtime.conversations.delete("conv-1");
+
+    expect(calls).toEqual([
+      "get:conv-1",
+      "list",
+      "update:conv-1",
+      "delete:conv-1",
+    ]);
+  });
+
+  it("registers operational health, reads Inbox sources and job status, and composes Studio", async () => {
+    const shell = createMockShell();
+    const { runtime } = await reach(shell);
+
+    runtime.operationalHealth("guest-usage-record", async () => ({
+      status: "healthy",
+      message: "ok",
+    }));
+    expect(
+      (await shell.getOperationalHealthRegistry().getChecks()).map(
+        ({ name }) => name,
+      ),
+    ).toContain("terminal:guest-usage-record");
+    shell.getInboxRegistry().finalize();
+    expect(runtime.inbox.getSource("missing")).toBeUndefined();
+    expect(await runtime.jobs.getStatus("job-missing")).toBeNull();
+    expect(runtime.studio.isAvailable()).toBe(false);
+  });
+});

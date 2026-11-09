@@ -12,10 +12,17 @@ import type { z } from "@brains/utils/zod";
 import type {
   IEndpointsNamespace,
   IIdentityNamespace,
+  IInboxNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
+  IOperationalHealthNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
+import type { OperationalHealthProvider } from "../operational-health-registry";
+import type { JobsNamespace } from "@brains/job-queue";
+import type { WebRouteRole } from "@brains/contracts";
+import type { RegisteredWebRoute } from "../types/web-routes";
+import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type { IPublicSkillsNamespace } from "../a2a/public-skills";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { ToolInfo } from "@brains/mcp-service";
@@ -49,14 +56,20 @@ export interface InterfaceRuntime {
    * The brain's agent, as the class reached it through `context.agent`: a
    * turn in a conversation, and the answer to an approval it is waiting on.
    */
-  readonly agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
+  readonly agent: InterfaceAgent;
   /**
    * A conversation's stored messages, and the conversations and messages a
    * platform's shared space records, as the class read and wrote them.
    */
   readonly conversations: Pick<
     IInterfaceConversationsNamespace,
-    "getMessages" | "start" | "addMessage"
+    | "get"
+    | "list"
+    | "getMessages"
+    | "start"
+    | "addMessage"
+    | "updateMetadata"
+    | "delete"
   >;
   /**
    * A sender's permission level on an interface and whether they stand for
@@ -131,7 +144,10 @@ export interface InterfaceRuntime {
    */
   ready(handler: () => void | Promise<void>): void;
   /** The brain's character and its anchor's profile, as the shell keeps them. */
-  readonly identity: Pick<IIdentityNamespace, "get" | "getProfile">;
+  readonly identity: Pick<
+    IIdentityNamespace,
+    "get" | "getProfile" | "getAppInfo"
+  >;
   /** The profile kind the brain resolved, as the class read it. */
   readonly profileKinds: Pick<IProfileKindsNamespace, "getResolved">;
   /** The brain's public skills, as an Agent Card lists them. */
@@ -174,7 +190,36 @@ export interface InterfaceRuntime {
   /** The site's local URL, and whether links prefer it, as the class read them. */
   readonly localSiteUrl: string | undefined;
   readonly preferLocalUrls: boolean;
+  /** The preview site's URL, when the brain has a domain. */
+  readonly previewUrl: string | undefined;
+  /** The brain's theme stylesheet, for a page the interface serves. */
+  readonly themeCSS: string;
+  /** The route another plugin mounts for a well-known role, if any. */
+  routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
+  /**
+   * Report a health check under the interface, as the class registered it
+   * through `context.operationalHealth`.
+   */
+  operationalHealth(name: string, provider: OperationalHealthProvider): void;
+  /** An Inbox source another plugin registered, read-only. */
+  readonly inbox: Pick<IInboxNamespace, "getSource">;
+  /** A job's status, as the class read it. */
+  readonly jobs: Pick<JobsNamespace, "getStatus">;
+  /**
+   * Studio, for a workspace the interface composes from a declared one, as
+   * its class registered it: never from a worker.
+   */
+  readonly studio: FirstPartyStudio;
 }
+
+/**
+ * The brain's agent as an interface reaches it: a turn, the answer to an
+ * approval, and whether guest turns can run (the index they read is ready).
+ */
+export type InterfaceAgent = Pick<
+  AgentNamespace,
+  "chat" | "confirmPendingAction"
+> & { readonly guestReady: boolean | undefined };
 
 /** How a first-party message transport coordinates replies and job progress. */
 export interface InterfaceMessages {
@@ -211,7 +256,13 @@ export interface InterfaceRuntimeBinding {
   readonly agent: AgentNamespace;
   readonly conversations: Pick<
     IInterfaceConversationsNamespace,
-    "getMessages" | "start" | "addMessage"
+    | "get"
+    | "list"
+    | "getMessages"
+    | "start"
+    | "addMessage"
+    | "updateMetadata"
+    | "delete"
   >;
   readonly permissions: Pick<
     IPermissionsNamespace,
@@ -222,6 +273,13 @@ export interface InterfaceRuntimeBinding {
   readonly siteUrl: string | undefined;
   readonly localSiteUrl: string | undefined;
   readonly preferLocalUrls: boolean;
+  readonly previewUrl: string | undefined;
+  readonly themeCSS: string;
+  readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
+  readonly operationalHealth: Pick<IOperationalHealthNamespace, "register">;
+  readonly inbox: Pick<IInboxNamespace, "getSource">;
+  readonly jobs: Pick<JobsNamespace, "getStatus">;
+  readonly studio: FirstPartyStudio;
   readonly production: boolean;
   readonly domain: string | undefined;
   readonly hasPlugin: (pluginId: string) => boolean;
@@ -240,7 +298,10 @@ export interface InterfaceRuntimeBinding {
   readonly onRelease: (release: () => void) => void;
   /** Keeps a handler to run once the brain is ready. */
   readonly onReady: (handler: () => Promise<void>) => void;
-  readonly identity: Pick<IIdentityNamespace, "get" | "getProfile">;
+  readonly identity: Pick<
+    IIdentityNamespace,
+    "get" | "getProfile" | "getAppInfo"
+  >;
   readonly profileKinds: Pick<IProfileKindsNamespace, "getResolved">;
   readonly publicSkills: IPublicSkillsNamespace;
   readonly tools: {
@@ -263,31 +324,39 @@ function bindInterfaceRuntime(
   binding: InterfaceRuntimeBinding,
 ): InterfaceRuntime {
   const { agent, conversations, permissions, messages } = binding;
-  const runtime: InterfaceRuntime = {
-    logger: binding.logger,
-    agent: Object.freeze({
-      chat: (message, conversationId, context, signal) =>
-        agent.chat(message, conversationId, context, signal),
-      confirmPendingAction: (
+  const agentView: InterfaceRuntime["agent"] = {
+    get guestReady(): boolean | undefined {
+      return agent.guestReady;
+    },
+    chat: (message, conversationId, context, signal) =>
+      agent.chat(message, conversationId, context, signal),
+    confirmPendingAction: (
+      conversationId,
+      confirmed,
+      approvalId,
+      context,
+      signal,
+    ) =>
+      agent.confirmPendingAction(
         conversationId,
         confirmed,
         approvalId,
         context,
         signal,
-      ) =>
-        agent.confirmPendingAction(
-          conversationId,
-          confirmed,
-          approvalId,
-          context,
-          signal,
-        ),
-    }),
+      ),
+  };
+  const runtime: InterfaceRuntime = {
+    logger: binding.logger,
+    agent: Object.freeze(agentView),
     conversations: Object.freeze({
       getMessages: (conversationId, options) =>
         conversations.getMessages(conversationId, options),
+      get: (conversationId) => conversations.get(conversationId),
+      list: (options) => conversations.list(options),
       start: (request) => conversations.start(request),
       addMessage: (request) => conversations.addMessage(request),
+      updateMetadata: (request) => conversations.updateMetadata(request),
+      delete: (conversationId) => conversations.delete(conversationId),
     }),
     sharedUploads: (options = {}) =>
       binding.uploads.scoped({
@@ -300,6 +369,19 @@ function bindInterfaceRuntime(
     siteUrl: binding.siteUrl,
     localSiteUrl: binding.localSiteUrl,
     preferLocalUrls: binding.preferLocalUrls,
+    previewUrl: binding.previewUrl,
+    themeCSS: binding.themeCSS,
+    routeByRole: (role) => binding.routeByRole(role),
+    operationalHealth(name, provider): void {
+      binding.onRelease(binding.operationalHealth.register(name, provider));
+    },
+    inbox: Object.freeze({
+      getSource: (sourceId: string) => binding.inbox.getSource(sourceId),
+    }),
+    jobs: Object.freeze({
+      getStatus: (jobId: string) => binding.jobs.getStatus(jobId),
+    }),
+    studio: binding.studio,
     permissions: Object.freeze({
       getUserLevel: (interfaceType, userId, lookup) =>
         permissions.getUserLevel(interfaceType, userId, lookup),
@@ -347,6 +429,7 @@ function bindInterfaceRuntime(
     identity: Object.freeze({
       get: () => binding.identity.get(),
       getProfile: () => binding.identity.getProfile(),
+      getAppInfo: () => binding.identity.getAppInfo(),
     }),
     profileKinds: Object.freeze({
       getResolved: () => binding.profileKinds.getResolved(),

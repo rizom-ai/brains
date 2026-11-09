@@ -18,8 +18,7 @@ import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
-import type { StudioWorkspaceRegistration } from "../contracts/studio-workspace-contracts";
-import type { BuiltInStudioWorkspaceSource } from "../operator/studio-workspace-runtime";
+import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -320,25 +319,7 @@ export type ServiceInteraction = Parameters<
  * The Studio a first-party service composes a workspace for, as its class
  * registered one.
  */
-export interface ServiceStudio {
-  /** Whether a Studio hosts workspaces in this process: never in a worker. */
-  isAvailable(): boolean;
-  /**
-   * A declared workspace built under the plugin's id, as a tab another
-   * workspace loads; it is never registered on its own.
-   */
-  source<TDefinition extends AnyStudioWorkspaceDefinition>(
-    input: BuiltInStudioWorkspaceSource<TDefinition>,
-  ): Omit<StudioWorkspaceRegistration, "pluginId">;
-  /**
-   * Register a composed workspace with Studio: the URL Studio serves it at,
-   * or none when no Studio took it or the process is a worker. As the class
-   * registered it, it stays registered until Studio goes.
-   */
-  register(
-    registration: Omit<StudioWorkspaceRegistration, "pluginId">,
-  ): Promise<string | undefined>;
-}
+export type ServiceStudio = FirstPartyStudio;
 
 /** The corpus reads a map draws from, passed through to an entity service. */
 export interface ServiceCorpusReads {

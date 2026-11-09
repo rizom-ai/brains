@@ -28,6 +28,7 @@ import { createDeclaredRoute } from "../internal/declared-route";
 import { createDeclarativeDaemon } from "./declarative-daemon";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
+import { firstPartyStudioOf } from "../operator/studio-workspace-runtime";
 import {
   noFirstPartyDeclarations,
   type FirstPartyInterfaceDeclarations,
@@ -313,6 +314,13 @@ class InterfaceDeclaration<
       siteUrl: context.siteUrl,
       localSiteUrl: context.localSiteUrl,
       preferLocalUrls: context.preferLocalUrls,
+      previewUrl: context.previewUrl,
+      themeCSS: context.themeCSS,
+      routeByRole: (role) => context.webRoutes.findByRole(role),
+      operationalHealth: context.operationalHealth,
+      inbox: context.inbox,
+      jobs: context.jobs,
+      studio: firstPartyStudioOf(context),
       production: context.production,
       domain: context.domain,
       hasPlugin: (pluginId) => context.plugins.has(pluginId),
