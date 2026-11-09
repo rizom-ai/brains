@@ -6,6 +6,7 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
 import {
+  ENTITY_SYSTEM_FIELDS,
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
 } from "./frontmatter";
@@ -51,11 +52,30 @@ function sameValue(left: unknown, right: unknown): boolean {
  * own value when it equals the written one (so a nested value keeps its
  * key order), and the keys the document lacks after the rest.
  */
+const KEPT_RECORD_FIELDS: ReadonlySet<string> = new Set(
+  ENTITY_SYSTEM_FIELDS.filter((field) => field !== "visibility"),
+);
+
 function inDocumentOrder(written: string, replaced: string): string {
   const source = readMarkdownFrontmatter(replaced).data;
   const target = readMarkdownFrontmatter(written);
   if (!isPlainRecord(source) || !isPlainRecord(target.data)) return written;
-  const fields = target.data;
+  // The record fields a file states stay where it states them, as an
+  // entity plugin class's adapter wrote over existing frontmatter; the
+  // serializer leaves them out of what it writes. Visibility is written
+  // from the record itself. A date the file leaves unquoted is written
+  // back as the quoted timestamp the class wrote.
+  const fields = {
+    ...Object.fromEntries(
+      Object.entries(source)
+        .filter(([key]) => KEPT_RECORD_FIELDS.has(key))
+        .map(([key, value]) => [
+          key,
+          value instanceof Date ? value.toISOString() : value,
+        ]),
+    ),
+    ...target.data,
+  };
   const ordered = [
     ...Object.keys(source).filter((key) => Object.hasOwn(fields, key)),
     ...Object.keys(fields).filter((key) => !Object.hasOwn(source, key)),

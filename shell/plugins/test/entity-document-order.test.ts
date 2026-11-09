@@ -152,6 +152,21 @@ describe("a type that writes in the document's order", () => {
     );
   });
 
+  it("keeps the record dates a hand-written file states, as the class kept them", async () => {
+    const { service, stored } = await store(ordered);
+    await service.createEntityFromMarkdown({
+      input: {
+        entityType: "link",
+        id: "dated",
+        markdown:
+          "---\ntitle: Dated\nstatus: draft\nsource:\n  ref: cli:local\n  label: CLI\ncreated: 2025-09-20T00:00:00.000Z\nupdated: 2025-09-20T00:00:00.000Z\n---\nSummary\n",
+      },
+    });
+    expect(await stored("dated")).toBe(
+      "---\ntitle: Dated\nstatus: draft\nsource:\n  ref: 'cli:local'\n  label: CLI\ncreated: '2025-09-20T00:00:00.000Z'\nupdated: '2025-09-20T00:00:00.000Z'\n---\nSummary\n",
+    );
+  });
+
   it("writes a field the file lacks after the rest", async () => {
     const { service, stored } = await store(ordered);
     await service.createEntity({
