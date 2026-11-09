@@ -109,9 +109,13 @@ export function firstPartyTool<
  */
 export type ServiceListenMode = "subscribe" | "observe" | "execution";
 
-/** What hearing a channel is handed: its payload. */
+/**
+ * What hearing a channel is handed: its payload, and the sender the bus
+ * stamped on it, which a listener checks before it trusts what it heard.
+ */
 export type ServiceListenHandler<TPayload> = (context: {
   readonly payload: TPayload;
+  readonly sender: string;
 }) => void | Promise<void>;
 
 export interface ServiceListenOptions {
@@ -495,17 +499,22 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
       options: ServiceListenOptions = {},
     ): void {
       const mode = options.mode ?? "subscribe";
-      const hear = async (payload: unknown): Promise<{ success: true }> => {
-        await asPackage(async () => handler({ payload }));
+      const hear = async (
+        payload: unknown,
+        sender: string,
+      ): Promise<{ success: true }> => {
+        await asPackage(async () => handler({ payload, sender }));
         return { success: true };
       };
       onRelease(
         typeof channel === "string"
           ? // By name, the payload is handed on as sent.
             subscribeByName(messaging, mode, channel, (message) =>
-              hear(message.payload),
+              hear(message.payload, message.source),
             )
-          : subscribeTyped(messaging, mode, channel, hear),
+          : subscribeTyped(messaging, mode, channel, (payload, message) =>
+              hear(payload, message.source),
+            ),
       );
     },
   };
@@ -516,7 +525,10 @@ function subscribeTyped<TPayload>(
   messaging: IMessagingNamespace,
   mode: ServiceListenMode,
   channel: Channel<TPayload>,
-  handler: (payload: TPayload) => Promise<{ success: true }>,
+  handler: (
+    payload: TPayload,
+    message: { readonly source: string },
+  ) => Promise<{ success: true }>,
 ): () => void {
   switch (mode) {
     case "observe":
@@ -532,7 +544,10 @@ function subscribeByName(
   messaging: IMessagingNamespace,
   mode: ServiceListenMode,
   channel: string,
-  handler: (message: { readonly payload: unknown }) => Promise<{
+  handler: (message: {
+    readonly payload: unknown;
+    readonly source: string;
+  }) => Promise<{
     success: true;
   }>,
 ): () => void {

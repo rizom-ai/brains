@@ -214,6 +214,41 @@ describe("a first-party service's runtime", () => {
     expect(unheard.events).toEqual([]);
   });
 
+  it("hears who sent what it hears, by channel and by name", async () => {
+    const shell = createMockShell();
+    const senders: { channel: string; sender: string }[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.listen(settled, ({ sender }) => {
+              senders.push({ channel: "typed", sender });
+            });
+            runtime.listen("probe:named", ({ sender }) => {
+              senders.push({ channel: "named", sender });
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    const bus = shell.getMessageBus();
+    await bus.send({
+      type: settled.name,
+      payload: { round: 1 },
+      sender: "conversation-service",
+    });
+    await bus.send({ type: "probe:named", payload: {}, sender: "spoofer" });
+
+    expect(senders).toEqual([
+      { channel: "typed", sender: "conversation-service" },
+      { channel: "named", sender: "spoofer" },
+    ]);
+  });
+
   it("hears a channel in a worker too when it listens in every process", async () => {
     const worker = createMockShell();
     const heard = emptyHeard();
