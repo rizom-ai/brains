@@ -57,11 +57,24 @@ import {
 
 const firstPartyToolName = /^[a-z][a-z0-9_-]*$/u;
 
+/** The first-party tools registered under their name as written. */
+const bareNamedTools = new WeakSet<object>();
+
+/**
+ * Whether a first-party tool keeps the bare name its class gave it
+ * (`playbook_manage`) rather than one prefixed with its service's id.
+ */
+export function isBareNamedTool(tool: object): boolean {
+  return bareNamedTools.has(tool);
+}
+
 /**
  * A tool as `defineTool` declares one, whose local name may also carry an
  * underscore, as a first-party class's tools were named
  * (`atproto-registry_check_contracts`). The public `defineTool` keeps its
- * kebab-case rule.
+ * kebab-case rule. With `bareName`, the tool is registered under its name
+ * as written, as a class that named its tool in full registered it
+ * (`playbook_manage`, `inbox_list`), not prefixed with its service's id.
  */
 export function firstPartyTool<
   const TName extends string,
@@ -72,13 +85,16 @@ export function firstPartyTool<
     ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,
     "kind"
   >,
+  options: { readonly bareName?: boolean | undefined } = {},
 ): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {
   if (!firstPartyToolName.test(definition.name)) {
     throw new Error(
       `First-party tool name "${definition.name}" must start with a lowercase letter and contain only lowercase letters, numbers, hyphens and underscores`,
     );
   }
-  return buildServiceTool(definition);
+  const tool = buildServiceTool(definition);
+  if (options.bareName === true) bareNamedTools.add(tool);
+  return tool;
 }
 
 /**

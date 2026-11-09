@@ -91,6 +91,7 @@ import {
 import { packageRuntimeState } from "../internal/state-namespace";
 import {
   claimableSystemTypes,
+  isBareNamedTool,
   withServiceRuntime,
   type ClaimedSystemType,
   type ServiceCorpusReads,
@@ -1543,7 +1544,9 @@ class DeclarativeServicePlugin<
   }
 
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
-    const name = `${this.publicId}_${definition.name}`;
+    const name = isBareNamedTool(definition)
+      ? definition.name
+      : `${this.publicId}_${definition.name}`;
     const confirmations = createConfirmationGate({
       label: definition.name,
       requestNoun: "the operation",
