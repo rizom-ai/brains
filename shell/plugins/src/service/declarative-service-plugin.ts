@@ -1088,6 +1088,15 @@ class DeclarativeServicePlugin<
           return result === false ? undefined : result.workspaceUrl;
         },
       }),
+      inbox: Object.freeze({
+        listSources: () => context.inbox.listSources(),
+        getSource: (sourceId: string) => context.inbox.getSource(sourceId),
+      }),
+      inboxFollowUps: Object.freeze({
+        resolve: (
+          input: Parameters<typeof context.inboxFollowUps.resolve>[0],
+        ) => context.inboxFollowUps.resolve(input),
+      }),
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,

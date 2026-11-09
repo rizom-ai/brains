@@ -2,6 +2,8 @@ import type { BusContract, Channel } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type {
+  IInboxFollowUpsNamespace,
+  IInboxNamespace,
   IMessagingNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
@@ -175,6 +177,16 @@ export interface ServiceRuntime {
    */
   readonly studio: ServiceStudio;
   /**
+   * The Inbox sources other plugins registered, as the class read them
+   * through `context.inbox`; a reader registers none.
+   */
+  readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
+  /**
+   * The follow-ups the Inbox's destinations resolve for an item, as the
+   * class read them through `context.inboxFollowUps`.
+   */
+  readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -319,6 +331,8 @@ export interface ServiceRuntimeBinding {
   readonly domain: string | undefined;
   readonly auth: () => AuthBackend | undefined;
   readonly studio: ServiceStudio;
+  readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
+  readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -343,6 +357,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     domain: binding.domain,
     auth: binding.auth,
     studio: binding.studio,
+    inbox: binding.inbox,
+    inboxFollowUps: binding.inboxFollowUps,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
