@@ -1009,6 +1009,7 @@ export {
   type ClaimedSystemType,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
+  type ServiceStudio,
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,

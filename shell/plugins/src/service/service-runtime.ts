@@ -9,6 +9,8 @@ import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
+import type { StudioWorkspaceRegistration } from "../contracts/studio-workspace-contracts";
+import type { BuiltInStudioWorkspaceSource } from "../operator/studio-workspace-runtime";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -26,7 +28,10 @@ import type {
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { DashboardWidgetRenderer } from "../contracts/dashboard-widget-contracts";
-import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
+import type {
+  AnyDashboardWidgetDefinition,
+  AnyStudioWorkspaceDefinition,
+} from "../operator/operator-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   buildServiceTool,
@@ -164,6 +169,12 @@ export interface ServiceRuntime {
    */
   auth(): AuthBackend | undefined;
   /**
+   * Studio, for a workspace the package composes from declared ones, as
+   * admin composes its Administration tabs. Call it once every plugin has
+   * registered, where the class registered its workspaces.
+   */
+  readonly studio: ServiceStudio;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -205,6 +216,30 @@ export interface ServiceRuntime {
   dashboardWidget<TDefinition extends AnyDashboardWidgetDefinition>(
     widget: ServiceDashboardWidget<TDefinition>,
   ): void;
+}
+
+/**
+ * The Studio a first-party service composes a workspace for, as its class
+ * registered one.
+ */
+export interface ServiceStudio {
+  /** Whether a Studio hosts workspaces in this process: never in a worker. */
+  isAvailable(): boolean;
+  /**
+   * A declared workspace built under the plugin's id, as a tab another
+   * workspace loads; it is never registered on its own.
+   */
+  source<TDefinition extends AnyStudioWorkspaceDefinition>(
+    input: BuiltInStudioWorkspaceSource<TDefinition>,
+  ): Omit<StudioWorkspaceRegistration, "pluginId">;
+  /**
+   * Register a composed workspace with Studio: the URL Studio serves it at,
+   * or none when no Studio took it or the process is a worker. As the class
+   * registered it, it stays registered until Studio goes.
+   */
+  register(
+    registration: Omit<StudioWorkspaceRegistration, "pluginId">,
+  ): Promise<string | undefined>;
 }
 
 /** The corpus reads a map draws from, passed through to an entity service. */
@@ -283,6 +318,7 @@ export interface ServiceRuntimeBinding {
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
   readonly auth: () => AuthBackend | undefined;
+  readonly studio: ServiceStudio;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -306,6 +342,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     identity: binding.identity,
     domain: binding.domain,
     auth: binding.auth,
+    studio: binding.studio,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,

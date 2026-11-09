@@ -61,7 +61,10 @@ import {
   type SealedAccountSettingsValue,
 } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
-import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
+import {
+  createBuiltInStudioWorkspaceRegistration,
+  createDeclarativeStudioWorkspaceRegistration,
+} from "../operator/studio-workspace-runtime";
 import {
   createDeclarativeDashboardWidgetRegistration,
   registerBuiltInDashboardWidget,
@@ -94,6 +97,7 @@ import {
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceStudio,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -1071,6 +1075,19 @@ class DeclarativeServicePlugin<
       }),
       domain: context.domain,
       auth: () => context.auth.get(),
+      studio: Object.freeze<ServiceStudio>({
+        isAvailable: (): boolean =>
+          !context.executionOnly && context.studio.isAvailable(),
+        source: (input) =>
+          createBuiltInStudioWorkspaceRegistration({ ...input, context }),
+        register: async (registration): Promise<string | undefined> => {
+          if (context.executionOnly || !context.studio.isAvailable()) {
+            return undefined;
+          }
+          const result = await context.studio.registerWorkspace(registration);
+          return result === false ? undefined : result.workspaceUrl;
+        },
+      }),
       entityReads: entityReadsOf(context),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,
