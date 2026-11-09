@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.668",
   "dependencies": {
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",
     "ink": "^7.0.6",

@@ -195,14 +195,15 @@ module.exports = {
     {
       name: "interfaces-can-only-import-shell-and-shared",
       severity: "error",
-      comment: "Interfaces can only import from shell/* and shared/* packages",
+      comment:
+        "Interfaces can only import from shell/* and shared/* packages and the authoring SDK (packages/brain-sdk, @brains/sdk) that converted packages are written against",
       from: {
         path: "^interfaces/",
         // Covered by the companion rule below with a wider builtin allowlist
         pathNot: ["^interfaces/web-chat/scripts/"],
       },
       to: {
-        path: "^((?!shell/|shared/|interfaces/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|interfaces/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|events|net|tls)$", // Allow Node.js/Bun builtins
