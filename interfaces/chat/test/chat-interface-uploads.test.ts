@@ -9,7 +9,7 @@ import {
   createDiscordChatUploadStoreScope,
 } from "../src/upload-store";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   stubFetch,
@@ -37,7 +37,7 @@ describe("ChatInterface uploads", () => {
         ),
       ),
     );
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -70,7 +70,7 @@ describe("ChatInterface uploads", () => {
       }),
     );
     const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -126,7 +126,7 @@ describe("ChatInterface uploads", () => {
 
   it("does not fetch Slack files for public users", async () => {
     const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -283,7 +283,7 @@ describe("ChatInterface uploads", () => {
         rules: [{ pattern: "slack:*", level: "trusted" }],
       }),
     );
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({

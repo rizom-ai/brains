@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService, createPluginHarness } from "@brains/plugins/test";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   createMessage,
@@ -157,7 +157,7 @@ describe("ChatInterface artifacts", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({

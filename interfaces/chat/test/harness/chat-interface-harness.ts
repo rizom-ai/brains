@@ -474,6 +474,17 @@ export const ChatInterface: typeof ChatInterfaceModule.ChatInterface =
   LoadedChatInterface;
 
 export type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
+
+/**
+ * The chat interface as the brain creates it, with the identity lookup and
+ * collaborators a test hands it. The one place the suites name how it is
+ * built, so they read the same before and after it is declared.
+ */
+export function createChatPlugin(
+  ...args: ConstructorParameters<typeof ChatInterface>
+): ChatInterfaceInstance {
+  return new ChatInterface(...args);
+}
 export type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
   handleToolActivityEvent(event: ToolActivityEvent): Promise<void>;
 };
@@ -788,7 +799,7 @@ export function expectDiscordConfirmationContext(
 export function createPlugin(
   discordConfig: Partial<DiscordChatAdapterConfig> = {},
 ): ChatInterfaceInstance {
-  return new ChatInterface(
+  return createChatPlugin(
     {
       adapters: {
         discord: {
@@ -807,7 +818,7 @@ export function createPlugin(
 
 /** A Slack-only chat interface wired to the same identity access as Discord. */
 export function createSlackPlugin(): ChatInterfaceInstance {
-  return new ChatInterface(
+  return createChatPlugin(
     { adapters: { slack: baseSlackConfig }, gatewayRunMs: 50 },
     harnessIdentityAccess,
     { fetch: (input, init): Promise<Response> => state().fetch(input, init) },

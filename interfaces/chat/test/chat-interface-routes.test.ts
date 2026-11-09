@@ -6,7 +6,7 @@ import {
   createSlackChatUploadStoreScope,
 } from "../src/upload-store";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   createPlugin,
@@ -33,7 +33,7 @@ describe("ChatInterface webhook and upload routes", () => {
   });
 
   it("delegates configured Slack webhooks to Chat SDK", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const route = plugin
       .getWebRoutes()
@@ -64,7 +64,7 @@ describe("ChatInterface webhook and upload routes", () => {
   });
 
   it("returns 404 from Discord webhook route when no Discord adapter is configured", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const route = plugin
       .getWebRoutes()
@@ -79,7 +79,7 @@ describe("ChatInterface webhook and upload routes", () => {
   });
 
   it("serves only Slack-scoped uploads from the Slack upload route", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const slackStore = suite.harness
       .getMockShell()
@@ -125,7 +125,7 @@ describe("ChatInterface webhook and upload routes", () => {
   });
 
   it("returns 404 from Discord upload route when no Discord adapter is configured", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const route = plugin
       .getWebRoutes()
