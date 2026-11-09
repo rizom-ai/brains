@@ -40,8 +40,7 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
-import { getActiveAuthService } from "@brains/auth-service";
-import { CHAT_CHANNELS, spaceNoticeRequestSchema } from "@brains/contracts";
+import { spaceNoticeContract } from "@brains/contracts";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
 import type { ChatIdentityAccess } from "./chat-identity";
@@ -153,18 +152,20 @@ export class ChatInterface extends MessageInterfacePlugin<
 
   /**
    * @param identityAccess Overridable so tests can supply a linked principal
-   * directly. Production leaves it alone and reads the auth service mounted at
-   * boot, resolved per call because mounting happens after construction.
+   * directly. Production leaves it alone and reads the context's auth backend,
+   * resolved per call because auth-service binds it after construction.
    */
   constructor(
     config: ChatConfigInput = {},
-    identityAccess: () => ChatIdentityAccess | undefined = getActiveAuthService,
+    identityAccess?: () => ChatIdentityAccess | undefined,
     deps: ChatInterfaceDeps = {},
   ) {
     super("chat", packageJson, config, chatConfigSchema);
     this.deps = deps;
     this.turnController = new ChatTurnController({
-      identityAccess,
+      identityAccess:
+        identityAccess ??
+        ((): ChatIdentityAccess | undefined => this.context?.auth.get()),
       config: this.config,
       host: {
         getContext: (): InterfacePluginContext | undefined => this.context,
@@ -267,24 +268,17 @@ export class ChatInterface extends MessageInterfacePlugin<
     );
     // Another plugin's note for a configured space, e.g. the cards a channel
     // pickup added; posted where the chat app runs.
-    context.messaging.subscribe(CHAT_CHANNELS.spaceNotice, async (message) => {
-      const request = spaceNoticeRequestSchema.safeParse(message.payload);
-      if (!request.success) {
-        return { success: false, error: "Not a space notice" };
-      }
-      return {
-        success: true,
-        data: await postSpaceNotice(
-          {
-            app: this.chatApp.instance,
-            discordBotToken: this.config.adapters.discord?.botToken,
-            logger: this.logger,
-            fetchFn: this.deps.fetch,
-          },
-          request.data,
-        ),
-      };
-    });
+    context.messaging.answer(spaceNoticeContract, async (request) =>
+      postSpaceNotice(
+        {
+          app: this.chatApp.instance,
+          discordBotToken: this.config.adapters.discord?.botToken,
+          logger: this.logger,
+          fetchFn: this.deps.fetch,
+        },
+        request,
+      ),
+    );
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

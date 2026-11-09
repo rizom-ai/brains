@@ -1,8 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  AGENT_CONTEXT_REQUEST_CHANNEL,
-} from "@brains/contracts";
+import { agentActionContract, agentContextContract } from "@brains/contracts";
 import {
   playbookAdapter,
   type PlaybookBody,
@@ -16,7 +13,7 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationContract,
   playbookRunSchema,
   playbookManageOutputSchema,
   playbookStatusResponseSchema,
@@ -24,6 +21,9 @@ import {
   type GoalCheck,
   type GoalCheckInput,
 } from "../src";
+
+/** The `playbooks:lifecycle-starters` answer, as the plugin builds it. */
+const startersAnswerSchema = z.object({ starters: z.array(z.unknown()) });
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-playbooks-");
@@ -960,30 +960,16 @@ describe("PlaybooksPlugin", () => {
     );
     addPlaybookEntity(harness);
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toHaveLength(1);
-    expect(response?.starters[0]).toEqual({
+    expect(response.starters).toHaveLength(1);
+    expect(response.starters[0]).toEqual({
       id: "onboarding",
       title: "Set up Rover",
       description: "Learn Rover by doing real setup work.",
@@ -1003,29 +989,15 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([]);
+    expect(response.starters).toEqual([]);
   });
 
   it("returns registered lifecycle starters without trigger config", async () => {
@@ -1038,19 +1010,8 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     });
 
-    const registration = await harness.sendMessage<
-      {
-        id: string;
-        trigger: string;
-        playbookId: string;
-        once: boolean;
-        starterText: string;
-        description: string;
-        starterPrompt: string;
-      },
-      { registered: boolean; id: string }
-    >(
-      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+    const registration = await harness.sendMessage(
+      lifecycleStarterRegistrationContract.name,
       {
         id: "onboarding",
         trigger: "first-admin-web-chat",
@@ -1065,29 +1026,15 @@ describe("PlaybooksPlugin", () => {
 
     expect(registration).toEqual({ registered: true, id: "onboarding" });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       {
         id: "onboarding",
         title: "Set up Rover",
@@ -1118,32 +1065,33 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     };
 
-    const first = await harness.sendMessage<
-      typeof payload,
-      { registered: boolean; id: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
-    const second = await harness.sendMessage<
-      typeof payload,
-      { registered: boolean; id: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
+    const first = lifecycleStarterRegistrationContract.response.parse(
+      await harness.sendMessage(
+        lifecycleStarterRegistrationContract.name,
+        payload,
+        "rover-onboarding",
+      ),
+    );
+    const second = lifecycleStarterRegistrationContract.response.parse(
+      await harness.sendMessage(
+        lifecycleStarterRegistrationContract.name,
+        payload,
+        "rover-onboarding",
+      ),
+    );
 
     expect(first).toEqual({ registered: true, id: "onboarding" });
     expect(second).toEqual({ registered: true, id: "onboarding" });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      { starters: Array<{ id: string }> }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toHaveLength(1);
+    expect(response.starters).toHaveLength(1);
   });
 
   it("ignores conflicting lifecycle starter registration for an existing id", async () => {
@@ -1171,14 +1119,15 @@ describe("PlaybooksPlugin", () => {
     };
 
     await harness.sendMessage(
-      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+      lifecycleStarterRegistrationContract.name,
       firstPayload,
       "rover-onboarding",
     );
-    const conflict = await harness.sendMessage<
-      typeof conflictPayload,
-      { registered: boolean; id: string; ignored?: boolean; reason?: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, conflictPayload, "other-plugin");
+    const conflict = await harness.sendMessage(
+      lifecycleStarterRegistrationContract.name,
+      conflictPayload,
+      "other-plugin",
+    );
 
     expect(conflict).toEqual(
       expect.objectContaining({
@@ -1188,20 +1137,15 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      { starters: Array<{ title: string; starterPrompt: string }> }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       expect.objectContaining({
         title: "Set up Rover",
         starterPrompt: "Start the Rover onboarding playbook.",
@@ -1221,29 +1165,15 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       {
         id: "onboarding",
         title: "Set up Rover",
@@ -1321,37 +1251,16 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-action-next");
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        interfaceType: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-        isAnchor: boolean;
-        action: { type: "event"; event: "NEXT" };
-      },
-      {
-        text: string;
-        cards?: unknown[];
-        toolResults?: Array<{
-          toolName: string;
-          args?: Record<string, unknown>;
-          data?: unknown;
-        }>;
-        usage: {
-          promptTokens: number;
-          completionTokens: number;
-          totalTokens: number;
-        };
-      }
-    >(AGENT_ACTION_REQUEST_CHANNEL, {
-      conversationId: "web-action-next",
-      interfaceType: "web-chat",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-      isAnchor: false,
-      action: { type: "event", event: "NEXT" },
-    });
+    const response = agentActionContract.response.parse(
+      await harness.sendMessage(agentActionContract.name, {
+        conversationId: "web-action-next",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+        isAnchor: false,
+        action: { type: "event", event: "NEXT" },
+      }),
+    );
 
     expect(response).toBeDefined();
     expect(response?.text).toBe("What rough idea should Rover remember first?");
@@ -1758,8 +1667,14 @@ describe("PlaybooksPlugin", () => {
         entityId: "seed-note",
         conversationId,
         entity: {
-          metadata: { title: "Seed note" },
+          id: "seed-note",
+          entityType: "note",
           content: "Rough idea worth remembering.",
+          contentHash: "seed-hash",
+          created: "2026-11-07T00:00:00.000Z",
+          updated: "2026-11-07T00:00:00.000Z",
+          visibility: "public",
+          metadata: { title: "Seed note" },
         },
       },
       "entity-service",
@@ -2283,24 +2198,16 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        interfaceType: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-        isAnchor: boolean;
-        action: { type: "event"; event: "NEXT"; fromState: string };
-      },
-      { text: string }
-    >(AGENT_ACTION_REQUEST_CHANNEL, {
-      conversationId: "web-stale-action",
-      interfaceType: "web-chat",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-      isAnchor: false,
-      action: { type: "event", event: "NEXT", fromState: "welcome" },
-    });
+    const response = agentActionContract.response.parse(
+      await harness.sendMessage(agentActionContract.name, {
+        conversationId: "web-stale-action",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+        isAnchor: false,
+        action: { type: "event", event: "NEXT", fromState: "welcome" },
+      }),
+    );
 
     expect(response?.text).toContain("I couldn't continue the playbook");
     expect(response?.text).toContain("Stale playbook event");
@@ -2383,40 +2290,32 @@ describe("PlaybooksPlugin", () => {
 
     await startRun(harness, "web-agent-context");
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        message: string;
-        interfaceType: string;
-        channelId: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-      },
-      { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
-      conversationId: "web-agent-context",
-      message: "what next?",
-      interfaceType: "web-chat",
-      channelId: "web-agent-context",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-    });
+    const response = agentContextContract.response.parse(
+      await harness.sendMessage(agentContextContract.name, {
+        conversationId: "web-agent-context",
+        message: "what next?",
+        interfaceType: "web-chat",
+        channelId: "web-agent-context",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.items).toHaveLength(1);
-    expect(response?.items[0]?.source).toBe("active-playbook");
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items).toHaveLength(1);
+    expect(response.items[0]?.source).toBe("active-playbook");
+    expect(response.items[0]?.content).toContain(
       "Current state title: Welcome",
     );
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items[0]?.content).toContain(
       "Current state id (tool use only): welcome",
     );
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items[0]?.content).toContain(
       "Do not mention raw playbook state IDs to the operator",
     );
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items[0]?.content).toContain(
       "pass fromState set to the current state id",
     );
-    expect(response?.items[0]?.content).toContain("NEXT -> seed");
+    expect(response.items[0]?.content).toContain("NEXT -> seed");
   });
 
   it("injects completed playbook states as agent context", async () => {
@@ -2430,27 +2329,19 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        message: string;
-        interfaceType: string;
-        channelId: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-      },
-      { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
-      conversationId: "web-agent-context-completed",
-      message: "transform it now",
-      interfaceType: "web-chat",
-      channelId: "web-agent-context-completed",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-    });
+    const response = agentContextContract.response.parse(
+      await harness.sendMessage(agentContextContract.name, {
+        conversationId: "web-agent-context-completed",
+        message: "transform it now",
+        interfaceType: "web-chat",
+        channelId: "web-agent-context-completed",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    const content = response?.items[0]?.content ?? "";
-    expect(response?.items[0]?.source).toBe("active-playbook");
+    const content = response.items[0]?.content ?? "";
+    expect(response.items[0]?.source).toBe("active-playbook");
     expect(content).toContain("Current state title: Seed");
     expect(content).toContain("Current state id (tool use only): seed");
     expect(content).toContain("Completed states:");
@@ -2496,27 +2387,19 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        message: string;
-        interfaceType: string;
-        channelId: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-      },
-      { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
-      conversationId: "web-actionable-context",
-      message: "what next?",
-      interfaceType: "web-chat",
-      channelId: "web-actionable-context",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-    });
+    const response = agentContextContract.response.parse(
+      await harness.sendMessage(agentContextContract.name, {
+        conversationId: "web-actionable-context",
+        message: "what next?",
+        interfaceType: "web-chat",
+        channelId: "web-actionable-context",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.items).toHaveLength(1);
-    const content = response?.items[0]?.content ?? "";
+    expect(response.items).toHaveLength(1);
+    const content = response.items[0]?.content ?? "";
     expect(content).toContain(`Run ID: ${runId}`);
     expect(content).toContain("Done when:");
     expect(content).toContain(

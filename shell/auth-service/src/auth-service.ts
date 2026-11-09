@@ -1,3 +1,26 @@
+import { isLoopbackIssuer, normalizeIssuer } from "@brains/plugins";
+import type {
+  A2APeerTrustRecord,
+  AppendAuthAuditEventInput,
+  AttachAuthIdentityInput,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+  AuthBearerGrant,
+  AuthIdentityAccessResolution,
+  AuthMutationContext,
+  AuthPrincipal,
+  CreateInvitationRequest,
+  GrantA2APeerTrustInput,
+  InviteExternalPeerPersonRequest,
+  LinkExternalPeerRequest,
+  ResolveAuthIdentityInput,
+  UnlinkExternalPeerRequest,
+  UserPasskeyRegistration,
+  VerifiedAccessToken,
+} from "@brains/contracts";
+import type { AuthBackend } from "@brains/plugins";
+import type { A2ASigningKey } from "@brains/contracts";
 import type {
   ActorRef,
   RuntimeInterfacePrincipalState,
@@ -12,11 +35,7 @@ import type { Logger } from "@brains/utils/logger";
 import { handleAuthAccountRequest } from "./account-endpoints";
 import type {
   CreatedInvitationAccess,
-  CreateInvitationRequest,
   InvitedExternalPeerAccess,
-  InviteExternalPeerPersonRequest,
-  LinkExternalPeerRequest,
-  UnlinkExternalPeerRequest,
 } from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
@@ -30,32 +49,16 @@ import type {
   AuthInvitationSummary,
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
-} from "./admin-contracts";
-import type {
-  AppendAuthAuditEventInput,
-  AuthAuditEvent,
-  AuthAuditQuery,
-  AuthAuditQueryResult,
-} from "./audit-store";
+} from "@brains/contracts";
 import { AuthRequestRouter } from "./auth-request-router";
 import { AuthRuntime } from "./auth-runtime";
 import { AuthOperationScope } from "./auth-operation-scope";
-import type {
-  AttachAuthIdentityInput,
-  AuthIdentityRecord,
-  ResolveAuthIdentityInput,
-} from "./identity-store";
+import type { AuthIdentityRecord } from "./identity-store";
 
-import type { AuthMutationContext } from "./mutation-context";
-import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type {
   ConfiguredInterfacePrincipals,
   ResolvedInterfacePrincipal,
 } from "./interface-principal-store";
-import type {
-  A2APeerTrustRecord,
-  GrantA2APeerTrustInput,
-} from "./peer-trust-store";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import type { ClientMetadataDocumentResolver } from "./client-metadata-document";
 import type { PersonExternalPeer } from "./runtime-schema";
@@ -68,17 +71,10 @@ import type {
   AuthSessionRecord,
   CreateAuthSessionResult,
 } from "./session-store";
-import { absoluteUrl, isLoopbackIssuer, normalizeIssuer } from "./issuer";
-import type {
-  AuthBearerGrant,
-  AuthIdentityAccessResolution,
-  AuthPrincipal,
-} from "./principal-service";
-import type { VerifiedAccessToken } from "./token-verifier";
+import { absoluteUrl } from "./issuer";
 import { unauthorizedHtmlResponse } from "./pages";
 import type { PasskeySetupRequired } from "./setup-flow";
 import type {
-  A2APrivateJwk,
   AuthorizationServerMetadata,
   JwksResponse,
   ProtectedResourceMetadata,
@@ -89,11 +85,6 @@ import { getErrorMessage } from "@brains/utils/error";
 export type { PasskeySetupRequired } from "./setup-flow";
 
 const DEFAULT_ANCHOR_PROFILE_ENTITY_ID = "anchor-profile/anchor-profile";
-
-export interface A2ASigningKey {
-  privateJwk: A2APrivateJwk;
-  keyId: string;
-}
 
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
@@ -150,7 +141,7 @@ export interface AuthServiceOptions {
   logger?: Logger;
 }
 
-export class AuthService {
+export class AuthService implements AuthBackend {
   private readonly issuer: string;
   private readonly runtime: AuthRuntime;
   private readonly operations = new AuthOperationScope();

@@ -402,11 +402,6 @@ export abstract class MessageInterfacePlugin<
           interfaceId: this.id,
         });
       },
-      onInvalidSchema: () => {
-        this.logger.warn("Invalid progress event schema", {
-          interfaceId: this.id,
-        });
-      },
     });
 
     setupToolActivityHandler(context, {
@@ -416,11 +411,6 @@ export abstract class MessageInterfacePlugin<
       onError: (error) => {
         this.logger.error("Error handling tool activity event", {
           error,
-          interfaceId: this.id,
-        });
-      },
-      onInvalidSchema: () => {
-        this.logger.warn("Invalid tool activity event schema", {
           interfaceId: this.id,
         });
       },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { TOPIC_SOURCE_TYPES_MESSAGE } from "@brains/contracts";
+import { topicSourceTypesContract } from "@brains/contracts";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -41,13 +41,31 @@ describe("topic source types", () => {
       { projectionSource: false },
     );
 
-    const response = await harness.sendMessage<
-      Record<string, never>,
-      { types: string[] }
-    >(TOPIC_SOURCE_TYPES_MESSAGE, {});
+    const response = topicSourceTypesContract.response.parse(
+      await harness.sendMessage(topicSourceTypesContract.name, {}),
+    );
 
-    expect(response?.types).toContain("note");
-    expect(response?.types).not.toContain("skill");
-    expect(response?.types).not.toContain("topic");
+    expect(response.types).toContain("note");
+    expect(response.types).not.toContain("skill");
+    expect(response.types).not.toContain("topic");
+  });
+});
+
+describe("topic source types in a job worker", () => {
+  it("are answered there too, where a site build reads the knowledge map", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-topic-source-types-${randomUUID()}`,
+    });
+    const registry = harness.getEntityRegistry();
+    registry.registerEntityType("note", baseEntitySchema, new Adapter("note"));
+    await new TopicsPlugin().register(harness.getMockShell(), {
+      executionOnly: true,
+    });
+
+    const response = topicSourceTypesContract.response.parse(
+      await harness.sendMessage(topicSourceTypesContract.name, {}),
+    );
+
+    expect(response.types).toContain("note");
   });
 });

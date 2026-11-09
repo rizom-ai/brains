@@ -1,8 +1,8 @@
 import {
-  PROJECTION_CHANNELS,
-  ProjectionWaveReadySchema,
+  projectionWaveReadyContract,
   type ProjectionWaveReady,
 } from "@brains/contracts";
+import type { IMessagingNamespace } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import {
@@ -12,21 +12,10 @@ import {
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
-interface ProjectionWaveReadyMessage {
-  payload: ProjectionWaveReady;
-}
-
 type BuildEnvironment = "preview" | "production";
 
 interface AutoRebuildContext {
-  messaging: {
-    subscribeExecution(
-      type: string,
-      handler: (
-        message: ProjectionWaveReadyMessage,
-      ) => Promise<{ success: boolean }> | { success: boolean },
-    ): () => void;
-  };
+  messaging: Pick<IMessagingNamespace, "answer">;
   jobs: {
     enqueue(request: {
       type: "site-build";
@@ -149,9 +138,8 @@ export class RebuildManager {
     const excludedTypes = new Set(["note"]);
 
     const waveReadyHandler = async (
-      message: ProjectionWaveReadyMessage,
-    ): Promise<{ success: boolean }> => {
-      const summary = ProjectionWaveReadySchema.parse(message.payload);
+      summary: ProjectionWaveReady,
+    ): Promise<Record<string, never>> => {
       const changedTypes = new Set([
         ...summary.sourceTypes,
         ...summary.changedTargetTypes,
@@ -162,13 +150,14 @@ export class RebuildManager {
         );
         await this.requestAutomaticBuild();
       }
-      return { success: true };
+      return {};
     };
 
     this.unsubscribeFunctions.push(
-      this.context.messaging.subscribeExecution(
-        PROJECTION_CHANNELS.waveReady,
+      this.context.messaging.answer(
+        projectionWaveReadyContract,
         waveReadyHandler,
+        { everyProcess: true },
       ),
     );
 

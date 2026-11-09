@@ -12,6 +12,7 @@ import {
   type AssetVerification,
   type PreparedAsset,
 } from "@brains/assets";
+import { bufferView } from "@brains/utils/bytes";
 import { eq } from "drizzle-orm";
 import type { EntityDB } from "./db";
 import { assets } from "./schema/assets";
@@ -22,7 +23,7 @@ export type AssetTransaction = Parameters<
 
 /** Validated and copied before a transaction acquires SQLite's write lock. */
 export interface StagedAsset extends AssetRecord {
-  bytes: Buffer;
+  bytes: Uint8Array;
 }
 
 export class AssetNotFoundError extends Error {
@@ -75,7 +76,9 @@ export class SqliteAssetRepository implements AssetReader {
       ref: prepared.ref,
       digest: prepared.digest,
       sizeBytes: prepared.sizeBytes,
-      bytes: Buffer.from(prepared.bytes),
+      // The typed-array constructor copies in bulk into a buffer of its own,
+      // even from a Buffer, whose slice() would only be a view.
+      bytes: new Uint8Array(prepared.bytes),
     };
   }
 
@@ -154,7 +157,8 @@ export class SqliteAssetRepository implements AssetReader {
       .insert(assets)
       .values({
         digest: staged.digest,
-        bytes: staged.bytes,
+        // A view over the staged copy, not a second one.
+        bytes: bufferView(staged.bytes),
         sizeBytes: staged.sizeBytes,
         created: this.now(),
       })
@@ -204,7 +208,11 @@ export class SqliteAssetRepository implements AssetReader {
     if (rows.length === 0) throw new AssetNotFoundError(ref);
   }
 
-  private assertSize(ref: AssetRef, bytes: Buffer, sizeBytes: number): void {
+  private assertSize(
+    ref: AssetRef,
+    bytes: Uint8Array,
+    sizeBytes: number,
+  ): void {
     if (bytes.byteLength !== sizeBytes) {
       throw new AssetIntegrityError(
         ref,

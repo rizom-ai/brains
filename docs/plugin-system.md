@@ -6,13 +6,13 @@
 
 Choose the narrowest family:
 
-| Family            | Public helper              | Use for                                                             |
-| ----------------- | -------------------------- | ------------------------------------------------------------------- |
-| Entity            | `defineEntityPackage()`    | Durable markdown-backed entities and deterministic projections      |
-| Service           | `defineServicePlugin()`    | Tools, resources, prompts, templates, views, jobs, and integrations |
-| Interface         | `defineInterface()`        | HTTP routes and supervised non-chat listeners                       |
-| Message interface | `defineMessageInterface()` | Conversational and outbound channels                                |
-| Site              | `defineSite()`             | Layouts, routes, sections, content, display metadata, and assets    |
+| Family            | Public helper              | Use for                                                          |
+| ----------------- | -------------------------- | ---------------------------------------------------------------- |
+| Entity            | `defineEntityPackage()`    | Durable markdown-backed entities and deterministic projections   |
+| Service           | `defineServicePlugin()`    | Tools, resources, prompts, templates, jobs, and integrations     |
+| Interface         | `defineInterface()`        | HTTP routes and supervised non-chat listeners                    |
+| Message interface | `defineMessageInterface()` | Conversational and outbound channels                             |
+| Site              | `defineSite()`             | Layouts, routes, sections, content, display metadata, and assets |
 
 A package default-exports one definition. Packages with multiple concerns remain focused and are composed in the brain-definition package.
 
@@ -34,7 +34,7 @@ The stable entries are:
 - `@rizom/brain/interfaces` — route, daemon, and message-interface definitions; and
 - `@rizom/site` — site and schema-first section definitions.
 
-`@rizom/brain/plugins` contains only nominated advanced shared contracts. It is not a class-first fallback authoring API.
+`@rizom/brain/testing` runs a package's own tests on the runtime. There is no class-first fallback authoring API.
 
 ## Configuration and package identity
 

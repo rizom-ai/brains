@@ -1,9 +1,19 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { Hono } from "hono";
-import { createExternalActorId } from "@brains/contracts";
 import type { RegisteredApiRoute } from "@brains/plugins";
 import { createApiRouteHandler } from "../src/api-server";
-import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
+
+type ToolExecutor = (
+  route: RegisteredApiRoute,
+  args: Record<string, unknown>,
+) => Promise<unknown>;
+
+/** A tool executor answering every call with the given bus reply. */
+function executorReplying(
+  reply: unknown,
+): ReturnType<typeof mock<ToolExecutor>> {
+  return mock<ToolExecutor>(() => Promise.resolve(reply));
+}
 
 describe("webserver exports", () => {
   it("does not export a standalone API server", async () => {
@@ -13,19 +23,14 @@ describe("webserver exports", () => {
 });
 
 describe("createApiRouteHandler", () => {
-  let mockMessageBus: IMessageBus;
+  let executeTool: ReturnType<typeof executorReplying>;
   let app: Hono;
 
   beforeEach(() => {
-    // Message bus wraps tool result in { success, data }
-    // Tool result is { success, data, message? }
-    mockMessageBus = createMockMessageBus({
-      returns: {
-        send: {
-          success: true,
-          data: { success: true, data: { subscribed: true } },
-        },
-      },
+    // The owning plugin's bus reply wraps the tool result: { success, data }.
+    executeTool = executorReplying({
+      success: true,
+      data: { success: true, data: { subscribed: true } },
     });
     app = new Hono();
   });
@@ -47,7 +52,7 @@ describe("createApiRouteHandler", () => {
   describe("request parsing", () => {
     it("should parse JSON body when content-type is application/json", async () => {
       const route = createMockRoute();
-      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
+      app.post(route.fullPath, createApiRouteHandler(route, executeTool));
 
       await app.request(route.fullPath, {
         method: "POST",
@@ -58,18 +63,14 @@ describe("createApiRouteHandler", () => {
         body: JSON.stringify({ email: "test@example.com" }),
       });
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith({
-        type: "plugin:newsletter:tool:execute",
-        payload: expect.objectContaining({
-          args: { email: "test@example.com" },
-        }),
-        sender: "webserver",
+      expect(executeTool).toHaveBeenCalledWith(route, {
+        email: "test@example.com",
       });
     });
 
     it("should parse form data when content-type is form-urlencoded", async () => {
       const route = createMockRoute();
-      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
+      app.post(route.fullPath, createApiRouteHandler(route, executeTool));
 
       const formData = new URLSearchParams();
       formData.append("email", "test@example.com");
@@ -83,63 +84,8 @@ describe("createApiRouteHandler", () => {
         body: formData.toString(),
       });
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith({
-        type: "plugin:newsletter:tool:execute",
-        payload: expect.objectContaining({
-          args: { email: "test@example.com" },
-        }),
-        sender: "webserver",
-      });
-    });
-  });
-
-  describe("tool invocation", () => {
-    it("should allow plugin routes to target an exact canonical tool name", async () => {
-      const route = createMockRoute({ tool: "newsletter_subscribers" });
-      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
-
-      await app.request(route.fullPath, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body: JSON.stringify({ email: "test@example.com" }),
-      });
-
-      expect(mockMessageBus.send).toHaveBeenCalledWith({
-        type: "plugin:newsletter:tool:execute",
-        payload: expect.objectContaining({
-          toolName: "newsletter_subscribers",
-        }),
-        sender: "webserver",
-      });
-    });
-
-    it("should call tool with correct message type", async () => {
-      const route = createMockRoute();
-      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
-
-      await app.request(route.fullPath, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body: JSON.stringify({ email: "test@example.com" }),
-      });
-
-      expect(mockMessageBus.send).toHaveBeenCalledWith({
-        type: "plugin:newsletter:tool:execute",
-        payload: expect.objectContaining({
-          toolName: "newsletter_subscribe",
-          interfaceType: "webserver",
-          actor: {
-            kind: "external",
-            externalActorId: createExternalActorId("webserver", "anonymous"),
-          },
-        }),
-        sender: "webserver",
+      expect(executeTool).toHaveBeenCalledWith(route, {
+        email: "test@example.com",
       });
     });
   });
@@ -147,7 +93,7 @@ describe("createApiRouteHandler", () => {
   describe("response handling", () => {
     it("should return JSON when Accept header includes application/json", async () => {
       const route = createMockRoute({ successRedirect: "/thanks" });
-      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
+      app.post(route.fullPath, createApiRouteHandler(route, executeTool));
 
       const response = await app.request(route.fullPath, {
         method: "POST",
@@ -168,7 +114,7 @@ describe("createApiRouteHandler", () => {
 
     it("should redirect to successRedirect on success for form submissions", async () => {
       const route = createMockRoute({ successRedirect: "/subscribe/thanks" });
-      app.post(route.fullPath, createApiRouteHandler(route, mockMessageBus));
+      app.post(route.fullPath, createApiRouteHandler(route, executeTool));
 
       const response = await app.request(route.fullPath, {
         method: "POST",
@@ -183,20 +129,16 @@ describe("createApiRouteHandler", () => {
     });
 
     it("should redirect to errorRedirect on failure for form submissions", async () => {
-      const errorMockBus = createMockMessageBus({
-        returns: {
-          send: {
-            success: true,
-            data: { success: false, error: "Invalid email" },
-          },
-        },
+      const failingTool = executorReplying({
+        success: true,
+        data: { success: false, error: "Invalid email" },
       });
 
       const route = createMockRoute({
         successRedirect: "/subscribe/thanks",
         errorRedirect: "/subscribe/error",
       });
-      app.post(route.fullPath, createApiRouteHandler(route, errorMockBus));
+      app.post(route.fullPath, createApiRouteHandler(route, failingTool));
 
       const response = await app.request(route.fullPath, {
         method: "POST",

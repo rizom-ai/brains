@@ -7,11 +7,15 @@ export type PluginPackageFamily =
 
 // Total map so adding a family is a compile error here, and the deliberate
 // collapse of message interfaces onto the interface plugin type is explicit.
-const FAMILY_PLUGIN_TYPE: Record<PluginPackageFamily, Plugin["type"]> = {
-  entity: "entity",
-  service: "service",
-  interface: "interface",
-  "message-interface": "interface",
+// A service package also installs an entity plugin for each type it owns.
+const FAMILY_PLUGIN_TYPES: Record<
+  PluginPackageFamily,
+  readonly Plugin["type"][]
+> = {
+  entity: ["entity"],
+  service: ["service", "entity"],
+  interface: ["interface"],
+  "message-interface": ["interface"],
 };
 
 export type AnyPluginConfigSchema = z.ZodType<object, object>;
@@ -39,10 +43,34 @@ export interface InstalledPluginPackageMetadata {
   readonly version: string;
 }
 
-interface PluginPackageInstantiationContext<TConfig extends object> {
+export interface PluginPackageInstantiationContext<TConfig extends object> {
   readonly config: TConfig;
   readonly package: InstalledPluginPackageMetadata;
   scope(localId: string): string;
+  /** The plugin id a first-party entity or service package keeps from its class. */
+  readonly pluginId?: string | undefined;
+  /** The plugins a first-party service's class declared it depends on. */
+  readonly dependencies?: readonly string[] | undefined;
+}
+
+/**
+ * How a composer instantiates a definition. Internal: only the first-party
+ * composer names these, and package source never does.
+ */
+export interface PluginPackageInstantiationOptions {
+  /**
+   * The plugin id a converted first-party entity or service package keeps
+   * from its class, with every name derived from it (templates, data
+   * sources, jobs, channels). The package still owns its state and channels
+   * by name. A service that owns a type installs it under the type itself,
+   * as an entity plugin class was named after its type.
+   */
+  readonly pluginId?: string | undefined;
+  /**
+   * The plugins a converted first-party service's class declared it depends
+   * on, which register before it and without which it does not start.
+   */
+  readonly dependencies?: readonly string[] | undefined;
 }
 
 type PluginPackageRuntimeFactory<TConfig extends object> = (
@@ -54,6 +82,17 @@ const installedMetadata = new WeakMap<
   PluginPackageDefinition,
   InstalledPluginPackageMetadata
 >();
+/** Every plugin a definition created, so a reader can tell it from a class. */
+const definitionPlugins = new WeakSet<Plugin>();
+
+/**
+ * Whether a definition created this plugin rather than a class constructing
+ * it: such a plugin declares what it serves, its routes included, only once
+ * it registers, which is when the shell collects them.
+ */
+export function isPackageDefinitionPlugin(plugin: Plugin): boolean {
+  return definitionPlugins.has(plugin);
+}
 
 interface RuntimePluginPackageDefinition<
   TConfigSchema extends AnyPluginConfigSchema = AnyPluginConfigSchema,
@@ -177,6 +216,26 @@ function runtimeDefinition(
   return definition;
 }
 
+/**
+ * The plugins a definition declared inside another package creates, under
+ * that package's parsed config, metadata and scope: a package that declares
+ * several definitions instantiates each as its own.
+ */
+export function instantiateWithinPackage<TConfig extends object>(
+  definition: PluginPackageDefinition,
+  context: PluginPackageInstantiationContext<TConfig>,
+): Plugin[] {
+  const created = runtimeDefinition(definition)[runtimeFactory](context);
+  return isSeveral(created) ? [...created] : [created];
+}
+
+// `Array.isArray` alone leaves the readonly array in the else branch.
+function isSeveral(
+  created: Plugin | readonly Plugin[],
+): created is readonly Plugin[] {
+  return Array.isArray(created);
+}
+
 export function bindPluginPackageMetadata(
   definition: PluginPackageDefinition,
   metadata: InstalledPluginPackageMetadata,
@@ -209,7 +268,22 @@ export function instantiatePluginPackageDefinition(
   definition: PluginPackageDefinition,
   rawConfig: unknown,
   metadata: InstalledPluginPackageMetadata,
+  options: PluginPackageInstantiationOptions = {},
 ): Plugin[] {
+  const { pluginId, dependencies } = options;
+  if (dependencies !== undefined && definition.family !== "service") {
+    throw new Error(
+      `Plugin definition "${definition.id}" is not a service package; only a service keeps the dependencies its class declared`,
+    );
+  }
+  if (pluginId !== undefined) {
+    assertIdentifier(pluginId, "Legacy plugin id");
+    if (definition.family !== "entity" && definition.family !== "service") {
+      throw new Error(
+        `Plugin definition "${definition.id}" is not an entity or service package; only those keep a legacy plugin id`,
+      );
+    }
+  }
   if (!metadata.name || !metadata.version) {
     throw new Error(
       `Installed package metadata is incomplete for plugin definition "${definition.id}"`,
@@ -232,9 +306,11 @@ export function instantiatePluginPackageDefinition(
       assertIdentifier(localId, "Local plugin id");
       return `${metadata.name}:${localId}`;
     },
+    ...(pluginId !== undefined && { pluginId }),
+    ...(dependencies !== undefined && { dependencies }),
   });
-  const plugins = Array.isArray(created) ? [...created] : [created];
-  const expectedType = FAMILY_PLUGIN_TYPE[definition.family];
+  const plugins = isSeveral(created) ? [...created] : [created];
+  const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
 
   for (const plugin of plugins) {
     if (
@@ -245,11 +321,12 @@ export function instantiatePluginPackageDefinition(
         `Plugin definition "${metadata.name}:${definition.id}" produced metadata that does not match its installed package`,
       );
     }
-    if (plugin.type !== expectedType) {
+    if (!expectedTypes.includes(plugin.type)) {
       throw new Error(
         `Plugin definition "${metadata.name}:${definition.id}" declared family "${definition.family}" but produced plugin type "${plugin.type}"`,
       );
     }
   }
+  for (const plugin of plugins) definitionPlugins.add(plugin);
   return plugins;
 }

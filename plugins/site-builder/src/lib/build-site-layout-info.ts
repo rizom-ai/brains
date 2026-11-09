@@ -19,6 +19,8 @@ export function buildSiteLayoutInfo(
       profileBody.socialLinks !== undefined && {
         socialLinks: profileBody.socialLinks,
       }),
+    ...(siteMetadata.represents !== "brain" &&
+      profileBody.photo !== undefined && { photo: profileBody.photo }),
     navigation: {
       primary: primaryItems,
       secondary: secondaryItems,

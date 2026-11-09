@@ -5,18 +5,16 @@ import {
   expect,
   beforeEach,
   afterEach,
-  mock,
   spyOn,
   type Mock,
 } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import {
-  PUBLISH_ASSET_MESSAGES,
-  PUBLISH_MESSAGES,
-} from "../src/types/messages";
-import type { PublishProvider } from "@brains/contracts";
+  publishAssetRegisterContract,
+  publishRegisterContract,
+  type PublishProvider,
+} from "@brains/contracts";
 import type { DashboardWidgetProviderContext } from "@brains/plugins";
-import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
   type MockShell,
@@ -27,21 +25,6 @@ import {
 // plugins reach shell packages through @brains/plugins, which does not
 // re-export the job queue interface.
 type TestJobQueueService = ReturnType<MockShell["getJobQueueService"]>;
-
-function addDraftQueueEntities(
-  harness: PluginTestHarness<ContentPipelinePlugin>,
-  entityType: string,
-  ids: string[],
-): void {
-  harness.addEntities(
-    ids.map((id) => ({
-      id,
-      entityType,
-      content: `---\ntitle: ${id}\nstatus: draft\n---\n\nBody`,
-      metadata: { title: id, status: "draft" },
-    })),
-  );
-}
 
 /**
  * A job queue whose enqueue is spied on.
@@ -166,316 +149,6 @@ describe("ContentPipelinePlugin", () => {
     });
   });
 
-  describe("queue operations via message bus", () => {
-    it("should add entity to queue", async () => {
-      addDraftQueueEntities(harness, "blog-post", ["post-1"]);
-      await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
-        entityType: "blog-post",
-        entityId: "post-1",
-      });
-
-      const queue = await plugin.getQueueManager().list("blog-post");
-      expect(queue.length).toBe(1);
-      expect(queue[0]?.entityId).toBe("post-1");
-    });
-
-    it("requires publish permission when adding via message bus", async () => {
-      const localHarness = createPluginHarness({
-        dataDir: "/tmp/test-datadir-permissions",
-      });
-      localHarness.setPermissionService(
-        new PermissionService({
-          entityActions: { "social-post": { publish: "admin" } },
-        }),
-      );
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
-
-      await localHarness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
-        entityType: "social-post",
-        entityId: "post-1",
-        authContext: {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "trusted-user" },
-          userPermissionLevel: "trusted",
-          authorization: "user",
-        },
-      });
-
-      const queue = await localPlugin.getQueueManager().list("social-post");
-      expect(queue.length).toBe(0);
-      await localPlugin.shutdown();
-    });
-
-    it("stores queue add authorization context", async () => {
-      addDraftQueueEntities(harness, "social-post", ["post-1"]);
-      await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
-        entityType: "social-post",
-        entityId: "post-1",
-        authContext: {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "admin-user" },
-          userPermissionLevel: "admin",
-          authorization: "user",
-        },
-      });
-
-      const queue = await plugin.getQueueManager().list("social-post");
-      expect(queue[0]?.authContext).toEqual({
-        interfaceType: "test",
-        actor: { kind: "user", userId: "admin-user" },
-        userPermissionLevel: "admin",
-        authorization: "user",
-      });
-    });
-
-    it("should remove entity from queue", async () => {
-      addDraftQueueEntities(harness, "blog-post", ["post-1"]);
-      await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
-        entityType: "blog-post",
-        entityId: "post-1",
-      });
-
-      await harness.sendMessage(PUBLISH_MESSAGES.REMOVE, {
-        entityType: "blog-post",
-        entityId: "post-1",
-      });
-
-      const queue = await plugin.getQueueManager().list("blog-post");
-      expect(queue.length).toBe(0);
-    });
-
-    it("should reorder entities in queue", async () => {
-      addDraftQueueEntities(harness, "blog-post", ["post-1", "post-2"]);
-      await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
-        entityType: "blog-post",
-        entityId: "post-1",
-      });
-      await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
-        entityType: "blog-post",
-        entityId: "post-2",
-      });
-
-      await harness.sendMessage(PUBLISH_MESSAGES.REORDER, {
-        entityType: "blog-post",
-        entityId: "post-2",
-        position: 1,
-      });
-
-      const queue = await plugin.getQueueManager().list("blog-post");
-      expect(queue[0]?.entityId).toBe("post-2");
-    });
-
-    it("does not emit publish:execute for direct publish without provider", async () => {
-      const executePayloads: unknown[] = [];
-      harness.subscribe("publish:execute", async (msg) => {
-        executePayloads.push(msg.payload);
-        return { success: true };
-      });
-
-      await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
-        entityType: "social-post",
-        entityId: "post-1",
-        authContext: {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "admin-user" },
-          userPermissionLevel: "admin",
-          authorization: "user",
-        },
-      });
-
-      expect(executePayloads).toEqual([]);
-    });
-
-    it("uses internal providers through direct provider execution", async () => {
-      const publish = mock(async () => ({ id: "email-1" }));
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
-        entityType: "newsletter",
-        provider: { name: "internal", publish },
-        config: {
-          publishResultIdField: "buttondownId",
-          publishTimestampField: "sentAt",
-        },
-      });
-      harness.addEntities([
-        {
-          id: "newsletter-1",
-          entityType: "newsletter",
-          visibility: "public",
-          content: `---
-subject: Test Newsletter
-status: draft
----
-Newsletter body`,
-          metadata: { subject: "Test Newsletter", status: "draft" },
-        },
-      ]);
-
-      await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
-        entityType: "newsletter",
-        entityId: "newsletter-1",
-      });
-
-      expect(publish).toHaveBeenCalledWith(
-        "Newsletter body",
-        expect.objectContaining({ status: "draft" }),
-        undefined,
-        undefined,
-      );
-      const updated = await harness.getEntityService().getEntity({
-        entityType: "newsletter",
-        id: "newsletter-1",
-      });
-      expect(updated?.metadata["status"]).toBe("published");
-      expect(updated?.metadata["buttondownId"]).toBe("email-1");
-      expect(typeof updated?.metadata["sentAt"]).toBe("string");
-      expect(updated?.content).toContain("sentAt:");
-    });
-
-    it("uses registered provider for direct publish messages", async () => {
-      const publish = mock(async () => ({ id: "platform-post-1" }));
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
-        entityType: "post",
-        provider: { name: "test-provider", publish },
-      });
-      harness.addEntities([
-        {
-          id: "post-1",
-          entityType: "post",
-          visibility: "public",
-          content: `---
-title: Test Post
-status: draft
----
-Post body`,
-          metadata: { status: "draft", slug: "post-1" },
-        },
-      ]);
-      const executePayloads: unknown[] = [];
-      harness.subscribe("publish:execute", async (msg) => {
-        executePayloads.push(msg.payload);
-        return { success: true };
-      });
-
-      await harness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      expect(executePayloads).toEqual([]);
-      expect(publish).toHaveBeenCalledWith(
-        "Post body",
-        expect.objectContaining({ status: "draft" }),
-        undefined,
-        undefined,
-      );
-      const updated = await harness.getEntityService().getEntity({
-        entityType: "post",
-        id: "post-1",
-      });
-      expect(updated?.metadata["status"]).toBe("published");
-      expect(updated?.content).toContain("status: published");
-    });
-
-    it("queues missing publish assets after provider-mode direct publish", async () => {
-      const localHarness = createPluginHarness({
-        dataDir: "/tmp/test-datadir-direct-publish-assets",
-      });
-      const { service: jobQueue, enqueue } = jobQueueWithSpiedEnqueue();
-      localHarness.getMockShell().getJobQueueService =
-        (): TestJobQueueService => jobQueue;
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
-      localHarness
-        .getMockShell()
-        .getAttachmentRegistry()
-        .register("post", "og-image", {
-          resolve: () => undefined,
-        });
-      await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
-        entityType: "post",
-        attachmentType: "og-image",
-        mediaEntityType: "image",
-        targetEntityField: { location: "frontmatter", field: "ogImageId" },
-        requiredWhen: { status: "published" },
-        autoGenerate: true,
-        jobType: "image:image-render-source",
-      });
-      await localHarness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
-        entityType: "post",
-        provider: {
-          name: "test-provider",
-          publish: async () => ({ id: "p1" }),
-        },
-      });
-      localHarness.addEntities([
-        {
-          id: "post-1",
-          entityType: "post",
-          visibility: "public",
-          content: `---
-title: Test Post
-status: draft
----
-Post body`,
-          metadata: { status: "draft", slug: "post-1" },
-        },
-      ]);
-
-      await localHarness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      expect(enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "image:image-render-source",
-          data: expect.objectContaining({
-            sourceEntityType: "post",
-            sourceEntityId: "post-1",
-            targetImageField: "ogImageId",
-          }),
-          options: expect.objectContaining({
-            deduplication: "skip",
-          }),
-        }),
-      );
-      await localPlugin.shutdown();
-    });
-
-    it("requires publish permission for direct publish messages", async () => {
-      const localHarness = createPluginHarness({
-        dataDir: "/tmp/test-datadir-direct-permissions",
-      });
-      localHarness.setPermissionService(
-        new PermissionService({
-          entityActions: { "social-post": { publish: "admin" } },
-        }),
-      );
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
-      const executePayloads: unknown[] = [];
-      localHarness.subscribe("publish:execute", async (msg) => {
-        executePayloads.push(msg.payload);
-        return { success: true };
-      });
-
-      await localHarness.sendMessage(PUBLISH_MESSAGES.DIRECT, {
-        entityType: "social-post",
-        entityId: "post-1",
-        authContext: {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "trusted-user" },
-          userPermissionLevel: "trusted",
-          authorization: "user",
-        },
-      });
-
-      expect(executePayloads).toEqual([]);
-      await localPlugin.shutdown();
-    });
-  });
-
   describe("queue rebuild on startup", () => {
     it("should rebuild queue from queued entities during ready lifecycle", async () => {
       harness.addEntities([
@@ -498,7 +171,7 @@ Post body`,
           metadata: { status: "draft", title: "Post 3" },
         },
       ]);
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "social-post",
         provider: {
           name: "linkedin",
@@ -530,7 +203,7 @@ Post body`,
           metadata: { status: "queued", title: "Workflow card" },
         },
       ]);
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "social-post",
         provider: {
           name: "linkedin",
@@ -574,14 +247,13 @@ Post body`,
 
   describe("publish asset registration", () => {
     it("registers publish assets via message bus", async () => {
-      await harness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishAssetRegisterContract.name, {
         entityType: "post",
         attachmentType: "og-image",
         mediaEntityType: "image",
         targetEntityField: { location: "frontmatter", field: "ogImageId" },
         requiredWhen: { status: "published" },
         autoGenerate: true,
-        jobType: "image:image-render-source",
       });
 
       expect(
@@ -613,14 +285,13 @@ Post body`,
         .register("post", "og-image", {
           resolve: () => undefined,
         });
-      await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
+      await localHarness.sendMessage(publishAssetRegisterContract.name, {
         entityType: "post",
         attachmentType: "og-image",
         mediaEntityType: "image",
         targetEntityField: { location: "frontmatter", field: "ogImageId" },
         requiredWhen: { status: "published" },
         autoGenerate: true,
-        jobType: "image:image-render-source",
       });
       return { localHarness, localPlugin, enqueue };
     }
@@ -681,7 +352,7 @@ Body`,
         publish: async () => ({ id: "result" }),
       };
 
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "blog-post",
         provider,
       });
@@ -695,7 +366,7 @@ Body`,
         publish: async () => ({ id: "result" }),
       };
 
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "blog-post",
         provider,
         config: { executionMode: "invalid" },
@@ -714,11 +385,11 @@ Body`,
         publish: async () => ({ id: "internal-result" }),
       };
 
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "post",
         provider: explicitProvider,
       });
-      await harness.sendMessage(PUBLISH_MESSAGES.REGISTER, {
+      await harness.sendMessage(publishRegisterContract.name, {
         entityType: "post",
         provider: internalProvider,
       });

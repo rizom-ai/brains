@@ -6,7 +6,7 @@ import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import { ContentScheduler } from "../scheduler";
 import type { PublishEntityExecutor } from "../publish-executor";
-import { BunSchedulerBackend } from "../scheduler-backend";
+import { BunSchedulerBackend } from "@brains/scheduler";
 import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
 
@@ -76,22 +76,21 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
 }
 
 /**
- * The scheduler publishes events and reads no responses, so the adapter returns
- * the publisher it needs rather than a whole message bus whose other members
- * it would have to stub as no-ops.
+ * The scheduler publishes events and commands and reads no responses, so the
+ * adapter returns the publisher it needs rather than a whole message bus whose
+ * other members it would have to stub as no-ops.
  */
 function createMessageBusAdapter(
   context: ServicePluginContext,
 ): SchedulerMessagePublisher {
-  const send: SchedulerMessagePublisher["send"] = async (request) => {
-    return context.messaging.send({
-      type: request.type,
-      payload: request.payload,
-      ...(request.broadcast !== undefined
-        ? { broadcast: request.broadcast }
-        : {}),
-    });
+  return {
+    send: (request) =>
+      context.messaging.send({
+        type: request.type,
+        payload: request.payload,
+        broadcast: true,
+      }),
+    command: (contract, payload) =>
+      context.messaging.command(contract, payload),
   };
-
-  return { send };
 }

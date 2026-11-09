@@ -1,8 +1,10 @@
+import type { AuthMutationContext } from "@brains/contracts";
+import type { UserPasskeyRegistration } from "@brains/contracts";
 import type { ChannelDescriptor } from "@brains/plugins";
-import type { AuthSetupDeliveryInput } from "./admin-contracts";
+import type { AuthSetupDeliveryInput } from "@brains/contracts";
 import type { AuthAuditStore } from "./audit-store";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
-import { auditActor, type AuthMutationContext } from "./mutation-context";
+import { auditActor } from "./mutation-context";
 import type {
   PasskeySetupRequired,
   ResolvedSetupToken,
@@ -11,15 +13,6 @@ import type {
 import { setupTokenId } from "./setup-state-store";
 import type { TargetedSetupService } from "./targeted-setup-service";
 import type { AuthUserStore } from "./user-store";
-
-export interface UserPasskeyRegistration {
-  setupUrl: string;
-  expiresAt: number;
-  delivery: {
-    type: string;
-    label: string;
-  };
-}
 
 export interface PasskeySetupCoordinatorOptions {
   issuer: string;

@@ -1,6 +1,5 @@
 import { z } from "@brains/utils/zod";
-
-export const EMAIL_SOURCE_READ = "email:source-read" as const;
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 type EmailSourceReadActorSchema = z.ZodObject<
   {
@@ -104,3 +103,19 @@ export type EmailSourceMessage = z.output<typeof emailSourceMessageSchema>;
 export type EmailSourceReadResponse = z.output<
   typeof emailSourceReadResponseSchema
 >;
+
+/**
+ * Read an inbound email's original source from the mailbox, for an Admin.
+ * Every refusal and failure is the same `unavailable` answer, so a caller
+ * cannot tell an unreadable source from an absent one.
+ */
+export const emailSourceReadContract: BusContract<
+  EmailSourceReadRequestSchema,
+  EmailSourceReadResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "email:source-read",
+  request: emailSourceReadRequestSchema,
+  response: emailSourceReadResponseSchema,
+  delivery: "request",
+});

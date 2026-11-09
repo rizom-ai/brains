@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import type { ServiceEntityService } from "@brains/plugins";
 import { mailItemSchema } from "./entity/schemas/mail-item";
 import type { MailItemProjection } from "./lib/mail-item-projection";
@@ -15,7 +16,7 @@ export class EntityMailItemRepository implements MailItemRepository {
       {
         entityType: "mail-item",
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mail ingestion dedupe check"),
       },
       mailItemSchema,
     );

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   access,
   mkdtemp,
@@ -16,12 +17,10 @@ import { join } from "node:path";
 import { RuntimeUploadRegistry } from "@brains/plugins";
 import { BrokerConnection } from "@brains/directory-sync/broker-runtime";
 import {
-  GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
   getGitRemoteFingerprint,
   gitBrokerSocketPath,
-  probeBrokerActivity,
 } from "@brains/directory-sync";
-import { GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV } from "../src/lib/git-broker-child";
+import { z } from "@brains/utils/zod";
 import { superviseRuntimeChildren } from "../src/lib/process-supervisor";
 import type { SupervisedChildRole } from "../src/lib/process-supervisor";
 import type { SignalProcess, SpawnImpl } from "../src/lib/spawn-bun-runner";
@@ -43,14 +42,20 @@ interface RuntimeController {
   initialReady: Promise<void>;
   replacementReady: Promise<void>;
   starts: SpawnRecord[];
+  /** What the old owner's group held each time a replacement was allowed. */
+  replacementDecisions: Array<{ group: number; members: string[] }>;
 }
 
 let cleanup: (() => Promise<void>) | undefined;
 
-const RECOVERS_LOST_COMPLETION =
-  "recovers one lost completion without restarting healthy app roles";
+const RECOVERS_CRASHED_BROKER =
+  "replaces a crashed broker without restarting healthy app roles";
 const CONVERGES_AFTER_UNPROVEN_ABSENCE =
   "starts no replacement when absence is unproven, then converges next runtime";
+/** Long enough to observe the gap; short enough to drain inside the probe budget. */
+const REMOTE_HOLD_SECONDS = 3;
+const IN_FLIGHT = "req_crash_pull_in_flight";
+const BROKER_CHECK = "directory-sync:git-broker";
 
 function recoveryTest(
   label: string,
@@ -127,8 +132,11 @@ function isAlive(pid: number): boolean {
   }
 }
 
-async function membersOfGroup(group: number): Promise<number[]> {
-  const members: number[] = [];
+/** Live (non-zombie) members of `group`, read from the OS. */
+async function membersOfGroup(
+  group: number,
+): Promise<Array<{ pid: number; name: string }>> {
+  const members: Array<{ pid: number; name: string }> = [];
   for (const entry of await readdir("/proc")) {
     if (!/^\d+$/.test(entry)) continue;
     const stat = await readFile(`/proc/${entry}/stat`, "utf-8").catch(
@@ -137,9 +145,39 @@ async function membersOfGroup(group: number): Promise<number[]> {
     if (!stat) continue;
     const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
     if (fields[0] === "Z") continue;
-    if (Number(fields[2]) === group) members.push(Number(entry));
+    if (Number(fields[2]) !== group) continue;
+    members.push({
+      pid: Number(entry),
+      name: stat.slice(stat.indexOf("(") + 1, stat.lastIndexOf(")")),
+    });
   }
-  return members.sort((left, right) => left - right);
+  return members.sort((left, right) => left.pid - right.pid);
+}
+
+/**
+ * Every member of `group`, zombies included, captured synchronously.
+ *
+ * Taken inside the supervisor's own decision, so the answer is the state it
+ * acted on rather than whatever settles afterwards.
+ */
+function groupSnapshot(group: number): string[] {
+  return readdirSync("/proc")
+    .filter((entry) => /^\d+$/.test(entry))
+    .flatMap((entry) => {
+      try {
+        return [{ entry, stat: readFileSync(`/proc/${entry}/stat`, "utf-8") }];
+      } catch {
+        return [];
+      }
+    })
+    .filter(
+      ({ stat }) =>
+        Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[2]) === group,
+    )
+    .map(
+      ({ entry, stat }) =>
+        `${entry}:${stat.slice(stat.indexOf("(") + 1, stat.lastIndexOf(")"))}`,
+    );
 }
 
 async function waitForHealthStatus(
@@ -156,10 +194,32 @@ async function waitForHealthStatus(
   });
 }
 
-function runtimeProcess(
-  groupAlwaysPresent: boolean,
-  withholdPullCompletion: boolean,
-): {
+const operateBodySchema = z.object({
+  checks: z.array(
+    z.object({
+      name: z.string(),
+      status: z.string(),
+      message: z.string().optional(),
+    }),
+  ),
+});
+
+/** One named check from `/health/operate`, with the endpoint's own status. */
+async function operateCheck(
+  baseUrl: string,
+  name: string,
+): Promise<{
+  httpStatus: number;
+  check: { name: string; status: string; message?: string | undefined };
+}> {
+  const response = await fetch(`${baseUrl}/health/operate`);
+  const body = operateBodySchema.parse(await response.json());
+  const check = body.checks.find((candidate) => candidate.name === name);
+  if (!check) throw new Error(`/health/operate reports no ${name} check`);
+  return { httpStatus: response.status, check };
+}
+
+function runtimeProcess(groupAlwaysPresent: boolean): {
   emitter: EventEmitter;
   impl: SignalProcess;
 } {
@@ -170,10 +230,6 @@ function runtimeProcess(
       env: {
         ...process.env,
         AI_API_KEY: "packaged-recovery-test-key",
-        ...(withholdPullCompletion
-          ? { [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "pull" }
-          : {}),
-        [GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]: "500",
       },
       kill: (pid, signal): boolean => {
         if (groupAlwaysPresent && signal === 0) return true;
@@ -189,13 +245,10 @@ function runtimeProcess(
 function startRuntime(
   appDir: string,
   groupAlwaysPresent: boolean,
-  withholdPullCompletion = true,
 ): RuntimeController {
-  const processSurface = runtimeProcess(
-    groupAlwaysPresent,
-    withholdPullCompletion,
-  );
+  const processSurface = runtimeProcess(groupAlwaysPresent);
   const starts: SpawnRecord[] = [];
+  const replacementDecisions: Array<{ group: number; members: string[] }> = [];
   const initialReady = Promise.withResolvers<void>();
   const replacementReady = Promise.withResolvers<void>();
   const ready = new Set<SupervisedChildRole>();
@@ -227,10 +280,21 @@ function startRuntime(
     },
     startupTimeoutMs: 60_000,
     shutdownGraceMs: 2_000,
-    brokerProgressTimeoutMs: 1_500,
+    // Sized for a group whose surviving Git child exits once the remote
+    // stops holding it; an unproven group spends all of it.
     brokerGroupProbeIntervalMs: 100,
-    brokerGroupProbeAttempts: 40,
-    reportIncident: () => {},
+    brokerGroupProbeAttempts: 150,
+    reportIncident: (incident) => {
+      if (incident["type"] !== "git-broker-group-absent") return;
+      // Reported just before the replacement is spawned, so the newest
+      // broker start is still the owner that crashed.
+      const old = starts.filter((start) => start.role === "git-broker").at(-1);
+      if (!old) return;
+      replacementDecisions.push({
+        group: old.pid,
+        members: groupSnapshot(old.pid),
+      });
+    },
     reportReady: (role) => {
       ready.add(role);
       if (role === "git-broker") {
@@ -246,10 +310,93 @@ function startRuntime(
   return {
     result,
     starts,
+    replacementDecisions,
     initialReady: initialReady.promise,
     replacementReady: replacementReady.promise,
     stop: (): void => void processSurface.emitter.emit("SIGTERM"),
   };
+}
+
+const journalLineSchema = z.object({
+  requestId: z.string(),
+  operation: z.string().optional(),
+  settledAt: z.number().optional(),
+});
+
+/** The old generation's journal, as written: started and settled ids. */
+async function journalRecords(
+  root: string,
+): Promise<{ started: string[]; settled: string[] }> {
+  const contents = await readFile(
+    join(root, ".brain-runtime", "broker-journal.jsonl"),
+    "utf-8",
+  ).catch(() => "");
+  const records = contents
+    .split("\n")
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        const parsed = journalLineSchema.safeParse(JSON.parse(line));
+        return parsed.success ? [parsed.data] : [];
+      } catch {
+        return [];
+      }
+    });
+  return {
+    started: records
+      .filter((record) => record.operation !== undefined)
+      .map((record) => record.requestId),
+    settled: records
+      .filter((record) => record.settledAt !== undefined)
+      .map((record) => record.requestId),
+  };
+}
+
+/**
+ * Crash the owner while a pull is provably in flight.
+ *
+ * The remote side holds every fetch — `remote.origin.uploadpack` sleeps
+ * before starting `git-upload-pack` — so the broker's Git child is alive in
+ * its group when the leader is SIGKILLed, and outlives it. The kill waits
+ * until this pull's start is in the journal and has not settled, so the
+ * pull is in flight or queued behind one that is.
+ */
+async function crashWithPullInFlight(
+  app: { root: string; checkout: string },
+  client: BrokerConnection,
+  broker: number,
+): Promise<{ lost: Promise<string | undefined>; survivors: number[] }> {
+  await run(
+    [
+      "git",
+      "config",
+      "remote.origin.uploadpack",
+      `sleep ${REMOTE_HOLD_SECONDS}; git-upload-pack`,
+    ],
+    app.checkout,
+  );
+  const lost = client
+    .executeWithId(IN_FLIGHT, app.checkout, { name: "pull" })
+    .then(
+      () => undefined,
+      (error: unknown) => String(error),
+    );
+  const survivors = await until(
+    "the pull to be held by the remote",
+    async () => {
+      const journal = await journalRecords(app.root);
+      if (!journal.started.includes(IN_FLIGHT)) return undefined;
+      if (journal.settled.includes(IN_FLIGHT)) {
+        throw new Error("The pull settled before the crash");
+      }
+      const members = await membersOfGroup(broker);
+      return members.some((member) => member.name === "sleep")
+        ? members.map((member) => member.pid).filter((pid) => pid !== broker)
+        : undefined;
+    },
+  );
+  process.kill(broker, "SIGKILL");
+  return { lost, survivors };
 }
 
 async function createApp(options: { includeWishlist?: boolean } = {}): Promise<{
@@ -616,7 +763,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
   () => {
     it("exports an entity created by the worker after web readiness", async () => {
       const app = await createApp({ includeWishlist: true });
-      const controller = startRuntime(app.root, false, false);
+      const controller = startRuntime(app.root, false);
       cleanup = async (): Promise<void> => {
         controller.stop();
         await controller.result.catch(() => undefined);
@@ -685,7 +832,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       cleanup = undefined;
     }, 180_000);
 
-    recoveryTest(RECOVERS_LOST_COMPLETION, async () => {
+    recoveryTest(RECOVERS_CRASHED_BROKER, async () => {
       const app = await createApp();
       const controller = startRuntime(app.root, false);
       cleanup = async (): Promise<void> => {
@@ -723,41 +870,48 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       );
 
       const client = await connect(app);
-      const lost = client.execute(app.checkout, { name: "pull" }).then(
-        () => undefined,
-        (error: unknown) => String(error),
+      const { lost, survivors } = await crashWithPullInFlight(
+        app,
+        client,
+        firstBroker.pid,
       );
-      await until("the withheld operation", async () => {
-        const activity = await probeBrokerActivity(
-          gitBrokerSocketPath(join(app.root, ".brain-runtime")),
-        )().catch(() => undefined);
-        return activity?.activeRequestIds.length ? true : undefined;
-      });
+      expect(String(await lost)).toContain("unavailable");
 
-      // Request-driven operational health degrades, while routing health and
-      // both app roles remain alive.
-      await waitForHealthStatus(app.healthBaseUrl, "/health/operate", 503);
+      // While the old group drains, no owner answers: operational health
+      // says so, while routing health and both app roles stay up.
+      const gap = await operateCheck(app.healthBaseUrl, BROKER_CHECK);
+      expect(gap).toMatchObject({
+        httpStatus: 503,
+        check: {
+          status: "unhealthy",
+          message: "No Git checkout owner answered",
+        },
+      });
+      expect(survivors.some((pid) => isAlive(pid))).toBe(true);
       await waitForHealthStatus(app.healthBaseUrl, "/health/live", 200);
       await waitForHealthStatus(app.healthBaseUrl, "/health/ready", 200);
       expect(isAlive(web.pid)).toBe(true);
       expect(isAlive(worker.pid)).toBe(true);
 
+      // One replacement, allowed only once the old group was empty.
       await waitForRuntimeBarrier(
         controller,
         controller.replacementReady,
         "replacement readiness",
       );
-      const replacement = controller.starts.filter(
-        (start) => start.role === "git-broker",
-      )[1];
-      if (!replacement) throw new Error("Expected one replacement broker");
       expect(
         controller.starts.filter((start) => start.role === "git-broker"),
       ).toHaveLength(2);
+      expect(controller.replacementDecisions).toEqual([
+        { group: firstBroker.pid, members: [] },
+      ]);
+      expect(survivors.filter((pid) => isAlive(pid))).toEqual([]);
       expect(await membersOfGroup(firstBroker.pid)).toEqual([]);
       expect(isAlive(web.pid)).toBe(true);
       expect(isAlive(worker.pid)).toBe(true);
-      expect(String(await lost)).toContain("unavailable");
+      expect(
+        controller.starts.filter((start) => start.role !== "git-broker"),
+      ).toEqual([web, worker]);
 
       // The web role observes socket loss and reconciles without a later Git
       // trigger. Admission and operational health reopen only after that work.
@@ -766,6 +920,10 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       await waitForHealthStatus(app.healthBaseUrl, "/health/operate", 200);
       const replacementClient = await connect(app);
       const status = await replacementClient.status();
+      // The replacement replayed the old generation's journal: the crashed
+      // pull is reported as unaccounted for, never re-run from intent.
+      expect(status.ambiguousRequestIds).toContain(IN_FLIGHT);
+      expect(status.evidenceComplete).toBe(true);
       expect(status.recoveryPending).toBe(false);
       expect(status.admitsMutations).toBe(true);
       replacementClient.close();
@@ -789,6 +947,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
             ? true
             : undefined;
         },
+        120_000,
       );
       const remoteHead = (
         await run(
@@ -854,9 +1013,10 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       );
 
       const client = await connect(app);
-      const lost = client.execute(app.checkout, { name: "pull" }).then(
-        () => undefined,
-        (error: unknown) => String(error),
+      const { lost } = await crashWithPullInFlight(
+        app,
+        client,
+        firstBroker.pid,
       );
       const failed = await controller.result;
       expect(failed.success).toBe(false);
@@ -864,12 +1024,17 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       expect(
         controller.starts.filter((start) => start.role === "git-broker"),
       ).toHaveLength(1);
-      expect(await membersOfGroup(firstBroker.pid)).toEqual([]);
+      expect(controller.replacementDecisions).toEqual([]);
+      // The exiting runtime signals the old group even though its leader is
+      // gone, so the Git child the crash left behind does not outlive it.
+      await until("the old group to empty", async () =>
+        (await membersOfGroup(firstBroker.pid)).length === 0 ? true : undefined,
+      );
       expect(String(await lost)).toContain("unavailable");
       client.close();
 
       // External supervision has removed the first tree. A clean next runtime
-      // must reconcile the landed mutation before admitting further writes.
+      // must reconcile whatever landed before admitting further writes.
       controller = startRuntime(app.root, false);
       await waitForRuntimeBarrier(
         controller,
@@ -879,6 +1044,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       await waitForHealthStatus(app.healthBaseUrl, "/health/operate", 200);
       const recovered = await connect(app);
       const status = await recovered.status();
+      expect(status.ambiguousRequestIds).toContain(IN_FLIGHT);
       expect(status.recoveryPending).toBe(false);
       expect(status.admitsMutations).toBe(true);
       recovered.close();
@@ -902,6 +1068,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
             ? true
             : undefined;
         },
+        120_000,
       );
       const remoteHead = (
         await run(

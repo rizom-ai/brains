@@ -172,7 +172,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "get",
-      "Retrieve a specific entity by type and identifier (ID, slug, or title). If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
+      "Retrieve a specific entity by type and identifier (ID, slug, or title). When the user asks to read, show or verify an entity, call system_get in that turn instead of answering from earlier results in this conversation: stored content can change outside this conversation. If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
       getInputSchema,
       async (input, context) => {
         assertGuestReader(context);
@@ -192,7 +192,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           logger,
           undefined,
           visibilityScope,
-          publishedOnlyFor(visibilityScope),
+          // The stored document, as for every type: a declared type's ordinary
+          // reads carry its body alone.
+          { ...publishedOnlyFor(visibilityScope), source: true },
         );
         if (!result.ok) {
           return { success: false, error: result.error };

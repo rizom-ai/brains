@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
 import { startTestBroker } from "./broker-git-sync";
 import { commitTouching, pointOriginAt, stallingRemote } from "./real-git";
-import type { GitBrokerServer } from "../../src/lib/broker/server";
 
 /**
  * A Git operation is more than one command: a commit is `status`, `add -A`,
@@ -32,17 +31,6 @@ afterEach(async () => {
   scratch = undefined;
 });
 
-/** Wait until the owner reports a turn actually being held. */
-async function untilHolding(server: GitBrokerServer): Promise<void> {
-  const deadline = Date.now() + 20_000;
-  const poll = async (): Promise<void> => {
-    if (server.activity.activeRequestIds.length > 0) return;
-    if (Date.now() >= deadline) throw new Error("nothing took the turn");
-    await Bun.sleep(50);
-    return poll();
-  };
-  return poll();
-}
 describe.skipIf(!LINUX)("git operation atomicity", () => {
   it("runs no role's work inside another role's turn", async () => {
     scratch = await mkdtemp(join(tmpdir(), "operation-atomicity-"));
@@ -71,7 +59,8 @@ describe.skipIf(!LINUX)("git operation atomicity", () => {
     const remote = stallingRemote();
     await pointOriginAt(dataDir, remote.gitUrl);
     const held = web.pull().catch(() => undefined);
-    await untilHolding(broker.server);
+    // Git has reached the remote, so the pull holds the turn.
+    await remote.connected;
 
     await writeFile(join(dataDir, "worker.md"), "worker work\n");
     const workerCommit = worker.commit("worker change");

@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.629",
+  "version": "0.2.0-alpha.665",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
@@ -24,6 +24,7 @@
   "exports": {
     "./config-merge": "./src/config-merge.ts",
     "./array": "./src/array.ts",
+    "./bytes": "./src/bytes.ts",
     "./chunk-message": "./src/chunk-message.ts",
     "./clone": "./src/clone.ts",
     "./date": "./src/date.ts",
@@ -56,10 +57,12 @@
     "./query": "./src/query.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",
     "./serial-queue": "./src/serial-queue.ts",
+    "./single-use-store": "./src/single-use-store.ts",
     "./sort": "./src/sort.ts",
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",
     "./yaml": "./src/yaml.ts",
+    "./zod-issues": "./src/zod-issues.ts",
     "./zod": "./src/zod.ts",
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",

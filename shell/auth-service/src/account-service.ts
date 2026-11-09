@@ -8,7 +8,7 @@ import type {
   AuthAccountPasskey,
   AuthAccountSnapshot,
   AuthAccountSessionSummary,
-} from "./account-contracts";
+} from "@brains/contracts";
 import type { AuthAuditStore } from "./audit-store";
 import type { AuthCredentialStore, StoredPasskey } from "./credential-store";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";

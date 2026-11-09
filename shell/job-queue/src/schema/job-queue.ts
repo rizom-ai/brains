@@ -133,6 +133,7 @@ type JobQueueTable = SQLiteTableWithColumns<{
     retryCount: JobQueueIntegerColumn<"retryCount", true, true>;
     maxRetries: JobQueueIntegerColumn<"maxRetries", true, true>;
     lastError: JobQueueTextColumn<"lastError", false>;
+    lastErrorPublic: JobQueueJsonColumn<"lastErrorPublic", unknown, false>;
     createdAt: JobQueueIntegerColumn<"createdAt", true, true, true>;
     scheduledFor: JobQueueIntegerColumn<"scheduledFor", true, true, true>;
     startedAt: JobQueueIntegerColumn<"startedAt", false>;
@@ -191,6 +192,9 @@ export const jobQueue: JobQueueTable = sqliteTable(
     retryCount: integer("retryCount").notNull().default(0),
     maxRetries: integer("maxRetries").notNull().default(3),
     lastError: text("lastError"),
+    // The failure's public form, SdkError data ({ code, message }): what a
+    // caller may be told, where lastError keeps the diagnostic for operators.
+    lastErrorPublic: text("lastErrorPublic", { mode: "json" }),
 
     // Timestamps
     createdAt: integer("createdAt")

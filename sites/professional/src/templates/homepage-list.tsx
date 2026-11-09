@@ -18,7 +18,7 @@ import {
   SectionHeader,
   SubjectsList,
   renderHighlightedText,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 
 /**
  * Per-section blurb metadata, keyed by section id (e.g. essays,
@@ -99,11 +99,10 @@ export const HomepageListLayout = ({
   homepageOpening = false,
   faqs = [],
 }: HomepageListData): JSX.Element => {
-  // Use tagline if non-empty (empty string counts as absent), fall back to
-  // description
-  const tagline = profile.tagline?.length
-    ? profile.tagline
-    : profile.description;
+  // First non-empty wins: tagline, then headline, then description.
+  const tagline = [profile.tagline, profile.headline, profile.description].find(
+    (value) => value,
+  );
 
   const postItems = posts.map(blogPostToContentItem);
 

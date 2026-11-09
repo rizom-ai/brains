@@ -1,24 +1,24 @@
 {
   "name": "@brains/dashboard",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.629",
+  "version": "0.2.0-alpha.665",
   "description": "Public brain card with declarative contributions and semantic maps",
   "dependencies": {
-    "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/operator-view-react": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/auth-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",

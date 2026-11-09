@@ -19,11 +19,7 @@ import {
   ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
-import {
-  AuthService,
-  AuthServicePlugin,
-  getActiveAuthService,
-} from "@brains/auth-service";
+import { AuthService, AuthServicePlugin } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   DashboardWidgetRegistration,
@@ -32,7 +28,7 @@ import type {
 } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
-import type { FetchFn } from "../src/lib/fetch-agent-card";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   CARD_REFRESH_STATE_NAMESPACE,
   cardRefreshStateSchema,
@@ -141,7 +137,7 @@ afterEach(async () => {
 
 function createMockAgentCardFetch(
   cards: Record<string, Record<string, unknown>>,
-): { fetch: FetchFn; calls: string[] } {
+): { fetch: FetchLike; calls: string[] } {
   const calls: string[] = [];
   return {
     calls,
@@ -164,7 +160,7 @@ function createMockPdsFetch(input: {
   repoDid: string;
   cid: string;
   record: typeof testBrainCardPayload.record;
-}): { fetch: FetchFn; calls: string[] } {
+}): { fetch: FetchLike; calls: string[] } {
   const calls: string[] = [];
   return {
     calls,
@@ -195,7 +191,7 @@ function createMockPdsFetch(input: {
 }
 
 function createMockJwksFetch(jwksByDomain: Record<string, unknown>): {
-  fetch: FetchFn;
+  fetch: FetchLike;
   calls: string[];
 } {
   const calls: string[] = [];
@@ -491,7 +487,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
     const calls: string[] = [];
-    const fetchMock: FetchFn = async (url: string | URL | Request) => {
+    const fetchMock: FetchLike = async (url: string | URL | Request) => {
       calls.push(typeof url === "string" ? url : url.toString());
       return new Response("unavailable", { status: 503 });
     };
@@ -572,7 +568,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
     const calls: string[] = [];
-    const hostileFetch: FetchFn = async (url) => {
+    const hostileFetch: FetchLike = async (url) => {
       const value = url.toString();
       calls.push(value);
       if (value.startsWith("https://plc.directory/")) {
@@ -638,7 +634,7 @@ describe("AgentDiscoveryPlugin", () => {
       record: testBrainCardPayload.record,
     });
     let failing = true;
-    const fetchMock: FetchFn = (url, init) =>
+    const fetchMock: FetchLike = (url, init) =>
       failing
         ? Promise.resolve(new Response("unavailable", { status: 503 }))
         : available.fetch(url, init);
@@ -834,8 +830,9 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(confirmation.preview).toContain(keyFingerprint(remoteA2AKey));
 
-    const activeAuth = getActiveAuthService();
-    if (!activeAuth) throw new Error("Expected active auth service");
+    const activeAuth = harness.getMockShell().getAuthRegistry().get();
+    if (!(activeAuth instanceof AuthService))
+      throw new Error("Expected active auth service");
     const owner = await activeAuth.createUser({
       displayName: "Owner",
       role: "admin",
@@ -892,8 +889,9 @@ describe("AgentDiscoveryPlugin", () => {
         status: "approved",
       }),
     });
-    const activeAuth = getActiveAuthService();
-    if (!activeAuth) throw new Error("Expected active auth service");
+    const activeAuth = harness.getMockShell().getAuthRegistry().get();
+    if (!(activeAuth instanceof AuthService))
+      throw new Error("Expected active auth service");
     await activeAuth.grantA2APeerTrust({
       domain: "trust.example",
       keyFingerprint: "fingerprint-1",
@@ -953,6 +951,111 @@ describe("AgentDiscoveryPlugin", () => {
         id: "missing.example",
       }),
     ).toBeNull();
+
+    await harness.reset();
+  });
+
+  it("refuses an Agent Card that claims another host, saving and overwriting nothing", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "a.example": createAgentCard("b.example"),
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    const claimed = createTestAgent({
+      id: "b.example",
+      name: "B",
+      url: "https://b.example/a2a",
+      status: "discovered",
+      about: "The real b.example.",
+    });
+    await harness.getEntityService().createEntity({ entity: claimed });
+    const before = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "b.example",
+    });
+
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "https://a.example" },
+    });
+    expectConfirmation(confirmation);
+    const result = await harness.executeTool(
+      "agent_connect",
+      confirmationArgs(confirmation),
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Agent Card for a.example has an endpoint URL on another host, b.example (https://b.example/a2a). The endpoint must be https:// on a.example.",
+      code: "untrusted_agent_card",
+    });
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "agent",
+        id: "a.example",
+      }),
+    ).toBeNull();
+    expect(
+      await harness.getEntityService().getEntity({
+        entityType: "agent",
+        id: "b.example",
+      }),
+    ).toEqual(before);
+
+    await harness.reset();
+  });
+
+  it("refuses an http:// agent URL before confirmation or any request", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "plain.example": createAgentCard("plain.example"),
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+
+    const result = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "http://plain.example" },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Invalid agent URL. Agent URLs must use https://.",
+      code: "invalid_agent_url",
+    });
+    expect(fetchMock.calls).toEqual([]);
+
+    await harness.reset();
+  });
+
+  it("bounds the agent_connect card fetch with a timeout signal", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const signals: Array<AbortSignal | undefined> = [];
+    const card = createMockAgentCardFetch({
+      "bounded.example": createAgentCard("bounded.example"),
+    });
+    const recordingFetch: FetchLike = (url, init) => {
+      signals.push(init?.signal ?? undefined);
+      return card.fetch(url, init);
+    };
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(recordingFetch));
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "bounded.example" },
+    });
+    expectConfirmation(confirmation);
+    expectSuccess(
+      await harness.executeTool(
+        "agent_connect",
+        confirmationArgs(confirmation),
+      ),
+    );
+
+    expect(signals).toHaveLength(1);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
 
     await harness.reset();
   });
@@ -1291,6 +1394,62 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
+  it("skips a brain card for an agent saved above public, announcing nothing", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const announced: string[] = [];
+    for (const channel of [
+      ATPROTO_BRAIN_DISCOVERED,
+      ATPROTO_BRAIN_CARD_REFRESHED,
+      ATPROTO_BRAIN_CARD_CONFLICT,
+    ]) {
+      harness.subscribe(channel, async () => {
+        announced.push(channel);
+        return { success: true };
+      });
+    }
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.getEntityService().createEntity({
+      entity: {
+        ...createTestAgent({
+          id: "peer.example.com",
+          name: "Kept",
+          url: "https://peer.example.com",
+          status: "approved",
+        }),
+        visibility: "restricted",
+      },
+    });
+    const readHidden = (): Promise<AgentEntity | null> =>
+      harness.getEntityService().getEntity(
+        {
+          entityType: "agent",
+          id: "peer.example.com",
+          visibilityScope: "restricted",
+        },
+        agentEntitySchema,
+      );
+    const before = await readHidden();
+
+    for (const repoDid of ["did:plc:peer", "did:plc:attacker"]) {
+      await harness.sendMessage(
+        ATPROTO_BRAIN_CARD_DISCOVERED,
+        { ...testBrainCardPayload, repoDid },
+        "atproto",
+      );
+    }
+
+    expect(await readHidden()).toEqual(before);
+    expect(announced).toEqual([]);
+    expect(
+      await refreshState(
+        harness.getMockShell().getRuntimeState(),
+        "peer.example.com",
+      ),
+    ).toBeNull();
+
+    await harness.reset();
+  });
+
   it("marks a deleted remote card unavailable without revoking approval", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     await harness.installPlugin(new AgentDiscoveryPlugin());
@@ -1402,7 +1561,7 @@ describe("AgentDiscoveryPlugin", () => {
         return () => {};
       },
     });
-    const unavailableFetch: FetchFn = async () =>
+    const unavailableFetch: FetchLike = async () =>
       new Response("unavailable", { status: 503 });
     await harness.installPlugin(
       new AgentDiscoveryPlugin(unavailableFetch, resolvePublicHostname),
@@ -1449,7 +1608,7 @@ describe("AgentDiscoveryPlugin", () => {
         return () => {};
       },
     });
-    const unavailableFetch: FetchFn = async () =>
+    const unavailableFetch: FetchLike = async () =>
       new Response("unavailable", { status: 503 });
     const stored = createTestAgent({
       id: "peer.example.com",

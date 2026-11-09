@@ -1,4 +1,4 @@
-import type { AuthService } from "@brains/auth-service";
+import type { AuthBackend } from "@brains/plugins";
 import {
   createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
@@ -24,7 +24,7 @@ import { randomUUID } from "node:crypto";
 import {
   adminWorkspaceSource,
   formatWorkspaceDate,
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
@@ -464,7 +464,7 @@ function mutationContext(caller: OperatorCaller | null): {
 }
 
 function setupResult(
-  access: Awaited<ReturnType<AuthService["createInvitation"]>>,
+  access: Awaited<ReturnType<AuthBackend["createInvitation"]>>,
 ): z.output<typeof setupResultSchema> {
   return {
     status:
@@ -483,7 +483,7 @@ function setupResult(
 export function createInvitationsTabSource(
   context: ServicePluginContext,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
+  const authService = requireAuthBackend(context);
   const pendingManualDeliveries = new Map<string, string>();
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,

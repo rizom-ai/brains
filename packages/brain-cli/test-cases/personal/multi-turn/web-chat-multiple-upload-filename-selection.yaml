@@ -57,8 +57,7 @@ turns:
             entityType: document
             source.kind: upload
             source.transform: preserve
-            source.upload.kind: upload
-            source.upload.id: upload-00000000-0000-4000-8000-000000000911
+            source.id: upload-00000000-0000-4000-8000-000000000911
           argsAbsent:
             - from
             - fromUpload
@@ -76,8 +75,7 @@ successCriteria:
         entityType: document
         source.kind: upload
         source.transform: preserve
-        source.upload.kind: upload
-        source.upload.id: upload-00000000-0000-4000-8000-000000000911
+        source.id: upload-00000000-0000-4000-8000-000000000911
       argsAbsent:
         - from
         - fromUpload

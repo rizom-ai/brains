@@ -8,6 +8,8 @@ import {
   type CreateCheckResult,
   type CreateInput,
 } from "@brains/entity-service";
+import { sharedUploadScope } from "@brains/plugins";
+import { bufferView } from "@brains/utils/bytes";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
@@ -41,6 +43,7 @@ import {
   type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
+import { isPlainRecord } from "@brains/utils/predicates";
 import {
   isTextUploadMediaType,
   repeatsUploadFileName,
@@ -55,11 +58,6 @@ import {
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
 // `content` already holds the resolved text or conversation-message content.
-const uploadScope = {
-  namespace: "upload",
-  refKind: "upload",
-  routePath: "/api/chat/uploads",
-} as const;
 
 function buildUploadPreserveConfirmation(input: {
   title?: string;
@@ -146,12 +144,10 @@ function normalizeCreateSource(
       return { content: source.content };
     case "url":
       return { url: source.url };
-    case "upload":
-      return {
-        from: source.upload,
-        uploadRef: source.upload,
-        transform: source.transform,
-      };
+    case "upload": {
+      const uploadRef = { kind: "upload" as const, id: source.id };
+      return { from: uploadRef, uploadRef, transform: source.transform };
+    }
     case "prior-response":
     case "user-message":
       return { conversationMessageRef: source };
@@ -344,6 +340,8 @@ interface PreparedCreate {
   eventContext: CreateEventContext;
   /** The uploaded file's name, when the source is an upload. */
   uploadFilename?: string;
+  /** The upload this create saves, named in its result. */
+  uploadId?: string;
   /** The failed placeholder this create replaces once confirmed. */
   replacesFailed?: FailedCreateTarget;
   uploadPreserve?: {
@@ -455,9 +453,9 @@ async function readUploadMarkdown(
 ): Promise<string | undefined> {
   if (!isTextUploadMediaType(upload.mediaType)) return undefined;
   const { content } = await services.runtimeUploads
-    .scoped(uploadScope)
+    .scoped(sharedUploadScope)
     .read(upload.id);
-  return content.toString("utf8");
+  return bufferView(content).toString("utf8");
 }
 
 /**
@@ -487,7 +485,7 @@ async function resolveUploadSource(
   let markdown: string | undefined;
   try {
     uploadRecord = await services.runtimeUploads
-      .scoped(uploadScope)
+      .scoped(sharedUploadScope)
       .readRecord(input.uploadRef.id);
     markdown =
       input.transform === "extract-markdown"
@@ -926,14 +924,44 @@ async function prepareCreate(
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(upload && { uploadFilename: upload.value.filename }),
+      ...(uploadRef && { uploadId: uploadRef.id }),
       ...(target.value && { replacesFailed: target.value }),
       ...(uploadPreserve && { uploadPreserve }),
     },
   };
 }
 
-/** Run a prepared create once it is confirmed. */
+/**
+ * Run a prepared create once it is confirmed. A saved upload's result names
+ * the upload and the entity it became, so a later turn knows the file is kept.
+ */
 async function executePreparedCreate(
+  services: SystemServices,
+  prepared: PreparedCreate,
+  toolContext: CreateToolContext,
+  pending: PendingCreateTexts,
+): Promise<ToolResponse> {
+  const result = await runPreparedCreate(
+    services,
+    prepared,
+    toolContext,
+    pending,
+  );
+  const { uploadId } = prepared;
+  if (uploadId === undefined || !("success" in result) || !result.success)
+    return result;
+  if (!isPlainRecord(result.data)) return result;
+  return {
+    ...result,
+    data: {
+      entityType: prepared.createInput.entityType,
+      ...result.data,
+      uploadId,
+    },
+  };
+}
+
+async function runPreparedCreate(
   services: SystemServices,
   prepared: PreparedCreate,
   toolContext: CreateToolContext,
@@ -1017,7 +1045,7 @@ async function prepareUploadItem(
         : {}),
       source: {
         kind: "upload",
-        upload: item.upload,
+        id: item.id,
         transform: item.transform,
       },
       ...(Object.keys(fields).length > 0 && { fields }),
@@ -1033,7 +1061,7 @@ async function prepareUploadItem(
   return {
     kind: "ok",
     value: {
-      filename: prepared.uploadFilename ?? item.upload.id,
+      filename: prepared.uploadFilename ?? item.id,
       entityType: prepared.createInput.entityType,
       title: prepared.createInput.title ?? prepared.uploadFilename ?? "",
       ...(prepared.createInput.fields && {

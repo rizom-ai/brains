@@ -1,3 +1,7 @@
+import {
+  permissionToVisibilityScope,
+  internalFullScope,
+} from "@brains/plugins";
 import type {
   BaseEntity,
   InboxActor,
@@ -61,7 +65,7 @@ export class ContactInboxSource implements InboxSource {
             limit: 1000,
             sortFields: [{ field: "receivedAt", direction: "desc" }],
             filter: {
-              visibilityScope: "restricted",
+              visibilityScope: internalFullScope("contact inbox is admin-only"),
               metadata: { status: "new" },
             },
           },
@@ -108,7 +112,7 @@ export class ContactInboxSource implements InboxSource {
         {
           entityType: "contact-request",
           id: itemId,
-          visibilityScope: "restricted",
+          visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
         },
         contactRequestSchema,
       );
@@ -143,7 +147,7 @@ export class ContactInboxSource implements InboxSource {
         {
           entityType: "contact-request",
           id: itemId,
-          visibilityScope: "restricted",
+          visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
         },
         contactRequestSchema,
       );

@@ -1,5 +1,33 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.284
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`a42bab8`](https://github.com/rizom-ai/brains/commit/a42bab8d76fb7dad5821d9fb7b3fff2199bfb24a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site bundles its components from `@rizom/brain-ui`, the published name of the component library that was `@brains/ui-library`. Its pages render the same.
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`3737da6`](https://github.com/rizom-ai/brains/commit/3737da657d6bb6599f543347b45aa238f017a73a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Answers in the "Asked before" chapter render the images they reference through the brain's image pipeline, as the brain's own pages do, on a brain at this release or later.
+- Updated dependencies [[`60bd903`](https://github.com/rizom-ai/brains/commit/60bd90309108aaa24bf8597d8245260dbc479e39)]:
+  - @rizom/site@0.2.0-alpha.244
+
+## 0.2.0-alpha.283
+
+### Patch Changes
+
+- Updated dependencies [[`804a82c`](https://github.com/rizom-ai/brains/commit/804a82c4759f9301bf3fc38948d4529b7c877251)]:
+  - @rizom/site@0.2.0-alpha.243
+
+## 0.2.0-alpha.282
+
+### Patch Changes
+
+- [#832](https://github.com/rizom-ai/brains/pull/832) [`e760242`](https://github.com/rizom-ai/brains/commit/e76024214dbe73dda4eb588cfb487fee6ab190c4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/site` exports `SocialLinkPlatform` and `SOCIAL_LINK_PLATFORM_LABELS`, and a layout's social links can name a podcast. The docs and Rizom sites name their links from that one list.
+
+  The Fourth's homepage follows Sam's one-page design. Act I has one way on, "How it works", and no thread on the key's tag. Act III names each program in bold. Act IV pins the clients' words on paper beside the stories, Rizom's on the right and TWTN's on the left, with no links on the cards. The epilogue introduces the team: each guide's portrait, name, bio and areas of expertise, stacked on a phone, with no button. The footer lists the brain's profiles (each in a new tab) and credits Rizom in place of the city line.
+
+- Updated dependencies [[`e760242`](https://github.com/rizom-ai/brains/commit/e76024214dbe73dda4eb588cfb487fee6ab190c4)]:
+  - @rizom/site@0.2.0-alpha.242
+
 ## 0.2.0-alpha.281
 
 ### Patch Changes

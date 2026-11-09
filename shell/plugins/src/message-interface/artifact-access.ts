@@ -1,4 +1,5 @@
 import {
+  internalFullScope,
   permissionToVisibilityScope,
   type ContentVisibility,
 } from "@brains/entity-service";
@@ -51,7 +52,12 @@ export async function resolveMessageArtifactAccess<
 
   // An unscoped read sees public entities only; the existence check asks at
   // full scope so a restricted artifact is denied, not reported missing.
-  const exists = Boolean(await getEntity(entityRef, "restricted"));
+  const exists = Boolean(
+    await getEntity(
+      entityRef,
+      internalFullScope("artifact existence check, denies without content"),
+    ),
+  );
   return exists ? { status: "denied" } : { status: "missing" };
 }
 

@@ -54,11 +54,6 @@ export type MessageSender<T = unknown, R = unknown> = (
   request: MessageSendRequest<T>,
 ) => Promise<MessageResponse<R>>;
 
-/** Send a message and gather one answer from every subscriber, in order. */
-export type MessageCollector = <T = unknown, R = unknown>(
-  request: MessageSendRequest<T>,
-) => Promise<MessageResponse<R>[]>;
-
 /**
  * The context a message arrives with.
  *

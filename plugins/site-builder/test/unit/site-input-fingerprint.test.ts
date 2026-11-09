@@ -42,7 +42,7 @@ const renderer = (): never => {
 const staticSiteBuilderFactory = (): never => {
   throw new Error("builder is not executed while fingerprinting");
 };
-const sendMessage = async (): Promise<{ noop: true }> => ({ noop: true });
+const command = async (): Promise<void> => {};
 
 function fingerprint(rendererIdentity: string): string {
   const template: SiteViewTemplate = {
@@ -59,7 +59,7 @@ function fingerprint(rendererIdentity: string): string {
     layouts: {},
     getViewTemplate: () => template,
     staticSiteBuilderFactory,
-    sendMessage,
+    command,
     rendererIdentity,
   });
 }
@@ -83,7 +83,7 @@ describe("fingerprintPreparedRoute", () => {
       layouts: {},
       getViewTemplate: () => undefined,
       staticSiteBuilderFactory,
-      sendMessage,
+      command,
       rendererIdentity: "process-a",
     });
   }

@@ -58,13 +58,10 @@ async function rogueBroker(value: unknown, sendExit = true): Promise<string> {
                   value: {
                     brokerId: "rogue",
                     checkouts: ["/brain/brain-data"],
-                    activeRequestIds: [],
-                    queuedRequestIds: [],
                     ambiguousRequestIds: [],
                     evidenceComplete: true,
                     recoveryPending: false,
                     admitsMutations: true,
-                    oldestActiveProgressAt: null,
                   },
                 },
               });

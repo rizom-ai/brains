@@ -1,8 +1,10 @@
 import {
   InterfacePlugin,
+  toPublicHealthInfo,
   type InterfacePluginContext,
   type JobProgressEvent,
   type JobContext,
+  type PublicHealthInfo,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
@@ -88,14 +90,15 @@ export class WebserverInterface extends InterfacePlugin<
         this.config.previewDistDir && {
           previewDistDir: this.config.previewDistDir,
         }),
-      getOperationalInfo: (): Promise<
-        Awaited<ReturnType<typeof context.appInfo>>
-      > => context.appInfo(),
+      // /health/operate answers without a session, so it carries health
+      // fields only; operators read counts and totals on Studio and MCP.
+      getOperationalInfo: async (): Promise<PublicHealthInfo> =>
+        toPublicHealthInfo(await context.appInfo()),
       getReadinessData: (): ReturnType<typeof context.readiness> =>
         context.readiness(),
       getRoutes: (): ReturnType<typeof context.httpRoutes.getRoutes> =>
         context.httpRoutes.getRoutes(),
-      messageBus: context.apiRoutes.getMessageBus(),
+      executeTool: context.apiRoutes.executeTool,
     });
   }
 

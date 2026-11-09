@@ -56,7 +56,7 @@ export type TopicSourceRolePolicy = z.output<
   typeof topicSourceRolePolicySchema
 >;
 
-const defaultSourceRolePolicies: Record<
+export const defaultSourceRolePolicies: Record<
   ProjectionSourceRole,
   TopicSourceRolePolicy
 > = {
@@ -71,13 +71,10 @@ const defaultSourceRolePolicies: Record<
 type SourceRolePolicies = Record<ProjectionSourceRole, TopicSourceRolePolicy>;
 
 export const topicsPluginConfigSchema: z.ZodObject<{
-  includeEntityTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
   excludeEntityTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
   minRelevanceScore: z.ZodDefault<z.ZodNumber>;
   createRelevanceThreshold: z.ZodDefault<z.ZodNumber>;
   reinforceRelevanceThreshold: z.ZodDefault<z.ZodNumber>;
-  sourceWeights: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodNumber>>;
-  mintableEntityTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
   sourceRolePolicies: z.ZodPipe<
     z.ZodDefault<
       ReturnType<
@@ -94,7 +91,6 @@ export const topicsPluginConfigSchema: z.ZodObject<{
   >;
   maxEntitiesPerBatch: z.ZodDefault<z.ZodNumber>;
   topicSoftCeilingSourceRatio: z.ZodDefault<z.ZodNumber>;
-  mergeSimilarityThreshold: z.ZodDefault<z.ZodNumber>;
   semanticMergeDistance: z.ZodDefault<z.ZodNumber>;
   reconciliationMaxPairs: z.ZodDefault<z.ZodNumber>;
   autoMerge: z.ZodDefault<z.ZodBoolean>;
@@ -104,13 +100,6 @@ export const topicsPluginConfigSchema: z.ZodObject<{
   extractionVisibility: z.ZodDefault<typeof extractionVisibilitySchema>;
   sourceChangeBatchDelayMs: z.ZodDefault<z.ZodNumber>;
 }> = z.object({
-  /**
-   * Deprecated allow-list of entity types to extract topics from. Defaults to
-   * all registered projection sources. Prefer excludeEntityTypes for normal
-   * brain configuration.
-   */
-  includeEntityTypes: z.array(z.string()).default(["*"]),
-
   /**
    * Entity types to exclude from topic extraction while keeping source
    * selection default-open.
@@ -131,18 +120,6 @@ export const topicsPluginConfigSchema: z.ZodObject<{
    * Minimum weighted relevance required to reinforce an existing topic.
    */
   reinforceRelevanceThreshold: z.number().min(0).max(1).default(0.5),
-
-  /**
-   * Deprecated per-entity relevance multipliers retained for config
-   * compatibility. Prefer sourceRolePolicies + entity projectionSourceRole.
-   */
-  sourceWeights: z.record(z.string(), z.number().min(0).max(1)).default({}),
-
-  /**
-   * Deprecated per-entity mint allow-list retained for config compatibility.
-   * Prefer sourceRolePolicies + entity projectionSourceRole.
-   */
-  mintableEntityTypes: z.array(z.string()).default([]),
 
   /**
    * Role-level topic economics. Entity packages define default roles; brain or
@@ -174,12 +151,6 @@ export const topicsPluginConfigSchema: z.ZodObject<{
    * One new topic is allowed per N source entities, clamped to [5, 24].
    */
   topicSoftCeilingSourceRatio: z.number().min(1).default(5),
-
-  /**
-   * Deprecated lexical similarity threshold retained for config compatibility.
-   * Semantic merge distance is used for new automatic merge decisions.
-   */
-  mergeSimilarityThreshold: z.number().min(0).max(1).default(0.85),
 
   /**
    * Maximum cosine distance for automatic semantic merging. Lower is closer.

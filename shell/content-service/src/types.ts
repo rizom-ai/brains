@@ -13,11 +13,9 @@ import type {
   ContentGenerationBatchResult,
 } from "./generation-contracts";
 import type { GenerationQueueBinding } from "./generation-submission";
-import type { GenerationAccess } from "./generation-authorization";
+import type { CallerAccess } from "./caller-authority";
 
 export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
-/** @deprecated Use ContentTemplateDataSchema<T>. */
-export type ContentTemplateSchemaParser<T> = ContentTemplateDataSchema<T>;
 
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)
@@ -120,7 +118,7 @@ export interface ContentService {
   authorizeGenerationWrite(
     data: ContentGenerationJobData,
     persisted?: Readonly<BaseEntity>,
-  ): Promise<GenerationAccess>;
+  ): Promise<CallerAccess>;
 
   submitGeneration(
     request: ContentGenerationRequestInput,

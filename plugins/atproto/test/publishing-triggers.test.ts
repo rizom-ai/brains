@@ -89,7 +89,7 @@ function createLexicon(id: string): AtprotoLexicon {
 function createRegistry(
   input: { isPublishable?: (entity: BaseEntity) => boolean } = {},
 ): AtprotoProjectionRegistry {
-  const registry = AtprotoProjectionRegistry.createFresh();
+  const registry = new AtprotoProjectionRegistry();
   registry.register({
     ...(input.isPublishable && { isPublishable: input.isPublishable }),
     entityType: "note",
@@ -568,7 +568,11 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await shell.getMessageBus().send({
       type: "publish:completed",
-      payload: { entityType: "note", entityId: "note-123" },
+      payload: {
+        entityType: "note",
+        entityId: "note-123",
+        result: { id: "note-123" },
+      },
       sender: "publish-service",
       broadcast: true,
     });
@@ -773,7 +777,11 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     await bus.send({
       type: "publish:completed",
-      payload: { entityType: "note", entityId: "note-123" },
+      payload: {
+        entityType: "note",
+        entityId: "note-123",
+        result: { id: "note-123" },
+      },
       sender: "publish-service",
       broadcast: true,
     });
@@ -801,7 +809,11 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await shell.getMessageBus().send({
       type: "publish:completed",
-      payload: { entityType: "agent", entityId: "note-123" },
+      payload: {
+        entityType: "agent",
+        entityId: "note-123",
+        result: { id: "note-123" },
+      },
       sender: "publish-service",
       broadcast: true,
     });
@@ -850,7 +862,11 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await shell.getMessageBus().send({
       type: "publish:completed",
-      payload: { entityType: "note", entityId: "note-123" },
+      payload: {
+        entityType: "note",
+        entityId: "note-123",
+        result: { id: "note-123" },
+      },
       sender: "publish-service",
       broadcast: true,
     });
@@ -903,7 +919,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     for (const entityId of ["note-123", "note-456"]) {
       await shell.getMessageBus().send({
         type: "publish:completed",
-        payload: { entityType: "note", entityId },
+        payload: { entityType: "note", entityId, result: { id: entityId } },
         sender: "publish-service",
         broadcast: true,
       });
@@ -936,7 +952,11 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     const response = await shell.getMessageBus().send({
       type: "publish:completed",
-      payload: { entityType: "note", entityId: "note-123" },
+      payload: {
+        entityType: "note",
+        entityId: "note-123",
+        result: { id: "note-123" },
+      },
       sender: "publish-service",
       broadcast: true,
     });

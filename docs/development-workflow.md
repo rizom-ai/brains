@@ -138,7 +138,7 @@ AI_API_KEY=your-api-key-here
 # Optional: git-backed sync of brain content
 GIT_SYNC_TOKEN=ghp_...
 
-# Optional deprecated static fallback for MCP HTTP clients that cannot use OAuth/passkeys
+# Optional static token for MCP HTTP clients: local development only; a production brain refuses it
 MCP_AUTH_TOKEN=...
 
 # Optional: Discord interface
@@ -256,6 +256,19 @@ bun run eval --skip-llm-judge --max-parallel 1
 # Judge model behaviour by pass rate over independent runs (models: path)
 bun run eval --samples 5 --min-pass-rate 0.8
 ```
+
+### Plugin evals
+
+A package's plugin evals live in `evals/` and run with the package's `bun run eval`. `evals/eval.yaml` names the plugin they run against:
+
+```yaml
+plugin: "@brains/link" # the module to import
+export: linkPlugin # the export providing the plugin; the default export when omitted
+model: gpt-5.4-mini
+config: {} # optional, passed to the plugin class or factory
+```
+
+The loader takes only the named export, so adding an export never changes which plugin the evals run against. An export that is a plugin package definition, such as a declarative entity package's default export, is instantiated with `config`, as a brain installs it. `pluginId: wishlist` installs a first-party entity package under the plugin id the canonical brain keeps for it. Each plugin test case addresses its handler by that plugin's id (`plugin: link`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
 
 ### Example Unit Tests
 

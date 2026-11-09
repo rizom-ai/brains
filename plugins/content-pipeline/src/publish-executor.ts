@@ -1,3 +1,4 @@
+import { internalFullScope } from "@brains/plugins";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { PublishResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
@@ -162,7 +163,13 @@ export class PublishExecutor implements PublishEntityExecutor {
     // public entities only and would report it as missing.
     if (id) {
       return this.deps.context.entityService.getEntity(
-        { entityType, id, visibilityScope: "restricted" },
+        {
+          entityType,
+          id,
+          visibilityScope: internalFullScope(
+            "publish gate rejects non-public entities",
+          ),
+        },
         publishableEntitySchema,
       );
     }
@@ -173,7 +180,12 @@ export class PublishExecutor implements PublishEntityExecutor {
       {
         entityType,
         options: {
-          filter: { metadata: { slug }, visibilityScope: "restricted" },
+          filter: {
+            metadata: { slug },
+            visibilityScope: internalFullScope(
+              "publish gate rejects non-public entities",
+            ),
+          },
           limit: 1,
         },
       },

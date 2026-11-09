@@ -41,7 +41,7 @@ function createPostRecord(
 
 describe("AtprotoProjectionRegistry", () => {
   it("registers and returns projections by entity type", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const projection = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -59,7 +59,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("lists registered lexicons", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const lexicon = createLexicon("ai.rizom.brain.post");
     registry.register({
       entityType: "post",
@@ -73,7 +73,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("rejects collection and lexicon id mismatches", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
 
     expect(() =>
       registry.register({
@@ -87,7 +87,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("allows idempotent re-registration of the same projection", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const projection = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -104,7 +104,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("uses the newest implementation for equivalent registrations", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -132,7 +132,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("restores the newest remaining instance when an older one unregisters", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -156,7 +156,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("rejects conflicting registrations for the same entity type", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const first = {
       entityType: "post",
       collection: "ai.rizom.brain.post",
@@ -181,7 +181,7 @@ describe("AtprotoProjectionRegistry", () => {
   });
 
   it("unregisters projections", () => {
-    const registry = AtprotoProjectionRegistry.createFresh();
+    const registry = new AtprotoProjectionRegistry();
     const unregister = registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",

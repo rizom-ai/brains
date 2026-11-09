@@ -26,6 +26,11 @@ function escapeXml(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/** A CDATA section cannot contain its own terminator, so split it. */
+function cdata(text: string): string {
+  return `<![CDATA[${text.replaceAll("]]>", "]]]]><![CDATA[>")}]]>`;
+}
+
 /**
  * Format date to RFC 822 format (required by RSS 2.0)
  * Example: "Mon, 01 Jan 2024 10:00:00 GMT"
@@ -86,7 +91,7 @@ export function generateRSSFeed(
       <link>${escapeXml(postUrl)}</link>
       <guid isPermaLink="true">${escapeXml(postUrl)}</guid>
       <description>${escapeXml(excerpt)}</description>
-      <content:encoded><![CDATA[${post.body}]]></content:encoded>
+      <content:encoded>${cdata(post.body)}</content:encoded>
       <author>${escapeXml(author)}</author>
       <pubDate>${formatRFC822Date(pubDate)}</pubDate>${
         post.frontmatter.seriesName

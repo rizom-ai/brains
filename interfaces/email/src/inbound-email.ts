@@ -4,13 +4,13 @@ import type { ConnectionOptions } from "node:tls";
 import { ImapFlow } from "imapflow";
 import { simpleParser, type AddressObject, type HeaderLines } from "mailparser";
 import {
-  EMAIL_INBOUND,
   inboundEmailSchema,
+  type BusResult,
   type InboundEmail,
   type InboundEmailAddress,
   type InboundEmailSender,
 } from "@brains/contracts";
-import type { IRuntimeStateStore, MessageSender } from "@brains/plugins";
+import type { IRuntimeStateStore } from "@brains/plugins";
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -275,7 +275,8 @@ export function createInboundEmailSourceRef(
 
 export interface InboundEmailIntakeDependencies {
   cursor: IRuntimeStateStore<InboundEmailCursor>;
-  publish: MessageSender;
+  /** Hands the email to its owner; only an answer acknowledges it. */
+  publish: (email: InboundEmail) => Promise<BusResult<unknown>>;
   resolveSender?:
     ((address: string) => Promise<InboundEmailSender | undefined>) | undefined;
   recordSourceLocator?:
@@ -364,11 +365,7 @@ export async function intakeInboundEmail(
 
     let acknowledged = false;
     try {
-      const response = await publish({
-        type: EMAIL_INBOUND,
-        payload: email,
-      });
-      acknowledged = "success" in response && response.success;
+      acknowledged = (await publish(email)).status === "answered";
     } catch {
       // Publishing failures are retried from the durable mailbox cursor.
     }

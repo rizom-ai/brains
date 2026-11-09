@@ -1,7 +1,11 @@
 import { describe, expect, it, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
-import { createEnqueueJobFn } from "../src/job-helpers";
-import type { IJobQueueService } from "../src/types";
+import { defineJobContract } from "@brains/contracts";
+import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
+import { HandlerRegistry } from "../src/handler-registry";
+import { createEnqueueJobFn, createHasJobFn } from "../src/job-helpers";
+import type { IJobQueueService, JobHandler } from "../src/types";
 import type { JobEnqueuer } from "../src/job-helpers";
 
 describe("createEnqueueJobFn", () => {
@@ -160,5 +164,37 @@ describe("createEnqueueJobFn", () => {
       "enqueue() request",
     );
     expect(request.options?.metadata).not.toHaveProperty("requestedByUserId");
+  });
+});
+
+describe("createHasJobFn", () => {
+  const renderInputSchema = z.strictObject({ prompt: z.string() });
+  const render = defineJobContract({
+    type: "owner:render",
+    input: renderInputSchema,
+  });
+  const renderHandler: JobHandler = {
+    validateAndParse: (data) => renderInputSchema.parse(data),
+    process: async () => ({ success: true }),
+  };
+
+  it("is false until the owner declares the job", () => {
+    const registry = new HandlerRegistry(createSilentLogger(), "combined");
+    const has = createHasJobFn(registry);
+
+    expect(has(render)).toBe(false);
+    registry.registerHandler("owner:render", renderHandler, "owner");
+    expect(has(render)).toBe(true);
+  });
+
+  it("knows a job in a web process, which declares it but holds no executable handler", () => {
+    const registry = new HandlerRegistry(
+      createSilentLogger(),
+      "validation-only",
+    );
+    registry.registerHandler("owner:render", renderHandler, "owner");
+
+    expect(registry.getHandler("owner:render")).toBeUndefined();
+    expect(createHasJobFn(registry)(render)).toBe(true);
   });
 });

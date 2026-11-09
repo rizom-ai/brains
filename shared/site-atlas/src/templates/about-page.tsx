@@ -1,10 +1,6 @@
 import type { JSX } from "react";
-import {
-  Head,
-  LinkButton,
-  MarkdownContent,
-  tagVariants,
-} from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
+import { Head, LinkButton, tagVariants } from "@rizom/brain-ui/internal";
 
 /** One fact about the owner: a sentence, a set of tags, or a list of lines. */
 export type AboutFact =
@@ -26,6 +22,8 @@ export interface AboutPageProps {
   title: string;
   /** The page's meta description. */
   headDescription: string;
+  /** The owner's public professional statement, set under the title. */
+  headline?: string | null | undefined;
   description: string | null;
   story: string | null;
   facts: readonly AboutFact[];
@@ -120,13 +118,14 @@ function Contact({ contact }: { contact: AboutContact }): JSX.Element {
 }
 
 /**
- * The about page: a hero with the name and description, the story as
+ * The about page: a hero with the name, headline and description, the story as
  * full-width prose, then a grid of facts and the ways to get in touch. Facts
  * with nothing in them are left out, so no heading stands empty.
  */
 export function AboutPage({
   title,
   headDescription,
+  headline,
   description,
   story,
   facts,
@@ -148,6 +147,11 @@ export function AboutPage({
             <h1 className="text-5xl md:text-6xl font-semibold mb-6 text-heading">
               {title}
             </h1>
+            {headline && (
+              <p className="text-lg md:text-xl font-medium text-heading leading-snug mb-4">
+                {headline}
+              </p>
+            )}
             {description && (
               <p className="text-xl md:text-2xl text-theme-muted leading-relaxed">
                 {description}

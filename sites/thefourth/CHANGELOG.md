@@ -1,5 +1,31 @@
 # @rizom/site-thefourth
 
+## 0.2.0-alpha.12
+
+### Patch Changes
+
+- Updated dependencies [[`60bd903`](https://github.com/rizom-ai/brains/commit/60bd90309108aaa24bf8597d8245260dbc479e39)]:
+  - @rizom/site@0.2.0-alpha.244
+
+## 0.2.0-alpha.11
+
+### Patch Changes
+
+- [#835](https://github.com/rizom-ai/brains/pull/835) [`804a82c`](https://github.com/rizom-ai/brains/commit/804a82c4759f9301bf3fc38948d4529b7c877251) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `SiteLayoutInfo` carries the anchor's `photo`. The Fourth's footer follows Sam's mockup: the wordmark beside the profiles, stacked, and the email; then the anchor's photo, the places of the privacy, terms and cookie pages, and the language switch as a pill over the copyright and the credit to Rizom.
+- Updated dependencies [[`804a82c`](https://github.com/rizom-ai/brains/commit/804a82c4759f9301bf3fc38948d4529b7c877251)]:
+  - @rizom/site@0.2.0-alpha.243
+
+## 0.2.0-alpha.10
+
+### Patch Changes
+
+- [#832](https://github.com/rizom-ai/brains/pull/832) [`e760242`](https://github.com/rizom-ai/brains/commit/e76024214dbe73dda4eb588cfb487fee6ab190c4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/site` exports `SocialLinkPlatform` and `SOCIAL_LINK_PLATFORM_LABELS`, and a layout's social links can name a podcast. The docs and Rizom sites name their links from that one list.
+
+  The Fourth's homepage follows Sam's one-page design. Act I has one way on, "How it works", and no thread on the key's tag. Act III names each program in bold. Act IV pins the clients' words on paper beside the stories, Rizom's on the right and TWTN's on the left, with no links on the cards. The epilogue introduces the team: each guide's portrait, name, bio and areas of expertise, stacked on a phone, with no button. The footer lists the brain's profiles (each in a new tab) and credits Rizom in place of the city line.
+
+- Updated dependencies [[`e760242`](https://github.com/rizom-ai/brains/commit/e76024214dbe73dda4eb588cfb487fee6ab190c4)]:
+  - @rizom/site@0.2.0-alpha.242
+
 ## 0.2.0-alpha.9
 
 ### Patch Changes

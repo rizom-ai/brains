@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
 import { SiteBuilderPlugin } from "../../src/plugin";
@@ -14,6 +13,7 @@ import {
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
+import { siteBuilderRoutesContract } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
 import { createTestConfig } from "../test-helpers";
@@ -611,12 +611,11 @@ describe("SiteBuilderPlugin", () => {
     plugin = new SiteBuilderPlugin(config);
     await harness.installPlugin(plugin);
 
-    const result = await harness.sendMessage<
-      { path: string },
-      { route?: { path: string } }
-    >("plugin:site-builder:route:get", { path: "/studio/" });
+    const routes = siteBuilderRoutesContract.response.parse(
+      await harness.sendMessage(siteBuilderRoutesContract.name, {}),
+    );
 
-    expect(expectDefined(result, "route:get response").route).toBeUndefined();
+    expect(routes.map((route) => route.path)).not.toContain("/studio/");
   });
 
   it("should not generate Studio files on site:build:completed", async () => {
@@ -628,11 +627,6 @@ describe("SiteBuilderPlugin", () => {
       }),
       studio: {},
     };
-
-    harness.subscribe("git-sync:get-repo-info", async () => ({
-      success: true,
-      data: { repo: "owner/repo", branch: "main" },
-    }));
 
     plugin = new SiteBuilderPlugin(config);
     await harness.installPlugin(plugin);

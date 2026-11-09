@@ -8,7 +8,7 @@ The capability is explicit opt-in. Its active runtime composition contains the t
 
 ## What it does
 
-- subscribes to the at-least-once `EMAIL_INBOUND` contract published by `interfaces/email`
+- answers the at-least-once `email:inbound` contract (`inboundEmailContract`) sent by `interfaces/email`
 - discards obvious bulk mail deterministically, before any model call
 - classifies each remaining message with one structured model call into a `mail-item`
 - owns acknowledgement of raw inbound mail, so a failure holds the mailbox cursor rather than losing a message

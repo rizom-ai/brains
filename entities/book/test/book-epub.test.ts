@@ -3,6 +3,7 @@ import { existsSync, promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { strFromU8, unzipSync } from "fflate";
+import { siteBuildStagingContract } from "@brains/contracts";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -17,7 +18,7 @@ describe("book EPUB", () => {
 
   const stage = (): Promise<unknown> =>
     harness.sendMessage(
-      "site:build:staging",
+      siteBuildStagingContract.name,
       {
         outputDir,
         environment: "production",

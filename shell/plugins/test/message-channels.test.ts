@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { ENTITY_CHANNELS, PUBLISH_CHANNELS } from "@brains/contracts";
 import {
-  DASHBOARD_CHANNELS,
-  ENTITY_CHANNELS,
-  PUBLISH_CHANNELS,
-} from "@brains/contracts";
-import {
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
 } from "../src";
 
 const repoRoot = join(import.meta.dir, "../../..");
@@ -32,12 +32,23 @@ describe("message channels", () => {
   it("keeps common domain channel constants stable", () => {
     expect(PUBLISH_CHANNELS.completed).toBe("publish:completed");
     expect(ENTITY_CHANNELS.updated).toBe("entity:updated");
-    expect(DASHBOARD_CHANNELS.registerWidget).toBe("dashboard:register-widget");
-    expect(STUDIO_OVERVIEW_REGISTER_MESSAGE).toBe(
+    expect(dashboardWidgetRegisterContract.name).toBe(
+      "dashboard:register-widget",
+    );
+    expect(studioOverviewContributionRegisterContract.name).toBe(
       "studio:register-overview-contribution",
     );
-    expect(STUDIO_OVERVIEW_UNREGISTER_MESSAGE).toBe(
+    expect(studioOverviewContributionUnregisterContract.name).toBe(
       "studio:unregister-overview-contribution",
+    );
+    expect(dashboardWidgetUnregisterContract.name).toBe(
+      "dashboard:unregister-widget",
+    );
+    expect(studioWorkspaceRegisterContract.name).toBe(
+      "studio:register-workspace",
+    );
+    expect(studioWorkspaceUnregisterContract.name).toBe(
+      "studio:unregister-workspace",
     );
   });
 

@@ -7,15 +7,18 @@ import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import { updateInputSchema } from "./schemas";
+import { updateInputSchema, exactlyOneUpdateOperation } from "./schemas";
 import { applyContentEdits } from "./content-edits";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
   applyUpdateOperation,
   buildUpdateDiff,
+  describeStoredChange,
   requiredUpdateAction,
   resolveReplacementContent,
+  sourceFieldKeys,
   validateUpdateOperation,
+  withStoredSourceFields,
   type UpdateOperation,
 } from "./entity-update-operation";
 import {
@@ -69,34 +72,31 @@ async function normalizeOperation(
     );
 
   const requested = input.operation;
-  switch (requested.kind) {
-    case "fields":
-      return { operation: requested };
-    case "edits":
-      return {
-        operation: {
-          kind: "content",
-          content: applyContentEdits(entity.content, requested.edits),
-        },
-      };
-    case "content":
-      return withReplacementContent(services, entity, requested.content);
-    case "source": {
-      const resolved = await resolveConversationMessageContent(
-        services,
-        requested.source,
-        context,
-        { confirmed: input.confirmed === true },
-      );
-      if (!resolved.success) return resolved;
-      return withReplacementContent(
-        services,
-        entity,
-        resolved.content,
-        freezeUserMessageSource(requested.source, resolved),
-      );
-    }
-  }
+  if (requested.fields !== undefined)
+    return { operation: { kind: "fields", fields: requested.fields } };
+  if (requested.edits !== undefined)
+    return {
+      operation: {
+        kind: "content",
+        content: applyContentEdits(entity.content, requested.edits),
+      },
+    };
+  if (requested.content !== undefined)
+    return withReplacementContent(services, entity, requested.content);
+  if (requested.source === undefined) return failure(exactlyOneUpdateOperation);
+  const resolved = await resolveConversationMessageContent(
+    services,
+    requested.source,
+    context,
+    { confirmed: input.confirmed === true },
+  );
+  if (!resolved.success) return resolved;
+  return withReplacementContent(
+    services,
+    entity,
+    resolved.content,
+    freezeUserMessageSource(requested.source, resolved),
+  );
 }
 
 function withReplacementContent(
@@ -160,7 +160,51 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     } catch (error) {
       return failure(getErrorMessage(error, "Failed to update entity"));
     }
-    return { success: true, data: { updated: entity.id } };
+    // Read the entity back, so the confirmation shows what storage holds.
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope: permissionToVisibilityScope(context.userPermissionLevel),
+    });
+    const completionDetail = stored
+      ? describeStoredChange(entity, stored)
+      : undefined;
+    return {
+      success: true,
+      data: { updated: entity.id },
+      ...(completionDetail !== undefined && { completionDetail }),
+    };
+  };
+
+  /**
+   * A field update to a declared type's grouping or other frontmatter
+   * extension reads the stored document those fields live in.
+   */
+  const withSourceFieldsRead = async (
+    entity: BaseEntity,
+    operation: UpdateOperation,
+    visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+  ): Promise<BaseEntity> => {
+    if (operation.kind !== "fields") return entity;
+    if (
+      entityRegistry.getAdapter(entity.entityType).metadataFromFrontmatter !==
+      true
+    ) {
+      return entity;
+    }
+    const sourceFields = sourceFieldKeys(entity.entityType, entityRegistry);
+    if (!Object.keys(operation.fields).some((key) => sourceFields.has(key))) {
+      return entity;
+    }
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope,
+      source: true,
+    });
+    return stored
+      ? withStoredSourceFields(entity, stored.content, entityRegistry)
+      : entity;
   };
 
   const proposeUpdate = (
@@ -179,7 +223,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       preview: buildUpdateDiff(entity, operation, entityRegistry),
       args: confirmationGate.buildArgs((confirmationToken) => ({
         ...input,
-        ...(source ? { operation: { kind: "source", source } } : {}),
+        ...(source ? { operation: { source } } : {}),
         id: entity.id,
         confirmed: true,
         confirmationToken,
@@ -202,16 +246,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         permissionToVisibilityScope(context.userPermissionLevel),
       );
       if (!resolved.ok) return failure(resolved.error);
-      const { entity } = resolved;
 
       const normalized = await normalizeOperation(
         services,
         input,
-        entity,
+        resolved.entity,
         context,
       );
       if ("success" in normalized) return normalized;
       const { operation } = normalized;
+      const entity = await withSourceFieldsRead(
+        resolved.entity,
+        operation,
+        permissionToVisibilityScope(context.userPermissionLevel),
+      );
 
       const invalid = validateUpdateOperation(
         entity,

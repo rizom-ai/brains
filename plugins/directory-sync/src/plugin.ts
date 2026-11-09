@@ -6,7 +6,6 @@ import type { BrokerGitSync } from "./lib/broker/git-sync-client";
 import {
   createBrokerHealthCheck,
   probeBrokerActivity,
-  resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
 import { resolveGitRemoteUrl } from "./lib/git-options";
 import {
@@ -288,9 +287,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.requireOperationStatus().getOperationalHealth(),
     );
     // Two different questions. The first is what this role believes about
-    // its own sync run; the second is what the checkout owner reports
-    // about the work it is actually holding, which is the only place a
-    // wedged Git child is visible at all.
+    // its own sync run; the second is whether a checkout owner answers at
+    // all, and whether it is still carrying work a previous owner left.
     const socketPath = context.gitBrokerSocket;
     if (!this.isGitConfigured() || socketPath === undefined) return;
     context.operationalHealth.register(
@@ -300,8 +298,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
         // client would let a health request reattach, notice a new
         // owner, and schedule durable replay — writes from a read.
         probe: probeBrokerActivity(socketPath),
-        now: (): number => Date.now(),
-        progressTimeoutMs: resolveBrokerProgressTimeoutMs(),
       }),
     );
   }
@@ -440,9 +436,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     registerMessageHandlers(
       context,
       () => this.requireDirectorySync(),
-      (options) => this.configure(options),
       this.logger,
-      this.config.git,
       () => this.gitSync,
       () => this.studioWorkspaceUrl,
     );

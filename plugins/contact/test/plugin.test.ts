@@ -1,6 +1,5 @@
 import { describe, expect, it, mock, spyOn, setSystemTime } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import type {
   ChannelDeliveryInput,
@@ -8,10 +7,14 @@ import type {
   JobHandler,
 } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
-import { NotificationsPlugin } from "@brains/notifications";
+import { MessageBus } from "@brains/messaging-service";
+import { createSilentLogger } from "@brains/test-utils";
+import notificationsPackage from "@brains/notifications";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
-  SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
+  siteBuilderRouteRegisterContract,
+  siteMetadataContract,
 } from "@brains/site-composition";
 import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
 import type { ContactPluginConfig } from "../src/config";
@@ -37,6 +40,12 @@ async function setup(
   executionOnly = false,
   sharesStateWith?: Harness,
   brain: Parameters<typeof createPluginHarness>[0] = { domain: "brain.test" },
+  wiring: {
+    /** Deliver over the runtime's own message bus rather than the double. */
+    readonly realBus?: boolean;
+    /** Configure notifications with no default recipient. */
+    readonly noRecipient?: boolean;
+  } = {},
 ): Promise<{
   h: Harness;
   shell: ReturnType<Harness["getMockShell"]>;
@@ -45,12 +54,16 @@ async function setup(
   /** The site pages the plugin declared while registering. */
   pages: unknown[];
   /** What the owner's email transport answers; switch to fail an alert. */
-  transport: { status: "sent" | "failed" };
+  transport: { status: "sent" | "failed" | "unavailable" };
   plugin: ContactPlugin;
   handlers: Map<string, JobHandler>;
 }> {
   const h = createPluginHarness(brain);
   const shell = h.getMockShell();
+  if (wiring.realBus)
+    spyOn(shell, "getMessageBus").mockReturnValue(
+      MessageBus.createFresh(createSilentLogger("contact-bus")),
+    );
   if (sharesStateWith)
     spyOn(shell, "getRuntimeState").mockReturnValue(
       sharesStateWith.getMockShell().getRuntimeState(),
@@ -79,20 +92,23 @@ async function setup(
         path: "/studio/workspaces",
         method: "GET",
         match: "prefix",
+        role: "studio-workspaces",
         public: true,
         handler: (): Response => new Response(),
       },
     },
   ]);
   const pages: unknown[] = [];
-  h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+  h.subscribe(siteBuilderRouteRegisterContract.name, async (message) => {
     pages.push(message.payload);
     return { success: true };
   });
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
-  const transport: { status: "sent" | "failed" } = { status: "sent" };
+  const transport: { status: "sent" | "failed" | "unavailable" } = {
+    status: "sent",
+  };
   const channels = shell.getChannelRegistry();
   channels.registerDescriptor("test-email", {
     type: "email",
@@ -101,7 +117,7 @@ async function setup(
   });
   channels.registerDeliveryProvider("test-email", {
     channelType: "email",
-    isAvailable: async () => true,
+    isAvailable: async () => transport.status !== "unavailable",
     send: async (message) => {
       if (transport.status === "failed")
         return { status: "failed", failureCode: "test-transport" };
@@ -110,9 +126,16 @@ async function setup(
     },
   });
   channels.finalize();
-  await new NotificationsPlugin({
-    defaultRecipient: { type: "email", address: "owner@example.com" },
-  }).register(shell, { executionOnly });
+  const [notifications] = instantiatePluginPackageDefinition(
+    notificationsPackage,
+    wiring.noRecipient
+      ? {}
+      : { defaultRecipient: { type: "email", address: "owner@example.com" } },
+    { name: "@brains/notifications", version: "0.0.0-test" },
+    { pluginId: "notifications" },
+  );
+  if (!notifications) throw new Error("Notifications installs no plugin");
+  await notifications.register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
   return { h, shell, checks, sent, pages, transport, plugin, handlers };
 }
@@ -242,7 +265,7 @@ describe("contact runtime", () => {
     const f = await setup();
     const bus = f.shell.getMessageBus();
     const site = { title: "Brain", description: "A site" };
-    bus.subscribe(SITE_METADATA_GET_CHANNEL, async () => ({
+    bus.subscribe(siteMetadataContract.name, async () => ({
       success: true,
       data: { ...site, themeMode: "light" },
     }));
@@ -264,6 +287,14 @@ describe("contact runtime", () => {
     await bus.send({
       type: SITE_METADATA_UPDATED_CHANNEL,
       payload: { ...site, themeMode: "dark" },
+      sender: "site-info",
+      broadcast: true,
+    });
+    expect(await theme()).toBe("dark");
+    // A malformed update is refused; it no longer clears the theme.
+    await bus.send({
+      type: SITE_METADATA_UPDATED_CHANNEL,
+      payload: { ...site, themeMode: "sepia" },
       sender: "site-info",
       broadcast: true,
     });
@@ -464,6 +495,53 @@ describe("contact runtime", () => {
     await f.plugin.shutdown();
   });
 
+  // Each refusal notifications answers reaches contact as its reason, over
+  // the runtime's own bus.
+  for (const [why, wiring, transport, failure] of [
+    [
+      "no recipient is configured",
+      { noRecipient: true },
+      "sent",
+      "recipient-missing",
+    ],
+    ["no transport is available", {}, "unavailable", "transport-missing"],
+    ["the transport refuses", {}, "failed", "test-transport"],
+  ] as const) {
+    it(`records why an alert was not sent when ${why}`, async () => {
+      const f = await setup(
+        false,
+        undefined,
+        { domain: "brain.test" },
+        {
+          realBus: true,
+          ...wiring,
+        },
+      );
+      f.transport.status = transport;
+      await f.plugin.ready();
+      expect((await submit(f.plugin)).status).toBe(303);
+      const job = (await f.shell.getJobQueueService().getActiveJobs())[0];
+      const handler = job && f.handlers.get(job.type);
+      if (!job || !handler) throw new Error("Missing delivery job");
+      const attempt = (): Promise<unknown> =>
+        handler
+          .process(
+            JSON.parse(job.data),
+            job.id,
+            CallbackProgressReporter.noop(),
+            new AbortController().signal,
+          )
+          .catch((error: unknown) => error);
+      await attempt();
+      await attempt();
+      expect(await attempt()).toBe("failed");
+      expect(
+        (await f.shell.getOperationalHealthRegistry().getChecks())[0],
+      ).toMatchObject({ details: { failures: { [failure]: 1 } } });
+      await f.plugin.shutdown();
+    });
+  }
+
   it("recovers enqueue failures on recurring maintenance and reports sanitized health", async () => {
     const f = await setup();
     await f.plugin.ready();
@@ -510,14 +588,15 @@ describe("the contact page in the site", () => {
       sections: [{ id: "form", template: "contact:page", content: {} }],
       navigation: { show: false },
     });
+    // The command is validated, its defaults filled, before it is sent.
     expect(registered).toEqual([
-      {
+      siteBuilderRouteRegisterContract.schema.parse({
         pluginId: "contact",
         routes: [
           page("contact", "/contact", "Contact"),
           page("contact-thanks", "/contact/thanks", "Note saved"),
         ],
-      },
+      }),
     ]);
   });
 });

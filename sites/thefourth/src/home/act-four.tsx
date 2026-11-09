@@ -7,14 +7,14 @@ import {
 } from "@rizom/site";
 import { parsePhoto } from "../portrait";
 import { ActHeading, TornEdge } from "./act-heading";
-import { linkSchema, TextLink } from "./links";
 
 /**
  * Act IV, the fourth act: the stories, pinned as tilted cards. The museum's
- * feature card, two figures (the second in ink) and Rizom's story on red,
- * its photo across the top when the content names one, and a way to unlock
- * the visitor's own. Story pages and the testimonial come when The Fourth
- * has them.
+ * feature card, two figures (the second in ink), Rizom's story on red with
+ * its photo across the top when the content names one, and the clients'
+ * words on paper: the first beside Rizom's story, the next on the other
+ * side, tilted the other way. The cards are not links; story pages come
+ * when The Fourth has them.
  */
 const figureSchema = z.object({
   figure: z.string(),
@@ -36,7 +36,9 @@ const actFourSchema = z.object({
     rest: z.string(),
     photo: z.string().default(""),
   }),
-  action: linkSchema,
+  testimonials: z
+    .array(z.object({ quote: z.string(), attribution: z.string() }))
+    .default([]),
 });
 
 function Figure({
@@ -63,7 +65,7 @@ function ActFourSection({
   feature,
   figures,
   story,
-  action,
+  testimonials,
 }: z.infer<typeof actFourSchema>): JSX.Element {
   const photo = parsePhoto(story.photo);
   return (
@@ -111,9 +113,22 @@ function ActFourSection({
               <s>{story.struck}</s> {story.rest}
             </span>
           </div>
-        </div>
-        <div className="tf-actions">
-          <TextLink link={action} />
+          {testimonials.map((testimonial, index) => (
+            <figure
+              key={testimonial.attribution}
+              className={`tf-card tf-card--quote tf-card--quote-${index % 2 === 0 ? "right" : "left"}`}
+            >
+              <span className="tf-card__quote-mark" aria-hidden="true">
+                “
+              </span>
+              <blockquote className="tf-card__quote">
+                {testimonial.quote}
+              </blockquote>
+              <figcaption className="tf-eyebrow tf-card__by">
+                {testimonial.attribution}
+              </figcaption>
+            </figure>
+          ))}
         </div>
       </div>
       <TornEdge tone="ink" />
@@ -127,7 +142,7 @@ export const actFour: SectionDefinition = defineSection(
   {
     title: "Act IV — The fourth act",
     description:
-      "The stories: a feature figure with its eyebrow, two more figures, and a story card with its headline, emphasis, the struck jargon, the rest and an optional photo as ![alt](entity://image/<id>), then the action.",
+      "The stories: a feature figure with its eyebrow, two more figures, a story card with its headline, emphasis, the struck jargon, the rest and an optional photo as ![alt](entity://image/<id>), and the testimonials (each a quote and its attribution).",
   },
 );
 
@@ -161,5 +176,16 @@ export const actFourContent: JsonObject = {
     rest: "became “what would your team forget?”",
     photo: "",
   },
-  action: { label: "Unlock yours →", href: "mailto:nihao.fourth@gmail.com" },
+  testimonials: [
+    {
+      quote:
+        "The right branding also helps us find the right business model, and The Fourth knows what they’re doing.",
+      attribution: "Founder, Rizom",
+    },
+    {
+      quote:
+        "Mid-size businesses like us don’t have big budgets for marketing, but The Fourth helped us put our money in the right places.",
+      attribution: "Deputy Manager, TWTN",
+    },
+  ],
 } satisfies z.input<typeof actFourSchema>;

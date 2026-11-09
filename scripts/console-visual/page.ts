@@ -6,9 +6,135 @@
  * the page, so it may reference only browser globals and its own argument —
  * never an import or anything else in module scope.
  */
+import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
+import {
+  DeadlineError,
+  PAGE_CALL_DEADLINE_MS,
+  withDeadline,
+} from "./case-deadline";
 
 interface BrowserNetworkEvent {
   requestId: string;
+}
+
+/** A page script as a stalled-call error names it: one line, 160 characters at most. */
+export function scriptExcerpt(script: string): string {
+  const line = script.replace(/\s+/g, " ").trim();
+  return line.length <= 160 ? line : `${line.slice(0, 159)}…`;
+}
+
+/**
+ * Settles with `work`, one call to the page. A call still pending after `ms`
+ * fails naming itself and what `liveness` finds then: a page that still
+ * answers and draws frames is waiting on something that will not happen; a
+ * page that no longer answers has a renderer that died or hung.
+ */
+export async function boundPageCall<T>(
+  work: Promise<T>,
+  call: string,
+  liveness: () => Promise<string>,
+  ms = PAGE_CALL_DEADLINE_MS,
+): Promise<T> {
+  try {
+    return await withDeadline(work, ms, call);
+  } catch (error) {
+    if (!(error instanceof DeadlineError)) throw error;
+    throw new Error(`${error.message}; ${await liveness()}`, { cause: error });
+  }
+}
+
+/** Whether the page's answer to a trivial evaluation, `state`, arrives within `ms`. */
+export async function describeLiveness(
+  state: Promise<string>,
+  ms = 5_000,
+): Promise<string> {
+  try {
+    return `the page still answers: ${await withDeadline(state, ms, "liveness probe")}`;
+  } catch (error) {
+    return `the page does not answer an evaluation either: ${getErrorMessage(error)}`;
+  }
+}
+
+const PAGE_STATE_SCRIPT = `new Promise((resolve) => {
+  let frames = 0;
+  let sampling = true;
+  const tick = () => {
+    if (!sampling) return;
+    frames++;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  setTimeout(() => {
+    sampling = false;
+    resolve(frames + " animation frames in 500ms, " + document.visibilityState);
+  }, 500);
+})`;
+
+const runtimeStringResult = z.object({
+  result: z.object({ value: z.string() }),
+});
+
+/**
+ * How many frames the page draws in half a second, asked on the channel the
+ * stalled call leaves free: `Bun.WebView` allows one pending evaluation and
+ * one pending CDP command per page.
+ */
+async function pageState(
+  page: Bun.WebView,
+  via: "cdp" | "evaluate",
+): Promise<string> {
+  if (via === "evaluate") return page.evaluate<string>(PAGE_STATE_SCRIPT);
+  const answer = await page.cdp("Runtime.evaluate", {
+    expression: PAGE_STATE_SCRIPT,
+    returnByValue: true,
+    awaitPromise: true,
+  });
+  return runtimeStringResult.parse(answer).result.value;
+}
+
+/** The liveness check a stalled call on `page` reports, asked `via` the free channel. */
+export function livenessProbe(
+  page: Bun.WebView,
+  via: "cdp" | "evaluate",
+): () => Promise<string> {
+  return () => describeLiveness(pageState(page, via));
+}
+
+/**
+ * A capture page whose navigations, evaluations, and CDP commands each fail
+ * after `PAGE_CALL_DEADLINE_MS`, naming the call and the page's liveness.
+ * `Bun.WebView` bounds none of them: an awaited page promise that never
+ * settles, or a command Chrome never answers, would otherwise hold its case
+ * until the case deadline names only the case.
+ */
+export class BoundedWebView extends Bun.WebView {
+  override navigate(url: string): Promise<void> {
+    return boundPageCall(
+      super.navigate(url),
+      `navigate ${url}`,
+      livenessProbe(this, "evaluate"),
+    );
+  }
+
+  override evaluate<T = unknown>(script: string): Promise<T> {
+    return boundPageCall(
+      super.evaluate<T>(script),
+      `evaluate ${scriptExcerpt(script)}`,
+      livenessProbe(this, "cdp"),
+    );
+  }
+
+  override cdp<T = unknown>(
+    method: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    return boundPageCall(
+      super.cdp<T>(method, params),
+      `cdp ${method}`,
+      livenessProbe(this, "evaluate"),
+    );
+  }
 }
 
 export interface ElementBounds {

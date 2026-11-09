@@ -145,6 +145,40 @@ describe("createMockEntityService", () => {
     expect(stored?.contentHash).not.toBe("");
   });
 
+  it("reads content back through the registered adapter, as the real service does", async () => {
+    const { store, service } = serviceWithStore();
+    store.adapters.set(
+      "note",
+      noteAdapter({
+        toMarkdown: (entity): string =>
+          `---\ntitle: Kept\n---\n${entity.content}`,
+        fromMarkdown: (markdown): Partial<BaseEntity> => ({
+          content: markdown.replace(/^---\n[\s\S]*?\n---\n/u, ""),
+          metadata: { title: "parsed, and ignored" },
+        }),
+      }),
+    );
+    const { entityId } = await service.createEntity({
+      entity: noteInput("Body"),
+    });
+
+    // Stored as the file is written; read as the adapter parses it.
+    expect(store.entities.get(entityId)?.content).toBe(
+      "---\ntitle: Kept\n---\nBody",
+    );
+    const read = await service.getEntity({ entityType: "note", id: entityId });
+    expect(read).toMatchObject({ content: "Body", metadata: {} });
+    expect(
+      (await service.getEntityRaw({ entityType: "note", id: entityId }))
+        ?.content,
+    ).toBe("Body");
+    expect(
+      (await service.listEntities({ entityType: "note" })).map(
+        ({ content }) => content,
+      ),
+    ).toEqual(["Body"]);
+  });
+
   it("serializes a created entity through the registered adapter", async () => {
     const { store, service } = serviceWithStore();
     store.adapters.set(

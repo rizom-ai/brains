@@ -6,6 +6,7 @@ import { AuthIdentityStore } from "../src/identity-store";
 import { IdentityReconciliationService } from "../src/identity-reconciliation-service";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { AuthUserStore } from "../src/user-store";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 
@@ -23,7 +24,10 @@ describe("IdentityReconciliationService", () => {
     await database.start();
     try {
       const users = new AuthUserStore(database.db);
-      const identities = new AuthIdentityStore(database.db);
+      const identities = new AuthIdentityStore(
+        database.db,
+        registeredTestChannels,
+      );
       const service = new IdentityReconciliationService({ users, identities });
       const user = await users.createUser({ displayName: "Known Person" });
       await identities.attachIdentity({

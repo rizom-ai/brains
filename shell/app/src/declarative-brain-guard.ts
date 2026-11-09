@@ -1,8 +1,8 @@
 import {
   isConfiguredPluginDefinition,
   type ConfiguredPluginDefinition,
-} from "./configured-plugin";
-import type { BrainDefinition } from "./contracts/brain-definition";
+} from "@brains/sdk/internal/configured-plugin";
+import type { BrainDefinition } from "@brains/sdk";
 
 export function isDeclarativeBrainDefinition(
   value: unknown,

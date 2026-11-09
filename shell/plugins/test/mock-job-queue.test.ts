@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type { JobHandler } from "@brains/job-queue";
 import { createMockJobQueue } from "../src/test/mock-job-queue";
 
 describe("createMockJobQueue", () => {
@@ -96,5 +97,23 @@ describe("createMockJobQueue", () => {
 
     expect(await jobQueueService.dequeue()).toBeNull();
     expect(await jobQueueService.getActiveJobs()).toHaveLength(1);
+  });
+
+  it("knows the handlers registered on it until they are unregistered", () => {
+    // A queue that forgets its registrations reports every job's owner as
+    // missing.
+    const { jobQueueService } = createMockJobQueue();
+    const handler: JobHandler = {
+      validateAndParse: (data) => data,
+      process: async () => undefined,
+    };
+    jobQueueService.registerHandler("owner:render", handler, "owner");
+
+    expect(jobQueueService.getValidator("owner:render")).toBe(handler);
+    expect(jobQueueService.getHandler("owner:render")).toBe(handler);
+    expect(jobQueueService.getRegisteredTypes()).toEqual(["owner:render"]);
+
+    jobQueueService.unregisterPluginHandlers("owner");
+    expect(jobQueueService.getValidator("owner:render")).toBeUndefined();
   });
 });

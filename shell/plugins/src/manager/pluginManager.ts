@@ -34,6 +34,8 @@ export class PluginManager implements IPluginManager {
   private daemonRegistry: IDaemonRegistry;
   private shell: IShell | null = null;
   private initializedPluginIds: string[] = [];
+  /** Interfaces the worker registered only the channels of. */
+  private channelOnlyPlugins: Plugin[] = [];
   private pluginLifecycle: PluginLifecycle;
   private dependencyResolver: DependencyResolver;
   private capabilityRegistrar: CapabilityRegistrar;
@@ -147,7 +149,8 @@ export class PluginManager implements IPluginManager {
    * The worker runs no interfaces, yet its background jobs send on their
    * channels: register each interface's channels and senders, and nothing
    * else of it. One that fails is logged and left out, like a failed plugin;
-   * a send on its channel then fails as having no transport.
+   * a send on its channel then fails as having no transport. What their setup
+   * acquired is released when the worker shuts its plugins down.
    */
   public async registerInterfaceChannels(
     plugins: Plugin[],
@@ -161,6 +164,7 @@ export class PluginManager implements IPluginManager {
     for (const plugin of plugins) {
       try {
         await plugin.registerChannelsForExecution?.(shell, registrationContext);
+        this.channelOnlyPlugins.push(plugin);
       } catch (error) {
         this.logger.error(
           `Channel registration failed for interface ${plugin.id}: ${getErrorMessage(error)}`,
@@ -383,6 +387,15 @@ export class PluginManager implements IPluginManager {
     }
     for (const id of [...this.plugins.keys()].reverse()) {
       if (!released.has(id)) await this.disablePlugin(id);
+    }
+    for (const plugin of this.channelOnlyPlugins.splice(0).reverse()) {
+      try {
+        await plugin.shutdown?.();
+      } catch (error) {
+        this.logger.error(
+          `Shutdown failed for interface channels ${plugin.id}: ${getErrorMessage(error)}`,
+        );
+      }
     }
   }
 

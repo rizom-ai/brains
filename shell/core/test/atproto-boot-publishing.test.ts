@@ -10,10 +10,7 @@ import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { AtprotoPlugin } from "@brains/atproto";
 import { z } from "@brains/utils/zod";
-import {
-  AtprotoProjectionRegistry,
-  type AtprotoPdsClientLike,
-} from "@brains/atproto-contracts";
+import { type AtprotoPdsClientLike } from "@brains/atproto-contracts";
 
 const mockEmbeddingService = {
   dimensions: 1536,
@@ -99,7 +96,6 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
   beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
-    AtprotoProjectionRegistry.resetInstance();
     // The card publisher queries entity stats; the schema must exist before
     // boot schedules the publish task.
     await migrateEntities({ url: `file:${testDir.dir}/test.db` });
@@ -112,7 +108,6 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
   afterEach(async (): Promise<void> => {
     await shell.shutdown();
-    AtprotoProjectionRegistry.resetInstance();
     await testDir.cleanup();
   });
 

@@ -95,14 +95,13 @@ describe("MessageUploadContinuity", () => {
     expect(selected).toEqual([firstUpload, secondUpload]);
   });
 
-  it("restores canonical and legacy upload source kinds", async () => {
+  it("restores only uploads stored under its own source kind", async () => {
     const restored: string[] = [];
     const continuity = new MessageUploadContinuity({
       sourceKind: "upload",
-      legacySourceKinds: ["discord-chat-upload"],
       loadMessages: async (): Promise<readonly unknown[]> => [
         storedUserUpload("canonical", "upload"),
-        storedUserUpload("legacy", "discord-chat-upload"),
+        storedUserUpload("platform", "discord-chat-upload"),
       ],
       restoreAttachment: async (
         uploadId,
@@ -115,11 +114,8 @@ describe("MessageUploadContinuity", () => {
 
     const selected = await continuity.getRecentUploads("conv-1");
 
-    expect(selected).toEqual([firstUpload, secondUpload]);
-    expect(restored).toEqual([
-      "upload:canonical",
-      "discord-chat-upload:legacy",
-    ]);
+    expect(selected).toEqual([firstUpload]);
+    expect(restored).toEqual(["upload:canonical"]);
   });
 
   it("skips stale restored uploads and reports restore errors", async () => {

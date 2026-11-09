@@ -1,17 +1,20 @@
+import {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  fetchVerifiedAgentCard,
+  internalFullScope,
+  type Tool,
+  type ToolResponse,
+} from "@brains/plugins";
 import type {
   EntityPluginContext,
   ServicePluginContext,
 } from "@brains/plugins";
-import type { Tool, ToolResponse } from "@brains/mcp-service";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { buildAgentFromCard } from "../lib/build-agent-content";
-import {
-  extractDomain,
-  fetchAgentCard,
-  type FetchFn,
-} from "../lib/fetch-agent-card";
+import { extractDomain } from "../lib/extract-domain";
 import { agentEntitySchema } from "../schemas/agent";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -40,14 +43,18 @@ const remoteDirectorySchema = z.object({
 
 const agentAdapter = new AgentAdapter();
 
+/** A peer whose directory takes longer than an Agent Card would is unreachable. */
 async function fetchAgentDirectory(
   domain: string,
-  fetchFn: FetchFn,
+  fetchFn: FetchLike,
   signal?: AbortSignal,
 ): Promise<z.infer<typeof remoteDirectorySchema> | null> {
   const url = `https://${domain}/.well-known/agent-directory.json`;
+  const timeout = AbortSignal.timeout(DEFAULT_AGENT_CARD_TIMEOUT_MS);
   try {
-    const response = await fetchFn(url, signal ? { signal } : undefined);
+    const response = await fetchFn(url, {
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    });
     if (!response.ok) return null;
 
     const parsed = remoteDirectorySchema.safeParse(await response.json());
@@ -60,17 +67,29 @@ async function fetchAgentDirectory(
 
 export async function scanAgentDirectories(
   context: AgentScanContext,
-  fetchFn: FetchFn = globalThis.fetch,
+  fetchFn: FetchLike = globalThis.fetch,
   signal?: AbortSignal,
 ): Promise<AgentScanDirectoriesResult> {
+  // Every saved agent, so a sighting already saved at any visibility is
+  // known rather than created again.
   const allAgents = await context.entityService.listEntities(
     {
       entityType: AGENT_ENTITY_TYPE,
+      options: {
+        filter: {
+          visibilityScope: internalFullScope(
+            "the directory scan tells new sightings from saved agents; it saves only public sightings naming public peers",
+          ),
+        },
+      },
     },
     agentEntitySchema,
   );
+  // Only public peers are walked: a sighting is saved public and names the
+  // peers that introduced it.
   const peers = allAgents.filter(
-    (agent) => agent.metadata.status === "approved",
+    (agent) =>
+      agent.visibility === "public" && agent.metadata.status === "approved",
   );
   const selfDomain = context.domain?.toLowerCase();
 
@@ -107,6 +126,11 @@ export async function scanAgentDirectories(
     signal?.throwIfAborted();
     const existing = agentsById.get(domain);
     if (existing) {
+      // Saved above public: known, and left as it was saved.
+      if (existing.visibility !== "public") {
+        alreadyKnown += 1;
+        continue;
+      }
       const parsed = agentAdapter.parseEntity(existing);
       const { frontmatter } = parsed;
       const prior = frontmatter.introducedBy ?? [];
@@ -137,14 +161,17 @@ export async function scanAgentDirectories(
     }
 
     // The pointee's own card is the source of truth — the peer only
-    // vouches that it exists.
-    const card = await fetchAgentCard(domain, fetchFn, signal);
-    if (!card) {
+    // vouches that it exists. A card naming another host is no proof.
+    const verified = await fetchVerifiedAgentCard(domain, {
+      fetch: fetchFn,
+      signal,
+    });
+    if (!verified.ok) {
       unverified += 1;
       continue;
     }
 
-    const built = buildAgentFromCard(card, {
+    const built = buildAgentFromCard(verified.card, {
       status: "discovered",
       provenance: { introducedBy: [...introducers], hops: 2 },
     });
@@ -180,7 +207,7 @@ export async function scanAgentDirectories(
 
 export function createAgentScanDirectoriesTool(
   context: AgentScanContext,
-  fetchFn: FetchFn = globalThis.fetch,
+  fetchFn: FetchLike = globalThis.fetch,
 ): Tool {
   return {
     name: "agent_scan_directories",

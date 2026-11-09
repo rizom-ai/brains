@@ -118,6 +118,11 @@ export interface ArchiveOcrWork {
    */
   verse?: boolean;
   /**
+   * The line the work turns to verse at, to its end, as an essay closes on
+   * the poem it argues for: from it each line stays a line.
+   */
+  verseFrom?: { page: number | string; opens: string } | undefined;
+  /**
    * The line its first page opens the work with, where it follows another
    * work's end on that page, as a periodical prints it.
    */
@@ -254,8 +259,15 @@ function isWordToken(token: string): boolean {
 }
 
 /** A line without a word, and no citation: a mark on the scan. */
+/** A row of metrical signs, as a scheme above verse sets them: – ⏑ ⏑ –́. */
+const METRICAL = /[⏑⏒⏓]|–\u0301/u;
+
 function isWordless(text: string): boolean {
-  return !text.split(/\s+/u).some(isWordToken) && !isCitation(text);
+  return (
+    !text.split(/\s+/u).some(isWordToken) &&
+    !isCitation(text) &&
+    !METRICAL.test(text)
+  );
 }
 
 /** A line of several tokens and no word among them: a rule read as letters. */
@@ -576,7 +588,7 @@ function inColumns(lines: Line[], width: number, height: number): Line[] {
 }
 
 /** The scan's pages, each with its lines, position and type size. */
-function readPages(hocr: string, columns = false): Page[] {
+export function readPages(hocr: string, columns = false): Page[] {
   const window = new Window();
   try {
     const document = window.document;
@@ -1222,7 +1234,9 @@ function headingOpeningOf(
 ): ({ opens: string } & HeadingOpening) | undefined {
   return (volume.headingOpenings ?? []).find(
     (opening) =>
-      opening.numeral === undefined && line.text.startsWith(opening.opens),
+      // Read as the corrections read it, without the scan's stray marks.
+      opening.numeral === undefined &&
+      normalised(line.text).startsWith(opening.opens),
   );
 }
 
@@ -1291,7 +1305,7 @@ function isPicture(lines: Line[]): boolean {
 }
 
 /** The OCR reads a note marker, a 1 beside digits, and an i, as a dotless i. */
-function normalised(text: string): string {
+export function normalised(text: string): string {
   return (
     text
       // A dot the OCR set before a word inside the line is a speck.
@@ -2274,9 +2288,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         {
           kind: "caps",
           text:
-            label !== null && line.text.startsWith(label)
-              ? line.text.slice(label.length).replace(/^[.,:]?\s+/u, "")
-              : line.text,
+            label !== null && normalised(line.text).startsWith(label)
+              ? normalised(line.text)
+                  .slice(label.length)
+                  .replace(/^[.,:]?\s+/u, "")
+              : normalised(line.text),
           size: line.size,
           misread: true,
         },
@@ -2916,6 +2932,8 @@ interface WorkState {
   chapters: number;
   /** The level of a section the manifest leaves out, with the sections under it. */
   skipping: number | null;
+  /** Whether the work has turned to verse at the line the manifest names. */
+  verse?: boolean;
 }
 
 /** A heading's title in the work, its words cased as the text spells them. */
@@ -3793,16 +3811,29 @@ export function parseArchiveOcrWork(
                 work.title,
                 work.skipHeadings ?? [],
               )
-            : addPiece(
-                done,
-                piece,
-                {
-                  page: number,
-                  leaf: page.leaf,
-                  label,
-                },
-                volume.verse,
-              ),
+            : ((): WorkState => {
+                const turns =
+                  done.verse !== true &&
+                  piece.kind === "text" &&
+                  work.verseFrom !== undefined &&
+                  String(work.verseFrom.page) === label &&
+                  normalised(piece.text).startsWith(work.verseFrom.opens);
+                const verse = done.verse === true || turns;
+                return {
+                  ...addPiece(
+                    done,
+                    // The verse opens a stanza of its own.
+                    turns ? { ...piece, opens: true } : piece,
+                    {
+                      page: number,
+                      leaf: page.leaf,
+                      label,
+                    },
+                    volume.verse === true || verse,
+                  ),
+                  verse,
+                };
+              })(),
         state,
       ),
     {

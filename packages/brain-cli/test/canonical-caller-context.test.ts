@@ -1,3 +1,4 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { createMockMCPService } from "@brains/mcp-service/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import {
@@ -7,7 +8,7 @@ import {
   type BrainAgentResult,
   type BrainCallOptions,
 } from "@brains/ai-service";
-import { AuthService, type AuthPrincipal } from "@brains/auth-service";
+import { AuthService } from "@brains/auth-service";
 import type { IConversationService } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";

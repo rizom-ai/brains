@@ -1,3 +1,4 @@
+import { toSdkError } from "@brains/contracts";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   createPluginHarness,
@@ -5,7 +6,7 @@ import {
 } from "@brains/plugins/test";
 import {
   SitePageResponse,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type IRuntimeStateNamespace,
   type IRuntimeStateStore,
   type StudioWorkspaceRegistration,
@@ -48,6 +49,8 @@ interface Fixture {
   state: IRuntimeStateNamespace;
   /** The owner opens guest chat in Studio with this monthly budget. */
   budget(monthlyUsd: number): Promise<void>;
+  /** A Studio action request on the guest chat monitor, as the owner. */
+  studio(request: Record<string, unknown>): Promise<unknown>;
 }
 
 async function fixture(
@@ -98,7 +101,7 @@ async function fixture(
     .getMockShell()
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       (registration) => {
         workspaces.push(registration.payload);
         return { success: true, data: { workspaceUrl: "/studio" } };
@@ -113,6 +116,7 @@ async function fixture(
         definition: {
           path: "/chat",
           method: "GET",
+          role: "studio-chat",
           handler: async (): Promise<Response> => new Response("Studio"),
         },
       },
@@ -168,6 +172,7 @@ async function fixture(
   return {
     send,
     ledger,
+    studio,
     calls: (): number => calls,
     state: harness.getMockShell().getRuntimeState(),
     budget: async (monthlyUsd): Promise<void> => {
@@ -529,6 +534,23 @@ describe("admin guest activation using deployment conventions", () => {
       (await session("https://other.test", "https://other.test")).status,
     ).toBe(403);
     expect(f.calls()).toBe(0);
+  });
+
+  it("tells the owner why guest chat cannot open, by the code Studio answers with", async () => {
+    const f = await fixture("admin", "rizom.ai", { profileAvailable: false });
+    const input = { monthlyUsd: 5 };
+    const { token } = z
+      .object({ token: z.string() })
+      .parse(await f.studio({ actionId: "switch-on", input, mode: "prepare" }));
+
+    expect(
+      await f
+        .studio({ actionId: "switch-on", input, confirmationToken: token })
+        .then(
+          () => "opened",
+          (error: unknown) => toSdkError(error).toJSON(),
+        ),
+    ).toEqual({ code: "conflict", message: "Guest profile unavailable" });
   });
 
   it("fails closed when the deployment has no site origin", async () => {

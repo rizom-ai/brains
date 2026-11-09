@@ -1,17 +1,18 @@
 {
   "name": "@brains/onboarding",
-  "version": "0.2.0-alpha.629",
+  "version": "0.2.0-alpha.665",
   "description": "Canonical onboarding playbook bundle and activation plugin",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/sdk": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/playbooks": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "^1.4.0",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",

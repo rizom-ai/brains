@@ -3,6 +3,7 @@ import {
   createTestEntity,
   spyOnEntityCreate,
   spyOnEntityGet,
+  spyOnEntityGetRaw,
 } from "../src/test/index";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SingletonEntityService } from "../src/singleton-entity-service";
@@ -42,7 +43,7 @@ describe("SingletonEntityService", () => {
 
   beforeEach(() => {
     mockEntityService = createMockEntityService();
-    getEntitySpy = spyOnEntityGet(mockEntityService);
+    getEntitySpy = spyOnEntityGetRaw(mockEntityService);
     createEntitySpy = spyOnEntityCreate(mockEntityService);
 
     service = new TestSingletonService(
@@ -54,6 +55,28 @@ describe("SingletonEntityService", () => {
   });
 
   describe("get", () => {
+    it("reads the stored document, keeping its image references as written", async () => {
+      spyOnEntityGet(mockEntityService).mockResolvedValue(
+        createTestEntity<BaseEntity>(entityType, {
+          id: entityType,
+          content: "![Team](data:image/webp;base64,AAAA)\nInlined",
+        }),
+      );
+      getEntitySpy.mockResolvedValue(
+        createTestEntity<BaseEntity>(entityType, {
+          id: entityType,
+          content: "![Team](entity://image/team)\nStored",
+        }),
+      );
+
+      await service.initialize();
+
+      expect(service.get()).toEqual({
+        title: "![Team](entity://image/team)",
+        description: "Stored",
+      });
+    });
+
     it("should return default body when cache is empty", () => {
       const body = service.get();
       expect(body).toEqual(defaultBody);

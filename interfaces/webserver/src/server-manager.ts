@@ -5,11 +5,15 @@ import {
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
 import type {
-  RegisteredHandlerHttpRoute,
-  RegisteredHttpRoute,
-  RegisteredToolHttpRoute,
+  IApiRoutesNamespace,
+  PublicHealthInfo,
+  RuntimeReadiness,
+} from "@brains/plugins";
+import {
+  findHandlerRoute,
+  type RegisteredHttpRoute,
+  type RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
 import {
   SITE_SLOT_ATTRIBUTE,
@@ -36,13 +40,13 @@ export interface ServerManagerOptions {
   sharedImagesDir: string;
   productionPort: number;
   /** Returns app metadata for operational diagnostics. */
-  getOperationalInfo?: () => Promise<AppInfo>;
+  getOperationalInfo?: () => Promise<PublicHealthInfo>;
   /** Returns dependency and resource state for readiness checks. */
   getReadinessData?: () => Promise<RuntimeReadiness>;
   /** Resolve finalized routes when the server starts. Invoked exactly once. */
   getRoutes?: () => readonly RegisteredHttpRoute[];
-  /** Message bus used to execute plugin API routes. */
-  messageBus?: IMessageBus;
+  /** Runs a plugin API route's tool on its owning plugin. */
+  executeTool?: IApiRoutesNamespace["executeTool"];
   /**
    * Bun.serve idle timeout in seconds. Defaults to {@link WEBSERVER_IDLE_TIMEOUT_SECONDS}.
    */
@@ -300,7 +304,7 @@ export class ServerManager {
       });
       app.get("/health/operate", async (c) => {
         let readiness = await this.getReadinessData();
-        let info: AppInfo | undefined;
+        let info: PublicHealthInfo | undefined;
         if (this.options.getOperationalInfo) {
           try {
             info = await this.options.getOperationalInfo();
@@ -453,22 +457,11 @@ export class ServerManager {
     const requestMethod = c.req.method.toUpperCase();
     const requestPath = c.req.path;
 
-    const handlerRoutes = this.routes.filter(
-      (route): route is RegisteredHandlerHttpRoute =>
-        route.kind === "handler" && route.method === requestMethod,
+    const handlerRoute = findHandlerRoute(
+      this.routes,
+      requestMethod,
+      requestPath,
     );
-    const handlerRoute =
-      handlerRoutes.find(
-        (route) => route.match === "exact" && route.fullPath === requestPath,
-      ) ??
-      handlerRoutes
-        .filter(
-          (route) =>
-            route.match === "prefix" &&
-            (requestPath === route.fullPath ||
-              requestPath.startsWith(`${route.fullPath.replace(/\/$/, "")}/`)),
-        )
-        .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
     if (handlerRoute) {
       if (!opts.healthEndpoint && handlerRoute.preview !== true) return null;
       if (handlerRoute.sharedHostAdmission === "deny") {
@@ -518,7 +511,7 @@ export class ServerManager {
       if (toolRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
-      if (!this.options.messageBus) {
+      if (!this.options.executeTool) {
         return c.text("HTTP tool route unavailable", 500);
       }
       return createApiRouteHandler(
@@ -527,7 +520,7 @@ export class ServerManager {
           fullPath: toolRoute.fullPath,
           definition: toolRoute.definition,
         },
-        this.options.messageBus,
+        this.options.executeTool,
       )(c);
     }
 

@@ -1,14 +1,20 @@
 import {
   ProjectionJsonObjectSchema,
   ProjectionWriteIntentSchema,
-  type IEntityService,
+  type BaseEntity,
+  type EntitySchema,
+  type EntityTypeConfig,
+  type GetEntityRequest,
+  type ListEntitiesRequest,
   type ProjectionJsonObject,
+  type ProjectionOwnedEntityRequest,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import type { ContentGenerationConfig } from "../contracts/generation";
 import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
-import type { IEntityAINamespace } from "./ai-types";
+import type { AIGenerationSchema } from "./ai-types";
 import { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
 
 export {
@@ -40,15 +46,43 @@ export interface ProjectionWaveTrigger {
   readonly inputs: readonly ProjectionWaveInput[];
 }
 
-export type ProjectionEntityReader = Pick<
-  IEntityService,
-  | "getEntity"
-  | "listEntities"
-  | "getEntityTypes"
-  | "hasEntityType"
-  | "getEntityTypeConfig"
-  | "isProjectionOwnedEntity"
->;
+/**
+ * The entity reads a rule selects its input with. Spelled out rather than
+ * picked from the entity service, so published declarations do not carry
+ * the service; the runtime's service satisfies it as it is.
+ */
+export interface ProjectionEntityReader {
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  getEntityTypes(): string[];
+  hasEntityType(type: string): boolean;
+  getEntityTypeConfig(type: string): EntityTypeConfig;
+  isProjectionOwnedEntity(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<boolean>;
+}
+
+/** Generation a derivation may use: from a template, or a bare object. */
+export interface ProjectionAI {
+  generate<T>(
+    config: ContentGenerationConfig,
+    schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
+  ): Promise<T>;
+  generateObject<T>(
+    prompt: string,
+    schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
+  ): Promise<{ object: T }>;
+}
 
 export interface ProjectionInputContext {
   readonly entities: ProjectionEntityReader;
@@ -61,10 +95,7 @@ export interface ProjectionInputContext {
 }
 
 export interface ProjectionExecutionContext {
-  readonly ai: Pick<
-    IEntityAINamespace,
-    "query" | "generate" | "generateObject" | "generateImage"
-  >;
+  readonly ai: ProjectionAI;
   readonly logger: Logger;
 }
 

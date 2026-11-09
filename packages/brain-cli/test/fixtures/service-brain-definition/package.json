@@ -10,6 +10,8 @@
     }
   },
   "dependencies": {
+    "@fixture/reader-import": "0.1.0",
+    "@fixture/reader-profile": "0.1.0",
     "@fixture/reading-entities": "0.1.0",
     "@fixture/reading-insights": "0.1.0"
   },

@@ -8,6 +8,8 @@ import {
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
 import type { BaseEntity } from "../src";
+import { createEntityDatabase } from "../src/db";
+import { SqliteAssetRepository } from "../src/sqlite-asset-repository";
 import { minimalTestAdapter, minimalTestSchema } from "./helpers/test-schemas";
 
 describe("SQLite durable assets", () => {
@@ -49,6 +51,27 @@ describe("SQLite durable assets", () => {
     );
     return Number(result.rows[0]?.["count"] ?? 0);
   }
+
+  test("stages its own copy of the prepared bytes", () => {
+    const connection = createEntityDatabase(ctx.dbConfig);
+    try {
+      const repository = new SqliteAssetRepository(connection.db);
+      const prepared = prepareAsset(Uint8Array.from([1, 2, 3]));
+      // A Buffer is a Uint8Array whose slice() is a view, not a copy.
+      const sources = [
+        prepared,
+        { ...prepared, bytes: Buffer.from([1, 2, 3]) },
+      ];
+      const staged = sources.map((source) => repository.stage(source));
+      for (const source of sources) source.bytes[0] = 9;
+
+      for (const asset of staged) {
+        expect(asset.bytes).toEqual(Uint8Array.from([1, 2, 3]));
+      }
+    } finally {
+      connection.client.close();
+    }
+  });
 
   test("commits bytes and their entity reference atomically", async () => {
     const source = Uint8Array.from([0, 1, 2, 3, 255]);

@@ -4,9 +4,14 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
-import type { MessageCollector } from "../contracts/messaging";
-import type { Channel } from "../utils/channels";
-import type { ENTITY_CHANNELS } from "@brains/contracts";
+import type {
+  BusAnswerMeta,
+  BusCollection,
+  BusContract,
+  BusResult,
+  Channel,
+  ENTITY_CHANNELS,
+} from "@brains/contracts";
 import type {
   GetMessagesOptions,
   ListConversationsOptions,
@@ -51,15 +56,57 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
 
 export interface IMessagingNamespace {
-  /** Send a message to other plugins */
+  /**
+   * Send an event with `broadcast: true`: every subscriber hears it and its
+   * reply data comes back unchecked. A request or command to another plugin
+   * goes through `request`, `gather` or `command` and a bus contract.
+   */
   send: MessageSender;
 
   /**
-   * Send a message and gather one answer from every subscriber. For
-   * contributions read when they are used, such as the head scripts a site
-   * build asks for: it works in every process and in any registration order.
+   * Ask a contract's owner and get its validated answer, or `unavailable`
+   * when no plugin answers the contract. The request is validated before it
+   * is sent; an invalid one is the caller's bug and throws.
    */
-  collect: MessageCollector;
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    payload: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
+
+  /**
+   * Ask every owner of a collect contract: their validated answers in
+   * registration order, what went wrong with the rest, or `unavailable`.
+   */
+  gather<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "collect">,
+    payload: z.input<TRequest>,
+  ): Promise<BusCollection<z.output<TResponse>>>;
+
+  /**
+   * Send a command to every plugin that hears it; nobody answers. An invalid
+   * command is the caller's bug and throws.
+   */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    payload: z.input<TRequest>,
+  ): Promise<void>;
+
+  /**
+   * Own a request contract, answer a collect contract among others, or hear
+   * a command: the handler sees only valid requests, with the plugin that
+   * sent them, and its reply leaves only when the contract accepts it. A
+   * request contract has one owner; a second throws.
+   * An execution-only process answers only with `everyProcess`, as
+   * `subscribeExecution` does.
+   */
+  answer<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse>,
+    handler: (
+      request: z.output<TRequest>,
+      meta: BusAnswerMeta,
+    ) => Promise<z.input<TResponse>>,
+    options?: { everyProcess?: boolean },
+  ): () => void;
 
   /**
    * Subscribe to messages on a channel in this process.
@@ -69,33 +116,30 @@ export interface IMessagingNamespace {
    * what the web process owns, subscribeExecution for work each process does
    * for its own changes.
    *
-   * @example String-based (untyped)
-   * ```typescript
-   * context.messaging.subscribe("my-channel", async (message) => {
-   *   const payload = mySchema.parse(message.payload);
-   *   return { success: true };
-   * });
-   * ```
+   * Through a typed channel (`defineChannel`) the handler receives the
+   * validated payload; a malformed one is refused and logged, never handed
+   * on. A broadcast event another package declares is subscribed through its
+   * channel, such as `publishCompletedChannel`, rather than by casting a
+   * string subscription's payload.
    *
-   * @example Channel-based (typed)
+   * @example
    * ```typescript
-   * const MyChannel = defineChannel("my-channel", mySchema);
-   * context.messaging.subscribe(MyChannel, async (payload) => {
+   * context.messaging.subscribe(publishCompletedChannel, async (payload) => {
    *   // payload is already validated and typed
    *   return { success: true };
    * });
    * ```
    */
   subscribe: {
-    // String-based (existing behavior)
     <T = unknown, R = unknown, C extends string = string>(
       channel: C extends EntityChannel ? never : C,
       handler: MessageHandler<T, R>,
     ): () => void;
 
-    // Channel-based (typed, with auto-validation)
-    <TPayload, TResponse = unknown>(
-      channel: Channel<TPayload, TResponse>,
+    <TPayload, TResponse = unknown, TName extends string = string>(
+      channel: TName extends EntityChannel
+        ? never
+        : Channel<TPayload, TResponse, TName>,
       handler: TypedMessageHandler<TPayload, TResponse>,
     ): () => void;
   };
@@ -103,23 +147,30 @@ export interface IMessagingNamespace {
   /**
    * Subscribe in every process, each handling the messages it raises itself:
    * for work tied to where an event happens, such as the job that follows an
-   * embedding the worker made.
+   * embedding the worker made. A typed channel validates as `subscribe` does.
    */
-  subscribeExecution: <T = unknown, R = unknown>(
-    channel: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
+  subscribeExecution: EventSubscriber;
 
   /**
    * Follow a channel from the web process, hearing what every process of the
    * runtime raises: for caches, views and work the web process owns, such as
    * publishing or exporting a change wherever it was made. A worker owns none
-   * of these, so it observes nothing.
+   * of these, so it observes nothing. A typed channel, such as
+   * `entityUpdatedChannel`, validates as `subscribe` does.
    */
-  observe: <T = unknown, R = unknown>(
+  observe: EventSubscriber;
+}
+
+/** Subscribes by name or through a typed channel; entity events included. */
+interface EventSubscriber {
+  <T = unknown, R = unknown>(
     channel: string,
     handler: MessageHandler<T, R>,
-  ) => () => void;
+  ): () => void;
+  <TPayload, TResponse = unknown>(
+    channel: Channel<TPayload, TResponse>,
+    handler: TypedMessageHandler<TPayload, TResponse>,
+  ): () => void;
 }
 
 /**

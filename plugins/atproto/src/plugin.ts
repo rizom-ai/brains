@@ -1,10 +1,18 @@
+import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  internalFullScope,
+  ServicePlugin,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import type {
   BaseEntity,
+  EntityChangePayload,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
-import { ENTITY_CHANNELS, PUBLISH_CHANNELS } from "@brains/contracts";
+import { publishCompletedChannel } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import {
@@ -13,7 +21,6 @@ import {
   UnsafePublicResourceError,
   type ResolveHostname,
 } from "@brains/utils/safe-public-fetch";
-import { z } from "@brains/utils/zod";
 import {
   atprotoConfigSchema,
   type AtprotoConfig,
@@ -41,11 +48,11 @@ import {
 
 export * from "./publish-contracts";
 import {
-  ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_CARD_DISCOVERED,
-  ATPROTO_BRAIN_CARD_UNAVAILABLE,
-  ATPROTO_JETSTREAM_GAP,
-  AtprotoProjectionRegistry,
+  atprotoBrainCardConflictChannel,
+  atprotoBrainCardDiscoveredChannel,
+  atprotoBrainCardUnavailableChannel,
+  atprotoJetstreamGapChannel,
+  type AtprotoProjectionRegistry,
   atprotoBrainCardDiscoveredPayloadSchema,
   canonicalAtprotoLexicons,
   listCanonicalAtprotoLexicons,
@@ -64,17 +71,11 @@ import packageJson from "../package.json";
 
 const brainCardLexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
 
-const entityTriggerPayloadSchema = z.looseObject({
-  entityType: z.string().min(1),
-  entityId: z.string().min(1),
-  entity: z
-    .looseObject({
-      visibility: z.string(),
-    })
-    .optional(),
-});
-
-type EntityTriggerPayload = z.infer<typeof entityTriggerPayloadSchema>;
+/** The entity a publish or an entity change names; a change also carries the entity. */
+type EntityTrigger = Pick<
+  EntityChangePayload,
+  "entityType" | "entityId" | "entity"
+>;
 
 export interface AtprotoPluginDeps {
   createPdsClient?: (config: {
@@ -91,14 +92,13 @@ export interface AtprotoPluginDeps {
   random?: () => number;
 }
 
-function entityTaskKey(payload: EntityTriggerPayload): string {
+function entityTaskKey(payload: EntityTrigger): string {
   return `${payload.entityType}/${payload.entityId}`;
 }
 
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
-const PUBLISH_COMPLETED = PUBLISH_CHANNELS.completed;
 const MAX_DISCOVERY_REPOS = 50;
 // Identity inputs arrive through SYSTEM_CHANNELS.identityChanged, after the
 // shell's identity caches hold them.
@@ -109,7 +109,6 @@ export class AtprotoPlugin extends ServicePlugin<
   AtprotoConfigInput
 > {
   private readonly deps: AtprotoPluginDeps;
-  private readonly projectionRegistry: AtprotoProjectionRegistry;
   private readonly publishingTasks: PublishingTaskQueue;
   private readonly discoveryFetch: FetchLike;
   private readonly identity: AtprotoIdentityResolver;
@@ -126,8 +125,6 @@ export class AtprotoPlugin extends ServicePlugin<
   constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
     super("atproto", packageJson, config, atprotoConfigSchema);
     this.deps = deps;
-    this.projectionRegistry =
-      deps.projectionRegistry ?? AtprotoProjectionRegistry.getInstance();
     this.discoveryFetch = createSafePublicFetch({
       ...(deps.fetch && { fetchFn: deps.fetch }),
       ...(deps.resolveHostname && { resolveHostname: deps.resolveHostname }),
@@ -161,53 +158,42 @@ export class AtprotoPlugin extends ServicePlugin<
       return { success: true };
     });
 
-    // publish:report:success is a request-style message consumed by the
-    // publish pipeline. publish:completed is its broadcast fan-out event.
-    context.messaging.subscribe(PUBLISH_COMPLETED, async (message) => {
-      const payload = entityTriggerPayloadSchema.safeParse(message.payload);
-      if (payload.success) {
-        void this.publishingTasks.run(entityTaskKey(payload.data), () =>
-          this.reconcileProjectedEntity(context, payload.data),
-        );
-      }
+    // publish:completed is the publish pipeline's broadcast after a publish
+    // succeeds.
+    context.messaging.subscribe(publishCompletedChannel, async (payload) => {
+      void this.publishingTasks.run(entityTaskKey(payload), () =>
+        this.reconcileProjectedEntity(context, payload),
+      );
       return { success: true };
     });
 
     // Entity changes arrive from both processes of the runtime; the
     // projection follows every one of them.
-    context.messaging.observe(ENTITY_CHANNELS.updated, async (message) => {
-      const payload = entityTriggerPayloadSchema.safeParse(message.payload);
-      if (payload.success) {
-        void this.publishingTasks.run(entityTaskKey(payload.data), () =>
-          this.reconcileProjectedEntity(context, payload.data),
-        );
-      }
+    context.messaging.observe(entityUpdatedChannel, async (payload) => {
+      void this.publishingTasks.run(entityTaskKey(payload), () =>
+        this.reconcileProjectedEntity(context, payload),
+      );
       return { success: true };
     });
 
-    context.messaging.observe(ENTITY_CHANNELS.deleted, async (message) => {
-      const payload = entityTriggerPayloadSchema.safeParse(message.payload);
-      if (payload.success) {
-        void this.publishingTasks.run(entityTaskKey(payload.data), () =>
-          this.deleteProjectedEntityFromTrigger(context, payload.data),
-        );
-      }
+    context.messaging.observe(entityDeletedChannel, async (payload) => {
+      void this.publishingTasks.run(entityTaskKey(payload), () =>
+        this.deleteProjectedEntityFromTrigger(context, payload),
+      );
       return { success: true };
     });
 
     // Skills are read from storage when the card is built, so their entity
     // events are safe triggers; every lifecycle change alters the card.
     for (const channel of [
-      ENTITY_CHANNELS.created,
-      ENTITY_CHANNELS.updated,
-      ENTITY_CHANNELS.deleted,
+      entityCreatedChannel,
+      entityUpdatedChannel,
+      entityDeletedChannel,
     ]) {
-      context.messaging.observe(channel, async (message) => {
-        const payload = entityTriggerPayloadSchema.safeParse(message.payload);
+      context.messaging.observe(channel, async (payload) => {
         if (
           this.brainCardTriggersArmed &&
-          payload.success &&
-          payload.data.entityType === BRAIN_CARD_SKILL_ENTITY_TYPE
+          payload.entityType === BRAIN_CARD_SKILL_ENTITY_TYPE
         ) {
           this.scheduleBrainCardPublish(context);
         }
@@ -304,7 +290,7 @@ export class AtprotoPlugin extends ServicePlugin<
                   1000,
             ).toISOString();
             await context.messaging.send({
-              type: ATPROTO_BRAIN_CARD_UNAVAILABLE,
+              type: atprotoBrainCardUnavailableChannel.name,
               payload: {
                 repoDid,
                 observedAt,
@@ -320,7 +306,7 @@ export class AtprotoPlugin extends ServicePlugin<
           },
           reportGap: async (payload): Promise<void> => {
             await context.messaging.send({
-              type: ATPROTO_JETSTREAM_GAP,
+              type: atprotoJetstreamGapChannel.name,
               payload: {
                 ...payload,
                 observedAt: new Date(
@@ -403,11 +389,18 @@ export class AtprotoPlugin extends ServicePlugin<
     };
   }
 
+  /** The entity plugins' projections on the shell the caller's context belongs to. */
+  private projections(
+    context: ServicePluginContext,
+  ): AtprotoProjectionRegistry {
+    return this.deps.projectionRegistry ?? context.atprotoProjections;
+  }
+
   async publishEntity(
     context: ServicePluginContext,
     options: PublishEntityOptions,
   ): Promise<PublishEntityResult> {
-    const projection = this.projectionRegistry.get(options.entityType);
+    const projection = this.projections(context).get(options.entityType);
     if (!projection) {
       throw new Error(
         `No AT Protocol projection registered for ${options.entityType}`,
@@ -421,7 +414,7 @@ export class AtprotoPlugin extends ServicePlugin<
     context: ServicePluginContext,
     options: PublishPostOptions,
   ): Promise<PublishPostResult> {
-    const projection = this.projectionRegistry.get("post");
+    const projection = this.projections(context).get("post");
     if (!projection) {
       throw new Error("No AT Protocol projection registered for post");
     }
@@ -525,7 +518,7 @@ export class AtprotoPlugin extends ServicePlugin<
         }
         seenRecords.add(recordKey);
         await context.messaging.send({
-          type: ATPROTO_BRAIN_CARD_DISCOVERED,
+          type: atprotoBrainCardDiscoveredChannel.name,
           payload: {
             repoDid: resolved.repoDid,
             uri: record.uri,
@@ -751,9 +744,9 @@ export class AtprotoPlugin extends ServicePlugin<
 
   private async reconcileProjectedEntity(
     context: ServicePluginContext,
-    payload: EntityTriggerPayload,
+    payload: EntityTrigger,
   ): Promise<void> {
-    const projection = this.projectionRegistry.get(payload.entityType);
+    const projection = this.projections(context).get(payload.entityType);
     if (!projection || !this.hasPublishingCredentials()) return;
 
     let entity: BaseEntity | null;
@@ -811,9 +804,9 @@ export class AtprotoPlugin extends ServicePlugin<
 
   private async deleteProjectedEntityFromTrigger(
     context: ServicePluginContext,
-    payload: EntityTriggerPayload,
+    payload: EntityTrigger,
   ): Promise<void> {
-    const projection = this.projectionRegistry.get(payload.entityType);
+    const projection = this.projections(context).get(payload.entityType);
     if (
       !projection ||
       !this.hasPublishingCredentials() ||
@@ -878,7 +871,9 @@ export class AtprotoPlugin extends ServicePlugin<
       return context.entityService.getEntity({
         entityType: options.entityType,
         id: options.entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "atproto publish gate rejects non-public",
+        ),
       });
     }
 
@@ -890,7 +885,9 @@ export class AtprotoPlugin extends ServicePlugin<
             options: {
               filter: {
                 metadata: { slug: options.slug },
-                visibilityScope: "restricted",
+                visibilityScope: internalFullScope(
+                  "atproto publish gate rejects non-public",
+                ),
               },
             },
           })
@@ -943,7 +940,13 @@ export class AtprotoPlugin extends ServicePlugin<
 
     const agents = await context.entityService.listEntities({
       entityType: "agent",
-      options: { filter: { visibilityScope: "restricted" } },
+      options: {
+        filter: {
+          visibilityScope: internalFullScope(
+            "jetstream discovery agent dedupe",
+          ),
+        },
+      },
     });
     const existingByDomain = agents.find((agent) => agent.id === domain);
     const existingByRepo = agents.find(
@@ -967,7 +970,7 @@ export class AtprotoPlugin extends ServicePlugin<
       const existingRepoDid =
         typeof existingDomainRepo === "string" ? existingDomainRepo : undefined;
       await context.messaging.send({
-        type: ATPROTO_BRAIN_CARD_CONFLICT,
+        type: atprotoBrainCardConflictChannel.name,
         payload: {
           domain,
           ...(existingRepoDid && { existingRepoDid }),

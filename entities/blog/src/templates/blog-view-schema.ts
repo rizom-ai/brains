@@ -1,5 +1,9 @@
-import { entityViewFields, type EntityViewFields } from "@brains/plugins";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { blogPostStatusSchema } from "../schemas/blog-post";
 

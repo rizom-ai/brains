@@ -12,7 +12,7 @@ export interface ExtractPdfMarkdownOptions {
 }
 
 export async function extractPdfMarkdown(
-  content: Buffer,
+  content: Uint8Array,
   options: ExtractPdfMarkdownOptions = {},
 ): Promise<string> {
   const maxBytes = options.maxBytes ?? defaultPdfMarkdownMaxBytes;

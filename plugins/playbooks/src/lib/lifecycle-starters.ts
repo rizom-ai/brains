@@ -7,7 +7,10 @@
  * Store/catalog access is injected so the registry is unit-testable.
  */
 
-import type { LifecycleStarterRegistration } from "@brains/contracts";
+import type {
+  LifecycleStarterRegistration,
+  LifecycleStarterRegistrationResult,
+} from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
@@ -48,13 +51,6 @@ export interface PlaybookStarter {
 
 export interface LifecycleStartersResponse {
   starters: PlaybookStarter[];
-}
-
-export interface LifecycleStarterRegistrationResponse {
-  registered: boolean;
-  id: string;
-  ignored?: boolean | undefined;
-  reason?: string | undefined;
 }
 
 /** The slice of a parsed playbook the starter logic reads. */
@@ -120,7 +116,7 @@ export class LifecycleStarterRegistry {
   public register(
     registration: LifecycleStarterRegistration,
     source: string,
-  ): LifecycleStarterRegistrationResponse {
+  ): LifecycleStarterRegistrationResult {
     const existing = this.registered.get(registration.id);
     const config = lifecycleConfigSchema.parse({
       trigger: registration.trigger,

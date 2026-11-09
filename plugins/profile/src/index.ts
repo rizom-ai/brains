@@ -1,9 +1,26 @@
+export { default } from "./plugin";
 export {
-  ProfilePlugin,
-  profilePlugin,
+  type ProfileConfig,
   type ProfileConfigInput,
   type StarterIdentityConfigInput,
 } from "./plugin";
+export {
+  profileImportApplyContract,
+  profileImportFieldNameSchema,
+  profileImportFieldNames,
+  profileImportFieldSchema,
+  profileImportFieldsSchema,
+  profileImportOutcomeSchema,
+  profileImportPreviewContract,
+  type ProfileImportField,
+  type ProfileImportFieldName,
+  type ProfileImportFields,
+  type ProfileImportOutcome,
+} from "@brains/contracts";
+export {
+  mergeProfileImport,
+  type ProfileImportMerge,
+} from "./import/merge-profile";
 export { fetchAnchorProfile, fetchAnchorProfileData } from "./helpers";
 export {
   buildStarterCharacterBrief,
@@ -20,8 +37,6 @@ export {
   createStarterAnchorProfileContent,
   createStarterBrainCharacterContent,
   deriveStarterIdentity,
-  isLegacyAnchorProfileContent,
-  isLegacyBrainCharacterContent,
   resolveStarterIdentityIdentifier,
   seedOrMigrateStarterIdentity,
   type StarterCharacterGenerationRequest,

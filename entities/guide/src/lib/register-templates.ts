@@ -1,7 +1,9 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+  contentVisibilitySchema,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema } from "@brains/plugins";
 import { docsChromeSchema } from "@brains/docs-chrome";
 import { guideMetadataSchema } from "../schemas/guide";
 import { guideFrontmatterSchema } from "../schemas/guide-frontmatter";

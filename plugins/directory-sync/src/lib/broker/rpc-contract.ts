@@ -19,13 +19,10 @@ export interface ExecuteOperationPayload {
 export interface BrokerRpcStatus {
   readonly brokerId: string;
   readonly checkouts: string[];
-  readonly activeRequestIds: string[];
-  readonly queuedRequestIds: string[];
   readonly ambiguousRequestIds: string[];
   readonly evidenceComplete: boolean;
   readonly recoveryPending: boolean;
   readonly admitsMutations: boolean;
-  readonly oldestActiveProgressAt: number | null;
 }
 export interface BrokerRpcFailure {
   readonly _tag: "BrokerError";
@@ -65,13 +62,10 @@ const emptyPayloadSchema = z.strictObject({});
 const statusSchema: z.ZodType<BrokerRpcStatus> = z.strictObject({
   brokerId: z.string().min(1),
   checkouts: z.array(z.string()),
-  activeRequestIds: z.array(operationIdSchema),
-  queuedRequestIds: z.array(operationIdSchema),
   ambiguousRequestIds: z.array(operationIdSchema),
   evidenceComplete: z.boolean(),
   recoveryPending: z.boolean(),
   admitsMutations: z.boolean(),
-  oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
 });
 const failureSchema: z.ZodType<BrokerRpcFailure> = z.strictObject({
   _tag: z.literal("BrokerError"),

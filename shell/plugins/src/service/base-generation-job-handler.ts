@@ -1,4 +1,7 @@
-import { IMAGE_CHANNELS } from "@brains/contracts";
+import {
+  internalFullScope,
+  type ContentVisibility,
+} from "@brains/entity-service";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
@@ -15,6 +18,7 @@ import {
 import {
   PROGRESS_STEPS,
   JobResult,
+  imageGenerateJobContract,
   type GenerationResult,
 } from "@brains/contracts";
 import type { EntityPluginContext } from "../entity/context";
@@ -99,6 +103,11 @@ export interface GeneratedContent {
   resultExtras?: Record<string, unknown>;
   /** Options passed to createEntity */
   createOptions?: { deduplicateId?: boolean };
+  /**
+   * The visibility to write the entity at. Unset, a new entity is public and
+   * a pre-allocated stub keeps its own.
+   */
+  visibility?: ContentVisibility;
 }
 
 function withoutUndefined(
@@ -306,6 +315,9 @@ export abstract class BaseGenerationJobHandler<
               entityType: this.entityType,
               content: generatedForSave.content,
               metadata: generatedForSave.metadata,
+              ...(generatedForSave.visibility && {
+                visibility: generatedForSave.visibility,
+              }),
             },
             options: generatedForSave.createOptions,
           });
@@ -400,7 +412,9 @@ export abstract class BaseGenerationJobHandler<
     const existing = await this.context.entityService.getEntity({
       entityType: this.entityType,
       id: entityId,
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope(
+        "pre-allocated generation stub update",
+      ),
     });
     if (!existing) {
       throw new Error(
@@ -417,6 +431,7 @@ export abstract class BaseGenerationJobHandler<
         entityType: this.entityType,
         content: merged.content,
         metadata: merged.metadata,
+        ...(generated.visibility && { visibility: generated.visibility }),
       },
     });
   }
@@ -478,7 +493,7 @@ export abstract class BaseGenerationJobHandler<
       const existing = await this.context.entityService.getEntity({
         entityType: this.entityType,
         id: entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mark generation stub failed"),
       });
       if (!existing) return;
       if (
@@ -529,9 +544,9 @@ export abstract class BaseGenerationJobHandler<
     const title = generated.title ?? entityId;
     await this.enqueueFollowUp(
       () =>
-        this.context.jobs.enqueue({
-          type: IMAGE_CHANNELS.generate,
-          data: {
+        this.context.jobs.enqueue(
+          imageGenerateJobContract,
+          {
             prompt:
               coverImage.prompt ?? `Editorial cover image for: ${title}. `,
             title: `${title} Cover`,
@@ -541,11 +556,13 @@ export abstract class BaseGenerationJobHandler<
             entityTitle: title,
             entityContent: generated.content,
           },
-          toolContext: {
-            interfaceType: "job",
-            actor: { kind: "service", serviceId: "generation-job-handler" },
+          {
+            toolContext: {
+              interfaceType: "job",
+              actor: { kind: "service", serviceId: "generation-job-handler" },
+            },
           },
-        }),
+        ),
       `queue the cover image for ${this.entityType}:${entityId}`,
       `cover-image:${this.entityType}:${entityId}`,
     );

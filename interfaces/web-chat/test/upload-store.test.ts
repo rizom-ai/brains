@@ -117,7 +117,7 @@ describe("WebChatUploadStore", () => {
       mediaType: "text/plain",
       sizeBytes: 5,
     });
-    expect(resolved.content.toString("utf8")).toBe("hello");
+    expect(new TextDecoder().decode(resolved.content)).toBe("hello");
   });
 
   it("rejects invalid upload ids before touching storage", async () => {

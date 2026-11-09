@@ -1,7 +1,7 @@
-import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/runtime-state";
+import {
+  type IRuntimeStateNamespace,
+  type IRuntimeStateStore,
+} from "@brains/plugins";
 import { createPrefixedId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -109,11 +109,11 @@ export type PlaybookRunInput = z.input<typeof playbookRunSchema>;
 const playbookRunsNamespace = "playbooks.runs";
 
 export class PlaybookRunStore {
-  private readonly store: IRuntimeStateStore<PlaybookRun>;
+  private readonly store: IRuntimeStateStore<PlaybookRun, PlaybookRunInput>;
   private readonly writeQueue = new SerialQueue();
 
   constructor(runtimeState: IRuntimeStateNamespace) {
-    this.store = runtimeState.scoped<PlaybookRun>({
+    this.store = runtimeState.scoped<PlaybookRun, PlaybookRunInput>({
       namespace: playbookRunsNamespace,
       schema: playbookRunSchema,
     });

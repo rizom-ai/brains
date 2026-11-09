@@ -1,6 +1,8 @@
-import { PROJECTION_CHANNELS } from "@brains/contracts";
+import { collectContract } from "@brains/messaging-service";
+import { projectionWaveReadyContract } from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
+  initialSyncOutcomeSchema,
   materializePrompts,
   pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
@@ -25,8 +27,6 @@ import {
 } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
-
-const initialSyncOutcomeSchema = z.object({ success: z.boolean() });
 
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({
@@ -156,22 +156,14 @@ export class ShellBootloader {
         reconcileTargets: (targets) =>
           this.services.entityService.reconcileProjectionTargets(targets),
         beforeWaveCompletion: async (summary): Promise<void> => {
-          if (
-            !this.services.messageBus.hasHandlers(PROJECTION_CHANNELS.waveReady)
-          ) {
-            return;
-          }
-          const responses = await this.services.messageBus.collect({
-            type: PROJECTION_CHANNELS.waveReady,
-            payload: summary,
-            sender: "shell",
-          });
-          if (
-            responses.length === 0 ||
-            responses.some(
-              (response) => "noop" in response || !response.success,
-            )
-          ) {
+          const acks = await collectContract(
+            this.services.messageBus,
+            projectionWaveReadyContract,
+            summary,
+            "shell",
+          );
+          if (acks.status === "unavailable") return;
+          if (acks.failures.length > 0 || acks.answers.length === 0) {
             throw new Error(
               `Projection wave ${summary.waveId} completion was not acknowledged`,
             );
@@ -283,6 +275,16 @@ export class ShellBootloader {
       if (retired.rewritten > 0) {
         this.services.logger.info("Rewrote entities carrying retired fields", {
           rewritten: retired.rewritten,
+        });
+      }
+      // A type converted from an entity plugin class to a declaration reads
+      // its frontmatter as metadata; rows the class wrote get it before
+      // startup content settles and seeds look for them.
+      const declared =
+        await this.services.entityService.reconcileDeclaredMetadata();
+      if (declared.reconciled > 0) {
+        this.services.logger.info("Re-derived declared entity metadata", {
+          reconciled: declared.reconciled,
         });
       }
 
@@ -423,14 +425,6 @@ export class ShellBootloader {
       logger.info(
         "Prompts without provenance differ from their default and are kept; delete one to restore its default",
         { targets: prompts.unverifiedOverrides },
-      );
-    }
-    if (prompts.removedLegacy.length > 0) {
-      logger.info(
-        "Removed prompt copies stored under ids generation never read",
-        {
-          ids: prompts.removedLegacy,
-        },
       );
     }
     for (const { target, error } of prompts.failed) {

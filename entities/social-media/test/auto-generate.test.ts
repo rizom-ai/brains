@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { generateExecuteContract } from "@brains/contracts";
 import type { PluginCapabilities } from "@brains/plugins";
 import {
   baseEntitySchema,
@@ -96,7 +97,7 @@ describe("SocialMediaPlugin scheduled generation", () => {
     const refusals = refuseEnqueues(queue, 1);
     await harness.installPlugin(new SocialMediaPlugin({}));
 
-    await harness.sendMessage("generate:execute", {
+    await harness.sendMessage(generateExecuteContract.name, {
       entityType: "social-post",
     });
     expect(refusals.count).toBe(1);

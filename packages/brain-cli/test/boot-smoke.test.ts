@@ -201,6 +201,62 @@ describe("built binary boot smoke", () => {
     }
   }, 240_000);
 
+  it("refuses to boot in production with a static MCP token", async () => {
+    const instanceDir = mkdtempSync(join(tmpdir(), "brain-static-token-"));
+    const productionPort = freePort();
+    const apiPort = freePort();
+    try {
+      writeFileSync(
+        join(instanceDir, "brain.yaml"),
+        [
+          "brain: brain",
+          "bundleContract: capability-bundles-v1",
+          "anchor: person",
+          "kind: professional",
+          "bundles:",
+          "  - core",
+          "  - web",
+          "plugins:",
+          "  onboarding:",
+          "    enabled: false",
+          "  webserver:",
+          "    enablePreview: false",
+          `    productionPort: ${productionPort}`,
+          `    apiPort: ${apiPort}`,
+          "",
+        ].join("\n"),
+      );
+
+      const startup = await runProcess(
+        [
+          "bun",
+          join(packageDir, "dist", "brain.js"),
+          "start",
+          "--startup-check",
+        ],
+        {
+          cwd: instanceDir,
+          env: {
+            ...process.env,
+            NODE_ENV: "production",
+            AI_API_KEY: "placeholder-boot-smoke",
+            MCP_AUTH_TOKEN: "static-boot-smoke-token",
+            XDG_DATA_HOME: join(instanceDir, "xdg-data"),
+          },
+        },
+      );
+      const output = `${startup.stdout}${startup.stderr}`;
+
+      expect(startup.exitCode, output).not.toBe(0);
+      expect(output).toContain(
+        "MCP static bearer token (plugins.mcp.authToken / MCP_AUTH_TOKEN) is for local development only; a production brain refuses it. Remove it and connect MCP clients through OAuth with passkeys.",
+      );
+      expect(output).not.toContain("Production server listening");
+    } finally {
+      rmSync(instanceDir, { recursive: true, force: true });
+    }
+  }, 240_000);
+
   it("passes startup checks without a webserver", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-headless-smoke-"));
     try {

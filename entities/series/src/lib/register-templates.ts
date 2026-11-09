@@ -1,7 +1,10 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
+import {
+  contentVisibilitySchema,
+  createTemplate,
+  paginationInfoSchema,
+  type Template,
+} from "@brains/sdk/internal/presentation";
+import { z } from "@brains/sdk/entities";
 import { SeriesListTemplate } from "../templates/series-list";
 import { SeriesDetailTemplate } from "../templates/series-detail";
 

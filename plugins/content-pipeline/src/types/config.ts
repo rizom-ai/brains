@@ -1,41 +1,5 @@
+import type { PublishConfig } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-
-/**
- * Configuration for publish behavior per entity type
- */
-export const publishExecutionModeSchema: z.ZodEnum<{ provider: "provider" }> =
-  z.enum(["provider"]);
-
-export type PublishExecutionMode = z.output<typeof publishExecutionModeSchema>;
-
-type PublishConfigSchema = z.ZodObject<
-  {
-    executionMode: z.ZodOptional<typeof publishExecutionModeSchema>;
-    publishResultIdField: z.ZodOptional<z.ZodString>;
-    publishTimestampField: z.ZodOptional<z.ZodString>;
-    enabled: z.ZodOptional<z.ZodBoolean>;
-  },
-  z.core.$strict
->;
-
-export const publishConfigSchema: PublishConfigSchema = z
-  .object({
-    /** Publishing execution mode. Only provider execution is supported. */
-    executionMode: publishExecutionModeSchema.optional(),
-
-    /** Optional metadata/frontmatter field for storing provider result IDs. */
-    publishResultIdField: z.string().min(1).optional(),
-
-    /** Optional metadata/frontmatter field for storing publish timestamps. */
-    publishTimestampField: z.string().min(1).optional(),
-
-    /** Whether this entity type is enabled for publishing */
-    enabled: z.boolean().optional(),
-  })
-  .strict();
-
-export type PublishConfig = z.output<typeof publishConfigSchema>;
-export type PublishConfigInput = z.input<typeof publishConfigSchema>;
 
 /**
  * Default configuration values

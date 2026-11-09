@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { docAdapter } from "../src/adapters/doc-adapter";
+import { docsPlugin } from "./docs-plugin";
+
+// The adapter the docs register for their type.
+const docAdapter = docsPlugin().adapter;
 
 describe("DocAdapter", () => {
   it("parses doc markdown into metadata", () => {
@@ -15,7 +18,6 @@ description: First steps
 Hello.
 `);
 
-    expect(parsed.entityType).toBe("doc");
     expect(parsed.metadata).toEqual({
       title: "Getting Started",
       section: "Start here",
@@ -23,6 +25,8 @@ Hello.
       slug: "getting-started",
       description: "First steps",
     });
+    // A declared type reads back its body.
+    expect(parsed.content?.trim()).toBe("# Getting Started\n\nHello.");
   });
 
   it("uses explicit slug when provided", () => {
@@ -36,6 +40,7 @@ slug: brain-yaml-reference
 # brain.yaml Reference
 `);
 
-    expect(parsed.metadata?.slug).toBe("brain-yaml-reference");
+    expect(parsed.metadata?.["slug"]).toBe("brain-yaml-reference");
+    expect(parsed.metadata?.["authoredSlug"]).toBe(true);
   });
 });

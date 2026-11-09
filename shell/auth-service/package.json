@@ -1,7 +1,7 @@
 {
   "name": "@brains/auth-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.629",
+  "version": "0.2.0-alpha.665",
   "description": "Embedded OAuth/OIDC authentication service for brain users",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -26,7 +26,6 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./account-contracts": "./src/account-contracts.ts",
     "./env-schema": "./src/env-schema.ts",
     "./admin-contracts": "./src/admin-contracts.ts"
   },

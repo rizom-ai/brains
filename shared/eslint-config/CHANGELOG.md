@@ -1,5 +1,149 @@
 # @brains/eslint-config
 
+## 0.2.0-alpha.665
+
+No changes in this release.
+
+## 0.2.0-alpha.664
+
+No changes in this release.
+
+## 0.2.0-alpha.663
+
+No changes in this release.
+
+## 0.2.0-alpha.662
+
+No changes in this release.
+
+## 0.2.0-alpha.661
+
+No changes in this release.
+
+## 0.2.0-alpha.660
+
+No changes in this release.
+
+## 0.2.0-alpha.659
+
+No changes in this release.
+
+## 0.2.0-alpha.658
+
+No changes in this release.
+
+## 0.2.0-alpha.657
+
+No changes in this release.
+
+## 0.2.0-alpha.656
+
+No changes in this release.
+
+## 0.2.0-alpha.655
+
+No changes in this release.
+
+## 0.2.0-alpha.654
+
+No changes in this release.
+
+## 0.2.0-alpha.653
+
+No changes in this release.
+
+## 0.2.0-alpha.652
+
+No changes in this release.
+
+## 0.2.0-alpha.651
+
+No changes in this release.
+
+## 0.2.0-alpha.650
+
+No changes in this release.
+
+## 0.2.0-alpha.649
+
+No changes in this release.
+
+## 0.2.0-alpha.648
+
+No changes in this release.
+
+## 0.2.0-alpha.647
+
+No changes in this release.
+
+## 0.2.0-alpha.646
+
+No changes in this release.
+
+## 0.2.0-alpha.645
+
+No changes in this release.
+
+## 0.2.0-alpha.644
+
+No changes in this release.
+
+## 0.2.0-alpha.643
+
+No changes in this release.
+
+## 0.2.0-alpha.642
+
+No changes in this release.
+
+## 0.2.0-alpha.641
+
+No changes in this release.
+
+## 0.2.0-alpha.640
+
+No changes in this release.
+
+## 0.2.0-alpha.639
+
+No changes in this release.
+
+## 0.2.0-alpha.638
+
+No changes in this release.
+
+## 0.2.0-alpha.637
+
+No changes in this release.
+
+## 0.2.0-alpha.636
+
+No changes in this release.
+
+## 0.2.0-alpha.635
+
+No changes in this release.
+
+## 0.2.0-alpha.634
+
+No changes in this release.
+
+## 0.2.0-alpha.633
+
+No changes in this release.
+
+## 0.2.0-alpha.632
+
+No changes in this release.
+
+## 0.2.0-alpha.631
+
+No changes in this release.
+
+## 0.2.0-alpha.630
+
+No changes in this release.
+
 ## 0.2.0-alpha.629
 
 No changes in this release.

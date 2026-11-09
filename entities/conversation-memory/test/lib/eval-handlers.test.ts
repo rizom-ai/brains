@@ -1,6 +1,7 @@
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock, spyOn } from "bun:test";
 import type { EvalHandler, SearchResult } from "@brains/plugins";
+import { createExternalActorId } from "@brains/contracts";
 import { registerMemoryEvalHandlers } from "../../src/lib/eval-handlers";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
@@ -184,6 +185,82 @@ describe("registerMemoryEvalHandlers", () => {
           status: "open",
         }),
       ],
+    });
+  });
+
+  describe("seeded people", () => {
+    const daniel = createExternalActorId("canonical", "person:daniel");
+    const otherDaniel = createExternalActorId(
+      "discord",
+      "discord:user-other-daniel",
+    );
+    const decision = (
+      id: string,
+      decidedBy: unknown[],
+    ): Record<string, unknown> => ({
+      id,
+      entityType: "decision",
+      conversationId: `${id}-conv`,
+      interfaceType: "discord",
+      channelId: "relay-team",
+      content: `# Decision\n\n${id}`,
+      status: "active",
+      visibility: "shared",
+      decidedBy,
+    });
+
+    it("retrieveMemory matches seeded memory by the canonical identity it is asked for", async () => {
+      const { handlers } = registerHandlers();
+      const handler = handlers.get("retrieveMemory");
+      if (!handler) throw new Error("retrieveMemory handler missing");
+
+      const result = await handler({
+        query: "Daniel",
+        interfaceType: "discord",
+        channelId: "relay-team",
+        canonicalId: "person:daniel",
+        memory: [
+          decision("linked", [
+            {
+              identity: { kind: "external", externalActorId: daniel },
+              displayName: "Daniel",
+            },
+          ]),
+          decision("unlinked", [
+            {
+              identity: { kind: "external", externalActorId: otherDaniel },
+              displayName: "Daniel",
+            },
+          ]),
+        ],
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          results: [expect.objectContaining({ id: "linked" })],
+        }),
+      );
+    });
+
+    it("refuses seeded people named by a bare actor id", async () => {
+      const { handlers } = registerHandlers();
+      const handler = handlers.get("retrieveMemory");
+      if (!handler) throw new Error("retrieveMemory handler missing");
+
+      const refused = await Promise.resolve(
+        handler({
+          query: "Daniel",
+          memory: [
+            decision("bare", [
+              { actorId: "discord:user-daniel", displayName: "Daniel" },
+            ]),
+          ],
+        }),
+      ).then(
+        () => false,
+        () => true,
+      );
+      expect(refused).toBe(true);
     });
   });
 });

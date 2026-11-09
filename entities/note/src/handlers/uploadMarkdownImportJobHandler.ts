@@ -1,4 +1,8 @@
-import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
+import {
+  internalFullScope,
+  BaseJobHandler,
+  saveProcessedEntity,
+} from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
 import { JobResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
@@ -129,7 +133,7 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
       const existing = await this.context.entityService.getEntity({
         entityType: "note",
         id: entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mark import stub failed"),
       });
       if (!existing) return;
 

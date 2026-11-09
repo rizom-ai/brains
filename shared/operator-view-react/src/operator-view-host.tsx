@@ -230,6 +230,8 @@ export const CSS_COMPONENTS: OperatorViewComponents = {
 interface OperatorRendererHost {
   readonly resolveLink?:
     ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
+  /** Sends the browser to a launch action's checked https destination. */
+  readonly onExternalLaunch?: ((url: string) => void) | undefined;
   readonly onDetachedActionResult?:
     ((result: PresentedActionResult) => void) | undefined;
   readonly renderAllTabs: boolean;

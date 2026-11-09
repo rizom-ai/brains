@@ -1,18 +1,19 @@
-import { getActiveAuthService } from "@brains/auth-service";
+import {
+  ConfirmationArgsStore,
+  internalFullScope,
+  type Tool,
+  type ToolResponse,
+} from "@brains/plugins";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   EntityPluginContext,
   ServicePluginContext,
 } from "@brains/plugins";
-import {
-  ConfirmationArgsStore,
-  type Tool,
-  type ToolResponse,
-} from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
-import { extractDomain, type FetchFn } from "../lib/fetch-agent-card";
+import type { FetchLike } from "@brains/utils/fetch-like";
+import { extractDomain } from "../lib/extract-domain";
 import { agentEntitySchema } from "../schemas/agent";
 
 const trustLevelSchema = z.enum(["public", "trusted"]);
@@ -34,7 +35,7 @@ type AgentSetTrustLevelInput = z.infer<typeof agentSetTrustLevelInputSchema>;
 
 type AgentSetTrustLevelContext = Pick<
   EntityPluginContext | ServicePluginContext,
-  "entityService"
+  "entityService" | "auth"
 >;
 
 const jwksSchema = z.object({
@@ -64,6 +65,9 @@ async function resolveAgentDomain(
     {
       entityType: AGENT_ENTITY_TYPE,
       id,
+      visibilityScope: internalFullScope(
+        "agent_set_trust_level is admin-only and sets trust for agents saved at any visibility",
+      ),
     },
     agentEntitySchema,
   );
@@ -76,7 +80,7 @@ async function resolveAgentDomain(
 
 async function fetchA2AKeyFingerprint(
   domain: string,
-  fetchFn: FetchFn,
+  fetchFn: FetchLike,
 ): Promise<string | null> {
   try {
     const response = await fetchFn(`https://${domain}/.well-known/jwks.json`);
@@ -100,7 +104,7 @@ async function fetchA2AKeyFingerprint(
 
 export function createAgentSetTrustLevelTool(
   context: AgentSetTrustLevelContext,
-  fetchFn: FetchFn = globalThis.fetch,
+  fetchFn: FetchLike = globalThis.fetch,
 ): Tool {
   const toolName = "agent_set_trust_level";
   const confirmationArgsStore = new ConfirmationArgsStore();
@@ -121,7 +125,7 @@ export function createAgentSetTrustLevelTool(
         };
       }
 
-      const authService = getActiveAuthService();
+      const authService = context.auth.get();
       const actorUserId = authenticatedUserId(toolContext);
       if (!authService) {
         return {

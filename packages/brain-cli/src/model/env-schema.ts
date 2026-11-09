@@ -3,6 +3,7 @@ import { atprotoEnvSchema } from "@brains/atproto/env-schema";
 import { authServiceEnvSchema } from "@brains/auth-service/env-schema";
 import { shellEnvVars } from "@brains/core/env-schema";
 import { directorySyncEnvSchema } from "@brains/directory-sync/env-schema";
+import { linkedInImportEnvSchema } from "@brains/linkedin-import/env-schema";
 import { chatEnvSchema } from "@brains/chat/env-schema";
 import { emailEnvSchema } from "@brains/email/env-schema";
 import { newsletterEnvSchema } from "@brains/newsletter/env-schema";
@@ -22,4 +23,5 @@ export const canonicalEnvSchema: EnvVarDecl[] = [
   ...emailEnvSchema,
   ...analyticsEnvSchema,
   ...stockPhotoEnvSchema,
+  ...linkedInImportEnvSchema,
 ];

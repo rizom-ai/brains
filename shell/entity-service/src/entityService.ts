@@ -1,3 +1,4 @@
+import { internalFullScope } from "./internal-scope";
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import type {
   QueryGroupingCatalogRequest,
@@ -699,6 +700,30 @@ export class EntityService implements IEntityService {
     return { rewritten };
   }
 
+  /**
+   * Re-derive the stored metadata of every type whose metadata is its
+   * frontmatter from the stored markdown, the metadata column alone. A type
+   * converted from an entity plugin class kept its fields in the content
+   * and may have stored other metadata; the declaration reads the
+   * frontmatter as metadata.
+   */
+  public async reconcileDeclaredMetadata(): Promise<{ reconciled: number }> {
+    await this.initialize();
+    const types = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          this.entityRegistry.getAdapter(type).metadataFromFrontmatter === true,
+      );
+    const reconciled = await types.reduce<Promise<number>>(
+      async (total, type) =>
+        (await total) +
+        (await this.entityQueries.reconcileDeclaredMetadata(type)),
+      Promise.resolve(0),
+    );
+    return { reconciled };
+  }
+
   /** Entities of one type still carrying a retired field, rewritten one by one. */
   private async rewriteType(type: string): Promise<number> {
     const ids = await this.entityQueries.idsCarryingFrontmatterFields(
@@ -710,7 +735,9 @@ export class EntityService implements IEntityService {
       const entity = await this.getEntity({
         entityType: type,
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "retired frontmatter field rewrite migration",
+        ),
       });
       // Reads already parse past retired fields; writing re-serializes without them.
       if (entity) await this.updateEntity({ entity });
@@ -889,7 +916,10 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const entity = await this.entitySerializer.convertToEntity(
+      entityData,
+      request.source,
+    );
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }

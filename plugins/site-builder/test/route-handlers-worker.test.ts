@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { siteBuilderRouteRegisterContract } from "@brains/site-composition";
 import { RouteRegistry } from "@brains/site-engine";
 import { setupRouteHandlers } from "../src/lib/route-handlers";
 
@@ -20,7 +20,7 @@ describe("route registration in the worker process", () => {
     setupRouteHandlers(context, registry, logger);
 
     await shell.getMessageBus().send({
-      type: SITE_BUILDER_CHANNELS.routeRegister,
+      type: siteBuilderRouteRegisterContract.name,
       payload: {
         pluginId: "contact",
         routes: [

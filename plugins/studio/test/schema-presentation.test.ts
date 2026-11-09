@@ -1,5 +1,5 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { describe, expect, it } from "bun:test";
-import type { AuthPrincipal } from "@brains/auth-service";
 import {
   BaseEntityAdapter,
   baseEntitySchema,

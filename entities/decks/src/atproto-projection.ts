@@ -1,5 +1,8 @@
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import {
+  atprotoProvenance,
+  defineAtprotoProjection,
+} from "@brains/atproto-contracts";
 import type {
   AtprotoBrainDeckRecord,
   AtprotoProjection,
@@ -29,22 +32,14 @@ export async function buildDeckAtprotoRecord({
     ...(frontmatter.author && { author: frontmatter.author }),
     ...(frontmatter.event && { event: frontmatter.event }),
     ...(frontmatter.publishedAt && { publishedAt: frontmatter.publishedAt }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "deck",
-    sourceEntityId: deck.id,
-    createdAt: deck.created,
-    ...(deck.updated && { updatedAt: deck.updated }),
+    ...atprotoProvenance({ config, pageUrl }, deck),
   };
 }
 
 export function createDeckAtprotoProjection(): AtprotoProjection<AtprotoBrainDeckRecord> {
-  return {
+  return defineAtprotoProjection({
     entityType: "deck",
     collection: "ai.rizom.brain.deck",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.deck"],
-    validate: false,
     buildRecord: buildDeckAtprotoRecord,
-  };
+  });
 }

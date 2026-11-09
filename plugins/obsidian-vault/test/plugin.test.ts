@@ -1,15 +1,21 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
+import { createSilentLogger } from "@brains/test-utils";
+import type { Plugin } from "@brains/plugins";
 import {
   baseEntitySchema,
   createPluginHarness,
   createTestEntityAdapter,
-  expectSuccess,
 } from "@brains/plugins/test";
 
 import { generateBase, previousDisplayName } from "../src/lib/base-generator";
 import { introspectSchema } from "../src/lib/schema-introspector";
-import { ObsidianVaultPlugin } from "../src/plugin";
+import obsidianVaultPackage, {
+  obsidianVaultConfigSchema,
+  syncObsidianVault,
+  type ObsidianSyncReport,
+} from "../src";
+import { obsidianVaultPlugin, shapesOf } from "./obsidian-plugin";
 
 const generatedSchema = z.object({ generated: z.array(z.string()) });
 const generatedWithSkippedSchema = z.object({
@@ -73,10 +79,22 @@ function createMockDeps(): MockDeps {
   };
 }
 
-describe("ObsidianVaultPlugin", () => {
+describe("obsidian vault", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let deps: ReturnType<typeof createMockDeps>;
-  let plugin: ObsidianVaultPlugin;
+  let plugin: Plugin;
+
+  /** One sync over the registered types, as the ready handler runs it. */
+  function syncTemplates(filterTypes?: string[]): ObsidianSyncReport {
+    return syncObsidianVault({
+      shapes: shapesOf(harness),
+      dataDir: "/tmp/test-vault",
+      config: obsidianVaultConfigSchema.parse({}),
+      deps,
+      logger: createSilentLogger(),
+      filterTypes,
+    });
+  }
 
   beforeEach(async () => {
     deps = createMockDeps();
@@ -114,17 +132,49 @@ describe("ObsidianVaultPlugin", () => {
       type: string,
     ): z.ZodObject<z.ZodRawShape> | undefined => schemas.get(type);
 
-    plugin = new ObsidianVaultPlugin({}, deps);
+    plugin = obsidianVaultPlugin(deps);
     await harness.installPlugin(plugin);
   });
 
   it("should auto-sync templates during ready lifecycle", async () => {
-    await plugin.ready();
+    await plugin.ready?.();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
     expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
     expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
+  });
+
+  it("default-exports its service package definition", () => {
+    expect(obsidianVaultPackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "obsidian-vault",
+    });
+  });
+
+  it("registers under the plugin id its class had, with no tools or resources", () => {
+    const capabilities = harness.getCapabilities();
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "obsidian-vault",
+      "service",
+      "@brains/obsidian-vault",
+    ]);
+    expect(capabilities.tools).toEqual([]);
+    expect(capabilities.resources).toEqual([]);
+  });
+
+  it("writes nothing before the brain is ready", () => {
+    expect(deps.writeFile).not.toHaveBeenCalled();
+  });
+
+  it("logs a vault it cannot write and lets the brain go on", async () => {
+    deps.mkdir.mockImplementation(() => {
+      throw new Error("read-only file system");
+    });
+
+    expect(await plugin.ready?.()).toBeUndefined();
+    expect(deps.writeFile).not.toHaveBeenCalled();
   });
 
   it("should not register sync-templates as a tool", () => {
@@ -134,16 +184,15 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate templates for all entity types", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
+    const result = syncTemplates();
 
-    const data = generatedSchema.parse(result.data);
+    const data = generatedSchema.parse(result);
     expect(data.generated).toContain("post");
     expect(data.generated).toContain("note");
   });
 
   it("should write template files to the correct directory", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     expect(deps.mkdir).toHaveBeenCalledWith(
       "/tmp/test-vault/_obsidian/templates",
@@ -157,7 +206,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate valid template content", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const postCall = writeCalls.find(
@@ -173,10 +222,9 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should filter entity types when specified", async () => {
-    const result = await plugin.syncTemplates(["post"]);
-    expectSuccess(result);
+    const result = syncTemplates(["post"]);
 
-    const data = generatedSchema.parse(result.data);
+    const data = generatedSchema.parse(result);
     expect(data.generated).toEqual(["post"]);
     expect(data.generated).not.toContain("note");
   });
@@ -189,16 +237,15 @@ describe("ObsidianVaultPlugin", () => {
       createTestEntityAdapter("image"),
     );
 
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
+    const result = syncTemplates();
 
-    const data = generatedWithSkippedSchema.parse(result.data);
+    const data = generatedWithSkippedSchema.parse(result);
     expect(data.skipped).toContain("image");
     expect(data.generated).not.toContain("image");
   });
 
   it("should write fileClass files to the correct directory", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     expect(deps.mkdir).toHaveBeenCalledWith(
       "/tmp/test-vault/_obsidian/fileClasses",
@@ -212,7 +259,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate fileClass with enum options", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const postFileClass = writeCalls.find(
@@ -229,16 +276,15 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should return fileClasses in result data", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
+    const result = syncTemplates();
 
-    const data = fileClassesSchema.parse(result.data);
+    const data = fileClassesSchema.parse(result);
     expect(data.fileClasses).toContain("post");
     expect(data.fileClasses).toContain("note");
   });
 
   it("should generate .base files at vault root", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -247,7 +293,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate Pipeline.base when status fields exist", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -259,7 +305,7 @@ describe("ObsidianVaultPlugin", () => {
       (path: string) => path === "/tmp/test-vault/_obsidian/bases/Posts.base",
     );
 
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -283,7 +329,7 @@ describe("ObsidianVaultPlugin", () => {
       );
       deps.readFile.mockImplementation(() => before.content);
 
-      await plugin.syncTemplates();
+      syncTemplates();
 
       expect(deps.writeFile.mock.calls.map((call) => call[0])).toContain(
         `${bases}/FAQs.base`,
@@ -297,7 +343,7 @@ describe("ObsidianVaultPlugin", () => {
       );
       deps.readFile.mockImplementation(() => "my own view");
 
-      await plugin.syncTemplates();
+      syncTemplates();
 
       expect(deps.renameFile).toHaveBeenCalledWith(
         `${bases}/Faqs.base`,
@@ -312,7 +358,7 @@ describe("ObsidianVaultPlugin", () => {
           path === `${bases}/Faqs.base` || path === `${bases}/FAQs.base`,
       );
 
-      await plugin.syncTemplates();
+      syncTemplates();
 
       expect(deps.renameFile).not.toHaveBeenCalled();
       expect(deps.removeFile).not.toHaveBeenCalled();
@@ -320,17 +366,16 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should return bases in result data", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
+    const result = syncTemplates();
 
-    const data = basesSchema.parse(result.data);
+    const data = basesSchema.parse(result);
     expect(data.bases).toContain("post");
     expect(data.bases).toContain("note");
     expect(data.bases).toContain("Pipeline");
   });
 
   it("should not generate templates for singleton entity types", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -340,7 +385,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should still generate fileClasses for singleton entity types", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -350,7 +395,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should not generate individual .base for singleton entity types", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -366,7 +411,7 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should generate Settings.base grouping all singletons", async () => {
-    await plugin.syncTemplates();
+    syncTemplates();
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
@@ -374,9 +419,8 @@ describe("ObsidianVaultPlugin", () => {
   });
 
   it("should not include singletons in generated list", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
-    const data = generatedSchema.parse(result.data);
+    const result = syncTemplates();
+    const data = generatedSchema.parse(result);
     expect(data.generated).not.toContain("site-info");
   });
 });

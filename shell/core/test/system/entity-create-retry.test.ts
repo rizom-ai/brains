@@ -19,7 +19,7 @@ function importRequest(): Record<string, unknown> {
     entityType: "note",
     source: {
       kind: "upload",
-      upload: { kind: "upload", id: meetingUpload.id },
+      id: meetingUpload.id,
       transform: "extract-markdown",
     },
   };

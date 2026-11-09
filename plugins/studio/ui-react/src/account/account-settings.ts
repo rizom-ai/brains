@@ -1,4 +1,4 @@
-import type { AuthAccountPluginSettingsField } from "@brains/auth-service/account-contracts";
+import type { AuthAccountPluginSettingsField } from "@brains/contracts";
 
 /**
  * A settings form's values in the types its fields declare: a checkbox is

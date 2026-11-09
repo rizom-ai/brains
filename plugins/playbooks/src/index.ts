@@ -1,7 +1,7 @@
 export {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  lifecycleStarterRegistrationSchema,
+  lifecycleStarterRegistrationContract,
   type LifecycleStarterRegistration,
+  type LifecycleStarterRegistrationResult,
 } from "@brains/contracts";
 export {
   PlaybookPlugin,
@@ -42,7 +42,6 @@ export {
   type GoalCheckInput,
   type GoalCheckResult,
   type LifecyclePlaybookConfig,
-  type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
   type PlaybooksConfig,
   type PlaybooksPluginDeps,

@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/plugins";
-import { resetPromptMaterialization } from "@brains/plugins";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
@@ -189,8 +188,6 @@ describe("AIContentDataSource", () => {
   }
 
   beforeEach(() => {
-    resetPromptMaterialization();
-
     mockAIService = createMockAIService({
       returns: { generateObject: { message: "Test response" } },
     });

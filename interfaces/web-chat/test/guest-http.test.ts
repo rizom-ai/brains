@@ -14,15 +14,15 @@ import {
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import {
-  TOPIC_TITLES_MESSAGE,
-  NOTE_CAPTURE_MESSAGE,
+  topicTitlesContract,
+  noteCaptureContract,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "@brains/contracts";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type BaseEntity,
   type IAgentService,
   type IConversationService,
@@ -258,7 +258,7 @@ async function setup(
     .getMockShell()
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       (registration) => {
         workspaces.push(registration.payload);
         return {
@@ -277,7 +277,7 @@ async function setup(
     harness
       .getMockShell()
       .getMessageBus()
-      .subscribe(TOPIC_TITLES_MESSAGE, () => ({
+      .subscribe(topicTitlesContract.name, () => ({
         success: true,
         data: { titles: topics },
       }));
@@ -290,7 +290,7 @@ async function setup(
       .getMockShell()
       .getMessageBus()
       .subscribe<NoteCaptureRequest, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
+        noteCaptureContract.name,
         (message) => {
           captured.push(message.payload);
           return {

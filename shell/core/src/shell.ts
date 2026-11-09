@@ -1,3 +1,4 @@
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 // Plugin framework types
 import type {
   RuntimeAppInfo,
@@ -36,6 +37,7 @@ import {
   type IInboxRegistry,
   type IOperationalHealthRegistry,
   type AccountSettingsRegistry,
+  type AuthRegistry,
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
@@ -50,7 +52,10 @@ import type {
 } from "@brains/entity-service";
 
 // Content service
-import type { IContentService } from "@brains/content-service";
+import type {
+  CallerAuthorizer,
+  IContentService,
+} from "@brains/content-service";
 
 // Messaging
 import type { IMessageBus } from "@brains/messaging-service";
@@ -481,6 +486,10 @@ export class Shell implements IShell {
     return this.services.contentService;
   }
 
+  public getCallerAuthorizer(): CallerAuthorizer {
+    return this.services.callerAuthorizer;
+  }
+
   public getRenderService(): RenderService {
     return this.services.renderService;
   }
@@ -699,6 +708,14 @@ export class Shell implements IShell {
     return this.services.accountSettingsRegistry;
   }
 
+  public getAuthRegistry(): AuthRegistry {
+    return this.services.authRegistry;
+  }
+
+  public getAtprotoProjectionRegistry(): AtprotoProjectionRegistry {
+    return this.services.atprotoProjectionRegistry;
+  }
+
   public getDomain(): string | undefined {
     return this.config.siteBaseUrl;
   }
@@ -709,6 +726,10 @@ export class Shell implements IShell {
 
   public shouldPreferLocalUrls(): boolean {
     return this.config.preferLocalUrls;
+  }
+
+  public isProduction(): boolean {
+    return this.config.production;
   }
 
   public getThemeCSS(): string {

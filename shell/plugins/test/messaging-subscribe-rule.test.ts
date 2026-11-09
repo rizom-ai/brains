@@ -1,7 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import { ENTITY_CHANNELS, publishCompletedChannel } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
-import { defineChannel } from "../src/utils/channels";
+import {
+  defineChannel,
+  embeddingReadyChannel,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+} from "../src";
 import { createMockShell } from "../src/test/mock-shell";
 import { createServicePluginContext } from "../src/service/context";
 import { z } from "@brains/utils/zod";
@@ -32,9 +38,25 @@ describe("messaging.subscribe", () => {
       z.object({ entityId: z.string() }),
     );
 
-    expect(() => context.messaging.subscribe(channel, handler)).toThrow(
-      "observe or subscribeExecution",
-    );
+    expect(() =>
+      // @ts-expect-error an entity channel takes observe or subscribeExecution
+      context.messaging.subscribe(channel, handler),
+    ).toThrow("observe or subscribeExecution");
+  });
+
+  it.each([
+    entityCreatedChannel,
+    entityUpdatedChannel,
+    entityDeletedChannel,
+    embeddingReadyChannel,
+  ])("refuses the $name channel", (channel) => {
+    const shell = createMockShell({ logger: createSilentLogger() });
+    const context = createServicePluginContext(shell, "test");
+
+    expect(() =>
+      // @ts-expect-error an entity channel takes observe or subscribeExecution
+      context.messaging.subscribe(channel, handler),
+    ).toThrow("observe or subscribeExecution");
   });
 
   it("refuses an entity event hidden behind a string", () => {
@@ -53,6 +75,9 @@ describe("messaging.subscribe", () => {
 
     expect(() =>
       context.messaging.subscribe("publish:completed", handler),
+    ).not.toThrow();
+    expect(() =>
+      context.messaging.subscribe(publishCompletedChannel, handler),
     ).not.toThrow();
   });
 });

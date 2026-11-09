@@ -1,6 +1,5 @@
 import {
-  EMAIL_SOURCE_READ,
-  emailSourceReadResponseSchema,
+  emailSourceReadContract,
   type EmailSourceReadResponse,
 } from "@brains/contracts";
 import {
@@ -63,19 +62,11 @@ export class EmailWorkflowsSourceReader {
       const signal = request.data.signal
         ? AbortSignal.any([request.data.signal, timeout])
         : timeout;
-      const response = await this.context.messaging.send({
-        type: EMAIL_SOURCE_READ,
-        payload: {
-          sourceRef,
-          actor: request.data.actor,
-          signal,
-        },
-      });
-      if ("noop" in response || !response.success) {
-        return { kind: "unavailable" };
-      }
-      const parsed = emailSourceReadResponseSchema.safeParse(response.data);
-      return parsed.success ? parsed.data : { kind: "unavailable" };
+      const read = await this.context.messaging.request(
+        emailSourceReadContract,
+        { sourceRef, actor: request.data.actor, signal },
+      );
+      return read.status === "answered" ? read.data : { kind: "unavailable" };
     } catch {
       // Same fixed outcome as every other failure above: the caller must
       // not be able to tell an unreadable source from an absent one.

@@ -7,10 +7,16 @@ export const messageResponseSchema: z.ZodObject<{
   success: z.ZodBoolean;
   data: z.ZodOptional<z.ZodUnknown>;
   error: z.ZodOptional<z.ZodString>;
+  code: z.ZodOptional<z.ZodString>;
 }> = z.object({
   success: z.boolean(),
   data: z.unknown().optional(),
   error: z.string().optional(),
+  /**
+   * A failure's SDK error code, sent with its public message as `error`. A
+   * failure without one carries no public message the asker may trust.
+   */
+  code: z.string().optional(),
 });
 
 /** A handler's reply: the parsed response with its data narrowed to T, or a no-op. */
@@ -92,6 +98,6 @@ export interface MessageBusSendRequest<
  * Message sender type for plugin-facing send functions where sender identity is
  * supplied by the runtime.
  */
-export type MessageSender = <T = unknown, R = unknown>(
+export type MessageSender = <T = unknown>(
   request: MessageSendRequest<T>,
-) => Promise<MessageResponse<R>>;
+) => Promise<MessageResponse>;

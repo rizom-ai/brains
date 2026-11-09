@@ -7,7 +7,6 @@ import type {
   ProjectionRule,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
@@ -21,10 +20,7 @@ import {
 } from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";
-import {
-  registerWithPublishPipeline,
-  subscribeToPublishExecute,
-} from "./lib/publish-handler";
+import { registerWithPublishPipeline } from "./lib/publish-handler";
 import { subscribeToGenerateExecute } from "./lib/auto-generate";
 import { createSocialPostAtprotoProjection } from "./atproto-projection";
 import { createSocialPostProjectionRule } from "./lib/social-post-projection";
@@ -40,7 +36,6 @@ export class SocialMediaPlugin extends EntityPlugin<
   readonly adapter: typeof socialPostAdapter = socialPostAdapter;
 
   private providers = new Map<string, PublishProvider>();
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   private deps: LinkedInClientDeps;
 
@@ -93,7 +88,6 @@ export class SocialMediaPlugin extends EntityPlugin<
     this.initializeProviders();
 
     registerWithPublishPipeline(context, this.providers, this.logger);
-    subscribeToPublishExecute(context, this.providers, this.logger);
 
     if (this.config.autoGenerateOnBlogPublish) {
       this.logger.info("Scheduler-owned auto-generation enabled");
@@ -101,17 +95,9 @@ export class SocialMediaPlugin extends EntityPlugin<
 
     subscribeToGenerateExecute(context, this.logger, this.retries);
     registerEvalHandlers(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createSocialPostAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createSocialPostAtprotoProjection());
 
     this.logger.info("Social media plugin registered successfully");
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 
   private initializeProviders(): void {

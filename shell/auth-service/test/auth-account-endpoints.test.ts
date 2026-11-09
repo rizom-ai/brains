@@ -13,6 +13,7 @@ import {
   AuthService,
   authServicePlugin,
 } from "../src";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
@@ -36,7 +37,11 @@ async function createService(): Promise<{
 }> {
   const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-account-"));
   tempDirs.push(storageDir);
-  const service = new AuthService({ storageDir, issuer: ISSUER });
+  const service = new AuthService({
+    ...registeredTestChannels,
+    storageDir,
+    issuer: ISSUER,
+  });
   await service.initialize();
   return { service, storageDir };
 }

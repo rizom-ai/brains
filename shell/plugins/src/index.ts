@@ -63,7 +63,6 @@ export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   readPromptOverride,
-  resetPromptMaterialization,
   materializePrompts,
 } from "./entity/prompt-resolver";
 export {
@@ -115,6 +114,8 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export { AuthRegistry } from "./auth-registry";
+export type { AuthBackend, IAuthNamespace } from "./contracts/auth";
 export {
   InboxFollowUpRegistry,
   resolvedInboxFollowUpSchema,
@@ -166,11 +167,14 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  initialSyncCompletedChannel,
+  initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
 } from "./system-channels";
-export { defineChannel, type Channel } from "./utils/channels";
+export { defineChannel, type Channel } from "@brains/contracts";
 export {
   createAdminListTool,
   createListToolOutputSchema,
@@ -200,6 +204,7 @@ export {
   createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
   runtimeUploadIdPattern,
+  sharedUploadScope,
   defaultRuntimeUploadRetentionMs,
   defaultRuntimeUploadMaxCount,
   type IRuntimeUploadsNamespace,
@@ -268,6 +273,7 @@ export {
   createPluginPackageDefinition,
   getPluginPackageMetadata,
   instantiatePluginPackageDefinition,
+  isPackageDefinitionPlugin,
   isPluginPackageDefinition,
   type AnyPluginConfigSchema,
   type CreatePluginPackageDefinitionInput,
@@ -276,27 +282,108 @@ export {
   type PluginPackageConfigInput,
   type PluginPackageDefinition,
   type PluginPackageFamily,
+  type PluginPackageInstantiationOptions,
 } from "./package-definition";
+// Runtime reads for a host that drives installed packages, such as the test
+// brain: definition-typed entity reads, and a job's status as a service reads it.
+export { createEntityReader } from "./entity/entity-reader";
+export { serviceJobStatus } from "./service/job-status";
 export {
   defineEntity,
+  defineEntityAnalyticsReport,
+  defineEntityJob,
   defineEntityPackage,
   defineProjection,
   type AnyEntityDefinition,
+  type AnyEntityJobDeclaration,
+  type EntityAgentContextProvider,
+  type EntityEvalContext,
+  type EntityEvalDeclaration,
+  type EntityEvalFixtures,
+  type EntityScheduledGenerationDeclaration,
   type EncodedEntityMarkdown,
+  type EntityCreateAllocation,
+  type EntityCreateDelegation,
+  type EntityGenerationAI,
+  type EntityGenerationContext,
+  type EntityGenerationDeclaration,
+  type EntityGenerationLink,
+  type EntityGenerationRequest,
+  type EntityGenerationResult,
+  type EntityJobContext,
+  type EntityJobHandleContext,
+  type EntityJobDeclaration,
+  type EntityJobMessaging,
+  type EntityJobProgress,
+  type EntityAttachmentDeclaration,
+  type EntityCreateAttachment,
+  type EntityCreateCheck,
+  type EntityCreateContext,
+  type EntityCreateResolution,
+  type EntityCreateRoute,
+  type EntityCreateRouting,
+  type EntityCreateUploadReader,
+  type MediaAttachmentContext,
+  type MediaEntityListRequest,
+  type MediaEntityReads,
+  type MediaEntityRequest,
+  type EntityAnalyticsReportContext,
+  type EntityDashboardBindingContext,
+  type EntityDashboardWidget,
+  type EntityInboxActionContext,
+  type EntityInboxChange,
+  type EntityInboxDeclaration,
+  type EntityInboxDetailContext,
+  type EntityInboxEdits,
+  type EntityInboxListContext,
+  type EntityRecordReader,
+  type EntityCheckAlert,
+  type EntityCheckCadence,
+  type EntityCheckContext,
+  type EntityCheckDeclaration,
+  type EntityCheckResult,
+  type EntityAnalyticsReportDeclaration,
+  type EntityAtprotoProjection,
+  type EntityAtprotoPublishConfig,
+  type EntityAtprotoRecordInput,
   type EntityDefinition,
+  type EntityDefinitionConfig,
+  type EntityFeedDeclaration,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
   type EntityOf,
+  type EntityPackageConfigSchema,
+  type EntityPackageConfiguration,
   type EntityPackageDefinition,
+  type EntitySlotBinding,
+  type EntityPublishAssetDeclaration,
+  type EntityPublishDeclaration,
+  type EntitySeedDefinition,
+  type EntitySeedTrigger,
   type EntityVisibility,
   type EntityWriteInput,
   type ProjectionDefinition,
   type ProjectionTarget,
 } from "./public/entity-definition";
 export {
+  defineDataSource,
+  type AnyDataSourceDeclaration,
+  type AnyEntityDataSourceDefinition,
+  type DataSourceDefinition,
+  type EntityReader,
+  type DataSourceListOptions,
+  type DataSourceQuery,
+  type DataSourceReadContext,
+  type DataSourceSortField,
+  type EntityDataSourceDefinition,
+  type EntityDataSourceInput,
+  type EntityDetailContext,
+} from "./public/entity-data-source";
+export {
   defineAccountSettings,
   defineStudioWorkspace,
   defineDashboardWidget,
+  defineBusContract,
   defineEntityCatalog,
   defineJob,
   defineServicePlugin,
@@ -304,6 +391,7 @@ export {
   defineWorkspaceAction,
   type AccountSettingsDefinition,
   type AccountSettingsFieldDefinition,
+  type AccountSettingsSecret,
   type AccountSettingsValue,
   type AnyServiceJobDefinition,
   type AnyServiceToolDefinition,
@@ -317,7 +405,6 @@ export {
   type OperatorCaller,
   type OperatorCapabilityDefinition,
   type OperatorEntityCatalogDefinition,
-  type OperatorEntityReader,
   type OperatorQueryReader,
   type OperatorView,
   type OperatorCardBlock,
@@ -345,6 +432,7 @@ export {
   type ServiceJobDefinition,
   type ServiceJobReference,
   type ServiceJobStatus,
+  type OwnedEntityWriter,
   type ServicePackageDefinition,
   type ServiceTemplateGenerationDefinition,
   type WorkspaceActionConfirmation,
@@ -355,6 +443,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineRoute,
   protocol,
 } from "./public/interface-definition";
@@ -384,7 +473,6 @@ export type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  DefaultQueryResponse,
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
@@ -405,7 +493,6 @@ export {
   interactionInfoSchema,
   interactionKindSchema,
   interactionStatusSchema,
-  defaultQueryResponseSchema,
   pluginMetadataSchema,
   toolResponseSchema,
 } from "./interfaces";
@@ -436,7 +523,6 @@ export type {
   EntityAdapter,
   EntityInput,
   EntitySchema,
-  EntitySchemaParser,
   EntitySearchRequest,
   GetEntityRequest,
   ListEntitiesRequest,
@@ -475,6 +561,14 @@ export {
   BaseEntityAdapter,
   baseEntityParserSchema,
   baseEntitySchema,
+  embeddingReadyChannel,
+  embeddingReadyPayloadSchema,
+  entityChangePayloadSchema,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type EmbeddingReadyPayload,
+  type EntityChangePayload,
   entityIdPathSchema,
   entityGroupingSchema,
   groupingSortSchema,
@@ -534,7 +628,11 @@ export { paginationInfoSchema } from "@brains/entity-service";
 // Job System & Generation
 // ============================================================================
 
-export { BaseJobHandler, JobProgressEventSchema } from "@brains/job-queue";
+export {
+  BaseJobHandler,
+  JobProgressEventSchema,
+  jobProgressChannel,
+} from "@brains/job-queue";
 export type { JobHandler } from "@brains/job-queue";
 export {
   BaseGenerationJobHandler,
@@ -547,6 +645,7 @@ export type {
   Batch,
   BatchOperation,
   BatchJobStatus,
+  EnqueueJobRequest,
   JobContext,
   JobInfo,
   JobOptions,
@@ -620,6 +719,15 @@ export {
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
 export {
+  publicDaemonHealthSchema,
+  publicHealthInfoSchema,
+  publicStatusInfoSchema,
+  toPublicHealthInfo,
+  type PublicDaemonHealth,
+  type PublicHealthInfo,
+  type PublicStatusInfo,
+} from "./contracts/public-health";
+export {
   OperationalHealthRegistry,
   type IOperationalHealthRegistry,
   type OperationalHealthProvider,
@@ -656,7 +764,6 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
-  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
@@ -673,11 +780,27 @@ export {
   conversationMessageActorSchema,
   conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
+  conversationGuestMessageAddedChannel,
+  conversationMessageAddedChannel,
 } from "@brains/conversation-service";
-export type { ConversationMessageActor } from "@brains/conversation-service";
+export type {
+  ConversationGuestMessageAddedPayload,
+  ConversationMessageActor,
+  ConversationMessageAddedPayload,
+} from "@brains/conversation-service";
 
-export type { IAgentService } from "@brains/ai-service";
-export { resolveTextProvider } from "@brains/ai-service";
+export type {
+  IAgentService,
+  ToolCompletionEvent,
+  ToolFailureEvent,
+  ToolInvocationEvent,
+} from "@brains/ai-service";
+export {
+  resolveTextProvider,
+  toolCompletedChannel,
+  toolFailedChannel,
+  toolInvokingChannel,
+} from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
@@ -840,6 +963,38 @@ export {
   type EntityTextResult,
   type ReadEntityTextOptions,
 } from "./entity/create-from-text";
+// First-party entity callbacks reach their call's internal runtime here;
+// the public contexts never name it.
+export {
+  contractJob,
+  entityRuntime,
+  type AnyEntityReads,
+  type EntityRuntime,
+  type EntityRuntimeAttachments,
+  type EntityRuntimeImages,
+  type OrdinaryCreateDocument,
+  type OrdinaryCreateOptions,
+  type QueuedCreate,
+  type StoredCreate,
+} from "./entity/entity-runtime";
+// First-party services converted from a class reach what the public
+// service contract does not offer here.
+export { withOwnedDataSources } from "./public/service-definition";
+export {
+  firstPartyTool,
+  serviceRuntime,
+  type ClaimedSystemType,
+  type ServiceCorpusReads,
+  type ServiceDashboardWidget,
+  type ServiceDataSourceDeclaration,
+  type ServiceEntityReads,
+  type ServiceEntityShapes,
+  type ServiceIdentity,
+  type ServiceListenHandler,
+  type ServiceListenMode,
+  type ServiceListenOptions,
+  type ServiceRuntime,
+} from "./service/service-runtime";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
@@ -858,7 +1013,9 @@ export type {
   NavigationItem,
   NavigationSlot,
   EntityDisplayEntry,
+  FeedItem,
 } from "@brains/site-composition";
+export type { AtprotoBlobRef, AtprotoLexicon } from "@brains/atproto-contracts";
 export type {
   WebRouteDefinition,
   RegisteredWebRoute,
@@ -873,11 +1030,10 @@ export {
   jsonError,
   SitePageResponse,
   SITE_SLOT_ATTRIBUTE,
+  findRouteByRole,
   type SitePageSlot,
 } from "./types/web-routes";
 export {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   assertStudioWorkspaceAdmin,
   type StudioWorkspaceActor,
@@ -889,9 +1045,22 @@ export {
   type StudioWorkspaceUnregistration,
 } from "./types/studio-workspace";
 export {
+  dashboardDigestLineSchema,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+} from "./contracts/dashboard-widget-contracts";
+export {
+  studioOverviewContributionSchema,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+} from "./contracts/studio-overview-contracts";
+export {
+  studioWorkspaceRegistrationSchema,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
+} from "./contracts/studio-workspace-contracts";
+export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   type DashboardDigestLine,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
@@ -935,9 +1104,6 @@ export {
   RouteDefinitionSchema,
   NavigationSlots,
   RegisterRoutesPayloadSchema,
-  UnregisterRoutesPayloadSchema,
-  ListRoutesPayloadSchema,
-  GetRoutePayloadSchema,
 } from "@brains/site-composition";
 
 export type {
@@ -987,6 +1153,14 @@ export {
   type AnchorExtensionProfile,
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
+export {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  fetchVerifiedAgentCard,
+  isEndpointRefusal,
+  type AgentCardRefusalReason,
+  type FetchVerifiedAgentCardOptions,
+  type VerifiedAgentCard,
+} from "./a2a/fetch-verified-agent-card";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
 export {
   agentBodySchema,
@@ -1017,7 +1191,7 @@ export type {
 export { PluginManager } from "./manager";
 
 // Error handling
-export { PluginError } from "./errors";
+export { FatalPluginConfigurationError, PluginError } from "./errors";
 export {
   deriveConsoleSurfaces,
   type ConsoleSurface,
@@ -1034,3 +1208,24 @@ export type {
   AnalyticsReportContext,
   AnalyticsReportDefinition,
 } from "./contracts/analytics";
+
+// ============================================================================
+// HTTP: the brain's origin and same-origin guards for browser routes
+// ============================================================================
+export {
+  isLoopbackIssuer,
+  isSameOriginRequest,
+  issuerFromRequest,
+  normalizeIssuer,
+  requireSameOriginJson,
+  requireSameOriginRequest,
+} from "./http/same-origin";
+export { normalizeSameOriginPath } from "./http/same-origin-path";
+
+// Entity id paths, link fields and tool confirmations plugins build with.
+export { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
+export { renderedLinkFields, viewLinkFields } from "@brains/templates";
+export {
+  ConfirmationArgsStore,
+  ToolVisibilitySchema,
+} from "@brains/mcp-service";

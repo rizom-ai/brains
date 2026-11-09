@@ -7,11 +7,15 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { formatByteSize } from "@brains/utils/string-utils";
-import {
-  NOTE_CAPTURE_MESSAGE,
-  type NoteCaptureRequest,
-  type NoteCaptureResponse,
-} from "@brains/contracts";
+import { SdkError, noteCaptureContract, sdkErrorFrom } from "@brains/contracts";
+
+/** A refusal Studio shows the owner: its code and why. */
+function refused(
+  code: "conflict" | "not_found" | "no_handler",
+  publicMessage: string,
+): SdkError {
+  return new SdkError(code, { publicMessage });
+}
 import {
   guestRefusalCategorySchema,
   type GuestRefusalCategory,
@@ -597,7 +601,8 @@ export async function registerGuestMonitor(
                 Math.round(input.monthlyUsd * 1_000_000),
               );
               if (switched !== "on")
-                throw new Error(
+                throw refused(
+                  "conflict",
                   switched === "not-ready"
                     ? "Guest profile unavailable"
                     : "Guest chat cannot be switched here",
@@ -608,7 +613,7 @@ export async function registerGuestMonitor(
             async ({ input }) => {
               const status = await deps.control?.status();
               if (!status)
-                throw new Error("Guest chat cannot be switched here");
+                throw refused("conflict", "Guest chat cannot be switched here");
               const budget = Math.round(input.monthlyUsd * 1_000_000);
               return {
                 summary: `Turn on guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
@@ -618,7 +623,7 @@ export async function registerGuestMonitor(
           ),
           switchOffAction.bind(binding, async () => {
             if ((await deps.control?.switchOff()) !== "off")
-              throw new Error("Guest chat cannot be switched here");
+              throw refused("conflict", "Guest chat cannot be switched here");
             await deps.afterSwitch();
             return { open: false };
           }),
@@ -627,27 +632,25 @@ export async function registerGuestMonitor(
             async ({ input }) => {
               const event = await deps.record.get(input.recordId);
               if (!event?.question)
-                throw new Error("This record kept no question text");
+                throw refused("not_found", "This record kept no question text");
               // Notes are the note plugin's to write; it keeps them private.
-              const response = await context.messaging.send<
-                NoteCaptureRequest,
-                NoteCaptureResponse
-              >({
-                type: NOTE_CAPTURE_MESSAGE,
-                payload: {
+              const saved = await context.messaging.request(
+                noteCaptureContract,
+                {
                   id: `visitor-question-${input.recordId.slice(0, 16)}`,
                   title: "Visitor question",
                   body: event.question,
                 },
-              });
-              if ("noop" in response || !response.success || !response.data)
-                throw new Error("Notes are unavailable");
-              return { noteId: response.data.noteId };
+              );
+              if (saved.status === "unavailable")
+                throw refused("no_handler", "Notes are unavailable");
+              if (saved.status === "failed") throw sdkErrorFrom(saved.error);
+              return { noteId: saved.data.noteId };
             },
             async ({ input }) => {
               const event = await deps.record.get(input.recordId);
               if (!event?.question)
-                throw new Error("This record kept no question text");
+                throw refused("not_found", "This record kept no question text");
               const shown =
                 event.question.length > 300
                   ? `${event.question.slice(0, 300)}…`

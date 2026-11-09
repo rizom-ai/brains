@@ -3,9 +3,8 @@ import type {
   AttachmentProviderMetadata,
   AttachmentResolveRequest,
   BaseEntity,
-  EntityPluginContext,
   EntitySchema,
-  IViewsNamespace,
+  MediaAttachmentContext,
   MediaFormat,
   ViewTemplate,
 } from "@brains/plugins";
@@ -14,11 +13,12 @@ import { slugify } from "@brains/utils/string-utils";
 import { renderOgImagePng, type ScreenshotPng } from "./og-image";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
 
-/** The slice of the entity plugin context media attachment providers need. */
-export type MediaAttachmentContext = Pick<
-  EntityPluginContext,
-  "entityService" | "themeCSS" | "identity" | "domain"
-> & { views: Pick<IViewsNamespace, "get"> };
+/**
+ * The media members attachment providers are built with — the same contract a
+ * declared entity's `attachments` hands its providers, so one factory serves
+ * declared and class-based types alike.
+ */
+export type { MediaAttachmentContext };
 
 /** Context-derived values every template content builder ends up needing. */
 export interface MediaContentHelpers {

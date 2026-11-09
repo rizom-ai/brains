@@ -8,7 +8,10 @@ import {
   AuthRuntimeDatabase,
   AuthUserStore,
 } from "../src";
-import { RuntimePasskeyStore } from "../src/credential-store";
+import {
+  RuntimePasskeyStore,
+  type StoredPasskey,
+} from "../src/credential-store";
 
 const tempDirs: string[] = [];
 
@@ -37,15 +40,14 @@ describe("runtime passkey registration persistence", () => {
       const store = new RuntimePasskeyStore(database);
       await store.addCredential({
         id: "new-credential",
-        public_key: "public-key",
+        userId: user.id,
+        publicKey: "public-key",
         counter: 0,
         transports: ["internal"],
-        subject: user.id,
-        user_name: user.displayName,
-        credential_device_type: "singleDevice",
-        credential_backed_up: false,
-        created_at: 1_700_000_000,
-        updated_at: 1_700_000_000,
+        credentialDeviceType: "singleDevice",
+        credentialBackedUp: false,
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
       });
 
       expect(
@@ -65,6 +67,62 @@ describe("runtime passkey registration persistence", () => {
         targetId: "new-credential",
         metadata: { userId: user.id },
       });
+    } finally {
+      await database.stop();
+    }
+  });
+});
+
+describe("runtime passkey store records", () => {
+  it("reads credentials and challenges back as their stored records", async () => {
+    const database = new AuthRuntimeDatabase({
+      storageDir: await tempStorageDir(),
+    });
+    await database.start();
+
+    try {
+      const user = await new AuthUserStore(database.db).ensureFirstAdminUser();
+      const store = new RuntimePasskeyStore(database);
+      await store.addCredential({
+        id: "credential",
+        userId: user.id,
+        publicKey: "public-key",
+        counter: 3,
+        transports: ["internal"],
+        credentialDeviceType: "multiDevice",
+        credentialBackedUp: true,
+        createdAt: 1_700_000_000_123,
+        updatedAt: 1_700_000_000_456,
+      });
+      const expected: StoredPasskey = {
+        id: "credential",
+        userId: user.id,
+        publicKey: "public-key",
+        counter: 3,
+        transports: ["internal"],
+        credentialDeviceType: "multiDevice",
+        credentialBackedUp: true,
+        createdAt: 1_700_000_000_123,
+        updatedAt: 1_700_000_000_456,
+      };
+
+      expect(await store.listCredentials(user.id)).toEqual([expected]);
+      expect(await store.getCredential("credential")).toEqual(expected);
+
+      await store.saveRegistrationChallenge("registration", user.id);
+      expect(await store.consumeRegistrationChallenge("registration")).toEqual(
+        expect.objectContaining({ kind: "registration", userId: user.id }),
+      );
+      expect(
+        await store.consumeRegistrationChallenge("registration"),
+      ).toBeUndefined();
+
+      await store.saveAuthenticationChallenge("authentication");
+      expect(
+        await store.consumeAuthenticationChallenge("authentication"),
+      ).toEqual(
+        expect.objectContaining({ kind: "authentication", userId: undefined }),
+      );
     } finally {
       await database.stop();
     }

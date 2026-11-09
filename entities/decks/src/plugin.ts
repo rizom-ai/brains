@@ -15,11 +15,9 @@ import {
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
 } from "@brains/plugins";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import { publishRegisterContract } from "@brains/contracts";
 import { fetchSiteInfo } from "@brains/site-composition";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
@@ -28,7 +26,7 @@ import { deckGenerationTemplate } from "./templates/generation-template";
 import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
-import { deckSchema, type DeckEntity } from "./schemas/deck";
+import type { DeckEntity } from "./schemas/deck";
 import {
   DECK_CAROUSEL_ATTACHMENT_TYPE,
   deckCarouselTemplate,
@@ -80,7 +78,6 @@ export class DecksPlugin extends EntityPlugin<
   readonly adapter: typeof deckAdapter = deckAdapter;
   private unregisterCarouselAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   constructor(deps: DecksPluginDeps = {}) {
     super("decks", packageJson, {}, emptyEntityPluginConfigSchema);
@@ -135,14 +132,10 @@ export class DecksPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     this.deferPublishRegistration(context);
-    this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
     this.registerOgImageAttachmentProvider(context);
     this.registerEvalHandlers(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createDeckAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createDeckAtprotoProjection());
 
     this.logger.info("Decks plugin registered");
   }
@@ -152,89 +145,18 @@ export class DecksPlugin extends EntityPlugin<
     this.unregisterCarouselAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 
   private deferPublishRegistration(context: EntityPluginContext): void {
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.messaging.send({
-        type: PUBLISH_CHANNELS.register,
-        payload: {
-          entityType: "deck",
-          provider: {
-            name: "internal",
-            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-          },
-          config: { executionMode: "provider" },
+      await context.messaging.command(publishRegisterContract, {
+        entityType: "deck",
+        provider: {
+          name: "internal",
+          publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
         },
+        config: { executionMode: "provider" },
       });
-      return { success: true };
-    });
-  }
-
-  private subscribeToPublishExecute(context: EntityPluginContext): void {
-    context.messaging.subscribe<
-      { entityType: string; entityId: string },
-      { success: boolean }
-    >(PUBLISH_CHANNELS.execute, async (msg) => {
-      const { entityType, entityId } = msg.payload;
-      if (entityType !== "deck") return { success: true };
-
-      try {
-        const deck = await context.entityService.getEntity(
-          {
-            entityType: "deck",
-            id: entityId,
-          },
-          deckSchema,
-        );
-        if (!deck) {
-          await context.messaging.send({
-            type: PUBLISH_CHANNELS.reportFailure,
-            payload: {
-              entityType,
-              entityId,
-              error: `Deck not found: ${entityId}`,
-            },
-          });
-          return { success: true };
-        }
-
-        if (deck.metadata.status === "published") return { success: true };
-
-        const publishedAt = new Date().toISOString();
-        const updatedDeck: DeckEntity = {
-          ...deck,
-          metadata: { ...deck.metadata, status: "published", publishedAt },
-        };
-
-        await context.entityService.updateEntity({
-          entity: {
-            ...updatedDeck,
-            content: this.adapter.toMarkdown(updatedDeck),
-          },
-        });
-
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportSuccess,
-          payload: {
-            entityType,
-            entityId,
-            result: { id: entityId },
-          },
-        });
-      } catch (error) {
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportFailure,
-          payload: {
-            entityType,
-            entityId,
-            error: getErrorMessage(error),
-          },
-        });
-      }
-
       return { success: true };
     });
   }
@@ -246,14 +168,7 @@ export class DecksPlugin extends EntityPlugin<
       ...this.deps,
       getThemeMode:
         this.deps.getThemeMode ??
-        (async (): Promise<"light" | "dark"> => {
-          try {
-            const info = await fetchSiteInfo(context.entityService);
-            return info.themeMode ?? "dark";
-          } catch {
-            return "dark";
-          }
-        }),
+        ((): Promise<"light" | "dark"> => siteThemeMode(context.entityService)),
     };
     this.unregisterCarouselAttachmentProvider = context.attachments.register(
       "deck",
@@ -321,3 +236,19 @@ export function decksPlugin(): Plugin {
 }
 
 export default decksPlugin;
+
+/**
+ * The site's theme mode, which a deck carousel is drawn in: dark until the
+ * site says otherwise, and when its site-info cannot be read.
+ */
+export async function siteThemeMode(
+  entityService: Parameters<typeof fetchSiteInfo>[0],
+): Promise<"light" | "dark"> {
+  try {
+    const info = await fetchSiteInfo(entityService);
+    return info.themeMode ?? "dark";
+  } catch {
+    // No site-info yet, or one that does not parse: the carousel's default.
+    return "dark";
+  }
+}

@@ -1,4 +1,3 @@
-import { JOB_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import {
   CallbackProgressReporter,
@@ -13,7 +12,7 @@ import type { IMessageBus } from "@brains/messaging-service";
 import type { IBatchJobManager, IJobQueueService, JobInfo } from "./types";
 import { JobContextSchema, type JobContext } from "./schema/types";
 import type { BatchJobStatus } from "./batch-schemas";
-import type { JobProgressEvent } from "./schemas";
+import { jobProgressChannel, type JobProgressEvent } from "./schemas";
 
 const jobResultRecordSchema = z.preprocess(
   (value) => {
@@ -195,7 +194,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
       }
 
       await this.messageBus.send({
-        type: JOB_CHANNELS.progress,
+        type: jobProgressChannel.name,
         payload: event,
         sender: "job-progress-monitor",
         broadcast: true,
@@ -225,7 +224,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
   private async broadcastEvent(event: JobProgressEvent): Promise<void> {
     await this.messageBus.send({
-      type: JOB_CHANNELS.progress,
+      type: jobProgressChannel.name,
       payload: event,
       sender: "job-progress-monitor",
       broadcast: true,

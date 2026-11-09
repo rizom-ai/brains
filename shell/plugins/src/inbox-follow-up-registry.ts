@@ -5,7 +5,7 @@ import {
 } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { normalizeSameOriginPath } from "./internal/same-origin-path";
+import { normalizeSameOriginPath } from "./http/same-origin-path";
 import {
   inboxActorSchema,
   inboxIdSchema,

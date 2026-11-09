@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ConsoleLogger, LogLevel, type Logger } from "@brains/utils/logger";
-import { runPackageMigrations } from "../src/migrate";
+import { resolveMigrationsFolder, runPackageMigrations } from "../src/migrate";
 import type { PragmaClient } from "../src/sqlite";
 
 /**
@@ -162,5 +162,28 @@ describe("runPackageMigrations", () => {
     const { createSqliteDatabase } = await import("../src/sqlite");
     const { client } = createSqliteDatabase({ url, schema: {} });
     client.close();
+  });
+});
+
+describe("resolveMigrationsFolder", () => {
+  it("finds a package's own drizzle folder from its source", () => {
+    expect(
+      resolveMigrationsFolder(
+        "file:///repo/shell/entity-service/src/migrate.ts",
+        "entity-service",
+      ),
+    ).toBe("/repo/shell/entity-service/drizzle");
+  });
+
+  it("finds the migrations copied beside a bundle, from an entry or a shared chunk", () => {
+    const bundle = "file:///app/node_modules/@rizom/brain/dist";
+    const copied = "/app/node_modules/@rizom/brain/dist/migrations/job-queue";
+
+    expect(resolveMigrationsFolder(`${bundle}/brain.js`, "job-queue")).toBe(
+      copied,
+    );
+    expect(
+      resolveMigrationsFolder(`${bundle}/chunks/index-abc123.js`, "job-queue"),
+    ).toBe(copied);
   });
 });

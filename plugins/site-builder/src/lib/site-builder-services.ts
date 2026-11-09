@@ -1,10 +1,14 @@
-import type { MessageSender, ServiceEntityService } from "@brains/plugins";
+import type {
+  ServiceEntityService,
+  ServicePluginContext,
+} from "@brains/plugins";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { SiteViewTemplate } from "./site-view-template";
 
 export interface SiteBuilderServices {
   entityService: ServiceEntityService;
-  sendMessage: MessageSender;
+  /** Sends the staging command extensions write their artifacts on. */
+  command: ServicePluginContext["messaging"]["command"];
   /** Resolved against the template's own schema; callers narrow what they read. */
   resolveTemplateContent: (
     templateName: string,

@@ -16,6 +16,25 @@ turns:
   - userMessage: 'Read note ''long-note-update-14kb''. Replace only the exact sentence "Review cadence: monthly." with "Review cadence: weekly." Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
     successCriteria: &proposal
       expectedTools:
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: long-note-update-14kb
+          argsAbsent:
+            [
+              "operation.fields",
+              "operation.content",
+              "confirmed",
+              operation.source,
+            ]
+          resultContains:
+            needsConfirmation: true
+      responseContains: [Confirmation required]
+  - userMessage: Cancel that proposed update.
+    confirmPendingAction: false
+  - userMessage: "Read note 'long-note-update-14kb' from storage now. Do not change anything; briefly state its title and review cadence."
+    successCriteria:
+      expectedTools:
         - toolName: system_get
           argsContain:
             entityType: note
@@ -473,34 +492,6 @@ turns:
 
               xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
         - toolName: system_update
-          argsContain:
-            entityType: note
-            id: long-note-update-14kb
-            operation:
-              kind: edits
-              edits:
-                &patch [
-                  {
-                    "oldText": "Review cadence: monthly.",
-                    "newText": "Review cadence: weekly.",
-                  },
-                ]
-          argsAbsent: ["operation.fields", "operation.content", "confirmed"]
-          resultContains:
-            needsConfirmation: true
-      responseContains: [Confirmation required]
-  - userMessage: Cancel that proposed update.
-    confirmPendingAction: false
-  - userMessage: "Read note 'long-note-update-14kb' from storage now. Do not change anything; briefly state its title and review cadence."
-    successCriteria:
-      expectedTools:
-        - toolName: system_get
-          argsContain:
-            entityType: note
-            id: long-note-update-14kb
-          resultContains:
-            entity.content: *original
-        - toolName: system_update
           shouldBeCalled: false
   - userMessage: 'Read note ''long-note-update-14kb''. Replace only the exact sentence "Review cadence: monthly." with "Review cadence: weekly." Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
     successCriteria: *proposal
@@ -512,10 +503,8 @@ turns:
           argsContain:
             entityType: note
             id: long-note-update-14kb
-            operation:
-              kind: edits
-              edits: *patch
-          argsAbsent: ["operation.fields", "operation.content"]
+          argsAbsent:
+            ["operation.fields", "operation.content", operation.source]
           resultContains:
             success: true
             data.updated: long-note-update-14kb

@@ -64,6 +64,7 @@ describe("shell config", () => {
     expect(config.dataDir).toBe("./brain-data");
     expect(config.themeCSS).toBe("");
     expect(config.preferLocalUrls).toBe(false);
+    expect(config.production).toBe(false);
     expect(config.features).toEqual({});
     expect(config.spaces).toEqual([]);
     expect(config.plugins).toEqual([]);
@@ -77,7 +78,6 @@ describe("shell config", () => {
       apiKey: "test-key",
       model: "gpt-4o-mini",
       temperature: 0.7,
-      maxTokens: 1000,
       webSearch: true,
     });
     expect(config.embedding).toEqual({ enabled: true });

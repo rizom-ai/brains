@@ -750,7 +750,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- robot.png; upload: { kind: "upload", id: "upload-123" }; mediaType: image/png',
+              '- robot.png; upload id: "upload-123"; mediaType: image/png',
             ),
           },
           {
@@ -858,7 +858,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- robot.png; upload: { kind: "upload", id: "upload-123" }; mediaType: image/png',
+              '- robot.png; upload id: "upload-123"; mediaType: image/png',
             ),
           },
           {
@@ -1006,7 +1006,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- distributed-systems-primer.pdf; upload: { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf',
+              '- distributed-systems-primer.pdf; upload id: "upload-pdf"; mediaType: application/pdf',
             ),
           },
           {
@@ -1529,7 +1529,7 @@ describe("AgentService", () => {
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: expect.stringContaining(
-          '- durable-notes.md; upload: { kind: "upload", id: "upload-123" }; mediaType: text/markdown',
+          '- durable-notes.md; upload id: "upload-123"; mediaType: text/markdown',
         ),
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -2289,7 +2289,7 @@ describe("AgentService", () => {
           {
             type: "text",
             text: expect.stringContaining(
-              '- brief.pdf; upload: { kind: "upload", id: "upload-pdf" }; mediaType: application/pdf',
+              '- brief.pdf; upload id: "upload-pdf"; mediaType: application/pdf',
             ),
           },
           {

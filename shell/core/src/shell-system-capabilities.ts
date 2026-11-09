@@ -1,14 +1,12 @@
 import {
   createEnqueueBatchFn,
   createEnqueueJobFn,
+  createHasJobFn,
   createRegisterHandlerFn,
   type IJobsNamespace,
 } from "@brains/job-queue";
-import type {
-  DefaultQueryResponse,
-  IAnalyticsRegistry,
-  QueryContext,
-} from "@brains/plugins";
+import type { DefaultQueryResponse } from "@brains/contracts";
+import type { IAnalyticsRegistry, QueryContext } from "@brains/plugins";
 import {
   createAttachmentsNamespace,
   type RuntimeAppInfo,
@@ -43,6 +41,7 @@ export function registerShellSystemCapabilities(
         enqueue: createEnqueueJobFn(jobQueueService, "system", false),
         enqueueBatch: createEnqueueBatchFn(jobs, "system"),
         registerHandler: createRegisterHandlerFn(jobQueueService, "system"),
+        has: createHasJobFn(jobQueueService),
       },
       conversationService: services.conversationService,
       runtimeUploads: services.runtimeUploadRegistry,

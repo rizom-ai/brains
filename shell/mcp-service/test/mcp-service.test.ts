@@ -12,6 +12,7 @@ import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createMockMessageBus } from "@brains/messaging-service/test";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
+import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 
@@ -475,7 +476,6 @@ describe("MCPService", () => {
           toolName: "metadata_tool",
           args: { input: "value" },
           progressToken: "progress-1",
-          hasProgress: true,
           interfaceType: "matrix",
           actor: {
             kind: "external",
@@ -1261,7 +1261,6 @@ describe("MCPService", () => {
             toolName: "client_metadata",
             args: { input: "value" },
             progressToken: "progress-2",
-            hasProgress: true,
             interfaceType: "matrix",
             conversationId: "conversation-1",
             channelId: "room-1",
@@ -1270,6 +1269,54 @@ describe("MCPService", () => {
           }),
           sender: "MCPService",
         });
+      } finally {
+        await client.close();
+        await mcpServer.close();
+      }
+    });
+
+    it("delivers a tool's progress to the calling client", async () => {
+      const tool: Tool = {
+        name: "slow_import",
+        description: "Report progress",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        directMcpExposure: "basic",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+      // The owning plugin reports progress through the callback it is handed.
+      spyOn(mockMessageBus, "send").mockImplementation(async ({ payload }) => {
+        const report =
+          isRecord(payload) && typeof payload["sendProgress"] === "function"
+            ? payload["sendProgress"]
+            : undefined;
+        await report?.({ progress: 1, total: 2, message: "Halfway" });
+        return { success: true, data: "ok" };
+      });
+      mcpService.registerTool("import-plugin", tool);
+
+      const client = new Client({ name: "mcp-test", version: "1.0.0" });
+      const mcpServer = mcpService.createMcpServer("public");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+      const progress: unknown[] = [];
+
+      await mcpServer.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        await client.callTool(
+          { name: "slow_import", arguments: {} },
+          { onprogress: (update) => progress.push(update) },
+        );
+
+        expect(progress).toEqual([
+          expect.objectContaining({
+            progress: 1,
+            total: 2,
+            message: "Halfway",
+          }),
+        ]);
       } finally {
         await client.close();
         await mcpServer.close();

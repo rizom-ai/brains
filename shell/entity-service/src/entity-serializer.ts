@@ -1,5 +1,10 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { BaseEntity, EntityRegistry } from "./types";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
+import { isPlainRecord } from "@brains/utils/predicates";
+import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
 import {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
@@ -28,13 +33,21 @@ export class EntitySerializer {
   }
 
   /**
-   * Serialize an entity to markdown format
+   * Serialize an entity to markdown format. `stored` is the markdown the
+   * entity replaces, given when the update carries a declared type's body
+   * alone: the authored frontmatter the type does not write is kept from it.
    */
-  public serializeEntity(entity: BaseEntity): string {
+  public serializeEntity(entity: BaseEntity, stored?: string): string {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
+    const serialized = applyVisibilityToMarkdown(
+      adapter.toMarkdown(entity),
+      entity.visibility,
+    );
     return preserveSourceFrontmatter(
-      entity.content,
-      applyVisibilityToMarkdown(adapter.toMarkdown(entity), entity.visibility),
+      stored === undefined
+        ? entity.content
+        : unwrittenSource(stored, serialized),
+      serialized,
       this.entityRegistry.getEntityTypeConfig(entity.entityType)
         .binaryStorage === "asset"
         ? undefined
@@ -97,9 +110,10 @@ export class EntitySerializer {
    */
   public async convertToEntity(
     entityData: EntityData,
+    source?: SourceReadOption,
   ): Promise<BaseEntity | null> {
     try {
-      return this.reconstructEntity(entityData);
+      return this.reconstructEntity(entityData, source);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(
@@ -115,12 +129,13 @@ export class EntitySerializer {
   public async convertToEntities(
     rows: EntityData[],
     entityType: string,
+    source?: SourceReadOption,
   ): Promise<BaseEntity[]> {
     const entityList: BaseEntity[] = [];
 
     for (const entityData of rows) {
       try {
-        entityList.push(this.reconstructEntity(entityData));
+        entityList.push(this.reconstructEntity(entityData, source));
       } catch (error) {
         const errorMessage = getErrorMessage(error);
         this.logger.error(
@@ -136,7 +151,10 @@ export class EntitySerializer {
    * Reconstruct a typed entity from a database row by merging DB fields,
    * metadata, and adapter-parsed content, then validating against the schema
    */
-  public reconstructEntity(entityData: EntityData): BaseEntity {
+  public reconstructEntity(
+    entityData: EntityData,
+    source?: SourceReadOption,
+  ): BaseEntity {
     const adapter = this.entityRegistry.getAdapter(entityData.entityType);
     // Stored content keeps retired keys until rewritten; parse past them.
     const parsedContent = adapter.fromMarkdown(
@@ -146,7 +164,7 @@ export class EntitySerializer {
       ),
     );
     // Strip parsed metadata — DB metadata is the source of truth.
-    // `system_update({ operation: { kind: "fields" } })` mutates DB metadata without touching
+    // `system_update({ operation: { fields } })` mutates DB metadata without touching
     // markdown, so parsed frontmatter can be stale. Body-parsed top-level
     // fields (e.g. `about`, `skills`) still land via parsedRest.
     const {
@@ -171,7 +189,12 @@ export class EntitySerializer {
       ),
     };
 
-    return adapter.schema.parse(entity);
+    const parsed = adapter.schema.parse(entity);
+    // A declared type reads back its decoded body; its source is the stored
+    // markdown. Every other type's content is the stored markdown already.
+    return source === true && adapter.metadataFromFrontmatter === true
+      ? { ...parsed, content: entityData.content }
+      : parsed;
   }
 
   /**
@@ -180,6 +203,7 @@ export class EntitySerializer {
   public prepareEntityForStorage(
     entity: BaseEntity,
     entityType: string,
+    stored?: string,
   ): {
     markdown: string;
     metadata: Record<string, unknown>;
@@ -188,7 +212,7 @@ export class EntitySerializer {
     const adapter = this.entityRegistry.getAdapter(entityType);
 
     // Convert to markdown using adapter
-    const markdown = this.serializeEntity(entity);
+    const markdown = this.serializeEntity(entity, stored);
 
     // Extract metadata using adapter, keeping visibility as a top-level field.
     const metadata = this.stripPolicyMetadata(
@@ -201,6 +225,66 @@ export class EntitySerializer {
     );
 
     return { markdown, metadata };
+  }
+
+  /**
+   * Whether an update has to keep authored frontmatter from the stored
+   * record: a declared type's reads hand back its body alone, so a writer
+   * that sends the body back has not seen that frontmatter, and leaving it
+   * out removes nothing. A writer that sends frontmatter sends the whole
+   * document, as a file import or an editor does.
+   */
+  public keepsStoredFrontmatter(entity: BaseEntity): boolean {
+    if (
+      this.entityRegistry.getAdapter(entity.entityType)
+        .metadataFromFrontmatter !== true
+    ) {
+      return false;
+    }
+    const written = readMarkdownFrontmatter(entity.content);
+    return (
+      !isPlainRecord(written.data) || Object.keys(written.data).length === 0
+    );
+  }
+
+  /**
+   * An update to a type whose metadata is its frontmatter, with the
+   * frontmatter it writes carried into its metadata. Reads hand such a type
+   * back its body alone, so frontmatter on an update is one the caller
+   * wrote: it is laid over the metadata the caller read and decoded through
+   * the type's adapter, so the stored metadata matches the stored
+   * frontmatter at once rather than at the next import.
+   */
+  public withFrontmatterWrites<T extends BaseEntity>(entity: T): T {
+    const adapter = this.entityRegistry.getAdapter(entity.entityType);
+    if (adapter.metadataFromFrontmatter !== true) return entity;
+    const written = readMarkdownFrontmatter(entity.content);
+    if (!isPlainRecord(written.data)) return entity;
+    if (Object.keys(written.data).length === 0) return entity;
+    const encoded = readMarkdownFrontmatter(
+      adapter.toMarkdown({ ...entity, content: written.content }),
+    );
+    let decoded: Partial<BaseEntity>;
+    try {
+      decoded = adapter.fromMarkdown(
+        generateMarkdown(
+          {
+            ...(isPlainRecord(encoded.data) ? encoded.data : {}),
+            ...written.data,
+          },
+          written.content,
+        ),
+      );
+    } catch (error) {
+      throw toEntityValidationError(entity.entityType, error) ?? error;
+    }
+    return {
+      ...entity,
+      metadata: this.stripPolicyMetadata(
+        decoded.metadata ?? entity.metadata,
+        entity.entityType,
+      ),
+    };
   }
 
   /**
@@ -234,4 +318,21 @@ export class EntitySerializer {
       this.entityRegistry.getEntityTypeConfig(entityType).retiredFields ?? []
     );
   }
+}
+
+/**
+ * The stored frontmatter a serialized document does not write, as a source
+ * for preserving it: what the type writes comes from the entity, never the
+ * stored copy.
+ */
+function unwrittenSource(stored: string, serialized: string): string {
+  const storedFields = readMarkdownFrontmatter(stored).data;
+  const written = readMarkdownFrontmatter(serialized).data;
+  if (!isPlainRecord(storedFields)) return "";
+  const kept = Object.fromEntries(
+    Object.entries(storedFields).filter(
+      ([key]) => !isPlainRecord(written) || !Object.hasOwn(written, key),
+    ),
+  );
+  return Object.keys(kept).length > 0 ? generateMarkdown(kept, "") : "";
 }

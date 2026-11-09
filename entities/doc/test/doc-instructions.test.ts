@@ -1,15 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { DocsPlugin } from "../src";
+import { doc } from "../src";
 
-class TestDocsPlugin extends DocsPlugin {
-  public instructions(): Promise<string | undefined> {
-    return this.getInstructions();
-  }
-}
-
-describe("DocsPlugin instructions", () => {
+describe("doc instructions", () => {
   it("answers how-to questions from the docs, searched first and named by title", async () => {
-    const instructions = (await new TestDocsPlugin().instructions()) ?? "";
+    const instructions = doc.instructions ?? "";
 
     expect(instructions).toContain('Docs (entityType "doc")');
     expect(instructions).toContain(

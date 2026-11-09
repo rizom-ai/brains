@@ -1,7 +1,7 @@
 import type {
   AuthIdentityProposalInput,
   AuthIdentityReconciliationResponse,
-} from "./admin-contracts";
+} from "@brains/contracts";
 import {
   hashIdentityKey,
   normalizeIdentityKey,

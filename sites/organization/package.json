@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-organization",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.629",
+  "version": "0.2.0-alpha.665",
   "description": "Organization site composition package: the atlas homepage drawn from the agent network",
   "dependencies": {
     "@brains/agent-discovery": "workspace:*",
@@ -11,8 +11,8 @@
     "@brains/site-atlas": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

@@ -1,11 +1,5 @@
-import { uploadTitle } from "@brains/plugins";
+import { uploadTitle } from "@brains/sdk/internal/entity-runtime";
 import { slugify } from "@brains/utils/string-utils";
-
-export const webChatUploadsScope = {
-  namespace: "upload",
-  refKind: "upload",
-  routePath: "/api/chat/uploads",
-} as const;
 
 export function isSupportedImageMediaType(mediaType: string): boolean {
   return ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
@@ -25,8 +19,4 @@ export function getUploadImageIdentity(input: {
     );
   }
   return { id, title };
-}
-
-export function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
 }

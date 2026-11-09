@@ -10,8 +10,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
-import { PUBLISH_ASSET_CHANNELS } from "./publish-asset-channels";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import { publishAssetRegisterContract } from "@brains/contracts";
 import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import type { BlogConfig, BlogConfigInput } from "./config";
@@ -19,10 +18,7 @@ import { blogConfigSchema } from "./config";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import { BlogDataSource } from "./datasources/blog-datasource";
 import { getTemplates } from "./lib/register-templates";
-import {
-  registerWithPublishPipeline,
-  subscribeToPublishExecute,
-} from "./lib/publish-handler";
+import { registerWithPublishPipeline } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { checkPostText, createPostFromText } from "./lib/create-from-text";
@@ -42,7 +38,6 @@ export class BlogPlugin extends EntityPlugin<
     blogPostAdapter.entityType;
   readonly schema: typeof blogPostSchema = blogPostSchema;
   readonly adapter: typeof blogPostAdapter = blogPostAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
@@ -105,9 +100,8 @@ export class BlogPlugin extends EntityPlugin<
       new RSSDataSource(this.logger.child("RSSDataSource")),
     );
 
-    // Publish pipeline and RSS subscriptions
+    // Publish pipeline registration and RSS subscriptions
     registerWithPublishPipeline(context, this.logger);
-    subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildStaging(context, this.logger);
     registerEvalHandlers(context);
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
@@ -121,10 +115,7 @@ export class BlogPlugin extends EntityPlugin<
       createBlogOgImageProvider(context),
     );
     this.deferPublishAssetRegistration(context);
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createBlogAtprotoProjection(),
-      );
+    context.atprotoProjections.register(createBlogAtprotoProjection());
 
     this.logger.info(
       "Blog plugin registered (routes auto-generated at /posts/)",
@@ -133,17 +124,13 @@ export class BlogPlugin extends EntityPlugin<
 
   private deferPublishAssetRegistration(context: EntityPluginContext): void {
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.messaging.send({
-        type: PUBLISH_ASSET_CHANNELS.register,
-        payload: {
-          entityType: "post",
-          attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-          mediaEntityType: "image",
-          targetEntityField: { location: "frontmatter", field: "ogImageId" },
-          requiredWhen: { status: "published" },
-          autoGenerate: true,
-          jobType: "image:image-render-source",
-        },
+      await context.messaging.command(publishAssetRegisterContract, {
+        entityType: "post",
+        attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+        mediaEntityType: "image",
+        targetEntityField: { location: "frontmatter", field: "ogImageId" },
+        requiredWhen: { status: "published" },
+        autoGenerate: true,
       });
       return { success: true };
     });
@@ -154,8 +141,6 @@ export class BlogPlugin extends EntityPlugin<
     this.unregisterPrintableAttachmentProvider = undefined;
     this.unregisterOgImageAttachmentProvider?.();
     this.unregisterOgImageAttachmentProvider = undefined;
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
   }
 }
 

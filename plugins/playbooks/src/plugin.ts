@@ -1,17 +1,13 @@
 import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  AGENT_CONTEXT_REQUEST_CHANNEL,
-  ENTITY_CHANNELS,
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-  agentActionRequestSchema,
-  agentContextRequestSchema,
-  lifecycleStarterRegistrationSchema,
+  agentActionContract,
+  defineChannel,
+  lifecycleStarterRegistrationContract,
   type AgentActionRequest,
   type AgentContextItem,
-  type AgentContextResponse,
   type AgentResponse,
   type ActionsCard,
-  type LifecycleStarterRegistration,
+  type Channel,
+  agentContextContract,
 } from "@brains/contracts";
 import {
   assertValidPlaybookBody,
@@ -27,9 +23,11 @@ import type {
   ToolResponse,
 } from "@brains/plugins";
 import {
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
   ServicePlugin,
-  permissionToVisibilityScope,
+  conversationMessageAddedChannel,
+  entityCreatedChannel,
+  entityUpdatedChannel,
+  internalFullScope,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
@@ -43,7 +41,6 @@ import { buildInstructions, renderAgentContextItem } from "./lib/render";
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
-  type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
 
@@ -67,7 +64,6 @@ import {
 export type {
   LifecyclePlaybookConfig,
   LifecyclePlaybookConfigInput,
-  LifecycleStarterRegistrationResponse,
   LifecycleStartersResponse,
   PlaybookStarter,
 } from "./lib/lifecycle-starters";
@@ -124,6 +120,11 @@ const lifecycleStartersRequestSchema: z.ZodObject<
   .strict();
 
 type LifecycleStartersRequest = z.output<typeof lifecycleStartersRequestSchema>;
+
+const lifecycleStartersChannel: Channel<
+  LifecycleStartersRequest,
+  LifecycleStartersResponse
+> = defineChannel(PLAYBOOKS_LIFECYCLE_STARTERS, lifecycleStartersRequestSchema);
 
 const playbookEntitySchema: z.ZodObject<
   {
@@ -381,80 +382,46 @@ export class PlaybooksPlugin extends ServicePlugin<
       this.goalCheck.evaluate(goalCheckInputSchema.parse(input)),
     );
 
-    context.messaging.subscribe<
-      LifecycleStartersRequest,
-      LifecycleStartersResponse
-    >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
-      const input = lifecycleStartersRequestSchema.parse(message.payload);
-      const starters = await this.lifecycleStarters.resolveStarters(input);
+    context.messaging.subscribe(lifecycleStartersChannel, async (request) => {
+      const starters = await this.lifecycleStarters.resolveStarters(request);
       return { success: true, data: { starters } };
     });
 
-    context.messaging.subscribe<
-      LifecycleStarterRegistration,
-      LifecycleStarterRegistrationResponse
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, async (message) => {
-      const registration = lifecycleStarterRegistrationSchema.parse(
-        message.payload,
-      );
-      const result = this.lifecycleStarters.register(
-        registration,
-        message.source,
-      );
-      return { success: true, data: result };
+    context.messaging.answer(
+      lifecycleStarterRegistrationContract,
+      async (registration, { sender }) =>
+        this.lifecycleStarters.register(registration, sender),
+    );
+
+    context.messaging.answer(agentContextContract, async (request) => {
+      const item = await this.buildAgentContextItem(request.conversationId);
+      return { items: item ? [item] : [] };
     });
 
-    context.messaging.subscribe<unknown, AgentContextResponse>(
-      AGENT_CONTEXT_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentContextRequestSchema.parse(message.payload);
-        const item = await this.buildAgentContextItem(request.conversationId);
-        return { success: true, data: { items: item ? [item] : [] } };
-      },
+    context.messaging.answer(
+      agentActionContract,
+      async (request) => (await this.handleAgentAction(request)) ?? null,
     );
 
-    context.messaging.subscribe<unknown, AgentResponse>(
-      AGENT_ACTION_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentActionRequestSchema.parse(message.payload);
-        const response = await this.handleAgentAction(request);
-        return response
-          ? { success: true, data: response }
-          : { success: false };
-      },
-    );
-
-    context.messaging.subscribe<unknown, { recorded: boolean }>(
-      CONVERSATION_MESSAGE_ADDED_CHANNEL,
-      async (message) => ({
+    context.messaging.subscribe(
+      conversationMessageAddedChannel,
+      async (reply, message) => ({
         success: true,
         data: await this.runs.recordAssistantReplyEvidence(
           message.source,
-          message.payload,
+          reply,
         ),
       }),
     );
     // Observed: an entity the worker writes for a run is evidence too.
-    context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(
-      ENTITY_CHANNELS.created,
-      async (message) => ({
-        success: true,
-        data: await this.runs.recordEntityEventEvidence(
-          "created",
-          message.payload,
-        ),
-      }),
-    );
-    context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(
-      ENTITY_CHANNELS.updated,
-      async (message) => ({
-        success: true,
-        data: await this.runs.recordEntityEventEvidence(
-          "updated",
-          message.payload,
-        ),
-      }),
-    );
+    context.messaging.observe(entityCreatedChannel, async (change) => ({
+      success: true,
+      data: await this.runs.recordEntityEventEvidence("created", change),
+    }));
+    context.messaging.observe(entityUpdatedChannel, async (change) => ({
+      success: true,
+      data: await this.runs.recordEntityEventEvidence("updated", change),
+    }));
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -926,7 +893,9 @@ export class PlaybooksPlugin extends ServicePlugin<
     const entity = await this.ctx.entityService.getEntity({
       entityType: "playbook",
       id: playbookId,
-      visibilityScope: permissionToVisibilityScope("admin"),
+      visibilityScope: internalFullScope(
+        "playbook runner loads its definition",
+      ),
     });
     const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
@@ -1148,7 +1117,9 @@ function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
         options: {
           limit: 8,
           excludeTypes: ["playbook"],
-          visibilityScope: permissionToVisibilityScope("admin"),
+          visibilityScope: internalFullScope(
+            "goal check judges the whole brain",
+          ),
         },
       });
       const material = buildGoalCheckMaterial(input, searchResults);

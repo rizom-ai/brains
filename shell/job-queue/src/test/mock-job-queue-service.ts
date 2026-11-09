@@ -1,4 +1,5 @@
 import { mock } from "bun:test";
+import { toSdkError } from "@brains/contracts";
 import type {
   IJobQueueService,
   JobInfo,
@@ -85,6 +86,7 @@ export function createMockJobQueueService(
       retryCount: 0,
       maxRetries: request.options?.maxRetries ?? 3,
       lastError: null,
+      lastErrorPublic: null,
       createdAt: now,
       scheduledFor: request.options?.delayMs
         ? now + request.options.delayMs
@@ -152,6 +154,7 @@ export function createMockJobQueueService(
           status: "completed",
           result,
           lastError: null,
+          lastErrorPublic: null,
           completedAt: Date.now(),
         });
       }
@@ -164,6 +167,7 @@ export function createMockJobQueueService(
           ...job,
           status: "failed",
           lastError: error.message,
+          lastErrorPublic: toSdkError(error).toJSON(),
           completedAt: Date.now(),
         });
       }

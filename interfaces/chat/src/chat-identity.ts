@@ -1,4 +1,4 @@
-import type { AuthPrincipal } from "@brains/auth-service";
+import type { AuthPrincipal } from "@brains/contracts";
 import type {
   PermissionLookupContext,
   UserPermissionLevel,

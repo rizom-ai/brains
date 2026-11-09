@@ -330,14 +330,12 @@ const inputContext: ProjectionInputContext = {
 
 const executionContext: ProjectionExecutionContext = {
   ai: {
-    query: async () => ({ message: "" }),
     generate: async <T>(): Promise<T> => {
       throw new Error("not used by activation test");
     },
     generateObject: async <T>(): Promise<{ object: T }> => {
       throw new Error("not used by activation test");
     },
-    generateImage: async () => ({ base64: "", dataUrl: "" }),
   },
   logger: createSilentLogger(),
 };

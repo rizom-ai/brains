@@ -4,8 +4,13 @@ import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
-export const runtimeUploadIdPattern: RegExp =
-  /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** An upload id as the registry mints it: `upload-` and a UUID. */
+export const runtimeUploadIdSource: string =
+  "upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+export const runtimeUploadIdPattern: RegExp = new RegExp(
+  `^${runtimeUploadIdSource}$`,
+  "i",
+);
 export const defaultRuntimeUploadRetentionMs: number = 24 * 60 * 60 * 1000;
 export const defaultRuntimeUploadMaxCount: number = 200;
 
@@ -52,6 +57,20 @@ export interface RuntimeUploadScopeOptions {
   now?: (() => Date) | undefined;
 }
 
+/**
+ * The runtime's shared upload store: the interfaces that accept a file write
+ * it, and an `upload` reference anywhere in the brain points into it — a
+ * create request's, a conversation's prior upload the agent restores, an
+ * entity promoted from an upload. Writers and readers name it here, so they
+ * cannot drift apart.
+ */
+export const sharedUploadScope: Readonly<RuntimeUploadScopeOptions> =
+  Object.freeze({
+    namespace: "upload",
+    refKind: "upload",
+    routePath: "/api/chat/uploads",
+  });
+
 export interface RuntimeUploadRegistryOptions {
   dataDir: string;
   /** Reports pruning faults, which must not fail a save but must be seen. */
@@ -61,13 +80,13 @@ export interface RuntimeUploadRegistryOptions {
 export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
-  content: Buffer;
+  content: Uint8Array;
   metadata?: Record<string, unknown> | undefined;
 }
 
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;
-  content: Buffer;
+  content: Uint8Array;
 }
 
 export type RuntimeUploadStoreErrorCode =

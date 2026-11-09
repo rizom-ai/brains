@@ -1,2 +1,4 @@
 plugin: "@brains/wishlist"
+export: default
+pluginId: wishlist
 model: gpt-6-luna

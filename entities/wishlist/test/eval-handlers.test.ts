@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { createPluginHarness } from "@brains/plugins/test";
-import { WishlistPlugin } from "../src";
+import { wishlistPlugin } from "./wishlist-plugin";
 
 describe("WishlistPlugin evals", () => {
   it("registers the sameWish eval handler", async () => {
@@ -16,7 +16,7 @@ describe("WishlistPlugin evals", () => {
       registrations.push(`${pluginId}:${handlerId}`);
     };
 
-    await harness.installPlugin(new WishlistPlugin());
+    await harness.installPlugin(wishlistPlugin());
 
     expect(registrations).toEqual(["wishlist:sameWish"]);
   });

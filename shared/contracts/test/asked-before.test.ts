@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 import {
   askedBeforeRequestSchema,
   askedBeforeResponseSchema,
-  firstAskedBeforeHit,
 } from "../src/asked-before";
 import { chatHistoryMessageSchema, chatProtocolEventSchema } from "../src/chat";
 
@@ -63,18 +62,5 @@ describe("a question asked before", () => {
         askedBefore: { faqId: "how-does-rizom-keep-memory" },
       }).askedBefore,
     ).toEqual({ faqId: "how-does-rizom-keep-memory" });
-  });
-
-  it("takes the first well-formed hit and ignores the rest", () => {
-    expect(
-      firstAskedBeforeHit([
-        { noop: true },
-        { success: true, data: {} },
-        { hit: { faqId: "", answer: "" } },
-        { hit },
-        { hit: { ...hit, faqId: "second" } },
-      ]),
-    ).toEqual(hit);
-    expect(firstAskedBeforeHit([{}, "garbage", null])).toBeUndefined();
   });
 });

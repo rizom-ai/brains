@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { fetchSiteInfo, parseSiteInfoContent } from "./site-info";
+import { fetchSiteInfo, siteInfoFromRecord } from "./site-info";
 
 const siteInfoContent = `---
 represents: brain
@@ -8,9 +8,9 @@ description: A test site
 ---
 `;
 
-describe("parseSiteInfoContent", () => {
+describe("siteInfoFromRecord", () => {
   it("parses the site-info frontmatter body", () => {
-    const body = parseSiteInfoContent(siteInfoContent);
+    const body = siteInfoFromRecord({ content: siteInfoContent });
 
     expect(body.represents).toBe("brain");
     expect(body.title).toBe("My Site");
@@ -18,7 +18,9 @@ describe("parseSiteInfoContent", () => {
   });
 
   it("rejects invalid frontmatter", () => {
-    expect(() => parseSiteInfoContent(`---\ntitle: 42\n---\n`)).toThrow();
+    expect(() =>
+      siteInfoFromRecord({ content: `---\ntitle: 42\n---\n` }),
+    ).toThrow();
   });
 });
 
@@ -36,6 +38,30 @@ describe("fetchSiteInfo", () => {
     expect(requests).toEqual([
       { entityType: "site-info", options: { limit: 1 } },
     ]);
+  });
+
+  it("reads a declared site-info's fields from its metadata", async () => {
+    const body = await fetchSiteInfo({
+      listEntities: () =>
+        Promise.resolve([
+          {
+            content: "",
+            metadata: {
+              title: "My Site",
+              themeMode: "light",
+              cta: {
+                heading: "Get in touch",
+                buttonText: "Say hello",
+                buttonLink: "mailto:me@example.com",
+              },
+            },
+          },
+        ]),
+    });
+
+    expect(body.title).toBe("My Site");
+    expect(body.themeMode).toBe("light");
+    expect(body.cta?.buttonText).toBe("Say hello");
   });
 
   it("throws when no site-info entity exists", () => {

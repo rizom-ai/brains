@@ -1,6 +1,10 @@
-import { entityViewFields, type EntityViewFields } from "@brains/plugins";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { deckStatusSchema } from "../schemas/deck";
 
 const frontmatterSchema: z.ZodObject<{

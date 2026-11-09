@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentScheduler } from "../src/scheduler";
-import type { SchedulerConfig } from "../src/scheduler";
+import type { SchedulerConfig } from "../src/types/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
-import { GENERATE_MESSAGES } from "../src/types/messages";
+import { generateExecuteContract } from "@brains/contracts";
+import { createServicePluginContext } from "@brains/plugins";
+import { createMockShell } from "@brains/plugins/test";
 import {
   createMockLogger,
   createMockMessagePublisher,
@@ -127,6 +129,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       // Should have checked conditions but not generated
       expect(checkConditionsMock).toHaveBeenCalled();
       expect(onGenerateMock).not.toHaveBeenCalled();
+      // A skip is logged, not announced: nothing listens for it.
+      expect(messageBus.sentMessages).toEqual([]);
     });
 
     it("should generate when conditions are met", async () => {
@@ -235,12 +239,43 @@ describe("ContentScheduler - Generation Scheduling", () => {
       await backend.tick("* * * * *");
 
       const executeMessages = messageBus.sentMessages.filter(
-        (m) => m.type === GENERATE_MESSAGES.EXECUTE,
+        (m) => m.type === generateExecuteContract.name,
       );
       expect(executeMessages.length).toBeGreaterThan(0);
       expect(executeMessages[0]?.payload).toMatchObject({
         entityType: "newsletter",
       });
+    });
+
+    it("reaches every type's generator when several types are scheduled", async () => {
+      // Each generator answers for the types it does not own, as the
+      // newsletter and social-post plugins do; one of them answering first
+      // must not keep the other from hearing its own type.
+      const shell = createMockShell();
+      const generated: string[] = [];
+      for (const owned of ["newsletter", "social-post"]) {
+        createServicePluginContext(shell, owned).messaging.answer(
+          generateExecuteContract,
+          async ({ entityType }) => {
+            if (entityType === owned) generated.push(owned);
+          },
+        );
+      }
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          messageBus: createServicePluginContext(shell, "content-pipeline")
+            .messaging,
+          generationSchedules: {
+            newsletter: "* * * * *",
+            "social-post": "* * * * *",
+          },
+        }),
+      );
+
+      await scheduler.start();
+      await backend.tick("* * * * *");
+
+      expect(generated.sort()).toEqual(["newsletter", "social-post"]);
     });
 
     it("should call onGenerate callback when triggering generation", async () => {
@@ -260,44 +295,6 @@ describe("ContentScheduler - Generation Scheduling", () => {
           entityType: "social-post",
         }),
       );
-    });
-  });
-
-  describe("completeGeneration", () => {
-    it("should emit generate:completed message", async () => {
-      scheduler = ContentScheduler.createFresh(baseConfig());
-
-      messageBus.sentMessages.length = 0;
-
-      scheduler.completeGeneration("newsletter", "newsletter-2024-01");
-
-      expect(messageBus.send).toHaveBeenCalledWith({
-        type: GENERATE_MESSAGES.COMPLETED,
-        payload: expect.objectContaining({
-          entityType: "newsletter",
-          entityId: "newsletter-2024-01",
-        }),
-        sender: "content-pipeline",
-      });
-    });
-  });
-
-  describe("failGeneration", () => {
-    it("should emit generate:failed message", async () => {
-      scheduler = ContentScheduler.createFresh(baseConfig());
-
-      messageBus.sentMessages.length = 0;
-
-      scheduler.failGeneration("newsletter", "No source content available");
-
-      expect(messageBus.send).toHaveBeenCalledWith({
-        type: GENERATE_MESSAGES.FAILED,
-        payload: expect.objectContaining({
-          entityType: "newsletter",
-          error: "No source content available",
-        }),
-        sender: "content-pipeline",
-      });
     });
   });
 

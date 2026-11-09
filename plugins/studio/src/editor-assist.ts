@@ -1,5 +1,9 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { A2A_CHANNELS } from "@brains/contracts";
+import {
+  a2aAgentsContract,
+  a2aCallContract,
+  sdkErrorHttpStatus,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { StudioRequestAccess } from "./editor-contracts";
 import { requireEntityAction } from "./editor-access";
@@ -47,19 +51,6 @@ const askAgentPayloadSchema = z.object({
   agent: z.string().trim().min(1).max(253),
 });
 
-const a2aCallResultSchema = z.looseObject({
-  response: z.string(),
-});
-
-const a2aAgentListSchema = z.object({
-  agents: z.array(
-    z.object({
-      id: z.string(),
-      label: z.string(),
-    }),
-  ),
-});
-
 interface StudioAssistEntityContext {
   entity: BaseEntity;
   frontmatter: Record<string, unknown>;
@@ -79,6 +70,7 @@ async function resolveStudioAssistEntity(
     entityType,
     id,
     visibilityScope: access.visibilityScope,
+    source: true,
   });
   if (!entity) {
     return jsonResponse({ error: `Entity not found: ${id}` }, 404);
@@ -248,23 +240,18 @@ export async function handleListAgents(
   );
   if (entityContext instanceof Response) return entityContext;
 
-  const response = await context.messaging.send({
-    type: A2A_CHANNELS.callAgents,
-    payload: {
-      entityType,
-      entityId: entityContext.entity.id,
-      actor: access.actor,
-      interfaceType: "studio",
-    },
+  const result = await context.messaging.request(a2aAgentsContract, {
+    entityType,
+    entityId: entityContext.entity.id,
+    actor: access.actor,
+    interfaceType: "studio",
+    userPermissionLevel: access.permissionLevel,
   });
-  if (!("success" in response) || !response.success) {
-    // No a2a interface (or no directory) means the client keeps the existing
-    // model-only assist bar.
-    return jsonResponse({ agents: [] });
-  }
-
-  const parsed = a2aAgentListSchema.safeParse(response.data);
-  return jsonResponse(parsed.success ? parsed.data : { agents: [] });
+  // No a2a interface (or no directory) means the client keeps the existing
+  // model-only assist bar.
+  return jsonResponse(
+    result.status === "answered" ? result.data : { agents: [] },
+  );
 }
 
 export async function handleAskAgent(
@@ -295,43 +282,29 @@ export async function handleAskAgent(
   );
   if (selectionError) return selectionError;
 
-  const result = await context.messaging.send({
-    type: A2A_CHANNELS.callRequest,
-    payload: {
-      agent: payload.agent,
-      instruction: payload.instruction,
-      selection: payload.selection,
-      entityType: payload.entityType,
-      entityId: entityContext.entity.id,
-      actor: access.actor,
-      interfaceType: "studio",
-    },
+  const result = await context.messaging.request(a2aCallContract, {
+    agent: payload.agent,
+    instruction: payload.instruction,
+    selection: payload.selection,
+    entityType: payload.entityType,
+    entityId: entityContext.entity.id,
+    actor: access.actor,
+    interfaceType: "studio",
+    userPermissionLevel: access.permissionLevel,
   });
-  if (!("success" in result) || !result.success) {
-    const error =
-      "error" in result && typeof result.error === "string"
-        ? result.error
-        : "Agent call failed";
-    const unavailable = error.startsWith("No handler found");
-    return jsonResponse(
-      { error: unavailable ? "Agent asking is unavailable" : error },
-      unavailable ? 503 : 400,
-    );
-  }
-
-  if (result.data === undefined) {
+  if (result.status === "unavailable") {
     return jsonResponse({ error: "Agent asking is unavailable" }, 503);
   }
-  const parsed = a2aCallResultSchema.safeParse(result.data);
-  if (!parsed.success) {
-    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
-    // origin 502 with its own page, and the reason never reaches the caller.
-    return jsonResponse({ error: "Invalid response from agent" }, 500);
+  if (result.status === "failed") {
+    return jsonResponse(
+      { error: result.error.message, code: result.error.code },
+      sdkErrorHttpStatus(result.error.code),
+    );
   }
 
   return jsonResponse({
     agentId: payload.agent,
-    response: parsed.data.response,
+    response: result.data.response,
   });
 }
 

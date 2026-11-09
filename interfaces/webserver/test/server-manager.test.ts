@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "bun:test";
+import { describe, it, expect, afterEach, mock } from "bun:test";
 import { mkdirSync, writeFileSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -14,7 +14,6 @@ import type {
   RegisteredHttpRoute,
   SharedHostAdmission,
 } from "@brains/plugins/internal/http-routes";
-import { createMockMessageBus } from "@brains/plugins/test";
 import { SitePageResponse } from "@brains/plugins";
 import {
   ServerManager,
@@ -595,16 +594,16 @@ describe("ServerManager (in-process)", () => {
         resources: testResourceSignals(),
       }),
       getOperationalInfo: async () => ({
-        model: "test",
         version: "0.2.0-test",
         uptime: 10,
-        entities: 4,
-        entityCounts: [{ entityType: "note", count: 4 }],
-        embeddings: 4,
-        ai: { model: "test", embeddingModel: "test" },
-        daemons: [],
-        endpoints: [],
-        interactions: [],
+        daemons: [
+          {
+            name: "webserver:webserver",
+            pluginId: "webserver",
+            status: "running",
+            health: { status: "healthy" },
+          },
+        ],
       }),
     });
     await m.start();
@@ -619,8 +618,8 @@ describe("ServerManager (in-process)", () => {
       operationalStatus: "operational",
       app: {
         version: "0.2.0-test",
-        entities: 4,
-        entityCounts: [{ entityType: "note", count: 4 }],
+        uptime: 10,
+        daemons: [{ name: "webserver:webserver", status: "running" }],
       },
     });
   });
@@ -1056,14 +1055,11 @@ describe("ServerManager (in-process)", () => {
     mkdirSync(imagesDir, { recursive: true });
     writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
 
-    const messageBus = createMockMessageBus({
-      returns: {
-        send: {
-          success: true,
-          data: { success: true, data: { subscribed: true } },
-        },
-      },
-    });
+    const executeTool = (): Promise<unknown> =>
+      Promise.resolve({
+        success: true,
+        data: { success: true, data: { subscribed: true } },
+      });
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
@@ -1078,7 +1074,7 @@ describe("ServerManager (in-process)", () => {
           public: true,
         }),
       ],
-      messageBus,
+      executeTool,
     });
 
     await manager.start();
@@ -1102,7 +1098,7 @@ describe("ServerManager (in-process)", () => {
     });
   });
 
-  it("fails loudly when a tool route has no message bus", async () => {
+  it("fails loudly when a tool route has no tool executor", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-api-no-bus-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
@@ -1140,14 +1136,12 @@ describe("ServerManager (in-process)", () => {
     mkdirSync(prodDir, { recursive: true });
     mkdirSync(imagesDir, { recursive: true });
 
-    const messageBus = createMockMessageBus({
-      returns: {
-        send: {
-          success: true,
-          data: { success: true, data: { source: "tool" } },
-        },
-      },
-    });
+    const executeTool = mock((): Promise<unknown> =>
+      Promise.resolve({
+        success: true,
+        data: { success: true, data: { source: "tool" } },
+      }),
+    );
     manager = new ServerManager({
       logger: createSilentLogger("test"),
       productionDistDir: prodDir,
@@ -1167,7 +1161,7 @@ describe("ServerManager (in-process)", () => {
           public: true,
         }),
       ],
-      messageBus,
+      executeTool,
     });
 
     await manager.start();
@@ -1176,7 +1170,7 @@ describe("ServerManager (in-process)", () => {
 
     const response = await fetch(`${url}/api/example/run`, { method: "POST" });
     expect(await response.text()).toBe("handler prefix");
-    expect(messageBus.send).not.toHaveBeenCalled();
+    expect(executeTool).not.toHaveBeenCalled();
   });
 
   it("rejects non-public API routes before tool execution", async () => {
@@ -1186,14 +1180,12 @@ describe("ServerManager (in-process)", () => {
     mkdirSync(prodDir, { recursive: true });
     mkdirSync(imagesDir, { recursive: true });
 
-    const messageBus = createMockMessageBus({
-      returns: {
-        send: {
-          success: true,
-          data: { success: true, data: { invoked: true } },
-        },
-      },
-    });
+    const executeTool = mock((): Promise<unknown> =>
+      Promise.resolve({
+        success: true,
+        data: { success: true, data: { invoked: true } },
+      }),
+    );
     manager = new ServerManager({
       logger: createSilentLogger("test"),
       productionDistDir: prodDir,
@@ -1212,7 +1204,7 @@ describe("ServerManager (in-process)", () => {
           "deny",
         ),
       ],
-      messageBus,
+      executeTool,
     });
 
     await manager.start();
@@ -1225,7 +1217,7 @@ describe("ServerManager (in-process)", () => {
     });
     expect(response.status).toBe(401);
     expect(await response.text()).toBe("Unauthorized");
-    expect(messageBus.send).not.toHaveBeenCalled();
+    expect(executeTool).not.toHaveBeenCalled();
   });
 
   it("does not observe tool routes added after startup", async () => {
@@ -1238,14 +1230,12 @@ describe("ServerManager (in-process)", () => {
 
     let currentRoutes: RegisteredHttpRoute[] = [];
 
-    const messageBus = createMockMessageBus({
-      returns: {
-        send: {
-          success: true,
-          data: { success: true, data: { registeredLate: true } },
-        },
-      },
-    });
+    const executeTool = mock((): Promise<unknown> =>
+      Promise.resolve({
+        success: true,
+        data: { success: true, data: { registeredLate: true } },
+      }),
+    );
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
@@ -1253,7 +1243,7 @@ describe("ServerManager (in-process)", () => {
       sharedImagesDir: imagesDir,
       productionPort: 0,
       getRoutes: (): readonly RegisteredHttpRoute[] => currentRoutes,
-      messageBus,
+      executeTool,
     });
 
     await manager.start();
@@ -1280,7 +1270,7 @@ describe("ServerManager (in-process)", () => {
     });
 
     expect(res.status).toBe(404);
-    expect(messageBus.send).not.toHaveBeenCalled();
+    expect(executeTool).not.toHaveBeenCalled();
   });
 
   it("should not start preview server when preview is not configured", async () => {

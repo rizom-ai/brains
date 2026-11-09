@@ -1,15 +1,5 @@
-import type {
-  BaseEntity,
-  EntityIdPath,
-  GetEntityRequest,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { encodeEntityIdPath } from "@brains/entity-service";
 import {
-  DIRECTORY_SYNC_CHANNELS,
-  directorySyncPathResponseSchema,
-} from "@brains/contracts";
-import {
+  encodeEntityIdPath,
   canWriteVisibility,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
@@ -17,6 +7,16 @@ import {
   entityIdPathSchema,
   entityDisplayTitle as sharedEntityDisplayTitle,
 } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntityIdPath,
+  GetEntityRequest,
+  ServicePluginContext,
+} from "@brains/plugins";
+import {
+  directorySyncPathContract,
+  type directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
 import {
@@ -56,15 +56,36 @@ export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
-  return sharedEntityDisplayTitle(context.entities, entity);
+  // Studio reads a declared type as stored, while its title is derived from
+  // the record as the type reads it: the body, not the document.
+  const declared =
+    context.entities.getAdapter(entity.entityType)?.metadataFromFrontmatter ===
+    true;
+  return sharedEntityDisplayTitle(
+    context.entities,
+    declared
+      ? {
+          ...entity,
+          content: splitEntityContent(
+            entity.entityType,
+            entity.content,
+            context,
+          ).body,
+        }
+      : entity,
+  );
 }
 
-/** Authoring reads preserve source; rendering must never change a save draft. */
+/**
+ * Authoring reads preserve source; rendering must never change a save draft.
+ * The source is the stored document, frontmatter included, which a declared
+ * type's ordinary reads leave out.
+ */
 function readEditorEntity(
   context: ServicePluginContext,
   request: GetEntityRequest,
 ): Promise<BaseEntity | null> {
-  return context.entityService.getEntityRaw(request);
+  return context.entityService.getEntityRaw({ ...request, source: true });
 }
 
 const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
@@ -146,20 +167,13 @@ async function resolvePlacement(
   entityId: string,
   entity: Pick<BaseEntity, "metadata" | "content">,
 ): Promise<z.output<typeof directorySyncPathResponseSchema> | null> {
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
-    payload: {
-      entityType,
-      entityId,
-      metadata: entity.metadata,
-      content: entity.content,
-    },
+  const placement = await context.messaging.request(directorySyncPathContract, {
+    entityType,
+    entityId,
+    metadata: entity.metadata,
+    content: entity.content,
   });
-  return "success" in response &&
-    response.success &&
-    response.data !== undefined
-    ? directorySyncPathResponseSchema.parse(response.data)
-    : null;
+  return placement.status === "answered" ? placement.data : null;
 }
 
 export async function handlePreviewDestination(
@@ -280,6 +294,7 @@ export async function handleGetEntities(
     context.entityService.listEntities({
       entityType,
       options: {
+        source: true,
         offset: query.data.offset,
         limit: query.data.limit,
         sortFields: [
@@ -335,6 +350,7 @@ export async function handleGetEntityHierarchy(
     query.data;
   const base: HierarchyQueryBase = {
     visibilityScope: access.visibilityScope,
+    source: true,
     filter: {
       ...(q && { contentContains: q }),
       ...(visibility !== "all" && { visibility }),
