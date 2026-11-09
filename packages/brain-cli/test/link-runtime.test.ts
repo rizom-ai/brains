@@ -241,6 +241,66 @@ describe("a link captured from a request on the entity store", () => {
       },
     });
   });
+
+  test("stores a full link document that validates byte for byte as written", async () => {
+    const opened = await store();
+    const document =
+      "---\nstatus: published\ntitle: As Written\nurl: 'https://example.com/as-written'\ndescription: Kept.\ncapturedAt: '2025-02-02T00:00:00.000Z'\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nWritten summary\n";
+    const cli: CreateExecutionContext = {
+      interfaceType: "cli",
+      actor: { kind: "user", userId: "u2" },
+      userPermissionLevel: "admin",
+    };
+    expect(await intercept(opened, { content: document }, cli)).toEqual({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { entityId: "httpsexamplecomas-written", status: "created" },
+      },
+    });
+    expect(
+      (await opened.stored("link", "httpsexamplecomas-written"))?.content,
+    ).toBe(document);
+  });
+
+  test("captures the URL of a full link document that does not validate, as the class did", async () => {
+    const opened = await store();
+    const cli: CreateExecutionContext = {
+      interfaceType: "cli",
+      actor: { kind: "user", userId: "u2" },
+      userPermissionLevel: "admin",
+    };
+    const answer = await intercept(
+      opened,
+      {
+        content:
+          "---\ntitle: Invalid\nurl: https://example.com/invalid\nstatus: archived\n---\nNot a link's status",
+      },
+      cli,
+    );
+    expect(answer).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          entityId: expect.stringMatching(/^example-com-/u),
+          status: "generating",
+        },
+      },
+    });
+    const ids = (await opened.service.listEntities({ entityType: "link" })).map(
+      ({ id }) => id,
+    );
+    expect(ids).not.toContain("httpsexamplecominvalid");
+    const [captured] = ids;
+    expect(await stored(opened, captured ?? "")).toBe(
+      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/invalid'\ndescription: Link capture is in progress.\ncapturedAt: <now>\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nPending link capture for https://example.com/invalid.\n",
+    );
+    const queued = await opened.shell
+      .getJobQueueService()
+      .getRecentJobs(undefined, 10);
+    expect(queued.map((job) => job.type)).toEqual(["link:capture"]);
+  });
 });
 
 describe("the declared link capture on the entity store", () => {
