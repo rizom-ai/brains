@@ -746,8 +746,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.attachments = definition.attachments;
     this.jobs = definition.jobs ?? {};
     // A create route names the type's own generation "generation"; a job
-    // of that name would shadow it.
-    if (Object.hasOwn(this.jobs, "generation")) {
+    // of that name would shadow it. A type without a generation may answer
+    // that job name with a contract job, as an entity plugin class that ran
+    // another handler under its generation job did.
+    const namedGeneration = this.jobs["generation"];
+    if (
+      namedGeneration !== undefined &&
+      (definition.generation !== undefined ||
+        contractJobOf(namedGeneration) === undefined)
+    ) {
       throw new Error(
         `${definition.type} declares a job named "generation", the name a create route gives its own generation`,
       );
