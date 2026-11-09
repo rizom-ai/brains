@@ -4,10 +4,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { ContactAdmission, type ContactAdmissionPolicy } from "../src";
+import { FormAdmission, type FormAdmissionPolicy } from "../src";
+
+const FORM = { namespace: "contact.admission", idPrefix: "contact" };
+/** An admission ledger for an example form named like contact. */
+class ContactAdmission extends FormAdmission {
+  constructor(
+    state: ConstructorParameters<typeof FormAdmission>[0],
+    policy: FormAdmissionPolicy,
+    now?: () => number,
+  ) {
+    super(state, policy, FORM, now);
+  }
+}
 
 const now = Date.parse("2026-09-21T10:00:00.000Z");
-const policy: ContactAdmissionPolicy = {
+const policy: FormAdmissionPolicy = {
   windowSeconds: 60,
   globalRequests: 100,
   networkRequests: 50,

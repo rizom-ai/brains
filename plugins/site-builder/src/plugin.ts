@@ -24,8 +24,10 @@ import { registerConfigRoutes } from "./lib/route-helpers";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import {
+  siteBuilderPagesContract,
   siteBuilderSlotsContract,
   siteMetadataUpdatedChannel,
+  type RouteDefinition,
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
@@ -154,6 +156,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           themeCSS: this.config.themeCSS,
           getSlots: (): Promise<UISlotRegistry> => this.getSlots(),
           getHeadScripts: (): Promise<string[]> => this.getHeadScripts(),
+          getPages: (): Promise<RouteDefinition[]> => this.getPages(),
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
@@ -253,6 +256,18 @@ export class SiteBuilderPlugin extends ServicePlugin<
     const contributed =
       collection.status === "answered" ? collection.answers : [];
     return [...this.config.headScripts, ...contributed];
+  }
+
+  /**
+   * The pages plugins add to one build, such as forms defined in content:
+   * asked for at build time, like the head scripts, so they reach the worker.
+   */
+  public async getPages(): Promise<RouteDefinition[]> {
+    const collection = await this.getContext().messaging.gather(
+      siteBuilderPagesContract,
+      {},
+    );
+    return collection.status === "answered" ? collection.answers.flat() : [];
   }
 
   /**

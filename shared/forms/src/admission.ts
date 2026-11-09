@@ -4,15 +4,14 @@ import type {
   IRuntimeStateStore,
 } from "@brains/plugins";
 import {
-  contactAdmissionPolicySchema,
-  contactAdmissionStateSchema,
-  type ContactAdmissionPolicy,
-  type ContactAdmissionState,
+  formAdmissionPolicySchema,
+  formAdmissionStateSchema,
+  type FormAdmissionPolicy,
+  type FormAdmissionState,
 } from "./admission-state";
-import { contactSubmissionSchema } from "./entity/schema";
-import { contactNetwork } from "./network";
+import { peerNetwork } from "./network";
 
-export type ContactDenialReason =
+export type FormDenialReason =
   | "invalid-network"
   | "invalid-token"
   | "invalid-submission"
@@ -22,61 +21,77 @@ export type ContactDenialReason =
   | "unavailable";
 interface Denied {
   kind: "denied";
-  reason: ContactDenialReason;
+  reason: FormDenialReason;
 }
-export type ContactRequestResult = { kind: "allowed" } | Denied;
-export type ContactFormResult =
+export type FormRequestResult = { kind: "allowed" } | Denied;
+export type FormIssueResult =
   { kind: "issued"; token: string; expiresAt: number } | Denied;
-export type ContactReservationResult =
+export type FormReservationResult =
   { kind: "reserved" | "duplicate"; id: string; receivedAt: number } | Denied;
 interface Transition<T> {
   result: T;
-  next?: ContactAdmissionState;
+  next?: FormAdmissionState;
 }
 
-function denied(reason: ContactDenialReason): Denied {
+function denied(reason: FormDenialReason): Denied {
   return { kind: "denied", reason };
 }
 function hash(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 const tokenPattern = /^[a-f0-9]{64}$/;
-function emptyCounters(): ContactAdmissionState["global"] {
+function emptyCounters(): FormAdmissionState["global"] {
   return { requests: 0, forms: 0, submissions: 0 };
 }
 
+/** Where a form's admission ledger lives and how its records are named. */
+export interface FormAdmissionOptions {
+  /** Runtime-state namespace of this form's ledger. */
+  namespace: string;
+  /** Prefix of the deterministic id a reservation names: `<prefix>-<sha256(token)>`. */
+  idPrefix: string;
+  /** What joins the prefix and the key: `-` unless the target files its
+   * records in a folder per form (`:`). */
+  separator?: "-" | ":" | undefined;
+}
+
 /** Atomic form issuance and submission reservation, shared across processes.
- * A reservation is NOT evidence that a contact entity was persisted. A retry must
+ * A reservation is NOT evidence that a submission was persisted. A retry must
  * reconcile the deterministic entity id before acknowledging successful intake.
  * Ledger expiry never reissues a token or permits its submission to be replayed.
  */
-export class ContactAdmission {
-  private readonly store: IRuntimeStateStore<ContactAdmissionState>;
-  private readonly policy: ContactAdmissionPolicy;
+export class FormAdmission {
+  private readonly store: IRuntimeStateStore<FormAdmissionState>;
+  private readonly policy: FormAdmissionPolicy;
   private readonly now: () => number;
+  private readonly idPrefix: string;
+  private readonly separator: "-" | ":";
 
   constructor(
     state: IRuntimeStateNamespace,
-    policy: ContactAdmissionPolicy,
+    policy: FormAdmissionPolicy,
+    options: FormAdmissionOptions,
     now: () => number = Date.now,
   ) {
-    this.policy = contactAdmissionPolicySchema.parse(policy);
+    this.policy = formAdmissionPolicySchema.parse(policy);
     this.now = now;
+    this.idPrefix = options.idPrefix;
+    this.separator = options.separator ?? "-";
     try {
       this.store = state.scoped({
-        namespace: "contact.admission",
-        schema: contactAdmissionStateSchema,
+        namespace: options.namespace,
+        schema: formAdmissionStateSchema,
       });
     } catch {
-      throw new Error("Contact admission unavailable");
+      throw new Error("Form admission unavailable");
     }
   }
 
   /** Call before reading any intake request, including malformed POSTs. */
-  async checkRequest(trustedPeer?: string): Promise<ContactRequestResult> {
-    const network = contactNetwork(trustedPeer);
+  async checkRequest(trustedPeer?: string): Promise<FormRequestResult> {
+    const network = peerNetwork(trustedPeer);
     if (!network) return denied("invalid-network");
-    return this.mutate<ContactRequestResult>((state) => {
+    return this.mutate<FormRequestResult>((state) => {
       const key = hash(`${state.salt}:${network}`);
       const bucket = state.networks[key] ?? emptyCounters();
       if (
@@ -100,12 +115,12 @@ export class ContactAdmission {
     });
   }
 
-  async issue(trustedPeer?: string): Promise<ContactFormResult> {
-    const network = contactNetwork(trustedPeer);
+  async issue(trustedPeer?: string): Promise<FormIssueResult> {
+    const network = peerNetwork(trustedPeer);
     if (!network) return denied("invalid-network");
     const token = randomBytes(32).toString("hex");
     const key = hash(token);
-    return this.mutate<ContactFormResult>((state, now) => {
+    return this.mutate<FormIssueResult>((state, now) => {
       const bucketKey = hash(`${state.salt}:${network}`);
       const bucket = state.networks[bucketKey] ?? emptyCounters();
       if (
@@ -138,28 +153,28 @@ export class ContactAdmission {
     });
   }
 
+  /** Reserve a submission the caller has already validated. The payload must be
+   * JSON-serializable; identical payloads under one token are the same submission. */
   async reserve(
     token: string,
-    input: unknown,
+    payload: unknown,
     trustedPeer?: string,
-  ): Promise<ContactReservationResult> {
-    const network = contactNetwork(trustedPeer);
+  ): Promise<FormReservationResult> {
+    const network = peerNetwork(trustedPeer);
     if (!network) return denied("invalid-network");
     if (!tokenPattern.test(token)) return denied("invalid-token");
-    const parsed = contactSubmissionSchema.safeParse(input);
-    if (!parsed.success) return denied("invalid-submission");
     const key = hash(token);
     // Key the payload digest with the unpersisted high-entropy form credential.
-    // An operator-state copy cannot dictionary-attack low-entropy contact fields.
+    // An operator-state copy cannot dictionary-attack low-entropy submitted fields.
     const digest = createHmac("sha256", token)
-      .update(JSON.stringify(parsed.data))
+      .update(JSON.stringify(payload))
       .digest("hex");
-    return this.mutate<ContactReservationResult>((state, now) => {
+    return this.mutate<FormReservationResult>((state, now) => {
       const bucketKey = hash(`${state.salt}:${network}`);
       const entry = state.entries[key];
       if (entry?.network !== bucketKey)
         return { result: denied("invalid-token") };
-      const id = `contact-${key}`;
+      const id = `${this.idPrefix}${this.separator}${key}`;
       if (entry.submission) {
         return {
           result:
@@ -206,10 +221,7 @@ export class ContactAdmission {
     });
   }
 
-  private hasBucketCapacity(
-    state: ContactAdmissionState,
-    key: string,
-  ): boolean {
+  private hasBucketCapacity(state: FormAdmissionState, key: string): boolean {
     return (
       state.networks[key] !== undefined ||
       Object.keys(state.networks).length < 1000
@@ -217,10 +229,9 @@ export class ContactAdmission {
   }
 
   private async mutate<
-    T extends
-      ContactRequestResult | ContactFormResult | ContactReservationResult,
+    T extends FormRequestResult | FormIssueResult | FormReservationResult,
   >(
-    change: (state: ContactAdmissionState, now: number) => Transition<T>,
+    change: (state: FormAdmissionState, now: number) => Transition<T>,
   ): Promise<T | Denied> {
     try {
       const now = this.now();
@@ -230,54 +241,64 @@ export class ContactAdmission {
         now > Number.MAX_SAFE_INTEGER - 86400_000
       )
         return denied("unavailable");
-      for (let attempt = 0; attempt < 16; attempt++) {
-        const stored = await this.store.get("ledger");
-        if (!stored) {
-          await this.store.setIfNotExists("ledger", {
-            revision: 0,
-            lastNow: now,
-            salt: randomBytes(32).toString("hex"),
-            windowEnd: now + this.policy.windowSeconds * 1000,
-            global: emptyCounters(),
-            networks: {},
-            entries: {},
-          });
-          continue;
-        }
-        if (now < stored.lastNow || stored.revision === Number.MAX_SAFE_INTEGER)
-          return denied("unavailable");
-        const rollover = now >= stored.windowEnd;
-        const state: ContactAdmissionState = {
-          ...stored,
-          ...(rollover
-            ? {
-                windowEnd: now + this.policy.windowSeconds * 1000,
-                global: emptyCounters(),
-                networks: {},
-              }
-            : {}),
-          entries: Object.fromEntries(
-            Object.entries(stored.entries).filter(
-              ([, entry]) => now < entry.retainUntil,
-            ),
-          ),
-        };
-        const transition = change(state, now);
-        if (!transition.next) return transition.result;
-        if (
-          await this.store.compareAndSet("ledger", stored, {
-            ...transition.next,
-            revision: stored.revision + 1,
-            lastNow: now,
-          })
-        )
-          return transition.result;
-      }
+      return await this.attempt(change, now, 16);
     } catch {
       // An ambiguous write may have consumed quota. Never guess a refund, retry
       // an uncertain write here, or leak the storage exception to the HTTP layer.
       return denied("unavailable");
     }
-    return denied("unavailable");
+  }
+
+  /** One compare-and-set round; losing a race tries again, a bounded number
+   * of times. */
+  private async attempt<
+    T extends FormRequestResult | FormIssueResult | FormReservationResult,
+  >(
+    change: (state: FormAdmissionState, now: number) => Transition<T>,
+    now: number,
+    attempts: number,
+  ): Promise<T | Denied> {
+    if (attempts === 0) return denied("unavailable");
+    const stored = await this.store.get("ledger");
+    if (!stored) {
+      await this.store.setIfNotExists("ledger", {
+        revision: 0,
+        lastNow: now,
+        salt: randomBytes(32).toString("hex"),
+        windowEnd: now + this.policy.windowSeconds * 1000,
+        global: emptyCounters(),
+        networks: {},
+        entries: {},
+      });
+      return this.attempt(change, now, attempts - 1);
+    }
+    if (now < stored.lastNow || stored.revision === Number.MAX_SAFE_INTEGER)
+      return denied("unavailable");
+    const rollover = now >= stored.windowEnd;
+    const state: FormAdmissionState = {
+      ...stored,
+      ...(rollover
+        ? {
+            windowEnd: now + this.policy.windowSeconds * 1000,
+            global: emptyCounters(),
+            networks: {},
+          }
+        : {}),
+      entries: Object.fromEntries(
+        Object.entries(stored.entries).filter(
+          ([, entry]) => now < entry.retainUntil,
+        ),
+      ),
+    };
+    const transition = change(state, now);
+    if (!transition.next) return transition.result;
+    const written = await this.store.compareAndSet("ledger", stored, {
+      ...transition.next,
+      revision: stored.revision + 1,
+      lastNow: now,
+    });
+    return written
+      ? transition.result
+      : this.attempt(change, now, attempts - 1);
   }
 }

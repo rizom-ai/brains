@@ -4,23 +4,72 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { ContactStorageSlots } from "../src/storage-slots";
+import { z } from "@brains/utils/zod";
+import { FormStorageSlots } from "../src/storage-slots";
+
+const SLOTS = {
+  namespace: "contact.storage",
+  idPrefix: "contact",
+  maxInFlight: 2,
+};
 
 const start = Date.parse("2026-09-21T10:00:00.000Z");
-const policy = { retentionSeconds: 86400, maxRecords: 2, maxBytes: 2048 };
 
-describe("contact storage capacity", () => {
-  it("coordinates capacity across SQLite connections and preserves uncertain writes after expiry and restart", async () => {
+describe("form storage slots", () => {
+  it("reads a ledger written while submissions expired and drops the expiry on its next write", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "form-slots-"));
+    const config = { url: `file:${join(directory, "state.db")}` };
+    await migrateRuntimeState(config);
+    const state = RuntimeStateService.createFresh(config);
+    try {
+      await state.initialize();
+      const id = `contact-${"c".repeat(64)}`;
+      const legacy = {
+        receivedAt: start,
+        expiresAt: start + 86400_000,
+        bytes: 900,
+        phase: "stored",
+        delivery: {
+          attempts: 1,
+          firstAttemptAt: start,
+          leaseUntil: 0,
+          status: "sent" as const,
+        },
+      };
+      await state
+        .scoped({ namespace: SLOTS.namespace, schema: z.unknown() })
+        .set("slots", { revision: 3, lastNow: start, slots: { [id]: legacy } });
+      const slots = new FormStorageSlots(state, SLOTS, () => start + 1000);
+      expect(await slots.list()).toEqual([
+        [
+          id,
+          {
+            receivedAt: start,
+            bytes: 900,
+            phase: "stored",
+            delivery: legacy.delivery,
+          },
+        ],
+      ]);
+      expect(await slots.release(id)).toBe(true);
+      expect(await slots.list()).toEqual([]);
+    } finally {
+      state.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("holds only in-flight work across SQLite connections, keeps uncertain writes across restart, and releases a slot once its delivery settles", async () => {
     let now = start;
-    const directory = await mkdtemp(join(tmpdir(), "contact-capacity-"));
+    const directory = await mkdtemp(join(tmpdir(), "form-slots-"));
     const config = { url: `file:${join(directory, "state.db")}` };
     await migrateRuntimeState(config);
     const first = RuntimeStateService.createFresh(config);
     const second = RuntimeStateService.createFresh(config);
     try {
       await Promise.all([first.initialize(), second.initialize()]);
-      const a = new ContactStorageSlots(first, policy, () => now);
-      const b = new ContactStorageSlots(second, policy, () => now);
+      const a = new FormStorageSlots(first, SLOTS, () => now);
+      const b = new FormStorageSlots(second, SLOTS, () => now);
       const ids = Array.from(
         { length: 8 },
         (_, i) => `contact-${String(i).padStart(64, "0")}`,
@@ -38,7 +87,8 @@ describe("contact storage capacity", () => {
       if (!stored || !uncertain)
         throw new Error("Missing storage reservations");
       await a.stored(stored);
-      expect(await a.releaseDeleted(stored)).toBe(false);
+      // Its delivery has not settled: the slot stays.
+      expect(await a.release(stored)).toBe(false);
       const deliveries = await Promise.all([
         a.beginDelivery(stored, 3, 3600),
         b.beginDelivery(stored, 3, 3600),
@@ -52,7 +102,7 @@ describe("contact storage capacity", () => {
       const restarted = RuntimeStateService.createFresh(config);
       try {
         await restarted.initialize();
-        const slots = new ContactStorageSlots(restarted, policy, () => now);
+        const slots = new FormStorageSlots(restarted, SLOTS, () => now);
         expect(await slots.beginDelivery(stored, 3, 3600)).toEqual({
           status: "busy",
         });
@@ -72,10 +122,12 @@ describe("contact storage capacity", () => {
         expect(await slots.beginDelivery(stored, 3, 3600)).toEqual({
           status: "sent",
         });
-        now += 86400_000;
+        // Time alone releases nothing: a record is kept until deleted, and an
+        // uncertain write may still commit.
+        now += 90 * 86400_000;
         expect(await slots.list()).toHaveLength(2);
-        expect(await slots.releaseDeleted(uncertain)).toBe(false);
-        expect(await slots.releaseDeleted(stored)).toBe(true);
+        expect(await slots.release(uncertain)).toBe(false);
+        expect(await slots.release(stored)).toBe(true);
         expect(await slots.settleDelivery(stored, 2, true, 3)).toBeNull();
         const fresh = `contact-${"a".repeat(64)}`;
         expect((await slots.claim(fresh, now, 1000)).kind).toBe("new");

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { notificationsSendContract } from "@brains/contracts";
+import {
+  notificationsSendContract,
+  sendNotificationSchema,
+} from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type {
   ChannelDeliveryInput,
@@ -101,6 +104,34 @@ describe("notifications", () => {
         idempotencyKey: "invitation_attempt_1",
       },
     ]);
+  });
+
+  it("passes where an answer goes to the transport", async () => {
+    const harness = createPluginHarness();
+    const sent = installEmailProvider(harness, async () => ({
+      status: "sent",
+    }));
+    await harness.installPlugin(notificationsPlugin());
+    await harness.finalizeRegistration();
+
+    expect(
+      await harness.sendMessage(notificationsSendContract.name, {
+        recipient: { type: "email", address: "owner@example.com" },
+        title: "New contact request",
+        body: "Name: Ada",
+        sensitivity: "secret",
+        idempotencyKey: "contact-notification:1",
+        replyTo: "ada@example.com",
+      }),
+    ).toEqual({ status: "sent" });
+    expect(sent[0]?.replyTo).toBe("ada@example.com");
+    expect(
+      sendNotificationSchema.safeParse({
+        title: "x",
+        body: "y",
+        replyTo: "ada@example.com\r\nBcc: other@example.com",
+      }).success,
+    ).toBe(false);
   });
 
   it("keeps internal delivery available to execution-only workers", async () => {

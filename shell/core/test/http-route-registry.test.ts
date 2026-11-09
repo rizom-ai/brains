@@ -96,6 +96,49 @@ describe("HttpRouteRegistry", () => {
     expect(Object.isFrozen(snapshot[0])).toBe(true);
   });
 
+  it("takes a route that claims paths per request, never a reserved one", () => {
+    const registry = HttpRouteRegistry.createFresh();
+    const claimed = new Set(["/brand-test", "/health", "/images/x.png"]);
+    const [route] = registry.finalize([
+      contributor("quiz", {
+        webRoutes: [
+          webRoute("/quiz", {
+            match: "claim",
+            claims: (path) => claimed.has(path),
+            public: true,
+          }),
+        ],
+        apiRoutes: [],
+      }),
+    ]);
+    if (route?.kind !== "handler" || !route.claims)
+      throw new Error("Missing claim route");
+    expect(route.match).toBe("claim");
+    expect(route.claims("/brand-test")).toBe(true);
+    expect(route.claims("/other")).toBe(false);
+    expect(route.claims("/health")).toBe(false);
+    expect(route.claims("/images/x.png")).toBe(false);
+  });
+
+  it("refuses a claim route without its claims, and claims on another match", () => {
+    expect(() =>
+      HttpRouteRegistry.createFresh().finalize([
+        contributor("quiz", {
+          webRoutes: [webRoute("/quiz", { match: "claim" })],
+          apiRoutes: [],
+        }),
+      ]),
+    ).toThrow('Invalid HTTP route match "claim" declared by plugin "quiz"');
+    expect(() =>
+      HttpRouteRegistry.createFresh().finalize([
+        contributor("quiz", {
+          webRoutes: [webRoute("/quiz", { claims: () => true })],
+          apiRoutes: [],
+        }),
+      ]),
+    ).toThrow('Invalid HTTP route match "exact" declared by plugin "quiz"');
+  });
+
   it("rejects duplicate method/path keys across handler and tool routes", () => {
     const registry = HttpRouteRegistry.createFresh();
 

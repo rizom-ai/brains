@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/forms": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",

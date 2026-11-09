@@ -268,6 +268,23 @@
         "typescript": "^7.0.2",
       },
     },
+    "entities/form": {
+      "name": "@brains/form",
+      "version": "0.2.0-alpha.652",
+      "dependencies": {
+        "@brains/forms": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
     "entities/guide": {
       "name": "@brains/guide",
       "version": "0.2.0-alpha.667",
@@ -733,6 +750,7 @@
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/faq": "workspace:*",
+        "@brains/form": "workspace:*",
         "@brains/guide": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/image-plugin": "workspace:*",
@@ -753,6 +771,7 @@
         "@brains/portfolio": "workspace:*",
         "@brains/profile": "workspace:*",
         "@brains/prompt": "workspace:*",
+        "@brains/quiz": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/series": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
@@ -1025,6 +1044,7 @@
       "dependencies": {
         "@brains/console-theme": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/forms": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1305,6 +1325,26 @@
       "devDependencies": {
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/quiz": {
+      "name": "@brains/quiz",
+      "version": "0.2.0-alpha.652",
+      "dependencies": {
+        "@brains/forms": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/notifications": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
@@ -1664,6 +1704,30 @@
         "@typescript-eslint/eslint-plugin": "^8.61.1",
         "@typescript-eslint/parser": "^8.61.1",
         "eslint-config-prettier": "^10.1.8",
+      },
+    },
+    "shared/forms": {
+      "name": "@brains/forms",
+      "version": "0.2.0-alpha.652",
+      "dependencies": {
+        "@brains/console-theme": "workspace:*",
+        "@brains/contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/site-composition": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "react": "^19.2.7",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/runtime-state": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/react": "^19.2.17",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "react-dom": "^19.2.7",
+        "typescript": "^7.0.2",
       },
     },
     "shared/http-signatures": {
@@ -2749,6 +2813,10 @@
 
     "@brains/faq": ["@brains/faq@workspace:entities/faq"],
 
+    "@brains/form": ["@brains/form@workspace:entities/form"],
+
+    "@brains/forms": ["@brains/forms@workspace:shared/forms"],
+
     "@brains/guide": ["@brains/guide@workspace:entities/guide"],
 
     "@brains/http-signatures": ["@brains/http-signatures@workspace:shared/http-signatures"],
@@ -2802,6 +2870,8 @@
     "@brains/profile": ["@brains/profile@workspace:plugins/profile"],
 
     "@brains/prompt": ["@brains/prompt@workspace:entities/prompt"],
+
+    "@brains/quiz": ["@brains/quiz@workspace:plugins/quiz"],
 
     "@brains/recurring-checks": ["@brains/recurring-checks@workspace:shell/recurring-checks"],
 

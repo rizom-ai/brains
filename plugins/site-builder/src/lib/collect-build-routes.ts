@@ -8,6 +8,23 @@ import {
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 
+/** The registered routes with the pages plugins add to one build; a page
+ * never displaces a registered route at its path. Nothing is kept: the next
+ * build asks again. */
+export function withGatheredPages(
+  routeRegistry: Pick<RouteRegistry, "list" | "getNavigationItems">,
+  pages: readonly RouteDefinition[] = [],
+): Pick<RouteRegistry, "list" | "getNavigationItems"> {
+  return {
+    list: (): RouteDefinition[] => {
+      const registered = routeRegistry.list();
+      const taken = new Set(registered.map((route) => route.path));
+      return [...registered, ...pages.filter((page) => !taken.has(page.path))];
+    },
+    getNavigationItems: (slot) => routeRegistry.getNavigationItems(slot),
+  };
+}
+
 /** The language a site without declared languages is built in. */
 export const DEFAULT_SITE_LANGUAGE = "en";
 
@@ -87,7 +104,9 @@ export async function collectBuildRoutes(
       translationFor(options.siteTranslations, language) !== undefined,
   );
 
-  const translatable = registered.filter(isTranslatable);
+  const translatable = registered.filter(
+    (route) => isTranslatable(route) || route.languages !== undefined,
+  );
   const builds = await Promise.all(
     otherLanguages.map(async (language): Promise<LanguageBuild> => ({
       language,
@@ -206,11 +225,25 @@ async function translateRoute(
   hasSavedCopy: (id: string) => Promise<boolean>,
 ): Promise<TranslatedRoute | undefined> {
   const id = `${language.toLowerCase()}:${route.id}`;
+  const translation = translationFor(route.translations, language);
+  // Its plugin fills it in this language per request; it needs no copy.
+  if (route.languages !== undefined)
+    return route.languages.some(
+      (named) => named.toLowerCase() === language.toLowerCase(),
+    )
+      ? {
+          ...route,
+          id,
+          title: translation?.title ?? "",
+          description: translation?.description ?? "",
+          path: languagePath(language, defaultLanguage, route.path),
+          language,
+        }
+      : undefined;
   const saved = await Promise.all(
     route.sections.map((section) => hasSavedCopy(`${id}:${section.id}`)),
   );
   if (!saved.every(Boolean)) return undefined;
-  const translation = translationFor(route.translations, language);
 
   // Without its own title the page takes the site's, in its language.
   return {

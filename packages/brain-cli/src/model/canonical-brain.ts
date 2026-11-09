@@ -24,6 +24,8 @@ import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
+import { formPlugin } from "@brains/form";
+import { quizPlugin } from "@brains/quiz";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
@@ -217,6 +219,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "notifications" },
     ),
     ["contact", contactPlugin, undefined],
+    ["quiz", quizPlugin, undefined],
     // The playbooks service owns the playbook type: one capability installs
     // both plugins, playbook and playbooks, as the two capabilities did.
     packageCapability("playbooks", "@brains/playbooks", playbooksPackage, {
@@ -237,6 +240,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     }),
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, undefined],
+    ["form", formPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
 
     packageCapability("blog", "@brains/blog", blogPackage, {
