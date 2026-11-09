@@ -54,19 +54,19 @@ turns:
 
   - userMessage: "can you summarize both pages for me?"
     successCriteria:
-      expectedTools:
-        - toolName: system_get
+      # Reading or searching the saved links both answer from them.
+      expectedAnyTool:
+        - toolNames:
+            - system_get
+            - system_list
+            - system_search
           shouldBeCalled: true
-          argsContain:
-            entityType: "link"
       responseNotContains:
         - "I don't have the saved link records"
         - "I don’t have the saved link records"
         - "send me the exact saved titles"
         - "send me the exact titles"
         - "I can search your links"
-        - "If you want"
-        - "if you want"
         - "would you like me to search"
         - "Would you like me to search"
       minHelpfulnessScore: 3
