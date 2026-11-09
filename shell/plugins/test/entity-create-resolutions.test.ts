@@ -134,7 +134,15 @@ async function create(
 
 const queued = (
   context: EntityCreateContext,
-  extra: { attributed?: boolean; visibility?: "public" | "restricted" } = {},
+  extra: {
+    attributed?:
+      | boolean
+      | {
+          readonly operationType?: "content_operations" | "data_processing";
+          readonly channel?: boolean;
+        };
+    visibility?: "public" | "restricted";
+  } = {},
 ): { readonly refuse: string } =>
   entityRuntime(context).queued({
     entityId: "dot",
@@ -146,7 +154,7 @@ const queued = (
     job: {
       contract: scanContract,
       data: { scanId: "dot", prompt: context.input.prompt ?? "" },
-      ...(extra.attributed && { attributed: true }),
+      ...(extra.attributed !== undefined && { attributed: extra.attributed }),
     },
     attachment: attachment("dot"),
   });
@@ -245,6 +253,61 @@ describe("a queued create", () => {
       requestedByUserId: "usr_admin",
       requestedByInterface: "mcp",
     });
+  });
+});
+
+describe("a queued create attributed as data processing in the caller's channel", () => {
+  // As the link plugin class queued its capture: data processing, routed to
+  // the channel the request came from.
+  it("queues the job as the caller's data processing, in their channel", async () => {
+    const { shell } = await install();
+    answer = (context): { readonly refuse: string } =>
+      queued(context, {
+        attributed: { operationType: "data_processing", channel: true },
+      });
+    const interceptor = shell.getEntityRegistry().getCreateInterceptor("scan");
+    if (!interceptor) throw new Error("No scan create route");
+    const outcome = z
+      .object({
+        result: z.object({ data: z.looseObject({ jobId: z.string() }) }),
+      })
+      .parse(
+        await interceptor(
+          { entityType: "scan", prompt: "A dot" },
+          { ...caller, channelId: "room-1", channelName: "Room" },
+        ),
+      );
+    const job = await shell
+      .getJobQueueService()
+      .getStatus(outcome.result.data.jobId);
+
+    expect(job?.source).toBe("scans");
+    expect(job?.metadata).toMatchObject({
+      operationType: "data_processing",
+      interfaceType: "mcp",
+      requestedByActor: { kind: "user", userId: "usr_admin" },
+      requestedByUserId: "usr_admin",
+      channelId: "room-1",
+    });
+  });
+
+  it("names no channel for a caller outside one", async () => {
+    const { shell } = await install();
+    answer = (context): { readonly refuse: string } =>
+      queued(context, {
+        attributed: { operationType: "data_processing", channel: true },
+      });
+    const outcome = z
+      .object({
+        result: z.object({ data: z.looseObject({ jobId: z.string() }) }),
+      })
+      .parse(await create(shell));
+    const job = await shell
+      .getJobQueueService()
+      .getStatus(outcome.result.data.jobId);
+
+    expect(job?.metadata.operationType).toBe("data_processing");
+    expect(job?.metadata).not.toHaveProperty("channelId");
   });
 });
 

@@ -72,6 +72,7 @@ import {
   type AnyEntityBinding,
   type EntityRuntimeBinding,
   type QueuedCreate,
+  type QueuedAttribution,
   type QueuedPlaceholder,
   type StoredCreate,
 } from "./entity-runtime";
@@ -194,6 +195,12 @@ function deepFrozen<T>(value: T): T {
   return value;
 }
 
+/** Whether a queued create's job is attributed to the caller. */
+function isAttributed(queued: QueuedCreate): boolean {
+  const { attributed } = queued.job;
+  return attributed !== undefined && attributed !== false;
+}
+
 /** Who a create is attributed to in the store. */
 function eventContextOf(executionContext: CreateExecutionContext): {
   readonly actor: CreateExecutionContext["actor"];
@@ -212,11 +219,16 @@ function eventContextOf(executionContext: CreateExecutionContext): {
 function attributionJobOptions(
   source: string,
   executionContext: CreateExecutionContext,
+  attribution: QueuedAttribution = {},
 ): JobOptions {
   return {
     source,
     metadata: {
-      operationType: "content_operations",
+      operationType: attribution.operationType ?? "content_operations",
+      ...(attribution.channel === true &&
+        executionContext.channelId !== undefined && {
+          channelId: executionContext.channelId,
+        }),
       interfaceType: executionContext.interfaceType,
       requestedByActor: executionContext.actor,
       ...(executionContext.actor.kind === "user"
@@ -2063,7 +2075,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     _input: CreateInput,
     executionContext: CreateExecutionContext,
   ): Promise<CreateResult> {
-    const attributed = queued.job.attributed === true;
+    const attributed = isAttributed(queued);
     const placeholder = queued.placeholder;
     if (placeholder?.deduplicate === true) {
       return this.applyDeduplicatedQueuedCreate(
@@ -2136,7 +2148,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       },
       options: {
         deduplicateId: true,
-        ...(queued.job.attributed === true && {
+        ...(isAttributed(queued) && {
           eventContext: eventContextOf(executionContext),
         }),
       },
@@ -2178,8 +2190,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       typeof data === "function"
         ? data(await this.writtenPlaceholder(context, entityId))
         : data,
-      ...(queued.job.attributed === true
-        ? [{ options: attributionJobOptions(this.id, executionContext) }]
+      ...(isAttributed(queued)
+        ? [
+            {
+              options: attributionJobOptions(
+                this.id,
+                executionContext,
+                typeof queued.job.attributed === "object"
+                  ? queued.job.attributed
+                  : undefined,
+              ),
+            },
+          ]
         : []),
     );
     return {

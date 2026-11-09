@@ -208,6 +208,14 @@ export interface QueuedPlaceholder {
   readonly contentHash: string;
 }
 
+/** How a queued create's job is attributed to the caller who asked. */
+export interface QueuedAttribution {
+  /** Unset, content work. */
+  readonly operationType?: "content_operations" | "data_processing" | undefined;
+  /** The caller's channel, so the job's progress reaches them there. */
+  readonly channel?: boolean | undefined;
+}
+
 export interface QueuedCreate {
   /** The record the job fills, and the answer names. */
   readonly entityId: string;
@@ -235,8 +243,12 @@ export interface QueuedCreate {
     readonly data:
       | Readonly<Record<string, unknown>>
       | ((written: QueuedPlaceholder) => unknown);
-    /** Queue the job with the caller as its requester, for attribution. */
-    readonly attributed?: boolean | undefined;
+    /**
+     * Queue the job with the caller as its requester, for attribution: as
+     * content work, or as the attribution says, routed to the caller's
+     * channel when it asks for one.
+     */
+    readonly attributed?: boolean | QueuedAttribution | undefined;
   };
   /** Unset, the answer names no attachment. */
   readonly attachment?: CreateResultAttachment | undefined;
