@@ -1108,6 +1108,9 @@ class DeclarativeServicePlugin<
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       siteUrl: context.siteUrl,
       routeByRole: (role) => context.webRoutes.findByRole(role),
+      evalHandler: (handlerId, handler): void => {
+        context.eval.registerHandler(handlerId, handler);
+      },
       classRuntimeState: Object.freeze({
         scoped: context.runtimeState.scoped.bind(context.runtimeState),
       }),

@@ -4,6 +4,7 @@ import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
+import type { EvalHandler } from "../contracts/handlers";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
   IInboxFollowUpsNamespace,
@@ -239,6 +240,12 @@ export interface ServiceRuntime {
    */
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
   /**
+   * Register an eval handler under the plugin's id (`playbooks:goalCheck`),
+   * as the class registered it through `context.eval`; a worker registers
+   * none.
+   */
+  evalHandler(handlerId: string, handler: EvalHandler): void;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -405,6 +412,7 @@ export interface ServiceRuntimeBinding {
   readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
@@ -438,6 +446,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     routeByRole: binding.routeByRole,
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
+    evalHandler: binding.evalHandler,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
