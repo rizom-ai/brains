@@ -403,6 +403,26 @@ describe("a tool with its own model input", () => {
     });
   });
 
+  it("is not shown to a model without strict tools, which writes the tool's own input", async () => {
+    const sdkTool = convertToSDKTools([tool], context, emitter)[
+      "publishing_manage"
+    ];
+    if (!sdkTool) throw new Error("Expected the converted tool");
+
+    expect(await asSchema(sdkTool.inputSchema).jsonSchema).toMatchObject({
+      properties: { fields: { type: "object" } },
+    });
+    expect(
+      await asSchema(sdkTool.inputSchema).validate?.({
+        entityType: "post",
+        fields: { status: "published" },
+      }),
+    ).toEqual({
+      success: true,
+      value: { entityType: "post", fields: { status: "published" } },
+    });
+  });
+
   it("refuses a change the model input has no form for", async () => {
     const sdkTool = convertToSDKTools([tool], context, emitter, {
       strictTools: true,

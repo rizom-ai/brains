@@ -220,10 +220,11 @@ export interface Tool<TOutput = ToolResponse> {
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
   annotations?: ToolAnnotations;
   /**
-   * The input the agent's model writes, when it differs from inputSchema: a
-   * shape read from the brain's state as the tool list is sent, and how a
-   * call in it becomes this tool's input, which inputSchema then validates.
-   * Absent: the model writes inputSchema.
+   * The input a model held to strict tools writes, when strict mode cannot
+   * hold inputSchema: a shape read from the brain's state as the tool list
+   * is sent, and how a call in it becomes this tool's input, which
+   * inputSchema then validates. Other models, and an absent modelInput,
+   * write inputSchema.
    */
   modelInput?: {
     inputSchema: () => ToolInputSchema;

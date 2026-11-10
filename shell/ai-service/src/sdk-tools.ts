@@ -334,16 +334,23 @@ export function convertToSDKTools(
         enableCreateTransform: contextInfo.enableCreateTransform,
       }),
     };
+    const strictTools = options.strictTools ?? false;
+    // A model input exists for strict mode, which cannot hold the tool's own
+    // form; a model not held to strict tools writes that form.
+    const modelInput =
+      strictTools && t.modelInput
+        ? {
+            shape: toModelVisibleInputSchema(
+              t.modelInput.inputSchema(),
+              visibility,
+            ),
+            toToolInput: t.modelInput.toToolInput,
+          }
+        : undefined;
     const { inputSchema, strict } = toSDKInputSchema(
       toModelVisibleInputSchema(t.inputSchema, visibility),
-      options.strictTools ?? false,
-      t.modelInput && {
-        shape: toModelVisibleInputSchema(
-          t.modelInput.inputSchema(),
-          visibility,
-        ),
-        toToolInput: t.modelInput.toToolInput,
-      },
+      strictTools,
+      modelInput,
     );
     sdkTools[t.name] = dynamicTool({
       description: t.description,
