@@ -4,7 +4,10 @@ import {
   siteBuilderRoutesContract,
   type RouteDefinition,
 } from "@brains/site-composition";
-import type { GenerateOptions } from "../schemas/generate-options";
+import type {
+  GenerateOptions,
+  GenerateResult,
+} from "../schemas/generate-options";
 
 export class SiteContentOperations {
   private readonly context: ServicePluginContext;
@@ -38,12 +41,7 @@ export class SiteContentOperations {
   async generate(
     options: GenerateOptions,
     toolContext?: ToolContext,
-  ): Promise<{
-    jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
-    totalSections: number;
-    queuedSections: number;
-    batchId: string;
-  }> {
+  ): Promise<GenerateResult> {
     const signal = toolContext?.signal;
     signal?.throwIfAborted();
     const logger = this.context.logger.child("SiteContentOperations");
@@ -132,8 +130,16 @@ export class SiteContentOperations {
       return [{ jobId: item.jobId, routeId, sectionId }];
     });
 
+    // A dry run queues nothing: what it planned is what it can say.
+    const planned = result.items.flatMap((item) => {
+      if (item.status !== "planned") return [];
+      const [routeId, sectionId] = item.destination.idPath;
+      return routeId && sectionId ? [{ routeId, sectionId }] : [];
+    });
+
     return {
       jobs,
+      planned,
       totalSections: result.plannedTargets,
       queuedSections: result.queuedTargets,
       batchId: result.batchId ?? "",
