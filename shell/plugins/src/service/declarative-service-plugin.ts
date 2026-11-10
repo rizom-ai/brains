@@ -27,7 +27,7 @@ import type {
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
 } from "@brains/entity-service";
-import type { JobHandler } from "@brains/job-queue";
+import type { EnqueueJobRequest, JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createConfirmationGate,
@@ -1099,6 +1099,10 @@ class DeclarativeServicePlugin<
         this.registeredHandlers.push(handler);
       },
       entityShapes: entityShapesOf(context),
+      jobs: Object.freeze({
+        enqueue: (request: EnqueueJobRequest): Promise<string> =>
+          context.jobs.enqueue(request),
+      }),
       dataDir: context.dataDir,
       identity: Object.freeze({
         get: () => context.identity.get(),

@@ -17,6 +17,7 @@ export {
   type ServiceDashboardWidget,
   type ServiceInteraction,
   type ServiceAI,
+  type ServiceClassJobs,
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,

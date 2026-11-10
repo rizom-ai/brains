@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
+import type { EnqueueJobRequest } from "@brains/job-queue";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
@@ -193,6 +194,13 @@ export interface ServiceRuntime {
   registered(handler: () => void | Promise<void>): void;
   /** The shape of every registered entity type, read-only. */
   readonly entityShapes: ServiceEntityShapes;
+  /**
+   * Queue a job as the class queued it through `context.jobs`: the type
+   * scoped to the plugin unless it names a scope, sourced to the plugin,
+   * attributed to the call the request names and to nobody when it names
+   * none.
+   */
+  readonly jobs: ServiceClassJobs;
   /** Where the brain keeps its data on disk. */
   readonly dataDir: string;
   /**
@@ -376,6 +384,11 @@ export interface ServiceEntityReads {
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
 }
 
+/** The job queue as a class queued through it. */
+export interface ServiceClassJobs {
+  enqueue(request: EnqueueJobRequest): Promise<string>;
+}
+
 /** What a first-party service asks the brain's AI. */
 export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
   readonly judge: IShell["judge"];
@@ -403,6 +416,7 @@ export interface ServiceRuntimeBinding {
   /** Keeps a handler to run once every plugin has registered. */
   readonly onRegistered: (handler: () => Promise<void>) => void;
   readonly entityShapes: ServiceEntityShapes;
+  readonly jobs: ServiceClassJobs;
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
@@ -442,6 +456,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     logger: binding.logger,
     deliveryProvider: binding.deliveryProvider,
     entityShapes: binding.entityShapes,
+    jobs: binding.jobs,
     dataDir: binding.dataDir,
     identity: binding.identity,
     domain: binding.domain,

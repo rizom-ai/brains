@@ -1024,6 +1024,7 @@ export {
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceClassJobs,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
