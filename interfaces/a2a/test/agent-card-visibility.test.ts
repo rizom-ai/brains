@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import type { ContentVisibility } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { createA2APlugin, routeOf, webserverPlugin } from "./a2a-plugin";
+import { createA2APlugin, routeOf } from "./a2a-plugin";
 import { parseAgentCard } from "@brains/plugins";
 
 interface SkillFixture {
@@ -74,7 +74,7 @@ describe("agent card excludes non-public skills", () => {
     }
 
     // The card is read where a client reads it, on the shared host.
-    harness.getMockShell().addPlugin(webserverPlugin);
+    harness.getMockShell().serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
     harness.getMockShell().getProfileKindRegistry().finalize();

@@ -122,6 +122,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | ------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
 | `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
+| `shell/http-host`                                       | The one HTTP listener: site, preview, images, routes and split health    |
 | `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
 | `shell/content-service`                                 | Template-based generation, multi-target planning and durable admission   |
 | `shell/conversation-service`                            | Conversation state and message history                                   |
@@ -195,15 +196,14 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                            |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                                |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                              |
-| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads           |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                           |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                               |
-| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/Studio routes, API routes, and split health endpoints |
+| Package                | Purpose                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                  |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                      |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                    |
+| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                 |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                     |
 
 ### Sites, themes, and the canonical definition
 
@@ -322,7 +322,7 @@ Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
-- browsers connect through `interfaces/webserver` for public pages, dashboard/Studio routes, and browser-facing APIs
+- browsers connect through the runtime's HTTP host (`shell/http-host`) for public pages, dashboard/Studio routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Operator browser state
@@ -417,7 +417,7 @@ Current deployment paths:
 
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
 
-The shared webserver separates dependency-free liveness (`/health/live`) from
+The runtime's HTTP host separates dependency-free liveness (`/health/live`) from
 web routing readiness (`/health/ready`) and full operational health
 (`/health/operate`). Routing readiness covers web-critical database access.
 Operational health additionally covers durable worker sessions, stale attempt

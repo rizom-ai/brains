@@ -323,7 +323,7 @@ class InterfaceDeclaration<
       studio: firstPartyStudioOf(context),
       production: context.production,
       domain: context.domain,
-      hasPlugin: (pluginId) => context.plugins.has(pluginId),
+      servesHttp: context.servesHttp,
       auth: () => context.auth.get(),
       mcpTransport: context.mcpTransport,
       endpoints: context.endpoints,

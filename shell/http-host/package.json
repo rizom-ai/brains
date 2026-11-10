@@ -1,5 +1,5 @@
 {
-  "name": "@brains/webserver",
+  "name": "@brains/http-host",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.676",
   "dependencies": {
@@ -11,7 +11,6 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
-    "@brains/messaging-service": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

@@ -121,9 +121,9 @@ const mcp = defineInterface({
       );
     }
 
-    if (config.transport === "http" && !runtime.hasPlugin("webserver")) {
+    if (config.transport === "http" && !runtime.servesHttp) {
       throw new Error(
-        "MCP HTTP transport requires the webserver interface. Standalone HTTP listeners have been removed.",
+        "MCP HTTP transport requires the brain to serve HTTP (http.enabled). Standalone HTTP listeners have been removed.",
       );
     }
 

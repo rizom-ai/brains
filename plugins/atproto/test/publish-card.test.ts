@@ -10,16 +10,14 @@ import {
   type AtprotoPdsClientLike,
 } from "../src";
 
-function createShellWithA2A(): ReturnType<typeof createMockShell> {
+function createShellWithA2A(
+  servesHttp = true,
+): ReturnType<typeof createMockShell> {
   const shell = createMockShell({
     domain: "brain.example.com",
     profileKind: "professional",
+    servesHttp,
   });
-  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-  shell.getPluginPackageName = (pluginId): string | undefined =>
-    pluginId === "webserver"
-      ? "@brains/webserver"
-      : getPluginPackageName(pluginId);
   shell.getProfileKindRegistry().register("test", {
     kind: "professional",
     category: "person",
@@ -46,8 +44,8 @@ function createShellWithA2A(): ReturnType<typeof createMockShell> {
   return shell;
 }
 
-function createContext(): ServicePluginContext {
-  return createServicePluginContext(createShellWithA2A(), "atproto");
+function createContext(servesHttp = true): ServicePluginContext {
+  return createServicePluginContext(createShellWithA2A(servesHttp), "atproto");
 }
 
 describe("AT Protocol brain card publishing", () => {
@@ -123,6 +121,23 @@ describe("AT Protocol brain card publishing", () => {
 
     expect(result.record.brain.did).toBe("did:web:brain.example.com");
     expect(result.record.anchor.did).toBe("did:web:brain.example.com:anchor");
+  });
+
+  it("names its repo DID and no site when the brain serves no HTTP", async () => {
+    const plugin = new AtprotoPlugin({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      repoDid: "did:plc:repo",
+    });
+
+    const result = await plugin.publishBrainCard(createContext(false), {
+      dryRun: true,
+    });
+
+    expect(result.record.brain.did).toBe("did:plc:repo");
+    expect(result.record.anchor.did).toBe("did:plc:repo");
+    expect(result.record.siteUrl).toBeUndefined();
   });
 
   it("rejects did:web brain identities that do not match siteUrl host", async () => {

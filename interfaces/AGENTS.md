@@ -10,8 +10,10 @@ Interfaces are user-facing transports, including:
 
 - MCP
 - chat and command interfaces
-- web servers
+- web chat
 - agent-to-agent transports
+
+The runtime hosts HTTP itself (`shell/http-host`): an interface declares the routes it serves and never opens a listener.
 
 ## Required conventions
 

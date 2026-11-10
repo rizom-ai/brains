@@ -83,8 +83,8 @@ export interface InterfaceRuntime {
   readonly production: boolean;
   /** The brain's bare domain, when it has one. */
   readonly domain: string | undefined;
-  /** Whether a plugin is registered on the brain, as the class asked. */
-  hasPlugin(pluginId: string): boolean;
+  /** Whether the brain serves HTTP, where the interface's routes mount. */
+  readonly servesHttp: boolean;
   /**
    * The auth backend the brain bound, read when asked, as the class read
    * `context.auth.get()`: none while the brain runs without auth-service.
@@ -282,7 +282,7 @@ export interface InterfaceRuntimeBinding {
   readonly studio: FirstPartyStudio;
   readonly production: boolean;
   readonly domain: string | undefined;
-  readonly hasPlugin: (pluginId: string) => boolean;
+  readonly servesHttp: boolean;
   readonly auth: () => AuthBackend | undefined;
   readonly mcpTransport: IMCPTransport;
   readonly endpoints: Pick<IEndpointsNamespace, "register">;
@@ -390,7 +390,7 @@ function bindInterfaceRuntime(
     }),
     production: binding.production,
     domain: binding.domain,
-    hasPlugin: (pluginId) => binding.hasPlugin(pluginId),
+    servesHttp: binding.servesHttp,
     auth: () => binding.auth(),
     mcpTransport: binding.mcpTransport,
     endpoint(endpoint): void {

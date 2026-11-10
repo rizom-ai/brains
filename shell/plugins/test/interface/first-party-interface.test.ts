@@ -831,14 +831,11 @@ describe("withProtocolPlugin", () => {
 });
 
 describe("interfaceRuntime for a hosted protocol", () => {
-  it("reads the brain's deployment, plugins, auth, MCP transport and permission levels", async () => {
-    const shell = createMockShell({ domain: "brain.test", production: true });
-    shell.addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
+  it("reads the brain's deployment, HTTP surface, auth, MCP transport and permission levels", async () => {
+    const shell = createMockShell({
+      domain: "brain.test",
+      production: true,
+      servesHttp: true,
     });
     const backend = createMockAuthBackend();
     shell.getAuthRegistry().bindBackend(backend);
@@ -861,12 +858,28 @@ describe("interfaceRuntime for a hosted protocol", () => {
 
     expect(runtime.production).toBe(true);
     expect(runtime.domain).toBe("brain.test");
-    expect(runtime.hasPlugin("webserver")).toBe(true);
-    expect(runtime.hasPlugin("studio")).toBe(false);
+    expect(runtime.servesHttp).toBe(true);
     expect(runtime.auth()).toBe(backend);
     expect(runtime.mcpTransport).toBe(shell.getMCPService());
     expect(runtime.permissions.getUserLevel("terminal", "stdio")).toBe("admin");
     expect(runtime.permissions.getUserLevel("terminal", "http")).toBe("public");
+  });
+
+  it("reads that the brain serves no HTTP where it serves none", async () => {
+    const shell = createMockShell();
+    let runtime: InterfaceRuntime | undefined;
+    await instantiate(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (context) => {
+          runtime = interfaceRuntime(context);
+          return {};
+        },
+      }),
+    ).register(shell);
+
+    expect(runtime?.servesHttp).toBe(false);
   });
 
   it("registers its endpoint and way in under the plugin", async () => {

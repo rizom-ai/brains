@@ -1,6 +1,6 @@
 ---
 "@brains/plugins": patch
-"@brains/webserver": patch
+"@brains/http-host": patch
 "@brains/studio": patch
 "@brains/dashboard": patch
 ---

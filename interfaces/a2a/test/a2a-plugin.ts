@@ -40,15 +40,3 @@ export function routeOf(
   if (!route) throw new Error(`Expected ${method} ${path}`);
   return route;
 }
-
-/**
- * The shared host the card and JSON-RPC routes mount on, present as a
- * registered plugin.
- */
-export const webserverPlugin: Plugin = {
-  id: "webserver",
-  version: "1.0.0",
-  type: "interface",
-  packageName: "@brains/webserver",
-  register: async () => ({ tools: [], resources: [] }),
-};

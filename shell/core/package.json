@@ -5,6 +5,7 @@
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/http-host": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/operation-context": "workspace:*",
     "@brains/plugins": "workspace:*",

@@ -170,6 +170,12 @@ export interface BrainDefinition {
   deployment?: DeploymentConfigInput;
 
   /**
+   * Whether the runtime hosts HTTP for this brain whatever its bundles. A
+   * brain whose bundles host it says so on the bundle instead.
+   */
+  http?: boolean;
+
+  /**
    * Plugin/interface IDs to disable when running in eval mode.
    * These are plugins with external side effects (chat, email, analytics, etc.)
    * that should not run during evaluation.
@@ -194,7 +200,6 @@ export interface BrainDefinition {
  * ```typescript
  * import { defineBrain } from "@brains/app";
  * import { notePlugin } from "@brains/note";
- * import { WebserverInterface } from "@brains/webserver";
  *
  * export default defineBrain({
  *   name: "my-brain",
@@ -208,9 +213,9 @@ export interface BrainDefinition {
  *   capabilities: [
  *     ["note", notePlugin, {}],
  *   ],
- *   interfaces: [
- *     ["webserver", (config) => new WebserverInterface(config), () => ({})],
- *   ],
+ *   interfaces: [],
+ *   // The runtime serves the brain's routes, health and site over HTTP.
+ *   http: true,
  * });
  * ```
  */

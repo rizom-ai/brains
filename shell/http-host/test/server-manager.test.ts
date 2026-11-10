@@ -1406,4 +1406,46 @@ describe("ServerManager (in-process)", () => {
       expect(WEBSERVER_IDLE_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(120);
     });
   });
+
+  // Bun 1.4 reports a taken port as "Failed to start server. Is port N in
+  // use?", where earlier versions said EADDRINUSE; the operator's hint names
+  // the port either way, with Bun's own error as its cause.
+  describe("a port another process holds", () => {
+    it("names the port and says another brain may hold it", async () => {
+      const holder = Bun.serve({
+        hostname: "127.0.0.1",
+        port: 0,
+        fetch: () => new Response("held"),
+      });
+      const port = holder.port;
+      if (port === undefined) throw new Error("The holder bound no port");
+      testDir = mkdtempSync(join(tmpdir(), "webserver-port-held-"));
+      const prodDir = join(testDir, "dist", "production");
+      const imagesDir = join(testDir, "dist", "images");
+      mkdirSync(prodDir, { recursive: true });
+      mkdirSync(imagesDir, { recursive: true });
+      manager = new ServerManager({
+        logger: createSilentLogger("test"),
+        productionDistDir: prodDir,
+        sharedImagesDir: imagesDir,
+        productionPort: port,
+        hostname: "127.0.0.1",
+      });
+
+      let refusal: unknown;
+      try {
+        await manager.start();
+      } catch (error) {
+        refusal = error;
+      } finally {
+        await holder.stop(true);
+      }
+
+      if (!(refusal instanceof Error)) throw new Error("Start did not refuse");
+      expect(refusal.message).toBe(
+        `Port ${port} is already in use. Another brain may be running — stop it first or configure a different port.`,
+      );
+      expect(String(refusal.cause)).toContain(String(port));
+    });
+  });
 });

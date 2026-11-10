@@ -11,14 +11,6 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import { createSilentLogger } from "@brains/test-utils";
 
-const webserverPlugin: Plugin = {
-  id: "webserver",
-  version: "1.0.0",
-  type: "interface",
-  packageName: "@brains/webserver",
-  register: async () => ({ tools: [], resources: [] }),
-};
-
 function routesOf(plugin: Plugin): WebRouteDefinition[] {
   return "getWebRoutes" in plugin && typeof plugin.getWebRoutes === "function"
     ? plugin.getWebRoutes()
@@ -56,8 +48,8 @@ describe("MCPInterface", () => {
     return calls;
   }
 
-  function installWebserverPlugin(): void {
-    harness.getMockShell().addPlugin(webserverPlugin);
+  function serveHttp(): void {
+    harness.getMockShell().serveHttp();
   }
 
   beforeEach(() => {
@@ -115,7 +107,7 @@ describe("MCPInterface", () => {
         const hostHarness = createPluginHarness({
           logger: createSilentLogger("mcp-test"),
         });
-        hostHarness.getMockShell().addPlugin(webserverPlugin);
+        hostHarness.getMockShell().serveHttp();
         await hostHarness.installPlugin(hosted);
         expect(routesOf(hosted)).toHaveLength(transport === "http" ? 5 : 0);
       },
@@ -137,7 +129,7 @@ describe("MCPInterface", () => {
 
   describe("shared web routes", () => {
     it("should expose shared-host routes for HTTP transport", async () => {
-      installWebserverPlugin();
+      serveHttp();
       const plugin = createMcpPlugin({ transport: "http", httpPort: 3001 });
       await harness.installPlugin(plugin);
 
@@ -162,7 +154,7 @@ describe("MCPInterface", () => {
 
     it("should proxy shared-host status route to the MCP HTTP transport", async () => {
       installMockHttpTransport();
-      installWebserverPlugin();
+      serveHttp();
 
       const plugin = createMcpPlugin({
         transport: "http",
@@ -205,7 +197,7 @@ describe("MCPInterface", () => {
     });
 
     it("should register with http transport and admin permissions", async () => {
-      installWebserverPlugin();
+      serveHttp();
       const plugin = createMcpPlugin({ transport: "http" });
 
       const capabilities = await harness.installPlugin(plugin);
@@ -237,7 +229,7 @@ describe("MCPInterface", () => {
     });
 
     it("advertises the /mcp endpoint on http transport", async () => {
-      installWebserverPlugin();
+      serveHttp();
       const plugin = createMcpPlugin({ transport: "http" });
 
       await harness.installPlugin(plugin);
@@ -263,7 +255,7 @@ describe("MCPInterface", () => {
 
     it("should pass the configured protocol mode to the MCP transport", async () => {
       const calls = installMockHttpTransport();
-      installWebserverPlugin();
+      serveHttp();
       const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 3001,
@@ -280,7 +272,7 @@ describe("MCPInterface", () => {
 
     it("should reject debug mode for unauthenticated HTTP transport", async () => {
       installMockHttpTransport();
-      installWebserverPlugin();
+      serveHttp();
       const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 3001,
@@ -317,7 +309,7 @@ describe("MCPInterface", () => {
           logger: createSilentLogger("mcp-test"),
           production: true,
         });
-        installWebserverPlugin();
+        serveHttp();
         return harness;
       }
 
@@ -357,7 +349,7 @@ describe("MCPInterface", () => {
       });
 
       it("keeps working outside production", async () => {
-        installWebserverPlugin();
+        serveHttp();
         const plugin = createMcpPlugin({
           transport: "http",
           authToken: "static-token",
@@ -372,7 +364,7 @@ describe("MCPInterface", () => {
       });
     });
 
-    it("should require webserver for http transport", async () => {
+    it("should require the brain to serve HTTP for http transport", async () => {
       const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 0,
@@ -380,7 +372,7 @@ describe("MCPInterface", () => {
       });
 
       return expect(harness.installPlugin(plugin)).rejects.toThrow(
-        "MCP HTTP transport requires the webserver interface",
+        "MCP HTTP transport requires the brain to serve HTTP (http.enabled)",
       );
     });
   });

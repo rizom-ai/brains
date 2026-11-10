@@ -333,7 +333,7 @@ Start with:
 
 ### Interface plugins
 
-Use an interface plugin for transports: MCP, Discord, A2A, webserver, or future chat platforms.
+Use an interface plugin for transports: MCP, Discord, A2A, or future chat platforms. The runtime hosts HTTP and serves the routes an interface declares.
 
 Rules of thumb:
 
