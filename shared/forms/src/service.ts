@@ -32,6 +32,7 @@ import { FormDelivery, type FormAlertOutcome } from "./delivery";
 import { parseFormMarkdown } from "./form-markdown";
 import { formLanguages, localizeForm } from "./localize";
 import { FormHttpHandlers, previewOriginFor } from "./http";
+import { FormInboxSource } from "./inbox";
 import { FormIntake, type FormMaintenanceReport } from "./intake";
 import { formPageTemplate, formSitePages } from "./page";
 import {
@@ -43,7 +44,7 @@ import { FormReceipts } from "./receipts";
 import { FormRecords } from "./records";
 import type { FormDraft } from "./render";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
-import type { FormTarget } from "./target";
+import type { FormInboxTarget, FormTarget } from "./target";
 
 /** A form a target package ships. */
 export interface BuiltInForm {
@@ -66,6 +67,12 @@ export interface FormServiceOptions<E extends BaseEntity> {
   target: FormTarget<E>;
   forms: BuiltInForm[];
   overrides?: FormPolicyOverrides | undefined;
+}
+
+function declaresInbox<E extends BaseEntity>(
+  target: FormTarget<E>,
+): target is FormInboxTarget<E> {
+  return target.inbox !== undefined;
 }
 
 /** A change to a form in content. */
@@ -143,6 +150,9 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     context: ServicePluginContext,
     pluginId: string,
   ): Promise<void> {
+    const target = this.options.target;
+    if (declaresInbox(target) && !context.executionOnly)
+      context.inbox.registerSource(new FormInboxSource(context, target));
     // The forms serve the brain's own origin: its local site URL while the
     // brain prefers local URLs (a development run), else its domain.
     const origin =
@@ -153,7 +163,6 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       throw new Error(`${this.label} intake needs the brain's site URL`);
     const policy = resolveFormPolicy(this.options.overrides ?? {}, origin);
     this.policy = policy;
-    const target = this.options.target;
     const records = new FormRecords(context.entityService, target);
     this.records = records;
     const definitions = this.options.forms.map((form) => ({
