@@ -1006,6 +1006,12 @@ export {
 // service contract does not offer here.
 export { withOwnedDataSources } from "./public/service-definition";
 export {
+  firstPartyJobHandler,
+  withJobHandlers,
+  type FirstPartyJobCall,
+  type FirstPartyJobHandler,
+} from "./service/first-party-service";
+export {
   firstPartyTool,
   serviceRuntime,
   type ClaimedSystemType,

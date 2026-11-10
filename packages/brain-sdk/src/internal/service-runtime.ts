@@ -4,7 +4,7 @@
  * `serviceRuntime(context)` on a slot context the brain built, tools that
  * keep snake-case names, the system and entity channels such a service
  * hears, and what its class declared beside the definition, as written
- * (`withTools`). No public entry exports this module.
+ * (`withTools`, `withJobHandlers`). No public entry exports this module.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
  */
@@ -28,7 +28,14 @@ export {
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "@brains/plugins";
-export { withOwnedDataSources, withTools } from "@brains/plugins";
+export {
+  firstPartyJobHandler,
+  withJobHandlers,
+  withOwnedDataSources,
+  withTools,
+  type FirstPartyJobCall,
+  type FirstPartyJobHandler,
+} from "@brains/plugins";
 export { internalFullScope } from "@brains/plugins";
 export type { AuthBackend, ContentVisibility } from "@brains/plugins";
 export {

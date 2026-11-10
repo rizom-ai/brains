@@ -1,5 +1,6 @@
 import type { z } from "@brains/utils/zod";
 import type { Tool } from "@brains/mcp-service";
+import type { ProgressReporter } from "@brains/utils/progress";
 import type { PluginPackageDefinition } from "../package-definition";
 import type {
   FirstPartySlot,
@@ -19,6 +20,46 @@ import type {
 /** What the wrappers have added to a service definition. */
 export interface FirstPartyServiceDeclarations {
   readonly tools?: FirstPartySlot<readonly Tool[]> | undefined;
+  readonly jobHandlers?:
+    FirstPartySlot<readonly FirstPartyJobHandler[]> | undefined;
+}
+
+/** What one run of a job its class handled is given: its call's data. */
+export interface FirstPartyJobCall<TInput> {
+  /** The job's data, parsed by the job's schema. */
+  readonly input: TInput;
+  readonly jobId: string;
+  readonly progress: ProgressReporter;
+  readonly signal: AbortSignal;
+}
+
+/**
+ * A job its class handled, as plain data and functions: registered under
+ * the type its class registered (local to the plugin, as the class named
+ * it), reading the data the class queued, which other packages queue by
+ * type and a queue may hold at an upgrade, with the class's schema, and
+ * running as the package, as the class's handler ran.
+ */
+export interface FirstPartyJobHandler<TInput = unknown> {
+  readonly type: string;
+  readonly input: z.ZodType<TInput, unknown>;
+  /** Per-type execution deadline; unset, the worker's default. */
+  readonly executionTimeoutMs?: number | undefined;
+  /** At most one job of this type runs at a time, across every worker. */
+  readonly exclusive?: boolean | undefined;
+  /** What a log line says of the data; unset, the data as written. */
+  summarize?(input: TInput): Record<string, unknown>;
+  process(call: FirstPartyJobCall<TInput>): Promise<unknown>;
+}
+
+/**
+ * A job its class handled, typed by its schema: the input its `process` and
+ * `summarize` read is what the schema parses.
+ */
+export function firstPartyJobHandler<TInput>(
+  handler: FirstPartyJobHandler<TInput>,
+): FirstPartyJobHandler {
+  return handler;
 }
 
 export const noFirstPartyServiceDeclarations: FirstPartyServiceDeclarations =
@@ -106,5 +147,25 @@ export function withServiceTools<
       );
     }
     return { ...declarations, tools: { run: tools } };
+  });
+}
+
+/** The jobs a service's class handled, added once. */
+export function withJobHandlers<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object = Record<never, never>,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  jobHandlers: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly FirstPartyJobHandler[],
+): ServicePackage<TConfigSchema> {
+  return rebuildServiceWith(definition, "withJobHandlers", (declarations) => {
+    if (declarations.jobHandlers) {
+      throw new Error(
+        `Service "${definition.id}" declares its job handlers more than once`,
+      );
+    }
+    return { ...declarations, jobHandlers: { run: jobHandlers } };
   });
 }
