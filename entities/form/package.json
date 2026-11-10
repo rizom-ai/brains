@@ -1,7 +1,7 @@
 {
   "name": "@brains/form",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.674",
+  "version": "0.2.0-alpha.675",
   "description": "Forms defined in a Brain's content, served by the package their submissions belong to",
   "dependencies": {
     "@brains/forms": "workspace:*",

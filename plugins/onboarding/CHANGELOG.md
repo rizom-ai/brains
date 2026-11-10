@@ -1,5 +1,13 @@
 # @brains/onboarding
 
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.675
+  - @brains/contracts@0.2.0-alpha.675
+
 ## 0.2.0-alpha.674
 
 ### Patch Changes

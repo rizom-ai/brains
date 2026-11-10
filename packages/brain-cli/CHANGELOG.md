@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- [#907](https://github.com/rizom-ai/brains/pull/907) [`595e3e9`](https://github.com/rizom-ai/brains/commit/595e3e9abc8603550fd0ef6aab4849d1f428e1a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An action item can be moved or noted from chat by the title people call it, not only by its id. When two visible cards share the title, the tool asks which one instead of guessing.
+
+- [#902](https://github.com/rizom-ai/brains/pull/902) [`e9519d8`](https://github.com/rizom-ai/brains/commit/e9519d8dea9865db0992c54118d82db95dc13487) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A post or social post generated from the terminal chat is saved again. The terminal now names its operator as the speaker of each turn. Without one, the turn ran as the brain's own agent, and since posts and social posts became declarative, their queued generation was refused at that agent's public level.
+
+- [#904](https://github.com/rizom-ai/brains/pull/904) [`ba8a3ab`](https://github.com/rizom-ai/brains/commit/ba8a3abb3452faad1205271c0081c9e66721c842) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a social post's text works again, through both edits and a full replacement. Since social posts became declarative, every edit was refused as an "invalid content replacement": the check asked the file to state a slug the brain derives from its platform and title. A declared type's replacement is now checked as its file will be stored, and an edit of its body keeps the stored metadata.
+
+- [#906](https://github.com/rizom-ai/brains/pull/906) [`64ab1df`](https://github.com/rizom-ai/brains/commit/64ab1df53f579a8f97d29e6ce2d2c53393d62874) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking which parts of the site would get new content now plans it with a dry run, and the plan names each section it would generate. Before, a dry run reported only a count, and the model listed the stored site content instead.
+
 ## 0.2.0-alpha.674
 
 ### Patch Changes
