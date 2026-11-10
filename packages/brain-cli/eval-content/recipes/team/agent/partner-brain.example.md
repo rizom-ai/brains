@@ -3,7 +3,7 @@ name: Partner Brain
 kind: team
 organization: Team Brain POC Team
 brainName: Partner Brain
-url: "https://partner-brain.io/a2a"
+url: "https://partner-brain.example/a2a"
 status: approved
 discoveredAt: "2026-03-15T10:00:00.000Z"
 ---

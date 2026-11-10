@@ -2,7 +2,7 @@
 name: Mara Veld
 kind: person
 brainName: Mara Veld
-url: "https://mara-veld.io/a2a"
+url: "https://mara-veld.example/a2a"
 status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
 ---

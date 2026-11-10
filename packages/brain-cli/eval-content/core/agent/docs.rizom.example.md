@@ -1,8 +1,8 @@
 ---
 name: Rizom Docs
 kind: person
-brainName: docs.rizom.ai
-url: "https://docs.rizom.ai/a2a"
+brainName: docs.rizom.example
+url: "https://docs.rizom.example/a2a"
 status: approved
 discoveredAt: "2026-06-12T00:00:00.000Z"
 ---

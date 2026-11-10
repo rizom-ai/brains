@@ -12,7 +12,7 @@ tags:
   - core
 
 turns:
-  - userMessage: "Approve old-agent.io for Team Brain peer-brain coordination."
+  - userMessage: "Approve old-agent.example for Team Brain peer-brain coordination."
 
 successCriteria:
   expectedTools:
@@ -20,7 +20,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
-        id: "old-agent.io"
+        id: "old-agent.example"
   responseNotContains:
     - "I cannot"
     - "not approved yet"

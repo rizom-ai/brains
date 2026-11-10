@@ -2,7 +2,7 @@
 name: Yeehaa
 kind: person
 brainName: Brain
-url: "https://yeehaa.io/a2a"
+url: "https://yeehaa.example/a2a"
 status: approved
 discoveredAt: "2026-03-15T10:00:00.000Z"
 ---

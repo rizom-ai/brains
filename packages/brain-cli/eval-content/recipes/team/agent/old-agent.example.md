@@ -3,7 +3,7 @@ name: Old Agent
 kind: team
 organization: Team Brain POC Team
 brainName: Old Agent
-url: "https://old-agent.io/a2a"
+url: "https://old-agent.example/a2a"
 status: discovered
 discoveredAt: "2026-03-14T10:00:00.000Z"
 ---

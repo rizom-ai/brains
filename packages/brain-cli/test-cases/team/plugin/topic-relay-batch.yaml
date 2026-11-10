@@ -44,7 +44,7 @@ input:
         ---
         name: Partner Brain
         status: approved
-        url: "https://partner-brain.io/a2a"
+        url: "https://partner-brain.example/a2a"
         ---
         Partner Brain is an approved peer-brain record used for Team Brain coordination.
         Newly discovered agents must be tracked and reviewed before the team relies on them.
