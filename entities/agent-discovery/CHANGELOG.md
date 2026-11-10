@@ -1,5 +1,19 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.676
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.676
+  - @brains/dashboard@0.2.0-alpha.676
+  - @brains/atproto-contracts@0.2.0-alpha.676
+  - @brains/content-formatters@0.2.0-alpha.676
+  - @brains/contracts@0.2.0-alpha.676
+  - @brains/http-signatures@0.2.0-alpha.676
+  - @brains/utils@0.2.0-alpha.676
+  - @brains/plugins@0.2.0-alpha.676
+
 ## 0.2.0-alpha.675
 
 ### Patch Changes
