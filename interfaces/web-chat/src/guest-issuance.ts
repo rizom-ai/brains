@@ -66,7 +66,10 @@ export const guestIssuanceNamespace = "web-chat.guest-issuance";
 export class GuestIssuance {
   private readonly store: IRuntimeStateStore<GuestIssuanceState>;
   private readonly now: () => number;
-  constructor(runtime: IRuntimeStateNamespace, now: () => number = Date.now) {
+  constructor(
+    runtime: Pick<IRuntimeStateNamespace, "scoped">,
+    now: () => number = Date.now,
+  ) {
     this.store = runtime.scoped({
       namespace: guestIssuanceNamespace,
       schema: guestIssuanceStateSchema,

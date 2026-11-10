@@ -135,13 +135,21 @@ describe("guest configuration conventions", () => {
     }
   });
 
-  it("declares a configured preset's guest routes before registration", () => {
-    const paths = (plugin: WebChatPlugin): string[] =>
-      plugin.getWebRoutes().map((route) => route.path);
-    expect(paths(createWebChatPlugin({ guest: "local-test" }))).toEqual(
+  it("declares a configured preset's guest routes from its configuration", async () => {
+    // Declared, a plugin's routes are collected once it registers.
+    const paths = async (plugin: WebChatPlugin): Promise<string[]> => {
+      const harness = createPluginHarness<WebChatPlugin>();
+      await harness.installPlugin(plugin);
+      const routes = plugin.getWebRoutes().map((route) => route.path);
+      await harness.reset();
+      return routes;
+    };
+    expect(await paths(createWebChatPlugin({ guest: "local-test" }))).toEqual(
       expect.arrayContaining(["/ask/assets/guest.js", "/ask/authenticated"]),
     );
-    expect(paths(createWebChatPlugin())).not.toContain("/ask/assets/guest.js");
+    expect(await paths(createWebChatPlugin())).not.toContain(
+      "/ask/assets/guest.js",
+    );
   });
 
   it("does not turn the preset into runtime admission", async () => {
