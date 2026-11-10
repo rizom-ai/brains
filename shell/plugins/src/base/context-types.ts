@@ -1,6 +1,5 @@
 import type {
   MessageHandler,
-  MessageSender,
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
@@ -56,15 +55,6 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
 
 export interface IMessagingNamespace {
-  /**
-   * Send a raw message as this plugin, its payload and reply unchecked.
-   * Production code does not: an event goes through `broadcast` and its
-   * typed channel, and a request or command to another plugin through
-   * `request`, `gather` or `command` and a bus contract. A test uses it to
-   * deliver a message as the plugin would hear it.
-   */
-  send: MessageSender;
-
   /**
    * Broadcast an event on its typed channel (`defineChannel`), as this
    * plugin: every subscriber hears it and no reply is read. The payload is

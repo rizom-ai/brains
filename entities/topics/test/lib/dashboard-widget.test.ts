@@ -1,4 +1,7 @@
-import { createMockEntityPluginContext } from "@brains/plugins/test";
+import {
+  createMockEntityPluginContext,
+  createMockMessageBus,
+} from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
@@ -38,8 +41,10 @@ describe("registerTopicsDashboardWidget", () => {
     // against the actual messaging and dashboard implementations and the
     // captured arguments are read back off the spies — no stand-in namespace,
     // and nothing asserting a narrower signature than the real one.
+    const messageBus = createMockMessageBus();
     const context = createMockEntityPluginContext({
       listEntitiesImpl: async (): Promise<BaseEntity[]> => topics,
+      messageBus,
     });
     context.messaging.subscribe(
       dashboardWidgetRegisterContract.name,
@@ -53,12 +58,13 @@ describe("registerTopicsDashboardWidget", () => {
       expect.any(Function),
     );
 
-    // Publish the real message rather than fishing the handler out of a spy:
-    // this drives the same path production takes, and the widget registration
-    // below is the evidence it ran.
-    await context.messaging.send({
+    // Collect on the bus as the shell does rather than fishing the handler out
+    // of a spy: this drives the same path production takes, and the widget
+    // registration below is the evidence it ran.
+    await messageBus.collect({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "shell",
     });
 
     expect(context.dashboard.registerWidget).toHaveBeenCalledWith(
@@ -114,20 +120,23 @@ describe("registerTopicsDashboardWidget", () => {
   // topics derived from their non-public work.
   it("reads topics at the caller's scope", async () => {
     const requests: Array<{ entityType: string }> = [];
+    const messageBus = createMockMessageBus();
     const context = createMockEntityPluginContext({
       listEntitiesImpl: async (request): Promise<BaseEntity[]> => {
         requests.push(request);
         return [];
       },
+      messageBus,
     });
     context.messaging.subscribe(
       dashboardWidgetRegisterContract.name,
       async () => ({ success: true }),
     );
     registerTopicsDashboardWidget({ context });
-    await context.messaging.send({
+    await messageBus.collect({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "shell",
     });
     const registered = context.dashboard.registerWidget.mock.calls[0]?.[0];
     if (!registered) throw new Error("Widget was not registered");

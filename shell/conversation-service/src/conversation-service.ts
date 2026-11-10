@@ -17,7 +17,6 @@ import type {
   UpdateConversationMetadataRequest,
 } from "./types";
 import {
-  conversationStartedChannel,
   conversationGuestMessageAddedChannel,
   conversationMessageAddedChannel,
   type ConversationGuestMessageAddedPayload,
@@ -234,19 +233,6 @@ export class ConversationService implements IConversationService {
       sessionId,
       interfaceType,
     });
-
-    // Emit event for plugins
-    await broadcastChannel(
-      this.messageBus,
-      conversationStartedChannel,
-      {
-        conversationId: sessionId,
-        sessionId,
-        interfaceType,
-        timestamp: now,
-      },
-      "conversation-service",
-    );
 
     return sessionId;
   }

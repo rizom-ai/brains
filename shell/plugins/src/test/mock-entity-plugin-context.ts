@@ -11,6 +11,7 @@ import {
   type IEntityService,
   type BaseEntity,
   type ResolvedProfileSelection,
+  type IMessageBus,
 } from "../index";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishMediaData } from "@brains/contracts";
@@ -28,9 +29,10 @@ import { createMockShell } from "./mock-shell";
  * that needed to read a captured argument had no typed route to it and reached
  * for a cast instead — which is what several of the casts Phase 6 removes were.
  *
- * messaging and ai are spied too but stay off this list: some of their members
- * go through genericSpy, which re-applies a generic signature that mock() had
- * erased and cannot also carry a precisely-typed Mock. Their calls are still
+ * messaging and ai are spied too but stay off this list: their members are
+ * generic, and a Mock records a generic signature with its type parameters
+ * erased; ai's go through genericSpy, which re-applies the signature and
+ * cannot also carry a precisely-typed Mock. Their calls are still
  * recorded and still assertable with toHaveBeenCalledWith; only reading a
  * captured argument back off them needs another route.
  */
@@ -78,9 +80,10 @@ export interface MockEntityPluginContextOptions {
     ai?: MockAIReturns;
     jobsEnqueue?: string;
     attachmentsResolve?: () => Promise<PublishMediaData | undefined>;
-    messagingSend?: EntityPluginContext["messaging"]["send"];
   };
   listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
+  /** The bus the context's messaging rides; pass one to send on it as the shell does. */
+  messageBus?: IMessageBus;
 }
 
 /**
@@ -109,7 +112,13 @@ export function createMockEntityPluginContext(
     });
   const logger = options.logger ?? createMockLogger();
 
-  const shell = createMockShell({ logger, entityService, dataDir, spaces });
+  const shell = createMockShell({
+    logger,
+    entityService,
+    dataDir,
+    spaces,
+    ...(options.messageBus ? { messageBus: options.messageBus } : {}),
+  });
 
   // Build the real context, then layer only what the options configure. The
   // factory guarantees every member exists and stays in step with the
@@ -143,16 +152,7 @@ export function createMockEntityPluginContext(
       ),
     },
     dashboard: spyOnMembers(context.dashboard),
-    messaging: {
-      ...spyOnMembers(context.messaging),
-      ...(returns.messagingSend
-        ? {
-            send: genericSpy<EntityPluginContext["messaging"]["send"]>(
-              mock(returns.messagingSend),
-            ),
-          }
-        : {}),
-    },
+    messaging: spyOnMembers(context.messaging),
     ai: {
       ...spyOnMembers(context.ai),
       generate: genericSpy<EntityPluginContext["ai"]["generate"]>(

@@ -34,6 +34,7 @@ import type {
   InteractionInfo,
   InteractionInfoInput,
   IDaemonRegistry,
+  IMessageBus,
 } from "../index";
 import type { RegisteredHttpRoute } from "../types/http-routes";
 import type { Template } from "@brains/templates";
@@ -137,6 +138,8 @@ export interface MockShellOptions {
   entityService?: IEntityService;
   /** Account lookup for requester authority; default: no auth runtime. */
   resolvePrincipal?: PrincipalResolver;
+  /** The bus plugins built on this shell ride; default: a delivering double. */
+  messageBus?: IMessageBus;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -299,7 +302,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     options.conversationService ?? createDefaultMockConversationService();
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
-  const messageBus = createMockMessageBus();
+  const messageBus = options.messageBus ?? createMockMessageBus();
 
   // --- Entity Service (stateful) ---
   const defaultEntityService = createMockEntityService(entityStore);
