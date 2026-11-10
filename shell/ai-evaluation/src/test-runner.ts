@@ -27,6 +27,7 @@ import {
   evaluateQualityThresholds,
   type ResponseSource,
 } from "./criteria-evaluator";
+import { getErrorMessage } from "@brains/utils/error";
 import { isRecord } from "@brains/utils/is-record";
 import { definedFields } from "@brains/utils/strip-undefined";
 
@@ -119,11 +120,43 @@ export class TestRunner implements ITestRunner {
   }
 
   /**
-   * Run a single test case (agent-based test cases only)
+   * Run a single test case (agent-based test cases only). An agent call that
+   * throws, such as a turn the protocol under evaluation refuses, fails this
+   * case alone: the rest of the run goes on.
    */
   async runTest(
     testCase: AgentTestCase,
     options: TestRunnerOptions = {},
+  ): Promise<EvaluationResult> {
+    try {
+      return await this.runTestTurns(testCase, options);
+    } catch (error) {
+      const actual = getErrorMessage(error);
+      return {
+        testCaseId: testCase.id,
+        testCaseName: testCase.name,
+        passed: false,
+        timestamp: new Date().toISOString(),
+        turnResults: [],
+        totalMetrics: MetricCollector.createFresh().getTotalMetrics(),
+        qualityScores: undefined,
+        failures: [
+          {
+            criterion: "agentCall",
+            expected: "the agent answers every turn",
+            actual,
+            message: `The agent call failed: ${actual}`,
+          },
+        ],
+        efficiencyPassed: true,
+        efficiencyFailures: undefined,
+      };
+    }
+  }
+
+  private async runTestTurns(
+    testCase: AgentTestCase,
+    options: TestRunnerOptions,
   ): Promise<EvaluationResult> {
     const conversationId = randomUUID();
     const collector = MetricCollector.createFresh();
