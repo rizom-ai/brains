@@ -23,6 +23,7 @@ export {
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceEntityWrites,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,

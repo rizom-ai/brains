@@ -27,6 +27,7 @@ import type {
   CreateEntityRequest,
   EntityMutationResult,
   GetEntityRequest,
+  IEntityService,
   ListEntitiesRequest,
   EntitySearchRequest,
   SearchResult,
@@ -201,6 +202,12 @@ export interface ServiceRuntime {
    * none.
    */
   readonly jobs: ServiceClassJobs;
+  /**
+   * Writes of any type, handed to the entity service as written, as the
+   * class wrote them through `context.entityService`: with the attribution
+   * and options the request names, and no action policy beyond the store's.
+   */
+  readonly entityWrites: ServiceEntityWrites;
   /** Where the brain keeps its data on disk. */
   readonly dataDir: string;
   /**
@@ -389,6 +396,12 @@ export interface ServiceClassJobs {
   enqueue(request: EnqueueJobRequest): Promise<string>;
 }
 
+/** The entity service's writes a first-party class made. */
+export type ServiceEntityWrites = Pick<
+  IEntityService,
+  "createEntity" | "updateEntity"
+>;
+
 /** What a first-party service asks the brain's AI. */
 export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
   readonly judge: IShell["judge"];
@@ -417,6 +430,7 @@ export interface ServiceRuntimeBinding {
   readonly onRegistered: (handler: () => Promise<void>) => void;
   readonly entityShapes: ServiceEntityShapes;
   readonly jobs: ServiceClassJobs;
+  readonly entityWrites: ServiceEntityWrites;
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
@@ -457,6 +471,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     deliveryProvider: binding.deliveryProvider,
     entityShapes: binding.entityShapes,
     jobs: binding.jobs,
+    entityWrites: binding.entityWrites,
     dataDir: binding.dataDir,
     identity: binding.identity,
     domain: binding.domain,

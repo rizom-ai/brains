@@ -98,6 +98,7 @@ import {
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceEntityWrites,
   type ServiceAI,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
@@ -1103,6 +1104,7 @@ class DeclarativeServicePlugin<
         enqueue: (request: EnqueueJobRequest): Promise<string> =>
           context.jobs.enqueue(request),
       }),
+      entityWrites: entityWritesOf(context),
       dataDir: context.dataDir,
       identity: Object.freeze({
         get: () => context.identity.get(),
@@ -1807,6 +1809,15 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntity: (request) => entityService.getEntity(request),
     search: (request) => entityService.search(request),
   } satisfies ServiceEntityReads);
+}
+
+/** The entity service's writes a class made, each bound on its own. */
+function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
+  const { entityService } = context;
+  return Object.freeze({
+    createEntity: (request) => entityService.createEntity(request),
+    updateEntity: (request) => entityService.updateEntity(request),
+  } satisfies ServiceEntityWrites);
 }
 
 /** What every registered entity type looks like, read through the plugin's context. */
