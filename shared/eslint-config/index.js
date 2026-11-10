@@ -135,28 +135,6 @@ const rawFullScope = {
 };
 
 /**
- * A raw `messaging.send` answers with whichever subscriber replies first and
- * leaves the reply untyped. Entities, plugins and interfaces send an event
- * through `messaging.broadcast(channel, payload)` and make every other
- * cross-package call through a bus contract, so they send nothing raw.
- */
-const busContractMessage =
-  "Use context.messaging.broadcast(channel, payload) for an event, or context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send checks neither its payload nor its reply.";
-const messagingObject =
-  ":matches([object.name='messaging'], [object.property.name='messaging'])";
-const rawBusSend = [
-  {
-    selector: `MemberExpression[property.name='send']${messagingObject}`,
-    message: busContractMessage,
-  },
-  {
-    selector:
-      "VariableDeclarator:matches([init.name='messaging'], [init.property.name='messaging']) > ObjectPattern > Property[key.name='send']",
-    message: busContractMessage,
-  },
-];
-
-/**
  * A raw send with `broadcast: true` hands every subscriber whatever it was
  * given; the subscriber's channel refuses a malformed payload only after it
  * left. Every broadcast goes through its typed channel instead, whose schema
@@ -169,6 +147,9 @@ const rawBroadcastSend = {
   message:
     "Broadcast through broadcast(channel, payload) on a typed channel (defineChannel in @brains/contracts): context.messaging.broadcast in a plugin, broadcastChannel from @brains/messaging-service on a message bus. A raw send with broadcast: true checks no payload.",
 };
+
+const messagingObject =
+  ":matches([object.name='messaging'], [object.property.name='messaging'])";
 
 /**
  * A type argument on a messaging subscription casts a payload nobody checked:
@@ -280,9 +261,10 @@ module.exports = {
       },
     },
     {
-      // Entity, plugin and interface production code sends no raw requests
-      // and casts no subscription's payload. Listed last: it restates the
-      // restrictions above for these files.
+      // Production code broadcasts only through a typed channel and casts no
+      // subscription's payload. The message bus itself is exempt: it is what
+      // the typed channels are built on. Listed last: it restates the
+      // `**/src/**` restrictions above for these files.
       files: [
         "**/entities/*/src/**/*.ts",
         "**/entities/*/src/**/*.tsx",
@@ -290,31 +272,6 @@ module.exports = {
         "**/plugins/*/src/**/*.tsx",
         "**/interfaces/*/src/**/*.ts",
         "**/interfaces/*/src/**/*.tsx",
-      ],
-      excludedFiles: [
-        "**/shell/plugins/**",
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/src/test/**",
-      ],
-      rules: {
-        "no-restricted-syntax": [
-          "error",
-          ...restrictedSyntax,
-          rawFullScope,
-          ...rawBusSend,
-          rawBroadcastSend,
-          castSubscription,
-        ],
-      },
-    },
-    {
-      // Shared, shell, package and site production code that subscribes
-      // through a plugin context's messaging casts no payload either, and
-      // broadcasts only through a typed channel. The message bus itself is
-      // exempt: it is what the typed channels are built on. Restates the
-      // `**/src/**` restrictions above for these files.
-      files: [
         "**/shared/*/src/**/*.ts",
         "**/shared/*/src/**/*.tsx",
         "**/shell/*/src/**/*.ts",

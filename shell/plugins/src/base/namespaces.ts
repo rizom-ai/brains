@@ -13,7 +13,7 @@ import {
   createHasJobFn,
   createRegisterHandlerFn,
 } from "@brains/job-queue";
-import type { MessageHandler, MessageSender } from "@brains/messaging-service";
+import type { MessageHandler } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
@@ -200,15 +200,7 @@ export function createMessagingNamespace(
   executionOnly: boolean = false,
 ): IMessagingNamespace {
   const messageBus = shell.getMessageBus();
-  const sendMessage: MessageSender = async (request) => {
-    return messageBus.send({
-      ...request,
-      sender: pluginId,
-    });
-  };
-
   return {
-    send: sendMessage,
     broadcast: (channel, payload) =>
       broadcastChannel(messageBus, channel, payload, pluginId),
     request: (contract, payload) =>

@@ -1,5 +1,8 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockEntityPluginContext } from "@brains/plugins/test";
+import {
+  createMockEntityPluginContext,
+  createMockMessageBus,
+} from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
@@ -100,8 +103,10 @@ describe("buildDecisionsWidgetData", () => {
 
 describe("registerDecisionsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
+    const messageBus = createMockMessageBus();
     const context = createMockEntityPluginContext({
       listEntitiesImpl: async () => [],
+      messageBus,
     });
     context.messaging.subscribe(
       dashboardWidgetRegisterContract.name,
@@ -114,11 +119,13 @@ describe("registerDecisionsWidget", () => {
       expect.any(Function),
     );
 
-    // Publish the real message rather than capturing the handler: this is the
-    // path production takes, and the registration below is the evidence.
-    await context.messaging.send({
+    // Collect on the bus as the shell does rather than capturing the handler:
+    // this is the path production takes, and the registration below is the
+    // evidence.
+    await messageBus.collect({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "shell",
     });
 
     const [registerCall] = context.dashboard.registerWidget.mock.calls;

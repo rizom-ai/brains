@@ -43,7 +43,6 @@ import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type {
   MessageResponse,
-  MessageSender,
   MessageWithPayload,
 } from "../contracts/messaging";
 import type { IEntityAINamespace } from "../entity/ai-types";
@@ -307,7 +306,6 @@ export interface IConversationsNamespace {
 }
 
 export interface IMessagingNamespace {
-  send: MessageSender;
   subscribe<T = unknown, R = unknown>(
     channel: string | Channel<T, R>,
     handler: (message: MessageWithPayload<T>) => Promise<MessageResponse<R>>,
