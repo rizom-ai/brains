@@ -4,13 +4,18 @@ import {
   type Tool,
   type ToolResponse,
 } from "@brains/plugins";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
-import { addActionItemNote, moveActionItem } from "@brains/action-items";
+import {
+  actionItemTitle,
+  addActionItemNote,
+  moveActionItem,
+} from "@brains/action-items";
 import { actionItemSchema, actionItemStatusSchema } from "@brains/action-items";
 
 const inputSchema = z.object({
-  id: z.string().min(1).describe("The action item's id"),
+  id: z.string().min(1).describe("The action item's id or its title"),
   status: actionItemStatusSchema
     .optional()
     .describe(
@@ -24,6 +29,39 @@ const inputSchema = z.object({
     .optional()
     .describe("A one-line note to add to the card"),
 });
+
+type ActionItem = z.output<typeof actionItemSchema>;
+
+/**
+ * The card a person names: by its id, else by its title, as people call a
+ * card. Two visible cards with that title are a question, not a guess.
+ */
+async function findCard(
+  entityService: ServicePluginContext["entityService"],
+  identifier: string,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<ActionItem | string> {
+  const byId = await entityService.getEntity(
+    { entityType: ACTION_ITEM_ENTITY_TYPE, id: identifier, visibilityScope },
+    actionItemSchema,
+  );
+  if (byId) return byId;
+  const cards = await entityService.listEntities(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+      options: { limit: 500, filter: { visibilityScope } },
+    },
+    actionItemSchema,
+  );
+  const named = cards.filter(
+    (card) => slugify(actionItemTitle(card)) === slugify(identifier),
+  );
+  const [only, ...others] = named;
+  if (!only) return `No action item ${identifier}.`;
+  if (others.length > 0)
+    return `More than one action item is called "${identifier}": ${named.map((card) => card.id).join(", ")}. Give its id.`;
+  return only;
+}
 
 /**
  * Moves and notes from chat, through the board's write path, so a change made
@@ -63,20 +101,17 @@ export function createActionItemUpdateTool(
         actor: toolContext.actor,
         actorName: toolContext.displayName,
       };
-      const card = await context.entityService.getEntity(
-        {
-          entityType: ACTION_ITEM_ENTITY_TYPE,
-          id,
-          visibilityScope: deps.visibilityScope,
-        },
-        actionItemSchema,
+      const card = await findCard(
+        context.entityService,
+        id,
+        deps.visibilityScope,
       );
-      if (!card) return { success: false, error: `No action item ${id}.` };
+      if (typeof card === "string") return { success: false, error: card };
 
       const changes: string[] = [];
       if (status !== undefined && status !== card.metadata.status) {
         const moved = await moveActionItem(deps, {
-          id,
+          id: card.id,
           from: card.metadata.status,
           to: status,
           ...writer,
@@ -91,7 +126,7 @@ export function createActionItemUpdateTool(
       }
       if (note !== undefined) {
         const noted = await addActionItemNote(deps, {
-          id,
+          id: card.id,
           text: note,
           ...writer,
         });
@@ -102,7 +137,7 @@ export function createActionItemUpdateTool(
       }
       return {
         success: true,
-        data: { id, status: status ?? card.metadata.status },
+        data: { id: card.id, status: status ?? card.metadata.status },
         message:
           changes.length > 0
             ? `Action item ${changes.join(" and ")}.`
