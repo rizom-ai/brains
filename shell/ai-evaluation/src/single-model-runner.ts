@@ -33,6 +33,7 @@ export async function runSingleModelEvaluation(
     brainModelPath: options.brainModelPath,
     config: options.config,
     cloneData: options.cloneData,
+    remoteUrl: options.remoteUrl,
   });
   if (options.cloneData) console.log("Cloned data for eval");
 
