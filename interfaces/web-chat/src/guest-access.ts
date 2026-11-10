@@ -60,7 +60,7 @@ export class GuestVisitorStore {
   private readonly now: () => number;
 
   constructor(
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
     policy: GuestPolicy,
     now: () => number = Date.now,
   ) {

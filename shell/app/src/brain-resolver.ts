@@ -184,7 +184,7 @@ function instantiateInterfaces(
 ): Plugin[] {
   const interfaces: Plugin[] = [];
 
-  for (const [id, ctor, envMapper] of definition.interfaces) {
+  for (const [id, factory, envMapper] of definition.interfaces) {
     if (!isActive(selection.activeIds, id)) continue;
 
     const baseConfig = envMapper(env);
@@ -197,7 +197,7 @@ function instantiateInterfaces(
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(withBundle, override) : withBundle;
     try {
-      interfaces.push(new ctor(merged));
+      interfaces.push(...ensureArray(factory(merged)));
     } catch (error) {
       // Unset required values mean the brain does not configure this plugin;
       // an unknown or mistyped key is a broken brain.yaml and stops the start.

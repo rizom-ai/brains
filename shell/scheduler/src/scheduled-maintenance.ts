@@ -2,14 +2,28 @@ import {
   BunSchedulerBackend,
   type SchedulerBackend,
   type ScheduledJob,
-} from "@brains/scheduler";
+} from "./index";
 import type { Logger } from "@brains/utils/logger";
-import type { Daemon, DaemonHealth } from "./daemon-types";
+
+/** What a maintenance cycle reports; the shape a daemon's health check reads. */
+export interface MaintenanceHealth {
+  readonly status: "healthy" | "warning" | "unknown";
+  readonly message?: string;
+  readonly lastCheck?: Date;
+  readonly details?: { readonly successes: number; readonly failures: number };
+}
+
+/** A maintenance cycle the brain starts, stops and asks for its health. */
+export interface ScheduledMaintenance {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  healthCheck(): Promise<MaintenanceHealth>;
+}
 
 export interface ScheduledMaintenanceOptions {
   intervalMs: number;
   run(): Promise<void>;
-  logger: Logger;
+  logger: Pick<Logger, "warn">;
   scheduler?: Pick<SchedulerBackend, "scheduleInterval">;
   now?: () => number;
 }
@@ -19,7 +33,7 @@ export interface ScheduledMaintenanceOptions {
  */
 export function createScheduledMaintenanceDaemon(
   options: ScheduledMaintenanceOptions,
-): Daemon & { healthCheck(): Promise<DaemonHealth> } {
+): ScheduledMaintenance {
   const scheduler = options.scheduler ?? new BunSchedulerBackend();
   const now = options.now ?? Date.now;
   let lastStartedAt: number | undefined;
@@ -27,7 +41,7 @@ export function createScheduledMaintenanceDaemon(
   let stopping: Promise<void> | undefined;
   let accepting = false;
   let active = false;
-  let health: DaemonHealth = { status: "unknown" };
+  let health: MaintenanceHealth = { status: "unknown" };
   let successes = 0;
   let failures = 0;
 
@@ -77,7 +91,7 @@ export function createScheduledMaintenanceDaemon(
       });
       return stopping;
     },
-    healthCheck: async (): Promise<DaemonHealth> => {
+    healthCheck: async (): Promise<MaintenanceHealth> => {
       const current = now();
       if (
         !Number.isSafeInteger(current) ||

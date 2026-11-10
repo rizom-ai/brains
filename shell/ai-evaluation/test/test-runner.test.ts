@@ -432,6 +432,8 @@ describe("TestRunner", () => {
       const savedUploads: unknown[] = [];
       const scopedCalls: unknown[] = [];
       const runtimeUploads: IRuntimeUploadsNamespace = {
+        // Seeding retires nothing.
+        retire: async (): Promise<boolean> => false,
         scoped: (options): ScopedRuntimeUploadStore => {
           scopedCalls.push(options);
           return {

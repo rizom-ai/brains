@@ -11,7 +11,7 @@ import type { ThreadRegistry } from "./thread-registry";
  * when a tool starts running, then edits/finalizes it on completion. Tracks the
  * sent messages by status key so a later update targets the right card.
  *
- * Extracted from ChatInterface to keep that class focused on plugin lifecycle
+ * Extracted from the chat interface to keep it focused on plugin lifecycle
  * and routing rather than tool-status card bookkeeping.
  */
 export class ToolStatusMessenger {

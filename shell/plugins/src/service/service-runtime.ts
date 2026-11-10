@@ -18,8 +18,7 @@ import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
-import type { StudioWorkspaceRegistration } from "../contracts/studio-workspace-contracts";
-import type { BuiltInStudioWorkspaceSource } from "../operator/studio-workspace-runtime";
+import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -44,6 +43,10 @@ import type {
   AnyStudioWorkspaceDefinition,
 } from "../operator/operator-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
+import {
+  attachFirstPartyRuntime,
+  firstPartyRuntimeOf,
+} from "../internal/first-party-runtime";
 import {
   buildServiceTool,
   type ServiceInputSchema,
@@ -316,25 +319,7 @@ export type ServiceInteraction = Parameters<
  * The Studio a first-party service composes a workspace for, as its class
  * registered one.
  */
-export interface ServiceStudio {
-  /** Whether a Studio hosts workspaces in this process: never in a worker. */
-  isAvailable(): boolean;
-  /**
-   * A declared workspace built under the plugin's id, as a tab another
-   * workspace loads; it is never registered on its own.
-   */
-  source<TDefinition extends AnyStudioWorkspaceDefinition>(
-    input: BuiltInStudioWorkspaceSource<TDefinition>,
-  ): Omit<StudioWorkspaceRegistration, "pluginId">;
-  /**
-   * Register a composed workspace with Studio: the URL Studio serves it at,
-   * or none when no Studio took it or the process is a worker. As the class
-   * registered it, it stays registered until Studio goes.
-   */
-  register(
-    registration: Omit<StudioWorkspaceRegistration, "pluginId">,
-  ): Promise<string | undefined>;
-}
+export type ServiceStudio = FirstPartyStudio;
 
 /** The corpus reads a map draws from, passed through to an entity service. */
 export interface ServiceCorpusReads {
@@ -444,6 +429,9 @@ export interface ServiceRuntimeBinding {
 }
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
+
+/** Every runtime the brain bound, so one read back is known to be one. */
+const boundServiceRuntimes = new WeakSet<object>();
 
 function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
   const { messaging, asPackage, onRelease, onReady, onRegistered } = binding;
@@ -569,17 +557,13 @@ export function withServiceRuntime<TContext extends object>(
   context: TContext,
   binding: ServiceRuntimeBinding,
 ): TContext {
-  Object.defineProperty(context, serviceRuntimeKey, {
-    value: bindServiceRuntime(binding),
-    enumerable: false,
-    writable: false,
-    configurable: false,
-  });
-  return context;
+  const runtime = bindServiceRuntime(binding);
+  boundServiceRuntimes.add(runtime);
+  return attachFirstPartyRuntime(context, serviceRuntimeKey, runtime);
 }
 
-function isServiceRuntime(value: unknown): value is ServiceRuntime {
-  return typeof value === "object" && value !== null;
+function isServiceRuntime(value: object | undefined): value is ServiceRuntime {
+  return value !== undefined && boundServiceRuntimes.has(value);
 }
 
 /**
@@ -588,7 +572,7 @@ function isServiceRuntime(value: unknown): value is ServiceRuntime {
  * such as a test double, has none, and is refused.
  */
 export function serviceRuntime(context: object): ServiceRuntime {
-  const runtime: unknown = Reflect.get(context, serviceRuntimeKey);
+  const runtime = firstPartyRuntimeOf(context, serviceRuntimeKey);
   if (!isServiceRuntime(runtime)) {
     throw new Error(
       "This context carries no service runtime: serviceRuntime() reaches internal capabilities of a slot context the brain's runtime built, for first-party packages only",

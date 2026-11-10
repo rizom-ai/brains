@@ -1,13 +1,22 @@
-import { afterEach, beforeEach, expect, mock } from "bun:test";
+import { afterEach, beforeEach, expect, mock, spyOn } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
+import {
+  instantiatePluginPackageDefinition,
+  type ChatContext,
+  type IShell,
+  type Plugin,
+  type ToolActivityEvent,
+  type WebRouteDefinition,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type {
+  ChatConfigInput,
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "../../src/config";
+import type { ChatFetch } from "../../src/chat-input-builder";
 import type {
   ChatAdapterMap,
   DiscordChatAdapter,
@@ -15,9 +24,6 @@ import type {
 } from "../../src/types";
 import type { Mock } from "bun:test";
 import type { ActionEvent, CardElement, StateAdapter } from "chat";
-// Type-only, so it is erased and cannot evaluate the module before the
-// mock.module() registrations below.
-import type * as ChatInterfaceModule from "../../src/chat-interface";
 import type { ChatIdentityAccess } from "../../src/chat-identity";
 
 export const discordExternalIdentity: {
@@ -465,15 +471,52 @@ function harnessIdentityAccess(): ChatIdentityAccess | undefined {
 
 // Imported dynamically so every mock.module() call above is registered before
 // the interface module — and its adapter/SDK imports — are first evaluated.
-// Suites must take ChatInterface from here rather than importing the module
+// Suites must build the plugin from here rather than importing the module
 // directly, or they get an unmocked copy.
-const { ChatInterface: LoadedChatInterface } =
-  await import("../../src/chat-interface");
+const { createChatInterface } = await import("../../src/chat-interface");
 
-export const ChatInterface: typeof ChatInterfaceModule.ChatInterface =
-  LoadedChatInterface;
+/** The chat plugin as the shell holds it: routes, daemons and channels. */
+export type ChatInterfaceInstance = Plugin & {
+  getWebRoutes(): WebRouteDefinition[];
+  requiresDaemonStartup(): boolean;
+  registerChannelsForExecution(shell: IShell): Promise<void>;
+};
 
-export type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
+function isChatInterfaceInstance(
+  plugin: Plugin,
+): plugin is ChatInterfaceInstance {
+  return (
+    typeof plugin.getWebRoutes === "function" &&
+    typeof plugin.requiresDaemonStartup === "function" &&
+    typeof plugin.registerChannelsForExecution === "function"
+  );
+}
+
+/**
+ * The chat interface as the brain creates it, with the identity lookup and
+ * collaborators a test hands it: the package's definition, under the plugin
+ * id its class had. The one place the suites name how it is built, so they
+ * read the same before and after it was declared.
+ */
+export function createChatPlugin(
+  config: ChatConfigInput = {},
+  identityAccess?: () => ChatIdentityAccess | undefined,
+  deps: { fetch?: ChatFetch | undefined } = {},
+): ChatInterfaceInstance {
+  const [plugin] = instantiatePluginPackageDefinition(
+    createChatInterface({
+      ...deps,
+      ...(identityAccess ? { identityAccess } : {}),
+    }),
+    config,
+    { name: "@brains/chat", version: "0.0.0-test" },
+    { pluginId: "chat" },
+  );
+  if (!plugin || !isChatInterfaceInstance(plugin)) {
+    throw new Error("The chat definition created no message interface");
+  }
+  return plugin;
+}
 export type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
   handleToolActivityEvent(event: ToolActivityEvent): Promise<void>;
 };
@@ -788,7 +831,7 @@ export function expectDiscordConfirmationContext(
 export function createPlugin(
   discordConfig: Partial<DiscordChatAdapterConfig> = {},
 ): ChatInterfaceInstance {
-  return new ChatInterface(
+  return createChatPlugin(
     {
       adapters: {
         discord: {
@@ -807,7 +850,7 @@ export function createPlugin(
 
 /** A Slack-only chat interface wired to the same identity access as Discord. */
 export function createSlackPlugin(): ChatInterfaceInstance {
-  return new ChatInterface(
+  return createChatPlugin(
     { adapters: { slack: baseSlackConfig }, gatewayRunMs: 50 },
     harnessIdentityAccess,
     { fetch: (input, init): Promise<Response> => state().fetch(input, init) },
@@ -817,6 +860,34 @@ export function createSlackPlugin(): ChatInterfaceInstance {
 export interface ChatInterfaceTestContext {
   harness: PluginTestHarness<ChatInterfaceInstance>;
   agentService: MockAgentService;
+}
+
+/** The requests a test tried to send over the network: none may leave. */
+let networkAttempts: string[] = [];
+let networkSpy: { mockRestore(): void } | undefined;
+
+/**
+ * No chat test reaches the network: a real Slack or Discord adapter, or a
+ * download that skipped the fake fetch, is refused here and fails the test.
+ */
+function refuseNetwork(): void {
+  networkAttempts = [];
+  const refused: typeof fetch = Object.assign(
+    (input: string | URL | Request): Promise<Response> => {
+      networkAttempts.push(
+        input instanceof Request ? input.url : String(input),
+      );
+      return Promise.reject(new Error("Chat tests make no network calls"));
+    },
+    { preconnect: (): void => {} },
+  );
+  networkSpy = spyOn(globalThis, "fetch").mockImplementation(refused);
+}
+
+function expectNoNetwork(): void {
+  networkSpy?.mockRestore();
+  networkSpy = undefined;
+  expect(networkAttempts).toEqual([]);
 }
 
 /**
@@ -831,6 +902,7 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     agentService: createAgentService(),
   };
   beforeEach(() => {
+    refuseNetwork();
     // A fresh holder per test: nothing from the previous test — or from a
     // suite that ran earlier in this process — is reachable.
     activeState = {
@@ -851,6 +923,7 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
   afterEach(async () => {
     await context.harness.reset();
     activeState = undefined;
+    expectNoNetwork();
   });
 
   return context;

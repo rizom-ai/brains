@@ -71,6 +71,8 @@ function uploadsStore(uploads: FixtureUpload[]): IRuntimeUploadsNamespace {
     };
   };
   return {
+    // No retired namespace holds anything here.
+    retire: async (): Promise<boolean> => false,
     scoped: (): ScopedRuntimeUploadStore => ({
       readRecord: async (id) => record(id),
       read: async (id): Promise<ResolvedRuntimeUpload> => {

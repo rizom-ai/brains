@@ -2,7 +2,7 @@ import { describe, it, expect, mock } from "bun:test";
 import { PermissionService, createPluginHarness } from "@brains/plugins/test";
 import { PromptActionStore } from "../src/prompt-action-store";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   createMessage,
@@ -219,7 +219,7 @@ describe("ChatInterface cards and suggested actions", () => {
         text: "Here is the summary.",
         usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
       });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -365,7 +365,7 @@ describe("ChatInterface cards and suggested actions", () => {
         text: "No private attachment available.",
         usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
       });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({

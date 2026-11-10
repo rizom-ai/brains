@@ -16,27 +16,23 @@ Required credentials:
 - `DISCORD_PUBLIC_KEY`
 - `DISCORD_APPLICATION_ID`
 
-Example brain model mapping:
+The package default-exports a declarative interface definition, which the canonical brain composes under the plugin id `chat` and configures from the environment with `chatConfigFromEnv`. Written by hand, that configuration is:
 
 ```ts
-[
-  "chat",
-  ChatInterface,
-  (env) => ({
-    adapters: {
-      discord:
-        env["DISCORD_BOT_TOKEN"] &&
-        env["DISCORD_PUBLIC_KEY"] &&
-        env["DISCORD_APPLICATION_ID"]
-          ? {
-              botToken: env["DISCORD_BOT_TOKEN"],
-              publicKey: env["DISCORD_PUBLIC_KEY"],
-              applicationId: env["DISCORD_APPLICATION_ID"],
-            }
-          : undefined,
-    },
-  }),
-];
+(env) => ({
+  adapters: {
+    discord:
+      env["DISCORD_BOT_TOKEN"] &&
+      env["DISCORD_PUBLIC_KEY"] &&
+      env["DISCORD_APPLICATION_ID"]
+        ? {
+            botToken: env["DISCORD_BOT_TOKEN"],
+            publicKey: env["DISCORD_PUBLIC_KEY"],
+            applicationId: env["DISCORD_APPLICATION_ID"],
+          }
+        : undefined,
+  },
+});
 ```
 
 Example `brain.yaml` config:
@@ -138,17 +134,15 @@ Use `discord:*` and `slack:*` permission rules for their respective adapters. Op
 
 Upload handling is permission-gated before download: public users can still chat, but their Discord or Slack attachments are not fetched or passed to the agent. Confirmation safety is enforced by the agent permission layer and explicit approval-id selection when multiple approvals are pending.
 
-## Stored upload route policy
+## Stored uploads
 
-Discord and Slack source uploads use separate runtime upload scopes and unguessable `upload-<uuid>` refs. Their download routes are public because platform links cannot carry the authenticated browser session used by web chat. Current guardrails are:
+Discord and Slack source uploads are kept in the runtime's shared upload store (`upload`), with unguessable `upload-<uuid>` refs, as web chat's are. Chat serves no upload route of its own. Guardrails:
 
 - only trusted/admin platform users can create reusable upload refs;
 - public users cannot cause attachments to be fetched or reused;
-- refs are random UUIDs and runtime uploads are pruned by the shared upload registry;
-- each route is unavailable unless its adapter is configured;
-- each route serves only its own platform's source uploads, not another platform's uploads, arbitrary runtime uploads, or content entities;
-- route responses use `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`;
-- route responses include both safe fallback `filename` and encoded `filename*` content-disposition parameters.
+- refs are random UUIDs and runtime uploads are pruned by the shared upload registry.
+
+The per-platform upload stores chat kept before it wrote the shared one (`discord-chat`, `slack-chat`) are retired: chat deletes their `uploads` directories at startup, and their old URLs (`/api/webhooks/chat/discord/uploads`, `/api/webhooks/chat/slack/uploads`) answer 404.
 
 Generated image/PDF artifact cards are posted as native Discord files for trusted/admin users when the card can be resolved to a stored `image` or `document` entity visible to that permission level. Link summaries remain as the only fallback; this package does not add signed or Discord-authenticated artifact routes. When the resolved artifact exists but is out of the caller's visibility scope, its link and metadata are suppressed so fallback links never expose protected artifacts. Public users do not receive native protected artifact files or fallback links to shared/restricted generated artifacts.
 
@@ -198,7 +192,7 @@ Discord parity coverage includes:
 
 ## Runtime state policy
 
-Discord and Slack thread subscriptions are persisted independently through `chat.discord.subscriptions` and `chat.slack.subscriptions` so subscribed-thread routing can survive restart without cross-platform reads or writes. Source uploads likewise use isolated `discord-chat` and `slack-chat` runtime upload scopes. Subscribed-message routing uses that same subscription record as the ownership gate. Subscription records also persist mention-required routing policy for threads that become multi-human discussions, including whether the one-time notice has already been sent. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, OAuth installations, and other operational state remain memory-backed.
+Discord and Slack thread subscriptions are persisted independently through `chat.discord.subscriptions` and `chat.slack.subscriptions` so subscribed-thread routing can survive restart without cross-platform reads or writes. Source uploads are kept in the shared upload store. Subscribed-message routing uses that same subscription record as the ownership gate. Subscription records also persist mention-required routing policy for threads that become multi-human discussions, including whether the one-time notice has already been sent. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, OAuth installations, and other operational state remain memory-backed.
 
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 

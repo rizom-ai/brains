@@ -15,8 +15,8 @@ Interfaces are user-facing transports, including:
 
 ## Required conventions
 
-- Use `InterfacePlugin` for HTTP/API-style transports.
-- Use `MessageInterfacePlugin` for conversational transports.
+- A converted interface is a declarative definition: `defineInterface` from `@brains/sdk/interfaces`, with what the public contract does not offer from `@brains/sdk/internal/interface-runtime` (`interfaceRuntime(context)`, `withDaemon`, `withMessageTransport`). It imports no plugin class base; lint refuses one.
+- An interface not yet converted uses `InterfacePlugin` for HTTP/API-style transports and `MessageInterfacePlugin` for conversational transports.
 - Track conversations for any message-based interface.
 - Use daemon lifecycle hooks carefully.
 - Register a message interface's channels and senders in `registerChannels()`, not `onRegister()`. The worker runs only that hook, so background jobs can send on the channel; it must not connect, listen or subscribe.

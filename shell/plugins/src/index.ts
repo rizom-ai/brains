@@ -233,10 +233,6 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
-export {
-  createScheduledMaintenanceDaemon,
-  type ScheduledMaintenanceOptions,
-} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -898,6 +894,9 @@ export {
   resolveMessageArtifactAccess,
   sanitizeUploadFilename,
   urlCaptureConfigSchema,
+  captureUrlViaAgent,
+  extractCaptureableUrls,
+  type LinkCaptureHost,
   validateMessageUpload,
   validateTextUpload,
   type ArtifactCardState,
@@ -1022,6 +1021,28 @@ export {
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "./service/service-runtime";
+// First-party interfaces converted from a class reach what the public
+// interface contract does not offer here.
+export {
+  interfaceRuntime,
+  type InterfaceMessages,
+  type InterfaceRuntime,
+} from "./interface/interface-runtime";
+export {
+  withChannels,
+  withDaemon,
+  withMessageTransport,
+  withProtocolPlugin,
+  withTools,
+  withWebRoutes,
+  type FirstPartyChannel,
+  type FirstPartyChannelsContext,
+  type FirstPartyDaemon,
+  type FirstPartySlotContext,
+  type MessageTransport,
+  type MessageTransportEdit,
+  type MessageTransportSend,
+} from "./interface/first-party-interface";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";

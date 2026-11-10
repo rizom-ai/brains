@@ -1,29 +1,12 @@
-import type { RuntimeUploadScopeOptions } from "@brains/plugins";
-
-const discordChatUploadRefKind = "discord-chat-upload";
-const slackChatUploadRefKind = "slack-chat-upload";
+/** The ref kind of an upload in the runtime's shared upload store. */
 export const canonicalChatUploadRefKind = "upload";
 
-export function createCanonicalChatUploadStoreScope(): RuntimeUploadScopeOptions {
-  return {
-    namespace: "upload",
-    refKind: canonicalChatUploadRefKind,
-    routePath: "/api/chat/uploads",
-  };
-}
-
-export function createDiscordChatUploadStoreScope(): RuntimeUploadScopeOptions {
-  return {
-    namespace: "discord-chat",
-    refKind: discordChatUploadRefKind,
-    routePath: "/api/webhooks/chat/discord/uploads",
-  };
-}
-
-export function createSlackChatUploadStoreScope(): RuntimeUploadScopeOptions {
-  return {
-    namespace: "slack-chat",
-    refKind: slackChatUploadRefKind,
-    routePath: "/api/webhooks/chat/slack/uploads",
-  };
-}
+/**
+ * The upload namespaces chat kept per platform before it wrote the shared
+ * store (2026-07-13). Nothing reads them; chat deletes their uploads
+ * directories once at startup.
+ */
+export const retiredChatUploadNamespaces: readonly string[] = [
+  "discord-chat",
+  "slack-chat",
+];

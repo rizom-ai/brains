@@ -1,7 +1,5 @@
-import {
-  permissionToVisibilityScope,
-  type InterfacePluginContext,
-} from "@brains/plugins";
+import { permissionToVisibilityScope } from "@brains/plugins";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import {
   SdkError,
   a2aAgentsContract,
@@ -62,13 +60,13 @@ export interface A2AMessageHandlerOptions {
  * carries none, sees agents saved public, the peers network_ask picks.
  */
 export function registerA2ACallMessageHandlers(
-  context: InterfacePluginContext,
+  runtime: Pick<InterfaceRuntime, "answer" | "entityReads">,
   deps: A2AClientDeps,
   options: A2AMessageHandlerOptions = { networkAskTimeoutMs: 30_000 },
 ): void {
-  context.messaging.answer(
+  runtime.answer(
     a2aAskContract,
-    async ({ agent, question }): Promise<A2APeerAnswer> => {
+    async ({ request: { agent, question } }): Promise<A2APeerAnswer> => {
       const budgetMs = options.networkAskTimeoutMs;
       const budget = AbortSignal.timeout(budgetMs);
       const timedOut = (cause?: unknown): SdkError =>
@@ -113,13 +111,10 @@ export function registerA2ACallMessageHandlers(
     },
   );
 
-  context.messaging.answer(
+  runtime.answer(
     a2aCallContract,
     async ({
-      agent,
-      instruction,
-      selection,
-      userPermissionLevel,
+      request: { agent, instruction, selection, userPermissionLevel },
     }): Promise<A2APeerAnswer> => {
       const result = await executeAgentCall(
         {
@@ -148,14 +143,14 @@ export function registerA2ACallMessageHandlers(
     },
   );
 
-  context.messaging.answer(
+  runtime.answer(
     a2aAgentsContract,
-    async ({ userPermissionLevel }) => {
-      if (!context.entityService.hasEntityType("agent")) return { agents: [] };
+    async ({ request: { userPermissionLevel } }) => {
+      if (!runtime.entityReads.hasEntityType("agent")) return { agents: [] };
 
       // The agents a Studio author may ask: the ones a2a:call:request
       // resolves for the same level.
-      const entities = await context.entityService.listEntities({
+      const entities = await runtime.entityReads.listEntities({
         entityType: "agent",
         options: {
           filter: {

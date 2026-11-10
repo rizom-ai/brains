@@ -828,7 +828,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [
         [
           "webserver",
-          MockWebserver,
+          (config: PluginConfig): Plugin => new MockWebserver(config),
           (): PluginConfig => ({ productionPort: 8080 }),
         ],
       ],
@@ -856,7 +856,13 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(
@@ -1488,8 +1494,16 @@ describe("resolve with site package", () => {
       ],
       capabilities: [],
       interfaces: [
-        ["mcp", MockMcp, (): PluginConfig => ({ mode: "basic" })],
-        ["webserver", MockWebserver, (): PluginConfig => ({})],
+        [
+          "mcp",
+          (config: PluginConfig): Plugin => new MockMcp(config),
+          (): PluginConfig => ({ mode: "basic" }),
+        ],
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
       ],
     });
 
@@ -1530,7 +1544,13 @@ describe("resolve with site package", () => {
       capabilities: [
         ["site-builder", createMockFactory("site-builder")[0], {}],
       ],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {}, { bundles: ["core"] });
@@ -1550,7 +1570,13 @@ describe("resolve with site package", () => {
       capabilities: [
         ["site-builder", createMockFactory("site-builder")[0], {}],
       ],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {}, { bundles: ["site"] });
@@ -1564,7 +1590,13 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {});
@@ -1578,7 +1610,13 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {}, { port: 8090 });
@@ -1593,7 +1631,13 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "webserver",
+          (config: PluginConfig): Plugin => new MockWebserver(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(

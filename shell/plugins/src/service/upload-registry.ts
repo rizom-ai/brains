@@ -135,7 +135,15 @@ export type ScopedRuntimeUploadStore = Pick<
 export interface IRuntimeUploadsNamespace {
   /** Create a scoped runtime upload store for an interface/plugin namespace. */
   scoped(options: RuntimeUploadScopeOptions): ScopedRuntimeUploadStore;
+  /**
+   * Delete a retired namespace's uploads directory, and nothing beside it.
+   * Answers whether there was one to delete. The shared store is never
+   * retired, and a name that is not a namespace is refused.
+   */
+  retire(namespace: string): Promise<boolean>;
 }
+
+const uploadNamespacePattern = /^[a-z][a-z0-9-]*$/;
 
 export function createRuntimeUploadsNamespace(
   registry: RuntimeUploadRegistry,
@@ -143,6 +151,7 @@ export function createRuntimeUploadsNamespace(
   return {
     scoped: (options: RuntimeUploadScopeOptions): RuntimeUploadStore =>
       registry.scoped(options),
+    retire: (namespace: string): Promise<boolean> => registry.retire(namespace),
   };
 }
 
@@ -173,6 +182,26 @@ export class RuntimeUploadRegistry {
       dataDir: this.dataDir,
       ...(this.logger !== undefined && { logger: this.logger }),
     });
+  }
+
+  async retire(namespace: string): Promise<boolean> {
+    if (!uploadNamespacePattern.test(namespace)) {
+      throw new Error(`"${namespace}" is not an upload namespace`);
+    }
+    if (namespace === sharedUploadScope.namespace) {
+      throw new Error(
+        `"${namespace}" is the runtime's shared upload store; the runtime's shared upload store is never retired`,
+      );
+    }
+    const uploads = join(this.dataDir, namespace, "uploads");
+    try {
+      await stat(uploads);
+    } catch (error) {
+      if (isNoEntryError(error)) return false;
+      throw error;
+    }
+    await rm(uploads, { recursive: true, force: true });
+    return true;
   }
 }
 

@@ -1,11 +1,9 @@
-import type {
-  InterfacePluginContext,
-  UserPermissionLevel,
-} from "@brains/plugins";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+import type { UserPermissionLevel } from "@brains/plugins";
 
 import { guestInterfaceType } from "@brains/contracts/chat";
 
-type ConversationService = InterfacePluginContext["conversations"];
+type ConversationService = InterfaceRuntime["conversations"];
 export type WebChatConversation = NonNullable<
   Awaited<ReturnType<ConversationService["get"]>>
 >;

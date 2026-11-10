@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "@chat-adapter/discord": "^4.41.1",
     "@chat-adapter/slack": "^4.41.1",

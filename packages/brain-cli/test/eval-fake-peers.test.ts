@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { A2AInterface } from "@brains/a2a";
+import { createA2AInterface } from "@brains/a2a";
 import {
   AgentDiscoveryPlugin,
   AgentToolsPlugin,
@@ -11,7 +11,13 @@ import {
   isSafeSeedAgentUrl,
   readSeedPeers,
 } from "@brains/ai-evaluation";
-import type { Plugin, Tool, ToolResponse } from "@brains/plugins";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+  type Tool,
+  type ToolResponse,
+} from "@brains/plugins";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   confirmationArgs,
   createPluginHarness,
@@ -41,6 +47,18 @@ function seedAgentUrls(): Array<{ file: string; url: string }> {
         return { file: relative(EVAL_CONTENT, path), url: url?.[1] ?? "" };
       }),
   );
+}
+
+/** The A2A interface as the brain composes it, asking peers through `fetch`. */
+function createA2APlugin(fetch: FetchLike): Plugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    createA2AInterface({ fetch }),
+    { port: 0 },
+    { name: "@brains/a2a", version: "0.0.0-test" },
+    { pluginId: "a2a" },
+  );
+  if (!plugin) throw new Error("The A2A definition created no plugin");
+  return plugin;
 }
 
 const unreachable = (input: string | URL | Request): Promise<Response> =>
@@ -80,7 +98,7 @@ describe("the agent network against the eval's fake peers", () => {
     await harness.installPlugin(new AgentDiscoveryPlugin());
     const installed = [
       await harness.installPlugin(new AgentToolsPlugin(fetch)),
-      await harness.installPlugin(new A2AInterface({ port: 0 }, { fetch })),
+      await harness.installPlugin(createA2APlugin(fetch)),
     ];
     await harness.finalizeRegistration();
     tools.clear();

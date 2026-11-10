@@ -1,17 +1,11 @@
 import {
   requireSameOriginJson,
-  MessageInterfacePlugin,
   SitePageResponse,
-  createScheduledMaintenanceDaemon,
   type AgentResponse,
-  type EditMessageRequest,
-  type MessageInterfacePluginContext,
-  type JobContext,
+  type DaemonHealth,
   type JobProgressEvent,
   type MessageArtifactEntity,
   type MessageInterfaceOutput,
-  type SendMessageToChannelRequest,
-  type SendMessageWithIdRequest,
   type WebRouteDefinition,
   type ToolStatusUpdate,
   type UserPermissionLevel,
@@ -19,7 +13,21 @@ import {
   coerceConversationMetadata,
 } from "@brains/plugins";
 import type { AuthPrincipal } from "@brains/contracts";
+import type { PluginPackageDefinition } from "@brains/sdk";
+import { defineInterface } from "@brains/sdk/interfaces";
+import {
+  interfaceRuntime,
+  withDaemon,
+  withMessageTransport,
+  withWebRoutes,
+  type FirstPartySlotContext,
+  type InterfaceRuntime,
+  type MessageTransport,
+  type MessageTransportEdit,
+  type MessageTransportSend,
+} from "@brains/sdk/internal/interface-runtime";
 import { join } from "path";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import {
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
@@ -49,7 +57,6 @@ import {
   createUIMessageStreamResponse,
   type UIMessage,
 } from "ai";
-import packageJson from "../package.json";
 import {
   handleDocumentAttachmentRequest as handleDocumentAttachmentRouteRequest,
   handleImageAttachmentRequest as handleImageAttachmentRouteRequest,
@@ -66,11 +73,7 @@ import {
   writeText as writeStreamText,
 } from "./chat-stream";
 import type { StreamWriter } from "./stream-writer";
-import {
-  webChatConfigSchema,
-  type WebChatConfig,
-  type WebChatConfigInput,
-} from "./config";
+import { webChatConfigSchema, type WebChatConfig } from "./config";
 import { toProgressData, toToolStatusData } from "./event-data";
 import {
   canAccessBrowserConversation,
@@ -84,7 +87,6 @@ import {
 } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
-import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
@@ -139,11 +141,13 @@ export interface WebChatDeps {
   guestPolicy?: GuestPolicy;
 }
 
-export class WebChatInterface extends MessageInterfacePlugin<
-  WebChatConfig,
-  WebChatConfigInput
-> {
-  declare protected config: WebChatConfig;
+/**
+ * What a running web chat keeps and serves: its streams, guest access and
+ * control, and the handlers behind its routes.
+ */
+class WebChatHost {
+  private readonly config: WebChatConfig;
+  private readonly runtime: InterfaceRuntime;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly guestHttpOptions: GuestHttpOptions;
   /** Closed until registration resolves the preset against the runtime model. */
@@ -162,8 +166,13 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private readonly resolveCallerPermissionLevel:
     PermissionLevelResolver | undefined;
 
-  constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
-    super("web-chat", packageJson, config, webChatConfigSchema);
+  constructor(
+    config: WebChatConfig,
+    deps: WebChatDeps,
+    runtime: InterfaceRuntime,
+  ) {
+    this.config = config;
+    this.runtime = runtime;
     this.runtimeGuestActivationAllowed =
       config.guest === undefined && deps.guestPolicy === undefined;
     this.injectedGuestPolicy =
@@ -171,11 +180,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
         ? undefined
         : guestPolicySchema.parse(deps.guestPolicy);
     this.guestConfigured =
-      this.injectedGuestPolicy?.enabled ?? this.config.guest !== false;
+      this.injectedGuestPolicy?.enabled ??
+      (this.config.guest ?? false) !== false;
     this.resolveAuthPrincipal =
       deps.resolveAuthPrincipal ??
       (async (request): Promise<AuthPrincipal | undefined> =>
-        this.context?.auth.get()?.resolveSession(request));
+        this.runtime.auth()?.resolveSession(request));
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
     this.resolveAuthSession =
       deps.resolveAuthSession ??
@@ -185,13 +195,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.guestHttpOptions = deps.guestHttp ?? {};
   }
 
-  protected override async onRegister(
-    context: MessageInterfacePluginContext,
-  ): Promise<void> {
+  /** What the class did when it registered, but the guest-maintenance daemon. */
+  async register(): Promise<void> {
+    const context = this.runtime;
     const model = (await context.identity.getAppInfo()).ai.model;
     this.guestPolicy =
       this.injectedGuestPolicy ?? resolveGuestPreset(this.config.guest, model);
-    await super.onRegister(context);
     // Hosted guest access requires an owner-set budget.
     // Other injected HTTPS policies remain closed without explicit readiness.
     const boundedPolicy =
@@ -199,7 +208,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
       (this.guestPolicy.origin.startsWith("http://") ||
         this.guestPolicy.budgeted === true);
     this.guestControl = new GuestAccessControl(
-      context,
+      {
+        runtimeState: context.classRuntimeState,
+        siteUrl: context.siteUrl,
+        previewUrl: context.previewUrl,
+      },
       (request) => this.resolveBrowserAccess(request),
       () => context.agent.guestReady === true,
       this.runtimeGuestActivationAllowed,
@@ -208,13 +221,17 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
     const managedPolicy = this.guestControl.policy;
     this.guestHttp = new GuestHttpHandlers(
-      context,
+      {
+        agent: context.agent,
+        conversations: context.conversations,
+        runtimeState: context.classRuntimeState,
+      },
       managedPolicy ?? this.guestPolicy,
       {
         ...this.guestHttpOptions,
         presentation: (): ReturnType<typeof loadAskContent> =>
-          loadAskContent(context.entityService),
-        subjects: (): Promise<string[]> => loadSiteSubjects(context.messaging),
+          loadAskContent(context.entityReads),
+        subjects: (): Promise<string[]> => loadSiteSubjects(context),
         requireAuthorization: managedPolicy !== undefined,
         ready:
           this.guestHttpOptions.ready ??
@@ -226,7 +243,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     // The owner sees whether the guest usage record is recording, full or failing.
     if ((managedPolicy ?? this.guestPolicy).enabled) {
       const guestHttp = this.guestHttp;
-      context.operationalHealth.register("guest-usage-record", async () => {
+      context.operationalHealth("guest-usage-record", async () => {
         const health = await guestHttp.usageHealth();
         return (
           health ?? {
@@ -238,28 +255,34 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
     // Site builds may run in a separate worker, where interfaces are not
     // registered: record where this deployment serves the Ask box boot.
-    this.askBoxAvailability = context.runtimeState.scoped({
+    this.askBoxAvailability = context.classRuntimeState.scoped({
       namespace: ASK_BOX_STATE_NAMESPACE,
       schema: askBoxAvailabilitySchema,
     });
     await this.recordAskBoxAvailability();
-    const maintenance = new GuestStateMaintenance(context.runtimeState);
-    context.daemons.register(
-      "guest-maintenance",
-      createScheduledMaintenanceDaemon({
-        intervalMs: 60_000,
-        logger: context.logger,
-        run: async (): Promise<void> => {
-          // Neither sweep may starve the other.
-          const results = await Promise.allSettled([
-            maintenance.run(),
-            this.guestHttp?.maintainUsage(),
-          ]);
-          if (results.some((result) => result.status === "rejected"))
-            throw new Error("Guest maintenance unavailable");
-        },
-      }),
+  }
+
+  /**
+   * The guest-maintenance cycle, every minute: guest state and the usage
+   * record are swept, neither starving the other.
+   */
+  maintenanceDaemon(): ReturnType<typeof createScheduledMaintenanceDaemon> {
+    const maintenance = new GuestStateMaintenance(
+      this.runtime.classRuntimeState,
     );
+    return createScheduledMaintenanceDaemon({
+      intervalMs: 60_000,
+      logger: this.runtime.logger,
+      run: async (): Promise<void> => {
+        // Neither sweep may starve the other.
+        const results = await Promise.allSettled([
+          maintenance.run(),
+          this.guestHttp?.maintainUsage(),
+        ]);
+        if (results.some((result) => result.status === "rejected"))
+          throw new Error("Guest maintenance unavailable");
+      },
+    });
   }
 
   /**
@@ -280,9 +303,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   /** The owner's Studio view of guest chat: what it did, and the switch. */
-  protected override async onReady(
-    context: MessageInterfacePluginContext,
-  ): Promise<void> {
+  async onReady(): Promise<void> {
+    const context = this.runtime;
     const usage = this.guestHttp?.usageRecord;
     if (!usage) return;
     await registerGuestMonitor(context, {
@@ -302,7 +324,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     } catch (error) {
       // The activation itself succeeded; the next start rewrites the record,
       // and the atlas keeps the box out of sight until its boot is live.
-      this.logger.warn("Could not record Ask box availability", { error });
+      this.runtime.logger.warn("Could not record Ask box availability", {
+        error,
+      });
     }
   }
 
@@ -311,7 +335,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return this.guestConfigured || this.guestControl?.policy !== undefined;
   }
 
-  override getWebRoutes(): WebRouteDefinition[] {
+  webRoutes(): WebRouteDefinition[] {
     const routes = createWebChatRoutes({
       routePath: this.config.routePath,
       apiPath: this.config.apiPath,
@@ -514,9 +538,20 @@ export class WebChatInterface extends MessageInterfacePlugin<
     ];
   }
 
-  protected override sendMessageToChannel(
-    request: SendMessageToChannelRequest,
-  ): void {
+  /** How the runtime's message coordination writes to an open chat stream. */
+  transport(): MessageTransport {
+    return {
+      send: (request): void => {
+        this.sendToStream(request);
+      },
+      sendWithId: (request) => this.sendToStreamWithId(request),
+      edit: (request) => this.editInStream(request),
+      progressEvent: (event) => this.writeProgress(event),
+      toolStatus: (update) => this.writeToolStatus(update),
+    };
+  }
+
+  private sendToStream(request: MessageTransportSend): void {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return;
     this.writeText(
@@ -526,8 +561,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
   }
 
-  protected override async sendMessageWithId(
-    request: SendMessageWithIdRequest,
+  private async sendToStreamWithId(
+    request: MessageTransportSend,
   ): Promise<string | undefined> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return undefined;
@@ -538,21 +573,15 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
   }
 
-  protected override async editMessage(
-    request: EditMessageRequest,
-  ): Promise<boolean> {
+  private async editInStream(request: MessageTransportEdit): Promise<boolean> {
     const stream = this.getActiveStream(request.channelId);
     if (!stream) return false;
     stream.writer.write({
       type: "data-progress",
       id: request.messageId,
-      data: { message: this.toTextOutput(request.newMessage) },
+      data: { message: this.toTextOutput(request.message) },
       transient: true,
     });
-    return true;
-  }
-
-  protected override supportsMessageEditing(): boolean {
     return true;
   }
 
@@ -560,10 +589,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return typeof output === "string" ? output : (output.fallbackText ?? "");
   }
 
-  protected override async handleProgressEvent(
-    event: JobProgressEvent,
-    _context: JobContext,
-  ): Promise<void> {
+  /** A job's progress, written to its conversation's open stream, as the class handled it in place of the runtime. */
+  private async writeProgress(event: JobProgressEvent): Promise<void> {
     if (
       event.metadata.interfaceType !== webChatInterfaceType ||
       typeof event.metadata.conversationId !== "string"
@@ -582,9 +609,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     });
   }
 
-  protected override async handleToolStatusUpdate(
-    update: ToolStatusUpdate,
-  ): Promise<void> {
+  private async writeToolStatus(update: ToolStatusUpdate): Promise<void> {
     if (
       update.interfaceType !== webChatInterfaceType ||
       typeof update.channelId !== "string"
@@ -634,9 +659,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
       return new SitePageResponse(
         renderGuestChatPage({
           apiPath: `${createChatApiPaths(this.config.apiPath).stream}/guest`,
-          name: this.getContext().identity.getProfile().name,
-          siteLabel: this.getContext().identity.getProfile().name,
-          themeCSS: this.getContext().themeCSS,
+          name: this.runtime.identity.getProfile().name,
+          siteLabel: this.runtime.identity.getProfile().name,
+          themeCSS: this.runtime.themeCSS,
         }),
         {
           headers: {
@@ -650,8 +675,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleAuthenticatedChatPage(): Promise<Response> {
-    const studioHref =
-      this.getContext().webRoutes.findByRole("studio-chat")?.fullPath;
+    const studioHref = this.runtime.routeByRole("studio-chat")?.fullPath;
     // Studio owns authentication; this retired page never renders operator UI.
     return studioHref
       ? new Response(null, {
@@ -687,17 +711,14 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
     if (accessError) return accessError;
 
-    const result = await this.getContext().messaging.request(
-      agentActionContract,
-      {
-        conversationId: parsed.data.conversationId,
-        interfaceType: webChatInterfaceType,
-        channelName: "Web Chat",
-        userPermissionLevel: permissionLevel,
-        isAnchor: principal?.isAnchor ?? false,
-        action: parsed.data.action,
-      },
-    );
+    const result = await this.runtime.request(agentActionContract, {
+      conversationId: parsed.data.conversationId,
+      interfaceType: webChatInterfaceType,
+      channelName: "Web Chat",
+      userPermissionLevel: permissionLevel,
+      isAnchor: principal?.isAnchor ?? false,
+      action: parsed.data.action,
+    });
 
     if (
       result.status === "unavailable" ||
@@ -756,9 +777,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleUploadRouteRequest(request, {
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
-        this.getContext().uploads.scoped(
-          createWebChatUploadStoreScope(this.config.apiPath),
-        ),
+        this.runtime.sharedUploads({
+          routePath: createChatApiPaths(this.config.apiPath).uploads,
+        }),
     });
   }
 
@@ -768,15 +789,15 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleUploadDownloadRouteRequest(request, {
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
-        this.getContext().uploads.scoped(
-          createWebChatUploadStoreScope(this.config.apiPath),
-        ),
+        this.runtime.sharedUploads({
+          routePath: createChatApiPaths(this.config.apiPath).uploads,
+        }),
     });
   }
 
   private remoteAgentDeps(): RemoteAgentHandlerDeps {
     return {
-      agent: this.getContext().agent,
+      agent: this.runtime.agent,
       resolveBrowserAccess: (request) => this.resolveBrowserAccess(request),
       toConversationAccess: (permissionLevel, principal) =>
         this.toConversationAccess(permissionLevel, principal),
@@ -836,9 +857,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     const userInput =
       approvalResponses.length === 0
         ? await extractLastUserInput(parsed.data, {
-            uploadStore: this.getContext().uploads.scoped(
-              createWebChatUploadStoreScope(),
-            ),
+            uploadStore: this.runtime.sharedUploads({
+              routePath: createChatApiPaths().uploads,
+            }),
           })
         : { message: "", attachments: [] };
     if (userInput instanceof Response) return userInput;
@@ -864,16 +885,21 @@ export class WebChatInterface extends MessageInterfacePlugin<
         : undefined;
     if (inboxAttachment instanceof Response) return inboxAttachment;
 
-    const streamContext = this.getContext();
+    const streamContext = this.runtime;
     const streamDeps = {
       activeStreams: this.activeStreams,
       agent: streamContext.agent,
-      startProcessingInput: (id: string): void => this.startProcessingInput(id),
-      endProcessingInput: (): void => this.endProcessingInput(),
+      startProcessingInput: (id: string): void => {
+        streamContext.messages.startProcessingInput(id);
+      },
+      endProcessingInput: (): void => {
+        streamContext.messages.endProcessingInput();
+      },
       handleAgentResponseToolStatuses: (
         response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
         id: string,
-      ): Promise<void> => this.handleAgentResponseToolStatuses(response, id),
+      ): Promise<void> =>
+        streamContext.messages.handleAgentResponseToolStatuses(response, id),
       createId: (prefix: string): string => this.createId(prefix),
       persistUnmatchedApprovalTerminal: (
         id: string,
@@ -915,7 +941,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           id: string;
           visibilityScope?: "public" | "shared" | "restricted" | undefined;
         }): Promise<MessageArtifactEntity | null | undefined> =>
-          streamContext.entityService.getEntity(ref),
+          streamContext.entityReads.getEntity(ref),
       },
     };
     const stream = createUIMessageStream<UIMessage>({
@@ -970,8 +996,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async resolveStoredContextHandoff(
     conversationId: string,
   ): Promise<{ sourceId: string; itemId: string } | undefined> {
-    const conversation =
-      await this.getContext().conversations.get(conversationId);
+    const conversation = await this.runtime.conversations.get(conversationId);
     const parsed = chatContextHandoffRequestSchema.safeParse(
       coerceConversationMetadata(conversation?.metadata)["contextHandoff"],
     );
@@ -989,7 +1014,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     permissionLevel: UserPermissionLevel,
     signal: AbortSignal,
   ): Promise<ChatAttachment | Response> {
-    const source = this.getContext().inbox.getSource(sourceId);
+    const source = this.runtime.inbox.getSource(sourceId);
     if (!source?.resolveDetail) return inboxContextUnavailable();
 
     try {
@@ -1032,7 +1057,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     if (requestDenied) return requestDenied;
 
     return handleContextSessionRouteRequest(request, {
-      conversations: this.getContext().conversations,
+      conversations: this.runtime.conversations,
       resolveAccess: (nextRequest) =>
         this.resolveConversationAccess(nextRequest),
       interfaceType: webChatInterfaceType,
@@ -1042,7 +1067,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         permissionLevel,
         signal,
       }): Promise<boolean> => {
-        const source = this.getContext().inbox.getSource(sourceId);
+        const source = this.runtime.inbox.getSource(sourceId);
         if (!source?.resolveDetail) return false;
         await source.resolveDetail(itemId, { permissionLevel }, signal);
         return true;
@@ -1052,7 +1077,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private async handleSessionsRequest(request: Request): Promise<Response> {
     return handleSessionsRouteRequest(request, {
-      conversations: this.getContext().conversations,
+      conversations: this.runtime.conversations,
       resolveAccess: (nextRequest) =>
         this.resolveConversationAccess(nextRequest),
       interfaceType: webChatInterfaceType,
@@ -1063,7 +1088,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleDeleteSessionRouteRequest(request, {
-      conversations: this.getContext().conversations,
+      conversations: this.runtime.conversations,
       resolveAccess: (nextRequest) =>
         this.resolveConversationAccess(nextRequest),
       interfaceType: webChatInterfaceType,
@@ -1074,7 +1099,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleRenameSessionRouteRequest(request, {
-      conversations: this.getContext().conversations,
+      conversations: this.runtime.conversations,
       resolveAccess: (nextRequest) =>
         this.resolveConversationAccess(nextRequest),
       interfaceType: webChatInterfaceType,
@@ -1085,7 +1110,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleArchiveSessionRouteRequest(request, {
-      conversations: this.getContext().conversations,
+      conversations: this.runtime.conversations,
       resolveAccess: (nextRequest) =>
         this.resolveConversationAccess(nextRequest),
       interfaceType: webChatInterfaceType,
@@ -1100,7 +1125,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         this.resolveAttachmentPermissionLevel(nextRequest),
       createAuthLoginRequiredResponse: (nextRequest) =>
         this.createAuthLoginRequiredResponse(nextRequest),
-      entityService: this.getContext().entityService,
+      entityService: this.runtime.entityReads,
     });
   }
 
@@ -1112,7 +1137,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         this.resolveAttachmentPermissionLevel(nextRequest),
       createAuthLoginRequiredResponse: (nextRequest) =>
         this.createAuthLoginRequiredResponse(nextRequest),
-      entityService: this.getContext().entityService,
+      entityService: this.runtime.entityReads,
     });
   }
 
@@ -1121,13 +1146,13 @@ export class WebChatInterface extends MessageInterfacePlugin<
       resolveAuthSession: this.resolveAuthSession,
       createAuthLoginRequiredResponse: (nextRequest) =>
         this.createAuthLoginRequiredResponse(nextRequest),
-      jobs: this.getContext().jobs,
+      jobs: this.runtime.jobs,
     });
   }
 
   private async handleMessagesRequest(request: Request): Promise<Response> {
     return handleMessagesRouteRequest(request, {
-      conversations: this.getContext().conversations,
+      conversations: this.runtime.conversations,
       resolveAccess: (nextRequest) =>
         this.resolveConversationAccess(nextRequest),
       interfaceType: webChatInterfaceType,
@@ -1179,8 +1204,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     interfaceType: string,
     access: WebChatConversationAccess,
   ): Promise<Response | undefined> {
-    const conversation =
-      await this.getContext().conversations.get(conversationId);
+    const conversation = await this.runtime.conversations.get(conversationId);
     return canAccessBrowserConversation(conversation, access, interfaceType)
       ? undefined
       : new Response("Conversation not found", { status: 404 });
@@ -1192,7 +1216,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     channelName: string,
     access: WebChatConversationAccess,
   ): Promise<Response | undefined> {
-    const existing = await this.getContext().conversations.get(conversationId);
+    const existing = await this.runtime.conversations.get(conversationId);
     if (existing) {
       return canAccessBrowserConversation(existing, access, interfaceType)
         ? undefined
@@ -1202,7 +1226,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       return new Response("Forbidden", { status: 403 });
     }
 
-    await this.getContext().conversations.start({
+    await this.runtime.conversations.start({
       sessionId: conversationId,
       interfaceType,
       channelId: conversationId,
@@ -1213,7 +1237,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         channelId: conversationId,
       },
     });
-    const created = await this.getContext().conversations.get(conversationId);
+    const created = await this.runtime.conversations.get(conversationId);
     return canAccessBrowserConversation(created, access, interfaceType)
       ? undefined
       : new Response("Conversation not found", { status: 404 });
@@ -1269,7 +1293,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private createAuthLoginRequiredResponse(request: Request): Response {
-    const authService = this.context?.auth.get();
+    const authService = this.runtime.auth();
     if (authService) return authService.createAuthLoginResponse(request);
 
     return new Response("Authentication required", {
@@ -1295,4 +1319,57 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
 function inboxContextUnavailable(): Response {
   return new Response("Inbox context is unavailable", { status: 409 });
+}
+
+type WebChatSlotContext = FirstPartySlotContext<WebChatConfig, WebChatHost>;
+
+export type WebChatInterfaceDefinition = PluginPackageDefinition<
+  typeof webChatConfigSchema,
+  "interface"
+>;
+
+/**
+ * Web chat: the Ask page and the chat API on the shared host, streaming the
+ * agent's replies, job progress and tool statuses to the browser, with guest
+ * chat for visitors when it is configured or the owner switches it on. The
+ * collaborators default to the real ones; a test hands its own.
+ */
+export function createWebChatInterface(
+  deps: WebChatDeps = {},
+): WebChatInterfaceDefinition {
+  const webChat = defineInterface({
+    id: webChatInterfaceType,
+    config: webChatConfigSchema,
+    setup: async (context): Promise<WebChatHost> => {
+      const runtime = interfaceRuntime(context);
+      const host = new WebChatHost(context.config, deps, runtime);
+      await host.register();
+      // The owner's Studio view of guest chat: what it did, and the switch.
+      runtime.ready(() => host.onReady());
+      return host;
+    },
+  });
+
+  const withRoutes = withWebRoutes(webChat, ({ state }: WebChatSlotContext) =>
+    state.webRoutes(),
+  );
+
+  /** web-chat:guest-maintenance, every minute. */
+  const withMaintenance = withDaemon(
+    withRoutes,
+    ({ state }: WebChatSlotContext) => {
+      const daemon = state.maintenanceDaemon();
+      return {
+        id: "guest-maintenance",
+        start: (): Promise<void> => daemon.start(),
+        stop: (): Promise<void> => daemon.stop(),
+        healthCheck: (): Promise<DaemonHealth> => daemon.healthCheck(),
+      };
+    },
+  );
+
+  return withMessageTransport(
+    withMaintenance,
+    ({ state }: WebChatSlotContext) => state.transport(),
+  );
 }
