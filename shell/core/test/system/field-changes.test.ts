@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   fieldChangeListSchema,
@@ -27,6 +27,7 @@ const editable: Record<string, z.ZodObject> = {
 const internal = { cardCid: z.string().optional() };
 
 const registry = {
+  ensureGroupingsCurrent: mock(async (): Promise<void> => {}),
   getAllEntityTypes: (): string[] => Object.keys(editable),
   getEffectiveFrontmatterSchema: (type: string): z.ZodObject | undefined =>
     editable[type]?.extend(internal),
@@ -258,4 +259,18 @@ describe("system_update's model operation", () => {
       ["source"],
     ]);
   });
+});
+
+describe("a field list read from the brain's state", () => {
+  it.each(["system_create", "system_update"])(
+    "has %s read the current groupings before it is shown",
+    async (name) => {
+      registry.ensureGroupingsCurrent.mockClear();
+      const { modelInput } = toolNamed(name);
+
+      await modelInput?.prepare?.();
+
+      expect(registry.ensureGroupingsCurrent).toHaveBeenCalledTimes(1);
+    },
+  );
 });

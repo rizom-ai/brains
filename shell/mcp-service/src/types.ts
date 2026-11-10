@@ -227,6 +227,11 @@ export interface Tool<TOutput = ToolResponse> {
    * write inputSchema.
    */
   modelInput?: {
+    /**
+     * Reads what inputSchema is built from, such as groupings the brain
+     * loads only when asked, before the tool list is sent.
+     */
+    prepare?: () => Promise<void>;
     inputSchema: () => ToolInputSchema;
     toToolInput: (input: Record<string, unknown>) => Record<string, unknown>;
   };

@@ -116,3 +116,71 @@ describe("a field change", () => {
     });
   });
 });
+
+describe("a grouping field the brain loads on demand", () => {
+  // Groupings come from a definitions entity, read when first needed: until
+  // then the post's fields have no clients.
+  function toolsWithGroupings(): ReturnType<typeof createSystemTools> {
+    const services = createMockSystemServices();
+    services.addEntities([
+      {
+        id: "on-patience",
+        entityType: "post",
+        content: "---\ntitle: On Patience\nstatus: draft\n---\nBody.",
+        contentHash: "hash-on-patience",
+        visibility: "public",
+        metadata: { title: "On Patience", status: "draft" },
+        created: new Date("2026-03-15T11:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-15T11:00:00.000Z").toISOString(),
+      },
+    ]);
+    let current = editable;
+    const grouped = editable.extend({ clients: z.array(z.string()) });
+    Object.assign(services.entityRegistry, {
+      ensureGroupingsCurrent: async (): Promise<void> => {
+        current = grouped;
+      },
+      getEditableFieldsSchema: () => current,
+      getCreateFieldsSchema: () => current,
+    });
+    return createSystemTools(services);
+  }
+
+  it.each([
+    [
+      "system_update",
+      {
+        entityType: "post",
+        id: "on-patience",
+        operation: { fields: { clients: ["Beta"] } },
+      },
+    ],
+    [
+      "system_create",
+      {
+        entityType: "post",
+        title: "On Rest",
+        source: { kind: "text", content: "Rest is part of the work." },
+        fields: { clients: ["Beta"] },
+      },
+    ],
+  ])(
+    "is not refused by %s before the groupings were read",
+    async (name, input) => {
+      const tool = toolsWithGroupings().find(
+        (candidate) => candidate.name === name,
+      );
+      if (!tool) throw new Error(`${name} not found`);
+
+      expect(
+        await tool.handler(input, {
+          interfaceType: "test",
+          actor: { kind: "user", userId: "test" },
+          userPermissionLevel: "admin",
+        }),
+      ).not.toMatchObject({
+        error: expect.stringContaining("a caller can set"),
+      });
+    },
+  );
+});

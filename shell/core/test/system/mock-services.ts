@@ -275,6 +275,8 @@ export function createMockSystemServices(
       declaredFrontmatter.get(type) ??
       (entityTypes.has(type) ? defaultFrontmatterSchema : undefined),
     getEditableFieldsSchema: editableFields,
+    // The mock declares no groupings: they are always current.
+    ensureGroupingsCurrent: async (): Promise<void> => {},
     // The mock's types take no fields on create alone.
     getCreateFieldsSchema: editableFields,
     registerCreateInterceptor: (

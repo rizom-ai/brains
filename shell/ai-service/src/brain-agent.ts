@@ -56,11 +56,18 @@ export function filterToolsForCallOptions(
 }
 
 /** The tools that can serve a call now; a tool whose check fails cannot. */
-async function availableTools(tools: Tool[]): Promise<Tool[]> {
+async function availableTools(
+  tools: Tool[],
+  options: { prepareModelInputs: boolean },
+): Promise<Tool[]> {
   const available = await Promise.all(
-    tools.map(async (tool) =>
-      tool.isAvailable ? tool.isAvailable().catch(() => false) : true,
-    ),
+    tools.map(async (tool) => {
+      if (options.prepareModelInputs)
+        // A model input whose state cannot be read is shown as it stands;
+        // the tool's own schema still validates every call.
+        await tool.modelInput?.prepare?.().catch(() => undefined);
+      return tool.isAvailable ? tool.isAvailable().catch(() => false) : true;
+    }),
   );
   return tools.filter((_, index) => available[index]);
 }
@@ -173,6 +180,8 @@ export function createBrainAgentFactory(
                 config.getToolsForPermission(callOptions.userPermissionLevel),
                 callOptions,
               ),
+              // Only a model held to strict tools is shown a model input.
+              { prepareModelInputs: toolOptions.strictTools },
             );
         const allowedToolNames = allowedTools.map((t) => t.name);
 

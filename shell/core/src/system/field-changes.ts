@@ -15,7 +15,10 @@ type ToolInputSchema = Tool["inputSchema"];
 
 type FieldRegistry = Pick<
   IEntityRegistry,
-  "getAllEntityTypes" | "getEditableFieldsSchema" | "getCreateFieldsSchema"
+  | "ensureGroupingsCurrent"
+  | "getAllEntityTypes"
+  | "getEditableFieldsSchema"
+  | "getCreateFieldsSchema"
 >;
 
 /** Which tool sets the fields: create also takes fields stated only then. */
@@ -186,6 +189,8 @@ export function createModelInput(
   registry: FieldRegistry,
 ): NonNullable<Tool["modelInput"]> {
   return {
+    // Grouping fields come from a definitions entity, read when first needed.
+    prepare: (): Promise<void> => registry.ensureGroupingsCurrent(),
     inputSchema: (): ToolInputSchema => {
       // Visibility is a parameter of its own on system_create.
       const changes = fieldChangeListSchema(registry, {
@@ -259,6 +264,8 @@ export function updateModelInput(
 ): NonNullable<Tool["modelInput"]> {
   const { content, edits, source } = updateOperationInputSchema.shape;
   return {
+    // Grouping fields come from a definitions entity, read when first needed.
+    prepare: (): Promise<void> => registry.ensureGroupingsCurrent(),
     inputSchema: (): ToolInputSchema => ({
       ...updateInputSchema.shape,
       operation: z
