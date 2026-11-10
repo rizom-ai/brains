@@ -84,7 +84,7 @@ export type DocumentGenerationJobDataBase = z.output<
   typeof documentGenerationJobSchemaBase
 >;
 
-export const documentGenerationJobSchema: z.ZodType<DocumentGenerationJobDataBase> =
+export const documentGenerationJobSchema: typeof documentGenerationJobSchemaBase =
   documentGenerationJobSchemaBase.refine(
     (data) =>
       (data.targetEntityType === undefined &&

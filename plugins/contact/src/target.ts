@@ -4,8 +4,9 @@ import {
   type FormDefinition,
   type FormField,
   type FormRecord,
+  type FormInboxItem,
+  type FormInboxTarget,
   type FormSubmission,
-  type FormTarget,
 } from "@brains/forms";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
@@ -41,7 +42,7 @@ function record(
 
 /** Contact requests as forms produce them: who wrote, how to answer, and the
  * message. */
-export const contactRequestTarget: FormTarget<ContactRequest> = {
+export const contactRequestTarget: FormInboxTarget<ContactRequest> = {
   entityType: "contact-request",
   schema: contactRequestSchema,
 
@@ -129,5 +130,41 @@ export const contactRequestTarget: FormTarget<ContactRequest> = {
       ],
       replyTo: frontmatter.email,
     };
+  },
+
+  inbox: {
+    sourceId: "contact-requests",
+    displayName: "Contact requests",
+    label: "Contact",
+    recordLabel: "Contact request",
+    /** Who wrote stays out of the list; only an admin reads the detail. */
+    item(entity: ContactRequest): FormInboxItem {
+      const { frontmatter } = contactRequestAdapter.parseContent(
+        entity.content,
+      );
+      return {
+        title: "Contact request",
+        summary: `Notification: ${frontmatter.notification}.`,
+        receivedAt: frontmatter.receivedAt,
+      };
+    },
+    detail(entity: ContactRequest): string {
+      const { frontmatter, message } = contactRequestAdapter.parseContent(
+        entity.content,
+      );
+      return `Name: ${frontmatter.name}\nEmail: ${frontmatter.email}\nNotification: ${frontmatter.notification}\n\n${message}`;
+    },
+    withHandled(entity: ContactRequest): FormRecord {
+      const { frontmatter, message } = contactRequestAdapter.parseContent(
+        entity.content,
+      );
+      return {
+        content: contactRequestAdapter.createContent(
+          { ...frontmatter, status: "handled" },
+          message,
+        ),
+        metadata: { ...entity.metadata, status: "handled" },
+      };
+    },
   },
 };

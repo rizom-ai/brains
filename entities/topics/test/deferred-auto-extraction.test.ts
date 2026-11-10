@@ -6,7 +6,7 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
-import { TopicsPlugin } from "../src";
+import { TopicsPlugin, type TopicsPluginConfigInput } from "../src";
 
 type Queue = ReturnType<
   ReturnType<
@@ -15,7 +15,7 @@ type Queue = ReturnType<
 >;
 
 async function install(
-  enabled = true,
+  config: TopicsPluginConfigInput = { enableAutoExtraction: true },
   executionOnly = false,
 ): Promise<{
   harness: PluginTestHarness<TopicsPlugin>;
@@ -35,8 +35,8 @@ async function install(
     registerHandler,
   });
   const plugin = new TopicsPlugin({
-    enableAutoExtraction: enabled,
     excludeEntityTypes: ["note"],
+    ...config,
   });
   const capabilities = executionOnly
     ? await plugin.register(harness.getMockShell(), { executionOnly: true })
@@ -49,7 +49,7 @@ describe("ranked topic extraction triggers", () => {
     "enqueues a deduplicated successor for eligible entity events (worker=%s)",
     async (worker) => {
       const { harness, enqueue, capabilities, registerHandler } = await install(
-        true,
+        { enableAutoExtraction: true },
         worker,
       );
       expect(capabilities.projectionRules).toBeUndefined();
@@ -94,6 +94,21 @@ describe("ranked topic extraction triggers", () => {
     },
   );
 
+  it("extracts automatically when auto-extraction is left unconfigured", async () => {
+    const { harness, enqueue, registerHandler } = await install({});
+    expect(registerHandler).toHaveBeenCalledWith(
+      "topics:extract",
+      expect.anything(),
+      "topics",
+    );
+    await harness.sendMessage(
+      "entity:created",
+      { entityType: "post", entityId: "post-1" },
+      "entity-service",
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
   it("heals stale votes on startup-content-settled, not the legacy sync signal", async () => {
     const { harness, enqueue } = await install();
     await harness.sendMessage(
@@ -111,7 +126,9 @@ describe("ranked topic extraction triggers", () => {
   });
 
   it("registers no extraction handler or subscriptions when disabled", async () => {
-    const { harness, enqueue, registerHandler } = await install(false);
+    const { harness, enqueue, registerHandler } = await install({
+      enableAutoExtraction: false,
+    });
     await harness.sendMessage(
       "entity:updated",
       { entityType: "post" },

@@ -24,18 +24,7 @@ It also keeps a few local UI commands for terminal control:
 
 This package is currently a private workspace package and is typically consumed through the canonical definition or workspace imports.
 
-```typescript
-import { CLIInterface } from "@brains/chat-repl";
-
-const cli = new CLIInterface({
-  theme: {
-    primaryColor: "#0066cc",
-    accentColor: "#ff6600",
-  },
-});
-```
-
-Registered as an interface plugin, it opens an Ink-based terminal UI and keeps a single local conversation channel.
+The package default-exports a declarative interface definition. A brain started with `--cli` registers it under the plugin id `cli`; its daemon `cli:cli` opens the Ink-based terminal UI and keeps a single local conversation, `cli`.
 
 ## Configuration
 
@@ -63,9 +52,9 @@ Defaults:
 
 ## Exports
 
-- `CLIInterface`
+- the CLI interface definition (default export)
 - `cliConfigSchema`
-- `CLIConfig`
+- `CLIConfig`, `CLIConfigInput`
 - `ProgressBar`
 - `BatchProgress`
 

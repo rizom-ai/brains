@@ -13,16 +13,15 @@ import { noteContent } from "./lib/note-markdown";
 import type { noteMetadataSchema } from "./schemas/note";
 
 /** Input schema for note generation job */
-export interface NoteGenerationJobData {
-  prompt: string;
-  title?: string | undefined;
-}
+export const noteGenerationJobSchema: z.ZodObject<{
+  prompt: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  prompt: z.string(),
+  title: z.string().optional(),
+});
 
-export const noteGenerationJobSchema: z.ZodType<NoteGenerationJobData> =
-  z.object({
-    prompt: z.string(),
-    title: z.string().optional(),
-  });
+export type NoteGenerationJobData = z.output<typeof noteGenerationJobSchema>;
 
 /** Shape the note generation template returns. */
 export const generatedNoteSchema: z.ZodObject<{

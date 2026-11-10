@@ -3,6 +3,7 @@ import {
   type BrainDefinition,
   type CapabilityConfig,
   type CapabilityEntry,
+  type InterfaceEntry,
   type PluginConfig,
 } from "@brains/app";
 import {
@@ -11,7 +12,7 @@ import {
   type PluginPackageDefinition,
   type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
-import { A2AInterface } from "@brains/a2a";
+import a2aInterface from "@brains/a2a";
 import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
@@ -20,7 +21,7 @@ import { atprotoPlugin } from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
-import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
+import chatInterface, { chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
@@ -35,11 +36,11 @@ import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
 import documentPackage from "@brains/document-plugin";
-import { EmailInterface } from "@brains/email";
+import emailInterface from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
-import { MCPInterface } from "@brains/mcp";
+import mcpInterface from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
@@ -67,7 +68,7 @@ import { topicsPlugin } from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
-import { WebChatInterface } from "@brains/web-chat";
+import webChatInterface from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
 import wishlistPackage from "@brains/wishlist";
 import packageJson from "../../package.json" with { type: "json" };
@@ -117,13 +118,25 @@ export {
 };
 
 /**
- * A capability whose package is a declarative definition. The canonical brain
- * imports its members directly rather than resolving installed packages, so
- * it names each definition's package itself; packages release in lockstep
- * with the CLI, so they share its version. A converted first-party package
- * keeps the plugin id its class had, and with it the template, data source,
- * job and channel names brains, sites and queued jobs already use.
+ * How the canonical brain builds the plugins of a package that is a declarative
+ * definition. It imports its members directly rather than resolving
+ * installed packages, so it names each definition's package itself;
+ * packages release in lockstep with the CLI, so they share its version. A
+ * converted first-party package keeps the plugin id its class had, and with
+ * it the template, data source, job and channel names brains, sites and
+ * queued jobs already use.
  */
+function packagePlugins(
+  packageName: string,
+  definition: PluginPackageDefinition,
+  options: PluginPackageInstantiationOptions,
+): (config: PluginConfig) => Plugin[] {
+  const metadata = { name: packageName, version: packageJson.version };
+  return (config) =>
+    instantiatePluginPackageDefinition(definition, config, metadata, options);
+}
+
+/** A capability whose package is a declarative definition. */
 function packageCapability(
   id: string,
   packageName: string,
@@ -132,13 +145,21 @@ function packageCapability(
   /** The config the catalog gives the capability, as its class entry did. */
   defaults: CapabilityConfig = undefined,
 ): CapabilityEntry {
-  const metadata = { name: packageName, version: packageJson.version };
-  return [
-    id,
-    (config): Plugin[] =>
-      instantiatePluginPackageDefinition(definition, config, metadata, options),
-    defaults,
-  ];
+  return [id, packagePlugins(packageName, definition, options), defaults];
+}
+
+/**
+ * An interface whose package is a declarative definition, configured from
+ * the deployment environment as its class entry was.
+ */
+function packageInterface(
+  id: string,
+  packageName: string,
+  definition: PluginPackageDefinition,
+  envMapper: InterfaceEntry[2],
+  options: PluginPackageInstantiationOptions = {},
+): InterfaceEntry {
+  return [id, packagePlugins(packageName, definition, options), envMapper];
 }
 
 /** Canonical catalog and active capability-bundle taxonomy. */
@@ -305,22 +326,52 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
   ],
   interfaces: [
-    [
+    packageInterface(
       "mcp",
-      MCPInterface,
+      "@brains/mcp",
+      mcpInterface,
       (env): PluginConfig => ({
         ...(env["MCP_AUTH_TOKEN"] ? { authToken: env["MCP_AUTH_TOKEN"] } : {}),
       }),
-    ],
-    ["email", EmailInterface, (): PluginConfig => ({})],
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
-    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
+      { pluginId: "mcp" },
+    ),
+    packageInterface(
+      "email",
+      "@brains/email",
+      emailInterface,
+      (): PluginConfig => ({}),
+      {
+        pluginId: "email",
+      },
+    ),
     [
-      "chat",
-      ChatInterface,
-      (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
+      "webserver",
+      (config): Plugin => new WebserverInterface(config),
+      (): PluginConfig => ({}),
     ],
-    ["a2a", A2AInterface, (): PluginConfig => ({})],
+    packageInterface(
+      "web-chat",
+      "@brains/web-chat",
+      webChatInterface,
+      (): PluginConfig => ({}),
+      { pluginId: "web-chat" },
+    ),
+    packageInterface(
+      "chat",
+      "@brains/chat",
+      chatInterface,
+      (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
+      { pluginId: "chat" },
+    ),
+    packageInterface(
+      "a2a",
+      "@brains/a2a",
+      a2aInterface,
+      (): PluginConfig => ({}),
+      {
+        pluginId: "a2a",
+      },
+    ),
   ],
   bundles: canonicalBundles,
   permissions: {

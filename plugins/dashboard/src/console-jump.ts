@@ -2,35 +2,27 @@ import type { ConsoleJumpDestination } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { displayTitleFrom, formatLabel } from "@brains/utils/string-utils";
 
-export interface ConsoleJumpItem {
-  id: string;
-  title: string;
-  sub?: string | undefined;
-  href: string;
-  tag?: string | undefined;
-}
-
-export interface ConsoleJumpGroup {
-  id: string;
-  label: string;
-  items: ConsoleJumpItem[];
-}
-
-/** What `/api/console/jump` puts on the wire. */
-export interface ConsoleJumpResponse {
-  groups: ConsoleJumpGroup[];
-}
-
 /**
- * The response shape, as something a caller can check rather than assume.
- *
- * Declared as `z.ZodType<ConsoleJumpResponse, unknown>` so the schema and the
- * interface cannot drift: changing one without the other stops compiling.
+ * What `/api/console/jump` puts on the wire, as something a caller can
+ * check rather than assume.
  */
-export const consoleJumpResponseSchema: z.ZodType<
-  ConsoleJumpResponse,
-  unknown
-> = z.object({
+export const consoleJumpResponseSchema: z.ZodObject<{
+  groups: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      label: z.ZodString;
+      items: z.ZodArray<
+        z.ZodObject<{
+          id: z.ZodString;
+          title: z.ZodString;
+          sub: z.ZodOptional<z.ZodString>;
+          href: z.ZodString;
+          tag: z.ZodOptional<z.ZodString>;
+        }>
+      >;
+    }>
+  >;
+}> = z.object({
   groups: z.array(
     z.object({
       id: z.string(),
@@ -47,6 +39,10 @@ export const consoleJumpResponseSchema: z.ZodType<
     }),
   ),
 });
+
+export type ConsoleJumpResponse = z.output<typeof consoleJumpResponseSchema>;
+export type ConsoleJumpGroup = ConsoleJumpResponse["groups"][number];
+export type ConsoleJumpItem = ConsoleJumpGroup["items"][number];
 
 export interface ConsoleJumpEntityHit {
   entityType: string;

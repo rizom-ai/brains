@@ -1,5 +1,5 @@
 import {
-  SDK_ERROR_MESSAGE_MAX_LENGTH,
+  clipPublicMessage,
   agentActionContract,
   agentContextContract,
   defineBusContract,
@@ -1324,7 +1324,7 @@ export function createPlaybooksPackage(
                 const parsed = playbookManageInputSchema.safeParse(input);
                 if (!parsed.success) {
                   throw new SdkError("invalid_input", {
-                    publicMessage: boundedMessage(
+                    publicMessage: clipPublicMessage(
                       formatManageInputError(input, parsed.error),
                     ),
                   });
@@ -1338,7 +1338,7 @@ export function createPlaybooksPackage(
                 if (!result.success) {
                   // The class answered the reason, which the agent acts on.
                   throw new SdkError("handler_failed", {
-                    publicMessage: boundedMessage(result.error),
+                    publicMessage: clipPublicMessage(result.error),
                   });
                 }
                 return result.data;
@@ -1350,13 +1350,6 @@ export function createPlaybooksPackage(
       },
     },
   );
-}
-
-/** A failure's reason as it can be published: at most its public bound. */
-function boundedMessage(message: string): string {
-  return message.length <= SDK_ERROR_MESSAGE_MAX_LENGTH
-    ? message
-    : `${message.slice(0, SDK_ERROR_MESSAGE_MAX_LENGTH - 1)}…`;
 }
 
 const playbooksPackage: ServicePackageDefinition<typeof playbooksConfigSchema> =

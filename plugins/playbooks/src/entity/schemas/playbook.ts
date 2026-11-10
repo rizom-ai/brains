@@ -1,68 +1,91 @@
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export type PlaybookStatus = "draft" | "active" | "archived";
-export type PlaybookAudience = "admin" | "trusted" | "public";
-export type PlaybookCompletionMode = "agent-confirmed" | "manual";
+type PlaybookStatusSchema = z.ZodEnum<{
+  draft: "draft";
+  active: "active";
+  archived: "archived";
+}>;
+type PlaybookAudienceSchema = z.ZodEnum<{
+  admin: "admin";
+  trusted: "trusted";
+  public: "public";
+}>;
+type PlaybookCompletionModeSchema = z.ZodEnum<{
+  "agent-confirmed": "agent-confirmed";
+  manual: "manual";
+}>;
 
-export const playbookStatusSchema: z.ZodType<PlaybookStatus, PlaybookStatus> =
-  z.enum(["draft", "active", "archived"]);
-export const playbookAudienceSchema: z.ZodType<
-  PlaybookAudience,
-  PlaybookAudience
-> = z.enum(["admin", "trusted", "public"]);
-export const playbookCompletionModeSchema: z.ZodType<
-  PlaybookCompletionMode,
-  PlaybookCompletionMode
-> = z.enum(["agent-confirmed", "manual"]);
+export const playbookStatusSchema: PlaybookStatusSchema = z.enum([
+  "draft",
+  "active",
+  "archived",
+]);
+export const playbookAudienceSchema: PlaybookAudienceSchema = z.enum([
+  "admin",
+  "trusted",
+  "public",
+]);
+export const playbookCompletionModeSchema: PlaybookCompletionModeSchema =
+  z.enum(["agent-confirmed", "manual"]);
 
-const playbookStatusParserSchema: z.ZodType<PlaybookStatus, PlaybookStatus> =
-  z.enum(["draft", "active", "archived"]);
-const playbookAudienceParserSchema: z.ZodType<
-  PlaybookAudience,
-  PlaybookAudience
-> = z.enum(["admin", "trusted", "public"]);
-const playbookCompletionModeParserSchema: z.ZodType<
-  PlaybookCompletionMode,
-  PlaybookCompletionMode
-> = z.enum(["agent-confirmed", "manual"]);
+export type PlaybookStatus = z.output<typeof playbookStatusSchema>;
+export type PlaybookAudience = z.output<typeof playbookAudienceSchema>;
+export type PlaybookCompletionMode = z.output<
+  typeof playbookCompletionModeSchema
+>;
+
+const playbookStatusParserSchema: PlaybookStatusSchema = z.enum([
+  "draft",
+  "active",
+  "archived",
+]);
+const playbookAudienceParserSchema: PlaybookAudienceSchema = z.enum([
+  "admin",
+  "trusted",
+  "public",
+]);
+const playbookCompletionModeParserSchema: PlaybookCompletionModeSchema = z.enum(
+  ["agent-confirmed", "manual"],
+);
+
+type OptionalTextSchema = z.ZodCodec<
+  z.ZodOptional<z.ZodString>,
+  z.ZodOptional<z.ZodString>
+>;
 
 /**
  * Optional text where blank means absent. A codec rather than a preprocess so
  * the playbook body built on it can be encoded back to markdown.
  */
-function blankTextAsUndefined(): z.ZodType<string | undefined, unknown> {
+function blankTextAsUndefined(): OptionalTextSchema {
   return z.codec(z.string().optional(), z.string().min(1).optional(), {
     decode: (value) => (value?.trim().length === 0 ? undefined : value),
     encode: (value) => value,
   });
 }
 
-const optionalTextSchema: z.ZodType<string | undefined, unknown> =
-  blankTextAsUndefined();
+const optionalTextSchema: OptionalTextSchema = blankTextAsUndefined();
 
-const optionalTextParserSchema: z.ZodType<string | undefined, unknown> =
-  blankTextAsUndefined();
+const optionalTextParserSchema: OptionalTextSchema = blankTextAsUndefined();
 
-export interface PlaybookTransition {
-  event: string;
-  target: string;
-  operatorAction?: boolean | undefined;
-  label?: string | undefined;
-  description?: string | undefined;
-  operatorDescription?: string | undefined;
-}
+export const playbookTransitionSchema: z.ZodObject<{
+  event: z.ZodString;
+  target: z.ZodString;
+  operatorAction: z.ZodOptional<z.ZodBoolean>;
+  label: OptionalTextSchema;
+  description: OptionalTextSchema;
+  operatorDescription: OptionalTextSchema;
+}> = z.object({
+  event: z.string().min(1),
+  target: z.string().min(1),
+  operatorAction: z.boolean().optional(),
+  label: optionalTextParserSchema,
+  description: optionalTextParserSchema,
+  operatorDescription: optionalTextParserSchema,
+});
 
-export const playbookTransitionSchema: z.ZodType<PlaybookTransition> = z.object(
-  {
-    event: z.string().min(1),
-    target: z.string().min(1),
-    operatorAction: z.boolean().optional(),
-    label: optionalTextParserSchema,
-    description: optionalTextParserSchema,
-    operatorDescription: optionalTextParserSchema,
-  },
-);
+export type PlaybookTransition = z.output<typeof playbookTransitionSchema>;
 
 /**
  * What besides entity events can prove a step done. `reply`: the assistant's
@@ -74,18 +97,18 @@ export const playbookProofSourceSchema: z.ZodEnum<{ reply: "reply" }> = z.enum([
 
 export type PlaybookProofSource = z.output<typeof playbookProofSourceSchema>;
 
-export interface PlaybookState {
-  id: string;
-  title: string;
-  prompt?: string | undefined;
-  requiredDetails: string[];
-  instructions: string[];
-  doneWhen: string[];
-  provenBy?: PlaybookProofSource[] | undefined;
-  transitions: PlaybookTransition[];
-}
+type TextListSchema = z.ZodDefault<z.ZodArray<z.ZodString>>;
 
-export const playbookStateSchema: z.ZodType<PlaybookState> = z.object({
+export const playbookStateSchema: z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  prompt: OptionalTextSchema;
+  requiredDetails: TextListSchema;
+  instructions: TextListSchema;
+  doneWhen: TextListSchema;
+  provenBy: z.ZodOptional<z.ZodArray<typeof playbookProofSourceSchema>>;
+  transitions: z.ZodDefault<z.ZodArray<typeof playbookTransitionSchema>>;
+}> = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   prompt: optionalTextParserSchema,
@@ -96,16 +119,16 @@ export const playbookStateSchema: z.ZodType<PlaybookState> = z.object({
   transitions: z.array(playbookTransitionSchema).default([]),
 });
 
-export interface PlaybookBody {
-  purpose: string;
-  operatingRules: string[];
-  initialState: string;
-  states: PlaybookState[];
-  finalStates: string[];
-  nextPrompts: string[];
-}
+export type PlaybookState = z.output<typeof playbookStateSchema>;
 
-export const playbookBodySchema: z.ZodType<PlaybookBody> = z.object({
+export const playbookBodySchema: z.ZodObject<{
+  purpose: z.ZodString;
+  operatingRules: TextListSchema;
+  initialState: z.ZodString;
+  states: z.ZodArray<typeof playbookStateSchema>;
+  finalStates: z.ZodArray<z.ZodString>;
+  nextPrompts: TextListSchema;
+}> = z.object({
   purpose: z.string().min(1),
   operatingRules: z.array(z.string().min(1)).default([]),
   initialState: z.string().min(1),
@@ -114,33 +137,19 @@ export const playbookBodySchema: z.ZodType<PlaybookBody> = z.object({
   nextPrompts: z.array(z.string().min(1)).default([]),
 });
 
-export interface PlaybookFrontmatter {
-  [key: string]: unknown;
-  title: string;
-  status: PlaybookStatus;
-  audience: PlaybookAudience;
-  trigger?: string | undefined;
-  lifecycle?: string | undefined;
-  once?: boolean | undefined;
-  starterText?: string | undefined;
-  description?: string | undefined;
-  starterPrompt?: string | undefined;
-  completionMode: PlaybookCompletionMode;
-}
+export type PlaybookBody = z.output<typeof playbookBodySchema>;
 
 type PlaybookFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodDefault<z.ZodType<PlaybookStatus, PlaybookStatus>>;
-  audience: z.ZodDefault<z.ZodType<PlaybookAudience, PlaybookAudience>>;
-  trigger: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  lifecycle: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
+  status: z.ZodDefault<PlaybookStatusSchema>;
+  audience: z.ZodDefault<PlaybookAudienceSchema>;
+  trigger: z.ZodOptional<OptionalTextSchema>;
+  lifecycle: z.ZodOptional<OptionalTextSchema>;
   once: z.ZodOptional<z.ZodBoolean>;
-  starterText: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  description: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  starterPrompt: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  completionMode: z.ZodDefault<
-    z.ZodType<PlaybookCompletionMode, PlaybookCompletionMode>
-  >;
+  starterText: z.ZodOptional<OptionalTextSchema>;
+  description: z.ZodOptional<OptionalTextSchema>;
+  starterPrompt: z.ZodOptional<OptionalTextSchema>;
+  completionMode: z.ZodDefault<PlaybookCompletionModeSchema>;
 }>;
 
 export const playbookFrontmatterSchema: PlaybookFrontmatterSchema = z.object({
@@ -156,31 +165,19 @@ export const playbookFrontmatterSchema: PlaybookFrontmatterSchema = z.object({
   completionMode: playbookCompletionModeSchema.default("agent-confirmed"),
 });
 
-export interface PlaybookMetadata {
-  [key: string]: unknown;
-  title: string;
-  status: PlaybookStatus;
-  audience: PlaybookAudience;
-  trigger?: string | undefined;
-  lifecycle?: string | undefined;
-  once?: boolean | undefined;
-  starterText?: string | undefined;
-  description?: string | undefined;
-  starterPrompt?: string | undefined;
-  completionMode: PlaybookCompletionMode;
-}
+export type PlaybookFrontmatter = z.output<typeof playbookFrontmatterSchema>;
 
 type PlaybookMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodType<PlaybookStatus, PlaybookStatus>;
-  audience: z.ZodType<PlaybookAudience, PlaybookAudience>;
-  trigger: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  lifecycle: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
+  status: PlaybookStatusSchema;
+  audience: PlaybookAudienceSchema;
+  trigger: z.ZodOptional<OptionalTextSchema>;
+  lifecycle: z.ZodOptional<OptionalTextSchema>;
   once: z.ZodOptional<z.ZodBoolean>;
-  starterText: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  description: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  starterPrompt: z.ZodOptional<z.ZodType<string | undefined, unknown>>;
-  completionMode: z.ZodType<PlaybookCompletionMode, PlaybookCompletionMode>;
+  starterText: z.ZodOptional<OptionalTextSchema>;
+  description: z.ZodOptional<OptionalTextSchema>;
+  starterPrompt: z.ZodOptional<OptionalTextSchema>;
+  completionMode: PlaybookCompletionModeSchema;
 }>;
 
 export const playbookMetadataSchema: PlaybookMetadataSchema = z.object({
@@ -195,6 +192,8 @@ export const playbookMetadataSchema: PlaybookMetadataSchema = z.object({
   starterPrompt: optionalTextSchema.optional(),
   completionMode: playbookCompletionModeSchema,
 });
+
+export type PlaybookMetadata = z.output<typeof playbookMetadataSchema>;
 
 const playbookEntityMetadataParserSchema: PlaybookMetadataSchema = z.object({
   title: z.string(),

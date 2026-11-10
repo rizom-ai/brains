@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { peerOriginLabel } from "../src/workspace-format";
+import { mutationContext, peerOriginLabel } from "../src/workspace-format";
 
 describe("peerOriginLabel", () => {
   it("names this brain when nobody vouched the person in", () => {
@@ -16,5 +16,23 @@ describe("peerOriginLabel", () => {
   it("keeps identifiers it cannot shorten", () => {
     expect(peerOriginLabel("did:plc:2x7kqz")).toBe("did:plc:2x7kqz");
     expect(peerOriginLabel("velt.coop")).toBe("velt.coop");
+  });
+});
+
+describe("mutationContext", () => {
+  it("names the signed-in actor as the one who acts", () => {
+    expect(
+      mutationContext({
+        actor: { id: "user-1", displayName: "Ada" },
+        permission: "admin",
+        isAnchor: true,
+      }),
+    ).toEqual({ actorUserId: "user-1" });
+  });
+
+  it("refuses an action nobody signed in to take", () => {
+    expect(() => mutationContext(null)).toThrow(
+      "Administration action requires a signed-in actor",
+    );
   });
 });

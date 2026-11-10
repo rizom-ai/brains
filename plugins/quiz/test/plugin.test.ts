@@ -5,19 +5,23 @@ import {
 } from "@brains/plugins/test";
 import {
   baseEntitySchema,
+  createServicePluginContext,
   type ChannelDeliveryInput,
+  type InboxSource,
   type JobHandler,
   type WebRouteDefinition,
   instantiatePluginPackageDefinition,
 } from "@brains/plugins";
-import { parseFormMarkdown } from "@brains/forms";
+import { FormInboxSource, parseFormMarkdown } from "@brains/forms";
 import notificationsPackage from "@brains/notifications";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import {
   quizPlugin,
   quizResultAdapter,
   quizResultSchema,
+  quizResultTarget,
   type QuizPlugin,
+  type QuizResult,
 } from "../src";
 
 const origin = "https://brain.test";
@@ -324,6 +328,221 @@ describe("a quiz defined in the brain's content", () => {
     ]);
     expect(f.sent[1]?.text).toContain("Results:\nIdentity: Seeking");
     expect(f.sent[1]?.text).toContain("Who are you?: Seeking");
+    await f.plugin.shutdown();
+  });
+});
+
+/** A quiz result file as a directory-sync import or restore reads it: the
+ * type deserializes the markdown, and the store keeps the file as written. */
+async function importResult(
+  h: Harness,
+  id: string,
+  quizTitle?: string,
+): Promise<void> {
+  const markdown = quizResultAdapter.createContent({
+    quiz: "brand-test",
+    ...(quizTitle ? { quizTitle } : {}),
+    receivedAt: "2026-11-07T10:00:00.000Z",
+    status: "new",
+    notification: "none",
+    email: "ada@example.com",
+    results: [
+      {
+        dimension: "identity",
+        title: "Identity",
+        outcome: "seeking",
+        outcomeTitle: "Seeking",
+      },
+    ],
+    answers: [{ field: "q1", label: "Who are you?", value: "Seeking" }],
+  });
+  const entityService = h.getEntityService();
+  const parsed = entityService.deserializeEntity(markdown, "quiz-result");
+  await entityService.upsertEntity({
+    entity: {
+      ...parsed,
+      id,
+      entityType: "quiz-result",
+      content: markdown,
+      visibility: "restricted",
+      metadata: parsed.metadata ?? {},
+      created: "2026-11-07T10:00:00.000Z",
+      updated: "2026-11-07T10:00:00.000Z",
+      contentHash: "",
+    },
+  });
+}
+
+async function inboxTitles(h: Harness): Promise<string[]> {
+  const registry = h.getMockShell().getInboxRegistry();
+  registry.finalize();
+  const items = (await registry.getSource("quiz-results")?.list()) ?? [];
+  return items.map((item) => item.title);
+}
+
+describe("an imported quiz result", () => {
+  it("is listed under the title of the quiz as it was taken", async () => {
+    const f = await setup();
+    await importResult(
+      f.h,
+      `brand-test:${"a".repeat(64)}`,
+      "Brand personality test",
+    );
+    const result = await f.h.getEntityService().getEntity(
+      {
+        entityType: "quiz-result",
+        id: `brand-test:${"a".repeat(64)}`,
+        visibilityScope: "restricted",
+      },
+      quizResultSchema,
+    );
+    expect(result?.metadata.title).toBe("Brand personality test");
+    expect(await inboxTitles(f.h)).toEqual(["Brand personality test result"]);
+    await f.plugin.shutdown();
+  });
+
+  it("written before it kept its quiz's title, is listed under its quiz's id", async () => {
+    const f = await setup();
+    await importResult(f.h, `brand-test:${"b".repeat(64)}`);
+    expect(await inboxTitles(f.h)).toEqual(["brand-test result"]);
+    await f.plugin.shutdown();
+  });
+});
+
+const admin = { permissionLevel: "admin" as const };
+
+/** The source the plugin registered, as the Inbox reads it. */
+function inboxSource(h: Harness): InboxSource {
+  const registry = h.getMockShell().getInboxRegistry();
+  registry.finalize();
+  const source = registry.getSource("quiz-results");
+  if (!source) throw new Error("Missing quiz Inbox source");
+  return source;
+}
+
+async function storedResult(h: Harness): Promise<QuizResult> {
+  const [result] = await h.getEntityService().listEntities(
+    {
+      entityType: "quiz-result",
+      options: { filter: { visibilityScope: "restricted" } },
+    },
+    quizResultSchema,
+  );
+  if (!result) throw new Error("Missing result");
+  return result;
+}
+
+describe("a quiz result in the Inbox", () => {
+  it("shows an admin who took it, its results and its answers, and no one else", async () => {
+    const f = await setup();
+    await take(f.plugin, "/brand-test", [
+      ["q1", "a"],
+      ["email", "ada@example.com"],
+    ]);
+    const source = inboxSource(f.h);
+    const [item] = await source.list();
+    if (!item) throw new Error("Missing Inbox item");
+    expect(item).toMatchObject({
+      title: "Brand test result",
+      summary: "Identity: Seeking",
+      entityRef: { entityType: "quiz-result", entityId: item.id },
+      actions: [{ id: "mark-handled", label: "Done" }],
+    });
+    expect(
+      await source.resolveDetail?.(
+        item.id,
+        admin,
+        new AbortController().signal,
+      ),
+    ).toEqual({
+      kind: "plain",
+      text: "Quiz: brand-test\nEmail: ada@example.com\n\nIdentity: Seeking\n\nWho are you?: Seeking",
+      truncated: false,
+    });
+    for (const permissionLevel of ["public", "trusted"] as const) {
+      expect(
+        source.resolveDetail?.(
+          item.id,
+          { permissionLevel },
+          new AbortController().signal,
+        ),
+      ).rejects.toThrow(new Error("Quiz inbox requires admin permission"));
+      expect(
+        source.act(item.id, "mark-handled", { permissionLevel }),
+      ).rejects.toThrow(new Error("Quiz inbox requires admin permission"));
+    }
+    expect(source.act(item.id, "publish", admin)).rejects.toThrow(
+      new Error("Invalid quiz inbox action"),
+    );
+    expect(
+      source.resolveDetail?.(
+        "brand-test:missing",
+        admin,
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow(new Error("Quiz result unavailable"));
+    await f.plugin.shutdown();
+  });
+
+  it("is marked Done once and leaves the Inbox, still kept in Studio", async () => {
+    const f = await setup();
+    await take(f.plugin, "/brand-test", [
+      ["q1", "a"],
+      ["email", "ada@example.com"],
+    ]);
+    const source = inboxSource(f.h);
+    const [item] = await source.list();
+    if (!item) throw new Error("Missing Inbox item");
+    await source.act(item.id, "mark-handled", admin);
+    expect(await source.list()).toEqual([]);
+    const result = await storedResult(f.h);
+    expect(result.metadata.status).toBe("handled");
+    expect(
+      quizResultAdapter.parseContent(result.content).frontmatter,
+    ).toMatchObject({ status: "handled", email: "ada@example.com" });
+    await source.act(item.id, "mark-handled", admin);
+    expect((await storedResult(f.h)).contentHash).toBe(result.contentHash);
+    await f.plugin.shutdown();
+  });
+
+  it("does not overwrite a concurrent change when marked Done", async () => {
+    const f = await setup();
+    await take(f.plugin, "/brand-test", [
+      ["q1", "a"],
+      ["email", "ada@example.com"],
+    ]);
+    const { id } = await storedResult(f.h);
+    const context = createServicePluginContext(f.h.getMockShell(), "quiz");
+    const source = new FormInboxSource(context, quizResultTarget);
+    const update = context.entityService.updateEntity.bind(
+      context.entityService,
+    );
+    context.entityService.updateEntity = async (
+      request,
+    ): ReturnType<typeof update> => {
+      const current = await storedResult(f.h);
+      const frontmatter = quizResultAdapter.parseContent(
+        current.content,
+      ).frontmatter;
+      await update({
+        entity: {
+          ...current,
+          content: quizResultAdapter.createContent({
+            ...frontmatter,
+            notification: "sent",
+          }),
+          metadata: { ...current.metadata, notification: "sent" },
+        },
+      });
+      return update(request);
+    };
+    expect(source.act(id, "mark-handled", admin)).rejects.toThrow(
+      new Error("Quiz result unavailable"),
+    );
+    expect(
+      quizResultAdapter.parseContent((await storedResult(f.h)).content)
+        .frontmatter,
+    ).toMatchObject({ status: "new", notification: "sent" });
     await f.plugin.shutdown();
   });
 });

@@ -62,8 +62,8 @@ import {
 } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   createDeclarativeStudioWorkspaceRegistration,
+  firstPartyStudioOf,
 } from "../operator/studio-workspace-runtime";
 import {
   createDeclarativeDashboardWidgetRegistration,
@@ -99,7 +99,6 @@ import {
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceAI,
-  type ServiceStudio,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -1077,19 +1076,7 @@ class DeclarativeServicePlugin<
       }),
       domain: context.domain,
       auth: () => context.auth.get(),
-      studio: Object.freeze<ServiceStudio>({
-        isAvailable: (): boolean =>
-          !context.executionOnly && context.studio.isAvailable(),
-        source: (input) =>
-          createBuiltInStudioWorkspaceRegistration({ ...input, context }),
-        register: async (registration): Promise<string | undefined> => {
-          if (context.executionOnly || !context.studio.isAvailable()) {
-            return undefined;
-          }
-          const result = await context.studio.registerWorkspace(registration);
-          return result === false ? undefined : result.workspaceUrl;
-        },
-      }),
+      studio: firstPartyStudioOf(context),
       inbox: Object.freeze({
         listSources: () => context.inbox.listSources(),
         getSource: (sourceId: string) => context.inbox.getSource(sourceId),

@@ -40,11 +40,6 @@ describe("Skill projection registration", () => {
       { success: true },
       "directory-sync",
     );
-    await harness.sendMessage(
-      "topics:batch-completed",
-      { created: 1, merged: 0, skipped: 0, batches: 1 },
-      "topics",
-    );
 
     expect("projections" in capabilities).toBe(false);
     expect(capabilities.projectionRules).toHaveLength(1);

@@ -9,6 +9,7 @@ import {
   type JobProgressEvent,
   type ToolStatusUpdate,
 } from "@brains/plugins";
+import { capitalize } from "@brains/utils/string-utils";
 
 interface WebChatProgressData {
   type: JobProgressEvent["type"];
@@ -110,10 +111,4 @@ export function toToolStatusData(
   }
   chatToolStatusEventSchema.parse(data);
   return data;
-}
-
-function capitalize(value: string): string {
-  return value.length > 0
-    ? `${value[0]?.toUpperCase()}${value.slice(1)}`
-    : value;
 }

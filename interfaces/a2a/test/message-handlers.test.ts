@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { A2AInterface } from "../src/a2a-interface";
+import { createA2APlugin } from "./a2a-plugin";
+import type { A2AConfigInput } from "../src/config";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   a2aAgentsContract,
@@ -61,7 +62,7 @@ describe("A2A call message handlers", () => {
     fetchFn = mockA2AFetch();
     // The handlers get their fetch from the interface's deps, so the fake goes
     // in there rather than over the global.
-    await harness.installPlugin(new A2AInterface({}, { fetch: fetchFn }));
+    await harness.installPlugin(createA2APlugin({}, { fetch: fetchFn }));
   });
 
   afterEach(async () => {
@@ -311,7 +312,7 @@ describe("A2A network ask channel", () => {
 
   async function installed(
     fetchFn: ReturnType<typeof mock>,
-    config: ConstructorParameters<typeof A2AInterface>[0] = {},
+    config: A2AConfigInput = {},
   ): Promise<ReturnType<typeof createPluginHarness>> {
     const harness = createPluginHarness();
     harness.addEntities([
@@ -328,7 +329,7 @@ describe("A2A network ask channel", () => {
         metadata: { name: "Discovered Agent", status: "discovered" },
       },
     ]);
-    await harness.installPlugin(new A2AInterface(config, { fetch: fetchFn }));
+    await harness.installPlugin(createA2APlugin(config, { fetch: fetchFn }));
     return harness;
   }
 

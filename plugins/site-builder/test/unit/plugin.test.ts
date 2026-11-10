@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createTempDataDir } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -18,7 +17,6 @@ import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
 import { createTestConfig } from "../test-helpers";
 import { mkdtemp, readFile, rm } from "fs/promises";
-import { existsSync } from "fs";
 import { join } from "path";
 
 const adminWorkspaceActor: StudioWorkspaceActor = {
@@ -616,34 +614,5 @@ describe("SiteBuilderPlugin", () => {
     );
 
     expect(routes.map((route) => route.path)).not.toContain("/studio/");
-  });
-
-  it("should not generate Studio files on site:build:completed", async () => {
-    const outputDir = await createTempDataDir("site-builder-no-studio-");
-    const config = {
-      ...createTestConfig({
-        previewOutputDir: outputDir,
-        productionOutputDir: outputDir,
-      }),
-      studio: {},
-    };
-
-    plugin = new SiteBuilderPlugin(config);
-    await harness.installPlugin(plugin);
-
-    await harness.sendMessage("site:build:completed", {
-      outputDir,
-      environment: "preview",
-      routesBuilt: 0,
-      siteConfig: {
-        title: "Test",
-        description: "Test",
-        url: "https://example.com",
-      },
-      generateEntityUrl: (_entityType: string, slug: string) => `/${slug}`,
-    });
-
-    expect(existsSync(join(outputDir, "studio"))).toBe(false);
-    expect(existsSync(join(outputDir, "admin"))).toBe(false);
   });
 });

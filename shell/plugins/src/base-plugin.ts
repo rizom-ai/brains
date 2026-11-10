@@ -72,6 +72,12 @@ export abstract class BasePlugin<
   protected config: TConfig;
   protected context?: TContext;
   private retryScope: RetryScope | undefined;
+  /**
+   * The tools this plugin built, once: the bus runs the same instances the
+   * plugin registered, so a tool's state (a confirmation it is waiting on)
+   * holds from one call to the next.
+   */
+  private builtTools: Promise<Tool[]> | undefined;
 
   /**
    * Get the logger - uses context logger if available, creates temp logger otherwise
@@ -125,6 +131,8 @@ export abstract class BasePlugin<
    * Set up the message handler for tool execution
    */
   protected setupMessageHandlers(context: TContext): void {
+    // A registration builds its tools afresh, against its own context.
+    this.builtTools = undefined;
     // Subscribe to tool execution requests for this specific plugin
     context.messaging.subscribe(
       PLUGIN_CHANNELS.toolExecute(this.id),
@@ -159,7 +167,7 @@ export abstract class BasePlugin<
             signal,
           } = parsedRequest.data;
 
-          const tools = await this.getTools();
+          const tools = await this.registeredTools();
           const tool = tools.find((t) => t.name === toolName);
 
           if (!tool) {
@@ -250,7 +258,7 @@ export abstract class BasePlugin<
   protected async getCapabilities(): Promise<PluginCapabilities> {
     const instructions = await this.getInstructions();
     return {
-      tools: await this.getTools(),
+      tools: await this.registeredTools(),
       resources: await this.getResources(),
       ...(instructions && { instructions }),
     };
@@ -262,6 +270,12 @@ export abstract class BasePlugin<
    */
   protected async getTools(): Promise<Tool[]> {
     return [];
+  }
+
+  /** The tools getTools builds, built on first use and kept. */
+  private registeredTools(): Promise<Tool[]> {
+    this.builtTools ??= this.getTools();
+    return this.builtTools;
   }
 
   /**

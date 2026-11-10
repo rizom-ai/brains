@@ -23,11 +23,14 @@ const contextServedPackages = [
 const shellImportMessage =
   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.";
 
-function shellImportBan(packages) {
+function shellImportBan(packages, extraPaths = []) {
   return [
     "error",
     {
-      paths: packages.map((name) => ({ name, message: shellImportMessage })),
+      paths: [
+        ...packages.map((name) => ({ name, message: shellImportMessage })),
+        ...extraPaths,
+      ],
       patterns: [
         {
           group: packages.map((name) => `${name}/*`),
@@ -37,6 +40,38 @@ function shellImportBan(packages) {
     },
   ];
 }
+/**
+ * The plugin class bases. A package converted to a declarative definition
+ * imports none of them: it declares what it is, and the runtime alone
+ * carries those bases until they are removed.
+ */
+const pluginClassBases = [
+  "BasePlugin",
+  "EntityPlugin",
+  "HookedPublicPlugin",
+  "InterfacePlugin",
+  "MessageInterfacePlugin",
+  "PublicPlugin",
+  "ServicePlugin",
+];
+
+/** Interface packages converted to declarative definitions. */
+const convertedInterfacePackages = [
+  "chat-repl",
+  "email",
+  "mcp",
+  "a2a",
+  "chat",
+  "web-chat",
+];
+
+const classBaseBan = {
+  name: "@brains/plugins",
+  importNames: pluginClassBases,
+  message:
+    "A converted package is a declarative definition: declare it with @brains/sdk and reach first-party runtime capabilities through @brains/sdk/internal/*, never a plugin class base.",
+};
+
 /** Syntax banned everywhere; see each entry for why. */
 const restrictedSyntax = [
   {
@@ -201,6 +236,21 @@ module.exports = {
           ...shellServicePackages,
           ...contextServedPackages,
         ]),
+      },
+    },
+    {
+      // A converted interface's production code also imports no plugin class
+      // base. Restates the import restrictions above for these files.
+      files: convertedInterfacePackages.flatMap((name) => [
+        `**/interfaces/${name}/src/**/*.ts`,
+        `**/interfaces/${name}/src/**/*.tsx`,
+      ]),
+      excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
+      rules: {
+        "no-restricted-imports": shellImportBan(
+          [...shellServicePackages, ...contextServedPackages],
+          [classBaseBan],
+        ),
       },
     },
     {

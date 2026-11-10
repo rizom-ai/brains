@@ -10,7 +10,7 @@ import {
   type StructuredChatCard,
 } from "@brains/plugins";
 
-// Action ids shared with ChatInterface (it registers handlers / matches button
+// Action ids shared with the chat interface (it registers handlers / matches button
 // presses against these). Exported so the interface imports them from the
 // presentation layer rather than the reverse.
 export const APPROVAL_CONFIRM_ACTION = "approval.confirm";
@@ -68,7 +68,7 @@ export interface ChatCardBuilderDeps {
 }
 
 /**
- * Pure presentation layer for ChatInterface: turns AgentResponse data and
+ * Pure presentation layer for the chat interface: turns AgentResponse data and
  * structured cards into Discord CardElement objects. Holds no interface state.
  * URL resolution and prompt-action registration are injected so this stays a
  * testable presentation unit, decoupled from delivery and plugin plumbing.

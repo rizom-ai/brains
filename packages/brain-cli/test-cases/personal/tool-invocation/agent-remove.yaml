@@ -11,7 +11,7 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "Archive old-agent.io from my contacts"
+  - userMessage: "Archive old-agent.example from my contacts"
 
 successCriteria:
   expectedTools:

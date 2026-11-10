@@ -16,7 +16,6 @@ export type {
   ContactIntakePolicy,
 } from "./config";
 export { ContactPlugin, ContactRequestPlugin };
-export { ContactInboxSource } from "./inbox-source";
 export { ContactRequestAdapter, contactRequestAdapter } from "./entity/adapter";
 export {
   contactSubmissionSchema,

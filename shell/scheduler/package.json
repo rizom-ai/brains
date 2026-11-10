@@ -1,19 +1,21 @@
 {
   "name": "@brains/scheduler",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.671",
+  "version": "0.2.0-alpha.675",
   "description": "Shared scheduler backend contracts and deterministic test implementation",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts",
+    "./maintenance": "./src/scheduled-maintenance.ts",
     "./test": "./src/test.ts"
   },
   "main": "./src/index.ts",

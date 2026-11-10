@@ -1,3 +1,4 @@
+import { escapeXml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -48,15 +49,6 @@ export interface FeedChannel {
   readonly selfLink: string;
   readonly language?: string | undefined;
   readonly copyright?: string | undefined;
-}
-
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/gu, "&amp;")
-    .replace(/</gu, "&lt;")
-    .replace(/>/gu, "&gt;")
-    .replace(/"/gu, "&quot;")
-    .replace(/'/gu, "&apos;");
 }
 
 /** A CDATA section cannot contain its own terminator, so split it. */

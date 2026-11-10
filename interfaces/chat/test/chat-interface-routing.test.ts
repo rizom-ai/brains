@@ -4,7 +4,7 @@ import type { IConversationService } from "@brains/plugins";
 import { PermissionService } from "@brains/plugins/test";
 import type { DiscordChatAdapterConfig } from "../src/config";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   authState,
   baseSlackConfig,
@@ -52,7 +52,7 @@ describe("ChatInterface message routing", () => {
   });
 
   it("routes Slack mentions with Slack conversation and permission context", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -88,7 +88,7 @@ describe("ChatInterface message routing", () => {
   });
 
   it("routes subscribed Slack thread follow-ups after an app mention", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -117,7 +117,7 @@ describe("ChatInterface message routing", () => {
   });
 
   it("enforces Slack allowed-channel and DM policies", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: {
         slack: {
           ...baseSlackConfig,

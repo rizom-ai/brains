@@ -36,29 +36,28 @@ export const consoleJumpDestinationsRequestSchema: ConsoleJumpDestinationsReques
   });
 
 /** One page a surface offers in the ⌘K palette. */
-export interface ConsoleJumpDestination {
-  id: string;
-  title: string;
-  /** Where it lives, e.g. "Work" or "Library". */
-  sub?: string | undefined;
-  href: string;
-  /** Offered before anything is typed; otherwise only on a matching search. */
-  primary?: boolean | undefined;
-  /** Extra words a search may match, e.g. "people" for Administration. */
-  keywords?: string[] | undefined;
-}
-
-export const consoleJumpDestinationSchema: z.ZodType<
-  ConsoleJumpDestination,
-  unknown
-> = z.object({
+export const consoleJumpDestinationSchema: z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  sub: z.ZodOptional<z.ZodString>;
+  href: z.ZodString;
+  primary: z.ZodOptional<z.ZodBoolean>;
+  keywords: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}> = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
+  /** Where it lives, e.g. "Work" or "Library". */
   sub: z.string().optional(),
   href: z.string().min(1),
+  /** Offered before anything is typed; otherwise only on a matching search. */
   primary: z.boolean().optional(),
+  /** Extra words a search may match, e.g. "people" for Administration. */
   keywords: z.array(z.string()).optional(),
 });
+
+export type ConsoleJumpDestination = z.output<
+  typeof consoleJumpDestinationSchema
+>;
 
 type ConsoleJumpDestinationsResponseSchema = z.ZodArray<
   typeof consoleJumpDestinationSchema

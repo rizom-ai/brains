@@ -17,16 +17,6 @@ import type { FetchLike } from "@brains/utils/fetch-like";
 import { AgentSightingsInboxSource } from "../inbox-source";
 import packageJson from "../../package.json";
 
-export interface AgentToolsConfig {
-  /** Emit an operational notification when a directory scan discovers agents. */
-  notifyOnNewAgents: boolean;
-}
-
-export interface AgentToolsConfigInput {
-  /** Opt in to new-agent notifications. Daily scans remain enabled. */
-  notifyOnNewAgents?: boolean | undefined;
-}
-
 const atprotoNotificationCandidateSchema = z
   .object({
     agentId: z.string().min(1),
@@ -66,6 +56,11 @@ export const agentToolsConfigSchema: z.ZodObject<{
       .describe("Notify when directory scans discover new agents"),
   })
   .strict();
+
+/** Opt in to new-agent notifications. Daily scans remain enabled. */
+export type AgentToolsConfigInput = z.input<typeof agentToolsConfigSchema>;
+/** Whether an operational notification is emitted when a directory scan discovers agents. */
+export type AgentToolsConfig = z.output<typeof agentToolsConfigSchema>;
 
 export class AgentToolsPlugin extends ServicePlugin<
   AgentToolsConfig,

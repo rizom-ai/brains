@@ -8,6 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import type { IAgentService } from "@brains/ai-service";
 import type { ChatContext, AgentResponse } from "@brains/ai-service";
 import { parseAgentResponse } from "@brains/contracts";
+import { isRecord } from "@brains/utils/is-record";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
@@ -124,6 +125,14 @@ export class MCPProtocolAgentService implements IAgentService {
     context?: ChatContext,
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    // The protocol's chat takes a message only. Sending the turn without
+    // its files would evaluate a different request than the case asks.
+    const attachments = context?.attachments ?? [];
+    if (attachments.length > 0) {
+      throw new Error(
+        `Basic MCP chat carries no attachments: ${attachments.map((attachment) => attachment.filename).join(", ")} cannot reach the brain through it`,
+      );
+    }
     return this.callProtocolTool(
       "chat",
       { message, conversationId },
@@ -360,8 +369,4 @@ function requireString(value: unknown, field: string): string {
     throw new Error(`MCP tool payload is missing ${field}`);
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

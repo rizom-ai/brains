@@ -1,9 +1,14 @@
 import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
 
+import { createExternalActorId } from "@brains/contracts";
 import { TestRunner } from "../src/test-runner";
 import type { ILLMJudge, RequirementVerdict } from "../src/types";
 import type { AgentTestCase, TestCase } from "../src/schemas";
-import type { IAgentService, AgentResponse } from "@brains/ai-service";
+import type {
+  AgentResponse,
+  ChatContext,
+  IAgentService,
+} from "@brains/ai-service";
 import type {
   IRuntimeUploadsNamespace,
   RuntimeUploadRecord,
@@ -14,6 +19,20 @@ import type {
 function notStubbed(name: string): () => never {
   return () => {
     throw new Error(`scoped upload store: ${name} is not stubbed`);
+  };
+}
+
+/** The speaker a turn has when its case names none. */
+function operator(
+  interfaceType = "evaluation",
+): NonNullable<ChatContext["actor"]> {
+  return {
+    identity: {
+      kind: "external",
+      externalActorId: createExternalActorId("evaluation", "operator"),
+    },
+    interfaceType,
+    role: "user",
   };
 }
 
@@ -122,6 +141,35 @@ describe("TestRunner", () => {
   });
 
   describe("runTest", () => {
+    it("fails a case whose agent call throws instead of ending the run", async () => {
+      mockAgentService.chat.mockRejectedValue(
+        new Error("Invalid arguments for tool chat: message: Too small"),
+      );
+      const testCase: TestCase = {
+        id: "throws",
+        name: "Agent call throws",
+        type: "tool_invocation",
+        turns: [{ userMessage: "" }, { userMessage: "Hello" }],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result).toMatchObject({
+        testCaseId: "throws",
+        passed: false,
+        failures: [
+          {
+            criterion: "agentCall",
+            actual: "Invalid arguments for tool chat: message: Too small",
+            message:
+              "The agent call failed: Invalid arguments for tool chat: message: Too small",
+          },
+        ],
+      });
+      expect(mockAgentService.chat).toHaveBeenCalledTimes(1);
+    });
+
     it("should pass when all criteria are met", async () => {
       const testCase: TestCase = {
         id: "test-1",
@@ -219,6 +267,9 @@ describe("TestRunner", () => {
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
+        // A turn has a speaker: without one its queued work would run as
+        // the brain's own agent, at no grant of its own.
+        actor: operator(),
       });
     });
 
@@ -247,6 +298,7 @@ describe("TestRunner", () => {
         interfaceType: "discord",
         channelId: "relay-poc",
         channelName: "Relay POC",
+        actor: operator("discord"),
       });
     });
 
@@ -387,6 +439,7 @@ describe("TestRunner", () => {
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
+        actor: operator(),
         attachments: [
           {
             kind: "file",
@@ -403,6 +456,8 @@ describe("TestRunner", () => {
       const savedUploads: unknown[] = [];
       const scopedCalls: unknown[] = [];
       const runtimeUploads: IRuntimeUploadsNamespace = {
+        // Seeding retires nothing.
+        retire: async (): Promise<boolean> => false,
         scoped: (options): ScopedRuntimeUploadStore => {
           scopedCalls.push(options);
           return {
@@ -511,6 +566,7 @@ describe("TestRunner", () => {
       expect(calls[1]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
+        actor: operator(),
         attachments: [
           {
             kind: "text",
@@ -567,6 +623,7 @@ describe("TestRunner", () => {
         {
           userPermissionLevel: "admin",
           interfaceType: "evaluation",
+          actor: operator(),
         },
       );
     });
@@ -620,6 +677,7 @@ describe("TestRunner", () => {
         {
           userPermissionLevel: "admin",
           interfaceType: "evaluation",
+          actor: operator(),
         },
       );
     });
@@ -677,6 +735,7 @@ describe("TestRunner", () => {
         {
           userPermissionLevel: "admin",
           interfaceType: "evaluation",
+          actor: operator(),
         },
       );
     });
@@ -874,6 +933,7 @@ describe("TestRunner", () => {
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
+        actor: operator(),
       });
     });
 

@@ -2,10 +2,6 @@ import type { IRuntimeStateNamespace } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
 
-export interface FormDeliveryPolicy {
-  maxAttempts: number;
-  retryWindowSeconds: number;
-}
 export const formDeliveryPolicyShape: z.ZodObject<
   { maxAttempts: z.ZodNumber; retryWindowSeconds: z.ZodNumber },
   z.core.$strict
@@ -14,8 +10,9 @@ export const formDeliveryPolicyShape: z.ZodObject<
   // Must fit inside the approved transport's idempotency retention (email: 24h).
   retryWindowSeconds: z.number().int().min(60).max(3600),
 });
-export const formDeliveryPolicySchema: z.ZodType<FormDeliveryPolicy> =
+export const formDeliveryPolicySchema: typeof formDeliveryPolicyShape =
   formDeliveryPolicyShape;
+export type FormDeliveryPolicy = z.output<typeof formDeliveryPolicySchema>;
 /** A sent alert, or why it was not sent as a short code without submitted content. */
 export type FormAlertOutcome =
   { sent: true } | { sent: false; failure: string };
