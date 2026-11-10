@@ -1,11 +1,7 @@
-import { z } from "@brains/utils/zod";
-import { formPolicyOverridesSchema } from "@brains/forms";
+import type { z } from "@brains/utils/zod";
+import { formPluginConfigSchema } from "@brains/forms";
 
-export const quizPluginConfigSchema: z.ZodObject<
-  { intake: z.ZodOptional<typeof formPolicyOverridesSchema> },
-  z.core.$strict
-> = z.strictObject({
-  /** Values the owner wants different from the forms engine's policy. */
-  intake: formPolicyOverridesSchema.optional(),
-});
+/** The forms engine's plugin configuration. */
+export const quizPluginConfigSchema: typeof formPluginConfigSchema =
+  formPluginConfigSchema;
 export type QuizPluginConfig = z.input<typeof quizPluginConfigSchema>;

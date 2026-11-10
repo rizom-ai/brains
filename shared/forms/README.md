@@ -40,12 +40,23 @@ a stored record is a given submission, its alert state, whether its owner has
 dealt with it, what the owner's alert carries, and how its ids join the form's
 id (`-`, or `:` to file records in a folder per form).
 
+A target whose new records are to-dos in the owner's Inbox declares `inbox`
+(`FormInbox`): the source's id and display name, the labels its errors use, any
+metadata a to-do also has, each new record as an item (title, summary,
+`receivedAt`) or none, the admin-only plain-text detail, and the record marked
+handled. The engine's `FormInboxSource` lists new records, gives an admin
+alone their detail, read at the admin's scope, and a Done action that writes
+the record handled only if it is unchanged since it was read; errors never echo
+a record's content.
+
 ## The service
 
-A target's plugin runs one `FormService` with its built-in forms
-(`BuiltInForm`: the definition and optionally its own engine wording, a prefill
-from the link, legacy state names, an endpoint and a route role). The service
-serves the built-in forms at their paths and every form content defines for its
+A target's plugin is a `FormPlugin`: its id, package, label, target and
+built-in forms (`BuiltInForm`: the definition and optionally its own engine
+wording, a prefill from the link, legacy state names, an endpoint and a route
+role), configured by `formPluginConfigSchema` (the owner's `intake` overrides
+of the engine's policy). It runs one `FormService`. The service registers the
+target's Inbox source when it declares one, serves the built-in forms at their paths and every form content defines for its
 target; a content form with a built-in form's id rewords that form and keeps its
 path. Content forms are claimed per request through claim routes, so a form
 added in Studio is served without a restart, and their pages come to each site
