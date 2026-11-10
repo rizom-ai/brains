@@ -85,7 +85,3 @@ export const SHELL_CHANNELS = {
 export const PLUGIN_CHANNELS = {
   toolExecute: (pluginId: string): string => `plugin:${pluginId}:tool:execute`,
 } as const;
-
-export const SITE_CHANNELS = {
-  buildCompleted: "site:build:completed",
-} as const;
