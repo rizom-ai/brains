@@ -3,15 +3,12 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.671",
   "dependencies": {
-    "@brains/contracts": "workspace:*",
+    "@brains/http-host": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "@hono/bun-compress": "^0.1.1",
-    "hono": "^4.13.13"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
-    "@brains/messaging-service": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

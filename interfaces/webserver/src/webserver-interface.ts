@@ -7,7 +7,7 @@ import {
   type PublicHealthInfo,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
-import { ServerManager } from "./server-manager";
+import { ServerManager, placeholderHtml } from "@brains/http-host";
 import { existsSync } from "fs";
 import { join } from "path";
 import {
@@ -15,7 +15,6 @@ import {
   type WebserverConfig,
   type WebserverConfigInput,
 } from "./config";
-import { placeholderHtml } from "./templates/placeholder";
 import packageJson from "../package.json";
 
 /**
