@@ -214,7 +214,9 @@
         "defineEntityPackage",
         "defineProjection",
         "defineProjectionRule",
-        "z"
+        "z",
+        "Channel",
+        "defineChannel"
       ],
       "advanced-with-consumer": [],
       "internal/removable": [
@@ -317,6 +319,8 @@
         "defineBusContract",
         "BusContract",
         "BusResult",
+        "Channel",
+        "defineChannel",
         "defineRoute",
         "protocol"
       ],

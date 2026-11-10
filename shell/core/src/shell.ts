@@ -43,7 +43,7 @@ import {
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
-  SYSTEM_CHANNELS,
+  shellReadyChannel,
 } from "@brains/plugins";
 
 // Entity service types
@@ -60,7 +60,7 @@ import type {
 } from "@brains/content-service";
 
 // Messaging
-import type { IMessageBus } from "@brains/messaging-service";
+import { broadcastChannel, type IMessageBus } from "@brains/messaging-service";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 
 // Identity
@@ -315,12 +315,12 @@ export class Shell implements IShell {
         this.lifecycleState = "running";
         this.initialized = true;
         if (options?.mode === undefined) {
-          await this.services.messageBus.send({
-            type: SYSTEM_CHANNELS.shellReady,
-            payload: { timestamp: new Date().toISOString() },
-            sender: "shell",
-            broadcast: true,
-          });
+          await broadcastChannel(
+            this.services.messageBus,
+            shellReadyChannel,
+            { timestamp: new Date().toISOString() },
+            "shell",
+          );
           this.services.logger.debug("Emitted shell ready event");
         }
       }

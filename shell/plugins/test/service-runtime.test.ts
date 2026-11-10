@@ -227,7 +227,7 @@ describe("a first-party service's runtime", () => {
             runtime.listen(settled, ({ sender }) => {
               senders.push({ channel: "typed", sender });
             });
-            runtime.listen("probe:named", ({ sender }) => {
+            runtime.listen(SYSTEM_CHANNELS.shellReady, ({ sender }) => {
               senders.push({ channel: "named", sender });
             });
             return [];
@@ -241,7 +241,11 @@ describe("a first-party service's runtime", () => {
       payload: { round: 1 },
       sender: "conversation-service",
     });
-    await bus.send({ type: "probe:named", payload: {}, sender: "spoofer" });
+    await bus.send({
+      type: SYSTEM_CHANNELS.shellReady,
+      payload: {},
+      sender: "spoofer",
+    });
 
     expect(senders).toEqual([
       { channel: "typed", sender: "conversation-service" },
@@ -277,7 +281,7 @@ describe("a first-party service's runtime", () => {
     expect(unheard.events).toEqual([]);
   });
 
-  it("hears a channel by name, its payload as sent", async () => {
+  it("hears a system channel by name, its payload as sent", async () => {
     const shell = createMockShell();
     const heard: unknown[] = [];
     await install(
@@ -286,16 +290,19 @@ describe("a first-party service's runtime", () => {
         { id: "probe", config: z.object({}) },
         {
           subscriptions: (context) => {
-            serviceRuntime(context).listen("probe:named", ({ payload }) => {
+            const runtime = serviceRuntime(context);
+            runtime.listen(SYSTEM_CHANNELS.shellReady, ({ payload }) => {
               heard.push(payload);
             });
+            // @ts-expect-error by name, only a system channel is heard; any other goes through its typed channel
+            runtime.listen("probe:named", () => undefined);
             return [];
           },
         },
       ),
     );
     await shell.getMessageBus().send({
-      type: "probe:named",
+      type: SYSTEM_CHANNELS.shellReady,
       payload: { any: "thing" },
       sender: "shell",
     });

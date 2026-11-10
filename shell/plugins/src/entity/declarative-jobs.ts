@@ -282,19 +282,12 @@ function jobContext<TInput>(
   signal: AbortSignal,
   entities: EntityReader,
 ): EntityJobContext<TInput> {
-  const messaging: EntityJobMessaging = Object.freeze({
-    publish: async (message: {
-      readonly topic: string;
-      readonly data: object;
-    }): Promise<void> => {
-      // A published message is an event: every subscriber hears it.
-      await context.messaging.send({
-        type: message.topic,
-        payload: { ...message.data },
-        broadcast: true,
-      });
-    },
-  });
+  const announcer: EntityJobMessaging = {
+    // A published message is an event: every subscriber hears it.
+    publish: (channel, payload) =>
+      context.messaging.broadcast(channel, payload),
+  };
+  const messaging = Object.freeze(announcer);
   const reporter: EntityJobProgress = Object.freeze({
     report: (update: {
       readonly progress: number;

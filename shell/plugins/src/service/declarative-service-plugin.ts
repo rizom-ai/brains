@@ -959,14 +959,9 @@ class DeclarativeServicePlugin<
         context.messaging.request(contract, request),
       command: (contract, request) =>
         context.messaging.command(contract, request),
-      async publish(message): Promise<void> {
-        // A published message is an event: every subscriber hears it.
-        await context.messaging.send({
-          type: message.topic,
-          payload: message.data,
-          broadcast: true,
-        });
-      },
+      // A published message is an event: every subscriber hears it.
+      publish: (channel, payload) =>
+        context.messaging.broadcast(channel, payload),
     };
     return Object.freeze(messaging);
   }

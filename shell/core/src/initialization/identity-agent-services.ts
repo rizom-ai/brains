@@ -33,11 +33,13 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
   sharedUploadScope,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRegistry,
 } from "@brains/plugins";
 import {
+  broadcastChannel,
   collectContract,
   type IMessageBus,
   type MessageBus,
@@ -123,12 +125,12 @@ export function subscribeToIdentityRefresh(
     entityType,
     async () => {
       await refreshCache();
-      await messageBus.send({
-        type: SYSTEM_CHANNELS.identityChanged,
-        payload: { entityType },
-        sender: "shell",
-        broadcast: true,
-      });
+      await broadcastChannel(
+        messageBus,
+        identityChangedChannel,
+        { entityType },
+        "shell",
+      );
     },
     logger,
   );

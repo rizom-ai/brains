@@ -161,7 +161,7 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /**
    * Messaging namespace
-   * - `messaging.send()` - Broadcast an event to other plugins
+   * - `messaging.broadcast()` - Broadcast an event on its typed channel
    * - `messaging.request/gather/command/answer()` - Cross-plugin calls through bus contracts
    * - `messaging.subscribe()` - Subscribe to messages on a channel
    */

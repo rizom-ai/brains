@@ -12,6 +12,7 @@ import type {
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type { ActorRef } from "@brains/contracts";
 import type { EnqueueJobRouting } from "@brains/job-queue";
+import type { BroadcastBus } from "@brains/messaging-service";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -520,19 +521,10 @@ export type PersistValidator<T extends BaseEntity = BaseEntity> = (
 ) => Promise<void>;
 
 /**
- * Minimal event bus contract used by entity-service for lifecycle events.
- * Kept structural to avoid coupling this package to a concrete messaging service.
+ * The part of the message bus entity-service uses: it broadcasts its
+ * lifecycle events on their typed channels, as `broadcastChannel` sends them.
  */
-export interface EntityEventBus {
-  send(request: {
-    type: string;
-    payload: Record<string, unknown>;
-    sender: string;
-    target?: string;
-    metadata?: Record<string, unknown>;
-    broadcast?: boolean;
-  }): Promise<unknown>;
-}
+export type EntityEventBus = BroadcastBus;
 
 /**
  * Interface for entity adapter - handles conversion between entities and markdown

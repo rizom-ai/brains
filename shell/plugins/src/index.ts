@@ -167,12 +167,18 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
+  identityChangedSchema,
   initialSyncCompletedChannel,
   initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  shellReadyChannel,
+  startupContentSettledChannel,
+  type IdentityChanged,
   type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
+  type SystemTimestamp,
 } from "./system-channels";
 export { defineChannel, type Channel } from "@brains/contracts";
 export {

@@ -1,5 +1,6 @@
 import type {
   BusContract,
+  Channel,
   PublishFailedPayload,
   PublishResult,
 } from "@brains/contracts";
@@ -13,20 +14,16 @@ import type { SchedulerBackend } from "@brains/scheduler";
 import type { PublishEntityExecutor } from "../publish-executor";
 
 /**
- * The publish side of the message bus, which is all the scheduler uses.
- *
- * Non-generic on purpose: the messaging namespace is assignable to this, and a
- * test can supply a plain function without the type parameters bun's mock()
- * erases. `send` carries the scheduler's publish events only, so every send is
- * a broadcast and none reads its response.
+ * The publish side of the message bus, which is all the scheduler uses: the
+ * events it broadcasts and the commands it sends, as the messaging namespace
+ * sends them. Neither reads a reply.
  */
 export interface SchedulerMessagePublisher {
-  send(request: {
-    type: string;
-    payload: unknown;
-    sender?: string;
-    broadcast: true;
-  }): Promise<unknown>;
+  /** An event every subscriber hears, as `IMessagingNamespace.broadcast`. */
+  broadcast<TPayload>(
+    channel: Channel<TPayload>,
+    payload: NoInfer<TPayload>,
+  ): Promise<void>;
   /** A command every owner hears, as `IMessagingNamespace.command`. */
   command<TRequest extends z.ZodType>(
     contract: BusContract<TRequest, z.ZodType, "command">,

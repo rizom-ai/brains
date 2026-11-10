@@ -140,17 +140,17 @@ const rawFullScope = {
 
 /**
  * A raw `messaging.send` answers with whichever subscriber replies first and
- * leaves the reply untyped. Entities, plugins and interfaces send events with
- * `broadcast: true` and make every other cross-package call through a bus
- * contract.
+ * leaves the reply untyped. Entities, plugins and interfaces send an event
+ * through `messaging.broadcast(channel, payload)` and make every other
+ * cross-package call through a bus contract, so they send nothing raw.
  */
 const busContractMessage =
-  "Use context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send is only for an event sent with broadcast: true.";
+  "Use context.messaging.broadcast(channel, payload) for an event, or context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send checks neither its payload nor its reply.";
 const messagingObject =
   ":matches([object.name='messaging'], [object.property.name='messaging'])";
 const rawBusSend = [
   {
-    selector: `MemberExpression[property.name='send']${messagingObject}:not(CallExpression:has(> ObjectExpression:has(> Property[key.name='broadcast'][value.value=true])) > .callee)`,
+    selector: `MemberExpression[property.name='send']${messagingObject}`,
     message: busContractMessage,
   },
   {
@@ -159,6 +159,20 @@ const rawBusSend = [
     message: busContractMessage,
   },
 ];
+
+/**
+ * A raw send with `broadcast: true` hands every subscriber whatever it was
+ * given; the subscriber's channel refuses a malformed payload only after it
+ * left. Every broadcast goes through its typed channel instead, whose schema
+ * parses the payload before it is sent. Only the message bus, which that
+ * function is built on, sends one raw.
+ */
+const rawBroadcastSend = {
+  selector:
+    "CallExpression[callee.property.name='send'] > ObjectExpression > Property[key.name='broadcast'][value.value=true]",
+  message:
+    "Broadcast through broadcast(channel, payload) on a typed channel (defineChannel in @brains/contracts): context.messaging.broadcast in a plugin, broadcastChannel from @brains/messaging-service on a message bus. A raw send with broadcast: true checks no payload.",
+};
 
 /**
  * A type argument on a messaging subscription casts a payload nobody checked:
@@ -293,13 +307,15 @@ module.exports = {
           ...restrictedSyntax,
           rawFullScope,
           ...rawBusSend,
+          rawBroadcastSend,
           castSubscription,
         ],
       },
     },
     {
-      // Shared and shell production code that subscribes through a plugin
-      // context's messaging casts no payload either. The message bus itself is
+      // Shared, shell, package and site production code that subscribes
+      // through a plugin context's messaging casts no payload either, and
+      // broadcasts only through a typed channel. The message bus itself is
       // exempt: it is what the typed channels are built on. Restates the
       // `**/src/**` restrictions above for these files.
       files: [
@@ -307,6 +323,10 @@ module.exports = {
         "**/shared/*/src/**/*.tsx",
         "**/shell/*/src/**/*.ts",
         "**/shell/*/src/**/*.tsx",
+        "**/packages/*/src/**/*.ts",
+        "**/packages/*/src/**/*.tsx",
+        "**/sites/*/src/**/*.ts",
+        "**/sites/*/src/**/*.tsx",
       ],
       excludedFiles: [
         "**/shell/messaging-service/**",
@@ -320,6 +340,7 @@ module.exports = {
           "error",
           ...restrictedSyntax,
           rawFullScope,
+          rawBroadcastSend,
           castSubscription,
         ],
       },

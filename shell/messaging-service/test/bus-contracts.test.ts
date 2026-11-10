@@ -2,13 +2,20 @@ import { describe, expect, it } from "bun:test";
 import {
   SdkError,
   defineBusContract,
+  defineChannel,
   type BusContract,
+  type Channel,
 } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { MessageBus } from "../src";
+import {
+  MessageBus,
+  type BroadcastBus,
+  type MessageBusSendRequest,
+} from "../src";
 import {
   answerContract,
+  broadcastChannel,
   collectContract,
   commandContract,
   requestContract,
@@ -297,5 +304,87 @@ describe("a request's failure reaches the asker in its public form", () => {
       answers: [{ source: "memory", text: "kept" }],
       failures: [{ code: "conflict", message: "Busy" }],
     });
+  });
+});
+
+const tideSchema = z.strictObject({ round: z.number().int() });
+const tide: Channel<z.output<typeof tideSchema>> = defineChannel(
+  "test:tide",
+  tideSchema,
+);
+
+/** A bus that only records what it is asked to send. */
+function recordingBus(): {
+  bus: BroadcastBus;
+  sent: MessageBusSendRequest[];
+} {
+  const sent: MessageBusSendRequest[] = [];
+  return {
+    sent,
+    bus: {
+      send: async (request): Promise<{ success: true }> => {
+        sent.push(request);
+        return { success: true };
+      },
+    },
+  };
+}
+
+describe("broadcasts", () => {
+  it("sends the parsed payload to every subscriber, as the sender", async () => {
+    const messageBus = bus();
+    const heard: { listener: string; payload: unknown; source: string }[] = [];
+    for (const listener of ["memory", "playbooks"]) {
+      messageBus.subscribe(tide.name, (message) => {
+        heard.push({
+          listener,
+          payload: message.payload,
+          source: message.source,
+        });
+        return { success: true };
+      });
+    }
+
+    await broadcastChannel(messageBus, tide, { round: 3 }, "shell");
+
+    expect(heard).toEqual([
+      { listener: "memory", payload: { round: 3 }, source: "shell" },
+      { listener: "playbooks", payload: { round: 3 }, source: "shell" },
+    ]);
+  });
+
+  it("sends what the channel's schema parsed, not what it was handed", async () => {
+    const { bus: recorder, sent } = recordingBus();
+    const trimmed: Channel<{ name: string }> = defineChannel(
+      "test:trimmed",
+      z.object({ name: z.string().trim() }),
+    );
+
+    await broadcastChannel(recorder, trimmed, { name: "  tide  " }, "shell");
+
+    expect(sent).toEqual([
+      {
+        type: "test:trimmed",
+        payload: { name: "tide" },
+        sender: "shell",
+        broadcast: true,
+      },
+    ]);
+  });
+
+  it("refuses a payload its channel's schema refuses, and sends nothing", async () => {
+    const { bus: recorder, sent } = recordingBus();
+
+    const refused = broadcastChannel(
+      recorder,
+      tide,
+      JSON.parse(`{ "round": "${SECRET}" }`),
+      "shell",
+    );
+
+    expect(refused).rejects.toThrow("test:tide");
+    expect(refused).rejects.not.toThrow(SECRET);
+    await refused.catch(() => undefined);
+    expect(sent).toEqual([]);
   });
 });

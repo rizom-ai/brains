@@ -73,12 +73,7 @@ async function executeWithPublishExecutor(
         willRetry: false,
       };
       if (deps.messageBus) {
-        await deps.messageBus.send({
-          type: publishFailedChannel.name,
-          payload: event,
-          sender: "publish-service",
-          broadcast: true,
-        });
+        await deps.messageBus.broadcast(publishFailedChannel, event);
       }
       deps.onFailed?.(event);
       return;
@@ -119,12 +114,7 @@ export function sendPublishCompleted(
 
   if (deps.messageBus) {
     const payload: PublishCompletedPayload = { entityType, entityId, result };
-    void deps.messageBus.send({
-      type: publishCompletedChannel.name,
-      payload,
-      sender: "publish-service",
-      broadcast: true,
-    });
+    void deps.messageBus.broadcast(publishCompletedChannel, payload);
   }
 
   deps.onPublish?.({ entityType, entityId, result });
@@ -151,12 +141,7 @@ export function sendPublishFailed(
   };
 
   if (deps.messageBus) {
-    void deps.messageBus.send({
-      type: publishFailedChannel.name,
-      payload: event,
-      sender: "publish-service",
-      broadcast: true,
-    });
+    void deps.messageBus.broadcast(publishFailedChannel, event);
   }
 
   deps.onFailed?.(event);
