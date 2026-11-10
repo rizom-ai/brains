@@ -448,7 +448,7 @@ describe("the shell's HTTP host", () => {
     try {
       shell = Shell.createFresh(config({ enabled: true }), dependencies);
       expect(await bootError(shell)).toContain(
-        `Failed to start server. Is port ${port} in use?`,
+        `Port ${port} is already in use. Another brain may be running — stop it first or configure a different port.`,
       );
     } finally {
       await holder.stop(true);
