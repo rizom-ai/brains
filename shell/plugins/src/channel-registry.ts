@@ -2,19 +2,6 @@ import { z } from "@brains/utils/zod";
 
 const channelTypePattern = /^[a-z][a-z0-9-]*$/;
 
-export interface ChannelSubjectPattern {
-  source: string;
-  flags?: string | undefined;
-}
-
-export interface ChannelDescriptor {
-  type: string;
-  displayName: string;
-  subjectLabel: string;
-  subjectPattern?: ChannelSubjectPattern | undefined;
-  manualDelivery?: boolean | undefined;
-}
-
 export type ChannelDeliverySensitivity = "normal" | "secret";
 
 export interface ChannelDeliveryThreading {
@@ -74,21 +61,43 @@ interface ProviderRegistration {
   provider: ChannelDeliveryProvider;
 }
 
-const channelSubjectPatternSchema = z.strictObject({
-  source: z.string().min(1).max(500),
-  flags: z
-    .string()
-    .regex(/^[imu]*$/)
-    .optional(),
-});
+type ChannelSubjectPatternSchema = z.ZodObject<
+  { source: z.ZodString; flags: z.ZodOptional<z.ZodString> },
+  z.core.$strict
+>;
 
-const channelDescriptorSchema = z.strictObject({
+const channelSubjectPatternSchema: ChannelSubjectPatternSchema = z.strictObject(
+  {
+    source: z.string().min(1).max(500),
+    flags: z
+      .string()
+      .regex(/^[imu]*$/)
+      .optional(),
+  },
+);
+
+export type ChannelSubjectPattern = z.output<
+  typeof channelSubjectPatternSchema
+>;
+
+const channelDescriptorSchema: z.ZodObject<
+  {
+    type: z.ZodString;
+    displayName: z.ZodString;
+    subjectLabel: z.ZodString;
+    subjectPattern: z.ZodOptional<ChannelSubjectPatternSchema>;
+    manualDelivery: z.ZodOptional<z.ZodBoolean>;
+  },
+  z.core.$strict
+> = z.strictObject({
   type: z.string().trim().regex(channelTypePattern),
   displayName: z.string().trim().min(1).max(100),
   subjectLabel: z.string().trim().min(1).max(100),
   subjectPattern: channelSubjectPatternSchema.optional(),
   manualDelivery: z.boolean().optional(),
 });
+
+export type ChannelDescriptor = z.output<typeof channelDescriptorSchema>;
 
 /** App-scoped channel metadata and operational delivery-provider registry. */
 export class ChannelRegistry implements IChannelRegistry {

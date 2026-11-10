@@ -22,17 +22,9 @@ import packageJson from "../../package.json";
 
 const skillAdapter: SkillAdapter = new SkillAdapter();
 
-export interface SkillPluginConfig {
-  enableSkillDerivation: boolean;
-}
-
-export interface SkillPluginConfigInput {
-  enableSkillDerivation?: boolean | undefined;
-}
-
-export const skillPluginConfigSchema: z.ZodType<
-  SkillPluginConfig,
-  SkillPluginConfigInput
+export const skillPluginConfigSchema: z.ZodObject<
+  { enableSkillDerivation: z.ZodDefault<z.ZodBoolean> },
+  z.core.$strict
 > = z
   .object({
     enableSkillDerivation: z
@@ -41,6 +33,9 @@ export const skillPluginConfigSchema: z.ZodType<
       .describe("Derive skills from topic and agent evidence using AI"),
   })
   .strict();
+
+export type SkillPluginConfig = z.output<typeof skillPluginConfigSchema>;
+export type SkillPluginConfigInput = z.input<typeof skillPluginConfigSchema>;
 
 export class SkillPlugin extends EntityPlugin<
   SkillEntity,

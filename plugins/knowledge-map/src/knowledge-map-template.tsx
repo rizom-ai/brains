@@ -17,25 +17,20 @@ import { KNOWLEDGE_MAP_DATASOURCE_ID } from "./constants";
  * datasource payload; absent fields fall back to the defaults below.
  */
 
-const ctaSchema = z.object({ label: z.string(), href: z.string() });
+type CtaSchema = z.ZodObject<{ label: z.ZodString; href: z.ZodString }>;
+const ctaSchema: CtaSchema = z.object({ label: z.string(), href: z.string() });
 
-interface CtaLink {
-  label: string;
-  href: string;
-}
+type NullableText = z.ZodDefault<z.ZodNullable<z.ZodString>>;
 
-/** Overlay-authored copy around the map; absent fields use the defaults. */
-export interface KnowledgeMapCopy {
-  cap: string | null;
-  headingLead: string | null;
-  headingAccent: string | null;
-  intro: string | null;
-  primaryCta: CtaLink | null;
-  secondaryCta: CtaLink | null;
-  proofLinks: CtaLink[] | null;
-}
-
-const copyShape = {
+const copySchema: z.ZodObject<{
+  cap: NullableText;
+  headingLead: NullableText;
+  headingAccent: NullableText;
+  intro: NullableText;
+  primaryCta: z.ZodDefault<z.ZodNullable<CtaSchema>>;
+  secondaryCta: z.ZodDefault<z.ZodNullable<CtaSchema>>;
+  proofLinks: z.ZodDefault<z.ZodNullable<z.ZodArray<CtaSchema>>>;
+}> = z.object({
   cap: z.string().nullable().default(null),
   headingLead: z.string().nullable().default(null),
   headingAccent: z.string().nullable().default(null),
@@ -43,13 +38,18 @@ const copyShape = {
   primaryCta: ctaSchema.nullable().default(null),
   secondaryCta: ctaSchema.nullable().default(null),
   proofLinks: z.array(ctaSchema).nullable().default(null),
-};
+});
 
-export type KnowledgeMapTemplateData = z.infer<typeof knowledgeMapDataSchema> &
-  KnowledgeMapCopy;
+/** Overlay-authored copy around the map; absent fields use the defaults. */
+export type KnowledgeMapCopy = z.output<typeof copySchema>;
 
-export const knowledgeMapTemplateSchema: z.ZodType<KnowledgeMapTemplateData> =
-  knowledgeMapDataSchema.extend(copyShape);
+export const knowledgeMapTemplateSchema: ReturnType<
+  typeof knowledgeMapDataSchema.extend<(typeof copySchema)["shape"]>
+> = knowledgeMapDataSchema.extend(copySchema.shape);
+
+export type KnowledgeMapTemplateData = z.output<
+  typeof knowledgeMapTemplateSchema
+>;
 
 /* Brain-agnostic defaults: this template ships with the topics plugin to
    every brain, so nothing here may assume a particular site's routes or
@@ -278,46 +278,43 @@ export function KnowledgeMapTemplate(
   );
 }
 
-const knowledgeMapCopyFormatter = new StructuredContentFormatter(
-  z.object(copyShape),
-  {
-    title: "Knowledge",
-    mappings: [
-      { key: "cap", label: "Cap", type: "string" },
-      { key: "headingLead", label: "Heading Lead", type: "string" },
-      { key: "headingAccent", label: "Heading Accent", type: "string" },
-      { key: "intro", label: "Intro", type: "string" },
-      {
-        key: "primaryCta",
-        label: "Primary Cta",
-        type: "object",
-        children: [
-          { key: "label", label: "Label", type: "string" },
-          { key: "href", label: "Href", type: "string" },
-        ],
-      },
-      {
-        key: "secondaryCta",
-        label: "Secondary Cta",
-        type: "object",
-        children: [
-          { key: "label", label: "Label", type: "string" },
-          { key: "href", label: "Href", type: "string" },
-        ],
-      },
-      {
-        key: "proofLinks",
-        label: "Links",
-        type: "array",
-        itemType: "object",
-        itemMappings: [
-          { key: "label", label: "Label", type: "string" },
-          { key: "href", label: "Href", type: "string" },
-        ],
-      },
-    ],
-  },
-);
+const knowledgeMapCopyFormatter = new StructuredContentFormatter(copySchema, {
+  title: "Knowledge",
+  mappings: [
+    { key: "cap", label: "Cap", type: "string" },
+    { key: "headingLead", label: "Heading Lead", type: "string" },
+    { key: "headingAccent", label: "Heading Accent", type: "string" },
+    { key: "intro", label: "Intro", type: "string" },
+    {
+      key: "primaryCta",
+      label: "Primary Cta",
+      type: "object",
+      children: [
+        { key: "label", label: "Label", type: "string" },
+        { key: "href", label: "Href", type: "string" },
+      ],
+    },
+    {
+      key: "secondaryCta",
+      label: "Secondary Cta",
+      type: "object",
+      children: [
+        { key: "label", label: "Label", type: "string" },
+        { key: "href", label: "Href", type: "string" },
+      ],
+    },
+    {
+      key: "proofLinks",
+      label: "Links",
+      type: "array",
+      itemType: "object",
+      itemMappings: [
+        { key: "label", label: "Label", type: "string" },
+        { key: "href", label: "Href", type: "string" },
+      ],
+    },
+  ],
+});
 
 export function getKnowledgeMapTemplate(): Template {
   return createTemplate({

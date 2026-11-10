@@ -33,14 +33,15 @@ export const generatedPostSchema: z.ZodObject<{
   content: z.string(),
 });
 
-interface CoverImageJobOptions {
-  generate?: boolean | undefined;
-  prompt?: string | undefined;
-}
-
-type CoverImageJobData = boolean | CoverImageJobOptions;
-
-const coverImageJobSchema: z.ZodType<CoverImageJobData> = z.union([
+const coverImageJobSchema: z.ZodUnion<
+  [
+    z.ZodBoolean,
+    z.ZodObject<{
+      generate: z.ZodOptional<z.ZodBoolean>;
+      prompt: z.ZodOptional<z.ZodString>;
+    }>,
+  ]
+> = z.union([
   z.boolean(),
   z.object({
     generate: z.boolean().optional(),
@@ -48,20 +49,18 @@ const coverImageJobSchema: z.ZodType<CoverImageJobData> = z.union([
   }),
 ]);
 
-export interface GenerationJobData {
-  prompt?: string | undefined;
-  platform?: "linkedin" | undefined;
-  sourceEntityType?: "post" | "deck" | undefined;
-  sourceEntityId?: string | undefined;
-  title?: string | undefined;
-  content?: string | undefined;
-  addToQueue?: boolean | undefined;
-  generateImage?: boolean | undefined;
-  coverImage?: CoverImageJobData | undefined;
-}
-
 /** Input schema for the social post generation job. */
-export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
+export const generationJobSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  platform: z.ZodOptional<z.ZodEnum<{ linkedin: "linkedin" }>>;
+  sourceEntityType: z.ZodOptional<z.ZodEnum<{ post: "post"; deck: "deck" }>>;
+  sourceEntityId: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  content: z.ZodOptional<z.ZodString>;
+  addToQueue: z.ZodOptional<z.ZodBoolean>;
+  generateImage: z.ZodOptional<z.ZodBoolean>;
+  coverImage: z.ZodOptional<typeof coverImageJobSchema>;
+}> = z.object({
   prompt: z.string().optional(),
   platform: z.enum(["linkedin"]).optional(),
   sourceEntityType: z.enum(["post", "deck"]).optional(),
@@ -80,6 +79,8 @@ export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
     .optional()
     .describe("Generic cover image generation request"),
 });
+
+export type GenerationJobData = z.output<typeof generationJobSchema>;
 
 export const socialMediaGenerationResultSchema: ReturnType<
   typeof generationResultSchema.extend<{

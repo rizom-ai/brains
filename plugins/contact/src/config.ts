@@ -14,11 +14,11 @@ export type ContactIntakeOverrides = FormPolicyOverrides;
 export const CONTACT_INTAKE_DEFAULTS: typeof FORM_POLICY_DEFAULTS =
   FORM_POLICY_DEFAULTS;
 
-export interface ContactPluginConfig {
-  intake?: ContactIntakeOverrides | undefined;
-}
-export const contactPluginConfigSchema: z.ZodType<ContactPluginConfig> =
-  z.strictObject({ intake: formPolicyOverridesSchema.optional() });
+export const contactPluginConfigSchema: z.ZodObject<
+  { intake: z.ZodOptional<typeof formPolicyOverridesSchema> },
+  z.core.$strict
+> = z.strictObject({ intake: formPolicyOverridesSchema.optional() });
+export type ContactPluginConfig = z.input<typeof contactPluginConfigSchema>;
 
 /** The policy the intake runs on the given origin. */
 export function resolveIntakePolicy(

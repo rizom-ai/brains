@@ -5,13 +5,26 @@ import type {
   ProjectionWave,
 } from "./schema/projection-state";
 
-const projectionIncidentInputSchema = z.strictObject({
+const projectionIncidentInputSchema: z.ZodObject<
+  {
+    waveId: z.ZodString;
+    ruleId: z.ZodString;
+    jobId: z.ZodNullable<z.ZodString>;
+    failureReason: z.ZodString;
+    failedAt: z.ZodNumber;
+  },
+  z.core.$strict
+> = z.strictObject({
   waveId: z.string().trim().min(1),
   ruleId: z.string().trim().min(1),
   jobId: z.string().trim().min(1).nullable(),
   failureReason: z.string().trim().min(1).max(500),
   failedAt: z.number().int().nonnegative(),
 });
+
+export type ProjectionIncidentInput = z.output<
+  typeof projectionIncidentInputSchema
+>;
 
 export function parseProjectionIncidentInput(
   input: unknown,
@@ -28,14 +41,6 @@ export interface ClaimProjectionWaveInput {
   waveId: string;
   graphFingerprint: string;
   startedAt: number;
-}
-
-export interface ProjectionIncidentInput {
-  waveId: string;
-  ruleId: string;
-  jobId: string | null;
-  failureReason: string;
-  failedAt: number;
 }
 
 /** A failed or superseded wave, with the generation recovery should resume from. */

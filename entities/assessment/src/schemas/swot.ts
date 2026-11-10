@@ -1,11 +1,5 @@
-import type { BaseEntity } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { baseEntitySchema } from "@brains/plugins";
-
-export interface SwotItem {
-  title: string;
-  detail?: string | undefined;
-}
 
 type SwotItemSchema = z.ZodObject<{
   title: z.ZodString;
@@ -17,14 +11,7 @@ export const swotItemSchema: SwotItemSchema = z.object({
   detail: z.string().optional(),
 });
 
-export interface SwotFrontmatter {
-  [key: string]: unknown;
-  strengths: SwotItem[];
-  weaknesses: SwotItem[];
-  opportunities: SwotItem[];
-  threats: SwotItem[];
-  derivedAt: string;
-}
+export type SwotItem = z.output<typeof swotItemSchema>;
 
 type SwotFrontmatterSchema = z.ZodObject<{
   strengths: z.ZodDefault<z.ZodArray<SwotItemSchema>>;
@@ -42,10 +29,7 @@ export const swotFrontmatterSchema: SwotFrontmatterSchema = z.object({
   derivedAt: z.string().datetime().meta({ studioWidget: "provenance" }),
 });
 
-export interface SwotMetadata {
-  [key: string]: unknown;
-  derivedAt: string;
-}
+export type SwotFrontmatter = z.output<typeof swotFrontmatterSchema>;
 
 type SwotMetadataSchema = z.ZodObject<{
   derivedAt: z.ZodString;
@@ -56,10 +40,7 @@ export const swotMetadataSchema: SwotMetadataSchema =
     derivedAt: true,
   });
 
-export interface SwotEntity extends BaseEntity {
-  entityType: "swot";
-  metadata: SwotMetadata;
-}
+export type SwotMetadata = z.output<typeof swotMetadataSchema>;
 
 export const swotEntitySchema: ReturnType<
   typeof baseEntitySchema.extend<{
@@ -70,3 +51,5 @@ export const swotEntitySchema: ReturnType<
   entityType: z.literal("swot"),
   metadata: swotMetadataSchema,
 });
+
+export type SwotEntity = z.output<typeof swotEntitySchema>;

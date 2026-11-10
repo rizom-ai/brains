@@ -14,20 +14,8 @@ export const runtimeUploadIdPattern: RegExp = new RegExp(
 export const defaultRuntimeUploadRetentionMs: number = 24 * 60 * 60 * 1000;
 export const defaultRuntimeUploadMaxCount: number = 200;
 
-export interface RuntimeUploadRef {
-  kind: string;
-  id: string;
-}
-
-export interface RuntimeUploadRecord {
-  id: string;
-  ref: RuntimeUploadRef;
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  metadata?: Record<string, unknown> | undefined;
-}
+export type RuntimeUploadRecord = z.output<typeof runtimeUploadRecordSchema>;
+export type RuntimeUploadRef = RuntimeUploadRecord["ref"];
 
 export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
   url: string;
@@ -101,7 +89,15 @@ export class RuntimeUploadStoreError extends Error {
   }
 }
 
-const runtimeUploadRecordSchema = z.object({
+const runtimeUploadRecordSchema: z.ZodObject<{
+  id: z.ZodString;
+  ref: z.ZodObject<{ kind: z.ZodString; id: z.ZodString }>;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  sizeBytes: z.ZodNumber;
+  createdAt: z.ZodString;
+  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   id: z.string().regex(runtimeUploadIdPattern),
   ref: z.object({
     kind: z.string().min(1),

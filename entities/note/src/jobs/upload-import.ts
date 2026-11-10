@@ -18,21 +18,22 @@ import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 
 type NoteDefinition = EntityDefinition<"note", typeof noteMetadataSchema>;
 
-export interface UploadMarkdownImportJobData {
-  uploadId: string;
-  entityId: string;
+export const uploadMarkdownImportJobSchema: z.ZodObject<{
+  uploadId: z.ZodString;
+  entityId: z.ZodString;
+  stubContentHash: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  uploadId: z.string().min(1),
+  entityId: z.string().min(1),
   /** Hash of the import stub this job is allowed to replace. */
-  stubContentHash?: string | undefined;
-  title?: string | undefined;
-}
+  stubContentHash: z.string().min(1).optional(),
+  title: z.string().optional(),
+});
 
-export const uploadMarkdownImportJobSchema: z.ZodType<UploadMarkdownImportJobData> =
-  z.object({
-    uploadId: z.string().min(1),
-    entityId: z.string().min(1),
-    stubContentHash: z.string().min(1).optional(),
-    title: z.string().optional(),
-  });
+export type UploadMarkdownImportJobData = z.output<
+  typeof uploadMarkdownImportJobSchema
+>;
 
 /** The note's own job: an uploaded file imported as a markdown note. */
 export const uploadMarkdownImportJobContract: ReturnType<
