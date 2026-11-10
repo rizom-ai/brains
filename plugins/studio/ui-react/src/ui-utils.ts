@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { ApiError, type EntitySummary, type FieldDescriptor } from "./api";
 import { getErrorMessage } from "@brains/utils/error";
+import { capitalize } from "@brains/utils/string-utils";
 
 /** Prefer an authored title, then the supplied display fallback or durable ID. */
 export function entityTitle(entity: EntitySummary, fallback?: string): string {
@@ -87,11 +88,7 @@ export function publicationLabel(value: string): string {
   return value
     .split(/[-_:]+/)
     .filter(Boolean)
-    .map((part) =>
-      part.length <= 3
-        ? part.toUpperCase()
-        : `${part.charAt(0).toUpperCase()}${part.slice(1)}`,
-    )
+    .map((part) => (part.length <= 3 ? part.toUpperCase() : capitalize(part)))
     .join(" ");
 }
 

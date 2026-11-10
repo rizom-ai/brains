@@ -5,7 +5,6 @@ import type {
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
-  type OperatorCaller,
   type OperatorView,
   type OperatorViewBlock,
   type RuntimeStudioOperatorBlock,
@@ -20,21 +19,19 @@ import {
   invitationRoleField,
   setupResultPresentation as setupResultPresentationFor,
 } from "./setup-forms";
+import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { randomUUID } from "node:crypto";
 import {
   adminWorkspaceSource,
   formatWorkspaceDate,
+  mutationContext,
   requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
 const CLOSED_INVITATION_STATES = new Set(["claimed", "cancelled"]);
-
-function titleCase(value: string): string {
-  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-}
 
 const invitationQuerySchema = z.strictObject({
   state: z.enum(["pending", "history"]).optional().default("pending"),
@@ -268,7 +265,7 @@ function invitationStateLabel(
   if (invitation.state === "pending" && invitation.deliveryAttemptId)
     return "Manual delivery pending";
   if (invitation.state === "failed") return "Delivery failed";
-  return titleCase(invitation.state);
+  return capitalize(invitation.state);
 }
 
 const studioInvitationsWorkspace = defineStudioWorkspace({
@@ -368,7 +365,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           items: data.invitations.map((invitation) => ({
             id: invitation.id,
             title: invitation.displayName,
-            description: `${titleCase(invitation.role)} · ${invitationStateLabel(invitation)}`,
+            description: `${capitalize(invitation.role)} · ${invitationStateLabel(invitation)}`,
             metadata: [
               invitation.destination,
               `Updated ${new Date(invitation.updatedAt).toISOString()}`,
@@ -391,7 +388,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
                     type: "key-values",
                     id: "invitation-fields",
                     items: [
-                      { label: "Role", value: titleCase(selected.role) },
+                      { label: "Role", value: capitalize(selected.role) },
                       {
                         label: "Delivery",
                         value: invitationStateLabel(selected),
@@ -436,7 +433,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
             type: "key-values",
             items: data.channels.map((channel) => ({
               label: channel.displayName,
-              value: channel.deliveryModes.map(titleCase).join(" · "),
+              value: channel.deliveryModes.map(capitalize).join(" · "),
             })),
           },
         ],
@@ -456,13 +453,6 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
     };
   },
 });
-
-function mutationContext(caller: OperatorCaller | null): {
-  actorUserId: string;
-} {
-  if (!caller) throw new Error("Invitation action requires a signed-in actor");
-  return { actorUserId: caller.actor.id };
-}
 
 function setupResult(
   access: Awaited<ReturnType<AuthBackend["createInvitation"]>>,

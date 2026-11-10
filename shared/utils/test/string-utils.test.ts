@@ -7,6 +7,8 @@ import {
   formatLabel,
   displayTitleFrom,
   formatByteSize,
+  capitalize,
+  escapeXml,
   pluralizeLabel,
   toDisplayName,
   normalizeTag,
@@ -308,6 +310,43 @@ describe("string-utils", () => {
 
     it("should drop tags that normalize to an empty string", () => {
       expect(normalizeTags(["", "   ", "design"])).toEqual(["design"]);
+    });
+  });
+
+  describe("capitalize", () => {
+    it("upper-cases the first character and keeps the rest as written", () => {
+      expect(capitalize("pending")).toBe("Pending");
+      expect(capitalize("anchor-member")).toBe("Anchor-member");
+      expect(capitalize("site build")).toBe("Site build");
+      expect(capitalize("eMail")).toBe("EMail");
+    });
+
+    it("leaves an empty string empty", () => {
+      expect(capitalize("")).toBe("");
+    });
+
+    it("leaves a string that already starts upper-case unchanged", () => {
+      expect(capitalize("Pending")).toBe("Pending");
+    });
+  });
+
+  describe("escapeXml", () => {
+    it("escapes the five XML special characters", () => {
+      expect(escapeXml(`<a href="x">Tom & Jerry's</a>`)).toBe(
+        "&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&apos;s&lt;/a&gt;",
+      );
+    });
+
+    it("escapes an apostrophe, so single-quoted attributes stay closed", () => {
+      expect(escapeXml("it's")).toBe("it&apos;s");
+    });
+
+    it("escapes an ampersand once, before the entities it introduces", () => {
+      expect(escapeXml("&lt;")).toBe("&amp;lt;");
+    });
+
+    it("leaves text without special characters unchanged", () => {
+      expect(escapeXml("Erstes Hauptstück")).toBe("Erstes Hauptstück");
     });
   });
 });

@@ -187,10 +187,10 @@ describe("renderEpub", () => {
       [
         '<ol><li><a href="chapter-1.xhtml">Vorrede</a></li>',
         '<li><a href="chapter-2.xhtml">Erster Theil</a><ol>',
-        `<li><a href="chapter-2.xhtml">Zarathustra's Vorrede</a><ol>`,
+        '<li><a href="chapter-2.xhtml">Zarathustra&apos;s Vorrede</a><ol>',
         '<li><a href="chapter-2.xhtml">1</a></li>',
         '<li><a href="chapter-3.xhtml">2</a></li></ol></li>',
-        `<li><a href="chapter-4.xhtml">Die Reden Zarathustra's</a><ol>`,
+        '<li><a href="chapter-4.xhtml">Die Reden Zarathustra&apos;s</a><ol>',
         '<li><a href="chapter-4.xhtml">Von den drei Verwandlungen</a></li>',
         "</ol></li></ol></li></ol>",
       ].join(""),
@@ -212,5 +212,39 @@ describe("renderEpub", () => {
 
     expect(performance.now() - started).toBeLessThan(3000);
     expect(files["OEBPS/chapter-3000.xhtml"]).toBeDefined();
+  });
+
+  it("escapes text and attribute values as XML, apostrophes included", () => {
+    const quoted = unzipSync(
+      renderEpub({
+        template: book,
+        content: {
+          title: "Jerry's Book",
+          chapters: [{ title: "Author's Note", html: "<p>Text.</p>" }],
+        },
+        metadata: {
+          ...metadata,
+          title: "Jerry's Book",
+          language: "de' onload='alert(1)",
+        },
+      }),
+    );
+    const read = (path: string): string => {
+      const file = quoted[path];
+      if (!file) throw new Error(`no ${path} in the package`);
+      return strFromU8(file);
+    };
+    const language = 'lang="de&apos; onload=&apos;alert(1)"';
+
+    expect(read("OEBPS/content.opf")).toContain(
+      "<dc:title>Jerry&apos;s Book</dc:title>",
+    );
+    expect(read("OEBPS/content.opf")).toContain(`xml:${language}`);
+    expect(read("OEBPS/nav.xhtml")).toContain(
+      '<a href="chapter-1.xhtml">Author&apos;s Note</a>',
+    );
+    expect(read("OEBPS/chapter-1.xhtml")).toContain(` ${language}`);
+    expect(read("OEBPS/chapter-1.xhtml")).toContain(`xml:${language}`);
+    expect(read("OEBPS/chapter-1.xhtml")).not.toContain("'");
   });
 });

@@ -43,3 +43,8 @@ export function isErrnoException(value: unknown): value is ErrnoLikeError {
     value instanceof Error && "code" in value && typeof value.code === "string"
   );
 }
+
+/** True for the "no such file or directory" error a filesystem call rejects with. */
+export function isNotFoundError(value: unknown): value is ErrnoLikeError {
+  return isErrnoException(value) && value.code === "ENOENT";
+}

@@ -14,6 +14,7 @@ import {
   SYSTEM_CHANNELS,
   serviceRuntime,
 } from "@brains/sdk/internal/service-runtime";
+import { isNotFoundError } from "@brains/utils/predicates";
 
 const onboardingConfigSchema: z.ZodObject<
   { enabled: z.ZodDefault<z.ZodBoolean> },
@@ -61,13 +62,7 @@ async function readBundledPlaybook(fileName: string): Promise<string> {
       "utf8",
     );
   } catch (error) {
-    if (
-      !(error instanceof Error) ||
-      !("code" in error) ||
-      error.code !== "ENOENT"
-    ) {
-      throw error;
-    }
+    if (!isNotFoundError(error)) throw error;
   }
 
   return readFile(join(import.meta.dir, "onboarding", fileName), "utf8");
