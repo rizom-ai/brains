@@ -51,7 +51,7 @@ describe("site generation tool admission messages", () => {
       },
     );
     expect(result).toMatchObject({ success: false });
-    expect(context.messaging.send).not.toHaveBeenCalled();
+    expect(context.messaging.request).not.toHaveBeenCalled();
     expect(context.content.generate).not.toHaveBeenCalled();
   });
 

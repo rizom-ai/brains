@@ -100,3 +100,7 @@ export type {
   PublishProvider,
   PublishResult,
 } from "@brains/contracts";
+// An event every package that listens hears, declared once with the schema
+// its payload passes; a job's `messaging.publish(channel, payload)` sends it.
+export { defineChannel } from "@brains/plugins";
+export type { Channel } from "@brains/contracts";

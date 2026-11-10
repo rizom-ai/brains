@@ -4,11 +4,13 @@ import {
   SdkError,
   contentGenerationResultSchema,
   defineBusContract,
+  defineChannel,
   defineJob,
   defineRoute,
   defineServicePlugin,
   defineTool,
   sdkErrorCodeSchema,
+  type Channel,
   z,
 } from "@rizom/brain/services";
 
@@ -69,6 +71,13 @@ export const summarizeReading = defineBusContract({
   response: digestResult,
   delivery: "request",
 });
+
+// An event this service announces once a digest is ready, exported for the
+// packages that listen. Its payload is typed by the channel and parsed by its
+// schema before it is sent.
+const digestReadyPayload = digestResult.extend({ markdown: z.string() });
+export const digestReady: Channel<z.output<typeof digestReadyPayload>> =
+  defineChannel("@fixture/reading-insights:digest-ready", digestReadyPayload);
 
 const readbackInput = z.object({
   digestId: z.string(),
@@ -214,9 +223,9 @@ export default defineServicePlugin(
           message: "Digest ready",
         });
         // Entity data reaches the template only through the declared render schema.
-        await messaging.publish({
-          topic: "digest-ready",
-          data: { ...result, markdown: templates.format("digest", result) },
+        await messaging.publish(digestReady, {
+          ...result,
+          markdown: templates.format("digest", result),
         });
         return result;
       }),

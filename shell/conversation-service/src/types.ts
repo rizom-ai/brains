@@ -93,6 +93,35 @@ export const conversationGuestMessageAddedChannel: Channel<
 /** Bus channel emitted when a new conversation is started. */
 export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
 
+type ConversationStartedPayloadSchema = z.ZodObject<{
+  conversationId: z.ZodString;
+  sessionId: z.ZodString;
+  interfaceType: z.ZodString;
+  timestamp: z.ZodString;
+}>;
+
+/** A conversation was started: its id, the interface it began in, and when. */
+export const conversationStartedPayloadSchema: ConversationStartedPayloadSchema =
+  z.object({
+    conversationId: z.string().min(1),
+    sessionId: z.string().min(1),
+    interfaceType: z.string().min(1),
+    timestamp: z.string(),
+  });
+
+export type ConversationStartedPayload = z.output<
+  typeof conversationStartedPayloadSchema
+>;
+
+export const conversationStartedChannel: Channel<
+  ConversationStartedPayload,
+  unknown,
+  typeof CONVERSATION_STARTED_CHANNEL
+> = defineChannel(
+  CONVERSATION_STARTED_CHANNEL,
+  conversationStartedPayloadSchema,
+);
+
 /**
  * Metadata for a conversation
  */

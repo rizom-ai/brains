@@ -71,3 +71,42 @@ export const initialSyncCompletedChannel: Channel<
   SYSTEM_CHANNELS.initialSyncCompleted,
   initialSyncOutcomeSchema,
 );
+
+type SystemTimestampSchema = z.ZodObject<{ timestamp: z.ZodString }>;
+
+/** When a lifecycle point was reached, and nothing else. */
+const systemTimestampSchema: SystemTimestampSchema = z.object({
+  timestamp: z.string(),
+});
+
+export type SystemTimestamp = z.output<typeof systemTimestampSchema>;
+
+/** Broadcast by the shell once startup content is in place. */
+export const startupContentSettledChannel: Channel<
+  SystemTimestamp,
+  unknown,
+  typeof SYSTEM_CHANNELS.startupContentSettled
+> = defineChannel(SYSTEM_CHANNELS.startupContentSettled, systemTimestampSchema);
+
+/** Broadcast by the shell once boot completes. */
+export const shellReadyChannel: Channel<
+  SystemTimestamp,
+  unknown,
+  typeof SYSTEM_CHANNELS.shellReady
+> = defineChannel(SYSTEM_CHANNELS.shellReady, systemTimestampSchema);
+
+type IdentityChangedSchema = z.ZodObject<{ entityType: z.ZodString }>;
+
+/** Which identity entity changed: the brain character or the anchor profile. */
+export const identityChangedSchema: IdentityChangedSchema = z.object({
+  entityType: z.string().min(1),
+});
+
+export type IdentityChanged = z.output<typeof identityChangedSchema>;
+
+/** Broadcast by the shell once its identity caches hold the new values. */
+export const identityChangedChannel: Channel<
+  IdentityChanged,
+  unknown,
+  typeof SYSTEM_CHANNELS.identityChanged
+> = defineChannel(SYSTEM_CHANNELS.identityChanged, identityChangedSchema);

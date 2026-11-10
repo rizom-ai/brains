@@ -1,5 +1,6 @@
 import {
   answerContract,
+  broadcastChannel,
   collectContract,
   commandContract,
   requestContract,
@@ -208,6 +209,8 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
+    broadcast: (channel, payload) =>
+      broadcastChannel(messageBus, channel, payload, pluginId),
     request: (contract, payload) =>
       requestContract(messageBus, contract, payload, pluginId),
     gather: (contract, payload) =>
