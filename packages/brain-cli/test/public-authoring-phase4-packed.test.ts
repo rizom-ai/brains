@@ -52,8 +52,8 @@ async function stopRuntime(runtime: StartedCommand): Promise<string> {
   return combinedOutput(await runtime.completed);
 }
 
-const publishedBuildMarker =
-  "Emitting site:build:completed event for preview environment";
+// Logged once per build that goes on to publish, as its staging is finished.
+const publishedBuildMarker = "Generated staged SEO files with";
 const unchangedBuildMarker =
   "Skipping site publication because inputs are unchanged";
 

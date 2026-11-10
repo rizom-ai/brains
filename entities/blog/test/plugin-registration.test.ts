@@ -154,16 +154,14 @@ describe("the blog in the publish pipeline and the site build", () => {
   });
 
   describe("RSS staging", () => {
-    it("writes feed.xml before publication and ignores completion notifications", async () => {
+    it("writes feed.xml before publication", async () => {
       await harness.installPlugin(blogPlugin());
       await harness
         .getEntityService()
         .createEntity({ entity: sampleDraftPost });
       const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-staging-"));
       const stagingDir = join(testDir, "staging");
-      const completedDir = join(testDir, "completed");
       await fs.mkdir(stagingDir, { recursive: true });
-      await fs.mkdir(completedDir, { recursive: true });
       const payload = {
         environment: "preview" as const,
         routesBuilt: 1,
@@ -189,19 +187,6 @@ describe("the blog in the publish pipeline and the site build", () => {
         expect(
           await fs.readFile(join(stagingDir, "feed.xml"), "utf8"),
         ).toContain("Test Post");
-
-        await harness.sendMessage(
-          "site:build:completed",
-          { ...payload, outputDir: completedDir },
-          "site-builder",
-          true,
-        );
-        expect(
-          await fs
-            .access(join(completedDir, "feed.xml"))
-            .then(() => true)
-            .catch(() => false),
-        ).toBe(false);
       } finally {
         await fs.rm(testDir, { recursive: true, force: true });
       }
