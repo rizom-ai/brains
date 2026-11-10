@@ -306,7 +306,8 @@ describe("NotePlugin", () => {
         entityType: "note",
         id: "launch-plan",
       });
-      expect(current?.contentHash).not.toBe(stub.contentHash);
+      if (!current) throw new Error("edited note not found");
+      expect(current.contentHash).not.toBe(stub.contentHash);
       expect(enqueuedJobs[0]).toMatchObject({
         data: { stubContentHash: stub.contentHash },
       });
