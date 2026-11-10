@@ -65,7 +65,16 @@ export {
   renderThanks,
 } from "./render";
 export type { FormDraft, FormPresentation, FormRenderOptions } from "./render";
-export type { FormRecord, FormSubmission, FormTarget } from "./target";
+export type {
+  FormInbox,
+  FormInboxItem,
+  FormInboxTarget,
+  FormRecord,
+  FormSubmission,
+  FormTarget,
+} from "./target";
+export { FormInboxSource } from "./inbox";
+export type { FormInboxContext } from "./inbox";
 export { FormRecords } from "./records";
 export { FormIntake } from "./intake";
 export type {
@@ -89,6 +98,8 @@ export {
 } from "./policy";
 export type { FormEnginePolicy, FormPolicyOverrides } from "./policy";
 export { FormService } from "./service";
+export { FormPlugin, formPluginConfigSchema } from "./plugin";
+export type { FormPluginConfig, FormPluginOptions } from "./plugin";
 export type { BuiltInForm, FormServiceOptions } from "./service";
 export { formFrontmatterSchema } from "./definition";
 export type { FormFrontmatter } from "./definition";

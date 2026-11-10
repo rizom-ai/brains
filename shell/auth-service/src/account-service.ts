@@ -1,4 +1,5 @@
 import { sha256Base64Url } from "@brains/utils/hash";
+import { capitalize } from "@brains/utils/string-utils";
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   RegistrationResponseJSON,
@@ -312,11 +313,7 @@ function connectedChannelSummary(
 function connectedChannelLabel(identity: AuthIdentityRecord): string {
   const value = identity.label ?? identity.deliverySubject;
   if (value?.trim()) return value.trim();
-  return `${titleCase(identity.type)} account`;
-}
-
-function titleCase(value: string): string {
-  return value.length > 0 ? `${value[0]?.toUpperCase()}${value.slice(1)}` : "";
+  return `${capitalize(identity.type)} account`;
 }
 
 function sessionSummary(

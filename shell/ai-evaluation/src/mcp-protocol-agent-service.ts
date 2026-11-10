@@ -8,6 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import type { IAgentService } from "@brains/ai-service";
 import type { ChatContext, AgentResponse } from "@brains/ai-service";
 import { parseAgentResponse } from "@brains/contracts";
+import { isRecord } from "@brains/utils/is-record";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
@@ -368,8 +369,4 @@ function requireString(value: unknown, field: string): string {
     throw new Error(`MCP tool payload is missing ${field}`);
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

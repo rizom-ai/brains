@@ -1,3 +1,5 @@
+import { escapeXml } from "@brains/utils/string-utils";
+
 export interface SitemapRoute {
   path: string;
 }
@@ -8,20 +10,6 @@ interface SitemapEntry {
   changefreq?:
     "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: number;
-}
-
-/**
- * Escape special XML characters
- */
-function escapeXml(text: string): string {
-  const map: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&apos;",
-  };
-  return text.replace(/[&<>"']/g, (m) => map[m] ?? m);
 }
 
 /**

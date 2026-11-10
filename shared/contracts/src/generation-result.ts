@@ -4,12 +4,6 @@ import { z } from "@brains/utils/zod";
  * Base result schema for generation job handlers.
  * Extend with .extend() for plugin-specific fields (title, slug, etc.).
  */
-export interface GenerationResult {
-  success: boolean;
-  entityId?: string | undefined;
-  error?: string | undefined;
-}
-
 export const generationResultSchema: z.ZodObject<{
   success: z.ZodBoolean;
   entityId: z.ZodOptional<z.ZodString>;
@@ -19,3 +13,5 @@ export const generationResultSchema: z.ZodObject<{
   entityId: z.string().optional(),
   error: z.string().optional(),
 });
+
+export type GenerationResult = z.output<typeof generationResultSchema>;

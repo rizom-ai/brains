@@ -643,7 +643,16 @@ describe("directory import burst with locally mocked AI features", () => {
           maxObjectCallsPerPhase,
         );
         // Each imported or updated source costs exactly one topic vote read.
-        expect(phase.ai.sourceReads).toEqual(
+        // Extraction scans the whole corpus, so a starter entity's first vote
+        // may land inside a phase on a slow runner; it is checked across the
+        // run below, not here.
+        expect(
+          Object.fromEntries(
+            Object.entries(phase.ai.sourceReads).filter(([source]) =>
+              source.startsWith("note:"),
+            ),
+          ),
+        ).toEqual(
           Object.fromEntries(
             Array.from({ length: IMPORT_COUNT }, (_unused, index) => [
               `note:mocked-feature-load-${index.toString().padStart(4, "0")}`,
@@ -689,6 +698,13 @@ describe("directory import burst with locally mocked AI features", () => {
 
       assertPhase(add, 0);
       assertPhase(update, IMPORT_COUNT);
+      // Sources the import never touched are voted on once, whenever the
+      // corpus scan reaches them, and never again.
+      expect(
+        Object.entries(snapshot.sourceReads).filter(
+          ([source, reads]) => !source.startsWith("note:") && reads !== 1,
+        ),
+      ).toEqual([]);
       expect(resources.samples).toBeGreaterThan(1);
       expect(resources.maxCpuCores).toBeGreaterThan(0);
       if (!resourceAcceptanceEnabled) {

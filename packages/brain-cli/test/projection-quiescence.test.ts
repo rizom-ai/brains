@@ -160,12 +160,6 @@ plugins:
       broadcast: true,
     });
     await shell.getMessageBus().send({
-      type: "topics:batch-completed",
-      payload: { created: 1, merged: 0, skipped: 0, batches: 1 },
-      sender: "topics",
-      broadcast: true,
-    });
-    await shell.getMessageBus().send({
       type: "entity:updated",
       payload: { entityType: "topic", entityId: "topic-1" },
       sender: "entity-service",

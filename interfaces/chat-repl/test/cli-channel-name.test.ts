@@ -3,6 +3,7 @@ import { startTerminal, type Terminal } from "./terminal";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
+import { createExternalActorId } from "@brains/contracts";
 
 type MockAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type MockAgentResponse = Awaited<ReturnType<MockAgentService["chat"]>>;
@@ -52,6 +53,27 @@ describe("CLI Interface - Agent Context Integration", () => {
         channelName: "CLI Terminal",
         interfaceType: "cli",
         userPermissionLevel: "admin",
+      }),
+    );
+  });
+
+  it("names the operator at the terminal as the speaker", async () => {
+    await terminal.processInput("Hello world");
+
+    // Without a speaker, work the turn queues runs as the brain's own agent,
+    // at no grant of its own, and a post's generation is refused.
+    expect(chatMock).toHaveBeenCalledWith(
+      "Hello world",
+      "cli",
+      expect.objectContaining({
+        actor: {
+          identity: {
+            kind: "external",
+            externalActorId: createExternalActorId("cli", "operator"),
+          },
+          interfaceType: "cli",
+          role: "user",
+        },
       }),
     );
   });

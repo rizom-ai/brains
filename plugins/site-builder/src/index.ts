@@ -9,8 +9,5 @@ export type {
 } from "./lib/static-site-builder";
 export { createReactBuilder } from "./lib/react-builder";
 
-// Export event payload types for plugins that subscribe to build events
-export type {
-  SiteBuildCompletedPayload,
-  SiteBuildStagingPayload,
-} from "./types/job-types";
+// Export the staging payload type for plugins that write into a build
+export type { SiteBuildStagingPayload } from "./types/job-types";

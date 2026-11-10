@@ -221,7 +221,7 @@ describe("SiteBuildJobHandler", () => {
     expect(capturedLanguages).toEqual(["en", "zh-TW"]);
   });
 
-  it("records a cancelled build without emitting completion", async () => {
+  it("records a cancelled build", async () => {
     const markCancelled = mock(async () => undefined);
     // All four transitions, because the handler optional-chains the service
     // rather than each method. Only markCancelled is asserted; the rest are
@@ -275,9 +275,7 @@ describe("SiteBuildJobHandler", () => {
       "job-cancelled",
       "[build-cancelled] Site build cancelled: superseded",
     );
-    expect(
-      sentMessages.some((message) => message.type === "site:build:completed"),
-    ).toBe(false);
+    expect(sentMessages).toEqual([]);
   });
 
   for (const [label, superseded, completes] of [
@@ -421,9 +419,7 @@ describe("SiteBuildJobHandler", () => {
     expect(result).toMatchObject({ success: true, skipped: true });
     expect(markSkipped).toHaveBeenCalledWith("production", "job-skipped", 10);
     expect(markSuccess).not.toHaveBeenCalled();
-    expect(
-      sentMessages.some((message) => message.type === "site:build:completed"),
-    ).toBe(false);
+    expect(sentMessages).toEqual([]);
   });
 
   for (const lastBuildFailed of [true, false]) {
@@ -510,8 +506,38 @@ describe("SiteBuildJobHandler", () => {
     );
 
     expect(result).toMatchObject({ success: true });
-    expect(
-      sentMessages.some((message) => message.type === "site:build:completed"),
-    ).toBe(true);
+    expect(sentMessages).toEqual([]);
+  });
+
+  it("broadcasts nothing when a build publishes", async () => {
+    // Extensions write into staging through the staging contract; nothing
+    // listens for a completion broadcast, so a published build sends none.
+    const { sendMessage, sentMessages } = createMockMessageSender();
+    const publishingHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      messagingFor(sendMessage),
+      {
+        siteBuilder: mockSiteBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+      },
+    );
+    const progressReporter = expectDefined(
+      CallbackProgressReporter.from(async () => {}),
+    );
+
+    const result = await publishingHandler.process(
+      { outputDir: "/tmp/output", environment: "preview" },
+      "job-published",
+      progressReporter,
+    );
+
+    expect(result).toMatchObject({ success: true, routesBuilt: 10 });
+    expect(sentMessages).toEqual([]);
   });
 });

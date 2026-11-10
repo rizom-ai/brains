@@ -32,15 +32,6 @@ function makeTopic(
 const topicAdapter = new TopicAdapter();
 
 describe("TopicService", () => {
-  it("should be instantiable", () => {
-    const logger = createSilentLogger();
-    const mockShell = createMockShell({ logger });
-    const context = createEntityPluginContext(mockShell, "topics");
-    const service = new TopicService(context.entityService, logger);
-
-    expect(service).toBeDefined();
-  });
-
   it("should return null for non-existent topic", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });

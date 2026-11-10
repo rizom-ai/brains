@@ -1,39 +1,6 @@
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 
-export interface StyleGuideMessaging {
-  audiences?: string[] | undefined;
-  positioning?: string | undefined;
-}
-
-export interface StyleGuideVoice {
-  summary?: string | undefined;
-  traits?: string[] | undefined;
-  principles?: string[] | undefined;
-  preferredTerms?: string[] | undefined;
-  avoid?: string[] | undefined;
-}
-
-export interface StyleGuideVisual {
-  artDirection?: string | undefined;
-  palette?: string[] | undefined;
-  composition?: string | undefined;
-  mood?: string | undefined;
-  preferred?: string[] | undefined;
-  avoid?: string[] | undefined;
-}
-
-export interface StyleGuideFrontmatter {
-  name: string;
-  messaging?: StyleGuideMessaging | undefined;
-  voice?: StyleGuideVoice | undefined;
-  visual?: StyleGuideVisual | undefined;
-}
-
-export interface StyleGuide extends StyleGuideFrontmatter {
-  guidance: string;
-}
-
 export type StyleGuideMessagingSchema = z.ZodObject<{
   audiences: z.ZodOptional<z.ZodArray<z.ZodString>>;
   positioning: z.ZodOptional<z.ZodString>;
@@ -43,6 +10,8 @@ export const styleGuideMessagingSchema: StyleGuideMessagingSchema = z.object({
   audiences: z.array(z.string()).optional(),
   positioning: z.string().optional(),
 });
+
+export type StyleGuideMessaging = z.output<typeof styleGuideMessagingSchema>;
 
 export type StyleGuideVoiceSchema = z.ZodObject<{
   summary: z.ZodOptional<z.ZodString>;
@@ -59,6 +28,8 @@ export const styleGuideVoiceSchema: StyleGuideVoiceSchema = z.object({
   preferredTerms: z.array(z.string()).optional(),
   avoid: z.array(z.string()).optional(),
 });
+
+export type StyleGuideVoice = z.output<typeof styleGuideVoiceSchema>;
 
 export type StyleGuideVisualSchema = z.ZodObject<{
   artDirection: z.ZodOptional<z.ZodString>;
@@ -78,6 +49,8 @@ export const styleGuideVisualSchema: StyleGuideVisualSchema = z.object({
   avoid: z.array(z.string()).optional(),
 });
 
+export type StyleGuideVisual = z.output<typeof styleGuideVisualSchema>;
+
 export type StyleGuideFrontmatterSchema = z.ZodObject<{
   name: z.ZodString;
   messaging: z.ZodOptional<StyleGuideMessagingSchema>;
@@ -92,6 +65,14 @@ export const styleGuideFrontmatterSchema: StyleGuideFrontmatterSchema =
     voice: styleGuideVoiceSchema.optional(),
     visual: styleGuideVisualSchema.optional(),
   });
+
+export type StyleGuideFrontmatter = z.output<
+  typeof styleGuideFrontmatterSchema
+>;
+
+export interface StyleGuide extends StyleGuideFrontmatter {
+  guidance: string;
+}
 
 export const DEFAULT_STYLE_GUIDE: StyleGuide = {
   name: "Default style guide",

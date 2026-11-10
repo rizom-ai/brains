@@ -26,7 +26,12 @@ import {
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type { z } from "@brains/utils/zod";
-import { displayTitleFrom, truncateText } from "@brains/utils/string-utils";
+import {
+  capitalize,
+  displayTitleFrom,
+  formatLabel,
+  truncateText,
+} from "@brains/utils/string-utils";
 import { entityDisplayTitle } from "./editor-entities";
 import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import {
@@ -119,15 +124,7 @@ function jobName(jobType: string): string {
     .split(/[-_:.\s]+/)
     .filter(Boolean)
     .join(" ");
-  return `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
-}
-
-function titleCase(value: string): string {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
+  return capitalize(words);
 }
 
 function directLaunchTarget(
@@ -188,7 +185,7 @@ function attentionItem(
         ? "This source is temporarily unavailable."
         : `${loaded.attention} ${loaded.attention === 1 ? "item needs" : "items need"} attention.`),
     metadata: [
-      titleCase(loaded.contribution.group),
+      formatLabel(loaded.contribution.group),
       loaded.failed
         ? "source unavailable"
         : `${loaded.attention} ${loaded.attention === 1 ? "item" : "items"}`,

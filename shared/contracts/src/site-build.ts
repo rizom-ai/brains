@@ -13,21 +13,6 @@ export const SITE_BUILD_MANIFEST_FILE = ".site-build-manifest.json";
 /** The manifest's URL path, reserved by the route registry and webserver. */
 export const SITE_BUILD_MANIFEST_PATH: `/${typeof SITE_BUILD_MANIFEST_FILE}` = `/${SITE_BUILD_MANIFEST_FILE}`;
 
-/** Payload for the SITE_CHANNELS.buildCompleted broadcast. */
-export interface SiteBuildCompletedPayload {
-  outputDir: string;
-  environment: "preview" | "production";
-  routesBuilt: number;
-  siteConfig: {
-    title?: string | undefined;
-    description?: string | undefined;
-    url?: string | undefined;
-    copyright?: string | undefined;
-    themeMode?: "light" | "dark" | undefined;
-  };
-  generateEntityUrl: (entityType: string, slug: string) => string;
-}
-
 type EntityUrlGenerator = (entityType: string, slug: string) => string;
 type StagingFailureReporter = (detail: string) => void;
 

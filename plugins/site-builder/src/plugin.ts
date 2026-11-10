@@ -155,7 +155,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
         context.messaging,
         {
           siteBuilder: this.siteBuilder,
-          entityDisplay: context.entityDisplay,
           layouts: this.layouts,
           defaultSiteConfig: this.config.siteInfo,
           sharedImagesDir: this.config.sharedImagesDir,

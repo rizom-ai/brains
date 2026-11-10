@@ -2,7 +2,7 @@ import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
-import { TOPIC_ENTITY_TYPE, TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
+import { TOPIC_ENTITY_TYPE } from "./constants";
 import { TopicAdapter } from "./topic-adapter";
 import {
   TopicMergeSynthesizer,
@@ -18,7 +18,6 @@ export interface TopicReconciliationOptions {
   semanticMergeDistance: number;
   targetVisibility?: ContentVisibility;
   maxPairs?: number;
-  emitEvent?: boolean;
   synthesizer?: ITopicMergeSynthesizer;
 }
 
@@ -131,14 +130,6 @@ export async function reconcileTopics(
 
       if (changed) break;
     }
-  }
-
-  if (result.merged > 0 && options.emitEvent !== false) {
-    await options.context.messaging.send({
-      type: TOPICS_BATCH_COMPLETED_EVENT,
-      payload: result,
-      broadcast: true,
-    });
   }
 
   return result;

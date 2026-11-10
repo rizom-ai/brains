@@ -1,6 +1,7 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ViewTemplate } from "@brains/plugins";
+import { escapeXml } from "@brains/utils/string-utils";
 import { zip } from "./zip";
 
 /** What the package says about the publication. */
@@ -53,14 +54,6 @@ const VOID_ELEMENT =
   /<(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)\b([^>]*?)\s*\/?>/g;
 
 const XHTML = "application/xhtml+xml";
-
-function escapeXml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 /** An attribute value as React wrote it, unescaped. */
 function attributeValue(tag: string, name: string): string | undefined {
@@ -132,10 +125,10 @@ function chaptersOf(markup: string): Chapter[] {
 function xhtmlDocument(title: string, language: string, body: string): string {
   return `<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${language}" xml:lang="${language}">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${escapeXml(language)}" xml:lang="${escapeXml(language)}">
 <head>
 <meta charset="utf-8" />
-<title>${title}</title>
+<title>${escapeXml(title)}</title>
 </head>
 <body>
 ${body}
@@ -155,12 +148,12 @@ const CONTAINER = `<?xml version="1.0" encoding="utf-8"?>
 function packageDocument(metadata: EpubMetadata, chapters: number): string {
   const ids = Array.from({ length: chapters }, (_, i) => `chapter-${i + 1}`);
   return `<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="publication-id" xml:lang="${metadata.language}">
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="publication-id" xml:lang="${escapeXml(metadata.language)}">
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
 <dc:identifier id="publication-id">${escapeXml(metadata.identifier)}</dc:identifier>
 <dc:title>${escapeXml(metadata.title)}</dc:title>
-${metadata.creator ? `<dc:creator>${escapeXml(metadata.creator)}</dc:creator>\n` : ""}<dc:language>${metadata.language}</dc:language>
-${metadata.source ? `<dc:source>${escapeXml(metadata.source)}</dc:source>\n` : ""}${metadata.rights ? `<dc:rights>${escapeXml(metadata.rights)}</dc:rights>\n` : ""}<meta property="dcterms:modified">${metadata.modified}</meta>
+${metadata.creator ? `<dc:creator>${escapeXml(metadata.creator)}</dc:creator>\n` : ""}<dc:language>${escapeXml(metadata.language)}</dc:language>
+${metadata.source ? `<dc:source>${escapeXml(metadata.source)}</dc:source>\n` : ""}${metadata.rights ? `<dc:rights>${escapeXml(metadata.rights)}</dc:rights>\n` : ""}<meta property="dcterms:modified">${escapeXml(metadata.modified)}</meta>
 </metadata>
 <manifest>
 <item id="nav" href="nav.xhtml" media-type="${XHTML}" properties="nav"/>
@@ -208,7 +201,7 @@ function navigationDocument(
   chapters: Chapter[],
 ): string {
   return xhtmlDocument(
-    escapeXml(metadata.title),
+    metadata.title,
     metadata.language,
     `<nav epub:type="toc" id="toc">
 <h1>${escapeXml(metadata.title)}</h1>
@@ -257,7 +250,7 @@ export function renderEpub(options: RenderEpubOptions): Uint8Array {
         file(
           `OEBPS/chapter-${i + 1}.xhtml`,
           xhtmlDocument(
-            escapeXml(chapter.title),
+            chapter.title,
             metadata.language,
             closeVoidElements(chapter.markup),
           ),

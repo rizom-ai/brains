@@ -237,7 +237,7 @@ describe("extractTopicsBatched", () => {
     expect(prompt).not.toContain("Restricted Topic");
   });
 
-  it("emits one topic batch completion event after creating topics", async () => {
+  it("broadcasts nothing after creating topics", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
     const context = createEntityPluginContext(mockShell, "topics");
@@ -258,39 +258,13 @@ describe("extractTopicsBatched", () => {
       ],
     });
 
-    await extractTopicsBatched(
+    const result = await extractTopicsBatched(
       [makeEntity("p1", "post", "Post 1", "Content 1")],
       context,
       logger,
     );
 
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith({
-      type: "topics:batch-completed",
-      payload: {
-        created: 2,
-        merged: 0,
-        skipped: 0,
-        batches: 1,
-      },
-      broadcast: true,
-    });
-  });
-
-  it("does not emit a topic batch completion event when nothing changes", async () => {
-    const logger = createSilentLogger();
-    const mockShell = createMockShell({ logger });
-    const context = createEntityPluginContext(mockShell, "topics");
-    const send = spyOn(context.messaging, "send");
-
-    spyOn(context.ai, "generate").mockResolvedValue({ topics: [] });
-
-    await extractTopicsBatched(
-      [makeEntity("p1", "post", "Post 1", "Content 1")],
-      context,
-      logger,
-    );
-
+    expect(result).toEqual({ created: 2, merged: 0, skipped: 0, batches: 1 });
     expect(send).not.toHaveBeenCalled();
   });
 

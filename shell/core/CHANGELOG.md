@@ -1,5 +1,73 @@
 # @brains/core
 
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.675
+  - @brains/contracts@0.2.0-alpha.675
+  - @brains/image@0.2.0-alpha.675
+  - @brains/operation-context@0.2.0-alpha.675
+  - @brains/site-composition@0.2.0-alpha.675
+  - @brains/utils@0.2.0-alpha.675
+  - @brains/plugins@0.2.0-alpha.675
+  - @brains/recurring-checks@0.2.0-alpha.675
+  - @brains/runtime-state@0.2.0-alpha.675
+  - @brains/scheduler@0.2.0-alpha.675
+  - @brains/templates@0.2.0-alpha.675
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.674
+  - @brains/contracts@0.2.0-alpha.674
+  - @brains/image@0.2.0-alpha.674
+  - @brains/operation-context@0.2.0-alpha.674
+  - @brains/site-composition@0.2.0-alpha.674
+  - @brains/utils@0.2.0-alpha.674
+  - @brains/plugins@0.2.0-alpha.674
+  - @brains/recurring-checks@0.2.0-alpha.674
+  - @brains/runtime-state@0.2.0-alpha.674
+  - @brains/scheduler@0.2.0-alpha.674
+  - @brains/templates@0.2.0-alpha.674
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.673
+  - @brains/contracts@0.2.0-alpha.673
+  - @brains/image@0.2.0-alpha.673
+  - @brains/operation-context@0.2.0-alpha.673
+  - @brains/site-composition@0.2.0-alpha.673
+  - @brains/utils@0.2.0-alpha.673
+  - @brains/plugins@0.2.0-alpha.673
+  - @brains/recurring-checks@0.2.0-alpha.673
+  - @brains/runtime-state@0.2.0-alpha.673
+  - @brains/scheduler@0.2.0-alpha.673
+  - @brains/templates@0.2.0-alpha.673
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.672
+  - @brains/contracts@0.2.0-alpha.672
+  - @brains/image@0.2.0-alpha.672
+  - @brains/operation-context@0.2.0-alpha.672
+  - @brains/site-composition@0.2.0-alpha.672
+  - @brains/utils@0.2.0-alpha.672
+  - @brains/plugins@0.2.0-alpha.672
+  - @brains/recurring-checks@0.2.0-alpha.672
+  - @brains/runtime-state@0.2.0-alpha.672
+  - @brains/scheduler@0.2.0-alpha.672
+  - @brains/templates@0.2.0-alpha.672
+
 ## 0.2.0-alpha.671
 
 ### Patch Changes

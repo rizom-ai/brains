@@ -24,14 +24,6 @@ import {
   type FormPresentation,
 } from "./render";
 
-export interface FormHttpPolicy {
-  origin: string;
-  maxBodyBytes: number;
-  readTimeoutMs: number;
-  /** Behind a TLS-terminating proxy on a private network (Kamal's), believe
-   * its X-Forwarded-Proto: https. Only the protocol; never a visitor address. */
-  trustForwardedProto?: boolean | undefined;
-}
 /** Loopback names: the addresses, localhost and its subdomains (RFC 6761). */
 function isLoopback(hostname: string): boolean {
   return (
@@ -79,10 +71,13 @@ export const formHttpPolicyShape: z.ZodObject<
   origin: originSchema,
   maxBodyBytes: z.number().int().min(256).max(65536),
   readTimeoutMs: z.number().int().min(100).max(30000),
+  /** Behind a TLS-terminating proxy on a private network (Kamal's), believe
+   * its X-Forwarded-Proto: https. Only the protocol; never a visitor address. */
   trustForwardedProto: z.boolean().optional(),
 });
-export const formHttpPolicySchema: z.ZodType<FormHttpPolicy> =
+export const formHttpPolicySchema: typeof formHttpPolicyShape =
   formHttpPolicyShape;
+export type FormHttpPolicy = z.output<typeof formHttpPolicySchema>;
 
 export interface FormHttpOptions {
   themeCSS?: string | undefined;

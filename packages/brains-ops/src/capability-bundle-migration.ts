@@ -8,7 +8,6 @@ import {
   exactVersionSchema,
   handleSchema,
   pilotSchema,
-  type CanonicalBundleId,
 } from "./schema";
 
 const legacyBundleIdSchema: z.ZodEnum<{
@@ -17,7 +16,9 @@ const legacyBundleIdSchema: z.ZodEnum<{
   publishing: "publishing";
   team: "team";
 }> = z.enum(["core", "site", "publishing", "team"]);
-const legacyBundlesSchema = z.array(legacyBundleIdSchema).min(1);
+const legacyBundlesSchema: z.ZodArray<typeof legacyBundleIdSchema> = z
+  .array(legacyBundleIdSchema)
+  .min(1);
 const memberIdsSchema = z.array(z.string().min(1));
 
 const legacyCanonicalPilotSchema = z.strictObject({
@@ -44,27 +45,37 @@ const legacyCanonicalCohortSchema = z.strictObject({
   gitSyncTokenOverride: z.string().min(1).optional(),
 });
 
-const selectionRewriteSchema = z.strictObject({
+type SelectionRewriteSchema = z.ZodObject<
+  {
+    sourceBundles: typeof legacyBundlesSchema;
+    targetBundles: z.ZodArray<typeof canonicalBundleIdSchema>;
+  },
+  z.core.$strict
+>;
+
+const selectionRewriteSchema: SelectionRewriteSchema = z.strictObject({
   sourceBundles: legacyBundlesSchema,
   targetBundles: z.array(canonicalBundleIdSchema).min(1),
 });
 
-const capabilityBundleReviewSchema = z.strictObject({
+const capabilityBundleReviewSchema: z.ZodObject<
+  {
+    bundleContract: z.ZodLiteral<typeof CAPABILITY_BUNDLE_CONTRACT>;
+    pilot: SelectionRewriteSchema;
+    cohorts: z.ZodRecord<typeof handleSchema, SelectionRewriteSchema>;
+  },
+  z.core.$strict
+> = z.strictObject({
   bundleContract: z.literal(CAPABILITY_BUNDLE_CONTRACT),
   pilot: selectionRewriteSchema,
   cohorts: z.record(handleSchema, selectionRewriteSchema),
 });
 
 export type LegacyCanonicalBundleId = z.output<typeof legacyBundleIdSchema>;
-export interface SelectionRewrite {
-  sourceBundles: LegacyCanonicalBundleId[];
-  targetBundles: CanonicalBundleId[];
-}
-export interface CapabilityBundleReview {
-  bundleContract: typeof CAPABILITY_BUNDLE_CONTRACT;
-  pilot: SelectionRewrite;
-  cohorts: Record<string, SelectionRewrite>;
-}
+export type SelectionRewrite = z.output<typeof selectionRewriteSchema>;
+export type CapabilityBundleReview = z.output<
+  typeof capabilityBundleReviewSchema
+>;
 
 type MigrationDocument = ReturnType<typeof parseDocument>;
 

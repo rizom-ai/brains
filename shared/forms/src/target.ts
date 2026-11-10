@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, InboxItem } from "@brains/plugins";
 import type { z } from "@brains/utils/zod";
 import type { FormAlertAnswer } from "./alert";
 import type { FormDefinition } from "./definition";
@@ -23,6 +23,33 @@ export interface FormSubmission {
 export interface FormRecord {
   content: string;
   metadata: Record<string, unknown>;
+}
+
+/** What one record shows in the Inbox list. */
+export type FormInboxItem = Pick<InboxItem, "title" | "summary" | "receivedAt">;
+
+/**
+ * A target whose new records are to-dos in the owner's Inbox, each marked
+ * Done there. The engine lists, reads and marks them; the target says what
+ * they mean.
+ */
+export interface FormInbox<E extends BaseEntity = BaseEntity> {
+  readonly sourceId: string;
+  readonly displayName: string;
+  /** Names the source in its errors: "Contact" for "Contact inbox
+   * unavailable". */
+  readonly label: string;
+  /** Names one record in its errors: "Contact request" for "Contact request
+   * unavailable". */
+  readonly recordLabel: string;
+  /** Metadata a new record also has when it is a to-do. */
+  readonly listFilter?: Record<string, unknown> | undefined;
+  /** A new record as listed, or nothing when it is no to-do. */
+  item(entity: E): FormInboxItem | undefined;
+  /** The admin-only plain-text detail: who sent it and what. */
+  detail(entity: E): string;
+  /** The record once its owner has dealt with it. */
+  withHandled(entity: E): FormRecord;
 }
 
 /**
@@ -56,4 +83,12 @@ export interface FormTarget<E extends BaseEntity = BaseEntity> {
     outcomes?: FormAlertAnswer[] | undefined;
     replyTo?: string | undefined;
   };
+  /** Its records in the owner's Inbox, when they are to-dos there. */
+  readonly inbox?: FormInbox<E> | undefined;
 }
+
+/** A target whose records are to-dos in the owner's Inbox. */
+export type FormInboxTarget<E extends BaseEntity = BaseEntity> =
+  FormTarget<E> & {
+    readonly inbox: FormInbox<E>;
+  };

@@ -1,3 +1,4 @@
+import { isRecord } from "@brains/utils/is-record";
 import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import {
   App,
@@ -145,13 +146,12 @@ function seededEntityTypes(seedDirectory: string): string[] {
   return [...new Set(types)].sort();
 }
 
-function createSuiteApp(
-  name: SuiteName,
+/** A suite's brain as eval mode resolves it, before it boots. */
+function resolveSuite(
   selection: EvalSelection,
   seedDirectory: string,
   includeMcp = false,
-): { app: App; evalHandlers: EvalHandlerRegistry } {
-  const directory = createTempDirectory(name);
+): ReturnType<typeof resolveEvalConfig> {
   const basePlugins = rawManifest.plugins;
   const plugins = {
     ...basePlugins,
@@ -167,7 +167,6 @@ function createSuiteApp(
       deleteOnFileRemoval: false,
     },
   };
-  const evalHandlers = EvalHandlerRegistry.createFresh();
   const environment = { AI_API_KEY: "placeholder-canonical-eval-test" };
   const overrides = {
     bundleContract: rawManifest.bundleContract,
@@ -192,6 +191,18 @@ function createSuiteApp(
       resolved.plugins?.find(({ id }) => id === "mcp")?.getWebRoutes?.(),
     ).toEqual([]);
   }
+  return resolved;
+}
+
+function createSuiteApp(
+  name: SuiteName,
+  selection: EvalSelection,
+  seedDirectory: string,
+  includeMcp = false,
+): { app: App; evalHandlers: EvalHandlerRegistry } {
+  const directory = createTempDirectory(name);
+  const evalHandlers = EvalHandlerRegistry.createFresh();
+  const resolved = resolveSuite(selection, seedDirectory, includeMcp);
 
   return {
     app: App.create({
@@ -294,6 +305,25 @@ describe("canonical eval recipe ladder", () => {
       domain: "docs.rizom.ai",
       tags: ["recipe-docs"],
     });
+  });
+
+  test("gives every suite that builds a site the layout its routes fall back to", () => {
+    // A generated route names no layout unless the site gives one, so it
+    // takes "default": a suite with a site builder needs a site that has it.
+    for (const name of suiteNames) {
+      const selection = suiteSelection(name);
+      const builder = resolveSuite(
+        selection,
+        seedContentPath(selection),
+      ).plugins?.find(({ id }) => id === "site-builder");
+      if (!builder) continue;
+      const config = "config" in builder ? builder.config : undefined;
+      const layouts = isRecord(config) ? config["layouts"] : undefined;
+      expect(
+        isRecord(layouts) && typeof layouts["default"] === "function",
+        `${name} builds a site with no "default" layout`,
+      ).toBe(true);
+    }
   });
 
   test("keeps Git disabled for in-process eval boot", () => {

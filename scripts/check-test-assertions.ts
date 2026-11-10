@@ -3,7 +3,7 @@
 /**
  * Fail on tests that cannot fail.
  *
- * Two shapes, both of which pass whatever the code under test does:
+ * Four shapes, all of which pass whatever the code under test does:
  *
  *   vacuous — `expect(subject?.field).toBeUndefined()` also holds when
  *   `subject` itself is absent, so the assertion stops guarding anything the
@@ -15,6 +15,13 @@
  *
  *   tautological — `expect(true).toBe(true)` and other assertions over a
  *   literal. They document something; they check nothing.
+ *
+ *   instantiation — a test whose only assertions are `toBeDefined()`,
+ *   `toBeTruthy()`, `not.toBeUndefined()` or `not.toBeNull()` on a value
+ *   assigned from `new X(...)` or a bare `create*(...)` call, in the test or
+ *   in a hook. A constructor that returned never yields `undefined`, so the
+ *   only failure left is a throw the test does not claim. A looked-up value
+ *   can be absent, so existence checks on one are left alone.
  *
  * The first two shapes have legitimate uses, so `docs/test-assertion-exemptions.json`
  * records the accepted ones with a reason. Anything not listed fails.
@@ -35,6 +42,7 @@ const exemptionsPath = join(
 
 const searchRoots = [
   "shell",
+  "entities",
   "shared",
   "plugins",
   "interfaces",
@@ -42,10 +50,19 @@ const searchRoots = [
   "sites",
 ];
 
+const ruleSchema = z.enum([
+  "vacuous",
+  "unasserted",
+  "tautological",
+  "instantiation",
+]);
+
+type Rule = z.output<typeof ruleSchema>;
+
 const exemptionSchema = z.strictObject({
   file: z.string().min(1),
   test: z.string().min(1),
-  rule: z.enum(["vacuous", "unasserted", "tautological"]),
+  rule: ruleSchema,
   reason: z.string().min(1),
 });
 
@@ -54,7 +71,7 @@ const exemptionsSchema = z.strictObject({
   exemptions: z.array(exemptionSchema),
 });
 
-type Exemption = z.infer<typeof exemptionSchema>;
+type Exemption = z.output<typeof exemptionSchema>;
 
 /** An assertion that fails when its subject is absent, so it pins the subject. */
 const PINNING =
@@ -72,11 +89,19 @@ const ASSERTION =
 const TAUTOLOGICAL =
   /expect\(\s*(?:true|false|null|undefined|-?\d+(?:\.\d+)?|"[^"]*"|'[^']*')\s*\)\s*\./;
 
-interface Finding {
+/** An expectation that only says its subject exists. */
+const EXISTENCE_ONLY =
+  /expect\(\s*([A-Za-z_$][\w$]*)\s*\)\s*\.(?:toBeDefined|toBeTruthy|not\.toBeUndefined|not\.toBeNull)\(\s*\)/g;
+
+/** A right-hand side that constructs its value and so cannot yield nothing. */
+const CONSTRUCTION =
+  /^(?:await\s+)?(?:new\s+([\w$.]+)|(create[A-Z][\w$]*))\s*[(<]/;
+
+export interface Finding {
   file: string;
   line: number;
   test: string;
-  rule: "vacuous" | "unasserted" | "tautological";
+  rule: Rule;
   detail: string;
 }
 
@@ -84,6 +109,16 @@ interface TestBlock {
   title: string;
   startLine: number;
   body: string[];
+}
+
+/** The right-hand sides assigned to `subject` in `text`. */
+function assignmentsTo(subject: string, text: string): string[] {
+  const name = subject.replace(/\$/g, "\\$");
+  const assignment = new RegExp(
+    `(?<![\\w$.])${name}(?:\\s*:\\s*[^=;]+)?\\s*=(?![=>])\\s*([^;\\n]+)`,
+    "g",
+  );
+  return Array.from(text.matchAll(assignment), (match) => match[1] ?? "");
 }
 
 /** The it()/test() blocks in a file, with their bodies. */
@@ -163,6 +198,42 @@ function findUnasserted(block: TestBlock, file: string): Finding[] {
   ];
 }
 
+function findInstantiationOnly(
+  block: TestBlock,
+  file: string,
+  outsideTests: string,
+): Finding[] {
+  const scope = block.body.filter(isCode).join("\n");
+  const subjects = Array.from(
+    scope.matchAll(EXISTENCE_ONLY),
+    (match) => match[1] ?? "",
+  );
+  if (subjects.length === 0) return [];
+  if (ASSERTION.test(scope.replace(EXISTENCE_ONLY, ""))) return [];
+
+  const constructions = [...new Set(subjects)].map((subject) => {
+    const own = assignmentsTo(subject, scope);
+    const assigned =
+      own.length > 0 ? own : assignmentsTo(subject, outsideTests);
+    const built = assigned.map((rhs) => CONSTRUCTION.exec(rhs.trim()));
+    const first = built[0];
+    if (!first || built.some((match) => !match)) return undefined;
+    const callee = first[1] ? `new ${first[1]}` : (first[2] ?? "");
+    return `${subject} = ${callee}(...)`;
+  });
+  const [detail] = constructions;
+  if (!detail || constructions.some((entry) => !entry)) return [];
+  return [
+    {
+      file,
+      line: block.startLine,
+      test: block.title,
+      rule: "instantiation",
+      detail,
+    },
+  ];
+}
+
 function findTautological(block: TestBlock, file: string): Finding[] {
   return block.body.flatMap((line, offset) =>
     TAUTOLOGICAL.test(line)
@@ -190,6 +261,32 @@ function loadExemptions(): Exemption[] {
   }
 }
 
+/** Every test in one file's source that cannot fail. */
+export function findTestAssertionsInSource(
+  file: string,
+  source: string,
+): Finding[] {
+  const lines = source.split("\n");
+  const blocks = readTestBlocks(lines);
+  const inTests = new Set(
+    blocks.flatMap((block) =>
+      Array.from(
+        { length: block.body.length + 2 },
+        (_, offset) => block.startLine - 1 + offset,
+      ),
+    ),
+  );
+  const outsideTests = lines
+    .filter((line, index) => !inTests.has(index) && isCode(line))
+    .join("\n");
+  return blocks.flatMap((block) => [
+    ...findVacuous(block, file),
+    ...findUnasserted(block, file),
+    ...findTautological(block, file),
+    ...findInstantiationOnly(block, file, outsideTests),
+  ]);
+}
+
 async function collectFindings(): Promise<Finding[]> {
   const findings: Finding[] = [];
   for (const root of searchRoots) {
@@ -197,12 +294,9 @@ async function collectFindings(): Promise<Finding[]> {
     for await (const absolute of glob.scan({ cwd: root, absolute: true })) {
       if (absolute.includes("node_modules")) continue;
       const file = absolute.replace(`${repositoryRoot}/`, "");
-      const lines = readFileSync(absolute, "utf8").split("\n");
-      for (const block of readTestBlocks(lines)) {
-        findings.push(...findVacuous(block, file));
-        findings.push(...findUnasserted(block, file));
-        findings.push(...findTautological(block, file));
-      }
+      findings.push(
+        ...findTestAssertionsInSource(file, readFileSync(absolute, "utf8")),
+      );
     }
   }
   return findings;
@@ -223,7 +317,9 @@ function describe(finding: Finding): string {
       ? "holds when its subject is absent"
       : finding.rule === "unasserted"
         ? "asserts nothing"
-        : "asserts over a literal";
+        : finding.rule === "tautological"
+          ? "asserts over a literal"
+          : "only asserts that a value it constructed exists";
   return [
     `${finding.file}:${finding.line}`,
     `  test: "${finding.test}"`,
@@ -231,7 +327,7 @@ function describe(finding: Finding): string {
   ].join("\n");
 }
 
-try {
+async function main(): Promise<void> {
   const exemptions = loadExemptions();
   const findings = await collectFindings();
   const unexempt = findings.filter((f) => !isExempt(f, exemptions));
@@ -271,7 +367,13 @@ try {
   console.log(
     `✔ No tests that cannot fail (${exemptions.length} documented exemption(s)).`,
   );
-} catch (error) {
-  console.error(getErrorMessage(error, "Test assertion check failed"));
-  process.exit(1);
+}
+
+if (import.meta.main) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(getErrorMessage(error, "Test assertion check failed"));
+    process.exit(1);
+  }
 }

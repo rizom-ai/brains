@@ -106,12 +106,6 @@ const createJobContext = (overrides: Partial<JobContext> = {}): JobContext => ({
 
 describe("InterfacePlugin", () => {
   describe("optional progress handler", () => {
-    it("should instantiate without implementing handleProgressEvent", () => {
-      const plugin = new MinimalInterfacePlugin();
-      expect(plugin).toBeDefined();
-      expect(plugin.id).toBe("minimal-interface");
-    });
-
     it("should have default no-op handleProgressEvent", async () => {
       const plugin = new MinimalInterfacePlugin();
 

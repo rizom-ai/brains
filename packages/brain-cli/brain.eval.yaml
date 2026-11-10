@@ -49,6 +49,10 @@ suites:
       - site
       - publishing
       - federation
+    # The site a professional recipe installs: its routes take its layouts.
+    site:
+      package: "@brains/site-default"
+      theme: "@rizom/theme-default"
     tags:
       - recipe-professional
     plugins:
@@ -91,6 +95,10 @@ suites:
       - chat
       - site
       - team
+    # The site a team recipe installs: its routes take its layouts.
+    site:
+      package: "@brains/site-organization"
+      theme: "@brains/theme-rizom"
     add:
       - docs
       - action-board

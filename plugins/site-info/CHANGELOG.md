@@ -1,5 +1,45 @@
 # @brains/site-info
 
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.675
+  - @brains/site-composition@0.2.0-alpha.675
+  - @brains/utils@0.2.0-alpha.675
+  - @brains/plugins@0.2.0-alpha.675
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.674
+  - @brains/site-composition@0.2.0-alpha.674
+  - @brains/utils@0.2.0-alpha.674
+  - @brains/plugins@0.2.0-alpha.674
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.673
+  - @brains/site-composition@0.2.0-alpha.673
+  - @brains/utils@0.2.0-alpha.673
+  - @brains/plugins@0.2.0-alpha.673
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.672
+  - @brains/site-composition@0.2.0-alpha.672
+  - @brains/utils@0.2.0-alpha.672
+  - @brains/plugins@0.2.0-alpha.672
+
 ## 0.2.0-alpha.671
 
 ### Patch Changes

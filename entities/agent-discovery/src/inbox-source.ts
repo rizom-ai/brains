@@ -99,13 +99,17 @@ export class AgentSightingsInboxSource implements InboxSource {
         ? { introducedBy: undefined, hops: undefined }
         : {}),
     });
-    await this.context.entityService.updateEntity({
+    const result = await this.context.entityService.updateEntity({
       entity: {
         ...entity,
         content,
         metadata: { ...entity.metadata, status },
       },
+      options: { expectedContentHash: entity.contentHash },
     });
+    if (result.skipReason === "content-conflict") {
+      throw new Error("Agent sighting changed; reload it and try again");
+    }
   }
 
   private async getSighting(itemId: string): Promise<AgentEntity> {

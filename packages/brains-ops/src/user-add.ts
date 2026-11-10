@@ -1,6 +1,8 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
+import { isNotFoundError } from "@brains/utils/predicates";
+import { capitalize } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
 
 import { type CohortConfig, cohortSchema, handleSchema } from "./schema";
@@ -197,10 +199,6 @@ function isAlreadyExistsError(error: unknown): boolean {
   return hasErrorCode(error, "EEXIST");
 }
 
-function isNotFoundError(error: unknown): boolean {
-  return hasErrorCode(error, "ENOENT");
-}
-
 function hasErrorCode(error: unknown, code: string): boolean {
   return (
     typeof error === "object" &&
@@ -214,6 +212,6 @@ function handleToDisplayName(handle: string): string {
   return handle
     .split("-")
     .filter((part) => part.length > 0)
-    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
+    .map(capitalize)
     .join(" ");
 }

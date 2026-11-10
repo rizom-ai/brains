@@ -1,18 +1,5 @@
 import { z } from "@brains/utils/zod";
 
-export interface FormAdmissionPolicy {
-  windowSeconds: number;
-  globalRequests: number;
-  networkRequests: number;
-  globalForms: number;
-  networkForms: number;
-  globalSubmissions: number;
-  networkSubmissions: number;
-  tokenTtlSeconds: number;
-  receiptTtlSeconds: number;
-  maxEntries: number;
-}
-
 const limit = z.number().int().min(1).max(1000);
 const seconds = z.number().int().min(1).max(86400);
 /** The policy's fields and bounds; the schema adds the relation between them. */
@@ -42,7 +29,7 @@ export const formAdmissionPolicyShape: z.ZodObject<
   receiptTtlSeconds: seconds,
   maxEntries: limit,
 });
-export const formAdmissionPolicySchema: z.ZodType<FormAdmissionPolicy> =
+export const formAdmissionPolicySchema: typeof formAdmissionPolicyShape =
   formAdmissionPolicyShape.refine(
     (value) =>
       value.networkRequests <= value.globalRequests &&
@@ -50,53 +37,62 @@ export const formAdmissionPolicySchema: z.ZodType<FormAdmissionPolicy> =
       value.networkSubmissions <= value.globalSubmissions,
     "Network limits must fit within global limits",
   );
-
-interface Counters {
-  requests: number;
-  forms: number;
-  submissions: number;
-}
-interface FormEntry {
-  network: string;
-  expiresAt: number;
-  retainUntil: number;
-  submission?: { digest: string; receivedAt: number } | undefined;
-}
-export interface FormAdmissionState {
-  revision: number;
-  lastNow: number;
-  salt: string;
-  windowEnd: number;
-  global: Counters;
-  networks: Record<string, Counters>;
-  entries: Record<string, FormEntry>;
-}
+export type FormAdmissionPolicy = z.output<typeof formAdmissionPolicySchema>;
 
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
-const counters = z.strictObject({
+type CountersSchema = z.ZodObject<
+  { requests: z.ZodNumber; forms: z.ZodNumber; submissions: z.ZodNumber },
+  z.core.$strict
+>;
+const counters: CountersSchema = z.strictObject({
   requests: integer.max(1000),
   forms: integer.max(1000),
   submissions: integer.max(1000),
 });
-const entry = z.strictObject({
+type FormEntrySchema = z.ZodObject<
+  {
+    network: z.ZodString;
+    expiresAt: z.ZodNumber;
+    retainUntil: z.ZodNumber;
+    submission: z.ZodOptional<
+      z.ZodObject<
+        { digest: z.ZodString; receivedAt: z.ZodNumber },
+        z.core.$strict
+      >
+    >;
+  },
+  z.core.$strict
+>;
+const entry: FormEntrySchema = z.strictObject({
   network: digest,
   expiresAt: integer,
   retainUntil: integer,
   submission: z.strictObject({ digest, receivedAt: integer }).optional(),
 });
 
-export const formAdmissionStateSchema: z.ZodType<FormAdmissionState> =
-  z.strictObject({
-    revision: integer,
-    lastNow: integer,
-    salt: digest,
-    windowEnd: integer,
-    global: counters,
-    networks: z
-      .record(digest, counters)
-      .refine((value) => Object.keys(value).length <= 1000),
-    entries: z
-      .record(digest, entry)
-      .refine((value) => Object.keys(value).length <= 1000),
-  });
+export const formAdmissionStateSchema: z.ZodObject<
+  {
+    revision: z.ZodNumber;
+    lastNow: z.ZodNumber;
+    salt: z.ZodString;
+    windowEnd: z.ZodNumber;
+    global: CountersSchema;
+    networks: z.ZodRecord<z.ZodString, CountersSchema>;
+    entries: z.ZodRecord<z.ZodString, FormEntrySchema>;
+  },
+  z.core.$strict
+> = z.strictObject({
+  revision: integer,
+  lastNow: integer,
+  salt: digest,
+  windowEnd: integer,
+  global: counters,
+  networks: z
+    .record(digest, counters)
+    .refine((value) => Object.keys(value).length <= 1000),
+  entries: z
+    .record(digest, entry)
+    .refine((value) => Object.keys(value).length <= 1000),
+});
+export type FormAdmissionState = z.output<typeof formAdmissionStateSchema>;

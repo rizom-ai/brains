@@ -1,5 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { isPlainRecord, isErrnoException } from "../src/predicates";
+import { readFile } from "node:fs/promises";
+import {
+  isPlainRecord,
+  isErrnoException,
+  isNotFoundError,
+} from "../src/predicates";
 
 describe("isPlainRecord", () => {
   it("accepts object literals and null-prototype objects", () => {
@@ -59,5 +64,31 @@ describe("isErrnoException", () => {
     if (!isErrnoException(error)) throw new Error("expected an errno error");
     expect(error.code).toBe("ENOENT");
     expect(error.message).toBe("missing");
+  });
+});
+
+describe("isNotFoundError", () => {
+  it("accepts an error whose code is ENOENT", () => {
+    const error = Object.assign(new Error("missing"), { code: "ENOENT" });
+    expect(isNotFoundError(error)).toBe(true);
+  });
+
+  it("accepts the error a missing file read rejects with", async () => {
+    const error: unknown = await readFile(
+      "/nonexistent/brains-predicates-test",
+    ).catch((caught: unknown) => caught);
+    expect(isNotFoundError(error)).toBe(true);
+  });
+
+  it("rejects errors with another code or no code", () => {
+    const denied = Object.assign(new Error("denied"), { code: "EACCES" });
+    expect(isNotFoundError(denied)).toBe(false);
+    expect(isNotFoundError(new Error("plain"))).toBe(false);
+  });
+
+  it("rejects non-errors, including code-carrying plain objects", () => {
+    expect(isNotFoundError({ code: "ENOENT" })).toBe(false);
+    expect(isNotFoundError("ENOENT")).toBe(false);
+    expect(isNotFoundError(null)).toBe(false);
   });
 });
