@@ -327,3 +327,80 @@ describe("a quiz defined in the brain's content", () => {
     await f.plugin.shutdown();
   });
 });
+
+/** A quiz result file as a directory-sync import or restore reads it: the
+ * type deserializes the markdown, and the store keeps the file as written. */
+async function importResult(
+  h: Harness,
+  id: string,
+  quizTitle?: string,
+): Promise<void> {
+  const markdown = quizResultAdapter.createContent({
+    quiz: "brand-test",
+    ...(quizTitle ? { quizTitle } : {}),
+    receivedAt: "2026-11-07T10:00:00.000Z",
+    status: "new",
+    notification: "none",
+    email: "ada@example.com",
+    results: [
+      {
+        dimension: "identity",
+        title: "Identity",
+        outcome: "seeking",
+        outcomeTitle: "Seeking",
+      },
+    ],
+    answers: [{ field: "q1", label: "Who are you?", value: "Seeking" }],
+  });
+  const entityService = h.getEntityService();
+  const parsed = entityService.deserializeEntity(markdown, "quiz-result");
+  await entityService.upsertEntity({
+    entity: {
+      ...parsed,
+      id,
+      entityType: "quiz-result",
+      content: markdown,
+      visibility: "restricted",
+      metadata: parsed.metadata ?? {},
+      created: "2026-11-07T10:00:00.000Z",
+      updated: "2026-11-07T10:00:00.000Z",
+      contentHash: "",
+    },
+  });
+}
+
+async function inboxTitles(h: Harness): Promise<string[]> {
+  const registry = h.getMockShell().getInboxRegistry();
+  registry.finalize();
+  const items = (await registry.getSource("quiz-results")?.list()) ?? [];
+  return items.map((item) => item.title);
+}
+
+describe("an imported quiz result", () => {
+  it("is listed under the title of the quiz as it was taken", async () => {
+    const f = await setup();
+    await importResult(
+      f.h,
+      `brand-test:${"a".repeat(64)}`,
+      "Brand personality test",
+    );
+    const result = await f.h.getEntityService().getEntity(
+      {
+        entityType: "quiz-result",
+        id: `brand-test:${"a".repeat(64)}`,
+        visibilityScope: "restricted",
+      },
+      quizResultSchema,
+    );
+    expect(result?.metadata.title).toBe("Brand personality test");
+    expect(await inboxTitles(f.h)).toEqual(["Brand personality test result"]);
+    await f.plugin.shutdown();
+  });
+
+  it("written before it kept its quiz's title, is listed under its quiz's id", async () => {
+    const f = await setup();
+    await importResult(f.h, `brand-test:${"b".repeat(64)}`);
+    expect(await inboxTitles(f.h)).toEqual(["brand-test result"]);
+    await f.plugin.shutdown();
+  });
+});

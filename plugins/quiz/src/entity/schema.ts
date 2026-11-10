@@ -47,6 +47,7 @@ const notificationSchema: z.ZodEnum<{
 type QuizResultFrontmatterSchema = z.ZodObject<
   {
     quiz: z.ZodString;
+    quizTitle: z.ZodOptional<z.ZodString>;
     language: z.ZodOptional<z.ZodString>;
     receivedAt: z.ZodISODateTime;
     status: typeof statusSchema;
@@ -63,6 +64,9 @@ type QuizResultFrontmatterSchema = z.ZodObject<
 export const quizResultFrontmatterSchema: QuizResultFrontmatterSchema =
   z.strictObject({
     quiz: z.string().meta({ studioWidget: "provenance" }),
+    /** The quiz's title as the taker saw it. A result written before it was
+     * kept has none, and reads under the quiz's current title or its id. */
+    quizTitle: z.string().optional().meta({ studioWidget: "provenance" }),
     language: z.string().optional().meta({ studioWidget: "provenance" }),
     receivedAt: z.iso.datetime().meta({ studioWidget: "provenance" }),
     status: statusSchema,
