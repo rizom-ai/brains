@@ -389,18 +389,20 @@ class DeclarativeServicePlugin<
       });
     }
     this.state = this.definition.setup
-      ? await this.definition.setup({
-          config: this.config,
-          lifecycle: {
-            onCleanup: (cleanup): void => {
-              this.cleanups.push(cleanup);
+      ? await this.definition.setup(
+          this.withRuntime(context, {
+            config: this.config,
+            lifecycle: {
+              onCleanup: (cleanup): void => {
+                this.cleanups.push(cleanup);
+              },
             },
-          },
-          runtimeState: packageRuntimeState(
-            context.runtimeState,
-            this.packageName,
-          ),
-        })
+            runtimeState: packageRuntimeState(
+              context.runtimeState,
+              this.packageName,
+            ),
+          }),
+        )
       : emptyPluginState<TState>();
 
     const templates = this.templateFormatter();
@@ -408,13 +410,15 @@ class DeclarativeServicePlugin<
     this.registerPrompts();
 
     const bindings =
-      this.definition.jobs?.({
-        config: this.config,
-        state: this.state,
-        entities: this.entityAccess(),
-        messaging: this.messaging(),
-        templates,
-      }) ?? [];
+      this.definition.jobs?.(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.state,
+          entities: this.entityAccess(),
+          messaging: this.messaging(),
+          templates,
+        }),
+      ) ?? [];
     const names = new Set<string>();
     for (const binding of bindings) {
       const job = binding.definition;
@@ -449,14 +453,16 @@ class DeclarativeServicePlugin<
     }
     this.registerSubscriptions(context);
     this.routes = (
-      this.definition.routes?.({
-        config: this.config,
-        state: this.state,
-        entities: this.entityAccess(),
-        jobs: this.jobs(),
-        messaging: this.messaging(),
-        accountSettings: this.accountSettingsWriter(),
-      }) ?? []
+      this.definition.routes?.(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.state,
+          entities: this.entityAccess(),
+          jobs: this.jobs(),
+          messaging: this.messaging(),
+          accountSettings: this.accountSettingsWriter(),
+        }),
+      ) ?? []
     ).map((route) => this.runtimeRoute(route));
   }
 
