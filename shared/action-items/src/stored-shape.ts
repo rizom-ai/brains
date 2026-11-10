@@ -1,4 +1,5 @@
 import { actorRefKey, actorRefSchema } from "@brains/contracts";
+import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
 
 /*
@@ -23,10 +24,6 @@ export const ACTION_ITEM_RETIRED_FIELDS: readonly string[] = [
  * capturedAt. Never written back.
  */
 export const ACTION_ITEM_TRANSLATED_FIELDS: readonly string[] = ["timeRange"];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 /** The nested person shape stored before the trim; any other key is not one. */
 const nestedPersonSchema = z.strictObject({

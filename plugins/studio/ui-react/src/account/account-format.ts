@@ -1,9 +1,3 @@
-export function roleLabel(value: string): string {
-  return value.length === 0
-    ? value
-    : `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-}
-
 export function initials(displayName: string): string {
   return displayName
     .split(/\s+/)

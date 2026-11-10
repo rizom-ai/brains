@@ -1,3 +1,5 @@
+import { capitalize } from "@brains/utils/string-utils";
+
 const SHORT_MONTHS = [
   "Jan",
   "Feb",
@@ -41,7 +43,5 @@ export function channelLabel(
   // A chat app's composite id ("discord:<guild>:<channel>") is no name: the
   // app is the best label it has.
   const [app, ...rest] = channelId.split(":");
-  return app && rest.length > 0
-    ? `${app.charAt(0).toUpperCase()}${app.slice(1)}`
-    : `#${channelId}`;
+  return app && rest.length > 0 ? capitalize(app) : `#${channelId}`;
 }

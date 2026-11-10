@@ -5,13 +5,13 @@ import type {
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
-  type OperatorCaller,
   type OperatorRegionBlock,
   type OperatorViewBlock,
   type RuntimeStudioOperatorBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorRegionBlock,
 } from "@brains/plugins";
+import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   setupResultPresentation as setupResultPresentationFor,
@@ -22,6 +22,7 @@ import {
   adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
+  mutationContext,
   requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
@@ -334,10 +335,6 @@ function attachIdentityActionBlock(
   };
 }
 
-function titleCase(value: string): string {
-  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-}
-
 function defaultAnchor(
   displayName: string,
   administeredBy: number,
@@ -400,8 +397,8 @@ const peopleWorkspace = defineStudioWorkspace({
         type: "key-values",
         id: "person-summary",
         items: [
-          { label: "Role", value: titleCase(selected.role) },
-          { label: "Status", value: titleCase(selected.status) },
+          { label: "Role", value: capitalize(selected.role) },
+          { label: "Status", value: capitalize(selected.status) },
           { label: "Protected brain identity", value: selected.isAnchor },
           {
             label: "Brain relationship",
@@ -603,7 +600,7 @@ const peopleWorkspace = defineStudioWorkspace({
           id: peer.peerId,
           title: peerOriginLabel(peer.peerId),
           description: `Vouched in by ${peerOriginLabel(peer.peerId)} · ${peer.peerId}`,
-          metadata: [titleCase(peer.verificationStatus)],
+          metadata: [capitalize(peer.verificationStatus)],
           actions: [
             {
               action: unlinkExternalPeer,
@@ -665,8 +662,8 @@ const peopleWorkspace = defineStudioWorkspace({
               id: person.userId,
               title: person.displayName,
               description: [
-                titleCase(person.role),
-                titleCase(person.status),
+                capitalize(person.role),
+                capitalize(person.status),
                 ...(person.isSelf ? ["You"] : []),
                 ...(person.isAnchor ? ["Protected brain identity"] : []),
               ].join(" · "),
@@ -724,13 +721,6 @@ const peopleWorkspace = defineStudioWorkspace({
   },
 });
 
-function mutationContext(caller: OperatorCaller | null): {
-  actorUserId: string;
-} {
-  if (!caller) throw new Error("People action requires a signed-in actor");
-  return { actorUserId: caller.actor.id };
-}
-
 function personName(
   users: Awaited<ReturnType<AuthBackend["listAdminUsers"]>>,
   userId: string,
@@ -769,12 +759,12 @@ export function createPeopleTabSource(
             input.role,
             mutationContext(caller),
           );
-          return { status: `Role changed to ${titleCase(input.role)}.` };
+          return { status: `Role changed to ${capitalize(input.role)}.` };
         },
         async ({ input }) => {
           const users = await authService.listAdminUsers();
           return {
-            summary: `Change ${personName(users, input.userId)}’s role to ${titleCase(input.role)}?`,
+            summary: `Change ${personName(users, input.userId)}’s role to ${capitalize(input.role)}?`,
             revision: `${input.userId}:${input.role}`,
           };
         },
@@ -975,7 +965,7 @@ export function createPeopleTabSource(
                       type: identity.type,
                       displayName:
                         channelNames.get(identity.type) ??
-                        titleCase(identity.type),
+                        capitalize(identity.type),
                       label: identity.label ?? "Connected identity",
                       verified: identity.verifiedAt !== undefined,
                     })),

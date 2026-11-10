@@ -1,3 +1,4 @@
+import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
 export type ConfirmationDecision = "approved" | "declined" | null;
@@ -73,7 +74,7 @@ function humanizeToolName(toolName: string | undefined): string | undefined {
     .filter(Boolean);
   if (words.length === 0) return undefined;
   const label = words.join(" ");
-  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+  return capitalize(label);
 }
 
 export function formatConfirmationResult(

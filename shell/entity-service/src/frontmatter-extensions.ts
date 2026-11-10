@@ -2,6 +2,7 @@ import {
   generateMarkdown,
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
+import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
 import { ENTITY_SYSTEM_FIELDS } from "./frontmatter";
 import type { FrontmatterSchema } from "./types";
@@ -105,10 +106,6 @@ export function unwrittenFields(config: {
   return [...(config.retiredFields ?? []), ...(config.translatedFields ?? [])];
 }
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 /**
  * The record without the given fields: a top-level key, or a key one level
  * down as `parent.key`. Undefined when the record holds none of them.
@@ -125,7 +122,7 @@ export function dropFields(
       return rest;
     }
     const nested = current[parent];
-    if (!isPlainRecord(nested) || !Object.hasOwn(nested, key)) return current;
+    if (!isRecord(nested) || !Object.hasOwn(nested, key)) return current;
     const { [key]: _dropped, ...kept } = nested;
     return { ...current, [parent]: kept };
   }, record);

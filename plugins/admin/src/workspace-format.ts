@@ -1,5 +1,8 @@
 import type { AuthAdminUserSummary } from "@brains/contracts";
-import type { StudioWorkspaceRegistration } from "@brains/plugins";
+import type {
+  OperatorCaller,
+  StudioWorkspaceRegistration,
+} from "@brains/plugins";
 import type {
   AuthBackend,
   ServiceRuntime,
@@ -41,6 +44,16 @@ export function requireAuthBackend(
     throw new Error("Administration workspace requires auth-service");
   }
   return authService;
+}
+
+/** Who an administration action acts as: only a signed-in actor may take one. */
+export function mutationContext(caller: OperatorCaller | null): {
+  actorUserId: string;
+} {
+  if (!caller) {
+    throw new Error("Administration action requires a signed-in actor");
+  }
+  return { actorUserId: caller.actor.id };
 }
 
 export function adminUserOptions(
