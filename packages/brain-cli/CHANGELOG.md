@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.671
+
+### Patch Changes
+
+- [#891](https://github.com/rizom-ai/brains/pull/891) [`c4dd7d8`](https://github.com/rizom-ai/brains/commit/c4dd7d8142917fda15b3174a5c5ef98afe42e411) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Starting a playbook or moving one to its next step lists only the other runs of that conversation, as `status` already did. Before, it listed every playbook run in the brain, including other people's conversations.
+
 ## 0.2.0-alpha.670
 
 ### Patch Changes
