@@ -1,121 +1,91 @@
-import { BaseEntityDataSource } from "@brains/plugins";
-import type {
-  BaseQuery,
-  NavigationResult,
-  PaginationInfo,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { JsonObject } from "@brains/contracts";
 import {
-  projectSchema,
-  type Project,
-  type ProjectContent,
-} from "../schemas/project";
+  defineDataSource,
+  type EntityDataSourceDefinition,
+  type EntityDefinition,
+  type EntityOf,
+} from "@brains/sdk/entities";
+import { projectDocument, projectSections } from "../lib/project-markdown";
 import {
   projectFrontmatterSchema,
   projectWithDataSchema,
+  type ProjectContent,
   type ProjectWithData,
+  type projectMetadataSchema,
 } from "../schemas/project";
-import { projectAdapter } from "../adapters/project-adapter";
-import {
-  projectViewSchema,
-  type ProjectSchemaData,
-} from "../templates/project-view";
+import { projectViewSchema } from "../templates/project-view";
 
 // Re-export for convenience
 export type { ProjectWithData };
 
-interface ProjectDetailData {
-  project: ProjectWithData;
-  prevProject: ProjectWithData | null;
-  nextProject: ProjectWithData | null;
-}
-
-interface ProjectListData {
-  projects: ProjectSchemaData[];
-  pagination: PaginationInfo | null;
-  baseUrl: string | null;
-}
+type ProjectDefinition = EntityDefinition<
+  "project",
+  typeof projectMetadataSchema
+>;
 
 /**
- * Parse frontmatter, extract body and structured content from entity.
+ * A project as the site reads it, as the project plugin class's data
+ * source read it: its record, its content the document it is stored as,
+ * its metadata the fields the class indexed, its frontmatter, its body and
+ * its structured sections.
  */
-function parseProjectData(entity: Project): ProjectWithData {
-  const parsed = parseMarkdownWithFrontmatter(
-    entity.content,
-    projectFrontmatterSchema,
-  );
-
+function projectWithData(entity: EntityOf<ProjectDefinition>): ProjectWithData {
+  const { metadata } = entity;
   let structuredContent: ProjectContent | undefined;
   try {
-    structuredContent = projectAdapter.parseStructuredContent(entity);
+    structuredContent = projectSections(entity.content);
   } catch {
+    // A free-form body has no case study sections to read.
     structuredContent = undefined;
   }
-
   return projectWithDataSchema.parse({
     ...entity,
-    frontmatter: parsed.metadata,
-    body: parsed.content,
+    content: projectDocument(entity),
+    metadata: {
+      title: metadata.title,
+      status: metadata.status,
+      ...(metadata.publishedAt !== undefined && {
+        publishedAt: metadata.publishedAt,
+      }),
+      year: metadata.year,
+      slug: metadata.slug,
+      description: metadata.description,
+      ...(metadata.error !== undefined && { error: metadata.error }),
+    },
+    frontmatter: projectFrontmatterSchema.parse(metadata),
+    body: entity.content,
     ...(structuredContent && { structuredContent }),
   });
 }
 
 /**
- * DataSource for fetching and transforming project entities.
- * Handles list views with pagination and detail views with prev/next navigation.
+ * Fetches and transforms projects for rendering: a paged list, or one
+ * project with its neighbors.
  */
-export class ProjectDataSource extends BaseEntityDataSource<
-  Project,
-  ProjectWithData,
-  ProjectListData
-> {
-  readonly id: string = "portfolio:entities";
-  readonly name: string = "Portfolio Project DataSource";
-  readonly description: string =
-    "Fetches and transforms project entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<Project> = {
-    entityType: "project",
-    entitySchema: projectSchema,
+export function projectDataSource(
+  project: ProjectDefinition,
+): EntityDataSourceDefinition<ProjectDefinition, ProjectWithData, JsonObject> {
+  return defineDataSource({
+    id: "entities",
+    name: "Portfolio Project DataSource",
+    description: "Fetches and transforms project entities for rendering",
+    entity: project,
     defaultSort: [
-      { field: "year" as const, direction: "desc" as const },
-      { field: "title" as const, direction: "asc" as const },
+      { field: "year", direction: "desc" },
+      { field: "title", direction: "asc" },
     ],
     defaultLimit: 10,
     enableNavigation: true,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("ProjectDataSource initialized");
-  }
-
-  protected transformEntity(entity: Project): ProjectWithData {
-    return parseProjectData(entity);
-  }
-
-  protected override buildDetailResult(
-    item: ProjectWithData,
-    navigation: NavigationResult<ProjectWithData> | null,
-  ): ProjectDetailData {
-    return {
-      project: item,
-      prevProject: navigation?.prev ?? null,
-      nextProject: navigation?.next ?? null,
-    };
-  }
-
-  protected buildListResult(
-    items: ProjectWithData[],
-    pagination: PaginationInfo | null,
-    query: BaseQuery,
-  ): ProjectListData {
-    return {
+    transform: projectWithData,
+    list: (items, pagination, query) => ({
       projects: items.map((item) => projectViewSchema.parse(item)),
       pagination,
       baseUrl: query.baseUrl ?? null,
-    };
-  }
+    }),
+    detail: ({ item, navigation }) => ({
+      project: item,
+      prevProject: navigation?.prev ?? null,
+      nextProject: navigation?.next ?? null,
+    }),
+  });
 }

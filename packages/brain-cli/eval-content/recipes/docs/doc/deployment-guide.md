@@ -144,7 +144,6 @@ env:
   secret:
     - AI_API_KEY
     - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
     - DISCORD_BOT_TOKEN
 
 volumes:
@@ -166,25 +165,25 @@ The deploy CLI reads from `.env`, `.env.local`, and `process.env`.
 
 Recommended local values:
 
-| Variable                     | Purpose                                       |
-| ---------------------------- | --------------------------------------------- |
-| `AI_API_KEY`                 | runtime                                       |
-| `AI_IMAGE_KEY`               | optional runtime                              |
-| `GIT_SYNC_TOKEN`             | git-backed content sync                       |
-| `MCP_AUTH_TOKEN`             | static MCP HTTP token, local development only |
-| `DISCORD_BOT_TOKEN`          | optional Discord bot                          |
-| `KAMAL_REGISTRY_PASSWORD`    | GHCR pull token for the server                |
-| `HCLOUD_TOKEN`               | Hetzner provisioning                          |
-| `HCLOUD_SSH_KEY_NAME`        | Hetzner SSH key registration name             |
-| `HCLOUD_SERVER_TYPE`         | Hetzner server type                           |
-| `HCLOUD_LOCATION`            | Hetzner location                              |
-| `KAMAL_SSH_PRIVATE_KEY_FILE` | preferred local source for the deploy SSH key |
-| `CF_API_TOKEN`               | Cloudflare DNS + cert bootstrap               |
-| `CF_ZONE_ID`                 | Cloudflare zone ID                            |
+| Variable                     | Purpose                                               |
+| ---------------------------- | ----------------------------------------------------- |
+| `AI_API_KEY`                 | runtime                                               |
+| `AI_IMAGE_KEY`               | optional runtime                                      |
+| `GIT_SYNC_TOKEN`             | git-backed content sync                               |
+| `MCP_AUTH_TOKEN`             | local development only; a production brain refuses it |
+| `DISCORD_BOT_TOKEN`          | optional Discord bot                                  |
+| `KAMAL_REGISTRY_PASSWORD`    | GHCR pull token for the server                        |
+| `HCLOUD_TOKEN`               | Hetzner provisioning                                  |
+| `HCLOUD_SSH_KEY_NAME`        | Hetzner SSH key registration name                     |
+| `HCLOUD_SERVER_TYPE`         | Hetzner server type                                   |
+| `HCLOUD_LOCATION`            | Hetzner location                                      |
+| `KAMAL_SSH_PRIVATE_KEY_FILE` | preferred local source for the deploy SSH key         |
+| `CF_API_TOKEN`               | Cloudflare DNS + cert bootstrap                       |
+| `CF_ZONE_ID`                 | Cloudflare zone ID                                    |
 
 GitHub stores the pushed runtime/deploy values as normal secrets in the default GitHub Secrets mode, including `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`. In Bitwarden mode, GitHub should keep only `BWS_ACCESS_TOKEN`; Bitwarden stores the app/runtime/deploy secret values.
 
-For new OAuth-capable MCP clients, `MCP_AUTH_TOKEN` is optional and should normally stay unset. The brain's OAuth/passkey provider handles MCP authorization when `auth-service` is enabled. Keep `MCP_AUTH_TOKEN` only for older clients or emergency static-token access.
+`MCP_AUTH_TOKEN` is a static MCP token for local development only; a production brain refuses it at boot. Leave it unset for deployed brains: the brain's OAuth/passkey provider handles MCP authorization when `auth-service` is enabled.
 
 ## Secret backend modes
 

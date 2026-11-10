@@ -4,7 +4,10 @@ import {
   formatDate as formatDateStyled,
 } from "@rizom/brain-ui";
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 
 export const BLOG_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const BLOG_PRINTABLE_TEMPLATE_NAME = "blog:printable";

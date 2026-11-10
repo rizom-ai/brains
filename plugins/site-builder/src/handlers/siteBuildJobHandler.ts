@@ -11,7 +11,10 @@ import {
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
-import { EntityUrlGenerator } from "@brains/site-composition";
+import {
+  EntityUrlGenerator,
+  type RouteDefinition,
+} from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type {
   SiteBuildEnvironment,
@@ -52,6 +55,7 @@ export interface SiteBuildJobHandlerConfig {
   getSlots?: (() => Promise<LayoutSlots>) | undefined;
   /** Asked on every build: the site package's scripts plus plugins' answers. */
   getHeadScripts?: (() => Promise<string[]>) | undefined;
+  getPages?: (() => Promise<RouteDefinition[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   /** The site's languages, the first its default. */
@@ -155,6 +159,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           themeCSS: this.cfg.themeCSS,
           slots: await this.cfg.getSlots?.(),
           headScripts: await this.cfg.getHeadScripts?.(),
+          pages: await this.cfg.getPages?.(),
           ...(this.cfg.staticAssets && {
             staticAssets: this.cfg.staticAssets,
           }),

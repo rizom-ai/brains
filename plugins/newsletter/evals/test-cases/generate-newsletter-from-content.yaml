@@ -1,0 +1,43 @@
+id: newsletter-generate-from-content
+name: Generate a newsletter from a post
+description: Tests that the newsletter template turns a post into a subject and an issue that carry the post's argument, not generic newsletter filler
+type: plugin
+tags:
+  - newsletter
+  - generation
+plugin: newsletter
+handler: generation
+
+input:
+  content: |
+    # Resilience Is Not Redundancy
+
+    Teams buy resilience by adding copies: a second region, a standby
+    database, a spare engineer on call. Copies fail together when they share
+    an assumption. A resilient system is one that degrades on purpose: it
+    knows which features to drop first, and it keeps the core working while
+    the rest recovers.
+
+expectedOutput:
+  hasFields:
+    - subject
+    - content
+  fieldValidation:
+    - field: subject
+      minLength: 5
+      maxLength: 120
+    - field: content
+      minLength: 200
+  contentContains:
+    - field: content
+      patterns:
+        - "[Rr]esilien|[Rr]edundan|[Dd]egrad"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 3
+    evaluationPrompt: |
+      Evaluate whether the newsletter carries the post's argument: copies fail
+      together when they share an assumption, and resilience means degrading
+      on purpose. Penalize generic newsletter filler, invented facts, and
+      calls to action the post does not make.

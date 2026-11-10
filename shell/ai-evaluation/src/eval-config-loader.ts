@@ -622,18 +622,20 @@ async function parseRawBrainEvalYaml(
   return {};
 }
 
+/** The shell's own cases, loaded into every brain eval run. */
+export const shellTestCasesDirectory: string = resolvePath(
+  import.meta.dir,
+  "..",
+  "evals",
+  "test-cases",
+);
+
 function resolveTestCaseDirectories(brainModulePath: string): string[] {
-  const shellTestCases = resolvePath(
-    import.meta.dir,
-    "..",
-    "evals",
-    "test-cases",
-  );
   const brainModelTestCases = resolvePath(brainModulePath, "test-cases");
   const appTestCases = resolvePath(process.cwd(), "test-cases");
 
-  return [shellTestCases, brainModelTestCases, appTestCases].filter((dir) =>
-    existsSync(dir),
+  return [shellTestCasesDirectory, brainModelTestCases, appTestCases].filter(
+    (dir) => existsSync(dir),
   );
 }
 

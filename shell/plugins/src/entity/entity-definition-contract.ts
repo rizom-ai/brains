@@ -137,13 +137,31 @@ export interface EntitySeedDefinition<
  * (published only, or everything in a preview), where the file goes, and how
  * a slug becomes a URL.
  */
+/** The site build a feed item is made for. */
+export interface EntityFeedBuild {
+  /**
+   * A preview carries every record; a production build only those the type
+   * counts as published, which the type may narrow further.
+   */
+  readonly environment: "preview" | "production";
+}
+
 export interface EntityFeedDeclaration<TEntity> {
-  /** Path the feed is written to, relative to the build output. */
+  /**
+   * Path the feed is written to, relative to the build output. The channel
+   * links the site's URL as configured, and the feed's self link hangs off
+   * it.
+   */
   readonly path: string;
-  /** Route prefix the feed's channel link hangs off, e.g. "posts". */
-  readonly routePrefix: string;
-  /** Null for a record that does not belong in the feed. */
-  toItem(entity: TEntity): FeedItem | null;
+  /** The channel's title when the site config gives none; "Feed" without it. */
+  readonly title?: string | undefined;
+  /**
+   * The channel's description when the site config gives none; "Latest
+   * updates" without it.
+   */
+  readonly description?: string | undefined;
+  /** Null for a record that does not belong in this build's feed. */
+  toItem(entity: TEntity, build: EntityFeedBuild): FeedItem | null;
 }
 
 /**
@@ -1171,6 +1189,12 @@ export interface EntityCreateRouting<
     | undefined;
   readonly fromAttachment?: EntityCreateRoute<TMetadataSchema> | undefined;
   readonly fromContent?: EntityCreateRoute<TMetadataSchema> | undefined;
+  /**
+   * Fields a creator may state that the type does not store, such as where
+   * a deck's slides break. The brain's create tool takes them with the
+   * editable fields; nothing updates them.
+   */
+  readonly fields?: z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**

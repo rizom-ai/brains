@@ -1,16 +1,16 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { describe, it, expect, beforeEach } from "bun:test";
-import { ProjectAdapter } from "../src/adapters/project-adapter";
-import type { Project } from "../src/schemas/project";
+import { describe, it, expect, beforeAll } from "bun:test";
+import type { BaseEntity, EntityAdapter } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import { projectBody, projectSections } from "../src/lib/project-markdown";
+import {
+  projectMetadataSchema,
+  type Project,
+  type ProjectMetadata,
+} from "../src/schemas/project";
+import { portfolioPlugin } from "./portfolio-plugin";
 
-const DEFAULT_PROJECT_CONTENT = `---
-title: Test Project
-status: draft
-description: A test project description
-year: 2024
----
-
-## Context
+const SECTIONS = `## Context
 
 Background info here.
 
@@ -26,24 +26,30 @@ What we built.
 
 The results.`;
 
+const METADATA: ProjectMetadata = {
+  title: "Test Project",
+  slug: "test-project",
+  status: "draft",
+  description: "A test project description",
+  year: 2024,
+};
+
 function createMockProject(overrides: Partial<Project> = {}): Project {
   return createTestEntity<Project>("project", {
-    content: DEFAULT_PROJECT_CONTENT,
-    metadata: {
-      title: "Test Project",
-      slug: "test-project",
-      status: "draft",
-      year: 2024,
-    },
+    content: SECTIONS,
+    metadata: METADATA,
     ...overrides,
   });
 }
 
-describe("ProjectAdapter", () => {
-  let adapter: ProjectAdapter;
+/** The project's adapter, as the declared project registers it. */
+describe("the project adapter", () => {
+  let adapter: EntityAdapter<BaseEntity>;
 
-  beforeEach(() => {
-    adapter = new ProjectAdapter();
+  beforeAll(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(portfolioPlugin());
+    adapter = harness.getEntityRegistry().getAdapter("project");
   });
 
   describe("schema", () => {
@@ -51,14 +57,10 @@ describe("ProjectAdapter", () => {
       expect(adapter.entityType).toBe("project");
       expect(adapter.purpose).toContain("case study");
     });
-
-    it("should have a valid zod schema", () => {
-      expect(adapter.schema).toBeDefined();
-    });
   });
 
   describe("fromMarkdown", () => {
-    it("should parse frontmatter and extract metadata", () => {
+    it("reads the frontmatter as metadata and the sections as the body", () => {
       const markdown = `---
 title: My Portfolio Project
 status: published
@@ -74,224 +76,61 @@ Some context here.`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("project");
-      expect(result.metadata?.title).toBe("My Portfolio Project");
-      expect(result.metadata?.status).toBe("published");
-      expect(result.metadata?.year).toBe(2023);
+      expect(result.metadata).toMatchObject({
+        title: "My Portfolio Project",
+        status: "published",
+        description: "A cool project I built",
+        year: 2023,
+        coverImageId: "hero-image",
+        url: "https://example.com",
+      });
+      expect(result.content).toBe("## Context\n\nSome context here.");
     });
 
-    it("keeps the card description in metadata, so a listing can show each project", () => {
+    it("resolves the slug from the title when the file states none", () => {
       const result = adapter.fromMarkdown(
-        "---\ntitle: P\nstatus: draft\ndescription: A cool project I built\nyear: 2023\n---\n\nBody",
+        "---\ntitle: My Amazing Project\nstatus: draft\ndescription: D\nyear: 2024\n---\n\nContent",
       );
-      expect(result.metadata?.description).toBe("A cool project I built");
+      expect(result.metadata?.["slug"]).toBe("my-amazing-project");
+      expect(result.metadata?.["authoredSlug"]).toBeUndefined();
     });
 
-    it("should auto-generate slug from title", () => {
-      const markdown = `---
-title: My Amazing Project
-status: draft
-description: Description here
-year: 2024
----
-
-Content`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.slug).toBe("my-amazing-project");
+    it("keeps a stated slug", () => {
+      const result = adapter.fromMarkdown(
+        "---\ntitle: My Project\nslug: custom-slug\nstatus: draft\ndescription: D\nyear: 2024\n---\n\nContent",
+      );
+      expect(result.metadata?.["slug"]).toBe("custom-slug");
+      expect(result.metadata?.["authoredSlug"]).toBe(true);
     });
 
-    it("should use provided slug if present", () => {
-      const markdown = `---
-title: My Project
-slug: custom-slug
-status: draft
-description: Description
-year: 2024
----
-
-Content`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.slug).toBe("custom-slug");
+    it("keeps the error a failed generation recorded", () => {
+      const result = adapter.fromMarkdown(
+        "---\ntitle: P\nslug: p\nstatus: failed\ndescription: ''\nyear: 2024\nerror: The model refused\n---\n",
+      );
+      expect(result.metadata?.["error"]).toBe("The model refused");
     });
   });
 
   describe("toMarkdown", () => {
-    it("should preserve frontmatter when present", () => {
-      const content = `---
-title: Test Project
-status: draft
-description: Test description
-year: 2024
----
-
-## Context
-
-Content here`;
-
-      const entity = createMockProject({ content });
-      const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toContain("title: Test Project");
-      expect(markdown).toContain("## Context");
+    it("writes a resolved slug after the other fields, as the adapter merged it", () => {
+      expect(adapter.toMarkdown(createMockProject())).toBe(
+        `---\ntitle: Test Project\nstatus: draft\ndescription: A test project description\nyear: 2024\nslug: test-project\n---\n${SECTIONS}\n`,
+      );
     });
 
-    it("should merge auto-generated slug into frontmatter", () => {
-      const content = `---
-title: New Project
-status: draft
-description: Description
-year: 2024
----
-
-Body`;
-
-      const entity = createMockProject({
-        content,
-        metadata: {
-          title: "New Project",
-          slug: "new-project",
-          status: "draft",
-          year: 2024,
-        },
-      });
-      const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toContain("slug: new-project");
-    });
-  });
-
-  describe("extractMetadata", () => {
-    it("should return entity metadata", () => {
-      const entity = createMockProject({
-        metadata: {
-          title: "Extracted Title",
-          slug: "extracted-slug",
-          status: "published",
-          year: 2023,
-          publishedAt: "2023-06-15T00:00:00.000Z",
-        },
-      });
-
-      const metadata = adapter.extractMetadata(entity);
-
-      expect(metadata.title).toBe("Extracted Title");
-      expect(metadata.slug).toBe("extracted-slug");
-      expect(metadata.status).toBe("published");
-      expect(metadata.year).toBe(2023);
-    });
-  });
-
-  describe("parseProjectFrontmatter", () => {
-    it("should parse frontmatter from entity", () => {
-      const content = `---
-title: Parsed Project
-status: published
-description: A parsed description
-year: 2022
-url: https://example.com/project
----
-
-Body content`;
-
-      const entity = createMockProject({ content });
-      const frontmatter = adapter.parseProjectFrontmatter(entity);
-
-      expect(frontmatter.title).toBe("Parsed Project");
-      expect(frontmatter.status).toBe("published");
-      expect(frontmatter.description).toBe("A parsed description");
-      expect(frontmatter.year).toBe(2022);
-      expect(frontmatter.url).toBe("https://example.com/project");
-    });
-  });
-
-  describe("parseStructuredContent", () => {
-    it("should parse structured sections from body", () => {
-      const content = `---
-title: Test
-status: draft
-description: Desc
-year: 2024
----
-
-## Context
-
-This is the context section with background info.
-
-## Problem
-
-This describes the problem we solved.
-
-## Solution
-
-This is how we solved it.
-
-## Outcome
-
-These are the results.`;
-
-      const entity = createMockProject({ content });
-      const structured = adapter.parseStructuredContent(entity);
-
-      expect(structured.context).toContain("background info");
-      expect(structured.problem).toContain("problem we solved");
-      expect(structured.solution).toContain("how we solved it");
-      expect(structured.outcome).toContain("the results");
-    });
-
-    it("should throw when sections are missing", () => {
-      const content = `---
-title: Test
-status: draft
-description: Desc
-year: 2024
----
-
-## Context
-
-Just context, no other sections.`;
-
-      const entity = createMockProject({ content });
-
-      expect(() => adapter.parseStructuredContent(entity)).toThrow();
-    });
-  });
-
-  describe("createProjectContent", () => {
-    it("should create markdown with frontmatter and structured body", () => {
-      const frontmatter = {
-        title: "New Project",
-        status: "draft" as const,
-        description: "Project description",
-        year: 2024,
-      };
-
-      const body = {
-        context: "The background",
-        problem: "The challenge",
-        solution: "The approach",
-        outcome: "The results",
-      };
-
-      const markdown = adapter.createProjectContent(frontmatter, body);
-
-      expect(markdown).toContain("title: New Project");
-      expect(markdown).toContain("## Context");
-      expect(markdown).toContain("The background");
-      expect(markdown).toContain("## Problem");
-      expect(markdown).toContain("The challenge");
-      expect(markdown).toContain("## Solution");
-      expect(markdown).toContain("The approach");
-      expect(markdown).toContain("## Outcome");
-      expect(markdown).toContain("The results");
+    it("writes a stated slug where the file states it", () => {
+      expect(
+        adapter.toMarkdown(
+          createMockProject({ metadata: { ...METADATA, authoredSlug: true } }),
+        ),
+      ).toBe(
+        `---\ntitle: Test Project\nslug: test-project\nstatus: draft\ndescription: A test project description\nyear: 2024\n---\n${SECTIONS}\n`,
+      );
     });
   });
 
   describe("roundtrip", () => {
-    it("should preserve content through fromMarkdown -> toMarkdown", () => {
+    it("writes a stated document back as it was", () => {
       const original = `---
 title: Roundtrip Project
 slug: roundtrip-project
@@ -299,34 +138,53 @@ status: published
 description: A project for testing roundtrip
 year: 2023
 ---
-
-## Context
-
-Context content.
-
-## Problem
-
-Problem content.
-
-## Solution
-
-Solution content.
-
-## Outcome
-
-Outcome content.`;
-
+${SECTIONS}
+`;
       const parsed = adapter.fromMarkdown(original);
-      const entity = createMockProject({
-        content: original,
-        ...(parsed.metadata && { metadata: parsed.metadata }),
-      });
-      const output = adapter.toMarkdown(entity);
-
-      expect(output).toContain("title: Roundtrip Project");
-      expect(output).toContain("slug: roundtrip-project");
-      expect(output).toContain("## Context");
-      expect(output).toContain("## Outcome");
+      const output = adapter.toMarkdown(
+        createMockProject({
+          content: parsed.content ?? "",
+          metadata: projectMetadataSchema.parse(parsed.metadata),
+        }),
+      );
+      expect(output).toBe(original);
     });
+  });
+});
+
+describe("a project's sections", () => {
+  it("reads the four sections from the body", () => {
+    const structured = projectSections(SECTIONS);
+    expect(structured.context).toContain("Background info");
+    expect(structured.problem).toContain("challenge we faced");
+    expect(structured.solution).toContain("What we built");
+    expect(structured.outcome).toContain("The results");
+  });
+
+  it("refuses a body missing sections", () => {
+    expect(() =>
+      projectSections("## Context\n\nJust context, no other sections."),
+    ).toThrow();
+  });
+
+  it("writes the four sections as the body", () => {
+    const markdown = projectBody({
+      context: "The background",
+      problem: "The challenge",
+      solution: "The approach",
+      outcome: "The results",
+    });
+    for (const text of [
+      "## Context",
+      "The background",
+      "## Problem",
+      "The challenge",
+      "## Solution",
+      "The approach",
+      "## Outcome",
+      "The results",
+    ]) {
+      expect(markdown).toContain(text);
+    }
   });
 });

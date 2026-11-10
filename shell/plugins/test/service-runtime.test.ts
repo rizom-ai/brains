@@ -96,6 +96,45 @@ function emptyHeard(): Heard {
 }
 
 describe("a first-party service's runtime", () => {
+  it("answers a contract every owner answers, beside the others", async () => {
+    const gathered = defineBusContract({
+      channel: "probe:context",
+      request: z.object({ topic: z.string() }),
+      response: z.object({ items: z.array(z.string()) }),
+      delivery: "collect",
+    });
+    const shell = createMockShell();
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).answer(gathered, ({ request }) => ({
+              items: [`probe on ${request.topic}`],
+            }));
+            return [];
+          },
+        },
+      ),
+    );
+    createServicePluginContext(shell, "memory").messaging.answer(
+      gathered,
+      async ({ topic }) => ({ items: [`memory on ${topic}`] }),
+    );
+
+    const asked = await createServicePluginContext(
+      shell,
+      "agent",
+    ).messaging.gather(gathered, { topic: "tides" });
+    expect(asked.status).toBe("answered");
+    expect(
+      asked.status === "answered"
+        ? asked.answers.flatMap(({ items }) => items).sort()
+        : [],
+    ).toEqual(["memory on tides", "probe on tides"]);
+  });
+
   it("answers a first-party contract under its own channel, as the package", async () => {
     const shell = createMockShell();
     const heard = emptyHeard();
@@ -173,6 +212,41 @@ describe("a first-party service's runtime", () => {
       .getMessageBus()
       .send({ type: settled.name, payload: { round: 1 }, sender: "shell" });
     expect(unheard.events).toEqual([]);
+  });
+
+  it("hears who sent what it hears, by channel and by name", async () => {
+    const shell = createMockShell();
+    const senders: { channel: string; sender: string }[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.listen(settled, ({ sender }) => {
+              senders.push({ channel: "typed", sender });
+            });
+            runtime.listen("probe:named", ({ sender }) => {
+              senders.push({ channel: "named", sender });
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    const bus = shell.getMessageBus();
+    await bus.send({
+      type: settled.name,
+      payload: { round: 1 },
+      sender: "conversation-service",
+    });
+    await bus.send({ type: "probe:named", payload: {}, sender: "spoofer" });
+
+    expect(senders).toEqual([
+      { channel: "typed", sender: "conversation-service" },
+      { channel: "named", sender: "spoofer" },
+    ]);
   });
 
   it("hears a channel in a worker too when it listens in every process", async () => {
@@ -584,6 +658,7 @@ describe("a first-party service's read-only view of the entity service", () => {
       "getEntityCounts",
       "getEntityTypes",
       "listEntities",
+      "search",
     ]);
   });
 });

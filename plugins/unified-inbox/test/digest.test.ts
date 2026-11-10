@@ -103,30 +103,25 @@ describe("unified inbox digest", () => {
     registerUnifiedInboxDigest(
       {
         siteUrl: "https://brain.test",
-        recurringChecks: {
-          register: (definition): (() => void) => {
-            check = definition;
-            return (): void => undefined;
-          },
+        recurringCheck: (definition): void => {
+          check = definition;
         },
-        webRoutes: {
-          findByRole: (role) =>
-            findRouteByRole(
-              [
-                {
-                  pluginId: "dashboard",
-                  fullPath: "/ops",
-                  definition: {
-                    path: "/ops",
-                    method: "GET",
-                    role: "dashboard",
-                    handler: (): Response => new Response(),
-                  },
+        routeByRole: (role) =>
+          findRouteByRole(
+            [
+              {
+                pluginId: "dashboard",
+                fullPath: "/ops",
+                definition: {
+                  path: "/ops",
+                  method: "GET",
+                  role: "dashboard",
+                  handler: (): Response => new Response(),
                 },
-              ],
-              role,
-            ),
-        },
+              },
+            ],
+            role,
+          ),
       },
       { getInboxData: async () => projection },
       { now, workspaceUrl: "/studio/workspaces/inbox" },
@@ -150,30 +145,25 @@ describe("unified inbox digest", () => {
     registerUnifiedInboxDigest(
       {
         siteUrl: "https://brain.test",
-        recurringChecks: {
-          register: (definition): (() => void) => {
-            check = definition;
-            return (): void => undefined;
-          },
+        recurringCheck: (definition): void => {
+          check = definition;
         },
-        webRoutes: {
-          findByRole: (role) =>
-            findRouteByRole(
-              [
-                {
-                  pluginId: "dashboard",
-                  fullPath: "/ops",
-                  definition: {
-                    path: "/ops",
-                    method: "GET",
-                    role: "dashboard",
-                    handler: (): Response => new Response(),
-                  },
+        routeByRole: (role) =>
+          findRouteByRole(
+            [
+              {
+                pluginId: "dashboard",
+                fullPath: "/ops",
+                definition: {
+                  path: "/ops",
+                  method: "GET",
+                  role: "dashboard",
+                  handler: (): Response => new Response(),
                 },
-              ],
-              role,
-            ),
-        },
+              },
+            ],
+            role,
+          ),
       },
       { getInboxData: async () => projection },
       { now },

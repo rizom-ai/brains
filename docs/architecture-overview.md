@@ -159,6 +159,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
 | `entities/topics`              | `topic`                              | Derived topic/tag entities                          |
 | `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
+| `entities/form`                | `form`                               | Site forms defined in content                       |
 | `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |
 | `entities/assessment`          | `swot`                               | Derived assessment outputs                          |
 
@@ -172,7 +173,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
-| `plugins/contact`          | Default-off bounded public contact intake with restricted Inbox records and durable notification   |
+| `plugins/contact`          | The contact form on the forms engine, its restricted `contact-request` records and Inbox source    |
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
 | `plugins/directory-sync`   | File sync + git operations                                                                         |
 | `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
@@ -182,6 +183,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains       |
 | `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget         |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
+| `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
 | `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
 | `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                     |
@@ -209,6 +211,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | --------------------- | ---------------------------------------------------------------------------------------- |
 | `sites/`              | `default`, `personal`, `professional`, `rizom` and app-specific compositions             |
 | `shared/theme-*`      | `default`, `rizom`, `signal`, and related theme packages                                 |
+| `shared/forms`        | The forms engine: definitions, admission, intake, delivery and rendering for site forms  |
 | `packages/brain-cli`  | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI |
 | `packages/brain-sdk`  | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                |
 | `packages/brains-ops` | published `@rizom/ops` fleet tooling                                                     |

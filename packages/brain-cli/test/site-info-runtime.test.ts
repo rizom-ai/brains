@@ -7,8 +7,9 @@ import {
   createTestEntityAdapter,
 } from "@brains/plugins/test";
 import siteInfoPackage, { fetchSiteInfo } from "@brains/site-info";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
-import { deckAdapter, deckSchema, siteThemeMode } from "@brains/decks";
+import blogPackage from "@brains/blog";
+import { declaredType } from "./helpers/declared-type";
+import decksPackage, { siteThemeMode } from "@brains/decks";
 import { HomepageListDataSource } from "@brains/site-professional";
 import { HomepageDataSource } from "@brains/site-personal";
 import { siteMetadataContract } from "@brains/site-composition";
@@ -167,8 +168,8 @@ describe("site-info's readers on the entity store", () => {
 
   /**
    * The declared site-info beside the types the homepages read, registered
-   * as the shell (the anchor profile) and the blog and decks plugins
-   * register them, with a site-info imported as directory sync imports one.
+   * as the shell (the anchor profile) and the blog plugin register them, and
+   * the declared decks, with a site-info imported as directory sync imports one.
    */
   async function homepageStore(): Promise<DeclaredEntityStore> {
     const opened = await declaredEntityStore(
@@ -176,7 +177,8 @@ describe("site-info's readers on the entity store", () => {
       "@brains/site-info",
       "site-metadata",
       { classification: "system", embeddable: false },
-      [],
+      // The decks, declared, as the canonical brain installs them.
+      [decksPackage],
       {},
       (registry) => {
         registry.registerEntityType(
@@ -184,8 +186,9 @@ describe("site-info's readers on the entity store", () => {
           baseEntitySchema,
           createTestEntityAdapter("anchor-profile", { isSingleton: true }),
         );
-        registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
-        registry.registerEntityType("deck", deckSchema, deckAdapter);
+        // The declared post, as the canonical brain installs it.
+        const post = declaredType(blogPackage, "@brains/blog", "blog");
+        registry.registerEntityType("post", post.schema, post.adapter);
       },
     );
     stores.push(opened);

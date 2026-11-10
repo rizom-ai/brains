@@ -56,7 +56,13 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
-import { withEntityRuntime } from "./entity-runtime";
+import {
+  afterGenerationOf,
+  isDeduplicated,
+  withEntityRuntime,
+  type EntityRuntimeBinding,
+  type GenerationOutcome,
+} from "./entity-runtime";
 import { sharedUploadScope } from "../service/upload-registry";
 import type { AttachmentResolveRequest } from "../service/attachment-registry";
 import {
@@ -366,6 +372,28 @@ function entityJobWriter(
 }
 
 /**
+ * Reads and writes of the declaring type as the package acting as itself,
+ * with no caller behind it: its own types at every visibility and past the
+ * action policy, other types at its own grant, its writes attributed to it.
+ */
+export async function packageEntityWrites(
+  context: EntityPluginContext,
+  pluginId: string,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): Promise<EntityReader & OwnedEntityWriter<AnyEntityDefinition>> {
+  const call: QueuedJobCall = {
+    ...packageSelfCall(context.jobAuthority),
+    eventContext: { actor: { kind: "service", serviceId: pluginId } },
+  };
+  const authority = await runAuthority(context, call, ownsType);
+  return Object.freeze({
+    ...authority.entities,
+    ...entityJobWriter(context, call, authority, ownsType, writes),
+  });
+}
+
+/**
  * Bind a declared job that does its own work. It reads as whoever started
  * it, as a service package's job does, and writes the declaring type's
  * records as them.
@@ -375,6 +403,7 @@ export function entityJobHandler(
   context: EntityPluginContext,
   ownsType: (entityType: string) => boolean,
   writes: EntityJobWrites,
+  runtime: (authority: EntityRunAuthority) => EntityRuntimeBinding,
 ): JobHandler<string, ServiceJobData, unknown> {
   // Queued data names who started the job; data without it is invalid.
   const dataSchema = serviceJobDataSchema(declaration.input);
@@ -398,13 +427,16 @@ export function entityJobHandler(
         authority.entities,
       );
       return declaration.handle(
-        Object.freeze({
-          ...base,
-          entities: Object.freeze({
-            ...authority.entities,
-            ...entityJobWriter(context, call, authority, ownsType, writes),
-          }),
-        }),
+        withEntityRuntime(
+          {
+            ...base,
+            entities: Object.freeze({
+              ...authority.entities,
+              ...entityJobWriter(context, call, authority, ownsType, writes),
+            }),
+          },
+          runtime(authority),
+        ),
       );
     },
   };
@@ -424,6 +456,7 @@ export function contractJobHandler(
   ownsType: (entityType: string) => boolean,
   writes: EntityJobWrites,
   pluginId: string,
+  template: (localName: string) => string,
 ): JobHandler<string, unknown, unknown> {
   return {
     validateAndParse(data): unknown {
@@ -462,6 +495,9 @@ export function contractJobHandler(
               context.entityService.searchWithDistances(request),
             generateObject: (prompt, schema) =>
               context.ai.generateObject(prompt, schema),
+            // Through the templates its type declares, as the entity plugin
+            // classes' job handlers generated through their own.
+            generate: createGenerationAI(context, template, signal).generate,
             anyEntities: {
               service: context.entityService,
               // Public, as the entity plugin classes' job handlers read
@@ -695,6 +731,16 @@ export interface GenerationTarget {
   readonly retries?: RetryScope | undefined;
   /** Tell the content pipeline how each run went: the type is scheduled. */
   readonly reportsToPipeline?: boolean | undefined;
+  /**
+   * Whether this is the type's own `{type}:generation`, which an entity
+   * plugin class queued in its handler's raw shape before the type was
+   * declared; no other declared job ever was.
+   */
+  readonly readsLegacyRawData?: boolean | undefined;
+  /** The plugin a job queued in the class handler's raw shape runs as. */
+  readonly pluginId: string;
+  /** The internal runtime a run reaches, at the run's authority. */
+  readonly runtime: (authority: EntityRunAuthority) => EntityRuntimeBinding;
 }
 
 /**
@@ -707,6 +753,38 @@ const generationJobDataSchema = serviceJobDataSchema(z.unknown()).extend({
   entityId: z.string().optional(),
   source: generationSourceSchema.optional(),
 });
+
+/**
+ * A generation queued before its type was declared, in the class handler's
+ * raw shape: its input as written, with the entity it fills beside it and
+ * no requester recorded. Tracked in docs/legacy-code-inventory.json
+ * (legacy-raw-generation-data) for removal once no such job can be pending.
+ */
+const legacyGenerationDataSchema = z.object({
+  legacyRawData: z.literal(true),
+  input: z.unknown(),
+  entityId: z.string().optional(),
+  source: generationSourceSchema.optional(),
+});
+
+type LegacyGenerationData = z.output<typeof legacyGenerationDataSchema>;
+
+/**
+ * Queued data in the class handler's raw shape, read as a legacy job; data
+ * that names a requester is a package job's, whose envelope it failed.
+ */
+function legacyGenerationData(data: unknown): LegacyGenerationData | null {
+  const stored = legacyGenerationDataSchema.safeParse(data);
+  if (stored.success) return stored.data;
+  if (!isPlainRecord(data) || "authority" in data) return null;
+  const { entityId, ...input } = data;
+  return {
+    legacyRawData: true,
+    input,
+    ...(typeof entityId === "string" && { entityId }),
+    ...definedFields({ source: generationSource(data) }),
+  };
+}
 
 /** One running generation: its signal, its input, and whom it acts as. */
 interface GenerationRun {
@@ -753,11 +831,16 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
    */
   override validateAndParse(data: unknown): unknown {
     const job = generationJobDataSchema.safeParse(data);
-    if (!job.success) return null;
-    const checked = super.validateAndParse(job.data.input);
+    const queued = job.success
+      ? job.data
+      : this.target.readsLegacyRawData === true
+        ? legacyGenerationData(data)
+        : null;
+    if (!queued) return null;
+    const checked = super.validateAndParse(queued.input);
     if (checked === null) return null;
     return {
-      ...job.data,
+      ...queued,
       ...definedFields({
         coverImage: isPlainRecord(checked) ? checked["coverImage"] : undefined,
       }),
@@ -770,10 +853,23 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     progressReporter: ProgressReporter,
     signal?: AbortSignal,
   ): Promise<GenerationResult> {
-    const job = generationJobDataSchema.parse(data);
+    const envelope = generationJobDataSchema.safeParse(data);
+    const job = envelope.success
+      ? envelope.data
+      : legacyGenerationDataSchema.parse(data);
     // Its requester's current access, never more than it was admitted at; a
-    // revoked or rebound requester is refused before anything runs.
-    const call = await queuedJobCall(this.context.jobAuthority, job);
+    // revoked or rebound requester is refused before anything runs. A job
+    // queued in the class handler's raw shape recorded none, and runs as
+    // the package, as the class handler ran it.
+    const call: QueuedJobCall =
+      "legacyRawData" in job
+        ? {
+            ...packageSelfCall(this.context.jobAuthority),
+            eventContext: {
+              actor: { kind: "service", serviceId: this.target.pluginId },
+            },
+          }
+        : await queuedJobCall(this.context.jobAuthority, job);
     const run: GenerationRun = {
       signal: signal ?? new AbortController().signal,
       input: job.input,
@@ -810,18 +906,19 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         `Pre-allocated entity stub not found: ${this.entityType}/${entityId}`,
       );
     }
+    const generationContext = {
+      ...jobContext(
+        this.context,
+        parseWithSchema(this.declaration.input, input),
+        progressReporter,
+        signal,
+        authority.entities,
+      ),
+      entityId,
+      ai: this.generationAI(signal),
+    } satisfies EntityGenerationContext<unknown>;
     const result = await this.declaration.generate(
-      Object.freeze({
-        ...jobContext(
-          this.context,
-          parseWithSchema(this.declaration.input, input),
-          progressReporter,
-          signal,
-          authority.entities,
-        ),
-        entityId,
-        ai: this.generationAI(signal),
-      }) satisfies EntityGenerationContext<unknown>,
+      withEntityRuntime(generationContext, this.target.runtime(authority)),
     );
     if (!result.success) this.failEarly(result.error);
 
@@ -858,6 +955,10 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       }),
       ...(link && { linkInto: link }),
       ...(visibility && { visibility }),
+      // A generation that asks lands beside a record holding its id; one
+      // filling an allocated entity keeps that entity.
+      ...(entityId === undefined &&
+        isDeduplicated(result) && { createOptions: { deduplicateId: true } }),
     };
   }
 
@@ -875,6 +976,9 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
+    await this.runStep({
+      written: { entityId, ...definedFields({ title: generated.title }) },
+    });
     if (this.target.reportsToPipeline) {
       await this.context.messaging.command(generateReportSuccessContract, {
         entityType: this.entityType,
@@ -887,12 +991,33 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     _data: unknown,
     error: string,
   ): Promise<void> {
+    await this.runStep({ failed: error });
     if (this.target.reportsToPipeline) {
       await this.context.messaging.command(generateReportFailureContract, {
         entityType: this.entityType,
         error,
       });
     }
+  }
+
+  /**
+   * The step a first-party generation carries after it runs, given the
+   * input as its schema reads it and the package's jobs and retries.
+   */
+  private async runStep(outcome: GenerationOutcome): Promise<void> {
+    const step = afterGenerationOf(this.declaration);
+    const retries = this.target.retries;
+    if (!step || !retries) return;
+    const parsed = this.declaration.input.safeParse(
+      this.runs.getStore()?.input,
+    );
+    await step({
+      input: parsed.success ? parsed.data : undefined,
+      outcome,
+      messaging: this.context.messaging,
+      jobs: this.context.jobs,
+      retries,
+    });
   }
 
   private generationAI(signal: AbortSignal): EntityGenerationAI {

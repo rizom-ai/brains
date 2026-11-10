@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { McpServer } from "@modelcontextprotocol/server";
+import {
+  McpServer,
+  WebStandardStreamableHTTPServerTransport,
+} from "@modelcontextprotocol/server";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { MCPProtocolMode } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -120,6 +123,24 @@ function createTransport(options: { extraTool?: boolean } = {}): {
   return { transport, protocolModes, permissions };
 }
 
+/** Answers each request the way a stateless HTTP MCP endpoint does. */
+function serveOverHttp(
+  transport: IMCPTransport,
+  authorizations: Array<string | null> = [],
+): (url: string | URL, init?: RequestInit) => Promise<Response> {
+  return async (url, init) => {
+    const request = new Request(url, init);
+    authorizations.push(request.headers.get("authorization"));
+    const server = transport.getMcpServer();
+    const http = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
+    await server.connect(http);
+    return http.handleRequest(request);
+  };
+}
+
 describe("MCPProtocolAgentService", () => {
   test("routes chat and confirmation through the basic protocol", async () => {
     const { transport, protocolModes, permissions } = createTransport();
@@ -176,6 +197,61 @@ describe("MCPProtocolAgentService", () => {
         toolName: "system_create",
         data: { id: "mcp-basic-evidence" },
       });
+    } finally {
+      await service.close();
+    }
+  });
+
+  test("routes chat and confirmation to a running brain over HTTP", async () => {
+    const { transport } = createTransport();
+    const authorizations: Array<string | null> = [];
+    const service = await MCPProtocolAgentService.connectRemote({
+      url: "http://brain.test",
+      token: "dev-token",
+      fetch: serveOverHttp(transport, authorizations),
+    });
+
+    try {
+      const read = await service.chat("read", "conversation-1", {
+        userPermissionLevel: "admin",
+      });
+      expect(read.toolResults?.[0]).toMatchObject({ toolName: "system_get" });
+      const confirmed = await service.confirmPendingAction(
+        "conversation-1",
+        true,
+        "approval-1",
+        { userPermissionLevel: "admin" },
+      );
+      expect(confirmed.text).toBe("Completed: saved note");
+      expect(authorizations.length).toBeGreaterThan(0);
+      expect(new Set(authorizations)).toEqual(new Set(["Bearer dev-token"]));
+    } finally {
+      await service.close();
+    }
+  });
+
+  test("refuses a case whose caller the remote token cannot be", async () => {
+    const { transport } = createTransport();
+    const service = await MCPProtocolAgentService.connectRemote({
+      url: "http://brain.test",
+      token: "dev-token",
+      fetch: serveOverHttp(transport),
+    });
+
+    try {
+      expect(
+        service.chat("read", "conversation-1", {
+          userPermissionLevel: "trusted",
+        }),
+      ).rejects.toThrow(
+        "A remote MCP eval runs as the token's caller, a non-Anchor Admin; this case needs a trusted caller",
+      );
+      expect(
+        service.chat("read", "conversation-1", {
+          userPermissionLevel: "admin",
+          isAnchor: true,
+        }),
+      ).rejects.toThrow("this case needs an admin Anchor caller");
     } finally {
       await service.close();
     }

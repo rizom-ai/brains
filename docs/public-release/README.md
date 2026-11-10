@@ -126,8 +126,9 @@ plugins:
     git:
       repo: your-org/your-content
       authToken: ${GIT_SYNC_TOKEN}
-  mcp:
-    authToken: ${MCP_AUTH_TOKEN}
+  # Static MCP token, local development only; a production brain refuses it:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
 ```
 
 Secrets stay in `.env`; everything else goes in `brain.yaml`. Full reference: [packages/brain-cli/docs/brain-yaml-reference.md](../../packages/brain-cli/docs/brain-yaml-reference.md).

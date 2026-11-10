@@ -1,388 +1,190 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-
-import type { LinkPlugin } from "../src/index";
-import { createLinkPlugin } from "../src/index";
-import { LinkAdapter } from "../src/adapters/link-adapter";
-import { createMockShell, createPluginHarness } from "@brains/plugins/test";
-import type { PluginCapabilities } from "@brains/plugins/test";
-import packageJson from "../package.json";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import type { BaseEntity, EntityAdapter } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import { linkMetadataSchema, type LinkEntity } from "../src";
 import {
   createMockLinkEntity,
   mockLinkContent,
 } from "./fixtures/link-entities";
+import { linkPlugin } from "./link-plugin";
 
-describe("LinkPlugin", () => {
-  let plugin: LinkPlugin;
+const caller = {
+  interfaceType: "test",
+  actor: { kind: "user" as const, userId: "test-user" },
+  userPermissionLevel: "admin" as const,
+};
 
-  beforeEach(() => {
-    plugin = createLinkPlugin({
-      enableSummarization: true,
-    });
-  });
-
-  describe("Plugin Configuration", () => {
-    it("should have correct plugin metadata", () => {
-      expect(plugin.id).toBe("link");
-      expect(plugin.description).toContain("Web content capture");
-      expect(plugin.version).toBe(packageJson.version);
-    });
-
-    it("should use default configuration when not provided", () => {
-      const defaultPlugin = createLinkPlugin();
-      // Note: config is protected, so we test through behavior instead
-      expect(defaultPlugin.id).toBe("link");
-      expect(defaultPlugin.version).toBe(packageJson.version);
-    });
-
-    it("should accept custom configuration", () => {
-      const customPlugin = createLinkPlugin({
-        enableSummarization: false,
-      });
-
-      // Note: config is protected, so we test through behavior instead
-      expect(customPlugin.id).toBe("link");
-      expect(customPlugin.version).toBe(packageJson.version);
-    });
-  });
-
-  describe("LinkAdapter", () => {
-    let adapter: LinkAdapter;
-
-    beforeEach(() => {
-      adapter = new LinkAdapter();
-    });
-
-    it("should have correct entity type and schema", () => {
-      expect(adapter.entityType).toBe("link");
-      expect(adapter.schema).toBeDefined();
-    });
-
-    it("should create link content with frontmatter", () => {
-      const linkContent = adapter.createLinkContent({
-        status: "draft",
-        title: "Test Article",
-        url: "https://example.com/test",
-        description: "A test article",
-        summary: "This is a test article summary.",
-        capturedAt: "2025-01-30T10:00:00.000Z",
-        source: {
-          ref: "cli:local",
-          label: "CLI",
-        },
-      });
-
-      // Check frontmatter (using regex to allow YAML quoting variations)
-      expect(linkContent).toContain("---");
-      expect(linkContent).toContain("status: draft");
-      expect(linkContent).toContain("title: Test Article");
-      expect(linkContent).toMatch(
-        /url: ['"]?https:\/\/example\.com\/test['"]?/,
-      );
-      expect(linkContent).toContain("description: A test article");
-      // The hostname is read from url, not stored beside it.
-      expect(linkContent).not.toContain("domain:");
-      expect(linkContent).toMatch(/ref: ['"]?cli:local['"]?/);
-      expect(linkContent).toContain("label: CLI");
-      // Check body (summary)
-      expect(linkContent).toContain("This is a test article summary.");
-    });
-
-    it("should parse link content correctly", () => {
-      const sampleContent = `---
-status: draft
-title: Test Article
-url: https://example.com/test
-description: A test article
-domain: example.com
-capturedAt: "2025-01-30T10:00:00.000Z"
-source:
-  ref: "cli:local"
-  label: CLI
----
-
-This is a test article summary.`;
-
-      const parsed = adapter.parseLinkContent(sampleContent);
-
-      expect(parsed.frontmatter.title).toBe("Test Article");
-      expect(parsed.frontmatter.url).toBe("https://example.com/test");
-      expect(parsed.frontmatter.status).toBe("draft");
-      expect(parsed.frontmatter.description).toBe("A test article");
-      // A link stored with a domain still parses; the copy is not kept.
-      expect(parsed.frontmatter).not.toHaveProperty("domain");
-      expect(parsed.frontmatter.capturedAt).toBe("2025-01-30T10:00:00.000Z");
-      expect(parsed.frontmatter.source).toEqual({
-        ref: "cli:local",
-        label: "CLI",
-      });
-      expect(parsed.summary).toBe("This is a test article summary.");
-    });
-
-    it("should convert entity to markdown", () => {
-      const entity = createMockLinkEntity({
-        id: "test-id",
-        content: mockLinkContent.simple,
-        metadata: {
-          status: "draft",
-          title: "Test Article",
-          capturedAt: "2025-01-30T10:00:00.000Z",
-        },
-      });
-
-      const markdown = adapter.toMarkdown(entity);
-      expect(markdown).toContain("---");
-      expect(markdown).toContain("status: draft");
-      expect(markdown).toContain("Test summary");
-    });
-
-    it("should convert markdown to entity with metadata from frontmatter", () => {
-      const markdown = mockLinkContent.simple;
-      const partialEntity = adapter.fromMarkdown(markdown);
-
-      expect(partialEntity.content).toBe(markdown);
-      expect(partialEntity.entityType).toBe("link");
-      expect(partialEntity.metadata?.status).toBe("draft");
-      expect(partialEntity.metadata?.title).toBe("Test Article");
-      expect(partialEntity.metadata?.capturedAt).toBe(
-        "2025-01-30T10:00:00.000Z",
-      );
-    });
-
-    it("should extract metadata from entity", () => {
-      const entity = createMockLinkEntity({
-        id: "test-id",
-        content: mockLinkContent.simple,
-        metadata: {
-          status: "draft",
-          title: "Test Article",
-          capturedAt: "2025-01-30T10:00:00.000Z",
-        },
-      });
-
-      const metadata = adapter.extractMetadata(entity);
-      expect(metadata).toEqual({
-        status: "draft",
-        title: "Test Article",
-        capturedAt: "2025-01-30T10:00:00.000Z",
-      });
-    });
-  });
-});
-
-describe("LinkPlugin with Harness", () => {
+describe("the link adapter", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: LinkPlugin;
-  let capabilities: PluginCapabilities;
+  let adapter: EntityAdapter<BaseEntity>;
 
   beforeEach(async () => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-
-    plugin = createLinkPlugin({
-      enableSummarization: true,
-    });
-    capabilities = await harness.installPlugin(plugin);
+    harness = createPluginHarness();
+    await harness.installPlugin(linkPlugin());
+    adapter = harness.getEntityRegistry().getAdapter("link");
   });
 
   afterEach(async () => {
     await harness.reset();
   });
 
-  describe("Plugin Registration", () => {
-    it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("link");
-      expect(plugin.type).toBe("entity");
-      expect(plugin.version).toBeDefined();
+  it("reads the frontmatter as metadata and the summary as the body", () => {
+    const parsed = adapter.fromMarkdown(mockLinkContent.simple);
+    expect(parsed.metadata).toEqual({
+      status: "draft",
+      title: "Test Article",
+      url: "https://example.com/test",
+      description: "Test description",
+      capturedAt: "2025-01-30T10:00:00.000Z",
+      source: { ref: "cli:local", label: "CLI" },
     });
+    // A link stored with a domain still parses; the copy is not kept.
+    expect(parsed.metadata).not.toHaveProperty("domain");
+    expect(parsed.content).toBe("Test summary");
+  });
 
-    it("retires domain, which readers take from the URL", () => {
-      expect(
-        harness.getEntityRegistry().getEntityTypeConfig("link").retiredFields,
-      ).toEqual(["domain"]);
+  it("writes a new link's frontmatter in the order the adapter wrote it", () => {
+    const entity: LinkEntity = createMockLinkEntity({
+      id: "test-id",
+      content: "This is a test article summary.",
+      metadata: linkMetadataSchema.parse({
+        status: "draft",
+        title: "Test Article",
+        url: "https://example.com/test",
+        description: "A test article",
+        capturedAt: "2025-01-30T10:00:00.000Z",
+        source: { ref: "cli:local", label: "CLI" },
+      }),
     });
+    expect(adapter.toMarkdown(entity)).toBe(
+      "---\nstatus: draft\ntitle: Test Article\nurl: 'https://example.com/test'\ndescription: A test article\ncapturedAt: '2025-01-30T10:00:00.000Z'\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nThis is a test article summary.\n",
+    );
+  });
+});
 
-    it("should not expose link_capture tool (moved to system_create)", () => {
-      const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).not.toContain("link_capture");
-      expect(capabilities.tools).toHaveLength(0);
+describe("the link create routes", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+
+  beforeEach(async () => {
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+    await harness.installPlugin(linkPlugin());
+  });
+
+  afterEach(async () => {
+    await harness.reset();
+  });
+
+  async function intercept(
+    input: Record<string, unknown>,
+    context: Record<string, unknown> = {},
+  ): Promise<unknown> {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("link");
+    if (!interceptor) throw new Error("Expected link create interceptor");
+    return interceptor(
+      { entityType: "link", ...input },
+      { ...caller, ...context },
+    );
+  }
+
+  async function queued(): Promise<
+    Array<{ type: string; data: unknown; metadata: unknown }>
+  > {
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getRecentJobs(undefined, 10);
+    return jobs.map(({ type, data, metadata }) => ({
+      type,
+      data: JSON.parse(data),
+      metadata,
+    }));
+  }
+
+  it("captures the URL a prompt names: a pending link and the capture, in the caller's channel", async () => {
+    const result = await intercept(
+      {
+        visibility: "shared",
+        prompt: "Save this: https://anthropic.com/research",
+      },
+      { channelId: "!room:test", channelName: "#test" },
+    );
+
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { entityId: "anthropic-com-abdc4a", status: "generating" },
+      },
     });
-
-    it("should register link:generation and link:capture job handlers", async () => {
-      const registeredHandlers: string[] = [];
-      const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
-      const origJobQueue = mockShell.getJobQueueService();
-      const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
-        {
-          ...origJobQueue,
-          registerHandler: (
-            ...args: Parameters<typeof origJobQueue.registerHandler>
-          ): void => {
-            registeredHandlers.push(args[0]);
-          },
-        };
-      mockShell.getJobQueueService = (): typeof trackingJobQueue =>
-        trackingJobQueue;
-
-      await plugin.register(mockShell);
-
-      expect(registeredHandlers).toContain("link:generation");
-      expect(registeredHandlers).toContain("link:capture");
+    const pending = await harness.getEntityService().getEntity({
+      entityType: "link",
+      id: "anthropic-com-abdc4a",
+      visibilityScope: "shared",
     });
-
-    it("should register a create interceptor for link", () => {
-      const interceptor = harness
-        .getEntityRegistry()
-        .getCreateInterceptor("link");
-      expect(interceptor).toBeDefined();
+    expect(pending?.metadata).toEqual({
+      status: "pending",
+      title: "anthropic.com",
+      url: "https://anthropic.com/research",
+      description: "Link capture is in progress.",
+      capturedAt: expect.any(String),
+      source: { ref: "matrix:!room:test", label: "#test" },
     });
-
-    it("should enqueue link:capture from the registered interceptor", async () => {
-      const enqueued: Array<{
-        type: string;
-        data: unknown;
-        options: unknown;
-      }> = [];
-      const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
-      const origJobQueue = mockShell.getJobQueueService();
-      const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
-        {
-          ...origJobQueue,
-          enqueue: async (request): Promise<string> => {
-            enqueued.push({
-              type: request.type,
-              data: request.data,
-              options: request.options,
-            });
-            return "job-123";
-          },
-        };
-      mockShell.getJobQueueService = (): typeof trackingJobQueue =>
-        trackingJobQueue;
-
-      await plugin.register(mockShell);
-      const interceptor = mockShell
-        .getEntityRegistry()
-        .getCreateInterceptor("link");
-      if (!interceptor) throw new Error("Expected link create interceptor");
-
-      const result = await interceptor(
-        {
-          entityType: "link",
-          visibility: "shared",
-          prompt: "Save this: https://anthropic.com/research",
-        },
-        {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "test-user" },
-          channelId: "!room:test",
-          channelName: "#test",
-        },
-      );
-
-      expect(result).toEqual({
-        kind: "handled",
-        result: {
-          success: true,
-          data: {
-            entityId: "anthropic-com-abdc4a",
-            status: "generating",
-            jobId: "job-123",
-          },
-        },
-      });
-      const pendingEntity = await mockShell.getEntityService().getEntity({
-        entityType: "link",
-        id: "anthropic-com-abdc4a",
-        visibilityScope: "shared",
-      });
-      expect(pendingEntity?.metadata).toEqual({
-        status: "pending",
-        title: "anthropic.com",
-        capturedAt: expect.any(String),
-      });
-      expect(pendingEntity?.content).toContain(
-        "Pending link capture for https://anthropic.com/research.",
-      );
-      expect(pendingEntity?.visibility).toBe("shared");
-      expect(enqueued).toHaveLength(1);
-      expect(enqueued[0]?.type).toBe("link:capture");
-      expect(enqueued[0]?.data).toEqual({
-        url: "https://anthropic.com/research",
-        metadata: expect.objectContaining({
-          interfaceId: "test",
-          userId: "test-user",
-          channelId: "!room:test",
-          channelName: "#test",
-          timestamp: expect.any(String),
-        }),
-      });
-      expect(enqueued[0]?.options).toEqual(
-        expect.objectContaining({
-          metadata: expect.objectContaining({
-            requestedByActor: { kind: "user", userId: "test-user" },
-            requestedByUserId: "test-user",
-          }),
-        }),
-      );
-    });
-
-    it("should prefer top-level url from the registered interceptor", async () => {
-      const enqueued: Array<{ type: string; data: unknown }> = [];
-      const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
-      const origJobQueue = mockShell.getJobQueueService();
-      const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
-        {
-          ...origJobQueue,
-          enqueue: async (request): Promise<string> => {
-            enqueued.push({ type: request.type, data: request.data });
-            return "job-123";
-          },
-        };
-      mockShell.getJobQueueService = (): typeof trackingJobQueue =>
-        trackingJobQueue;
-
-      await plugin.register(mockShell);
-      const interceptor = mockShell
-        .getEntityRegistry()
-        .getCreateInterceptor("link");
-      if (!interceptor) throw new Error("Expected link create interceptor");
-
-      const result = await interceptor(
-        {
-          entityType: "link",
+    expect(pending?.content).toBe(
+      "Pending link capture for https://anthropic.com/research.",
+    );
+    expect(pending?.visibility).toBe("shared");
+    expect(await queued()).toEqual([
+      {
+        type: "link:capture",
+        data: {
           url: "https://anthropic.com/research",
-          prompt: "Save this: https://different.example.com/ignored",
-        },
-        {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "test-user" },
-        },
-      );
-
-      expect(result).toEqual({
-        kind: "handled",
-        result: {
-          success: true,
-          data: {
-            entityId: "anthropic-com-abdc4a",
-            status: "generating",
-            jobId: "job-123",
+          metadata: {
+            interfaceId: "test",
+            userId: "test-user",
+            channelId: "!room:test",
+            channelName: "#test",
+            timestamp: expect.any(String),
           },
         },
-      });
-      expect(enqueued).toHaveLength(1);
-      expect(enqueued[0]?.type).toBe("link:capture");
-      expect(enqueued[0]?.data).toEqual({
-        url: "https://anthropic.com/research",
         metadata: expect.objectContaining({
+          operationType: "data_processing",
+          requestedByActor: { kind: "user", userId: "test-user" },
+          requestedByUserId: "test-user",
+          channelId: "!room:test",
+        }),
+      },
+    ]);
+  });
+
+  it("prefers the request's URL to one its prompt names", async () => {
+    await intercept({
+      url: "https://anthropic.com/research",
+      prompt: "Save this: https://different.example.com/ignored",
+    });
+    expect((await queued()).map(({ data }) => data)).toEqual([
+      {
+        url: "https://anthropic.com/research",
+        metadata: {
           interfaceId: "test",
           userId: "test-user",
           timestamp: expect.any(String),
-        }),
-      });
-    });
+        },
+      },
+    ]);
+  });
 
-    it("should direct-create valid link markdown from the registered interceptor", async () => {
-      const markdown = `---
+  it("captures a URL alone, as system_create hands a URL source on", async () => {
+    expect(
+      await intercept({ url: "https://anthropic.com/research" }),
+    ).toMatchObject({
+      result: { success: true, data: { entityId: "anthropic-com-abdc4a" } },
+    });
+  });
+
+  it("saves a full link document as written", async () => {
+    const markdown = `---
 status: draft
 title: Anthropic Research
 url: https://anthropic.com/research
@@ -395,33 +197,36 @@ source:
 ---
 
 A saved research link.`;
+    expect(await intercept({ content: markdown })).toEqual({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { entityId: "httpsanthropiccomresearch", status: "created" },
+      },
+    });
+    expect(await queued()).toEqual([]);
+  });
 
-      const interceptor = harness
-        .getEntityRegistry()
-        .getCreateInterceptor("link");
-      if (!interceptor) throw new Error("Expected link create interceptor");
-
-      const result = await interceptor(
-        {
-          entityType: "link",
-          content: markdown,
-        },
-        {
-          interfaceType: "test",
-          actor: { kind: "user", userId: "test-user" },
-        },
-      );
-
-      expect(result).toEqual({
-        kind: "handled",
-        result: {
-          success: true,
-          data: {
-            entityId: expect.any(String),
-            status: "created",
-          },
-        },
-      });
+  it("refuses text and prompts that name no URL, and leaves a title alone to the ordinary create", async () => {
+    expect(await intercept({ content: "just some text" })).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error:
+          "Direct link creation requires full link markdown/frontmatter, or provide a URL to capture.",
+      },
+    });
+    expect(await intercept({ prompt: "save something" })).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error:
+          "Link creation requires a URL in the prompt, content, or title, or full link markdown content for direct creation.",
+      },
+    });
+    expect(await intercept({ title: "Nothing" })).toEqual({
+      kind: "continue",
+      input: { entityType: "link", title: "Nothing" },
     });
   });
 });

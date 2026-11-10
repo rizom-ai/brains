@@ -49,6 +49,8 @@ export interface DeclaredEntityStore {
     content: string,
     metadata: string,
   ): Promise<void>;
+  /** Date a row as written at another time, as an older record is. */
+  setCreated(entityType: string, id: string, created: number): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -125,6 +127,15 @@ export async function declaredEntityStore(
   await service.initialize();
   const shell = createMockShell({ logger, entityService: service });
   for (const plugin of plugins) await plugin.register(shell);
+  // What a type validates before it is stored, as the shell's one registry
+  // holds it for the entity service the plugins write through.
+  for (const plugin of entityPlugins) {
+    const validator = shell
+      .getEntityRegistry()
+      .getPersistValidator(plugin.entityType);
+    if (validator)
+      registry.registerPersistValidator(plugin.entityType, validator);
+  }
   const db: Client = createClient(dbConfig);
   return {
     service,
@@ -173,6 +184,12 @@ export async function declaredEntityStore(
       await db.execute({
         sql: "UPDATE entities SET content = ?, contentHash = ?, metadata = ? WHERE entityType = ? AND id = ?",
         args: [content, computeContentHash(content), metadata, entityType, id],
+      });
+    },
+    async setCreated(entityType, id, created): Promise<void> {
+      await db.execute({
+        sql: "UPDATE entities SET created = ?, updated = ? WHERE entityType = ? AND id = ?",
+        args: [created, created, entityType, id],
       });
     },
     async close(): Promise<void> {

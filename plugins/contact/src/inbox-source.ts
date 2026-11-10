@@ -34,12 +34,12 @@ function requireAdmin(actor: InboxActor): void {
     throw new Error("Contact inbox requires admin permission");
 }
 
-function parseRequest(entity: BaseEntity | null, now: number): ParsedRequest {
+function parseRequest(entity: BaseEntity | null): ParsedRequest {
   const parsed = contactRequestSchema.parse(entity);
-  const content = contactRequestAdapter.parseContent(parsed.content);
-  if (Date.parse(content.frontmatter.expiresAt) <= now)
-    throw new Error("Contact request unavailable");
-  return { entity: parsed, ...content };
+  return {
+    entity: parsed,
+    ...contactRequestAdapter.parseContent(parsed.content),
+  };
 }
 
 /** Registry listing is an internal pull operation; all user surfaces enforce the
@@ -49,11 +49,9 @@ export class ContactInboxSource implements InboxSource {
   readonly sourceId: string = "contact-requests";
   readonly displayName: string = "Contact requests";
   private readonly context: ContactInboxContext;
-  private readonly now: () => number;
 
-  constructor(context: ContactInboxContext, now: () => number = Date.now) {
+  constructor(context: ContactInboxContext) {
     this.context = context;
-    this.now = now;
   }
 
   async list(): Promise<InboxItem[]> {
@@ -72,16 +70,11 @@ export class ContactInboxSource implements InboxSource {
         },
         contactRequestSchema,
       );
-      const now = this.now();
       return entities.flatMap((entity): InboxItem[] => {
         const { frontmatter } = contactRequestAdapter.parseContent(
           entity.content,
         );
-        if (
-          frontmatter.status !== "new" ||
-          Date.parse(frontmatter.expiresAt) <= now
-        )
-          return [];
+        if (frontmatter.status !== "new") return [];
         return [
           {
             id: entity.id,
@@ -117,7 +110,7 @@ export class ContactInboxSource implements InboxSource {
         contactRequestSchema,
       );
       signal.throwIfAborted();
-      const { frontmatter, message } = parseRequest(entity, this.now());
+      const { frontmatter, message } = parseRequest(entity);
       return {
         kind: "plain",
         text: `Name: ${frontmatter.name}\nEmail: ${frontmatter.email}\nNotification: ${frontmatter.notification}\n\n${message}`,
@@ -151,10 +144,7 @@ export class ContactInboxSource implements InboxSource {
         },
         contactRequestSchema,
       );
-      const { entity, frontmatter, message } = parseRequest(
-        current,
-        this.now(),
-      );
+      const { entity, frontmatter, message } = parseRequest(current);
       if (frontmatter.status === "handled") return;
       const content = contactRequestAdapter.createContent(
         { ...frontmatter, status: "handled" },

@@ -95,10 +95,12 @@ describe("DurableEntityExportDispatcher", () => {
           yield* yieldToFibers();
           expect(writeEntity).toHaveBeenCalledWith(entity);
           expect(reads.getEntity).not.toHaveBeenCalled();
+          // As stored: the file is the stored document.
           expect(reads.getEntityRaw).toHaveBeenCalledWith({
             entityType,
             id: entity.id,
             visibilityScope: "restricted",
+            source: true,
           });
           expect(pending).toEqual([]);
 

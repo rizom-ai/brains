@@ -31,7 +31,8 @@ interface MockDeckOptions {
 }
 
 /**
- * Create a mock DeckEntity with proper frontmatter in content
+ * A mock deck as the entity store holds it: its document, frontmatter and
+ * slides, in its content, and the frontmatter, decoded, as its metadata.
  */
 export function createMockDeckEntity(
   overrides: MockDeckOptions & { content: string },
@@ -42,9 +43,13 @@ export function createMockDeckEntity(
 
   const metadata: DeckMetadata = overrides.metadata ?? {
     slug,
+    authoredSlug: true,
     title,
     status,
+    ...(overrides.description && { description: overrides.description }),
+    ...(overrides.author && { author: overrides.author }),
     ...(overrides.publishedAt && { publishedAt: overrides.publishedAt }),
+    ...(overrides.event && { event: overrides.event }),
     ...(overrides.coverImageId && { coverImageId: overrides.coverImageId }),
   };
 

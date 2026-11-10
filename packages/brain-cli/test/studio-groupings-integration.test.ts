@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 
 // Keep DOM globals and the documented StyleX JIT workaround in this child,
 // rather than changing the CLI suite or the production runtime environment.
+// The suites it runs are named *.check.ts(x), which a plain `bun test` does
+// not discover: they pass only with these preloads.
 test("Studio grouping integration with real entity adapters", async () => {
   const child = Bun.spawn(
     [
@@ -11,9 +13,9 @@ test("Studio grouping integration with real entity adapters", async () => {
       "@brains/build-tools/stylex-test-preload",
       "--preload",
       "@brains/studio/test/preload",
-      "./test/studio-groupings/studio-groupings-plugin.test.tsx",
-      "./test/studio-groupings/studio-groupings-runtime.test.ts",
-      "./test/studio-groupings/studio-groupings-processes.test.ts",
+      "./test/studio-groupings/studio-groupings-plugin.check.tsx",
+      "./test/studio-groupings/studio-groupings-runtime.check.ts",
+      "./test/studio-groupings/studio-groupings-processes.check.ts",
     ],
     {
       cwd: new URL("..", import.meta.url).pathname,
@@ -33,9 +35,9 @@ test("Studio grouping integration with real entity adapters", async () => {
     expect(exitCode, `${stdout}\n${stderr}`).toBe(0);
     expect(stderr).toMatch(/\b[1-9]\d* pass\b/);
     for (const suite of [
-      "plugin.test.tsx",
-      "runtime.test.ts",
-      "processes.test.ts",
+      "plugin.check.tsx",
+      "runtime.check.ts",
+      "processes.check.ts",
     ]) {
       expect(stderr).toContain(`studio-groupings-${suite}:`);
     }

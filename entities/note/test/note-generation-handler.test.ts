@@ -1,89 +1,91 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockEntityPluginContext } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils/progress";
-import {
-  NoteGenerationJobHandler,
-  generatedNoteSchema,
-} from "../src/handlers/noteGenerationJobHandler";
-import {
-  createSilentLogger,
-  createMockProgressReporter,
-} from "@brains/test-utils";
+import type { ContentGenerationConfig, JobHandler } from "@brains/plugins";
+import { createMockProgressReporter } from "@brains/test-utils";
 import type { Note } from "../src/schemas/note";
+import { notePlugin } from "./note-plugin";
 
-describe("NoteGenerationJobHandler", () => {
-  let handler: NoteGenerationJobHandler;
-  let mockContext: EntityPluginContext;
-  let mockProgressReporter: ProgressReporter;
+/** A job the notes queued for themselves, as the runtime queues it. */
+function asPackage(input: unknown, entityId?: string): unknown {
+  return {
+    authority: {
+      actor: { kind: "service", serviceId: "note" },
+      permissionCeiling: "public",
+    },
+    input,
+    byPackage: true,
+    ...(entityId !== undefined && { entityId }),
+  };
+}
 
-  beforeEach(() => {
-    mockProgressReporter = createMockProgressReporter();
-    mockContext = createMockEntityPluginContext({
-      returns: {
-        entityService: {
-          getEntity: null,
-          listEntities: [],
-          createEntity: {
-            entityId: "test-id",
-            jobId: "mock-job-id",
-            skipped: false,
-          },
-        },
-      },
-    });
+describe("the note generation", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+  let handler: JobHandler;
+  let configs: ContentGenerationConfig[];
+  let reply: unknown;
 
-    handler = new NoteGenerationJobHandler(
-      createSilentLogger("test"),
-      mockContext,
-    );
+  beforeEach(async () => {
+    harness = createPluginHarness();
+    await harness.installPlugin(notePlugin());
+    configs = [];
+    reply = { title: "Neutral Note", body: "Body text" };
+    harness.getMockShell().generateContent = async (
+      config: ContentGenerationConfig,
+    ): Promise<unknown> => {
+      configs.push(config);
+      return reply;
+    };
+    const registered = harness
+      .getMockShell()
+      .getJobQueueService()
+      .getHandler("note:generation");
+    if (!registered) throw new Error("No note generation");
+    handler = registered;
   });
+
+  function run(data: unknown): Promise<unknown> {
+    return handler.process(
+      handler.validateAndParse(data),
+      "job-123",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+  }
 
   describe("validateAndParse", () => {
     it("should validate correct job data", () => {
       const data = { prompt: "Create a note about TypeScript" };
-      const result = handler.validateAndParse(data);
-
-      expect(result).not.toBeNull();
-      expect(result?.prompt).toBe("Create a note about TypeScript");
+      expect(handler.validateAndParse(asPackage(data))).toMatchObject({
+        input: data,
+      });
     });
 
     it("should accept optional title", () => {
       const data = { prompt: "Create a note", title: "My Note" };
-      const result = handler.validateAndParse(data);
-
-      expect(result).not.toBeNull();
-      expect(result?.title).toBe("My Note");
+      expect(handler.validateAndParse(asPackage(data))).toMatchObject({
+        input: data,
+      });
     });
 
     it("should return null for missing required prompt", () => {
-      const result = handler.validateAndParse({});
-      expect(result).toBeNull();
+      expect(handler.validateAndParse(asPackage({}))).toBeNull();
+      // As the note plugin class queued it, before the type was declared.
+      expect(handler.validateAndParse({})).toBeNull();
     });
   });
 
   describe("process - entity creation", () => {
     it("classifies internal note generation as neutral", async () => {
-      spyOn(mockContext.ai, "generate").mockResolvedValue({
-        title: "Neutral Note",
-        body: "Body text",
-      });
+      await run(asPackage({ prompt: "Write a note" }));
 
-      await handler.process(
-        { prompt: "Write a note" },
-        "job-123",
-        mockProgressReporter,
-      );
-
-      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+      expect(configs).toEqual([
         {
           prompt: "Write a note",
           templateName: "note:generation",
           representedIdentity: "none",
         },
-        generatedNoteSchema,
-      );
+      ]);
     });
 
     it("replaces a queued rewrite stub with the generated body, not the source or progress text", async () => {
@@ -100,50 +102,41 @@ describe("NoteGenerationJobHandler", () => {
         "## Next steps",
         "- Publish the participant checklist.",
       ].join("\n");
-      const stub = createTestEntity<Note>("note", {
-        id: "revised-community-launch",
-        content:
-          "---\ntitle: Revised Community Launch\nstatus: generating\n---\n",
-        metadata: { title: "Revised Community Launch", status: "generating" },
+      await harness.getEntityService().createEntity({
+        entity: createTestEntity<Note>("note", {
+          id: "revised-community-launch",
+          content: "",
+          metadata: {
+            title: "Revised Community Launch",
+            status: "generating",
+            titleStated: true,
+          },
+        }),
       });
-      spyOn(mockContext.ai, "generate").mockResolvedValue({
-        title: "Launch Decisions",
-        body,
-      });
-      spyOn(mockContext.entityService, "getEntity").mockImplementation(
-        async ({ id }: { id: string }) => (id === stub.id ? stub : null),
-      );
-      const update = spyOn(
-        mockContext.entityService,
-        "updateEntity",
-      ).mockResolvedValue({
-        entityId: stub.id,
-        jobId: "saved-note-job",
-        skipped: false,
-      });
-      const parsed = handler.validateAndParse({ entityId: stub.id, prompt });
-      if (!parsed) throw new Error("Expected valid queued rewrite data");
-      expect(parsed).toMatchObject({ entityId: stub.id, prompt });
+      reply = { title: "Launch Decisions", body };
+      const service = harness.getEntityService();
+      const create = spyOn(service, "createEntity");
+      const update = spyOn(service, "updateEntity");
 
-      const result = await handler.process(
-        parsed,
-        "rewrite-job",
-        mockProgressReporter,
+      const result = await run(
+        asPackage({ prompt }, "revised-community-launch"),
       );
 
-      expect(result).toMatchObject({ success: true, entityId: stub.id });
-      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+      expect(result).toMatchObject({
+        success: true,
+        entityId: "revised-community-launch",
+      });
+      expect(configs).toEqual([
         {
           prompt,
           templateName: "note:generation",
           representedIdentity: "none",
         },
-        generatedNoteSchema,
-      );
-      expect(mockContext.entityService.createEntity).not.toHaveBeenCalled();
+      ]);
+      expect(create).not.toHaveBeenCalled();
       expect(update).toHaveBeenCalledTimes(1);
       const saved = update.mock.calls[0]?.[0].entity;
-      expect(saved?.id).toBe(stub.id);
+      expect(saved?.id).toBe("revised-community-launch");
       expect(saved?.content).toContain(body);
       expect(saved?.content).not.toContain("Monday");
       expect(saved?.content).not.toContain("Unassigned");
@@ -153,19 +146,13 @@ describe("NoteGenerationJobHandler", () => {
     });
 
     it("should slugify the title for the entity id and dedupe", async () => {
-      spyOn(mockContext.ai, "generate").mockResolvedValue({
-        title: "My Fancy Note!",
-        body: "Body text",
-      });
+      reply = { title: "My Fancy Note!", body: "Body text" };
+      const create = spyOn(harness.getEntityService(), "createEntity");
 
-      const result = await handler.process(
-        { prompt: "Write a note" },
-        "job-123",
-        mockProgressReporter,
-      );
+      const result = await run(asPackage({ prompt: "Write a note" }));
 
-      expect(result.success).toBe(true);
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+      expect(result).toMatchObject({ success: true });
+      expect(create).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "my-fancy-note",
           metadata: expect.objectContaining({ title: "My Fancy Note!" }),
@@ -175,34 +162,29 @@ describe("NoteGenerationJobHandler", () => {
     });
 
     it("should regenerate the title when the derived id collides", async () => {
-      spyOn(mockContext.ai, "generate").mockResolvedValue({
-        title: "Taken Title",
-        body: "Body text",
-      });
-      spyOn(mockContext.entityService, "getEntity").mockResolvedValue(
-        createTestEntity<Note>("note", {
+      reply = { title: "Taken Title", body: "Body text" };
+      await harness.getEntityService().createEntity({
+        entity: createTestEntity<Note>("note", {
           id: "taken-title",
           content: "Existing note",
           metadata: { title: "Taken Title" },
         }),
-      );
+      });
       // Parse the fixture through the caller's own schema: that produces a
       // genuine T for the generic, and fails loudly if the fixture drifts
       // from the shape the handler actually asks for.
-      spyOn(mockContext.ai, "generateObject").mockImplementation(
-        async (_prompt, schema) => ({
-          object: schema.parse({ title: "Fresh Title" }),
-        }),
-      );
+      harness.getMockShell().generateObject = async <T>(
+        _prompt: string,
+        schema: { parse(value: unknown): T },
+      ): Promise<{ object: T }> => ({
+        object: schema.parse({ title: "Fresh Title" }),
+      });
+      const create = spyOn(harness.getEntityService(), "createEntity");
 
-      const result = await handler.process(
-        { prompt: "Write a note" },
-        "job-123",
-        mockProgressReporter,
-      );
+      const result = await run(asPackage({ prompt: "Write a note" }));
 
-      expect(result.success).toBe(true);
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+      expect(result).toMatchObject({ success: true });
+      expect(create).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "fresh-title",
           metadata: expect.objectContaining({ title: "Fresh Title" }),

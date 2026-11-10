@@ -6,6 +6,10 @@ function getRuntimeNodeEnv(): string | undefined {
   return process.env[NODE_ENV_KEY];
 }
 
+export function isProductionRuntime(): boolean {
+  return getRuntimeNodeEnv() === "production";
+}
+
 export function preferLocalUrlsForRuntime(): boolean {
-  return getRuntimeNodeEnv() !== "production";
+  return !isProductionRuntime();
 }

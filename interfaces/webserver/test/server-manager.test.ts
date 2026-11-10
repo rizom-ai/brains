@@ -36,6 +36,7 @@ describe("ServerManager (in-process)", () => {
       match?: WebRouteMatch;
       admission?: SharedHostAdmission;
       preview?: boolean;
+      claims?: (path: string) => boolean;
     } = {},
   ): RegisteredHttpRoute {
     return {
@@ -47,6 +48,7 @@ describe("ServerManager (in-process)", () => {
       sharedHostAdmission: options.admission ?? "admit",
       handler,
       ...(options.preview ? { preview: true } : {}),
+      ...(options.claims ? { claims: options.claims } : {}),
     };
   }
 
@@ -851,6 +853,54 @@ describe("ServerManager (in-process)", () => {
       (await fetch(`${url}/studio/entities/post/one`, { method: "POST" }))
         .status,
     ).toBe(404);
+  });
+
+  it("asks claim routes about a path only when no exact or prefix route has it, before static pages", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-claim-routes-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(join(prodDir, "about"), { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "about", "index.html"), "static about");
+    // What the forms in the brain's content claim right now.
+    const forms = new Set(["/brand-test"]);
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "quiz",
+          "/quiz",
+          async (request): Promise<Response> =>
+            new Response(`form at ${new URL(request.url).pathname}`),
+          { match: "claim", claims: (path) => forms.has(path) },
+        ),
+        handlerRoute(
+          "studio",
+          "/studio",
+          async (): Promise<Response> => new Response("studio"),
+          { match: "prefix" },
+        ),
+      ],
+    });
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+    expect(await (await fetch(`${url}/brand-test`)).text()).toBe(
+      "form at /brand-test",
+    );
+    expect(await (await fetch(`${url}/about`)).text()).toBe("static about");
+    // A form added later is claimed from then on.
+    forms.add("/about");
+    expect(await (await fetch(`${url}/about`)).text()).toBe("form at /about");
+    forms.add("/studio/x");
+    expect(await (await fetch(`${url}/studio/x`)).text()).toBe("studio");
+    expect((await fetch(`${url}/brand-test`, { method: "POST" })).status).toBe(
+      404,
+    );
   });
 
   it("should reject non-public web routes with 401", async () => {

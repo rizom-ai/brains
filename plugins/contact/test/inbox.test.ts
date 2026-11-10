@@ -9,10 +9,11 @@ import {
 } from "../src";
 
 const receivedAt = "2026-09-21T10:00:00.000Z";
-const expiresAt = "2026-10-21T10:00:00.000Z";
+// Requests once expired; one written then carries the time it would have.
+const legacyExpiresAt = "2026-09-22T10:00:00.000Z";
 const admin = { permissionLevel: "admin" as const };
 
-async function fixture(): Promise<{
+async function fixture(options: { legacy?: boolean } = {}): Promise<{
   harness: ReturnType<typeof createPluginHarness>;
   context: ReturnType<typeof createServicePluginContext>;
 }> {
@@ -24,7 +25,7 @@ async function fixture(): Promise<{
       name: "Ada",
       email: "private@example.com",
       receivedAt,
-      expiresAt,
+      ...(options.legacy ? { expiresAt: legacyExpiresAt } : {}),
       status: "new",
       notification: "pending",
     },
@@ -57,19 +58,20 @@ describe("contact inbox", () => {
       harness.getMockShell().getInboxRegistry().getSource("contact-requests"),
     ).toBeDefined();
     expect(capabilities.tools).toEqual([]);
+    // Its own form's pages, and what forms in content claim.
     expect(plugin.getWebRoutes().map((route) => route.path)).toEqual([
       "/contact",
       "/contact",
       "/contact/thanks",
+      "/_forms/contact",
+      "/_forms/contact",
     ]);
     expect(plugin.getApiRoutes()).toEqual([]);
   });
 
   it("lists each entity once and keeps personal details in the admin-only plain-text detail", async () => {
     const { context } = await fixture();
-    const source = new ContactInboxSource(context, () =>
-      Date.parse(receivedAt),
-    );
+    const source = new ContactInboxSource(context);
     const listed = await source.list();
     expect(listed).toHaveLength(1);
     expect(await source.list()).toEqual(listed);
@@ -100,9 +102,7 @@ describe("contact inbox", () => {
 
   it("denies non-admin detail/actions and unknown actions", async () => {
     const { context } = await fixture();
-    const source = new ContactInboxSource(context, () =>
-      Date.parse(receivedAt),
-    );
+    const source = new ContactInboxSource(context);
     for (const permissionLevel of ["public", "trusted"] as const) {
       expect(
         source.resolveDetail(
@@ -123,9 +123,7 @@ describe("contact inbox", () => {
 
   it("does not overwrite a concurrent notification update when marking handled", async () => {
     const { context } = await fixture();
-    const source = new ContactInboxSource(context, () =>
-      Date.parse(receivedAt),
-    );
+    const source = new ContactInboxSource(context);
     const update = context.entityService.updateEntity.bind(
       context.entityService,
     );
@@ -172,16 +170,21 @@ describe("contact inbox", () => {
     ).toMatchObject({ status: "new", notification: "sent" });
   });
 
-  it("hides expired records and honors cancellation before reading details", async () => {
-    const { context } = await fixture();
-    const source = new ContactInboxSource(context, () => Date.parse(expiresAt));
-    expect(await source.list()).toEqual([]);
+  it("keeps a request written with an expiry long past and honors cancellation before reading details", async () => {
+    const { context } = await fixture({ legacy: true });
+    const source = new ContactInboxSource(context);
+    expect(await source.list()).toHaveLength(1);
     expect(
-      source.resolveDetail("contact-test", admin, new AbortController().signal),
-    ).rejects.toThrow("Contact request unavailable");
-    expect(source.act("contact-test", "mark-handled", admin)).rejects.toThrow(
-      "Contact request unavailable",
-    );
+      (
+        await source.resolveDetail(
+          "contact-test",
+          admin,
+          new AbortController().signal,
+        )
+      ).text,
+    ).toContain("Private contact message");
+    await source.act("contact-test", "mark-handled", admin);
+    expect(await source.list()).toEqual([]);
     const controller = new AbortController();
     controller.abort();
     expect(

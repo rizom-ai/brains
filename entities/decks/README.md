@@ -12,24 +12,21 @@ Presentation decks plugin for creating and viewing slide presentations.
 
 ## Usage
 
-```typescript
-import { decksPlugin } from "@brains/decks";
+The package default-exports a declarative entity package. The canonical brain composes it under the plugin id `decks`, so its templates and data source keep the `decks:` names:
 
-const config = defineConfig({
-  plugins: [decksPlugin()],
-});
+```typescript
+import decksPackage from "@brains/decks";
 ```
 
 ## Tools
 
-- `decks:generate` - Generate a new presentation deck
-- `decks:publish` - Publish a deck
+None of its own. Decks are written from text with `system_create` and generated from a prompt with `system_generate`, through `deck:generation`.
 
 ## Templates
 
 - `decks:deck-list` - List of all decks
 - `decks:deck-detail` - Individual deck viewer
-- `decks:deck-slide` - Single slide view
+- `decks:carousel` - The deck as social carousel slides
 
 ## Schema
 

@@ -1,8 +1,15 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { CallbackProgressReporter } from "@brains/utils/progress";
+import type {
+  EntityDefinition,
+  EntityEvalDeclaration,
+} from "@brains/sdk/entities";
+import { entityRuntime } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
-import { GenerationJobHandler } from "../handlers/generationHandler";
+import type { socialPostMetadataSchema } from "../schemas/social-post";
+
+type SocialPostDefinition = EntityDefinition<
+  "social-post",
+  typeof socialPostMetadataSchema
+>;
 
 const generationInputSchema = z.object({
   prompt: z.string().optional(),
@@ -17,70 +24,59 @@ const createInputSchema = z.object({
   platform: z.enum(["linkedin"]).optional(),
 });
 
-type GenerationInput = z.output<typeof generationInputSchema>;
-type CreateInput = z.output<typeof createInputSchema>;
+interface ProgressStep {
+  progress: number;
+  message?: string;
+}
 
-export function registerEvalHandlers(context: EntityPluginContext): void {
-  // Eval: test AI text generation only (fast, no entity persistence)
-  context.eval.registerHandler("generation", async (input: unknown) => {
-    const parsed: GenerationInput = generationInputSchema.parse(input);
-
-    const generationPrompt = parsed.content
-      ? `Write a LinkedIn post to share this content:\n\n${parsed.content}`
-      : (parsed.prompt ?? "Write a LinkedIn post");
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(context.entityService),
-    );
-    return context.ai.generate(
-      {
-        prompt: generationPrompt,
-        templateName: `social-media:${parsed.platform}`,
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      },
-      z.object({ content: z.string() }),
-    );
-  });
-
-  // Eval: run the full generation pipeline and verify entity persistence
-  context.eval.registerHandler("create", async (input: unknown) => {
-    const parsed: CreateInput = createInputSchema.parse(input);
-
-    const progressSteps: Array<{ progress: number; message?: string }> = [];
-    const reporter = CallbackProgressReporter.from(async (n) => {
-      const step: { progress: number; message?: string } = {
-        progress: n.progress,
-      };
-      if (n.message !== undefined) step.message = n.message;
-      progressSteps.push(step);
-    });
-    if (!reporter) throw new Error("Failed to create progress reporter");
-
-    const handler = new GenerationJobHandler(context.logger, context);
-    const result = await handler.process(
-      parsed,
-      `eval-${Date.now()}`,
-      reporter,
-    );
-
-    // Verify entity was actually persisted when the handler reports success
-    let entityExists = false;
-    let entityPreview: string | undefined;
-    if (result.success && result.entityId) {
-      const entity = await context.entityService.getEntity({
-        entityType: "social-post",
-        id: result.entityId,
+/**
+ * The social posts' evals: the AI's post text alone, and the whole
+ * generation, which must leave the post it reports in the store.
+ */
+export function socialPostEvals(
+  socialPost: () => SocialPostDefinition,
+): EntityEvalDeclaration {
+  return {
+    // Eval: test AI text generation only (fast, no entity persistence)
+    generation: async (input, { ai }): Promise<{ content: string }> => {
+      const parsed = generationInputSchema.parse(input);
+      return ai.generate(
+        {
+          template: parsed.platform,
+          prompt: parsed.content
+            ? `Write a LinkedIn post to share this content:\n\n${parsed.content}`
+            : (parsed.prompt ?? "Write a LinkedIn post"),
+          representedIdentity: "anchor",
+          voice: true,
+        },
+        z.object({ content: z.string() }),
+      );
+    },
+    // Eval: run the full generation pipeline and verify entity persistence
+    create: async (input, context): Promise<Record<string, unknown>> => {
+      const parsed = createInputSchema.parse(input);
+      const progressSteps: ProgressStep[] = [];
+      const result = await entityRuntime(context).runGeneration(parsed, {
+        onProgress: ({ progress, message }) => {
+          progressSteps.push({
+            progress,
+            ...(message !== undefined && { message }),
+          });
+        },
       });
-      entityExists = !!entity;
-      entityPreview = entity?.content.slice(0, 300);
-    }
-
-    return {
-      ...result,
-      entityExists,
-      entityPreview,
-      progressSteps,
-    };
-  });
+      const entityId =
+        result.success && typeof result.entityId === "string"
+          ? result.entityId
+          : undefined;
+      const entity = entityId
+        ? await context.entities.get(socialPost(), entityId)
+        : null;
+      return {
+        ...result,
+        entityExists: entity !== null,
+        entityPreview: entity?.content.slice(0, 300),
+        progressSteps,
+      };
+    },
+  };
 }

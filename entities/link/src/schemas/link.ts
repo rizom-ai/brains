@@ -57,22 +57,12 @@ export const linkFrontmatterSchema: LinkFrontmatterSchema = z.object({
 export type LinkFrontmatter = z.output<typeof linkFrontmatterSchema>;
 
 /**
- * Link metadata schema - derived from frontmatter
- * Only includes fields needed for fast DB queries/filtering
- * Using .pick() ensures metadata stays in sync with frontmatter
+ * A link's metadata: its frontmatter, decoded. A declared link reads back
+ * as its summary, its frontmatter its metadata.
  */
-type LinkMetadataSchema = z.ZodObject<{
-  title: z.ZodString;
-  status: typeof linkStatusSchema;
-  capturedAt: z.ZodString;
-}>;
+type LinkMetadataSchema = LinkFrontmatterSchema;
 
-export const linkMetadataSchema: LinkMetadataSchema =
-  linkFrontmatterSchema.pick({
-    title: true,
-    status: true,
-    capturedAt: true,
-  });
+export const linkMetadataSchema: LinkMetadataSchema = linkFrontmatterSchema;
 
 export type LinkMetadata = z.output<typeof linkMetadataSchema>;
 

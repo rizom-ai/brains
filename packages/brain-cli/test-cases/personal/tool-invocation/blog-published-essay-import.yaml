@@ -12,13 +12,13 @@ tags:
 
 turns:
   - userMessage: |
-      This essay was published on Substack on 12 March 2025 at https://janhein.substack.com/p/on-slowness. Make it a published post with that original date, and keep that address as the canonical one.
+      This essay was published on Substack on 12 March 2025 at https://janhein.substack.com/p/on-patience. Make it a published post with that original date, and keep that address as the canonical one.
 
-      # On Slowness
+      # On Patience
 
-      I write slowly, and I have stopped apologizing for it.
+      I wait for an argument to settle before I write it down.
 
-      Speed is a habit of the platform, not of the work.
+      Patience is part of the work, not a delay before it.
 
 successCriteria:
   expectedTools:
@@ -28,7 +28,7 @@ successCriteria:
         entityType: post
         source.kind: user-message
         fields.status: published
-        fields.canonicalUrl: https://janhein.substack.com/p/on-slowness
+        fields.canonicalUrl: https://janhein.substack.com/p/on-patience
       # The date, with or without a time of day: both are stored as that day.
       argsMatch:
         fields.publishedAt: "^2025-03-12"

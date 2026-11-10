@@ -612,6 +612,16 @@ export interface EntityAdapter<
   metadataFromFrontmatter?: boolean;
 
   /**
+   * Optional: keep the frontmatter order of the document a write replaces
+   * (the one handed in whole, or the one stored when an update carries the
+   * body alone): written values land where that document has them, an
+   * unchanged nested value keeps its own key order, and a field it lacks
+   * follows the rest, as an entity plugin class's adapter wrote over
+   * existing frontmatter. For types whose files people write by hand.
+   */
+  writesInDocumentOrder?: boolean;
+
+  /**
    * Optional: the `metadata.status` values that count as published for
    * `publishedOnly` queries (production site builds). Declaring this makes the
    * list exact — entities without a status are NOT published. When absent, the

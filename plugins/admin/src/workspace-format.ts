@@ -1,9 +1,9 @@
 import type { AuthAdminUserSummary } from "@brains/contracts";
+import type { StudioWorkspaceRegistration } from "@brains/plugins";
 import type {
   AuthBackend,
-  BasePluginContext,
-  StudioWorkspaceRegistration,
-} from "@brains/plugins";
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 
 export type AdminWorkspaceRegistration = Omit<
   StudioWorkspaceRegistration,
@@ -34,9 +34,9 @@ export function formatWorkspaceDate(timestamp: number): string {
 }
 
 export function requireAuthBackend(
-  context: Pick<BasePluginContext, "auth">,
+  runtime: Pick<ServiceRuntime, "auth">,
 ): AuthBackend {
-  const authService = context.auth.get();
+  const authService = runtime.auth();
   if (!authService) {
     throw new Error("Administration workspace requires auth-service");
   }

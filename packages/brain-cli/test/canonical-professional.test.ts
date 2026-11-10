@@ -19,6 +19,8 @@ import {
   siteBundle,
 } from "../src/model/canonical-brain";
 import { isRecord } from "@brains/utils/is-record";
+import { createPluginHarness } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 
 registerPackage("@brains/site-default", defaultSite);
 registerPackage("@rizom/theme-default", defaultTheme);
@@ -52,11 +54,28 @@ function pluginConfig(
 }
 
 describe("canonical professional posture", () => {
+  test("drafts LinkedIn posts from blog posts, as the publishing bundle asks", async () => {
+    const resolved = resolve(canonicalBrain, {}, canonicalOverrides());
+    const socialMedia = resolved.plugins?.find(
+      (candidate) => candidate.id === "social-media",
+    );
+    if (!socialMedia) throw new Error("No social-media capability");
+    // The social media package reads its config when it installs, so the
+    // bundle's setting shows in what it registers.
+    const capabilities = await createPluginHarness({
+      logger: createSilentLogger("canonical-professional"),
+    }).installPlugin(socialMedia);
+    expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
+      "social-post-generation",
+    ]);
+  });
+
   test("defines independent site and publishing membership", () => {
     expect(siteBundle.members).toEqual([
       "site-info",
       "site-content",
       "site-builder",
+      "form",
       "analytics",
     ]);
     expect(publishingBundle.members).toEqual([
@@ -113,9 +132,6 @@ describe("canonical professional posture", () => {
         newsletter: "0 9 * * 1",
         "social-post": "0 10 * * *",
       },
-    });
-    expect(pluginConfig(resolved, "social-media")).toMatchObject({
-      autoGenerateOnBlogPublish: true,
     });
     expect(pluginIds(resolved)).not.toContain("buttondown");
     expect(pluginIds(resolved)).not.toContain("resend");

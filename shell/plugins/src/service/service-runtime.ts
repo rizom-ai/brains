@@ -1,13 +1,25 @@
-import type { BusContract, Channel } from "@brains/contracts";
+import type { BusContract, Channel, WebRouteRole } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
+import type { RecurringCheckDefinition } from "@brains/recurring-checks";
+import type { ToolContext } from "@brains/mcp-service";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
+import type { EvalHandler } from "../contracts/handlers";
+import type { IShell } from "../interfaces";
+import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
+  IInboxFollowUpsNamespace,
+  IInboxNamespace,
+  IInteractionsNamespace,
   IMessagingNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
+import type { AuthBackend } from "../contracts/auth";
+import type { StudioWorkspaceRegistration } from "../contracts/studio-workspace-contracts";
+import type { BuiltInStudioWorkspaceSource } from "../operator/studio-workspace-runtime";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -16,6 +28,8 @@ import type {
   EntityMutationResult,
   GetEntityRequest,
   ListEntitiesRequest,
+  EntitySearchRequest,
+  SearchResult,
   NearestEntity,
   NearestToEntityRequest,
   PersistValidator,
@@ -25,11 +39,13 @@ import type {
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { DashboardWidgetRenderer } from "../contracts/dashboard-widget-contracts";
-import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
+import type {
+  AnyDashboardWidgetDefinition,
+  AnyStudioWorkspaceDefinition,
+} from "../operator/operator-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   buildServiceTool,
-  type ServiceBusDelivery,
   type ServiceInputSchema,
   type ServiceSchema,
   type ServiceToolDefinition,
@@ -46,11 +62,24 @@ import {
 
 const firstPartyToolName = /^[a-z][a-z0-9_-]*$/u;
 
+/** The first-party tools registered under their name as written. */
+const bareNamedTools = new WeakSet<object>();
+
+/**
+ * Whether a first-party tool keeps the bare name its class gave it
+ * (`playbook_manage`) rather than one prefixed with its service's id.
+ */
+export function isBareNamedTool(tool: object): boolean {
+  return bareNamedTools.has(tool);
+}
+
 /**
  * A tool as `defineTool` declares one, whose local name may also carry an
  * underscore, as a first-party class's tools were named
  * (`atproto-registry_check_contracts`). The public `defineTool` keeps its
- * kebab-case rule.
+ * kebab-case rule. With `bareName`, the tool is registered under its name
+ * as written, as a class that named its tool in full registered it
+ * (`playbook_manage`, `inbox_list`), not prefixed with its service's id.
  */
 export function firstPartyTool<
   const TName extends string,
@@ -61,13 +90,16 @@ export function firstPartyTool<
     ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,
     "kind"
   >,
+  options: { readonly bareName?: boolean | undefined } = {},
 ): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {
   if (!firstPartyToolName.test(definition.name)) {
     throw new Error(
       `First-party tool name "${definition.name}" must start with a lowercase letter and contain only lowercase letters, numbers, hyphens and underscores`,
     );
   }
-  return buildServiceTool(definition);
+  const tool = buildServiceTool(definition);
+  if (options.bareName === true) bareNamedTools.add(tool);
+  return tool;
 }
 
 /**
@@ -77,9 +109,13 @@ export function firstPartyTool<
  */
 export type ServiceListenMode = "subscribe" | "observe" | "execution";
 
-/** What hearing a channel is handed: its payload. */
+/**
+ * What hearing a channel is handed: its payload, and the sender the bus
+ * stamped on it, which a listener checks before it trusts what it heard.
+ */
 export type ServiceListenHandler<TPayload> = (context: {
   readonly payload: TPayload;
+  readonly sender: string;
 }) => void | Promise<void>;
 
 export interface ServiceListenOptions {
@@ -105,11 +141,14 @@ export interface ServiceRuntime {
   /**
    * Answer a first-party contract under the channel it already has, such as
    * `notifications:send`, as the package; with `everyProcess`, in job
-   * workers too, as the class answered it. The public `answer` answers only
-   * channels its package names. Released when the package shuts down.
+   * workers too, as the class answered it. A request, a command, or a
+   * contract every owner answers and the asker gathers
+   * (`agent:context:request`), beside the others that answer it. The
+   * public `answer` answers only channels its package names and never a
+   * gathered one. Released when the package shuts down.
    */
   answer<const TRequest extends z.ZodType, const TResponse extends z.ZodType>(
-    contract: BusContract<TRequest, TResponse, ServiceBusDelivery>,
+    contract: BusContract<TRequest, TResponse>,
     handler: (context: {
       readonly request: z.output<TRequest>;
       readonly sender: string;
@@ -158,6 +197,64 @@ export interface ServiceRuntime {
   /** The brain's bare domain, when it has one. */
   readonly domain: string | undefined;
   /**
+   * The auth backend the brain bound, read when asked, as the class read
+   * `context.auth.get()`: none while the brain runs without auth-service.
+   */
+  auth(): AuthBackend | undefined;
+  /**
+   * Studio, for a workspace the package composes from declared ones, as
+   * admin composes its Administration tabs. Call it once every plugin has
+   * registered, where the class registered its workspaces.
+   */
+  readonly studio: ServiceStudio;
+  /**
+   * The Inbox sources other plugins registered, as the class read them
+   * through `context.inbox`; a reader registers none.
+   */
+  readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
+  /**
+   * The follow-ups the Inbox's destinations resolve for an item, as the
+   * class read them through `context.inboxFollowUps`.
+   */
+  readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
+  /**
+   * Register a recurring check under the plugin's id, in every process, as
+   * the class registered it through `context.recurringChecks`.
+   */
+  recurringCheck(check: RecurringCheckDefinition): void;
+  /**
+   * Offer a way into the brain, as the class registered one through
+   * `context.interactions`; a worker offers none.
+   */
+  interaction(interaction: ServiceInteraction): void;
+  /**
+   * The URL Studio serves one of this package's workspaces at, once Studio
+   * took it; none before, or without a Studio.
+   */
+  workspaceUrl(workspace: AnyStudioWorkspaceDefinition): string | undefined;
+  /** The brain's site URL, when it has a domain. */
+  readonly siteUrl: string | undefined;
+  /** The route another plugin mounts for a well-known role, if any. */
+  routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
+  /**
+   * The tool call that is running, as the class's handler was handed it:
+   * the conversation it was called in and the caller's permission level.
+   * None outside a tool call.
+   */
+  toolCall(): ServiceToolCall | undefined;
+  /**
+   * The runtime state the class stored, under the namespace the class named
+   * (`playbooks.runs`) rather than one qualified by the package's name, so
+   * the records stored before the conversion are the ones it reads after.
+   */
+  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  /**
+   * Register an eval handler under the plugin's id (`playbooks:goalCheck`),
+   * as the class registered it through `context.eval`; a worker registers
+   * none.
+   */
+  evalHandler(handlerId: string, handler: EvalHandler): void;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -176,8 +273,11 @@ export interface ServiceRuntime {
    * it and read the selected one once registration completed.
    */
   readonly profileKinds: IProfileKindsNamespace;
-  /** One structured answer from the brain's AI, as the class asked it. */
-  readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  /**
+   * One structured answer from the brain's AI, and a bounded verdict from
+   * its judge, as the class asked them.
+   */
+  readonly ai: ServiceAI;
   /**
    * Serve a data source under `<plugin id>:<id>`, as an entity plugin class
    * registered one: `fetch` reads the corpus at the build's scope, through
@@ -199,6 +299,41 @@ export interface ServiceRuntime {
   dashboardWidget<TDefinition extends AnyDashboardWidgetDefinition>(
     widget: ServiceDashboardWidget<TDefinition>,
   ): void;
+}
+
+/** What a running tool call says about itself, as a class's handler read it. */
+export type ServiceToolCall = Pick<
+  ToolContext,
+  "conversationId" | "userPermissionLevel"
+>;
+
+/** A way into the brain, as `context.interactions` registers one. */
+export type ServiceInteraction = Parameters<
+  IInteractionsNamespace["register"]
+>[0];
+
+/**
+ * The Studio a first-party service composes a workspace for, as its class
+ * registered one.
+ */
+export interface ServiceStudio {
+  /** Whether a Studio hosts workspaces in this process: never in a worker. */
+  isAvailable(): boolean;
+  /**
+   * A declared workspace built under the plugin's id, as a tab another
+   * workspace loads; it is never registered on its own.
+   */
+  source<TDefinition extends AnyStudioWorkspaceDefinition>(
+    input: BuiltInStudioWorkspaceSource<TDefinition>,
+  ): Omit<StudioWorkspaceRegistration, "pluginId">;
+  /**
+   * Register a composed workspace with Studio: the URL Studio serves it at,
+   * or none when no Studio took it or the process is a worker. As the class
+   * registered it, it stays registered until Studio goes.
+   */
+  register(
+    registration: Omit<StudioWorkspaceRegistration, "pluginId">,
+  ): Promise<string | undefined>;
 }
 
 /** The corpus reads a map draws from, passed through to an entity service. */
@@ -249,6 +384,13 @@ export interface ServiceEntityReads {
   ): Promise<Array<{ entityType: string; count: number }>>;
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  /** A search of the brain at the scope the request names. */
+  search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
+}
+
+/** What a first-party service asks the brain's AI. */
+export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
+  readonly judge: IShell["judge"];
 }
 
 /** Who the brain is and whom it represents, as the shell keeps them. */
@@ -276,10 +418,24 @@ export interface ServiceRuntimeBinding {
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
+  readonly auth: () => AuthBackend | undefined;
+  readonly studio: ServiceStudio;
+  readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
+  readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
+  readonly recurringCheck: (check: RecurringCheckDefinition) => void;
+  readonly interaction: (interaction: ServiceInteraction) => void;
+  readonly workspaceUrl: (
+    workspace: AnyStudioWorkspaceDefinition,
+  ) => string | undefined;
+  readonly siteUrl: string | undefined;
+  readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
+  readonly toolCall: () => ServiceToolCall | undefined;
+  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
   readonly entityReads: ServiceEntityReads;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
-  readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  readonly ai: ServiceAI;
   readonly dataSource: (declaration: ServiceDataSourceDeclaration) => void;
   readonly template: (name: string, template: Template) => void;
   readonly dashboardWidget: <TDefinition extends AnyDashboardWidgetDefinition>(
@@ -298,6 +454,18 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     dataDir: binding.dataDir,
     identity: binding.identity,
     domain: binding.domain,
+    auth: binding.auth,
+    studio: binding.studio,
+    inbox: binding.inbox,
+    inboxFollowUps: binding.inboxFollowUps,
+    recurringCheck: binding.recurringCheck,
+    interaction: binding.interaction,
+    workspaceUrl: binding.workspaceUrl,
+    siteUrl: binding.siteUrl,
+    routeByRole: binding.routeByRole,
+    toolCall: binding.toolCall,
+    classRuntimeState: binding.classRuntimeState,
+    evalHandler: binding.evalHandler,
     entityReads: binding.entityReads,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
@@ -331,17 +499,22 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
       options: ServiceListenOptions = {},
     ): void {
       const mode = options.mode ?? "subscribe";
-      const hear = async (payload: unknown): Promise<{ success: true }> => {
-        await asPackage(async () => handler({ payload }));
+      const hear = async (
+        payload: unknown,
+        sender: string,
+      ): Promise<{ success: true }> => {
+        await asPackage(async () => handler({ payload, sender }));
         return { success: true };
       };
       onRelease(
         typeof channel === "string"
           ? // By name, the payload is handed on as sent.
             subscribeByName(messaging, mode, channel, (message) =>
-              hear(message.payload),
+              hear(message.payload, message.source),
             )
-          : subscribeTyped(messaging, mode, channel, hear),
+          : subscribeTyped(messaging, mode, channel, (payload, message) =>
+              hear(payload, message.source),
+            ),
       );
     },
   };
@@ -352,7 +525,10 @@ function subscribeTyped<TPayload>(
   messaging: IMessagingNamespace,
   mode: ServiceListenMode,
   channel: Channel<TPayload>,
-  handler: (payload: TPayload) => Promise<{ success: true }>,
+  handler: (
+    payload: TPayload,
+    message: { readonly source: string },
+  ) => Promise<{ success: true }>,
 ): () => void {
   switch (mode) {
     case "observe":
@@ -368,7 +544,10 @@ function subscribeByName(
   messaging: IMessagingNamespace,
   mode: ServiceListenMode,
   channel: string,
-  handler: (message: { readonly payload: unknown }) => Promise<{
+  handler: (message: {
+    readonly payload: unknown;
+    readonly source: string;
+  }) => Promise<{
     success: true;
   }>,
 ): () => void {

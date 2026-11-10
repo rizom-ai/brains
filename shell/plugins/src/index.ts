@@ -348,6 +348,7 @@ export {
   type EntityAtprotoRecordInput,
   type EntityDefinition,
   type EntityDefinitionConfig,
+  type EntityFeedBuild,
   type EntityFeedDeclaration,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
@@ -967,15 +968,37 @@ export {
 // the public contexts never name it.
 export {
   contractJob,
+  answering,
+  entityAnswer,
   entityRuntime,
+  uniqueTitleContext,
+  restatingMetadata,
+  withBodyTemplate,
+  withUrlRoute,
+  writesInDocumentOrder,
+  type EntityAnswerContext,
+  type EntityAnswerDeclaration,
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,
+  type EntityRuntimeIdentity,
   type EntityRuntimeImages,
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,
   type QueuedCreate,
+  type EntityCreateCaller,
+  type EvalGenerationOptions,
+  type EvalGenerationProgress,
+  type EvalGenerationResult,
+  type QueuedAttribution,
+  type QueuedPlaceholder,
   type StoredCreate,
+  afterGeneration,
+  loggedProvider,
+  type GenerationOutcome,
+  type GenerationOutcomeContext,
+  type GenerationStep,
+  type RestateMetadata,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public
 // service contract does not offer here.
@@ -986,6 +1009,10 @@ export {
   type ClaimedSystemType,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
+  type ServiceInteraction,
+  type ServiceAI,
+  type ServiceStudio,
+  type ServiceToolCall,
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
@@ -1191,7 +1218,7 @@ export type {
 export { PluginManager } from "./manager";
 
 // Error handling
-export { PluginError } from "./errors";
+export { FatalPluginConfigurationError, PluginError } from "./errors";
 export {
   deriveConsoleSurfaces,
   type ConsoleSurface,

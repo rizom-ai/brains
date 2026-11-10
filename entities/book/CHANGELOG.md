@@ -1,5 +1,89 @@
 # @brains/book
 
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.670
+  - @brains/contracts@0.2.0-alpha.670
+  - @brains/media-page-composer@0.2.0-alpha.670
+  - @brains/site-atlas@0.2.0-alpha.670
+  - @brains/utils@0.2.0-alpha.670
+  - @brains/plugins@0.2.0-alpha.670
+
+## 0.2.0-alpha.669
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.669
+  - @brains/contracts@0.2.0-alpha.669
+  - @brains/media-page-composer@0.2.0-alpha.669
+  - @brains/site-atlas@0.2.0-alpha.669
+  - @brains/utils@0.2.0-alpha.669
+  - @brains/plugins@0.2.0-alpha.669
+
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.668
+  - @brains/contracts@0.2.0-alpha.668
+  - @brains/media-page-composer@0.2.0-alpha.668
+  - @brains/site-atlas@0.2.0-alpha.668
+  - @brains/utils@0.2.0-alpha.668
+  - @brains/plugins@0.2.0-alpha.668
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/media-page-composer@0.2.0-alpha.667
+  - @brains/plugins@0.2.0-alpha.667
+  - @brains/site-atlas@0.2.0-alpha.667
+  - @rizom/brain-ui@0.2.0-alpha.667
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.666
+  - @brains/contracts@0.2.0-alpha.666
+  - @brains/media-page-composer@0.2.0-alpha.666
+  - @brains/site-atlas@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/plugins@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.665
+  - @brains/contracts@0.2.0-alpha.665
+  - @brains/media-page-composer@0.2.0-alpha.665
+  - @brains/site-atlas@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/plugins@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.664
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/media-page-composer@0.2.0-alpha.664
+  - @brains/site-atlas@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/plugins@0.2.0-alpha.664
+
 ## 0.2.0-alpha.663
 
 ### Patch Changes

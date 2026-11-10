@@ -3,12 +3,8 @@ import {
   preferredSlug,
   type OgImageProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
 import type { BlogPost } from "../schemas/blog-post";
-import {
-  blogPostFrontmatterSchema,
-  blogPostSchema,
-} from "../schemas/blog-post";
+import { blogPostSchema } from "../schemas/blog-post";
 import {
   BLOG_OG_IMAGE_ATTACHMENT_TYPE,
   BLOG_OG_IMAGE_TEMPLATE_NAME,
@@ -23,8 +19,8 @@ export const createBlogOgImageProvider: OgImageProviderFactory =
     templateName: BLOG_OG_IMAGE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (post, helpers) => {
-      const { frontmatter } = parseMarkdown(post.content);
-      const parsed = blogPostFrontmatterSchema.parse(frontmatter);
+      // A declared post reads back as its body, its frontmatter its metadata.
+      const parsed = post.metadata;
       const coverImageUrl = await helpers.resolveImageDataUrl(
         parsed.coverImageId,
       );

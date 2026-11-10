@@ -91,6 +91,20 @@ describe("durable entity export draining", () => {
       expect(order).toEqual(["ack"]);
     },
   );
+  // A declared type reads back its body alone; the file is the stored
+  // document, frontmatter it does not write included.
+  it("reads the entity it exports as stored", async () => {
+    const { deps } = createDeps();
+    const requests: unknown[] = [];
+    const read = deps.getEntity;
+    deps.getEntity = async (request): Promise<BaseEntity | null> => {
+      requests.push(request);
+      return read(request);
+    };
+    await drainDurableEntityExports(deps);
+    expect(requests).toEqual([expect.objectContaining({ source: true })]);
+  });
+
   it("acknowledges an entity mutation only after its file is pushed", async () => {
     const { deps, order } = createDeps();
 

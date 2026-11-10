@@ -168,11 +168,12 @@ sourceState: active | stale | revoked
 These must live in the **system envelope**, alongside `visibility`, and not in an
 entity type's own frontmatter. Domain frontmatter cannot carry them: an
 adapter's `frontmatterSchema` is a plain `z.object`, so it strips unknown keys,
-and `toMarkdown` rebuilds the file from the parsed result. `NoteAdapter`
-(`entities/note/src/adapters/note-adapter.ts`) reconstructs frontmatter from
-`{title, status, error}` alone, so provenance written as note frontmatter is
-destroyed by the first directory-sync export — silently, and taking the
-subscription with it.
+and `toMarkdown` rebuilds the file from the parsed result. A class adapter
+writes back only the fields its schema names, so provenance written as its
+frontmatter is destroyed by the first directory-sync export — silently, and
+taking the subscription with it. Declared types keep frontmatter they do not
+write, but nothing obliges every type to be declared, and a type may still
+claim one of those keys for itself.
 
 The envelope seam already exists for exactly this reason.
 `applyVisibilityToMarkdown` (`shell/entity-service/src/frontmatter.ts:233`)

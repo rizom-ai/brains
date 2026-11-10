@@ -1,9 +1,8 @@
 import {
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
   type DashboardOperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type DashboardWidgetDefinition,
+} from "@brains/sdk/services";
 import type { InboxOperatorService } from "./operator-service";
 import { inboxDashboardDataSchema, type InboxDashboardData } from "./schemas";
 
@@ -19,7 +18,10 @@ function unavailableSourceBlocks(count: number): DashboardOperatorViewBlock[] {
     : [];
 }
 
-const inboxWidget = defineDashboardWidget({
+export const inboxWidget: DashboardWidgetDefinition<
+  "inbox",
+  typeof inboxDashboardDataSchema
+> = defineDashboardWidget({
   id: "inbox",
   title: "Inbox",
   description: "Live attention across source-owned workflows",
@@ -96,18 +98,13 @@ const inboxWidget = defineDashboardWidget({
   }),
 });
 
-export async function registerUnifiedInboxDashboardWidget(
-  context: ServicePluginContext,
+/** The widget's data: the live summary across every source. */
+export async function loadInboxWidget(
   operator: Pick<InboxOperatorService, "dashboard">,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
-    definition: inboxWidget,
-    load: async ({ signal }): Promise<InboxDashboardData> => {
-      signal.throwIfAborted();
-      const data = await operator.dashboard();
-      signal.throwIfAborted();
-      return data;
-    },
-  });
+  signal: AbortSignal,
+): Promise<InboxDashboardData> {
+  signal.throwIfAborted();
+  const data = await operator.dashboard();
+  signal.throwIfAborted();
+  return data;
 }

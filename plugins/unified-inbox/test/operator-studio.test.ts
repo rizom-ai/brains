@@ -3,8 +3,6 @@ import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   studioWorkspaceRegisterContract,
-  InboxRegistry,
-  createServicePluginContext,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
   type InboxActor,
@@ -12,11 +10,7 @@ import {
 } from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
-import {
-  InboxDataSource,
-  InboxOperatorService,
-  registerUnifiedInboxStudioWorkspace,
-} from "../src";
+import { createUnifiedInboxPlugin } from "./unified-inbox-plugin";
 
 const admin: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -115,7 +109,7 @@ async function setup(options?: {
   let open = true;
   const actors: InboxActor[] = [];
   const detailActors: InboxActor[] = [];
-  const registry = new InboxRegistry();
+  const registry = shell.getInboxRegistry();
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
@@ -171,15 +165,16 @@ async function setup(options?: {
     resolve: () => ({ href: "/private/create/path" }),
   });
   followUps.finalize();
-  const operator = new InboxOperatorService(
-    registry,
-    new InboxDataSource(registry),
-    followUps,
-  );
-  const context = createServicePluginContext(shell, "unified-inbox");
-  expect(await registerUnifiedInboxStudioWorkspace(context, operator)).toBe(
-    "/studio/workspaces/inbox",
-  );
+  const plugin = createUnifiedInboxPlugin();
+  await plugin.register(shell);
+  await plugin.finalizeRegistration?.();
+  await plugin.ready?.();
+  // Studio's URL for the workspace is where the Inbox's way in points.
+  expect(
+    (await shell.getAppInfo()).interactions.find(
+      ({ id }) => id === "unified-inbox",
+    )?.href,
+  ).toBe("/studio/workspaces/inbox");
   if (!workspace) throw new Error("Unified inbox workspace was not registered");
   return {
     workspace,

@@ -17,7 +17,9 @@ import {
   describeStoredChange,
   requiredUpdateAction,
   resolveReplacementContent,
+  sourceFieldKeys,
   validateUpdateOperation,
+  withStoredSourceFields,
   type UpdateOperation,
 } from "./entity-update-operation";
 import {
@@ -175,6 +177,37 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     };
   };
 
+  /**
+   * A field update to a declared type's grouping or other frontmatter
+   * extension reads the stored document those fields live in.
+   */
+  const withSourceFieldsRead = async (
+    entity: BaseEntity,
+    operation: UpdateOperation,
+    visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+  ): Promise<BaseEntity> => {
+    if (operation.kind !== "fields") return entity;
+    if (
+      entityRegistry.getAdapter(entity.entityType).metadataFromFrontmatter !==
+      true
+    ) {
+      return entity;
+    }
+    const sourceFields = sourceFieldKeys(entity.entityType, entityRegistry);
+    if (!Object.keys(operation.fields).some((key) => sourceFields.has(key))) {
+      return entity;
+    }
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope,
+      source: true,
+    });
+    return stored
+      ? withStoredSourceFields(entity, stored.content, entityRegistry)
+      : entity;
+  };
+
   const proposeUpdate = (
     input: UpdateInput,
     entity: BaseEntity,
@@ -226,16 +259,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         permissionToVisibilityScope(context.userPermissionLevel),
       );
       if (!resolved.ok) return failure(resolved.error);
-      const { entity } = resolved;
 
       const normalized = await normalizeOperation(
         services,
         input,
-        entity,
+        resolved.entity,
         context,
       );
       if ("success" in normalized) return normalized;
       const { operation } = normalized;
+      const entity = await withSourceFieldsRead(
+        resolved.entity,
+        operation,
+        permissionToVisibilityScope(context.userPermissionLevel),
+      );
 
       const invalid = validateUpdateOperation(
         entity,
