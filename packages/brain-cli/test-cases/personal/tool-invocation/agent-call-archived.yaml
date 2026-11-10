@@ -12,7 +12,7 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "Ask archived-agent.io about ecosystem architecture"
+  - userMessage: "Ask archived-agent.example about ecosystem architecture"
 
 successCriteria:
   # Product invariant: archived agents must not be contacted over the network.
@@ -25,7 +25,7 @@ successCriteria:
     - "archived"
   responseNotContains:
     - "I called"
-    - "Calling archived-agent.io"
+    - "Calling archived-agent.example"
     - "wishlist"
     - "wish"
 

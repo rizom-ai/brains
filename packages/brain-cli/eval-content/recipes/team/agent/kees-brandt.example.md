@@ -2,7 +2,7 @@
 name: Kees Brandt
 kind: person
 brainName: Kees Brandt
-url: "https://kees-brandt.io/a2a"
+url: "https://kees-brandt.example/a2a"
 status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
 ---

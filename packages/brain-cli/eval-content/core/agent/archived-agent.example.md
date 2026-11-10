@@ -2,7 +2,7 @@
 name: Archived Agent
 kind: person
 brainName: Archived Agent
-url: "https://archived-agent.io/a2a"
+url: "https://archived-agent.example/a2a"
 status: archived
 discoveredAt: "2026-03-12T10:00:00.000Z"
 ---

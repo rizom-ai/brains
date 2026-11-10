@@ -2,7 +2,7 @@
 name: Commons Lab
 kind: organization
 brainName: Commons Lab
-url: "https://commons-lab.io/a2a"
+url: "https://commons-lab.example/a2a"
 status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
 ---

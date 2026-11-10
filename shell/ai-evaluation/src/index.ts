@@ -52,3 +52,10 @@ export type { RunEvaluationsOptions } from "./run-evaluation-types";
 
 // Environment
 export { loadEvalEnv } from "./load-eval-env";
+export {
+  createFakePeerFetch,
+  isSafeSeedAgentUrl,
+  readSeedPeers,
+  serveSeedPeers,
+  type FakePeer,
+} from "./fake-a2a-peers";

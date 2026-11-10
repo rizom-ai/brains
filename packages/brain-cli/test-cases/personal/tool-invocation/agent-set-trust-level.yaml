@@ -12,14 +12,14 @@ tags:
   - recipe-professional
 
 turns:
-  - userMessage: "Revoke docs.rizom.ai inbound A2A trusted access."
+  - userMessage: "Revoke docs.rizom.example inbound A2A trusted access."
 
 successCriteria:
   expectedTools:
     - toolName: agent_set_trust_level
       shouldBeCalled: true
       argsContain:
-        agent: docs.rizom.ai
+        agent: docs.rizom.example
         level: public
     - toolName: system_update
       shouldBeCalled: false
