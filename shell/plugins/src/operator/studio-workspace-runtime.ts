@@ -876,3 +876,39 @@ export async function registerBuiltInStudioWorkspace<
     createBuiltInStudioWorkspaceRegistration(input),
   );
 }
+
+/**
+ * The Studio a first-party package composes workspaces for, as its class
+ * registered them: a declared workspace built under the plugin's id as a
+ * source, and a composed one registered once, never from a worker.
+ */
+export interface FirstPartyStudio {
+  /** Whether a Studio hosts workspaces in this process: never in a worker. */
+  isAvailable(): boolean;
+  source<TDefinition extends AnyStudioWorkspaceDefinition>(
+    input: BuiltInStudioWorkspaceSource<TDefinition>,
+  ): Omit<StudioWorkspaceRegistration, "pluginId">;
+  /** The URL Studio serves it at, or none without a Studio or in a worker. */
+  register(
+    registration: Omit<StudioWorkspaceRegistration, "pluginId">,
+  ): Promise<string | undefined>;
+}
+
+/** The Studio a plugin context reaches, for a first-party runtime. */
+export function firstPartyStudioOf(
+  context: BasePluginContext,
+): FirstPartyStudio {
+  return Object.freeze<FirstPartyStudio>({
+    isAvailable: (): boolean =>
+      !context.executionOnly && context.studio.isAvailable(),
+    source: (input) =>
+      createBuiltInStudioWorkspaceRegistration({ ...input, context }),
+    register: async (registration): Promise<string | undefined> => {
+      if (context.executionOnly || !context.studio.isAvailable()) {
+        return undefined;
+      }
+      const result = await context.studio.registerWorkspace(registration);
+      return result === false ? undefined : result.workspaceUrl;
+    },
+  });
+}

@@ -2,20 +2,26 @@ import {
   type UserPermissionLevel,
   isLoopbackIssuer,
   issuerFromRequest,
-  InterfacePlugin,
-  type InterfacePluginContext,
-  type Tool,
   type WebRouteDefinition,
 } from "@brains/plugins";
+import type { PluginPackageDefinition } from "@brains/sdk";
+import { defineInterface } from "@brains/sdk/interfaces";
+import {
+  interfaceRuntime,
+  withDaemon,
+  withTools,
+  withWebRoutes,
+  type FirstPartySlotContext,
+  type InterfaceRuntime,
+} from "@brains/sdk/internal/interface-runtime";
 import {
   JwksResolver,
   signRequest,
   verifyRequest,
 } from "@brains/http-signatures";
-import type { Daemon, AgentNamespace } from "@brains/plugins";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
-import { a2aConfigSchema, type A2AConfig, type A2AConfigInput } from "./config";
+import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
 import { buildAgentDirectory } from "./agent-directory";
 import { TaskManager } from "./task-manager";
@@ -48,13 +54,6 @@ const A2A_CORS_HEADERS = {
 } as const;
 
 /**
- * A2A Interface Plugin
- *
- * Implements the Agent-to-Agent protocol for inter-brain communication.
- * Serves an Agent Card for discovery and accepts tasks via JSON-RPC 2.0.
- * Routes tasks through AgentService (conversational, like Matrix/Discord).
- */
-/**
  * Runtime collaborators the interface needs that are not configuration.
  *
  * Config is schema-validated operator input; a fetch implementation is not.
@@ -66,414 +65,415 @@ export interface A2AInterfaceDeps {
   fetch?: FetchFn | undefined;
 }
 
-export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
-  declare protected config: A2AConfig;
-  private readonly deps: A2AInterfaceDeps;
-  private cardReady = false;
-  private taskManager = new TaskManager();
-  private readonly turnSupervisor = new A2ATurnSupervisor();
-  private agentService: AgentNamespace | undefined;
-  private readonly jwksResolver: JwksResolver;
-  private app: Hono | undefined;
-  private hasWebserver = false;
+/** What a running A2A interface keeps between calls. */
+interface A2AState {
+  /** Whether the brain is ready, so the Agent Card reflects it. */
+  cardReady: boolean;
+  /** Whether the shared webserver hosts the card and JSON-RPC routes. */
+  readonly hasWebserver: boolean;
+  readonly taskManager: TaskManager;
+  readonly turnSupervisor: A2ATurnSupervisor;
+  /** Resolves a peer's keys to verify its HTTP signature. */
+  readonly jwksResolver: JwksResolver;
+  /** How the outbound client and the a2a contracts reach peers. */
+  readonly clientDeps: A2AClientDeps;
+  /** The public callers' daily allowance, kept in this brain's runtime state. */
+  readonly publicAsks: PublicAskAllowance;
+}
 
-  constructor(config: A2AConfigInput = {}, deps: A2AInterfaceDeps = {}) {
-    if (Object.prototype.hasOwnProperty.call(config, "trustedTokens")) {
-      throw new Error("trustedTokens legacy config is no longer supported");
+type A2ASlotContext = FirstPartySlotContext<A2AConfig, A2AState>;
+
+function withCors(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(A2A_CORS_HEADERS)) {
+    headers.set(key, value);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/** Signs outbound A2A requests when the brain has an HTTPS issuer. */
+function createRequestSigner(
+  runtime: InterfaceRuntime,
+): A2ARequestSigner | undefined {
+  const authService = runtime.auth();
+  if (!authService) return undefined;
+
+  const issuer = authService.getIssuer();
+  // Remote peers cannot resolve loopback JWKS, and signature key IDs require HTTPS.
+  if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
+    return undefined;
+  }
+
+  return async (request): Promise<void> => {
+    const signingKey = await authService.getA2ASigningKey();
+    await signRequest(request, signingKey.privateJwk, signingKey.keyId);
+  };
+}
+
+function createClientDeps(
+  runtime: InterfaceRuntime,
+  config: A2AConfig,
+  deps: A2AInterfaceDeps,
+): A2AClientDeps {
+  const requestSigner = createRequestSigner(runtime);
+  return {
+    ...(requestSigner ? { requestSigner } : {}),
+    ...(deps.fetch ? { fetch: deps.fetch } : {}),
+    requestTimeoutMs: config.requestTimeoutMs,
+    streamIdleTimeoutMs: config.streamIdleTimeoutMs,
+    maxNetworkAttempts: config.maxNetworkAttempts,
+    entityService: runtime.entityReads,
+  };
+}
+
+/**
+ * Build the Agent Card from the brain's current identity, tools and skills.
+ *
+ * Built per request: identity and skills can land after startup (a seeded
+ * anchor profile, a generated character, derived skills), and the card
+ * must not keep serving the defaults it saw at ready.
+ */
+async function agentCardOf(
+  runtime: InterfaceRuntime,
+  config: A2AConfig,
+  state: A2AState,
+): Promise<AgentCard | undefined> {
+  if (!state.cardReady) return undefined;
+
+  return buildAgentCard({
+    character: runtime.identity.get(),
+    profile: runtime.identity.getProfile(),
+    version: packageJson.version,
+    ...(runtime.domain ? { domain: runtime.domain } : {}),
+    ...(config.organization ? { organization: config.organization } : {}),
+    profileKind: runtime.profileKinds.getResolved(),
+    tools: runtime.tools.listForPermissionLevel("public"),
+    skills: await runtime.publicSkills.list(),
+    authEnabled: false,
+  });
+}
+
+/**
+ * Resolve caller permission from a verified HTTP signature when present.
+ * Unsigned requests remain public.
+ */
+async function resolveCaller(
+  runtime: InterfaceRuntime,
+  state: A2AState,
+  request: Request,
+  body: string,
+): Promise<{
+  permissionLevel: UserPermissionLevel;
+  isAnchor: boolean;
+  callerDomain: string | null;
+}> {
+  const internalUrl = new URL(request.url);
+  const externalUrl = new URL(
+    `${internalUrl.pathname}${internalUrl.search}`,
+    issuerFromRequest(request),
+  );
+  const verified = await verifyRequest(
+    {
+      method: request.method,
+      url: externalUrl.toString(),
+      headers: request.headers,
+      body,
+    },
+    state.jwksResolver,
+  );
+
+  if (verified) {
+    const grant = await runtime.auth()?.getA2APeerTrust(verified.domain);
+    const permissionLevel =
+      grant?.keyFingerprint === verified.keyFingerprint
+        ? grant.grantedLevel
+        : "public";
+
+    return {
+      permissionLevel,
+      isAnchor: runtime.permissions.isAnchor("a2a", verified.domain),
+      callerDomain: verified.domain,
+    };
+  }
+
+  return { permissionLevel: "public", isAnchor: false, callerDomain: null };
+}
+
+/** The Agent Card, agent directory and JSON-RPC endpoint, as one Hono app. */
+function createApp(
+  runtime: InterfaceRuntime,
+  config: A2AConfig,
+  state: A2AState,
+): Hono {
+  const app = new Hono();
+  const agentService = runtime.agent;
+
+  app.get("/.well-known/agent-card.json", async (c) => {
+    const agentCard = await agentCardOf(runtime, config, state);
+    if (!agentCard) {
+      return withCors(c.json({ error: "Agent Card not ready" }, 503));
     }
-    if (Object.prototype.hasOwnProperty.call(config, "outboundTokens")) {
-      throw new Error("outboundTokens legacy config is no longer supported");
-    }
-    super("a2a", packageJson, config, a2aConfigSchema);
-    this.deps = deps;
-    // Inbound signature verification fetches the peer's JWKS through the same
-    // fetch the outbound client uses, so one injected fake covers both.
-    this.jwksResolver = new JwksResolver(
-      deps.fetch ? { fetch: deps.fetch } : {},
+    return withCors(c.json(agentCard));
+  });
+
+  app.get("/.well-known/agent-directory.json", async (c) => {
+    // Built per request: the directory must reflect approvals and
+    // archivals live.
+    const directory = await buildAgentDirectory(runtime.entityReads);
+    return withCors(c.json(directory));
+  });
+
+  app.get("/a2a", (c) => {
+    return withCors(
+      c.json(
+        {
+          error: "Use POST with JSON-RPC 2.0 requests.",
+          agentCard: "/.well-known/agent-card.json",
+        },
+        405,
+      ),
     );
-  }
+  });
 
-  protected override async onRegister(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
+  app.options("/a2a", () => withCors(new Response(null, { status: 204 })));
 
-    this.hasWebserver = context.plugins.has("webserver");
-    this.agentService = context.agent;
-    registerA2ACallMessageHandlers(context, this.createClientDeps(context), {
-      networkAskTimeoutMs: this.config.networkAskTimeoutMs,
-    });
-
-    if (this.hasWebserver) {
-      context.endpoints.register({
-        label: "A2A",
-        url: "/a2a",
-        priority: 25,
-      });
-      context.interactions.register({
-        id: "a2a",
-        label: "A2A",
-        description: "Let other agents discover and talk to this brain.",
-        href: "/a2a",
-        kind: "agent",
-        priority: 25,
-      });
-      this.logger.info("A2A interface registered", {
-        domain: context.domain,
-      });
-    } else {
-      this.logger.info("A2A interface registered in tool-only mode", {
-        domain: context.domain,
-      });
-    }
-  }
-
-  protected override async onReady(): Promise<void> {
-    this.cardReady = true;
-  }
-
-  /**
-   * Build the Agent Card from the brain's current identity, tools and skills.
-   *
-   * Built per request: identity and skills can land after startup (a seeded
-   * anchor profile, a generated character, derived skills), and the card
-   * must not keep serving the defaults it saw at ready.
-   */
-  async getAgentCard(): Promise<AgentCard | undefined> {
-    if (!this.cardReady) return undefined;
-    const context = this.getContext();
-
-    return buildAgentCard({
-      character: context.identity.get(),
-      profile: context.identity.getProfile(),
-      version: packageJson.version,
-      ...(context.domain ? { domain: context.domain } : {}),
-      ...(this.config.organization
-        ? { organization: this.config.organization }
-        : {}),
-      profileKind: context.profileKinds.getResolved(),
-      tools: context.tools.listForPermissionLevel("public"),
-      skills: await context.publicSkills.list(),
-      authEnabled: false,
-    });
-  }
-
-  /**
-   * Resolve caller permission from a verified HTTP signature when present.
-   * Unsigned requests remain public.
-   */
-  private async resolveCaller(
-    request: Request,
-    body: string,
-  ): Promise<{
-    permissionLevel: UserPermissionLevel;
-    isAnchor: boolean;
-    callerDomain: string | null;
-  }> {
-    const internalUrl = new URL(request.url);
-    const externalUrl = new URL(
-      `${internalUrl.pathname}${internalUrl.search}`,
-      issuerFromRequest(request),
-    );
-    const verified = await verifyRequest(
-      {
-        method: request.method,
-        url: externalUrl.toString(),
-        headers: request.headers,
-        body,
-      },
-      this.jwksResolver,
-    );
-
-    if (verified) {
-      const grant = await this.context?.auth
-        .get()
-        ?.getA2APeerTrust(verified.domain);
-      const permissionLevel =
-        grant?.keyFingerprint === verified.keyFingerprint
-          ? grant.grantedLevel
-          : "public";
-
-      return {
-        permissionLevel,
-        isAnchor: this.getContext().permissions.isAnchor(
-          "a2a",
-          verified.domain,
-        ),
-        callerDomain: verified.domain,
-      };
+  app.post("/a2a", async (c) => {
+    const bodyText = await c.req.text();
+    let caller: {
+      permissionLevel: UserPermissionLevel;
+      isAnchor: boolean;
+      callerDomain: string | null;
+    };
+    try {
+      caller = await resolveCaller(runtime, state, c.req.raw, bodyText);
+    } catch {
+      return withCors(c.json({ error: "Invalid HTTP signature" }, 401));
     }
 
-    return { permissionLevel: "public", isAnchor: false, callerDomain: null };
-  }
-
-  private withCors(response: Response): Response {
-    const headers = new Headers(response.headers);
-    for (const [key, value] of Object.entries(A2A_CORS_HEADERS)) {
-      headers.set(key, value);
-    }
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  }
-
-  private getOrCreateApp(): Hono {
-    if (this.app) {
-      return this.app;
-    }
-
-    const app = new Hono();
-
-    app.get("/.well-known/agent-card.json", async (c) => {
-      const agentCard = await this.getAgentCard();
-      if (!agentCard) {
-        return this.withCors(c.json({ error: "Agent Card not ready" }, 503));
-      }
-      return this.withCors(c.json(agentCard));
-    });
-
-    app.get("/.well-known/agent-directory.json", async (c) => {
-      // Built per request: the directory must reflect approvals and
-      // archivals live.
-      const directory = await buildAgentDirectory(
-        this.getContext().entityService,
+    let body: unknown;
+    try {
+      body = JSON.parse(bodyText);
+    } catch {
+      return withCors(
+        c.json({
+          jsonrpc: "2.0",
+          error: { code: -32700, message: "Parse error" },
+          id: null,
+        }),
       );
-      return this.withCors(c.json(directory));
-    });
+    }
 
-    app.get("/a2a", (c) => {
-      return this.withCors(
-        c.json(
-          {
-            error: "Use POST with JSON-RPC 2.0 requests.",
-            agentCard: "/.well-known/agent-card.json",
-          },
-          405,
-        ),
+    const parsed = jsonrpcRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return withCors(
+        c.json({
+          jsonrpc: "2.0",
+          error: { code: -32600, message: "Invalid request" },
+          id: null,
+        }),
       );
-    });
+    }
 
-    app.options("/a2a", () =>
-      this.withCors(new Response(null, { status: 204 })),
-    );
+    if (parsed.data.method === "message/stream") {
+      const streamParams = streamParamsSchema.safeParse(
+        parsed.data.params ?? {},
+      );
 
-    app.post("/a2a", async (c) => {
-      if (!this.agentService) {
-        return this.withCors(
-          c.json(
-            {
-              jsonrpc: "2.0",
-              error: { code: -32603, message: "Agent service not ready" },
-              id: null,
-            },
-            503,
-          ),
-        );
-      }
-
-      const bodyText = await c.req.text();
-      let caller: {
-        permissionLevel: UserPermissionLevel;
-        isAnchor: boolean;
-        callerDomain: string | null;
-      };
-      try {
-        caller = await this.resolveCaller(c.req.raw, bodyText);
-      } catch {
-        return this.withCors(c.json({ error: "Invalid HTTP signature" }, 401));
-      }
-
-      let body: unknown;
-      try {
-        body = JSON.parse(bodyText);
-      } catch {
-        return this.withCors(
+      if (!streamParams.success) {
+        return withCors(
           c.json({
             jsonrpc: "2.0",
-            error: { code: -32700, message: "Parse error" },
-            id: null,
-          }),
-        );
-      }
-
-      const parsed = jsonrpcRequestSchema.safeParse(body);
-      if (!parsed.success) {
-        return this.withCors(
-          c.json({
-            jsonrpc: "2.0",
-            error: { code: -32600, message: "Invalid request" },
-            id: null,
-          }),
-        );
-      }
-
-      if (parsed.data.method === "message/stream") {
-        const streamParams = streamParamsSchema.safeParse(
-          parsed.data.params ?? {},
-        );
-
-        if (!streamParams.success) {
-          return this.withCors(
-            c.json({
-              jsonrpc: "2.0",
-              error: {
-                code: -32602,
-                message: `Invalid params: ${streamParams.error.message}`,
-              },
-              id: parsed.data.id,
-            }),
-          );
-        }
-
-        const streamResult = handleStreamMessage(
-          parsed.data.id,
-          streamParams.data.message,
-          {
-            taskManager: this.taskManager,
-            turnSupervisor: this.turnSupervisor,
-            agentService: this.agentService,
-            callerPermissionLevel: caller.permissionLevel,
-            callerIsAnchor: caller.isAnchor,
-            callerDomain: caller.callerDomain,
-            publicAsks: this.publicAsks(),
-          },
-        );
-
-        if ("error" in streamResult) {
-          return this.withCors(c.json(streamResult));
-        }
-
-        const { stream } = streamResult;
-
-        return this.withCors(
-          new Response(stream, {
-            headers: {
-              "Content-Type": "text/event-stream",
-              "Cache-Control": "no-cache",
-              Connection: "keep-alive",
+            error: {
+              code: -32602,
+              message: `Invalid params: ${streamParams.error.message}`,
             },
+            id: parsed.data.id,
           }),
         );
       }
 
-      const response = await handleJsonRpc(parsed.data, {
-        taskManager: this.taskManager,
-        turnSupervisor: this.turnSupervisor,
-        agentService: this.agentService,
-        callerPermissionLevel: caller.permissionLevel,
-        callerIsAnchor: caller.isAnchor,
-        callerDomain: caller.callerDomain,
-        publicAsks: this.publicAsks(),
-      });
+      const streamResult = handleStreamMessage(
+        parsed.data.id,
+        streamParams.data.message,
+        {
+          taskManager: state.taskManager,
+          turnSupervisor: state.turnSupervisor,
+          agentService,
+          callerPermissionLevel: caller.permissionLevel,
+          callerIsAnchor: caller.isAnchor,
+          callerDomain: caller.callerDomain,
+          publicAsks: state.publicAsks,
+        },
+      );
 
-      return this.withCors(c.json(response));
+      if ("error" in streamResult) {
+        return withCors(c.json(streamResult));
+      }
+
+      return withCors(
+        new Response(streamResult.stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        }),
+      );
+    }
+
+    const response = await handleJsonRpc(parsed.data, {
+      taskManager: state.taskManager,
+      turnSupervisor: state.turnSupervisor,
+      agentService,
+      callerPermissionLevel: caller.permissionLevel,
+      callerIsAnchor: caller.isAnchor,
+      callerDomain: caller.callerDomain,
+      publicAsks: state.publicAsks,
     });
 
-    this.app = app;
-    return app;
-  }
+    return withCors(c.json(response));
+  });
 
-  override getWebRoutes(): WebRouteDefinition[] {
-    if (!this.hasWebserver) {
+  return app;
+}
+
+export type A2AInterfaceDefinition = PluginPackageDefinition<
+  typeof a2aConfigSchema,
+  "interface"
+>;
+
+/**
+ * A2A: the Agent-to-Agent protocol for inter-brain communication. It serves
+ * an Agent Card for discovery and accepts tasks via JSON-RPC 2.0 on the
+ * shared webserver, routes them through the agent, calls other brains with
+ * agent_call, and answers the a2a contracts other packages ask it. The
+ * collaborators default to the real ones; a test hands its own.
+ */
+export function createA2AInterface(
+  deps: A2AInterfaceDeps = {},
+): A2AInterfaceDefinition {
+  const a2a = defineInterface({
+    id: "a2a",
+    config: a2aConfigSchema,
+    setup: (context): A2AState => {
+      const { config } = context;
+      const runtime = interfaceRuntime(context);
+      const hasWebserver = runtime.hasPlugin("webserver");
+      const clientDeps = createClientDeps(runtime, config, deps);
+      const state: A2AState = {
+        cardReady: false,
+        hasWebserver,
+        taskManager: new TaskManager(),
+        turnSupervisor: new A2ATurnSupervisor(),
+        // Inbound signature verification fetches the peer's JWKS through the
+        // same fetch the outbound client uses, so one injected fake covers both.
+        jwksResolver: new JwksResolver(deps.fetch ? { fetch: deps.fetch } : {}),
+        clientDeps,
+        publicAsks: new RuntimePublicAskAllowance(
+          config.publicAsks,
+          runtime.classRuntimeState,
+        ),
+      };
+
+      registerA2ACallMessageHandlers(runtime, clientDeps, {
+        networkAskTimeoutMs: config.networkAskTimeoutMs,
+      });
+
+      if (hasWebserver) {
+        runtime.endpoint({ label: "A2A", url: "/a2a", priority: 25 });
+        runtime.interaction({
+          id: "a2a",
+          label: "A2A",
+          description: "Let other agents discover and talk to this brain.",
+          href: "/a2a",
+          kind: "agent",
+          priority: 25,
+        });
+        runtime.logger.info("A2A interface registered", {
+          domain: runtime.domain,
+        });
+      } else {
+        runtime.logger.info("A2A interface registered in tool-only mode", {
+          domain: runtime.domain,
+        });
+      }
+
+      runtime.ready(() => {
+        state.cardReady = true;
+      });
+      return state;
+    },
+  });
+
+  /** The card, directory and JSON-RPC routes, on the shared webserver only. */
+  const withRoutes = withWebRoutes(a2a, (context: A2ASlotContext) => {
+    const { config, state } = context;
+    if (!state.hasWebserver) {
       return [];
     }
-
+    const runtime = interfaceRuntime(context);
+    const app = createApp(runtime, config, state);
     const handleSharedRoute = (request: Request): Promise<Response> =>
-      Promise.resolve(this.getOrCreateApp().fetch(request));
+      Promise.resolve(app.fetch(request));
+    const route = (
+      path: string,
+      method: NonNullable<WebRouteDefinition["method"]>,
+    ): WebRouteDefinition => ({
+      path,
+      method,
+      public: true,
+      handler: handleSharedRoute,
+    });
 
     return [
-      {
-        path: "/.well-known/agent-card.json",
-        method: "GET",
-        public: true,
-        handler: handleSharedRoute,
-      },
-      {
-        path: "/.well-known/agent-directory.json",
-        method: "GET",
-        public: true,
-        handler: handleSharedRoute,
-      },
-      {
-        path: "/a2a",
-        method: "GET",
-        public: true,
-        handler: handleSharedRoute,
-      },
-      {
-        path: "/a2a",
-        method: "POST",
-        public: true,
-        handler: handleSharedRoute,
-      },
-      {
-        path: "/a2a",
-        method: "OPTIONS",
-        public: true,
-        handler: handleSharedRoute,
-      },
+      route("/.well-known/agent-card.json", "GET"),
+      route("/.well-known/agent-directory.json", "GET"),
+      route("/a2a", "GET"),
+      route("/a2a", "POST"),
+      route("/a2a", "OPTIONS"),
     ];
-  }
+  });
 
-  private createRequestSigner(): A2ARequestSigner | undefined {
-    const authService = this.context?.auth.get();
-    if (!authService) return undefined;
-
-    const issuer = authService.getIssuer();
-    // Remote peers cannot resolve loopback JWKS, and signature key IDs require HTTPS.
-    if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
-      return undefined;
-    }
-
-    return async (request): Promise<void> => {
-      const signingKey = await authService.getA2ASigningKey();
-      await signRequest(request, signingKey.privateJwk, signingKey.keyId);
-    };
-  }
-
-  private publicAskAllowance: PublicAskAllowance | undefined;
-
-  /** The public callers' daily allowance, kept in this brain's runtime state. */
-  private publicAsks(): PublicAskAllowance {
-    this.publicAskAllowance ??= new RuntimePublicAskAllowance(
-      this.config.publicAsks,
-      this.getContext().runtimeState,
-    );
-    return this.publicAskAllowance;
-  }
-
-  private createClientDeps(context: InterfacePluginContext): A2AClientDeps {
-    const requestSigner = this.createRequestSigner();
+  /** a2a:a2a, which closes the turns in flight when the brain stops. */
+  const withLifecycle = withDaemon(withRoutes, (context: A2ASlotContext) => {
+    const { state } = context;
+    const { logger } = interfaceRuntime(context);
     return {
-      ...(requestSigner ? { requestSigner } : {}),
-      ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
-      requestTimeoutMs: this.config.requestTimeoutMs,
-      streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
-      maxNetworkAttempts: this.config.maxNetworkAttempts,
-      entityService: context.entityService,
-    };
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [createAgentCallTool(this.createClientDeps(this.getContext()))];
-  }
-
-  protected override createDaemon(): Daemon | undefined {
-    return {
+      id: "a2a",
       start: async (): Promise<void> => {
-        if (this.hasWebserver) {
-          this.logger.info("A2A mounted on shared webserver host");
+        if (state.hasWebserver) {
+          logger.info("A2A mounted on shared webserver host");
         } else {
-          this.logger.info("A2A running without webserver routes");
+          logger.info("A2A running without webserver routes");
         }
       },
       stop: async (): Promise<void> => {
-        await this.turnSupervisor.close();
-        this.logger.info("A2A server stopped");
+        await state.turnSupervisor.close();
+        logger.info("A2A server stopped");
       },
     };
-  }
+  });
+
+  /**
+   * agent_call, which calls another brain. Its client is built for each
+   * call, as the class built it each time it listed its tools, so a request
+   * signer follows the auth backend the brain has then.
+   */
+  return withTools(withLifecycle, (context: A2ASlotContext) => {
+    const { config } = context;
+    const runtime = interfaceRuntime(context);
+    const current = (): ReturnType<typeof createAgentCallTool> =>
+      createAgentCallTool(createClientDeps(runtime, config, deps));
+    return [
+      {
+        ...current(),
+        handler: (input, toolContext) => current().handler(input, toolContext),
+      },
+    ];
+  });
 }

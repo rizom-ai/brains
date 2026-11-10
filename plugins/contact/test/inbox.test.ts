@@ -1,11 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
+import { FormInboxSource } from "@brains/forms";
 import {
-  ContactInboxSource,
   ContactPlugin,
   ContactRequestPlugin,
   contactRequestAdapter,
+  contactRequestTarget,
 } from "../src";
 
 const receivedAt = "2026-09-21T10:00:00.000Z";
@@ -71,7 +72,7 @@ describe("contact inbox", () => {
 
   it("lists each entity once and keeps personal details in the admin-only plain-text detail", async () => {
     const { context } = await fixture();
-    const source = new ContactInboxSource(context);
+    const source = new FormInboxSource(context, contactRequestTarget);
     const listed = await source.list();
     expect(listed).toHaveLength(1);
     expect(await source.list()).toEqual(listed);
@@ -102,7 +103,7 @@ describe("contact inbox", () => {
 
   it("denies non-admin detail/actions and unknown actions", async () => {
     const { context } = await fixture();
-    const source = new ContactInboxSource(context);
+    const source = new FormInboxSource(context, contactRequestTarget);
     for (const permissionLevel of ["public", "trusted"] as const) {
       expect(
         source.resolveDetail(
@@ -123,7 +124,7 @@ describe("contact inbox", () => {
 
   it("does not overwrite a concurrent notification update when marking handled", async () => {
     const { context } = await fixture();
-    const source = new ContactInboxSource(context);
+    const source = new FormInboxSource(context, contactRequestTarget);
     const update = context.entityService.updateEntity.bind(
       context.entityService,
     );
@@ -172,7 +173,7 @@ describe("contact inbox", () => {
 
   it("keeps a request written with an expiry long past and honors cancellation before reading details", async () => {
     const { context } = await fixture({ legacy: true });
-    const source = new ContactInboxSource(context);
+    const source = new FormInboxSource(context, contactRequestTarget);
     expect(await source.list()).toHaveLength(1);
     expect(
       (

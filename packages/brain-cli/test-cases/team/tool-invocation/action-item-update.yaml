@@ -19,6 +19,9 @@ successCriteria:
     - toolName: action_item_update
       shouldBeCalled: true
       argsContain:
+        status: blocked
+      # The card is named by its title or its id; the one moved is the check.
+      resultContains:
         id: audit-stale-fixtures
         status: blocked
     - toolName: system_update

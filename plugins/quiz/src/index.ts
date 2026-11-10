@@ -5,7 +5,6 @@ import { QuizPlugin } from "./plugin";
 export { quizPluginConfigSchema } from "./config";
 export type { QuizPluginConfig } from "./config";
 export { QuizPlugin, QuizResultPlugin };
-export { QuizInboxSource } from "./inbox-source";
 export { quizResultTarget } from "./target";
 export { QuizResultAdapter, quizResultAdapter } from "./entity/adapter";
 export {

@@ -6,54 +6,72 @@ import { z } from "@brains/utils/zod";
 
 /** The ledger's ceiling: submissions whose write or alert has not settled. */
 const MAX_IN_FLIGHT = 1000;
-export type FormDeliveryStatus = "pending" | "sent" | "failed";
-interface DeliveryState {
-  attempts: number;
-  firstAttemptAt: number | null;
-  leaseUntil: number;
-  status: FormDeliveryStatus;
-  /** Why the latest attempt failed: a short code, never message content. */
-  failure?: string | undefined;
-}
 export type DeliveryClaim =
   | { status: "send"; attempt: number; sendBefore: number }
   | { status: "skipped" | "busy" | "sent" | "failed" };
 
-export interface FormStorageSlot {
-  receivedAt: number;
-  bytes: number;
-  phase: "writing" | "stored";
-  delivery: DeliveryState;
-}
-interface SlotState {
-  revision: number;
-  lastNow: number;
-  slots: Record<string, FormStorageSlot>;
-}
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const slotSchema: z.ZodType<FormStorageSlot> = z
-  .strictObject({
-    receivedAt: integer,
-    // Written while submissions expired; read, never written.
-    expiresAt: integer.optional(),
-    bytes: integer.max(32000),
-    phase: z.enum(["writing", "stored"]),
-    delivery: z.strictObject({
-      attempts: integer.max(5),
-      firstAttemptAt: integer.nullable(),
-      leaseUntil: integer,
-      status: z.enum(["pending", "sent", "failed"]),
-      failure: z
-        .string()
-        .regex(/^[a-z0-9_:.-]{1,80}$/)
-        .optional(),
-    }),
-  })
-  .transform(({ expiresAt: _expiresAt, ...slot }) => slot);
+const deliveryStatusSchema: z.ZodEnum<{
+  pending: "pending";
+  sent: "sent";
+  failed: "failed";
+}> = z.enum(["pending", "sent", "failed"]);
+export type FormDeliveryStatus = z.output<typeof deliveryStatusSchema>;
+const storedSlotSchema: z.ZodObject<
+  {
+    receivedAt: z.ZodNumber;
+    expiresAt: z.ZodOptional<z.ZodNumber>;
+    bytes: z.ZodNumber;
+    phase: z.ZodEnum<{ writing: "writing"; stored: "stored" }>;
+    delivery: z.ZodObject<
+      {
+        attempts: z.ZodNumber;
+        firstAttemptAt: z.ZodNullable<z.ZodNumber>;
+        leaseUntil: z.ZodNumber;
+        status: typeof deliveryStatusSchema;
+        failure: z.ZodOptional<z.ZodString>;
+      },
+      z.core.$strict
+    >;
+  },
+  z.core.$strict
+> = z.strictObject({
+  receivedAt: integer,
+  // Written while submissions expired; read, never written.
+  expiresAt: integer.optional(),
+  bytes: integer.max(32000),
+  phase: z.enum(["writing", "stored"]),
+  delivery: z.strictObject({
+    attempts: integer.max(5),
+    firstAttemptAt: integer.nullable(),
+    leaseUntil: integer,
+    status: deliveryStatusSchema,
+    /** Why the latest attempt failed: a short code, never message content. */
+    failure: z
+      .string()
+      .regex(/^[a-z0-9_:.-]{1,80}$/)
+      .optional(),
+  }),
+});
+type StoredSlot = z.output<typeof storedSlotSchema>;
+const slotSchema: z.ZodPipe<
+  typeof storedSlotSchema,
+  z.ZodTransform<Omit<StoredSlot, "expiresAt">, StoredSlot>
+> = storedSlotSchema.transform(({ expiresAt: _expiresAt, ...slot }) => slot);
+export type FormStorageSlot = z.output<typeof slotSchema>;
+type SlotStateSchema = z.ZodObject<
+  {
+    revision: z.ZodNumber;
+    lastNow: z.ZodNumber;
+    slots: z.ZodRecord<z.ZodString, typeof slotSchema>;
+  },
+  z.core.$strict
+>;
+type SlotState = z.output<SlotStateSchema>;
 function stateSchemaFor(
   idPrefix: string,
   separator: "-" | ":",
-): z.ZodType<SlotState> {
+): SlotStateSchema {
   const escaped = idPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return z.strictObject({
     revision: integer,

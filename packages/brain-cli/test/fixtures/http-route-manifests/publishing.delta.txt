@@ -1,3 +1,8 @@
++ a2a|handler|GET|/.well-known/agent-card.json|exact|true
++ a2a|handler|GET|/.well-known/agent-directory.json|exact|true
++ a2a|handler|GET|/a2a|exact|true
++ a2a|handler|OPTIONS|/a2a|exact|true
++ a2a|handler|POST|/a2a|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.card.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.deck.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.link.json|exact|true
@@ -79,9 +84,12 @@
 + studio|handler|POST|/studio/api/upload|exact|true
 + studio|handler|POST|/studio/api/workspace|exact|true
 + studio|handler|PUT|/studio/api/entities|exact|true
++ web-chat|handler|DELETE|/api/chat/guest/sessions|exact|true
 + web-chat|handler|DELETE|/api/chat/sessions|exact|true
 + web-chat|handler|GET|/api/chat/attachments/document|exact|true
 + web-chat|handler|GET|/api/chat/attachments/image|exact|true
++ web-chat|handler|GET|/api/chat/guest/access|exact|true
++ web-chat|handler|GET|/api/chat/guest/messages|exact|true
 + web-chat|handler|GET|/api/chat/jobs/status|exact|true
 + web-chat|handler|GET|/api/chat/messages|exact|true
 + web-chat|handler|GET|/api/chat/sessions|exact|true
@@ -91,6 +99,9 @@
 + web-chat|handler|POST|/api/agent/chat|exact|true
 + web-chat|handler|POST|/api/chat/actions|exact|true
 + web-chat|handler|POST|/api/chat/context-sessions|exact|true
++ web-chat|handler|POST|/api/chat/guest/access|exact|true
++ web-chat|handler|POST|/api/chat/guest/session|exact|true
++ web-chat|handler|POST|/api/chat/guest|exact|true
 + web-chat|handler|POST|/api/chat/uploads|exact|true
 + web-chat|handler|POST|/api/chat|exact|true
 + web-chat|handler|PUT|/api/chat/sessions/archive|exact|true

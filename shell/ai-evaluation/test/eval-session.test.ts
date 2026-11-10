@@ -60,6 +60,7 @@ function harness(): Harness {
   const shellAi = createMockAIService();
   const runtimeUploads: IRuntimeUploadsNamespace = {
     scoped: () => unused("runtimeUploads.scoped"),
+    retire: () => unused("runtimeUploads.retire"),
   };
   const indexReadiness: IndexReadinessGate = {
     awaitIndexReady: () => unused("awaitIndexReady"),

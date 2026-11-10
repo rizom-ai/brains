@@ -90,6 +90,7 @@ describe("a quiz result", () => {
     const { frontmatter } = quizResultAdapter.parseContent(record.content);
     expect(frontmatter).toEqual({
       quiz: "brand-test",
+      quizTitle: "Brand test",
       language: "zh-TW",
       receivedAt: "2026-11-07T10:00:00.000Z",
       status: "new",

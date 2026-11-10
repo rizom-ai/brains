@@ -1,5 +1,85 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.675
+  - @brains/decks@0.2.0-alpha.675
+  - @brains/faq@0.2.0-alpha.675
+  - @rizom/brain-ui@0.2.0-alpha.675
+  - @brains/knowledge-map@0.2.0-alpha.675
+  - @brains/profile@0.2.0-alpha.675
+  - @brains/site-info@0.2.0-alpha.675
+  - @brains/content-formatters@0.2.0-alpha.675
+  - @brains/contracts@0.2.0-alpha.675
+  - @brains/site-atlas@0.2.0-alpha.675
+  - @brains/site-composition@0.2.0-alpha.675
+  - @brains/utils@0.2.0-alpha.675
+  - @brains/plugins@0.2.0-alpha.675
+  - @brains/templates@0.2.0-alpha.675
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.674
+  - @brains/decks@0.2.0-alpha.674
+  - @brains/faq@0.2.0-alpha.674
+  - @rizom/brain-ui@0.2.0-alpha.674
+  - @brains/knowledge-map@0.2.0-alpha.674
+  - @brains/profile@0.2.0-alpha.674
+  - @brains/site-info@0.2.0-alpha.674
+  - @brains/content-formatters@0.2.0-alpha.674
+  - @brains/contracts@0.2.0-alpha.674
+  - @brains/site-atlas@0.2.0-alpha.674
+  - @brains/site-composition@0.2.0-alpha.674
+  - @brains/utils@0.2.0-alpha.674
+  - @brains/plugins@0.2.0-alpha.674
+  - @brains/templates@0.2.0-alpha.674
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.673
+  - @brains/decks@0.2.0-alpha.673
+  - @brains/faq@0.2.0-alpha.673
+  - @rizom/brain-ui@0.2.0-alpha.673
+  - @brains/knowledge-map@0.2.0-alpha.673
+  - @brains/profile@0.2.0-alpha.673
+  - @brains/site-info@0.2.0-alpha.673
+  - @brains/content-formatters@0.2.0-alpha.673
+  - @brains/contracts@0.2.0-alpha.673
+  - @brains/site-atlas@0.2.0-alpha.673
+  - @brains/site-composition@0.2.0-alpha.673
+  - @brains/utils@0.2.0-alpha.673
+  - @brains/plugins@0.2.0-alpha.673
+  - @brains/templates@0.2.0-alpha.673
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.672
+  - @brains/decks@0.2.0-alpha.672
+  - @brains/faq@0.2.0-alpha.672
+  - @rizom/brain-ui@0.2.0-alpha.672
+  - @brains/knowledge-map@0.2.0-alpha.672
+  - @brains/profile@0.2.0-alpha.672
+  - @brains/site-info@0.2.0-alpha.672
+  - @brains/content-formatters@0.2.0-alpha.672
+  - @brains/contracts@0.2.0-alpha.672
+  - @brains/site-atlas@0.2.0-alpha.672
+  - @brains/site-composition@0.2.0-alpha.672
+  - @brains/utils@0.2.0-alpha.672
+  - @brains/plugins@0.2.0-alpha.672
+  - @brains/templates@0.2.0-alpha.672
+
 ## 0.2.0-alpha.671
 
 ### Patch Changes

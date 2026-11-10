@@ -37,7 +37,6 @@ import {
   OperationalHealthRegistry,
   PluginManager,
   RuntimeUploadRegistry,
-  createScheduledMaintenanceDaemon,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
 import {
@@ -45,6 +44,7 @@ import {
   createRuntimeStateServiceLayer,
 } from "@brains/runtime-state/effect";
 import { BunSchedulerBackend } from "@brains/scheduler";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import {
   PermissionService,
   RenderService,

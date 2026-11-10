@@ -1,7 +1,7 @@
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 import {
   FORM_POLICY_DEFAULTS,
-  formPolicyOverridesSchema,
+  formPluginConfigSchema,
   resolveFormPolicy,
   type FormEnginePolicy,
   type FormPolicyOverrides,
@@ -14,11 +14,10 @@ export type ContactIntakeOverrides = FormPolicyOverrides;
 export const CONTACT_INTAKE_DEFAULTS: typeof FORM_POLICY_DEFAULTS =
   FORM_POLICY_DEFAULTS;
 
-export interface ContactPluginConfig {
-  intake?: ContactIntakeOverrides | undefined;
-}
-export const contactPluginConfigSchema: z.ZodType<ContactPluginConfig> =
-  z.strictObject({ intake: formPolicyOverridesSchema.optional() });
+/** The forms engine's plugin configuration. */
+export const contactPluginConfigSchema: typeof formPluginConfigSchema =
+  formPluginConfigSchema;
+export type ContactPluginConfig = z.input<typeof contactPluginConfigSchema>;
 
 /** The policy the intake runs on the given origin. */
 export function resolveIntakePolicy(

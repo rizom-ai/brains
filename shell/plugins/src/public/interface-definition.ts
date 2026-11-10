@@ -1,4 +1,9 @@
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
+import {
+  noFirstPartyDeclarations,
+  registerInterfaceRebuilder,
+  type FirstPartyInterfaceDeclarations,
+} from "../interface/first-party-interface";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { routeMethods } from "../interface/interface-definition-contract";
 import { freeze } from "@brains/utils/freeze";
@@ -222,18 +227,32 @@ export function defineInterface<
   // The split exists so the state type is known before behavior is checked;
   // the runtime reads one declaration.
   const definition = { ...behavior, ...header };
-  return createPluginPackageDefinition({
-    family: "interface",
-    id: definition.id,
-    config: definition.config,
-    instantiate: ({ config, package: metadata, scope }) =>
-      createDeclarativeInterfacePlugin(
-        definition,
-        config,
-        metadata,
-        scope(definition.id),
-      ),
-  });
+  const declare = (
+    declarations: FirstPartyInterfaceDeclarations,
+  ): {
+    readonly kind: "rizom-plugin-package";
+    readonly family: "interface";
+    readonly id: string;
+    readonly config: TConfigSchema;
+  } => {
+    const declared = createPluginPackageDefinition({
+      family: "interface",
+      id: definition.id,
+      config: definition.config,
+      instantiate: ({ config, package: metadata, scope, pluginId }) =>
+        createDeclarativeInterfacePlugin(
+          definition,
+          config,
+          metadata,
+          pluginId ?? scope(definition.id),
+          declarations,
+        ),
+    });
+    // A first-party wrapper rebuilds it with what it declares besides.
+    registerInterfaceRebuilder(declared, declarations, declare);
+    return declared;
+  };
+  return declare(noFirstPartyDeclarations);
 }
 
 /**
@@ -282,12 +301,12 @@ export function defineMessageInterface<
     family: "message-interface",
     id: definition.id,
     config: definition.config,
-    instantiate: ({ config, package: metadata, scope }) =>
+    instantiate: ({ config, package: metadata, scope, pluginId }) =>
       createDeclarativeMessageInterfacePlugin(
         definition,
         config,
         metadata,
-        scope(definition.id),
+        pluginId ?? scope(definition.id),
       ),
   });
 }
@@ -339,6 +358,12 @@ export function defineMessageInterfacePackage<
     id: definition.id,
     config: definition.config,
     instantiate: (context) => {
+      // Each interface is its own plugin, so no one id names them all.
+      if (context.pluginId !== undefined) {
+        throw new Error(
+          `${label} keeps no legacy plugin id; each of its interfaces is its own plugin`,
+        );
+      }
       const interfaces = definition.interfaces({ config: context.config });
       const ids = new Set<string>();
       for (const declaration of interfaces) {

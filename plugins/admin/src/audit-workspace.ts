@@ -2,6 +2,7 @@ import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { AuthAuditEvent } from "@brains/contracts";
 import { defineStudioWorkspace, type OperatorViewBlock } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
+import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   adminUserOptions,
@@ -43,9 +44,7 @@ function actionLabel(action: string): string {
   const known = actionLabels[action];
   if (known) return known;
   const words = action.replaceAll(/[._-]+/g, " ").trim();
-  return words.length === 0
-    ? action
-    : `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
+  return words.length === 0 ? action : capitalize(words);
 }
 
 const auditWorkspaceQuerySchema = z.strictObject({

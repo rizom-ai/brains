@@ -2,6 +2,7 @@ import {
   siteLayoutInfoSchema,
   siteMetadataTranslationSchema,
 } from "@brains/site-composition";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import {
   jsonObjectSchema,
@@ -178,11 +179,6 @@ export function normalizeJsonValue(
   );
 }
 
-function isPlainRecord(value: object): value is Record<string, unknown> {
-  const prototype: unknown = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
 /** Validate, JSON-normalize, and deep-freeze a build's fields before any of
  *  its pages is prepared. */
 export function createPreparedSiteEnvelope(
@@ -213,13 +209,7 @@ function deepFreeze<T>(value: T): T {
 const preparedRouteFieldsSchema = preparedRouteSchema.extend({
   sections: z.array(
     preparedSectionSchema.extend({
-      data: z.custom<JsonObject>(
-        (value) =>
-          typeof value === "object" &&
-          value !== null &&
-          !Array.isArray(value) &&
-          isPlainRecord(value),
-      ),
+      data: z.custom<JsonObject>((value) => isPlainRecord(value)),
     }),
   ),
 });

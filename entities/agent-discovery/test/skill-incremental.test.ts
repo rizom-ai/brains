@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { SkillPlugin } from "../src/plugins/skill-plugin";
 
 describe("Skill projection scheduling boundary", () => {
-  it("does not subscribe to topic completion or raw entity events", async () => {
+  it("does not subscribe to sync completion or raw entity events", async () => {
     const harness = createPluginHarness<SkillPlugin>({});
     const enqueue = mock(async () => "job-1");
     const jobQueue = harness.getMockShell().getJobQueueService();
@@ -17,11 +17,6 @@ describe("Skill projection scheduling boundary", () => {
       "sync:initial:completed",
       { success: true },
       "directory-sync",
-    );
-    await harness.sendMessage(
-      "topics:batch-completed",
-      { created: 1, merged: 0, skipped: 0, batches: 1 },
-      "topics",
     );
     await harness.sendMessage(
       "entity:updated",

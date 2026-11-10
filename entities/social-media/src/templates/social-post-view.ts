@@ -131,21 +131,14 @@ function expectSocialPostViewOutput(
 void expectSocialPostSchemaData;
 void expectSocialPostViewOutput;
 
-/** Render payload after site-builder adds deterministic entity URL fields. */
-export type SocialPostView = Omit<
-  SocialPostSchemaData,
-  "url" | "typeLabel" | "listUrl" | "listLabel"
-> & {
-  url: string;
-  typeLabel: string;
-  listUrl: string;
-  listLabel: string;
-};
-
 /**
- * Runtime counterpart to {@link SocialPostView}: the same fields with the
- * link slots site-builder fills required, so the render path can prove the
- * enrichment ran instead of assuming it.
+ * The render payload after site-builder adds deterministic entity URL fields:
+ * the view's fields with the link slots site-builder fills required, so the
+ * render path can prove the enrichment ran instead of assuming it.
  */
-export const socialPostRenderSchema: z.ZodType<SocialPostView> =
-  socialPostViewSchema.extend(renderedLinkFields);
+export const socialPostRenderSchema: ReturnType<
+  typeof socialPostViewSchema.extend<typeof renderedLinkFields>
+> = socialPostViewSchema.extend(renderedLinkFields);
+
+/** Render payload after site-builder adds deterministic entity URL fields. */
+export type SocialPostView = z.output<typeof socialPostRenderSchema>;

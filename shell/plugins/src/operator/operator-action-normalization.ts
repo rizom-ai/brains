@@ -3,6 +3,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyWorkspaceActionDefinition } from "./workspace-action-definition-contract";
 import type { WorkspaceActionFormFieldDefinition } from "./operator-view-contract";
 import { meetsPermission } from "./contract-assertions";
+import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
 import {
   getKind,
@@ -60,10 +61,6 @@ export interface SourceActionControl {
 }
 
 const jsonValueSchema: ReturnType<typeof z.json> = z.json();
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function formControlSupportsSchema(
   control: SourceActionFormField["control"],
@@ -233,7 +230,7 @@ function normalizeActionForm(
     };
   }
   const initial = control.input ?? {};
-  if (!isPlainRecord(initial)) {
+  if (!isRecord(initial)) {
     return {
       issues: [
         {

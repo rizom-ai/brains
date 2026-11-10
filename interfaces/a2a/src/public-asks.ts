@@ -105,7 +105,7 @@ export class RuntimePublicAskAllowance implements PublicAskAllowance {
 
   constructor(
     config: PublicAsksConfig,
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
     options: { now?: () => number } = {},
   ) {
     this.config = config;

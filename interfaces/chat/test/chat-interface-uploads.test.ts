@@ -5,11 +5,7 @@ import type {
   RuntimeUploadScopeOptions,
 } from "@brains/plugins";
 import {
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-} from "../src/upload-store";
-import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   stubFetch,
@@ -18,6 +14,20 @@ import {
   createThread,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
+
+/** The runtime's shared upload store, where chat keeps what it is sent. */
+const sharedUploadStoreScope: RuntimeUploadScopeOptions = {
+  namespace: "upload",
+  refKind: "upload",
+  routePath: "/api/chat/uploads",
+};
+
+/** The Discord upload store chat kept before it wrote the shared one. */
+const retiredDiscordUploadStoreScope: RuntimeUploadScopeOptions = {
+  namespace: "discord-chat",
+  refKind: "discord-chat-upload",
+  routePath: "/api/webhooks/chat/discord/uploads",
+};
 
 describe("ChatInterface uploads", () => {
   const suite = setupChatInterfaceTest();
@@ -37,7 +47,7 @@ describe("ChatInterface uploads", () => {
         ),
       ),
     );
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -70,7 +80,7 @@ describe("ChatInterface uploads", () => {
       }),
     );
     const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -126,7 +136,7 @@ describe("ChatInterface uploads", () => {
 
   it("does not fetch Slack files for public users", async () => {
     const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -202,7 +212,7 @@ describe("ChatInterface uploads", () => {
     const uploadStore = suite.harness
       .getMockShell()
       .getRuntimeUploadRegistry()
-      .scoped(createCanonicalChatUploadStoreScope());
+      .scoped(sharedUploadStoreScope);
     const record = await uploadStore.readRecord(source?.id ?? "");
     expect(record.metadata).toEqual({
       interfaceType: "discord",
@@ -283,7 +293,7 @@ describe("ChatInterface uploads", () => {
         rules: [{ pattern: "slack:*", level: "trusted" }],
       }),
     );
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -869,7 +879,7 @@ describe("ChatInterface uploads", () => {
 
   it("restores prior uploads from stored conversation metadata after restart", async () => {
     const { image, attachments } = await restoreAfterRestart(
-      createCanonicalChatUploadStoreScope(),
+      sharedUploadStoreScope,
     );
 
     expect(attachments).toEqual([
@@ -885,7 +895,7 @@ describe("ChatInterface uploads", () => {
 
   it("does not restore prior uploads stored under a platform upload kind", async () => {
     const { attachments } = await restoreAfterRestart(
-      createDiscordChatUploadStoreScope(),
+      retiredDiscordUploadStoreScope,
     );
 
     expect(attachments).toBeUndefined();

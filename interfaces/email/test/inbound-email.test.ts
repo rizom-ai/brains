@@ -7,10 +7,10 @@ import {
   inboundEmailContract,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createEmailPlugin } from "./email-plugin";
 import { createMockLogger } from "@brains/test-utils";
 
 import {
-  EmailInterface,
   createInboundEmailSourceRef,
   inboundEmailSchema,
   type EmailImapConfig,
@@ -306,9 +306,9 @@ describe("inbound email intake", () => {
     ];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -375,9 +375,9 @@ describe("inbound email intake", () => {
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     let connection = 0;
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -421,9 +421,9 @@ describe("inbound email intake", () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
     let connection = 0;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -519,7 +519,7 @@ describe("inbound email intake", () => {
     ];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     harness.subscribe(authPrincipalResolveContract.name, async (message) => {
       const request = authPrincipalResolveRequestSchema.parse(message.payload);
       expect(request.actor).toEqual({
@@ -546,7 +546,7 @@ describe("inbound email intake", () => {
       };
     });
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -580,12 +580,12 @@ describe("inbound email intake", () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     harness.subscribe(authPrincipalResolveContract.name, async () => {
       throw new Error("alice@example.com must not leak");
     });
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -621,9 +621,9 @@ describe("inbound email intake", () => {
   it("leaves unknown senders unenriched", async () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>

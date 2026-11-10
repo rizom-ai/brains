@@ -142,6 +142,37 @@ function serveOverHttp(
 }
 
 describe("MCPProtocolAgentService", () => {
+  test("refuses a turn with attachments, which basic MCP chat cannot carry", async () => {
+    const { transport } = createTransport();
+    const service = await MCPProtocolAgentService.connect(transport);
+
+    try {
+      const refused = service.chat("describe that picture", "conversation-1", {
+        userPermissionLevel: "admin",
+        attachments: [
+          {
+            kind: "file",
+            filename: "robot.png",
+            mediaType: "image/png",
+            data: new Uint8Array([1, 2, 3]),
+          },
+        ],
+      });
+      expect(
+        await refused.then(
+          () => null,
+          (error: unknown) => error,
+        ),
+      ).toEqual(
+        new Error(
+          "Basic MCP chat carries no attachments: robot.png cannot reach the brain through it",
+        ),
+      );
+    } finally {
+      await service.close();
+    }
+  });
+
   test("routes chat and confirmation through the basic protocol", async () => {
     const { transport, protocolModes, permissions } = createTransport();
     const service = await MCPProtocolAgentService.connect(transport);

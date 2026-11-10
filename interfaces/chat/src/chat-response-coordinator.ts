@@ -1,3 +1,4 @@
+import type { ChatHost } from "./chat-host";
 import {
   buildConfirmationResponseParts,
   buildResponsePlan,
@@ -9,7 +10,6 @@ import {
   parseConfirmationIntent,
   routeConfirmationResponse,
   type AgentResponse,
-  type InterfacePluginContext,
   type JobProgressEvent,
   type MessageInterfaceOutput,
   type ResponsePlan,
@@ -39,7 +39,7 @@ interface PendingJobArtifactDelivery {
 }
 
 interface ChatResponseCoordinatorDeps {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   getDisplayBaseUrl: () => string | undefined;
   registerPromptAction: (
     threadId: string,

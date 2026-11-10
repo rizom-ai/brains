@@ -1,9 +1,11 @@
 {
   "name": "@brains/chat-repl",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.671",
+  "version": "0.2.0-alpha.675",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",
     "ink": "^7.0.6",

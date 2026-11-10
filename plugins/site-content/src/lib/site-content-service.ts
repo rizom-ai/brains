@@ -2,6 +2,7 @@ import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import {
   GenerateOptionsSchema,
   type GenerateOptions,
+  type GenerateResult,
 } from "../schemas/generate-options";
 import { SiteContentOperations } from "./site-content-operations";
 
@@ -15,12 +16,7 @@ export class SiteContentService {
   async generateContent(
     options: GenerateOptions,
     toolContext?: ToolContext,
-  ): Promise<{
-    jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
-    totalSections: number;
-    queuedSections: number;
-    batchId: string;
-  }> {
+  ): Promise<GenerateResult> {
     toolContext?.signal?.throwIfAborted();
     return this.operations.generate(
       GenerateOptionsSchema.parse(options),

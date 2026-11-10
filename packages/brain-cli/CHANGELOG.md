@@ -1,5 +1,71 @@
 # @rizom/brain
 
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- [#907](https://github.com/rizom-ai/brains/pull/907) [`595e3e9`](https://github.com/rizom-ai/brains/commit/595e3e9abc8603550fd0ef6aab4849d1f428e1a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An action item can be moved or noted from chat by the title people call it, not only by its id. When two visible cards share the title, the tool asks which one instead of guessing.
+
+- [#902](https://github.com/rizom-ai/brains/pull/902) [`e9519d8`](https://github.com/rizom-ai/brains/commit/e9519d8dea9865db0992c54118d82db95dc13487) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A post or social post generated from the terminal chat is saved again. The terminal now names its operator as the speaker of each turn. Without one, the turn ran as the brain's own agent, and since posts and social posts became declarative, their queued generation was refused at that agent's public level.
+
+- [#904](https://github.com/rizom-ai/brains/pull/904) [`ba8a3ab`](https://github.com/rizom-ai/brains/commit/ba8a3abb3452faad1205271c0081c9e66721c842) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a social post's text works again, through both edits and a full replacement. Since social posts became declarative, every edit was refused as an "invalid content replacement": the check asked the file to state a slug the brain derives from its platform and title. A declared type's replacement is now checked as its file will be stored, and an edit of its body keeps the stored metadata.
+
+- [#906](https://github.com/rizom-ai/brains/pull/906) [`64ab1df`](https://github.com/rizom-ai/brains/commit/64ab1df53f579a8f97d29e6ce2d2c53393d62874) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking which parts of the site would get new content now plans it with a dry run, and the plan names each section it would generate. Before, a dry run reported only a count, and the model listed the stored site content instead.
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- [#901](https://github.com/rizom-ai/brains/pull/901) [`cc76890`](https://github.com/rizom-ai/brains/commit/cc768909f4bca365f6d913d54ecd70acd7a16681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - EPUB exports now escape apostrophes and the book's language as XML, so a title or language holding a quote can no longer break the package's markup.
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- [#897](https://github.com/rizom-ai/brains/pull/897) [`8b80bb2`](https://github.com/rizom-ai/brains/commit/8b80bb2dba3f3e00cf51f4e50faf356ff4f27a7c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connecting or dismissing an agent sighting in the Inbox no longer overwrites a card refresh that lands at the same moment; the action fails and asks to reload instead.
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`980d848`](https://github.com/rizom-ai/brains/commit/980d848018657b5b2899d287b7ce609537e0db69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A2A is a declarative interface. It serves the same Agent Card, agent directory and JSON-RPC endpoint, registers `agent_call`, answers network asks and Studio calls, verifies and signs peer requests, and keeps the same public-ask allowance. A brain.yaml that still sets the removed `trustedTokens` or `outboundTokens` is refused with the same instruction, now reported as an invalid `a2a` config.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`7628605`](https://github.com/rizom-ai/brains/commit/762860543289a760e5aaf83298f0c1b4e2f5d53f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat (Discord and Slack) is a declarative interface. It routes messages, approvals, cards, job progress and tool statuses as before, and keeps uploads in the runtime's shared upload store. The per-platform upload stores it kept before July 2026 are retired: chat deletes `data/discord-chat/uploads` and `data/slack-chat/uploads` at startup, and their old URLs, `/api/webhooks/chat/discord/uploads` and `/api/webhooks/chat/slack/uploads`, now answer 404.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`8edffc1`](https://github.com/rizom-ai/brains/commit/8edffc1484b5de1bdfa381a495d1bac3adbb1b08) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The terminal chat (`--cli`) is a declarative interface. It registers under the plugin id `cli` with its daemon `cli:cli`, answers in the same `cli` conversation as the local administrator, numbers and confirms approvals as before, and shows job progress and completions apart from replies.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`da7b0fe`](https://github.com/rizom-ai/brains/commit/da7b0fe7c875953d22a3ca544eb260bd73163b49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Email is a declarative interface. It registers the same email channel, sends through Resend when it is configured (in background jobs too), listens on the IMAP mailbox as `email:email`, answers source reads for Admins, and keeps reading the IMAP cursor and source locators it stored before.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`056e266`](https://github.com/rizom-ai/brains/commit/056e266a2615cab356efee2ed2dfd4763795127c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can register the channels and senders its class registered, in the worker as well, answer the first-party contracts its class answered, ask other packages' contracts, keep the runtime state its class stored, and leave out a daemon its config does not call for.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`2c3f156`](https://github.com/rizom-ai/brains/commit/2c3f15690e6a2d5324a3579a996fce8d649f23f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party chat interface converted to a declarative definition writes the runtime's shared upload store, can retire an upload directory nothing reads any more, gathers answers, reads the brain's spaces and site URLs, records shared-space conversations, and renders, edits and routes job progress and tool statuses as its class did. The runtime's upload registry can delete a retired namespace's uploads directory and nothing beside it.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`426cbdd`](https://github.com/rizom-ai/brains/commit/426cbdd040a18111351b0fe95ba61893bfa7aa92) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can run work once the brain is ready, read the brain's character, anchor profile, profile kind, public skills and public tools, and read entities at the scope each call names, as its class did.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`f6ff867`](https://github.com/rizom-ai/brains/commit/f6ff867ed1d0dae359ee05c40fcde303ef0a2ec7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can serve the HTTP routes its class served as written, register the tools its class registered under their names, build the protocol-only registration the eval harness uses, and read the brain's deployment, plugins, auth backend, MCP service and permission levels, advertise its endpoint and way in, and hear a typed channel.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`d3dea47`](https://github.com/rizom-ai/brains/commit/d3dea47c620f133db2f958221364b831b7ced54f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can keep the plugin id its class had, as converted entity and service packages already do, so its daemons and the names derived from its id stay the same. A package of several message interfaces keeps none.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`4c2d7db`](https://github.com/rizom-ai/brains/commit/4c2d7db4b4d73e98181de75c0e2597457ec4e5d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition reaches the brain's agent, its conversations and its anchor check through an internal runtime, keeps the daemon its class registered, and can run the message coordination its class inherited, sending job progress and completions through a transport it declares. The public interface contract is unchanged.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`d2486c4`](https://github.com/rizom-ai/brains/commit/d2486c4f6ccb6ade6f197a760975aa0ace90d11c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can read whether guest turns can run, the brain's app info, theme and preview URL, the route a role names, an Inbox source and a job's status, read, list, rename and delete conversations, report an operational health check, and compose a Studio workspace as its class did. Services and interfaces share one first-party Studio binding.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`c4eb83d`](https://github.com/rizom-ai/brains/commit/c4eb83d74bc412241ae32b03cae56d9f6a8bb1ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain definition's interface entry builds its plugins with a factory, as a capability entry does, so an interface declared as a package definition composes beside the remaining interface classes. The internal `InterfaceConstructor` type is gone.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`73b6653`](https://github.com/rizom-ai/brains/commit/73b6653a7d35b56ee64fb2bcd8578f0f5b6b1546) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain.yaml config that a first-party package converted to a declarative definition refuses is reported under the plugin id its class had, the key the brain.yaml names (`Invalid plugin config for email at imap.port`), as before the conversion, instead of under its package-scoped name. This also corrects the wording for the packages converted earlier in this release line (the schema-only entities, small services, publishing entities and auth-dependent services), which reported their package-scoped name.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`439c65c`](https://github.com/rizom-ai/brains/commit/439c65c8e58112d1f0a14c5164a9600e7ae734f8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - MCP is a declarative interface. It registers the same chat and confirm tools, serves `/status` and `/mcp` on the shared host over HTTP or the process's own stdio, advertises the same endpoint and way in, resolves caller permissions as before, and builds the same protocol-only registration for `--mcp-basic` evals.
+
+- [#895](https://github.com/rizom-ai/brains/pull/895) [`c180a5b`](https://github.com/rizom-ai/brains/commit/c180a5b0cef2c8a8fc7ab77af889fabaa536a569) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A quiz result keeps its quiz's title, so after a directory-sync import or restore it is still listed under that title instead of the quiz's id.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`2d06950`](https://github.com/rizom-ai/brains/commit/2d06950c78f2af990cd1fdba7465901e6570f3f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Scheduled maintenance lives in the scheduler package. The guest-retention and web-chat guest-maintenance cycles run, report health and stop exactly as before.
+
+- [#896](https://github.com/rizom-ai/brains/pull/896) [`10f27e8`](https://github.com/rizom-ai/brains/commit/10f27e82120ee5a69f903214c5dac568c85e1816) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Confirming `agent_connect` or `agent_set_trust_level` over MCP works: the confirm call no longer answers "No pending … confirmation found". A tool called over the plugin tool bus, as MCP calls it, is now the instance the plugin registered, so a confirmation it handed out is still pending when its confirm call arrives; before, each call built the plugin's tools afresh.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`4364e83`](https://github.com/rizom-ai/brains/commit/4364e8343764d3756625aeee92e81ea4f05ec0bf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web chat is a declarative interface. The Ask page, chat API, guest chat, uploads, streamed replies, job progress and tool statuses, the guest monitor in Studio and the guest-maintenance cycle work as before.
+
+  Web chat's `guest` setting stays unset when a brain leaves it out: unset still means guest chat is off with the owner's switch available, as before, and is now told apart from `false` in the parsed config rather than from the raw input. The canonical route manifests now list web chat's six guest API routes, which a running brain already served once web chat registered.
+
 ## 0.2.0-alpha.671
 
 ### Patch Changes

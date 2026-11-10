@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import type {
-  InterfacePluginContext,
+  IRuntimeStateNamespace,
   WebRouteDefinition,
 } from "@brains/plugins";
 import { createDefaultGuestPolicy } from "./guest-preset";
@@ -27,10 +27,11 @@ interface BrowserAccess {
   hasChatAccess: boolean;
   permissionLevel: string;
 }
-type ControlContext = Pick<
-  InterfacePluginContext,
-  "runtimeState" | "siteUrl" | "previewUrl"
->;
+interface ControlContext {
+  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly siteUrl: string | undefined;
+  readonly previewUrl: string | undefined;
+}
 
 /** Operator authorization of the existing guest runtime, not deployment configuration. */
 export class GuestAccessControl {

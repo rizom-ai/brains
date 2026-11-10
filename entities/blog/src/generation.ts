@@ -1,6 +1,5 @@
 import {
   frontmatterRecordFields,
-  type GenerationResult,
   generationResultSchema,
 } from "@brains/contracts";
 import type {
@@ -73,11 +72,6 @@ export const generatedExcerptSchema: z.ZodObject<{
 
 export type BlogGenerationJobData = z.output<typeof blogGenerationJobSchema>;
 
-export interface BlogGenerationResult extends GenerationResult {
-  title?: string | undefined;
-  slug?: string | undefined;
-}
-
 export const blogGenerationResultSchema: ReturnType<
   typeof generationResultSchema.extend<{
     title: z.ZodOptional<z.ZodString>;
@@ -87,6 +81,8 @@ export const blogGenerationResultSchema: ReturnType<
   title: z.string().optional(),
   slug: z.string().optional(),
 });
+
+export type BlogGenerationResult = z.output<typeof blogGenerationResultSchema>;
 
 const SKELETON = `## Introduction
 

@@ -1,10 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
 import { emailSourceReadContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createEmailPlugin } from "./email-plugin";
 import { createMockLogger } from "@brains/test-utils";
 
 import {
-  EmailInterface,
   type EmailImapConfig,
   type InboundEmailClient,
   type InboundEmailSourceMessage,
@@ -34,8 +34,8 @@ const imapConfig: EmailImapConfig = {
 
 describe("EmailInterface", () => {
   it("owns Email metadata and registers a provider only with a configured transport", async () => {
-    const configuredHarness = createPluginHarness<EmailInterface>();
-    const configured = new EmailInterface({
+    const configuredHarness = createPluginHarness();
+    const configured = createEmailPlugin({
       transport: "resend",
       apiKey: "resend-key",
       from: "Rover <setup@example.com>",
@@ -63,8 +63,8 @@ describe("EmailInterface", () => {
       .getDeliveryProvider("email");
     expect(await provider?.isAvailable()).toBe(true);
 
-    const disabledHarness = createPluginHarness<EmailInterface>();
-    await disabledHarness.installPlugin(new EmailInterface());
+    const disabledHarness = createPluginHarness();
+    await disabledHarness.installPlugin(createEmailPlugin());
     await disabledHarness.finalizeRegistration();
     expect(
       disabledHarness
@@ -84,17 +84,15 @@ describe("EmailInterface", () => {
   });
 
   it("validates inbound config and applies polling defaults", async () => {
-    expect(
-      () =>
-        new EmailInterface({
-          imap: { ...imapConfig, port: 0 },
-        }),
+    expect(() =>
+      createEmailPlugin({
+        imap: { ...imapConfig, port: 0 },
+      }),
     ).toThrow(/Invalid plugin config for email/);
-    expect(
-      () =>
-        new EmailInterface({
-          imap: { ...imapConfig, pollIntervalMs: 0 },
-        }),
+    expect(() =>
+      createEmailPlugin({
+        imap: { ...imapConfig, pollIntervalMs: 0 },
+      }),
     ).toThrow(/Invalid plugin config for email/);
 
     const client: InboundEmailClient = {
@@ -111,9 +109,9 @@ describe("EmailInterface", () => {
     const imapClientFactory = mock(
       (_config: EmailImapConfig): InboundEmailClient => client,
     );
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         {
           imap: {
             host: imapConfig.host,
@@ -158,9 +156,9 @@ describe("EmailInterface", () => {
       }),
     };
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         { imapClientFactory: (): InboundEmailClient => client },
       ),
@@ -201,9 +199,9 @@ describe("EmailInterface", () => {
       disconnect,
     };
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => client,
@@ -254,9 +252,9 @@ describe("EmailInterface", () => {
         throw new TypeError(leakedError);
       }),
     };
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         { imapClientFactory: (): InboundEmailClient => client },
       ),
@@ -311,8 +309,8 @@ describe("EmailInterface", () => {
     const imapClientFactory = mock((): InboundEmailClient => {
       throw new Error("The worker must not open the mailbox");
     });
-    const harness = createPluginHarness<EmailInterface>();
-    const email = new EmailInterface(
+    const harness = createPluginHarness();
+    const email = createEmailPlugin(
       {
         transport: "resend",
         apiKey: "resend-key",
@@ -322,7 +320,7 @@ describe("EmailInterface", () => {
       { fetchImpl, imapClientFactory },
     );
 
-    await email.registerChannelsForExecution(harness.getMockShell(), {
+    await email.registerChannelsForExecution?.(harness.getMockShell(), {
       executionOnly: true,
     });
     // The shell finalizes its registries once every plugin has registered.
@@ -355,10 +353,10 @@ describe("EmailInterface", () => {
       async (_input: string | URL | Request) =>
         new Response(JSON.stringify({ id: "resend_123" }), { status: 200 }),
     );
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
 
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         {
           transport: "resend",
           apiKey: "resend-key",
@@ -408,9 +406,9 @@ describe("EmailInterface", () => {
       async (_input: string | URL | Request) =>
         new Response(JSON.stringify({ id: "resend_alert_1" }), { status: 200 }),
     );
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         {
           transport: "resend",
           apiKey: "resend-key",
@@ -467,10 +465,10 @@ describe("EmailInterface", () => {
       async (_input: string | URL | Request) =>
         new Response(JSON.stringify({ id: "resend_reply_1" }), { status: 200 }),
     );
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
 
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         {
           transport: "resend",
           apiKey: "resend-key",
@@ -550,10 +548,10 @@ describe("EmailInterface", () => {
           status: 500,
         }),
     );
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
 
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         {
           transport: "resend",
           apiKey: "resend-key",
@@ -598,9 +596,9 @@ describe("EmailInterface", () => {
           { status: 403 },
         ),
     );
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         {
           transport: "resend",
           apiKey: "resend-key",
@@ -643,14 +641,13 @@ describe("empty transport env interpolation", () => {
   // Optional outbound settings must then read as absent so the inbound IMAP
   // half still boots (the documented inbound-only posture).
   it("boots inbound-only when optional outbound settings are empty strings", () => {
-    expect(
-      () =>
-        new EmailInterface({
-          transport: "resend",
-          apiKey: "",
-          from: "",
-          imap: imapConfig,
-        }),
+    expect(() =>
+      createEmailPlugin({
+        transport: "resend",
+        apiKey: "",
+        from: "",
+        imap: imapConfig,
+      }),
     ).not.toThrow();
   });
 });

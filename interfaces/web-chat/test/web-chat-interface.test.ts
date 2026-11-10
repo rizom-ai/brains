@@ -16,7 +16,7 @@ import {
 } from "@brains/plugins/test";
 import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
-import { WebChatInterface } from "../src";
+import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -237,12 +237,12 @@ function makeFixedConversationService(input: {
   };
 }
 
-function adminPlugin(): WebChatInterface {
-  return new WebChatInterface({}, { resolveAuthSession: async () => true });
+function adminPlugin(): WebChatPlugin {
+  return createWebChatPlugin({}, { resolveAuthSession: async () => true });
 }
 
-function trustedPlugin(): WebChatInterface {
-  return new WebChatInterface(
+function trustedPlugin(): WebChatPlugin {
+  return createWebChatPlugin(
     {},
     { resolvePermissionLevel: async () => "trusted" },
   );
@@ -264,8 +264,8 @@ function trustedPrincipal(
   };
 }
 
-function trustedAuthPlugin(): WebChatInterface {
-  return new WebChatInterface(
+function trustedAuthPlugin(): WebChatPlugin {
+  return createWebChatPlugin(
     {},
     { resolveAuthPrincipal: async () => trustedPrincipal() },
   );
@@ -286,7 +286,7 @@ function pngDataUrl(bytes = pngBytes()): string {
 }
 
 function getRoute(
-  plugin: WebChatInterface,
+  plugin: WebChatPlugin,
   path: string,
   method: WebRouteMethod,
 ): WebRouteDefinition | undefined {
@@ -302,7 +302,7 @@ function getRoute(
 }
 
 function requireRoute(
-  plugin: WebChatInterface,
+  plugin: WebChatPlugin,
   path: string,
   method: WebRouteMethod,
 ): WebRouteDefinition {
@@ -311,11 +311,11 @@ function requireRoute(
   return route;
 }
 
-describe("WebChatInterface", () => {
-  let harness: PluginTestHarness<WebChatInterface>;
+describe("WebChatPlugin", () => {
+  let harness: PluginTestHarness<WebChatPlugin>;
 
   beforeEach(() => {
-    harness = createPluginHarness<WebChatInterface>();
+    harness = createPluginHarness<WebChatPlugin>();
     const conversations: Conversation[] = [];
     harness.getMockShell().setConversationService(
       makeFixedConversationService({
@@ -342,7 +342,7 @@ describe("WebChatInterface", () => {
   });
 
   it("registers as the web-chat interface", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
 
     await harness.installPlugin(plugin);
 
@@ -352,7 +352,7 @@ describe("WebChatInterface", () => {
   });
 
   it("leaves operator Chat navigation to Studio", async () => {
-    const plugin = new WebChatInterface({ routePath: "/talk" });
+    const plugin = createWebChatPlugin({ routePath: "/talk" });
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     expect(harness.getMockShell().listInteractions()).toEqual([]);
@@ -693,7 +693,7 @@ describe("WebChatInterface", () => {
   });
 
   it("exposes chat page, AI SDK endpoint, and UI asset routes", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
 
     const routes = plugin.getWebRoutes();
@@ -1105,7 +1105,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects remote-agent JSON requests without an auth session", async () => {
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       { resolveAuthSession: async (): Promise<boolean> => false },
     );
@@ -1304,7 +1304,7 @@ describe("WebChatInterface", () => {
   });
 
   it("denies suspended Trusted principals", async () => {
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       {
         resolveAuthPrincipal: async (): Promise<AuthPrincipal> =>
@@ -1326,7 +1326,7 @@ describe("WebChatInterface", () => {
   });
 
   it("denies active Public principals", async () => {
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       {
         resolveAuthPrincipal: async (): Promise<AuthPrincipal> =>
@@ -1349,7 +1349,7 @@ describe("WebChatInterface", () => {
 
   it("resolves the default browser principal once per request", async () => {
     let resolutionCount = 0;
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       {
         resolveAuthPrincipal: async (): Promise<undefined> => {
@@ -1491,7 +1491,7 @@ describe("WebChatInterface", () => {
       it(`redirects operator Ask only when Studio is registered (authenticated=${authenticated}, studio=${studio})`, async () => {
         const plugin = authenticated
           ? trustedAuthPlugin()
-          : new WebChatInterface();
+          : createWebChatPlugin();
         await harness.installPlugin(plugin);
         spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
           {
@@ -1529,7 +1529,7 @@ describe("WebChatInterface", () => {
   });
 
   it("does not register retired operator bundle routes", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const paths = plugin.getWebRoutes().map((route) => route.path);
     expect(paths).not.toContain("/ask/assets/app.js");
@@ -1539,7 +1539,7 @@ describe("WebChatInterface", () => {
   it("rejects chat POSTs without an auth session", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2443,7 +2443,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects image attachment requests from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 
@@ -2455,7 +2455,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects document attachment requests from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
 
@@ -2486,7 +2486,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects artifact job status requests from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/jobs/status", "GET");
 
@@ -2549,10 +2549,10 @@ describe("WebChatInterface", () => {
   it("stores multipart uploads in runtime data, not content brain-data", async () => {
     const root = "/tmp/web-chat-file-upload-path-test";
     await rm(root, { recursive: true, force: true });
-    const scopedHarness = createPluginHarness<WebChatInterface>({
+    const scopedHarness = createPluginHarness<WebChatPlugin>({
       dataDir: join(root, "brain-data"),
     });
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       { resolveAuthSession: async (): Promise<boolean> => true },
     );
@@ -2658,7 +2658,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects stored upload downloads from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "GET");
 
@@ -2672,7 +2672,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects multipart uploads from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -3381,7 +3381,7 @@ describe("WebChatInterface", () => {
   it("propagates authenticated Admin and Anchor facets independently", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       {
         resolveAuthPrincipal: async (): Promise<AuthPrincipal> => ({
@@ -3641,7 +3641,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
@@ -4020,7 +4020,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
@@ -4109,7 +4109,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
@@ -4220,7 +4220,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
@@ -4306,7 +4306,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/messages", "GET");
 

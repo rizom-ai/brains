@@ -19,18 +19,17 @@ import {
 
 type ImageDefinition = EntityDefinition<"image", typeof imageMetadataSchema>;
 
-export interface UploadPromotionJobData {
-  uploadId: string;
-  imageId?: string | undefined;
-  title?: string | undefined;
-}
+export const uploadPromotionJobSchema: z.ZodObject<{
+  uploadId: z.ZodString;
+  imageId: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  uploadId: z.string().min(1),
+  imageId: z.string().min(1).optional(),
+  title: z.string().optional(),
+});
 
-export const uploadPromotionJobSchema: z.ZodType<UploadPromotionJobData> =
-  z.object({
-    uploadId: z.string().min(1),
-    imageId: z.string().min(1).optional(),
-    title: z.string().optional(),
-  });
+export type UploadPromotionJobData = z.output<typeof uploadPromotionJobSchema>;
 
 /** Image's own job: an uploaded image promoted to an image entity. */
 export const uploadPromotionJobContract: ReturnType<

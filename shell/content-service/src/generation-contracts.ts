@@ -14,29 +14,36 @@ import {
   generationLimitPreprocessor,
 } from "./generation-limits";
 import type { Caller } from "./caller-authority";
-import {
-  generationAuthoritySchema,
-  type GenerationAuthority,
-} from "./generation-authorization";
-import {
-  generationContextSchema,
-  type GenerationContext,
-} from "./generation-context";
+import { generationAuthoritySchema } from "./generation-authorization";
+import { generationContextSchema } from "./generation-context";
 
-export interface DurableGenerationContext extends Omit<
-  GenerationContext,
-  "data"
-> {
-  data?: JsonObject | undefined;
-}
+export const durableGenerationContextSchema: ReturnType<
+  typeof generationContextSchema.extend<{
+    data: z.ZodOptional<typeof jsonObjectSchema>;
+  }>
+> = generationContextSchema.extend({
+  data: jsonObjectSchema.optional(),
+});
+export type DurableGenerationContext = z.output<
+  typeof durableGenerationContextSchema
+>;
 
-export interface ContentGenerationDestination {
-  entityType: string;
-  idPath: EntityIdPath;
-  metadata: JsonObject;
-  visibility?: ContentVisibility | undefined;
-}
+export const contentGenerationDestinationSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  idPath: typeof entityIdPathSchema;
+  metadata: typeof jsonObjectSchema;
+  visibility: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
+}> = z.object({
+  entityType: z.string().min(1),
+  idPath: entityIdPathSchema,
+  metadata: jsonObjectSchema,
+  visibility: canonicalContentVisibilitySchema.optional(),
+});
+export type ContentGenerationDestination = z.output<
+  typeof contentGenerationDestinationSchema
+>;
 
+/** A destination as a caller states it: the path is not validated yet. */
 export interface ContentGenerationDestinationInput {
   entityType: string;
   idPath: EntityIdPathInput;
@@ -44,11 +51,18 @@ export interface ContentGenerationDestinationInput {
   visibility?: ContentVisibility | undefined;
 }
 
-export interface ContentGenerationTarget {
-  templateName: string;
-  context: DurableGenerationContext;
-  destination: ContentGenerationDestination;
-}
+export const contentGenerationTargetSchema: z.ZodObject<{
+  templateName: z.ZodString;
+  context: z.ZodDefault<typeof durableGenerationContextSchema>;
+  destination: typeof contentGenerationDestinationSchema;
+}> = z.object({
+  templateName: z.string().min(1),
+  context: durableGenerationContextSchema.default(() => ({})),
+  destination: contentGenerationDestinationSchema,
+});
+export type ContentGenerationTarget = z.output<
+  typeof contentGenerationTargetSchema
+>;
 
 export interface ContentGenerationTargetInput {
   templateName: string;
@@ -56,15 +70,19 @@ export interface ContentGenerationTargetInput {
   destination: ContentGenerationDestinationInput;
 }
 
-export interface ContentGenerationOptions {
-  dryRun?: boolean;
-  force?: boolean;
-}
-
-export interface ParsedContentGenerationOptions {
-  dryRun: boolean;
-  force: boolean;
-}
+export const contentGenerationOptionsSchema: z.ZodObject<{
+  dryRun: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  force: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+}> = z.object({
+  dryRun: z.boolean().optional().default(false),
+  force: z.boolean().optional().default(false),
+});
+export type ContentGenerationOptions = z.input<
+  typeof contentGenerationOptionsSchema
+>;
+export type ParsedContentGenerationOptions = z.output<
+  typeof contentGenerationOptionsSchema
+>;
 
 export interface ContentGenerationRequestInput {
   caller: Caller;
@@ -74,64 +92,12 @@ export interface ContentGenerationRequestInput {
   pluginId?: string;
 }
 
-interface ParsedContentGenerationRequest {
-  targets: ContentGenerationTarget[];
-  options: ParsedContentGenerationOptions;
-}
-
-export interface PersistedContentGenerationDestination {
-  entityType: string;
-  entityId: string;
-  metadata: JsonObject;
-  visibility: ContentVisibility;
-}
-
-export interface ContentGenerationJobData {
-  authority: GenerationAuthority;
-  templateName: string;
-  context: DurableGenerationContext;
-  destination: PersistedContentGenerationDestination;
-  expectedRevision: string | null;
-}
-
-export const durableGenerationContextSchema: z.ZodType<
-  DurableGenerationContext,
-  unknown
-> = generationContextSchema.extend({
-  data: jsonObjectSchema.optional(),
-});
-
-export const contentGenerationDestinationSchema: z.ZodType<
-  ContentGenerationDestination,
-  unknown
-> = z.object({
-  entityType: z.string().min(1),
-  idPath: entityIdPathSchema,
-  metadata: jsonObjectSchema,
-  visibility: canonicalContentVisibilitySchema.optional(),
-});
-
-export const contentGenerationTargetSchema: z.ZodType<
-  ContentGenerationTarget,
-  unknown
-> = z.object({
-  templateName: z.string().min(1),
-  context: durableGenerationContextSchema.default(() => ({})),
-  destination: contentGenerationDestinationSchema,
-});
-
-export const contentGenerationOptionsSchema: z.ZodType<
-  ParsedContentGenerationOptions,
-  unknown
-> = z.object({
-  dryRun: z.boolean().optional().default(false),
-  force: z.boolean().optional().default(false),
-});
-
 /** Owns the admission limits: the preprocessor rejects oversized or cyclic input before Zod recurses. */
-export const contentGenerationRequestSchema: z.ZodType<
-  ParsedContentGenerationRequest,
-  unknown
+export const contentGenerationRequestSchema: z.ZodPreprocess<
+  z.ZodObject<{
+    targets: z.ZodArray<typeof contentGenerationTargetSchema>;
+    options: z.ZodDefault<typeof contentGenerationOptionsSchema>;
+  }>
 > = z.preprocess(
   generationLimitPreprocessor(assertGenerationRequestLimits),
   z.object({
@@ -143,20 +109,30 @@ export const contentGenerationRequestSchema: z.ZodType<
   }),
 );
 
-export const persistedContentGenerationDestinationSchema: z.ZodType<
-  PersistedContentGenerationDestination,
-  unknown
-> = z.object({
+export const persistedContentGenerationDestinationSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+  metadata: typeof jsonObjectSchema;
+  visibility: typeof canonicalContentVisibilitySchema;
+}> = z.object({
   entityType: z.string().min(1),
   entityId: z.string().min(1),
   metadata: jsonObjectSchema,
   visibility: canonicalContentVisibilitySchema,
 });
+export type PersistedContentGenerationDestination = z.output<
+  typeof persistedContentGenerationDestinationSchema
+>;
 
 /** Owns the durable payload limits for every job the worker accepts. */
-export const contentGenerationJobDataSchema: z.ZodType<
-  ContentGenerationJobData,
-  unknown
+export const contentGenerationJobDataSchema: z.ZodPreprocess<
+  z.ZodObject<{
+    authority: typeof generationAuthoritySchema;
+    templateName: z.ZodString;
+    context: typeof durableGenerationContextSchema;
+    destination: typeof persistedContentGenerationDestinationSchema;
+    expectedRevision: z.ZodNullable<z.ZodString>;
+  }>
 > = z.preprocess(
   generationLimitPreprocessor(assertGenerationJsonLimits),
   z.object({
@@ -167,6 +143,9 @@ export const contentGenerationJobDataSchema: z.ZodType<
     expectedRevision: z.string().min(1).nullable(),
   }),
 );
+export type ContentGenerationJobData = z.output<
+  typeof contentGenerationJobDataSchema
+>;
 
 export const contentGenerationSkipReasons = [
   "content-exists",

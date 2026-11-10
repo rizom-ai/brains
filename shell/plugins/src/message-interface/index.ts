@@ -9,6 +9,11 @@ export {
   type SendMessageWithIdRequest,
   urlCaptureConfigSchema,
 } from "./message-interface-plugin";
+export {
+  captureUrlViaAgent,
+  extractCaptureableUrls,
+  type LinkCaptureHost,
+} from "./message-content-utils";
 
 export {
   setupProgressHandler,

@@ -1,15 +1,15 @@
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import { chatMessagesResponseSchema } from "@brains/contracts/chat";
 import {
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
   getStoredMessageCards,
-  type InterfacePluginContext,
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
 import type { WebChatConversationAccess } from "./conversation-access";
 import { resolveWebChatSession } from "./session-handlers";
 
 type AccessResolver = (request: Request) => Promise<WebChatConversationAccess>;
-type ConversationService = InterfacePluginContext["conversations"];
+type ConversationService = InterfaceRuntime["conversations"];
 
 interface MessageHandlerDeps {
   conversations: ConversationService;

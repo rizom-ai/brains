@@ -10,6 +10,8 @@ type A2AConfigSchema = z.ZodObject<
     maxNetworkAttempts: z.ZodDefault<z.ZodNumber>;
     networkAskTimeoutMs: z.ZodDefault<z.ZodNumber>;
     publicAsks: z.ZodPrefault<typeof publicAsksConfigSchema>;
+    trustedTokens: z.ZodOptional<z.ZodNever>;
+    outboundTokens: z.ZodOptional<z.ZodNever>;
   },
   z.core.$strict
 >;
@@ -43,6 +45,17 @@ export const a2aConfigSchema: A2AConfigSchema = z
 
     /** How much this brain answers public A2A callers per day, and whether at all. */
     publicAsks: publicAsksConfigSchema.prefault({}),
+
+    /**
+     * Removed with signed A2A trust: a configuration that still sets either
+     * is refused with what to do instead of an unknown-key error.
+     */
+    trustedTokens: z
+      .never({ error: "trustedTokens legacy config is no longer supported" })
+      .optional(),
+    outboundTokens: z
+      .never({ error: "outboundTokens legacy config is no longer supported" })
+      .optional(),
   })
   .strict();
 

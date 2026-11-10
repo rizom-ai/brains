@@ -156,7 +156,6 @@ describe("topic extraction run", () => {
     await run.select();
     expect(entities.has("topic:architecture")).toBe(true);
     expect(run.calls).toBe(2);
-    expect(run.changed).toBe(1);
     expect(run.selectionPending()).toBe(false);
   });
 });

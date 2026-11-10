@@ -3,10 +3,11 @@ import {
   formFields,
   type FormAnswers,
   type FormDefinition,
+  type FormInboxItem,
+  type FormInboxTarget,
   type FormNotificationState,
   type FormRecord,
   type FormSubmission,
-  type FormTarget,
 } from "@brains/forms";
 import { quizResultAdapter } from "./entity/adapter";
 import {
@@ -61,6 +62,7 @@ function frontmatterFor(submission: FormSubmission): QuizResultFrontmatter {
   const email = answerText(answers, "email");
   return {
     quiz: form.id,
+    quizTitle: form.title,
     ...(language ? { language } : {}),
     receivedAt: new Date(receivedAt).toISOString(),
     status: "new",
@@ -89,14 +91,11 @@ function frontmatterFor(submission: FormSubmission): QuizResultFrontmatter {
   };
 }
 
-function record(
-  frontmatter: QuizResultFrontmatter,
-  quizTitle: string,
-): FormRecord {
+function record(frontmatter: QuizResultFrontmatter): FormRecord {
   return {
     content: quizResultAdapter.createContent(frontmatter),
     metadata: quizResultMetadataSchema.parse(
-      quizResultAdapter.metadataFor(frontmatter, quizTitle),
+      quizResultAdapter.metadataFor(frontmatter),
     ),
   };
 }
@@ -105,8 +104,29 @@ function read(entity: QuizResult): QuizResultFrontmatter {
   return quizResultAdapter.parseContent(entity.content).frontmatter;
 }
 
+/** What the owner reads in the Inbox: who took which quiz, how to reach
+ * them, their results and their answers. */
+function detail(frontmatter: QuizResultFrontmatter): string {
+  const lines = [
+    `Quiz: ${frontmatter.quiz}`,
+    ...(frontmatter.name ? [`Name: ${frontmatter.name}`] : []),
+    ...(frontmatter.email ? [`Email: ${frontmatter.email}`] : []),
+    ...(frontmatter.language ? [`Language: ${frontmatter.language}`] : []),
+    "",
+    ...frontmatter.results.map(
+      (result) => `${result.title}: ${result.outcomeTitle}`,
+    ),
+    "",
+    ...frontmatter.answers.map(
+      (answer) =>
+        `${answer.label}: ${Array.isArray(answer.value) ? answer.value.join(", ") : answer.value}`,
+    ),
+  ];
+  return lines.join("\n");
+}
+
 /** Quiz results as quizzes produce them: one record per quiz taken. */
-export const quizResultTarget: FormTarget<QuizResult> = {
+export const quizResultTarget: FormInboxTarget<QuizResult> = {
   entityType: "quiz-result",
   // One folder per quiz, as Studio lists them.
   idSeparator: ":",
@@ -123,7 +143,7 @@ export const quizResultTarget: FormTarget<QuizResult> = {
   },
 
   record(submission: FormSubmission): FormRecord {
-    return record(frontmatterFor(submission), submission.form.title);
+    return record(frontmatterFor(submission));
   },
 
   matches(entity: QuizResult, submission: FormSubmission): boolean {
@@ -179,5 +199,41 @@ export const quizResultTarget: FormTarget<QuizResult> = {
       })),
       ...(frontmatter.email ? { replyTo: frontmatter.email } : {}),
     };
+  },
+
+  /** A result is a to-do only when its taker left a way to answer them;
+   * every result is in Studio. */
+  inbox: {
+    sourceId: "quiz-results",
+    displayName: "Quiz results",
+    label: "Quiz",
+    recordLabel: "Quiz result",
+    listFilter: { contact: true },
+    item(entity: QuizResult): FormInboxItem | undefined {
+      const frontmatter = read(entity);
+      if (!frontmatter.email) return undefined;
+      return {
+        title: `${entity.metadata.title} result`,
+        summary: frontmatter.results
+          .map((result) => `${result.title}: ${result.outcomeTitle}`)
+          .join(" · "),
+        receivedAt: frontmatter.receivedAt,
+      };
+    },
+    detail(entity: QuizResult): string {
+      return detail(read(entity));
+    },
+    withHandled(entity: QuizResult): FormRecord {
+      return {
+        content: quizResultAdapter.createContent({
+          ...read(entity),
+          status: "handled",
+        }),
+        metadata: quizResultMetadataSchema.parse({
+          ...entity.metadata,
+          status: "handled",
+        }),
+      };
+    },
   },
 };

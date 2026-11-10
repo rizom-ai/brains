@@ -2,7 +2,7 @@ import { describe, expect, it, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { webChatConfigSchema } from "../src/config";
 import { resolveGuestPreset } from "../src/guest-preset";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
 
 describe("guest configuration conventions", () => {
   it("stays off by default and allows explicit disabling", () => {
@@ -89,7 +89,7 @@ describe("guest configuration conventions", () => {
   );
 
   it("serves the runtime model's disclosure from the preset session", async () => {
-    const harness = createPluginHarness<WebChatInterface>();
+    const harness = createPluginHarness<WebChatPlugin>();
     const shell = harness.getMockShell();
     const appInfo = shell.getAppInfo.bind(shell);
     spyOn(shell, "getAppInfo").mockImplementation(async () => ({
@@ -99,7 +99,7 @@ describe("guest configuration conventions", () => {
         embeddingModel: "text-embedding-3-small",
       },
     }));
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       { guest: "local-test" },
       { guestHttp: { ready: (): boolean => true } },
     );
@@ -135,18 +135,26 @@ describe("guest configuration conventions", () => {
     }
   });
 
-  it("declares a configured preset's guest routes before registration", () => {
-    const paths = (plugin: WebChatInterface): string[] =>
-      plugin.getWebRoutes().map((route) => route.path);
-    expect(paths(new WebChatInterface({ guest: "local-test" }))).toEqual(
+  it("declares a configured preset's guest routes from its configuration", async () => {
+    // Declared, a plugin's routes are collected once it registers.
+    const paths = async (plugin: WebChatPlugin): Promise<string[]> => {
+      const harness = createPluginHarness<WebChatPlugin>();
+      await harness.installPlugin(plugin);
+      const routes = plugin.getWebRoutes().map((route) => route.path);
+      await harness.reset();
+      return routes;
+    };
+    expect(await paths(createWebChatPlugin({ guest: "local-test" }))).toEqual(
       expect.arrayContaining(["/ask/assets/guest.js", "/ask/authenticated"]),
     );
-    expect(paths(new WebChatInterface())).not.toContain("/ask/assets/guest.js");
+    expect(await paths(createWebChatPlugin())).not.toContain(
+      "/ask/assets/guest.js",
+    );
   });
 
   it("does not turn the preset into runtime admission", async () => {
-    const harness = createPluginHarness<WebChatInterface>();
-    const plugin = new WebChatInterface({ guest: "local-test" });
+    const harness = createPluginHarness<WebChatPlugin>();
+    const plugin = createWebChatPlugin({ guest: "local-test" });
     try {
       await harness.installPlugin(plugin);
       const route = plugin

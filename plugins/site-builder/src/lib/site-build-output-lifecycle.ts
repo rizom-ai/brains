@@ -4,7 +4,7 @@ import {
   type SiteBuildArtifactManifest,
 } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
-import { isErrnoException } from "@brains/utils/predicates";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { promises as nodeFs } from "fs";
 import { basename, dirname, join, relative, resolve } from "path";
 import {
@@ -432,8 +432,4 @@ function assertSafeBuildId(buildId: string): void {
   ) {
     throw new Error(`Unsafe site build id: ${buildId}`);
   }
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return isErrnoException(error) && error.code === "ENOENT";
 }

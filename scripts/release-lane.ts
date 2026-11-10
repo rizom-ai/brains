@@ -16,6 +16,7 @@ import assembleReleasePlan from "@changesets/assemble-release-plan";
 import { readConfig } from "@changesets/config";
 import parseChangesetFile from "@changesets/parse";
 import { getPackages } from "@manypkg/get-packages";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import {
   mkdtemp,
@@ -142,12 +143,7 @@ async function versionLane(lane: ReleaseLane): Promise<void> {
     // CLI 3 consumes the archive but leaves its empty directory behind. Never
     // discard remaining history: a nonempty archive must fail before publish.
     await rmdir(join(changesetDir, "pre")).catch((error: unknown) => {
-      if (!(
-        error instanceof Error &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ))
-        throw error;
+      if (!isNotFoundError(error)) throw error;
     });
     return;
   }

@@ -519,6 +519,7 @@ export function createMockSystemServices(
   };
 
   const runtimeUploads: SystemServices["runtimeUploads"] = {
+    retire: unreached("retire"),
     scoped: () => ({
       readRecord: async (): Promise<never> => {
         throw new Error("Upload ref not found");

@@ -18,19 +18,17 @@ import { formatTimeRange } from "./format";
 const MAX_ITEMS = 6;
 const WIDGET_ID = "decisions";
 
-export interface DecisionWidgetItem {
-  id: string;
-  name: string;
-  description?: string;
-  meta: string[];
-  status: DecisionEntity["metadata"]["status"];
-}
-
-export interface DecisionsWidgetData {
-  items: DecisionWidgetItem[];
-}
-
-const decisionsWidgetDataSchema = z.object({
+const decisionsWidgetDataSchema: z.ZodObject<{
+  items: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      name: z.ZodString;
+      description: z.ZodOptional<z.ZodString>;
+      meta: z.ZodArray<z.ZodString>;
+      status: z.ZodEnum<{ active: "active"; superseded: "superseded" }>;
+    }>
+  >;
+}> = z.object({
   items: z.array(
     z.object({
       id: z.string(),
@@ -41,6 +39,9 @@ const decisionsWidgetDataSchema = z.object({
     }),
   ),
 });
+
+export type DecisionsWidgetData = z.output<typeof decisionsWidgetDataSchema>;
+export type DecisionWidgetItem = DecisionsWidgetData["items"][number];
 
 const decisionsWidget = defineDashboardWidget({
   id: WIDGET_ID,

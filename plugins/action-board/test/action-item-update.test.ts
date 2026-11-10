@@ -97,6 +97,53 @@ describe("the action_item_update tool", () => {
     expect((await stored(context)).status).toBe("open");
   });
 
+  it("finds a card by the title a person calls it", async () => {
+    const context = await brain();
+    const tool = createActionItemUpdateTool(context, () => NOW);
+
+    const result = await tool.handler(
+      { id: "Book the venue", status: "blocked" },
+      chat,
+    );
+
+    expect(result).toMatchObject({ success: true });
+    expect((await stored(context)).status).toBe("blocked");
+  });
+
+  it("asks which card when two share the title", async () => {
+    const context = await brain();
+    const metadata: ActionItemMetadata = {
+      conversationId: "conv-2",
+      channelId: "events",
+      interfaceType: "discord",
+      capturedAt: "2026-10-11T10:20:00.000Z",
+      status: "open",
+    };
+    await context.entityService.createEntity({
+      entity: {
+        id: "venue-2",
+        entityType: "action-item",
+        visibility: "shared",
+        content: adapter.composeContent(
+          "Action item: Book the venue",
+          "Book the other venue.",
+          metadata,
+        ),
+        metadata,
+      },
+    });
+    const tool = createActionItemUpdateTool(context, () => NOW);
+
+    expect(
+      await tool.handler({ id: "Book the venue", status: "done" }, chat),
+    ).toEqual({
+      success: false,
+      error:
+        'More than one action item is called "Book the venue": venue, venue-2. Give its id.',
+    });
+    expect((await stored(context)).status).toBe("open");
+  });
+
   it("asks for a status or a note", async () => {
     const context = await brain();
     const tool = createActionItemUpdateTool(context, () => NOW);

@@ -424,11 +424,19 @@ function validateContentReplacement(
     };
   }
 
+  const adapter = entityRegistry.getAdapter(entityType);
+  // A type whose metadata is decoded from its file derives some of it, such
+  // as a social post's slug, which the file never states: a replacement with
+  // frontmatter is checked as the file will be stored. Its content is the
+  // body, so a body alone keeps the stored metadata.
+  const decoded = adapter.metadataFromFrontmatter === true;
+  if (decoded && !FRONTMATTER_BLOCK.test(operation.content)) return undefined;
   try {
-    entityRegistry
-      .getAdapter(entityType)
-      .parseFrontMatter(operation.content, frontmatterSchema);
+    if (decoded) adapter.fromMarkdown(operation.content);
+    else adapter.parseFrontMatter(operation.content, frontmatterSchema);
   } catch {
+    // Only the replacement's own frontmatter is parsed here: a failure is
+    // the caller's text not decoding, answered with what to send instead.
     return {
       success: false,
       error:

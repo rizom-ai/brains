@@ -1,6 +1,8 @@
 import { z } from "@brains/utils/zod";
 import { jsonObjectSchema, type JsonObject } from "./json";
 
+type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
+
 /**
  * The managed OAuth broker's protocol. One central brain holds a provider's
  * app secret and its single registered callback; each instance brain starts
@@ -26,54 +28,77 @@ export const oauthBrokerProviderIdSchema: z.ZodString = z
 
 const tokenSchema: z.ZodString = z.string().min(32).max(512);
 
-export interface OAuthBrokerAuthorizationRequest {
-  provider: string;
+export const oauthBrokerAuthorizationRequestSchema: Strict<{
+  provider: z.ZodString;
+  brainState: z.ZodString;
+}> = z.strictObject({
+  provider: oauthBrokerProviderIdSchema,
   /** The instance's own single-use state, handed back on return. */
-  brainState: string;
-}
+  brainState: tokenSchema,
+});
 
-export const oauthBrokerAuthorizationRequestSchema: z.ZodType<OAuthBrokerAuthorizationRequest> =
-  z.strictObject({
-    provider: oauthBrokerProviderIdSchema,
-    brainState: tokenSchema,
-  });
+export type OAuthBrokerAuthorizationRequest = z.output<
+  typeof oauthBrokerAuthorizationRequestSchema
+>;
 
-export interface OAuthBrokerAuthorizationResponse {
-  authorizationUrl: string;
-}
+export const oauthBrokerAuthorizationResponseSchema: Strict<{
+  authorizationUrl: z.ZodURL;
+}> = z.strictObject({ authorizationUrl: z.url({ protocol: /^https?$/ }) });
 
-export const oauthBrokerAuthorizationResponseSchema: z.ZodType<OAuthBrokerAuthorizationResponse> =
-  z.strictObject({ authorizationUrl: z.url({ protocol: /^https?$/ }) });
+export type OAuthBrokerAuthorizationResponse = z.output<
+  typeof oauthBrokerAuthorizationResponseSchema
+>;
 
-export interface OAuthBrokerGrantRedemptionRequest {
-  provider: string;
-  grant: string;
-}
+export const oauthBrokerGrantRedemptionRequestSchema: Strict<{
+  provider: z.ZodString;
+  grant: z.ZodString;
+}> = z.strictObject({
+  provider: oauthBrokerProviderIdSchema,
+  grant: tokenSchema,
+});
 
-export const oauthBrokerGrantRedemptionRequestSchema: z.ZodType<OAuthBrokerGrantRedemptionRequest> =
-  z.strictObject({ provider: oauthBrokerProviderIdSchema, grant: tokenSchema });
+export type OAuthBrokerGrantRedemptionRequest = z.output<
+  typeof oauthBrokerGrantRedemptionRequestSchema
+>;
 
-export interface OAuthBrokerGrantRedemptionResponse {
-  provider: string;
+export const oauthBrokerGrantRedemptionResponseSchema: Strict<{
+  provider: z.ZodString;
+  credential: typeof jsonObjectSchema;
+}> = z.strictObject({
+  provider: oauthBrokerProviderIdSchema,
   /** Opaque to the broker; its provider adapter and the instance read it. */
-  credential: JsonObject;
-}
+  credential: jsonObjectSchema,
+});
 
-export const oauthBrokerGrantRedemptionResponseSchema: z.ZodType<OAuthBrokerGrantRedemptionResponse> =
-  z.strictObject({
-    provider: oauthBrokerProviderIdSchema,
-    credential: jsonObjectSchema,
-  });
+export type OAuthBrokerGrantRedemptionResponse = z.output<
+  typeof oauthBrokerGrantRedemptionResponseSchema
+>;
 
-export type OAuthBrokerReturnError =
-  "provider_denied" | "authorization_incomplete" | "credential_exchange_failed";
+const oauthBrokerReturnErrorSchema: z.ZodEnum<{
+  provider_denied: "provider_denied";
+  authorization_incomplete: "authorization_incomplete";
+  credential_exchange_failed: "credential_exchange_failed";
+}> = z.enum([
+  "provider_denied",
+  "authorization_incomplete",
+  "credential_exchange_failed",
+]);
+
+export type OAuthBrokerReturnError = z.output<
+  typeof oauthBrokerReturnErrorSchema
+>;
 
 /** The query the broker sends the browser back to the instance with. */
-export type OAuthBrokerReturn =
-  | { provider: string; state: string; grant: string }
-  | { provider: string; state: string; error: OAuthBrokerReturnError };
-
-export const oauthBrokerReturnSchema: z.ZodType<OAuthBrokerReturn> = z.union([
+export const oauthBrokerReturnSchema: z.ZodUnion<
+  [
+    Strict<{ provider: z.ZodString; state: z.ZodString; grant: z.ZodString }>,
+    Strict<{
+      provider: z.ZodString;
+      state: z.ZodString;
+      error: typeof oauthBrokerReturnErrorSchema;
+    }>,
+  ]
+> = z.union([
   z.strictObject({
     provider: oauthBrokerProviderIdSchema,
     state: tokenSchema,
@@ -82,13 +107,11 @@ export const oauthBrokerReturnSchema: z.ZodType<OAuthBrokerReturn> = z.union([
   z.strictObject({
     provider: oauthBrokerProviderIdSchema,
     state: tokenSchema,
-    error: z.enum([
-      "provider_denied",
-      "authorization_incomplete",
-      "credential_exchange_failed",
-    ]),
+    error: oauthBrokerReturnErrorSchema,
   }),
 ]);
+
+export type OAuthBrokerReturn = z.output<typeof oauthBrokerReturnSchema>;
 
 /**
  * One provider's OAuth semantics, composed into the broker: its consent URL,
