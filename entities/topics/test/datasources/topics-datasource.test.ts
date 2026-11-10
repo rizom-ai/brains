@@ -26,10 +26,6 @@ describe("TopicsDataSource", () => {
     mockContext = { entityService: context.entityService };
   });
 
-  it("should be instantiable", () => {
-    expect(dataSource).toBeDefined();
-  });
-
   it("should have correct metadata", () => {
     expect(dataSource.id).toBe("topics:entities");
     expect(dataSource.name).toBeDefined();

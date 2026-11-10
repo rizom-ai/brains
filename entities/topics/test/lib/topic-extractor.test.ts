@@ -23,10 +23,6 @@ describe("TopicExtractor", () => {
     extractor = new TopicExtractor(context, logger);
   });
 
-  it("should be instantiable", () => {
-    expect(extractor).toBeDefined();
-  });
-
   describe("extractFromEntity", () => {
     it("should extract topics from a blog post entity", async () => {
       const postEntity = createMockBaseEntity({
