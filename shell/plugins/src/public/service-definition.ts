@@ -6,6 +6,11 @@ import {
 } from "../package-definition";
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
 import {
+  noFirstPartyServiceDeclarations,
+  registerServiceRebuilder,
+  type FirstPartyServiceDeclarations,
+} from "../service/first-party-service";
+import {
   assertTwoStageSlots,
   type TwoStageSlots,
 } from "../internal/two-stage-declaration";
@@ -150,6 +155,9 @@ function createServicePackage<
   // Installed on the owned types, as an entity package installs its own:
   // a first-party service keeps the data sources its class registered.
   dataSources: readonly AnyDataSourceDeclaration[] = [],
+  // What a first-party service converted from a class declares beside its
+  // definition (withTools).
+  declarations: FirstPartyServiceDeclarations = noFirstPartyServiceDeclarations,
 ): ServicePackageDefinition<TConfigSchema> {
   const entities = definition.entities;
   assertDataSources(definition.id, new Set(entities), dataSources);
@@ -181,11 +189,15 @@ function createServicePackage<
         metadata,
         pluginId ?? scope(definition.id),
         dependencies ?? [],
+        declarations,
       ),
     ],
   });
   rebuilders.set(created, (sources) =>
-    createServicePackage(definition, sources),
+    createServicePackage(definition, sources, declarations),
+  );
+  registerServiceRebuilder(created, declarations, (declared) =>
+    createServicePackage(definition, dataSources, declared),
   );
   return created;
 }

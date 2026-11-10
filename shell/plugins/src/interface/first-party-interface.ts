@@ -14,6 +14,10 @@ import type { ToolStatusUpdate } from "../message-interface/tool-status";
 import type { AgentResponse } from "../contracts/agent";
 import type { PluginPackageDefinition } from "../package-definition";
 import type { InterfaceConfigSchema } from "./interface-definition-contract";
+import {
+  isServicePackage,
+  withServiceTools,
+} from "../service/first-party-service";
 
 /**
  * Internal, first-party only: what a first-party interface converted from a
@@ -172,6 +176,29 @@ export const noFirstPartyDeclarations: FirstPartyInterfaceDeclarations =
 type InterfacePackage<TConfigSchema extends InterfaceConfigSchema> =
   PluginPackageDefinition<TConfigSchema, "interface">;
 
+type ServicePackage<TConfigSchema extends InterfaceConfigSchema> =
+  PluginPackageDefinition<TConfigSchema, "service">;
+
+/** An interface's definition, or the refusal a wrapper gives anything else. */
+function asInterfacePackage<TConfigSchema extends InterfaceConfigSchema>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  wrapper: string,
+): InterfacePackage<TConfigSchema> {
+  if (!isFamily(definition, "interface")) {
+    throw new Error(
+      `${wrapper} takes a definition defineInterface returned; "${definition.id}" is not one`,
+    );
+  }
+  return definition;
+}
+
+function isFamily<TConfigSchema extends InterfaceConfigSchema>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  family: "interface",
+): definition is InterfacePackage<TConfigSchema> {
+  return definition.family === family;
+}
+
 /** How each interface package is rebuilt with more first-party declarations. */
 const rebuilders = new WeakMap<
   PluginPackageDefinition,
@@ -326,7 +353,9 @@ export function withWebRoutes<
 /**
  * The tools its class registered, under their names as written, with the
  * class's visibility, side effects and MCP exposure, run with the call the
- * brain hands them. Declared once.
+ * brain hands them. Declared once. An interface's run through its plugin's
+ * tool-execute channel; a service's beside the tools its definition
+ * declares, each run as its caller, as a declared tool is.
  */
 export function withTools<
   TConfigSchema extends InterfaceConfigSchema,
@@ -336,15 +365,40 @@ export function withTools<
   tools: (
     context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
   ) => readonly Tool[],
-): InterfacePackage<TConfigSchema> {
-  return rebuildWith(definition, "withTools", (declarations) => {
-    if (declarations.tools) {
-      throw new Error(
-        `Interface "${definition.id}" declares its tools more than once`,
-      );
-    }
-    return { ...declarations, tools: erased(tools) };
-  });
+): InterfacePackage<TConfigSchema>;
+export function withTools<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  tools: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly Tool[],
+): ServicePackage<TConfigSchema>;
+export function withTools<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  tools: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly Tool[],
+): PluginPackageDefinition<TConfigSchema> {
+  if (isServicePackage(definition)) {
+    return withServiceTools(definition, tools);
+  }
+  return rebuildWith(
+    asInterfacePackage(definition, "withTools"),
+    "withTools",
+    (declarations) => {
+      if (declarations.tools) {
+        throw new Error(
+          `Interface "${definition.id}" declares its tools more than once`,
+        );
+      }
+      return { ...declarations, tools: erased(tools) };
+    },
+  );
 }
 
 /**

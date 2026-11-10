@@ -101,6 +101,10 @@ import {
   type ServiceAI,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
+import {
+  noFirstPartyServiceDeclarations,
+  type FirstPartyServiceDeclarations,
+} from "./first-party-service";
 import type { ServicePluginContext } from "./context";
 import type {
   AnyServiceJobDefinition,
@@ -291,6 +295,8 @@ class DeclarativeServicePlugin<
   private readonly calls = new AsyncLocalStorage<ServiceCall>();
   private entityAccessCache: ServiceEntityAccess<TEntities[number]> | undefined;
   private readonly publicId: string;
+  /** What a first-party class declared beside the definition, as written. */
+  private readonly declarations: FirstPartyServiceDeclarations;
   /** Registered before this plugin; a first-party class's, named by the composer. */
   public readonly dependencies: string[];
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
@@ -347,9 +353,11 @@ class DeclarativeServicePlugin<
     metadata: InstalledPluginPackageMetadata,
     id: string,
     dependencies: readonly string[],
+    declarations: FirstPartyServiceDeclarations,
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
+    this.declarations = declarations;
     this.publicId = definition.id;
     this.dependencies = [...dependencies];
   }
@@ -575,16 +583,25 @@ class DeclarativeServicePlugin<
           content: this.content(),
         }),
       ) ?? [];
+    const declared = definitions.map((definition) =>
+      this.runtimeTool(definition),
+    );
+    // As its class registered them, each run as its caller.
+    const asWritten = (
+      this.declarations.tools?.run(
+        this.withRuntime(this.getContext(), { config: this.config, state }),
+      ) ?? []
+    ).map((tool) => this.toolAsWritten(tool));
     const names = new Set<string>();
-    this.tools = definitions.map((definition) => {
-      if (names.has(definition.name)) {
+    for (const { name } of [...declared, ...asWritten]) {
+      if (names.has(name)) {
         throw new Error(
-          `Service "${this.publicId}" defines tool "${definition.name}" more than once`,
+          `Service "${this.publicId}" defines tool "${name}" more than once`,
         );
       }
-      names.add(definition.name);
-      return this.runtimeTool(definition);
-    });
+      names.add(name);
+    }
+    this.tools = [...declared, ...asWritten];
     return this.tools;
   }
 
@@ -1546,6 +1563,19 @@ class DeclarativeServicePlugin<
     };
   }
 
+  /** A tool its class built, run with the call the brain hands it, as its caller. */
+  private toolAsWritten(tool: Tool): Tool {
+    return {
+      ...tool,
+      handler: (input, toolContext): Promise<ToolResponse> =>
+        this.toolContext.run(toolContext, () =>
+          this.calls.run(this.toolCall(toolContext), () =>
+            Promise.resolve(tool.handler(input, toolContext)),
+          ),
+        ),
+    };
+  }
+
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
     const name = isBareNamedTool(definition)
       ? definition.name
@@ -1748,6 +1778,8 @@ export function createDeclarativeServicePlugin<
   id: string,
   /** The plugins a first-party class declared it depends on; none otherwise. */
   dependencies: readonly string[] = [],
+  /** What a first-party class declared beside the definition, as written. */
+  declarations: FirstPartyServiceDeclarations = noFirstPartyServiceDeclarations,
 ): DeclarativeServicePlugin<
   TConfigSchema,
   TState,
@@ -1763,5 +1795,6 @@ export function createDeclarativeServicePlugin<
     metadata,
     id,
     dependencies,
+    declarations,
   );
 }
