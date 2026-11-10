@@ -1008,6 +1008,7 @@ export { withOwnedDataSources } from "./public/service-definition";
 export {
   firstPartyJobHandler,
   withJobHandlers,
+  withStaticSiteOutput,
   type FirstPartyJobCall,
   type FirstPartyJobHandler,
 } from "./service/first-party-service";

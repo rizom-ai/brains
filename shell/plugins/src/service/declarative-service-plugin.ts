@@ -161,6 +161,7 @@ import {
 } from "../interface/route-definition-contract";
 import { createDeclaredRoute } from "../internal/declared-route";
 import type { WebRouteDefinition } from "../types/web-routes";
+import type { StaticSiteOutput } from "../internal/http-host";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -461,6 +462,11 @@ class DeclarativeServicePlugin<
 
   override getWebRoutes(): WebRouteDefinition[] {
     return [...this.routes];
+  }
+
+  /** Where its class wrote the site the runtime's HTTP host serves, if it did. */
+  public getStaticSiteOutput(): StaticSiteOutput | undefined {
+    return this.declarations.staticSiteOutput?.run({ config: this.config });
   }
 
   /** A declared route, served as its caller. */

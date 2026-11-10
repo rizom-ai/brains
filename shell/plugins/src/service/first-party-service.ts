@@ -1,6 +1,7 @@
 import type { z } from "@brains/utils/zod";
 import type { Tool } from "@brains/mcp-service";
 import type { ProgressReporter } from "@brains/utils/progress";
+import type { StaticSiteOutput } from "../internal/http-host";
 import type { PluginPackageDefinition } from "../package-definition";
 import type {
   FirstPartySlot,
@@ -22,6 +23,16 @@ export interface FirstPartyServiceDeclarations {
   readonly tools?: FirstPartySlot<readonly Tool[]> | undefined;
   readonly jobHandlers?:
     FirstPartySlot<readonly FirstPartyJobHandler[]> | undefined;
+  /** Where it writes the site the runtime's HTTP host serves. */
+  readonly staticSiteOutput?: StaticSiteOutputSlot | undefined;
+}
+
+/**
+ * Where a site builder writes, as the runtime keeps it: a method, so a slot
+ * declared over its own config is one.
+ */
+export interface StaticSiteOutputSlot {
+  run(context: { readonly config: unknown }): StaticSiteOutput;
 }
 
 /** What one run of a job its class handled is given: its call's data. */
@@ -168,4 +179,31 @@ export function withJobHandlers<
     }
     return { ...declarations, jobHandlers: { run: jobHandlers } };
   });
+}
+
+/**
+ * Where a site builder's class wrote the site the runtime's HTTP host
+ * serves, from the parsed config, added once. The host reads it once, when
+ * it starts.
+ */
+export function withStaticSiteOutput<
+  TConfigSchema extends z.ZodType<object, object>,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  output: (context: {
+    readonly config: z.output<TConfigSchema>;
+  }) => StaticSiteOutput,
+): ServicePackage<TConfigSchema> {
+  return rebuildServiceWith(
+    definition,
+    "withStaticSiteOutput",
+    (declarations) => {
+      if (declarations.staticSiteOutput) {
+        throw new Error(
+          `Service "${definition.id}" declares its static site output more than once`,
+        );
+      }
+      return { ...declarations, staticSiteOutput: { run: output } };
+    },
+  );
 }
