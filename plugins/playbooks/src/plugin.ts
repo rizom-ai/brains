@@ -470,7 +470,8 @@ class PlaybookOperations {
             lifecycle,
             conversationId,
           });
-      const data = await this.getStatus({ runId: run.id });
+      // Other runs are this conversation's own, as status reports them.
+      const data = await this.getStatus({ runId: run.id, conversationId });
       return { success: true, data };
     });
   }
@@ -658,7 +659,11 @@ class PlaybookOperations {
           }
         : {}),
     });
-    const data = await this.getStatus({ runId: nextRun.id });
+    // Other runs are those of the run's own conversation.
+    const data = await this.getStatus({
+      runId: nextRun.id,
+      conversationId: nextRun.conversationId,
+    });
     return {
       success: true,
       data:
