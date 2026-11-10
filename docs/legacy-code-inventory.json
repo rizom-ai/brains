@@ -233,7 +233,8 @@
       "paths": [
         "packages/brain-sdk/src/internal/interface-runtime.ts",
         "shell/plugins/src/interface/first-party-interface.ts",
-        "shell/plugins/src/interface/interface-runtime.ts"
+        "shell/plugins/src/interface/interface-runtime.ts",
+        "shell/plugins/src/internal/first-party-slot.ts"
       ],
       "symbol": "interfaceRuntime(context), withDaemon, withMessageTransport",
       "owner": "@brains/plugins",

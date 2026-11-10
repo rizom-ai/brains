@@ -5,7 +5,7 @@ import type { PluginPackageDefinition } from "../package-definition";
 import type {
   FirstPartySlot,
   FirstPartySlotContext,
-} from "../interface/first-party-interface";
+} from "../internal/first-party-slot";
 
 /**
  * Internal, first-party only: what a first-party service converted from a

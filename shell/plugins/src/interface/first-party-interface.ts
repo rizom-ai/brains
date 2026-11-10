@@ -14,6 +14,15 @@ import type { ToolStatusUpdate } from "../message-interface/tool-status";
 import type { AgentResponse } from "../contracts/agent";
 import type { PluginPackageDefinition } from "../package-definition";
 import type { InterfaceConfigSchema } from "./interface-definition-contract";
+import type {
+  FirstPartySlot,
+  FirstPartySlotContext,
+} from "../internal/first-party-slot";
+
+export type {
+  FirstPartySlot,
+  FirstPartySlotContext,
+} from "../internal/first-party-slot";
 import {
   isServicePackage,
   withServiceTools,
@@ -27,17 +36,6 @@ import {
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-interface-runtime).
  */
-
-/**
- * What a first-party slot is given once: the parsed config and the state
- * setup returned, with the interface runtime attached
- * (`interfaceRuntime(context)`). The slot names the state its definition's
- * setup returns.
- */
-export interface FirstPartySlotContext<TConfig, TState> {
-  readonly config: TConfig;
-  readonly state: TState;
-}
 
 /**
  * A daemon as its class registered it: started and stopped by the brain,
@@ -130,16 +128,6 @@ export interface MessageTransport {
     conversationId: string,
     next: () => Promise<void>,
   ): Promise<void>;
-}
-
-/**
- * A slot as the runtime keeps it, whatever config and state it declared: the
- * runtime hands it the config its schema parsed and the state its setup
- * returned, which is what the slot declares it reads. A method, so a slot
- * declared over its own config and state is one.
- */
-export interface FirstPartySlot<TResult> {
-  run(context: FirstPartySlotContext<unknown, unknown>): TResult;
 }
 
 /** What the wrappers have added to a definition, in the order they were added. */
