@@ -561,6 +561,7 @@
       "name": "@brains/chat-repl",
       "version": "0.2.0-alpha.668",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
