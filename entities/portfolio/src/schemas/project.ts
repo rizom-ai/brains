@@ -91,13 +91,6 @@ export const projectSchema: ReturnType<
 
 export type Project = z.output<typeof projectSchema>;
 
-export interface ProjectContent {
-  context: string;
-  problem: string;
-  solution: string;
-  outcome: string;
-}
-
 type ProjectContentSchema = z.ZodObject<{
   context: z.ZodString;
   problem: z.ZodString;
@@ -116,13 +109,7 @@ export const projectContentSchema: ProjectContentSchema = z.object({
   outcome: z.string(),
 });
 
-export interface ProjectWithData extends Project {
-  frontmatter: ProjectFrontmatter;
-  body: string;
-  structuredContent?: ProjectContent | undefined;
-  coverImageUrl?: string | undefined;
-  ogImageUrl?: string | undefined;
-}
+export type ProjectContent = z.output<typeof projectContentSchema>;
 
 /**
  * Project with parsed data (returned by datasource)
@@ -145,14 +132,7 @@ export const projectWithDataSchema: ReturnType<
   ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata
 });
 
-export interface ProjectEnrichment {
-  url?: string | undefined;
-  typeLabel?: string | undefined;
-  coverImageUrl?: string | undefined;
-  ogImageUrl?: string | undefined;
-  coverImageWidth?: number | undefined;
-  coverImageHeight?: number | undefined;
-}
+export type ProjectWithData = z.output<typeof projectWithDataSchema>;
 
 /**
  * Enriched project schema (used for validation)
@@ -177,19 +157,6 @@ export const enrichedProjectSchema: ReturnType<
 });
 
 /**
- * Enriched project type (used by components)
- * url and typeLabel are required - always present after enrichment
- */
-export interface EnrichedProject extends ProjectWithData {
-  url: string;
-  typeLabel: string;
-  coverImageUrl?: string | undefined;
-  ogImageUrl?: string | undefined;
-  coverImageWidth?: number | undefined;
-  coverImageHeight?: number | undefined;
-}
-
-/**
  * Template project schema (used for template validation)
  * url and typeLabel are required - always present after enrichment
  */
@@ -210,3 +177,9 @@ export const templateProjectSchema: ReturnType<
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
 });
+
+/**
+ * Enriched project type (used by components)
+ * url and typeLabel are required - always present after enrichment
+ */
+export type EnrichedProject = z.output<typeof templateProjectSchema>;

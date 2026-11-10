@@ -55,23 +55,30 @@ export const FORM_POLICY_DEFAULTS: {
 /** Configuration is only for a value the owner wants different. The origin,
  * the preview host and the Inbox destination are the brain's own, never
  * configured. */
-type Overridable<T> = { [K in keyof T]?: T[K] | undefined };
-export interface FormPolicyOverrides {
-  http?:
-    | Overridable<Omit<FormHttpPolicy, "origin" | "trustForwardedProto">>
-    | undefined;
-  admission?: Overridable<FormAdmissionPolicy> | undefined;
-  delivery?: Overridable<FormDeliveryPolicy> | undefined;
-}
-export const formPolicyOverridesSchema: z.ZodType<FormPolicyOverrides> =
-  z.strictObject({
-    http: formHttpPolicyShape
-      .omit({ origin: true, trustForwardedProto: true })
-      .partial()
-      .optional(),
-    admission: formAdmissionPolicyShape.partial().optional(),
-    delivery: formDeliveryPolicyShape.partial().optional(),
-  });
+type Overridable<Shape extends z.core.$ZodShape> = z.ZodOptional<
+  z.ZodObject<{ [K in keyof Shape]: z.ZodOptional<Shape[K]> }, z.core.$strict>
+>;
+export const formPolicyOverridesSchema: z.ZodObject<
+  {
+    http: Overridable<
+      Omit<
+        (typeof formHttpPolicyShape)["shape"],
+        "origin" | "trustForwardedProto"
+      >
+    >;
+    admission: Overridable<(typeof formAdmissionPolicyShape)["shape"]>;
+    delivery: Overridable<(typeof formDeliveryPolicyShape)["shape"]>;
+  },
+  z.core.$strict
+> = z.strictObject({
+  http: formHttpPolicyShape
+    .omit({ origin: true, trustForwardedProto: true })
+    .partial()
+    .optional(),
+  admission: formAdmissionPolicyShape.partial().optional(),
+  delivery: formDeliveryPolicyShape.partial().optional(),
+});
+export type FormPolicyOverrides = z.input<typeof formPolicyOverridesSchema>;
 
 /** The policy forms run on the given origin: defaults under the overrides,
  * each held to its bounds. Behind a TLS-terminating proxy, which is how an

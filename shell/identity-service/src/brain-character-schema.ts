@@ -20,13 +20,6 @@ export const brainCharacterSchema: ReturnType<
  */
 export type BrainCharacterEntity = z.infer<typeof brainCharacterSchema>;
 
-export interface BrainCharacter {
-  name: string;
-  role: string;
-  purpose: string;
-  values: string[];
-}
-
 export type BrainCharacterBodySchema = z.ZodObject<{
   name: z.ZodString;
   role: z.ZodString;
@@ -48,6 +41,8 @@ export const brainCharacterBodySchema: BrainCharacterBodySchema = z.object({
 /**
  * Brain character body type
  */
+export type BrainCharacter = z.output<typeof brainCharacterBodySchema>;
+
 export type BrainCharacterFrontmatterSchema = BrainCharacterBodySchema;
 
 /**

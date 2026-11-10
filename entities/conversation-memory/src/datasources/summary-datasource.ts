@@ -11,28 +11,18 @@ import type { SummaryListData } from "../templates/summary-list/schema";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
 import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
-interface SummaryDataSourceQuery {
-  id?: string | undefined;
-  conversationId?: string | undefined;
-  limit?: number | undefined;
-}
+const summaryDataSourceQuerySchema = z.object({
+  id: z.string().optional(),
+  conversationId: z.string().optional(),
+  limit: z.number().optional(),
+});
 
-interface EntityFetchQuery {
-  entityType: typeof SUMMARY_ENTITY_TYPE;
-  query?: SummaryDataSourceQuery | undefined;
-}
-
-const summaryDataSourceQuerySchema: z.ZodType<SummaryDataSourceQuery> =
-  z.object({
-    id: z.string().optional(),
-    conversationId: z.string().optional(),
-    limit: z.number().optional(),
-  });
-
-const entityFetchQuerySchema: z.ZodType<EntityFetchQuery> = z.object({
+const entityFetchQuerySchema = z.object({
   entityType: z.literal(SUMMARY_ENTITY_TYPE),
   query: summaryDataSourceQuerySchema.optional(),
 });
+
+type EntityFetchQuery = z.output<typeof entityFetchQuerySchema>;
 
 export class SummaryDataSource implements DataSource {
   private readonly logger: Logger;

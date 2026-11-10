@@ -4,19 +4,19 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { IGitSync } from "../types";
 
-export interface HistoryInput {
-  entityType: string;
-  id: string;
-  sha?: string | undefined;
-  limit?: number | undefined;
-}
-
-const historyInputSchema = z.object({
+const historyInputSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  id: z.ZodString;
+  sha: z.ZodOptional<z.ZodString>;
+  limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+}> = z.object({
   entityType: z.string(),
   id: z.string(),
   sha: z.string().optional(),
   limit: z.number().int().positive().optional().default(10),
 });
+
+export type HistoryInput = z.input<typeof historyInputSchema>;
 
 export function parseHistoryInput(input: unknown): HistoryInput {
   const parsed = historyInputSchema.parse(input);

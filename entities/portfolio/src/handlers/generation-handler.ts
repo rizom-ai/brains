@@ -25,12 +25,6 @@ export type ProjectGenerationJobData = z.output<
   typeof projectGenerationJobSchema
 >;
 
-export interface ProjectGenerationResult extends z.output<
-  typeof generationResultSchema
-> {
-  title?: string | undefined;
-}
-
 export const projectGenerationResultSchema: ReturnType<
   typeof generationResultSchema.extend<{
     title: z.ZodOptional<z.ZodString>;
@@ -38,6 +32,10 @@ export const projectGenerationResultSchema: ReturnType<
 > = generationResultSchema.extend({
   title: z.string().optional(),
 });
+
+export type ProjectGenerationResult = z.output<
+  typeof projectGenerationResultSchema
+>;
 
 export function buildProjectGenerationPrompt(
   data: ProjectGenerationJobData,

@@ -1,47 +1,46 @@
 import { z } from "@brains/utils/zod";
-import type { LinkStatus } from "../../schemas/link";
 
-export interface LinkSummarySource {
-  ref: string;
-  label: string;
-}
+type LinkSummarySchema = z.ZodObject<{
+  status: z.ZodEnum<{
+    pending: "pending";
+    draft: "draft";
+    published: "published";
+  }>;
+  title: z.ZodString;
+  url: z.ZodURL;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  domain: z.ZodString;
+  capturedAt: z.ZodString;
+  source: z.ZodObject<{ ref: z.ZodString; label: z.ZodString }>;
+  id: z.ZodString;
+  summary: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}>;
 
-export interface LinkSummary {
-  status: LinkStatus;
-  title: string;
-  url: string;
-  description: string | null;
-  domain: string;
-  capturedAt: string;
-  source: LinkSummarySource;
-  id: string;
-  summary: string | null;
-}
-
-export interface LinkListData {
-  links: LinkSummary[];
-  totalCount: number;
-}
-
-const linkSourceSchema: z.ZodType<LinkSummarySource> = z.object({
-  ref: z.string(),
-  label: z.string(),
-});
-
-const linkSummarySchema: z.ZodType<LinkSummary> = z.object({
+const linkSummarySchema: LinkSummarySchema = z.object({
   status: z.enum(["pending", "draft", "published"]),
   title: z.string(),
   url: z.url(),
   description: z.string().nullable().default(null),
   domain: z.string(),
   capturedAt: z.string().datetime(),
-  source: linkSourceSchema,
+  source: z.object({
+    ref: z.string(),
+    label: z.string(),
+  }),
   id: z.string(),
   summary: z.string().nullable().default(null),
 });
 
+export type LinkSummary = z.output<typeof linkSummarySchema>;
+export type LinkSummarySource = LinkSummary["source"];
+
 // Schema for link list page data
-export const linkListSchema: z.ZodType<LinkListData> = z.object({
+export const linkListSchema: z.ZodObject<{
+  links: z.ZodArray<LinkSummarySchema>;
+  totalCount: z.ZodNumber;
+}> = z.object({
   links: z.array(linkSummarySchema),
   totalCount: z.number(),
 });
+
+export type LinkListData = z.output<typeof linkListSchema>;

@@ -53,14 +53,10 @@ import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-interface SourceMetadata {
-  status?: unknown;
-}
-
 /** Runtime-state marker: the retired topics projection rule released its entities. */
 const PROJECTION_OWNERSHIP_RELEASED = "projection-ownership-released";
 const topicAdapter: TopicAdapter = new TopicAdapter();
-const sourceMetadataSchema: z.ZodType<SourceMetadata, unknown> = z.looseObject({
+const sourceMetadataSchema = z.looseObject({
   status: z.unknown().optional(),
 });
 

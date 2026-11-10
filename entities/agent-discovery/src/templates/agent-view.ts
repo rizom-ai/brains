@@ -82,13 +82,15 @@ export const agentViewSchema: z.ZodObject<
 
 export type AgentSchemaData = z.output<typeof agentViewSchema>;
 
-export type AgentView = Omit<AgentSchemaData, "url" | "typeLabel"> & {
-  url: string;
-  typeLabel: string;
-};
-
 /** An agent once site-builder has filled the link fields it renders. */
-export const agentRenderSchema: z.ZodType<AgentView> = agentViewSchema.extend({
+export const agentRenderSchema: ReturnType<
+  typeof agentViewSchema.extend<{
+    url: typeof renderedLinkFields.url;
+    typeLabel: typeof renderedLinkFields.typeLabel;
+  }>
+> = agentViewSchema.extend({
   url: renderedLinkFields.url,
   typeLabel: renderedLinkFields.typeLabel,
 });
+
+export type AgentView = z.output<typeof agentRenderSchema>;

@@ -15,34 +15,18 @@ import { HomepageLayout, type HomepageData } from "./templates/homepage";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
 import packageJson from "../package.json";
 
-interface PersonalSiteEntityDisplayItem {
-  label: string;
-  pluralName?: string | undefined;
-}
-
-interface PersonalSiteEntityDisplayItemInput {
-  label?: string | undefined;
-  pluralName?: string | undefined;
-}
-
-interface PersonalSiteConfig {
-  entityDisplay: {
-    post: PersonalSiteEntityDisplayItem;
-  };
-}
-
-export interface PersonalSiteConfigInput {
-  entityDisplay?:
-    | {
-        post?: PersonalSiteEntityDisplayItemInput | undefined;
-      }
-    | undefined;
-}
-
-const personalSiteConfigSchema: z.ZodType<
-  PersonalSiteConfig,
-  PersonalSiteConfigInput
-> = z.object({
+const personalSiteConfigSchema: z.ZodObject<{
+  entityDisplay: z.ZodDefault<
+    z.ZodObject<{
+      post: z.ZodDefault<
+        z.ZodObject<{
+          label: z.ZodDefault<z.ZodString>;
+          pluralName: z.ZodOptional<z.ZodString>;
+        }>
+      >;
+    }>
+  >;
+}> = z.object({
   entityDisplay: z
     .object({
       post: z
@@ -54,6 +38,9 @@ const personalSiteConfigSchema: z.ZodType<
     })
     .default({ post: { label: "Post" } }),
 });
+
+type PersonalSiteConfig = z.output<typeof personalSiteConfigSchema>;
+export type PersonalSiteConfigInput = z.input<typeof personalSiteConfigSchema>;
 
 const siteInfoCTASchema = z.object({
   heading: z.string(),
