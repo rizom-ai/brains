@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- [#901](https://github.com/rizom-ai/brains/pull/901) [`cc76890`](https://github.com/rizom-ai/brains/commit/cc768909f4bca365f6d913d54ecd70acd7a16681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - EPUB exports now escape apostrophes and the book's language as XML, so a title or language holding a quote can no longer break the package's markup.
+
 ## 0.2.0-alpha.673
 
 ### Patch Changes
