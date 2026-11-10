@@ -70,8 +70,9 @@ A job that one package enqueues for another is declared with
 `context.jobs.enqueue(contract, data, { toolContext })` parses the data first,
 and `context.jobs.has(contract)` reports whether the job type is declared.
 
-ESLint rejects a raw `messaging.send` in entity, plugin and interface source
-unless it passes `broadcast: true`.
+A plugin context's `messaging` has no raw `send`: a request or command goes
+through a bus contract, and an event through `messaging.broadcast(channel,
+payload)`.
 
 ## Broadcast events
 

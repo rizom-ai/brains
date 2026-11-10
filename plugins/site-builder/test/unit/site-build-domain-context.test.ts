@@ -9,7 +9,6 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createSilentLogger,
   createMockProgressReporter,
-  createMockMessageSender,
 } from "@brains/test-utils";
 
 type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
@@ -41,22 +40,17 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
   function createHandler(
     overrides: SiteBuildJobHandlerConfigOverrides = {},
   ): SiteBuildJobHandler {
-    const { sendMessage } = createMockMessageSender();
-    return new SiteBuildJobHandler(
-      createSilentLogger(),
-      messagingFor(sendMessage),
-      {
-        siteBuilder: mockSiteBuilder,
-        layouts: {},
-        defaultSiteConfig: {
-          represents: "anchor",
-          title: "Test",
-          description: "Test",
-        },
-        sharedImagesDir: "./dist/images",
-        ...overrides,
+    return new SiteBuildJobHandler(createSilentLogger(), messagingFor(), {
+      siteBuilder: mockSiteBuilder,
+      layouts: {},
+      defaultSiteConfig: {
+        represents: "anchor",
+        title: "Test",
+        description: "Test",
       },
-    );
+      sharedImagesDir: "./dist/images",
+      ...overrides,
+    });
   }
 
   const buildData = {

@@ -65,3 +65,14 @@ describe("messaging.broadcast", () => {
     expect(heard).toEqual([]);
   });
 });
+
+describe("messaging", () => {
+  it("sends nothing raw: an event is broadcast, a request goes through a bus contract", () => {
+    const shell = createMockShell({ logger: createSilentLogger() });
+    const context = createServicePluginContext(shell, "directory-sync");
+
+    expect("send" in context.messaging).toBe(false);
+    // @ts-expect-error the namespace declares no raw send
+    expect(context.messaging.send).toBeUndefined();
+  });
+});

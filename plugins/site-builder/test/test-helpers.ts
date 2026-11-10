@@ -295,11 +295,18 @@ export function createTestConfig(
 }
 
 /**
- * The messaging a site build job uses: the given send for its events, and a
- * site metadata request no plugin answers, so the configured fallback holds.
+ * The messaging a site build job uses: a request no plugin answers, so the
+ * configured site metadata fallback holds. Each contract asked is named in
+ * `asked`.
  */
 export function messagingFor(
-  send: ServicePluginContext["messaging"]["send"],
-): Pick<ServicePluginContext["messaging"], "send" | "request"> {
-  return { send, request: async () => ({ status: "unavailable" }) };
+  asked: string[] = [],
+): Pick<ServicePluginContext["messaging"], "request"> {
+  const messaging: Pick<ServicePluginContext["messaging"], "request"> = {
+    request: async (contract) => {
+      asked.push(contract.name);
+      return { status: "unavailable" };
+    },
+  };
+  return messaging;
 }
