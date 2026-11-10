@@ -8,6 +8,7 @@ import type {
   EntityWriteSnapshot,
   FoldEntityRequest,
 } from "../src/types";
+import { entityChangePayloadSchema } from "../src/entity-event-channels";
 import { minimalTestAdapter, minimalTestSchema } from "./helpers/test-schemas";
 import {
   setupEntityService,
@@ -133,7 +134,10 @@ describe("native atomic entity fold (real SQLite)", () => {
       ["target", "upsert"],
     ]);
     expect(
-      events.map((event) => [event.type, event.payload["entityId"]]),
+      events.map((event) => [
+        event.type,
+        entityChangePayloadSchema.parse(event.payload).entityId,
+      ]),
     ).toEqual([
       ["entity:deleted", "source"],
       ["entity:updated", "target"],

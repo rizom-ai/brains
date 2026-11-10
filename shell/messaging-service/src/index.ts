@@ -29,7 +29,9 @@ export type {
 } from "./message-validator";
 export {
   answerContract,
+  broadcastChannel,
   collectContract,
   commandContract,
   requestContract,
+  type BroadcastBus,
 } from "./bus-contracts";

@@ -1,8 +1,10 @@
 import {
+  defineChannel,
   defineEntity,
   defineEntityJob,
   z,
   type AnyEntityJobDeclaration,
+  type Channel,
   type EntityCreateAllocation,
   type EntityCreateDelegation,
   type EntityGenerationContext,
@@ -60,16 +62,30 @@ const generation: EntityGenerationDeclaration<
   typeof summaryMetadata
 > = { input: summaryInput, generate: summarize };
 
+// An event every listening package hears, its payload typed by the channel.
+const recounted: Channel<{ total: number; reason: string }> = defineChannel(
+  "reading-library:recounted",
+  z.object({ total: z.number().int(), reason: z.string() }),
+);
+
 async function recount(
   context: EntityJobContext<{ readonly reason: string }>,
 ): Promise<{ readonly total: number }> {
   const total = await context.entities.count(bookmark);
-  await context.messaging.publish({
-    topic: "reading-library:recounted",
-    data: { total, reason: context.input.reason },
+  await context.messaging.publish(recounted, {
+    total,
+    reason: context.input.reason,
   });
   return { total };
 }
+
+async function recountWrongly(
+  context: EntityJobContext<{ readonly reason: string }>,
+): Promise<void> {
+  // @ts-expect-error A published payload is the one its channel declares.
+  await context.messaging.publish(recounted, { total: "many" });
+}
+void recountWrongly;
 
 const recountJob: EntityJobDeclaration<z.ZodObject<{ reason: z.ZodString }>> =
   defineEntityJob({

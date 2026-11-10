@@ -1,4 +1,4 @@
-import { collectContract } from "@brains/messaging-service";
+import { broadcastChannel, collectContract } from "@brains/messaging-service";
 import { projectionWaveReadyContract } from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
@@ -6,6 +6,7 @@ import {
   materializePrompts,
   pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
+  startupContentSettledChannel,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
@@ -366,12 +367,12 @@ export class ShellBootloader {
   /** Create ready-state defaults, then announce that startup content settled. */
   private async settleStartupContent(): Promise<void> {
     await this.prepareReadyState();
-    await this.services.messageBus.send({
-      type: SYSTEM_CHANNELS.startupContentSettled,
-      payload: { timestamp: new Date().toISOString() },
-      sender: "shell",
-      broadcast: true,
-    });
+    await broadcastChannel(
+      this.services.messageBus,
+      startupContentSettledChannel,
+      { timestamp: new Date().toISOString() },
+      "shell",
+    );
     this.services.logger.debug("Emitted startup content settled event");
   }
 

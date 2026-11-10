@@ -289,31 +289,26 @@ export class AtprotoPlugin extends ServicePlugin<
                   60 *
                   1000,
             ).toISOString();
-            await context.messaging.send({
-              type: atprotoBrainCardUnavailableChannel.name,
-              payload: {
+            await context.messaging.broadcast(
+              atprotoBrainCardUnavailableChannel,
+              {
                 repoDid,
                 observedAt,
                 staleAfter,
                 reason: "deleted",
               },
-              broadcast: true,
-            });
+            );
           },
           publishHeartbeat: async (): Promise<void> => {
             if (!this.hasPublishingCredentials()) return;
             await this.publishBrainCard(context);
           },
           reportGap: async (payload): Promise<void> => {
-            await context.messaging.send({
-              type: atprotoJetstreamGapChannel.name,
-              payload: {
-                ...payload,
-                observedAt: new Date(
-                  this.deps.now?.() ?? Date.now(),
-                ).toISOString(),
-              },
-              broadcast: true,
+            await context.messaging.broadcast(atprotoJetstreamGapChannel, {
+              ...payload,
+              observedAt: new Date(
+                this.deps.now?.() ?? Date.now(),
+              ).toISOString(),
             });
           },
         },
@@ -517,15 +512,11 @@ export class AtprotoPlugin extends ServicePlugin<
           continue;
         }
         seenRecords.add(recordKey);
-        await context.messaging.send({
-          type: atprotoBrainCardDiscoveredChannel.name,
-          payload: {
-            repoDid: resolved.repoDid,
-            uri: record.uri,
-            cid: record.cid,
-            record: validatedCard,
-          },
-          broadcast: true,
+        await context.messaging.broadcast(atprotoBrainCardDiscoveredChannel, {
+          repoDid: resolved.repoDid,
+          uri: record.uri,
+          cid: record.cid,
+          record: validatedCard,
         });
         results.push({
           repo,
@@ -969,16 +960,12 @@ export class AtprotoPlugin extends ServicePlugin<
     ) {
       const existingRepoDid =
         typeof existingDomainRepo === "string" ? existingDomainRepo : undefined;
-      await context.messaging.send({
-        type: atprotoBrainCardConflictChannel.name,
-        payload: {
-          domain,
-          ...(existingRepoDid && { existingRepoDid }),
-          candidateRepoDid: repoDid,
-          observedAt: new Date().toISOString(),
-          reason: "ATProto agent identity collision",
-        },
-        broadcast: true,
+      await context.messaging.broadcast(atprotoBrainCardConflictChannel, {
+        domain,
+        ...(existingRepoDid && { existingRepoDid }),
+        candidateRepoDid: repoDid,
+        observedAt: new Date().toISOString(),
+        reason: "ATProto agent identity collision",
       });
       throw new DiscoveryRejectionError(
         `ATProto agent identity collision for ${domain}`,

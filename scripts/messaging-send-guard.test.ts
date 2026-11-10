@@ -21,23 +21,41 @@ const config = z
   })
   .parse(createRequire(import.meta.url)("../shared/eslint-config/index.js"));
 
-const guard = config.overrides.find((override) =>
-  override.rules["no-restricted-syntax"]
-    ?.slice(1)
-    .some(
-      (entry) =>
-        typeof entry !== "string" && entry.message.includes("bus contract"),
-    ),
+type Override = (typeof config.overrides)[number];
+
+/** The overrides that carry a restriction whose message says `text`. */
+function overridesSaying(text: string): Override[] {
+  return config.overrides.filter((override) =>
+    override.rules["no-restricted-syntax"]
+      ?.slice(1)
+      .some(
+        (entry) => typeof entry !== "string" && entry.message.includes(text),
+      ),
+  );
+}
+
+function required(override: Override | undefined, name: string): Override {
+  if (!override) throw new Error(`Missing ${name}`);
+  return override;
+}
+
+const guard = required(
+  overridesSaying("bus contract")[0],
+  "raw messaging.send guard",
 );
-if (!guard) throw new Error("Missing raw messaging.send guard");
-const rule = guard.rules["no-restricted-syntax"];
+const shellGuard = required(
+  overridesSaying("broadcast(channel, payload)").find((override) =>
+    override.files.includes("**/shell/*/src/**/*.ts"),
+  ),
+  "raw broadcast guard for the shell",
+);
 const linter = new Linter();
 
-function violations(code: string): string[] {
+function violations(code: string, override: Override = guard): string[] {
   const messages = linter.verify(code, [
     {
       languageOptions: { ecmaVersion: 2022, sourceType: "module" },
-      rules: { "no-restricted-syntax": rule },
+      rules: { "no-restricted-syntax": override.rules["no-restricted-syntax"] },
     },
   ]);
   expect(messages.filter((message) => message.fatal)).toEqual([]);
@@ -65,17 +83,18 @@ describe("raw messaging.send guard", () => {
     "this.context.messaging.send({ type: 'a', payload: {} });",
     "messaging.send({ type: 'a', payload: {} });",
     "context.messaging.send({ type: 'a', payload: {}, broadcast: false });",
+    "context.messaging.send({ type: 'a', payload: {}, broadcast: true });",
+    "this.messaging.send({ broadcast: true, type: 'a', payload: {} });",
     "const { send } = context.messaging;",
     "run({ sendMessage: context.messaging.send });",
   ])("rejects %s", (code) => {
-    expect(violations(code)).toEqual([
-      expect.stringContaining("context.messaging.request"),
-    ]);
+    expect(violations(code)).toContainEqual(
+      expect.stringContaining("context.messaging.broadcast"),
+    );
   });
 
   test.each([
-    "context.messaging.send({ type: 'a', payload: {}, broadcast: true });",
-    "this.messaging.send({ broadcast: true, type: 'a', payload: {} });",
+    "context.messaging.broadcast(initialSyncCompletedChannel, { success: true });",
     "context.messaging.request(contract, {});",
     "context.messaging.command(contract, {});",
     "provider.send({ type: 'a', payload: {} });",
@@ -89,5 +108,52 @@ describe("raw messaging.send guard", () => {
     expect(violations("read({ visibilityScope: 'restricted' });")).toHaveLength(
       1,
     );
+  });
+});
+
+describe("raw broadcast guard", () => {
+  test("covers shared, shell, package and site production source, but not the message bus", () => {
+    expect(shellGuard.files).toEqual(
+      expect.arrayContaining([
+        "**/shared/*/src/**/*.ts",
+        "**/shell/*/src/**/*.ts",
+        "**/packages/*/src/**/*.ts",
+        "**/sites/*/src/**/*.ts",
+      ]),
+    );
+    expect(shellGuard.excludedFiles).toEqual(
+      expect.arrayContaining([
+        "**/shell/messaging-service/**",
+        "**/*.test.ts",
+        "**/src/test/**",
+      ]),
+    );
+  });
+
+  test.each([
+    "await this.messageBus.send({ type: 'a', payload: {}, sender: 'shell', broadcast: true });",
+    "messageBus.send({ broadcast: true, type: 'a', payload: {}, sender: 'shell' });",
+    "void bus.send({ type, payload, sender, broadcast: true }).catch(() => undefined);",
+  ])("rejects %s", (code) => {
+    expect(violations(code, shellGuard)).toEqual([
+      expect.stringContaining("broadcastChannel"),
+    ]);
+  });
+
+  test.each([
+    "await broadcastChannel(this.messageBus, shellReadyChannel, { timestamp }, 'shell');",
+    "await messageBus.send({ type: 'a', payload: {}, sender: 'shell' });",
+    "await messageBus.send({ type: 'a', payload: {}, sender: 'shell', broadcast: false });",
+    "channel.send({ type, payload: message.payload });",
+  ])("allows %s", (code) => {
+    expect(violations(code, shellGuard)).toEqual([]);
+  });
+
+  test("is carried wherever a raw send is refused, so a plugin cannot broadcast raw through any bus", () => {
+    expect(
+      violations(
+        "this.bus.send({ type: 'a', payload: {}, sender: 'x', broadcast: true });",
+      ),
+    ).toEqual([expect.stringContaining("broadcastChannel")]);
   });
 });

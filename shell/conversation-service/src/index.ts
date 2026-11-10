@@ -16,6 +16,7 @@ export type {
   ConversationDbConfig,
   ConversationGuestMessageAddedPayload,
   ConversationMessageAddedPayload,
+  ConversationStartedPayload,
 } from "./types";
 export {
   CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
@@ -27,6 +28,8 @@ export {
   conversationMessageAddedChannel,
   conversationMessageAddedPayloadSchema,
   conversationMessageActorSchema,
+  conversationStartedChannel,
+  conversationStartedPayloadSchema,
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,
   isSavableAssistantMessage,
