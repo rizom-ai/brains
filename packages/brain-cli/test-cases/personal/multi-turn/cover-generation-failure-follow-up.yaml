@@ -18,16 +18,20 @@ turns:
         - "Reports that the target post could not be found and that no cover image generation started."
   - userMessage: "is it ready?"
     successCriteria:
+      # The request failed: asking after it is no request to try again. How
+      # the reply confirms there is nothing to wait for is the model's own.
+      expectedTools:
+        - toolName: system_generate
+          shouldBeCalled: false
       responseCriteria:
         - "Explains that the cover image was never started because the target post was not found, and does not suggest it is still in progress."
 
 successCriteria:
   expectedTools:
-    - toolName: system_get
+    - toolName: system_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "post"
-        id: "missing-cover-target-9f3c"
+        operation.target.entityId: "missing-cover-target-9f3c"
 
 efficiency:
   maxToolCalls: 4
