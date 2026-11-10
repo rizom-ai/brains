@@ -11,7 +11,7 @@ export function createSiteContentTools(
     createTool(
       pluginId,
       "generate",
-      "Generate content for all routes, a specific route, or a specific section",
+      "Generate content for all routes, a specific route, or a specific section. To plan which sections would get new content without generating anything, call it with dryRun: true; the result names each section it would generate.",
       GenerateOptionsSchema,
       async (input, context) => {
         const siteContentService = getSiteContentService();
@@ -32,7 +32,7 @@ export function createSiteContentTools(
         const result = await siteContentService.generateContent(input, context);
 
         const message = input.dryRun
-          ? `Planned ${result.totalSections} sections. No jobs were queued.`
+          ? `Planned ${result.totalSections} ${result.totalSections === 1 ? "section" : "sections"}${result.planned.length > 0 ? `: ${result.planned.map((section) => `${section.routeId}/${section.sectionId}`).join(", ")}` : ""}. No jobs were queued.`
           : result.queuedSections > 0
             ? `Queued ${result.queuedSections} of ${result.totalSections} sections. Jobs are running in the background.`
             : "No new content to generate. No jobs were queued.";
@@ -45,6 +45,7 @@ export function createSiteContentTools(
             jobsQueued: result.queuedSections,
             totalSections: result.totalSections,
             jobs: result.jobs,
+            planned: result.planned,
           },
         };
       },
