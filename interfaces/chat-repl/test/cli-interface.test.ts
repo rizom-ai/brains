@@ -11,6 +11,17 @@ import { startTerminal, type Terminal } from "./terminal";
 import { createCliPlugin } from "./cli-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
+import { createExternalActorId } from "@brains/contracts";
+
+/** The speaker of every terminal turn. */
+const terminalOperator = {
+  identity: {
+    kind: "external",
+    externalActorId: createExternalActorId("cli", "operator"),
+  },
+  interfaceType: "cli",
+  role: "user",
+};
 
 type MockAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type MockAgentResponse = Awaited<ReturnType<MockAgentService["chat"]>>;
@@ -159,6 +170,7 @@ describe("CLIInterface", () => {
         userPermissionLevel: "admin",
         isAnchor: false,
         interfaceType: "cli",
+        actor: terminalOperator,
       });
       expect(responseHandler).toHaveBeenCalledWith("✓ Delete note?");
     });
@@ -219,6 +231,7 @@ describe("CLIInterface", () => {
           userPermissionLevel: "admin",
           isAnchor: false,
           interfaceType: "cli",
+          actor: terminalOperator,
         },
       );
       expect(responseHandler).toHaveBeenCalledWith("○ Delete note?");
@@ -281,6 +294,7 @@ describe("CLIInterface", () => {
           userPermissionLevel: "admin",
           isAnchor: false,
           interfaceType: "cli",
+          actor: terminalOperator,
           channelId: "cli",
           channelName: "CLI Terminal",
         },
@@ -363,6 +377,7 @@ describe("CLIInterface", () => {
           userPermissionLevel: "admin",
           isAnchor: false,
           interfaceType: "cli",
+          actor: terminalOperator,
         },
       );
       expect(confirmMock).toHaveBeenNthCalledWith(
@@ -374,6 +389,7 @@ describe("CLIInterface", () => {
           userPermissionLevel: "admin",
           isAnchor: false,
           interfaceType: "cli",
+          actor: terminalOperator,
         },
       );
       expect(responseHandler).toHaveBeenCalledWith("✓ Delete beta?");
@@ -565,6 +581,7 @@ describe("CLIInterface", () => {
         userPermissionLevel: "admin",
         isAnchor: false,
         interfaceType: "cli",
+        actor: terminalOperator,
       });
     });
 

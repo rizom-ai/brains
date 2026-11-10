@@ -14,6 +14,7 @@ import {
   type ToolApprovalCard,
 } from "@brains/plugins";
 import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+import { createExternalActorId } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 
 const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
@@ -35,6 +36,21 @@ const CARD_FALLBACK_OPTIONS = {
 
 /** The CLI's one conversation: whoever runs the process. */
 const CONVERSATION_ID = "cli";
+
+/**
+ * The operator at the terminal, the speaker of every turn. Without one the
+ * turn's tool calls are the brain's own agent's, and work they queue, such
+ * as a post's generation, runs at the agent's grant rather than the
+ * terminal's admin permission.
+ */
+const TERMINAL_OPERATOR = {
+  identity: {
+    kind: "external",
+    externalActorId: createExternalActorId("cli", "operator"),
+  },
+  interfaceType: "cli",
+  role: "user",
+} as const;
 
 /**
  * What the terminal UI is wired to while it runs: the Ink app, the signal
@@ -124,6 +140,7 @@ export function createTerminalSession(
         userPermissionLevel: "admin",
         isAnchor: isAnchor(),
         interfaceType: "cli",
+        actor: TERMINAL_OPERATOR,
       },
     );
     approvalTracker.syncFromResponse(
@@ -166,6 +183,7 @@ export function createTerminalSession(
           interfaceType: "cli",
           channelId: "cli",
           channelName: "CLI Terminal",
+          actor: TERMINAL_OPERATOR,
         });
 
         // Track pending confirmations if returned
