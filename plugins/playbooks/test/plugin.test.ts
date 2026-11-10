@@ -1355,6 +1355,39 @@ describe("PlaybooksPlugin", () => {
     expect(statusData.otherRuns).toEqual([]);
   });
 
+  it("lists no other conversation's run when a run starts or moves", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await installPlaybooks(harness, {});
+    addPlaybookEntity(harness);
+    await startRun(harness, "someone-else", "rover-onboarding");
+
+    const started = await harness.executeTool(
+      "playbook_manage",
+      {
+        action: "start",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { conversationId: "mine" },
+    );
+    expectSuccess(started);
+    const startedData = parsePlaybookToolData(started.data);
+    expect(startedData.otherRuns).toEqual([]);
+
+    const moved = await harness.executeTool(
+      "playbook_manage",
+      {
+        action: "send-event",
+        runId: startedData.activeRun.id,
+        event: "NEXT",
+        context: { operatorReady: true },
+      },
+      { conversationId: "mine" },
+    );
+    expectSuccess(moved);
+    expect(parsePlaybookToolData(moved.data).otherRuns).toEqual([]);
+  });
+
   it("tracks playbook transitions and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await installPlaybooks(harness, {});
