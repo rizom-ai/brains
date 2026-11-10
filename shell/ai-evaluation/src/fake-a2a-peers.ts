@@ -3,10 +3,6 @@ import { join } from "path";
 import { parse as parseYaml } from "yaml";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
-import {
-  resolveEvaluationContentDirectory,
-  type SeedContentConfig,
-} from "./eval-environment";
 
 /**
  * Stand-ins for the peer brains an eval's seed content saves as agents.
@@ -250,27 +246,4 @@ export function createFakePeerFetch(
     const peer = url.protocol === "https:" ? byHost.get(url.host) : undefined;
     return peer ? answerPeer(peer, request) : fallback(input, init);
   };
-}
-
-const realFetch: typeof fetch = globalThis.fetch;
-
-/**
- * Answer `peers` for the rest of this eval process. The brain's A2A client,
- * agent tools and directory scan take the process fetch, so the eval process
- * routes it here once per brain it boots; there is nothing to restore, since
- * the process exists to run evals.
- */
-export function serveFakePeers(peers: readonly FakePeer[]): void {
-  globalThis.fetch = Object.assign(createFakePeerFetch(peers, realFetch), {
-    preconnect: realFetch.preconnect,
-  });
-}
-
-/** Answer the seed agents of the eval content this run's brain imports. */
-export function serveSeedPeers(options: {
-  brainModelPath?: string | undefined;
-  config?: SeedContentConfig | undefined;
-}): void {
-  const contentDir = resolveEvaluationContentDirectory(options);
-  serveFakePeers(contentDir ? readSeedPeers(contentDir) : []);
 }

@@ -9,7 +9,7 @@ tags:
   - error-handling
 
 turns:
-  - userMessage: "Save this link: https://this-domain-definitely-does-not-exist-12345.com/page"
+  - userMessage: "Save this link: https://this-domain-definitely-does-not-exist.invalid/page"
 
 successCriteria:
   expectedTools:
@@ -18,7 +18,7 @@ successCriteria:
       argsContain:
         entityType: "link"
         source.kind: "url"
-        source.url: "https://this-domain-definitely-does-not-exist-12345.com/page"
+        source.url: "https://this-domain-definitely-does-not-exist.invalid/page"
   # Agent should indicate failure - don't require specific wording, just check it doesn't claim success
   responseNotContains:
     - "successfully captured"

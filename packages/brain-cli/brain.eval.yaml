@@ -59,8 +59,9 @@ suites:
       directory-sync:
         seedContentPath: eval-content/publishing
   # Professional plus the optional Buttondown and stock-photo providers, to
-  # prove their conditional tool exposure. The keys are placeholders: provider
-  # calls fail, so cases assert routing and refusal to invent results.
+  # prove their conditional tool exposure. The keys are placeholders, and the
+  # eval process answers both services as they answer a key they do not know:
+  # provider calls fail, so cases assert routing and refusal to invent results.
   providers:
     extends: professional
     inheritTags: false
@@ -73,10 +74,9 @@ suites:
           apiKey: eval-placeholder-buttondown-key
       stock-photo:
         apiKey: eval-placeholder-stock-photo-key
-  # Professional with the agent network and live pages: the seed peer brains,
-  # on .example hosts the eval process answers itself, and the live pages
-  # links are saved from. Kept out of the other suites so their runs never
-  # depend on someone else's server.
+  # Professional with the agent network and saved pages: the seed peer brains,
+  # on .example hosts, and the pages links are saved from, which the eval
+  # process answers itself from shell/ai-evaluation/src/eval-pages.
   network:
     extends: professional
     inheritTags: false

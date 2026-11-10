@@ -56,6 +56,13 @@ export {
   createFakePeerFetch,
   isSafeSeedAgentUrl,
   readSeedPeers,
-  serveSeedPeers,
   type FakePeer,
 } from "./fake-a2a-peers";
+export {
+  EVAL_LINK_READER_HOST,
+  EVAL_PAGES_DIRECTORY,
+  createEvalNetworkFetch,
+  evalPagePath,
+  evalProviderHosts,
+} from "./eval-network";
+export { serveSeedPeers } from "./eval-environment";
