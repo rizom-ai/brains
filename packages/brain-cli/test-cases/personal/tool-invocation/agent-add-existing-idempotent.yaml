@@ -13,7 +13,7 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "Save yeehaa.io as an agent in my directory"
+  - userMessage: "Save yeehaa.example as an agent in my directory"
 
 successCriteria:
   expectedTools:

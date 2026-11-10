@@ -122,6 +122,35 @@ describe("TestRunner", () => {
   });
 
   describe("runTest", () => {
+    it("fails a case whose agent call throws instead of ending the run", async () => {
+      mockAgentService.chat.mockRejectedValue(
+        new Error("Invalid arguments for tool chat: message: Too small"),
+      );
+      const testCase: TestCase = {
+        id: "throws",
+        name: "Agent call throws",
+        type: "tool_invocation",
+        turns: [{ userMessage: "" }, { userMessage: "Hello" }],
+        successCriteria: {},
+      };
+
+      const result = await testRunner.runTest(testCase);
+
+      expect(result).toMatchObject({
+        testCaseId: "throws",
+        passed: false,
+        failures: [
+          {
+            criterion: "agentCall",
+            actual: "Invalid arguments for tool chat: message: Too small",
+            message:
+              "The agent call failed: Invalid arguments for tool chat: message: Too small",
+          },
+        ],
+      });
+      expect(mockAgentService.chat).toHaveBeenCalledTimes(1);
+    });
+
     it("should pass when all criteria are met", async () => {
       const testCase: TestCase = {
         id: "test-1",

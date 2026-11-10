@@ -2,7 +2,7 @@
 name: Brain
 kind: person
 brainName: Brain Labs
-url: "https://brain-labs.io/a2a"
+url: "https://brain-labs.example/a2a"
 status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
 ---
@@ -19,4 +19,4 @@ Brain is another saved directory contact used to test ambiguous name resolution.
 
 ## Notes
 
-Disambiguate this contact from yeehaa.io when the user only says "Brain".
+Disambiguate this contact from yeehaa.example when the user only says "Brain".

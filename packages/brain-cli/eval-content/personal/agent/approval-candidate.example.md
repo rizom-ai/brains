@@ -2,7 +2,7 @@
 name: Approval Candidate
 kind: person
 brainName: Approval Candidate
-url: "https://approval-candidate.io/a2a"
+url: "https://approval-candidate.example/a2a"
 status: discovered
 discoveredAt: "2026-03-11T10:00:00.000Z"
 ---

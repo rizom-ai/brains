@@ -124,6 +124,14 @@ export class MCPProtocolAgentService implements IAgentService {
     context?: ChatContext,
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    // The protocol's chat takes a message only. Sending the turn without
+    // its files would evaluate a different request than the case asks.
+    const attachments = context?.attachments ?? [];
+    if (attachments.length > 0) {
+      throw new Error(
+        `Basic MCP chat carries no attachments: ${attachments.map((attachment) => attachment.filename).join(", ")} cannot reach the brain through it`,
+      );
+    }
     return this.callProtocolTool(
       "chat",
       { message, conversationId },

@@ -2,7 +2,7 @@
 name: Harbor Logistics
 kind: organization
 brainName: Harbor Logistics
-url: "https://harbor-logistics.io/a2a"
+url: "https://harbor-logistics.example/a2a"
 status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
 ---

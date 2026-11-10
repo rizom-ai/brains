@@ -69,9 +69,10 @@ suites:
           apiKey: eval-placeholder-buttondown-key
       stock-photo:
         apiKey: eval-placeholder-stock-photo-key
-  # Professional against live third-party hosts: peer brains such as
-  # yeehaa.io and docs.rizom.ai, and the pages links are saved from. Kept out
-  # of the other suites so their runs never depend on someone else's server.
+  # Professional with the agent network and live pages: the seed peer brains,
+  # on .example hosts the eval process answers itself, and the live pages
+  # links are saved from. Kept out of the other suites so their runs never
+  # depend on someone else's server.
   network:
     extends: professional
     inheritTags: false

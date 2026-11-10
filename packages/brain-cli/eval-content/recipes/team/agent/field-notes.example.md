@@ -2,7 +2,7 @@
 name: Field Notes Collective
 kind: team
 brainName: Field Notes Collective
-url: "https://field-notes.io/a2a"
+url: "https://field-notes.example/a2a"
 status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
 ---
