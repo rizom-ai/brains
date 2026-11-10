@@ -30,7 +30,7 @@ interface ArtifactDeliveryDeps {
  * Resolves which generated artifacts to deliver to a chat caller: native files
  * for artifacts visible to their permission level, plus the ids of cards whose
  * artifact exists but is out of scope (so their links/metadata can be
- * suppressed). Pure delivery policy — extracted from ChatInterface and shared by
+ * suppressed). Pure delivery policy — extracted from the chat interface and shared by
  * both the normal-response and confirmation-response render paths.
  */
 export class ArtifactDeliveryResolver {

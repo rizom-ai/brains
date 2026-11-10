@@ -92,7 +92,7 @@ interface ChatTurnControllerDeps {
 
 /**
  * Owns inbound Chat SDK handler registration and agent-turn routing. Daemon,
- * outbound-message, progress, and tool-status lifecycle stays in ChatInterface.
+ * outbound-message, progress, and tool-status lifecycle stays in the chat interface.
  */
 export class ChatTurnController {
   private readonly deps: ChatTurnControllerDeps;
