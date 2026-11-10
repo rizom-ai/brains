@@ -14,6 +14,7 @@ export {
 export type {
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,
+  AccountSettingsSecret,
   AccountSettingsValue,
   StudioWorkspaceDefinition,
   StudioWorkspaceView,
@@ -27,7 +28,6 @@ export type {
   OperatorCardBlock,
   OperatorColumnsBlock,
   OperatorEntityCatalogDefinition,
-  OperatorEntityReader,
   OperatorQueryReader,
   OperatorRegionBlock,
   OperatorView,

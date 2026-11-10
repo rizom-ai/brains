@@ -140,10 +140,6 @@ export interface AuthBrainAnchorSummary {
   administeredBy: number;
 }
 
-export interface AuthBrainAnchorResponse {
-  anchor: AuthBrainAnchorSummary;
-}
-
 export type AuthInvitationDeliveryMode = "automatic" | "manual";
 
 export interface AuthInvitationChannelSummary {
@@ -184,126 +180,9 @@ export interface AuthIdentityClaimReconciliation {
   owner?: AuthIdentityReconciliationOwner | undefined;
 }
 
-export interface AuthIdentityReconciliationRequest {
-  claims: AuthIdentityProposalInput[];
-}
-
 export interface AuthIdentityReconciliationResponse {
   state:
     "unique_verified_match" | "cross_person_conflict" | "no_verified_match";
   suggestedUserId?: string | undefined;
   claims: AuthIdentityClaimReconciliation[];
-}
-
-export type AuthAdminMutation =
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation;
-      invitationId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery;
-      invitationId: string;
-      deliveryAttemptId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createInvitation;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.createInvitation;
-      idempotencyKey: string;
-      displayName: string;
-      role: Extract<AuthAdminRole, "admin" | "trusted">;
-      delivery: AuthSetupDeliveryInput;
-      peerId?: string | undefined;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation;
-      invitationId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.createUser;
-      displayName: string;
-      role: AuthAdminRole;
-      status: AuthAdminStatus;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.inviteExternalPeerPerson;
-      peerId: string;
-      displayName: string;
-      role: Extract<AuthAdminRole, "admin" | "trusted">;
-      delivery: AuthSetupDeliveryInput;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
-      peerId: string;
-      userId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.unlinkExternalPeer;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.unlinkExternalPeer;
-      peerId: string;
-      userId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateUserRole;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateUserRole;
-      userId: string;
-      role: AuthAdminRole;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.updateUserStatus;
-      userId: string;
-      status: AuthAdminStatus;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.deleteUser;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.deleteUser;
-      userId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.attachIdentity;
-      userId: string;
-      type: Exclude<AuthAdminIdentityType, "passkey">;
-      subject: string;
-      issuer?: string | undefined;
-      label?: string | undefined;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity;
-      identityId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokePasskey;
-      credentialId: string;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
-      userId: string;
-      delivery?: AuthSetupDeliveryInput | undefined;
-    }
-  | {
-      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;
-      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;
-      userId: string;
-    };
-
-export interface AuthAdminChannelsResponse {
-  channels: AuthInvitationChannelSummary[];
-}
-
-export interface AuthAdminUsersResponse {
-  users: AuthAdminUserSummary[];
-}
-
-export interface AuthAdminAuditResponse {
-  events: AuthAuditEventSummary[];
 }

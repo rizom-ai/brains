@@ -100,6 +100,10 @@ export function createMockSystemServices(
     string,
     (...args: unknown[]) => Promise<unknown>
   >();
+  const generationEnqueuers = new Map<
+    string,
+    (data: Record<string, unknown>, toolContext: unknown) => Promise<string>
+  >();
   const uploadSaveHandlers: Array<{
     entityType: string;
     mediaTypes: string[];
@@ -240,6 +244,16 @@ export function createMockSystemServices(
       createInterceptors.set(type, interceptor);
     },
     getCreateInterceptor: (type: string) => createInterceptors.get(type),
+    registerGenerationEnqueuer: (
+      type: string,
+      enqueuer: (
+        data: Record<string, unknown>,
+        toolContext: unknown,
+      ) => Promise<string>,
+    ) => {
+      generationEnqueuers.set(type, enqueuer);
+    },
+    getGenerationEnqueuer: (type: string) => generationEnqueuers.get(type),
     registerUploadSaveHandler: (registration: {
       entityType: string;
       mediaTypes: string[];

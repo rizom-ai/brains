@@ -32,6 +32,8 @@ export interface EntityLookupReads {
 /** How an identifier lookup reads: cancellation, and whether only published work counts. */
 export interface EntityLookupOptions extends EntityReadOptions {
   publishedOnly?: boolean;
+  /** Read the stored document, as `source` reads do. */
+  source?: boolean;
 }
 
 /**
@@ -53,6 +55,7 @@ export async function findEntityByIdentifier(
   const readOptions: EntityLookupOptions = {
     ...(options.signal && { signal: options.signal }),
     ...(options.publishedOnly && { publishedOnly: true }),
+    ...(options.source && { source: true }),
   };
   try {
     readOptions.signal?.throwIfAborted();

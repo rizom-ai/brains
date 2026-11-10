@@ -146,6 +146,20 @@ describe("authored opening", () => {
       await loadAskContent({ entityService: missing.entityService }),
     ).toBeNull();
   });
+  it("reads a declared record's copy from its metadata", async () => {
+    const runtime = context({
+      ...entity(),
+      content: "An authored opening.",
+      metadata: {
+        title: "A different opening",
+        topics: ["Talk about research"],
+      },
+    });
+    const copy = await loadAskContent({ entityService: runtime.entityService });
+    expect(copy?.title).toBe("A different opening");
+    expect(copy?.topics).toEqual(["Talk about research"]);
+    expect(copy?.introduction).toBe("An authored opening.");
+  });
   it("uses the local site URL for a local preview, not the deployment's HTTPS domain", async () => {
     const runtime = context();
     const localOrigin = "http://127.0.0.1:3000";

@@ -1,0 +1,80 @@
+{
+  "name": "@rizom/brain-ui",
+  "version": "0.2.0-alpha.661",
+  "description": "React components for Rizom Brain sites and plugin views",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./internal": "./src/internal.ts"
+  },
+  "publishExports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "prepack": "publish-manifest prepare",
+    "prepublishOnly": "bun scripts/build.ts"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "marked": "^18.0.5",
+    "sanitize-html": "^2.18.0",
+    "tailwind-merge": "^3.6.0"
+  },
+  "peerDependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@brains/build-tools": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/operator-view-react": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@tailwindcss/typography": "^0.5.20",
+    "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
+    "@types/sanitize-html": "^2.13.0",
+    "eslint": "^10.5.0",
+    "postcss": "^8.5.29",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "rolldown": "^1.0.0",
+    "rolldown-plugin-dts": "^0.27.4",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizom-ai/brains.git",
+    "directory": "packages/ui"
+  },
+  "license": "Apache-2.0",
+  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/ui#readme",
+  "bugs": {
+    "url": "https://github.com/rizom-ai/brains/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
+  }
+}

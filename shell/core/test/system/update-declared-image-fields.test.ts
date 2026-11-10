@@ -123,7 +123,7 @@ async function fixture(): Promise<{
       const input = {
         entityType: "card",
         id: "tide",
-        operation: { kind: "fields", fields },
+        operation: { fields },
       };
       const proposal = z
         .object({ args: z.record(z.string(), z.unknown()) })

@@ -7,7 +7,6 @@
  * - activeTools for permission-based tool filtering
  */
 import {
-  ToolChoiceViolationError,
   ToolLoopAgent,
   stepCountIs,
   type LanguageModel,
@@ -41,8 +40,6 @@ import { buildAgentInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 import { retryDeclinedTurnOnce } from "./provider-declined";
-import { textOnlyMessages } from "./text-only-messages";
-import { createImageDescriber } from "./image-description";
 import { createToolCallRepair } from "./tool-call-repair";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
@@ -113,12 +110,9 @@ export interface BrainAgentFactoryOptions {
    * a fast model writes the answer while a reasoning one makes the calls.
    */
   answerModel?: LanguageModel | undefined;
-  /** Describes uploaded images as text for a local model that reads only text. */
-  visionModel?: LanguageModel | undefined;
   modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
-  maxTokens?: number | undefined;
   reasoningEffort?: ReasoningEffort | undefined;
   /** Message bus for emitting tool invocation events */
   messageBus: IMessageBus;
@@ -138,11 +132,9 @@ export function createBrainAgentFactory(
   const {
     model,
     answerModel,
-    visionModel,
     modelId,
     webSearch,
     temperature,
-    maxTokens,
     reasoningEffort,
     messageBus,
   } = options;
@@ -163,11 +155,6 @@ export function createBrainAgentFactory(
       ? createToolCallRepair(model, reasoning)
       : undefined;
 
-  const describeImage =
-    capabilities.provider === "local" && visionModel
-      ? createImageDescriber(visionModel)
-      : undefined;
-
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
 
@@ -185,160 +172,105 @@ export function createBrainAgentFactory(
       emitter,
     );
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-    const createAgent = (requireCall: boolean) =>
-      new ToolLoopAgent({
-        model,
-        callOptionsSchema: brainCallOptionsSchema,
-        // A tool result is answered by the answer model when one is set;
-        // otherwise a local model answers it without thinking. On a runtime that
-        // generates ~20 tokens/s, answer reasoning cost most of a turn, while
-        // tool choice is where reasoning pays.
-        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-        prepareStep: ({ steps }) => {
-          if (requireCall && steps.length === 0)
-            return { toolChoice: "required" as const };
-          const last = steps.at(-1);
-          if (!last?.toolResults.length) return {};
-          // A tool the answer model calls hands the next step back to the
-          // model that chooses tools: retries and follow-up calls need it.
-          if (answerModel)
-            return last.model.modelId === modelIdOf(answerModel)
-              ? {}
-              : { model: answerModel };
-          return capabilities.provider === "local" && reasoning
-            ? { providerOptions: { local: { reasoningEffort: "none" } } }
-            : {};
-        },
+    const agent = new ToolLoopAgent({
+      model,
+      callOptionsSchema: brainCallOptionsSchema,
+      // A tool result is answered by the answer model when one is set.
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+      prepareStep: ({ steps }) => {
+        const last = steps.at(-1);
+        if (!answerModel || !last?.toolResults.length) return {};
+        // A tool the answer model calls hands the next step back to the
+        // model that chooses tools: retries and follow-up calls need it.
+        return last.model.modelId === modelIdOf(answerModel)
+          ? {}
+          : { model: answerModel };
+      },
 
-        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-        prepareCall: async ({ options: callOptions, ...settings }) => {
-          assertGuestPermission(callOptions);
-          assertGuestCallOptions(callOptions);
-          const guest = callOptions.interfaceType === guestInterfaceType;
-          // The local runtime serves text-only models: an upload reaches them
-          // as text, never as a file part the runtime rejects.
-          const messages =
-            capabilities.provider === "local" && settings.messages
-              ? await textOnlyMessages(settings.messages, describeImage)
-              : settings.messages;
-          // Get tools available for this permission level, unless this bounded
-          // model turn is intentionally text-only (for example, after executing
-          // an already-confirmed action).
-          const allowedTools = callOptions.disableTools
-            ? []
-            : await availableTools(
-                filterToolsForCallOptions(
-                  config.getToolsForPermission(callOptions.userPermissionLevel),
-                  callOptions,
-                ),
-              );
-          const allowedToolNames = allowedTools.map((t) => t.name);
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+      prepareCall: async ({ options: callOptions, ...settings }) => {
+        assertGuestPermission(callOptions);
+        assertGuestCallOptions(callOptions);
+        const guest = callOptions.interfaceType === guestInterfaceType;
+        // Get tools available for this permission level, unless this bounded
+        // model turn is intentionally text-only (for example, after executing
+        // an already-confirmed action).
+        const allowedTools = callOptions.disableTools
+          ? []
+          : await availableTools(
+              filterToolsForCallOptions(
+                config.getToolsForPermission(callOptions.userPermissionLevel),
+                callOptions,
+              ),
+            );
+        const allowedToolNames = allowedTools.map((t) => t.name);
 
-          // Convert tools with proper context from call options
-          const toolsWithContext = convertToSDKTools(
-            allowedTools,
-            {
-              conversationId: callOptions.conversationId,
-              channelId: callOptions.channelId,
-              channelName: callOptions.channelName,
-              interfaceType: callOptions.interfaceType,
-              actor: callOptions.actor,
-              displayName: callOptions.displayName,
-              userPermissionLevel: callOptions.userPermissionLevel,
-              isAnchor: callOptions.isAnchor,
-              enableCreateUpload: callOptions.enableCreateUpload,
-              enableCreateTransform: callOptions.enableCreateTransform,
+        // Convert tools with proper context from call options
+        const toolsWithContext = convertToSDKTools(
+          allowedTools,
+          {
+            conversationId: callOptions.conversationId,
+            channelId: callOptions.channelId,
+            channelName: callOptions.channelName,
+            interfaceType: callOptions.interfaceType,
+            actor: callOptions.actor,
+            displayName: callOptions.displayName,
+            userPermissionLevel: callOptions.userPermissionLevel,
+            isAnchor: callOptions.isAnchor,
+            enableCreateUpload: callOptions.enableCreateUpload,
+            enableCreateTransform: callOptions.enableCreateTransform,
+          },
+          emitter,
+        );
+
+        return {
+          ...settings,
+          // A visitor is a public user of the same agent: text-only history,
+          // no system messages from the conversation.
+          ...(guest && {
+            messages: guestModelMessages(settings.messages),
+            allowSystemInMessages: false,
+            // Only the options set below reach the provider for a guest.
+            providerOptions: {},
+          }),
+          instructions:
+            buildAgentInstructions(config, callOptions) +
+            (guest ? `\n\n${guestVisitorInstructions}` : ""),
+          tools: toolsWithContext,
+          activeTools: allowedToolNames,
+          // Provider options
+          ...(temperature !== undefined &&
+            capabilities.supportsTemperature && { temperature }),
+          // Guests answer from the brain, never from provider web search.
+          ...((reasoning !== undefined || (webSearch && !guest)) && {
+            providerOptions: {
+              ...reasoning,
+              ...(webSearch &&
+                !guest && {
+                  anthropic: { webSearch: true },
+                }),
             },
-            emitter,
-          );
+          }),
+        };
+      },
 
-          return {
-            ...settings,
-            ...(messages && { messages }),
-            // A visitor is a public user of the same agent: text-only history,
-            // no system messages from the conversation.
-            ...(guest && {
-              messages: guestModelMessages(messages),
-              allowSystemInMessages: false,
-              // Only the options set below reach the provider for a guest.
-              providerOptions: {},
-            }),
-            instructions:
-              buildAgentInstructions(config, callOptions) +
-              (guest ? `\n\n${guestVisitorInstructions}` : ""),
-            tools: toolsWithContext,
-            activeTools: allowedToolNames,
-            // Provider options
-            ...(temperature !== undefined &&
-              capabilities.supportsTemperature && { temperature }),
-            ...(maxTokens !== undefined && { maxTokens }),
-            // Guests answer from the brain, never from provider web search.
-            ...((reasoning !== undefined || (webSearch && !guest)) && {
-              providerOptions: {
-                ...reasoning,
-                ...(webSearch &&
-                  !guest && {
-                    anthropic: { webSearch: true },
-                  }),
-              },
-            }),
-          };
-        },
-
-        tools: allTools,
-        ...(repairToolCall && { experimental_repairToolCall: repairToolCall }),
-        stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
-      });
-    const agent = createAgent(false);
-    // An empty local turn is run again with its first step required to call
-    // a tool: the call the thinking model only reasoned about.
-    const retryAgent = createAgent(true);
+      tools: allTools,
+      ...(repairToolCall && { experimental_repairToolCall: repairToolCall }),
+      stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
+    });
     return {
       generate: async (params): Promise<BrainAgentResult> => {
         assertGuestPermission(params.options);
         assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
-          const run = (
-            runner: typeof agent,
-          ): ReturnType<
-            typeof retryDeclinedTurnOnce<
-              Awaited<ReturnType<typeof agent.generate>>
-            >
-          > =>
-            retryDeclinedTurnOnce((onStepFinish) =>
-              runner.generate({ ...params, onStepFinish }),
-            );
-          const first = await run(agent);
-          // A local thinking model can settle on a tool call in its
-          // reasoning and stop without making it, leaving no reply and no
-          // call; that turn is run once more, now required to make a call.
-          const empty =
-            capabilities.provider === "local" &&
-            first.text.trim() === "" &&
-            first.result.steps.every((step) => step.toolCalls.length === 0);
-          // A retry that still makes no call keeps the empty turn.
-          const retry = empty
-            ? await run(retryAgent).catch((error: unknown) => {
-                if (ToolChoiceViolationError.isInstance(error))
-                  return undefined;
-                throw error;
-              })
-            : undefined;
-          const { result, text, retriedAfter } = retry ?? first;
+          const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
+            (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+          );
           return {
             text,
             steps: result.steps,
             usage: turnUsage([
-              ...(retry
-                ? [
-                    ...(first.retriedAfter
-                      ? [first.retriedAfter.totalUsage]
-                      : []),
-                    first.result.totalUsage,
-                  ]
-                : []),
               ...(retriedAfter ? [retriedAfter.totalUsage] : []),
               result.totalUsage,
             ]),

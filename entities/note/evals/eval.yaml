@@ -1,2 +1,3 @@
 plugin: "@brains/note"
+export: notePlugin
 model: gpt-5.4-mini

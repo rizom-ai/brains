@@ -1,24 +1,28 @@
 import { extractPdfMarkdown } from "@brains/document";
 import { getErrorMessage } from "@brains/utils/error";
-import type { FilePart, ModelMessage, TextPart } from "ai";
-import { fileBytes } from "./file-part-bytes";
+import type { FilePart, LanguageModelMiddleware, TextPart } from "ai";
+import { fileBytes } from "./file-bytes";
 import type { ImageDescriber } from "./image-description";
 
+/** A prompt as a model runtime receives it. */
+export type RuntimePrompt = Parameters<
+  NonNullable<LanguageModelMiddleware["transformParams"]>
+>[0]["params"]["prompt"];
+
 /**
- * The messages a model that reads only text can take: each uploaded file
+ * The prompt a model that reads only text can take: each uploaded file
  * becomes text, a PDF its extracted text, an image its description when a
  * vision model can give one, and any other file its name and type, so the
  * model still knows what was uploaded and can save it by its upload
  * reference.
  */
-export async function textOnlyMessages(
-  messages: ModelMessage[],
+export async function textOnlyPrompt(
+  prompt: RuntimePrompt,
   describeImage?: ImageDescriber,
-): Promise<ModelMessage[]> {
+): Promise<RuntimePrompt> {
   return Promise.all(
-    messages.map(async (message) => {
-      if (message.role !== "user" || typeof message.content === "string")
-        return message;
+    prompt.map(async (message) => {
+      if (message.role !== "user") return message;
       const content = await Promise.all(
         message.content.map(async (part) =>
           part.type === "file" ? describeFile(part, describeImage) : part,

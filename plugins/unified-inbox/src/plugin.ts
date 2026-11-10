@@ -47,7 +47,6 @@ export class UnifiedInboxPlugin extends ServicePlugin<
       this.dataSource,
       context.inboxFollowUps,
     );
-    context.entities.registerDataSource(this.dataSource);
     registerUnifiedInboxDigest(context, this.dataSource, {
       workspaceUrl: () => this.studioWorkspaceUrl,
     });

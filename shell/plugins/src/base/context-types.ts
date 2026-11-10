@@ -4,12 +4,12 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
-import type { Channel } from "../utils/channels";
 import type {
   BusAnswerMeta,
   BusCollection,
   BusContract,
   BusResult,
+  Channel,
   ENTITY_CHANNELS,
 } from "@brains/contracts";
 import type {
@@ -116,33 +116,30 @@ export interface IMessagingNamespace {
    * what the web process owns, subscribeExecution for work each process does
    * for its own changes.
    *
-   * @example String-based (untyped)
-   * ```typescript
-   * context.messaging.subscribe("my-channel", async (message) => {
-   *   const payload = mySchema.parse(message.payload);
-   *   return { success: true };
-   * });
-   * ```
+   * Through a typed channel (`defineChannel`) the handler receives the
+   * validated payload; a malformed one is refused and logged, never handed
+   * on. A broadcast event another package declares is subscribed through its
+   * channel, such as `publishCompletedChannel`, rather than by casting a
+   * string subscription's payload.
    *
-   * @example Channel-based (typed)
+   * @example
    * ```typescript
-   * const MyChannel = defineChannel("my-channel", mySchema);
-   * context.messaging.subscribe(MyChannel, async (payload) => {
+   * context.messaging.subscribe(publishCompletedChannel, async (payload) => {
    *   // payload is already validated and typed
    *   return { success: true };
    * });
    * ```
    */
   subscribe: {
-    // String-based (existing behavior)
     <T = unknown, R = unknown, C extends string = string>(
       channel: C extends EntityChannel ? never : C,
       handler: MessageHandler<T, R>,
     ): () => void;
 
-    // Channel-based (typed, with auto-validation)
-    <TPayload, TResponse = unknown>(
-      channel: Channel<TPayload, TResponse>,
+    <TPayload, TResponse = unknown, TName extends string = string>(
+      channel: TName extends EntityChannel
+        ? never
+        : Channel<TPayload, TResponse, TName>,
       handler: TypedMessageHandler<TPayload, TResponse>,
     ): () => void;
   };
@@ -150,23 +147,30 @@ export interface IMessagingNamespace {
   /**
    * Subscribe in every process, each handling the messages it raises itself:
    * for work tied to where an event happens, such as the job that follows an
-   * embedding the worker made.
+   * embedding the worker made. A typed channel validates as `subscribe` does.
    */
-  subscribeExecution: <T = unknown, R = unknown>(
-    channel: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
+  subscribeExecution: EventSubscriber;
 
   /**
    * Follow a channel from the web process, hearing what every process of the
    * runtime raises: for caches, views and work the web process owns, such as
    * publishing or exporting a change wherever it was made. A worker owns none
-   * of these, so it observes nothing.
+   * of these, so it observes nothing. A typed channel, such as
+   * `entityUpdatedChannel`, validates as `subscribe` does.
    */
-  observe: <T = unknown, R = unknown>(
+  observe: EventSubscriber;
+}
+
+/** Subscribes by name or through a typed channel; entity events included. */
+interface EventSubscriber {
+  <T = unknown, R = unknown>(
     channel: string,
     handler: MessageHandler<T, R>,
-  ) => () => void;
+  ): () => void;
+  <TPayload, TResponse = unknown>(
+    channel: Channel<TPayload, TResponse>,
+    handler: TypedMessageHandler<TPayload, TResponse>,
+  ): () => void;
 }
 
 /**

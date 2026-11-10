@@ -9,10 +9,15 @@ import {
   defineAccountSettings,
   defineRoute,
   defineServicePlugin,
+  defineStudioWorkspace,
   defineTool,
+  defineWorkspaceAction,
   instantiatePluginPackageDefinition,
+  studioWorkspaceRegisterContract,
   type Plugin,
   type PluginCapabilities,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceRegistration,
   type ToolContext,
   type WebRouteDefinition,
 } from "../src";
@@ -65,6 +70,25 @@ const exchanged = mock(async (code: string) => ({
   accessToken: `${SECRET}-${code}`,
 }));
 
+const CONSENT = "https://provider.example";
+
+// Studio's way to connect: an action that sends the browser to consent.
+const connectProvider = defineWorkspaceAction({
+  name: "connect",
+  label: "Connect",
+  permission: "trusted",
+  input: z.object({}),
+  launch: { origins: [CONSENT] },
+});
+const connectionWorkspace = defineStudioWorkspace({
+  id: "connection",
+  label: "Connection",
+  permission: "trusted",
+  data: z.object({}),
+  actions: [connectProvider],
+  view: () => ({ blocks: [] }),
+});
+
 const importer = defineServicePlugin(
   { id: "reader-import", config: z.object({}), accountSettings: connection },
   {
@@ -112,6 +136,16 @@ const importer = defineServicePlugin(
         },
       }),
     ],
+    studioWorkspaces: (context) => [
+      connectionWorkspace.bind(context, {
+        load: () => ({}),
+        actions: [
+          connectProvider.bind(context, async ({ accountSettings }) => ({
+            url: `${CONSENT}/consent?state=${encodeURIComponent(await accountSettings.claim())}`,
+          })),
+        ],
+      }),
+    ],
   },
 );
 
@@ -121,6 +155,7 @@ interface Installed {
   readonly logged: unknown[];
   readonly capabilities: PluginCapabilities;
   readonly routes: WebRouteDefinition[];
+  readonly workspace: StudioWorkspaceRegistration;
 }
 
 async function install(): Promise<Installed> {
@@ -140,6 +175,16 @@ async function install(): Promise<Installed> {
     setUseStderr: (): void => {},
   };
   const shell = createMockShell({ logger });
+  const workspaces: StudioWorkspaceRegistration[] = [];
+  shell
+    .getMessageBus()
+    .subscribe<StudioWorkspaceRegistration>(
+      studioWorkspaceRegisterContract.name,
+      (message) => {
+        workspaces.push(message.payload);
+        return { success: true, data: { workspaceUrl: "/studio/connection" } };
+      },
+    );
   const backend = new MemoryAccountSettingsBackend();
   shell.getAccountSettingsRegistry().bindBackend(backend);
   shell.getAuthRegistry().bindBackend(
@@ -168,12 +213,16 @@ async function install(): Promise<Installed> {
   );
   const service = registered.find(({ plugin }) => plugin.type === "service");
   if (!service) throw new Error("No service plugin");
+  await service.plugin.finalizeRegistration?.();
+  const [workspace] = workspaces;
+  if (!workspace) throw new Error("No Studio workspace was registered");
   return {
     shell,
     backend,
     logged,
     capabilities: service.capabilities,
     routes: service.plugin.getWebRoutes?.() ?? [],
+    workspace,
   };
 }
 
@@ -292,6 +341,47 @@ describe("a service's account settings writes", () => {
     });
     expect(await stored(installed, "usr_anchor")).toEqual({
       accessToken: `${SECRET}-two`,
+    });
+  });
+
+  it("claim from a workspace action for the operator and their Studio session", async () => {
+    const installed = await install();
+    const operator: StudioWorkspaceActor = {
+      interfaceType: "studio",
+      userId: "usr_anchor",
+      actor: { kind: "user", userId: "usr_anchor" },
+      userPermissionLevel: "admin",
+      visibilityScope: "restricted",
+      isAnchor: true,
+    };
+    const launched = z
+      .object({ kind: z.literal("launch"), url: z.string() })
+      .parse(
+        await installed.workspace.actionHandler?.(
+          { actionId: "connect", input: {} },
+          operator,
+        ),
+      );
+    const consent = new URL(launched.url);
+    expect(consent.origin).toBe(CONSENT);
+    const state = consent.searchParams.get("state") ?? "";
+    const callback = `/reader-import/callback?state=${state}&code=three`;
+    exchanged.mockClear();
+
+    // Only the operator's own session brings the claim back.
+    for (const other of [undefined, "usr_intruder"]) {
+      expect(await visit(installed, callback, other)).toMatchObject({
+        status: 403,
+        body: { code: "permission_denied" },
+      });
+    }
+    expect(exchanged).not.toHaveBeenCalled();
+    expect(await visit(installed, callback, "usr_anchor")).toEqual({
+      status: 200,
+      body: { connected: true },
+    });
+    expect(await stored(installed, "usr_anchor")).toEqual({
+      accessToken: `${SECRET}-three`,
     });
   });
 

@@ -25,6 +25,8 @@ One `main` SHA where the public authoring API is complete and frozen for `0.2.0`
   - _Writing a type another package stewards._ Stewardship stays exclusive; the steward exposes a typed bus contract (#826) for the change, and other packages call it. First consumer: `linkedin-import` filling `anchor-profile` through `profile`.
   - _Writing account settings from the owning package's code_ for one account, through that package's own `defineAccountSettings` definition. First consumer: `linkedin-import` storing the token from its OAuth callback.
   - _A workspace action that sends the caller to a URL the package computes._ First consumer: `linkedin-import` starting OAuth consent. Its callback is a `protocol` route guarded by single-use state. Operator route authentication stays out of the `0.2` ledger, as [http-route-registry-hardening.md](./http-route-registry-hardening.md) decides.
+  - _A data source that reads the brain's runtime state._ First consumer: `sites/rizom-ai`'s opening source, which reads it through `shell.getRuntimeState()` today.
+  - _A data source that reads another package's data source by id._ First consumers: `sites/rizom-ai`'s opening and asked sources, which reach the knowledge map's source through `shell.getDataSourceRegistry()` today.
 - **Both isolation defects are fixed in the public API:** interface state is namespaced by owning package, and upload directories by owning package.
 - **Re-apply diffs, not commits.** The branch has about 75 integration merges, and several conversions exist only inside merge resolutions (faq, book, contact, ask-content, prompt, style-guide).
 - **Main's behavior wins.** Everything `main` changed since the fork is preserved. Where both sides built the same thing differently, `main`'s implementation stays and the declarative form wraps it:
@@ -72,7 +74,10 @@ Mechanical migration onto the fixed API, one PR per slice. A gap a conversion fi
 7. **Large services:** content-pipeline, dashboard, site-builder, site-content, newsletter, email-workflows, atproto, stock-photo, contact, analytics, studio, directory-sync with the entity mirror.
 8. **Heavily changed hybrids:** topics, conversation-memory, agent-discovery (with the `atprotoDiscovery` entity slot, an internal `@brains/sdk/internal/*` slot rather than a public one, since agent-discovery is its only consumer), assessment, faq (its job-type renames as job-queue migrations), book; the shell's conversation projection backfill and poller; entity-service's `apply-entity-*`.
 9. **Packages new since the fork:** guide, action-board, linkedin-import, oauth-broker, the analytics entity.
-10. **Close-out:** the class bases removed from the public entries; the SDK-only boundary rule; the site packages' declarative data sources.
+10. **Close-out:** the class bases removed from the runtime and the remaining `internal/removable` names with them; the SDK-only boundary rule; the site packages' declarative data sources. First, three external packages in their own repositories move to the declarative API. They import the class API, which the public entries stopped exporting on 2026-08-07, so they are already broken against current builds:
+    - `~/Documents/site-smoke-canary` (`src/plugin.ts`, `src/index.ts`, `src/routes.ts`);
+    - `~/Documents/brain-plugin-hello` (`src/index.ts`);
+    - `~/Documents/brain-plugin-recipes` (`src/index.ts`).
 
 Slices 2–10 follow slice 1; slice 4 needs slice 2's profile contract; slice 6 follows slice 5; site-builder in slice 7 follows slice 6; slice 10 comes last.
 

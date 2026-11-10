@@ -6,6 +6,8 @@ import { createPluginPackageDefinition } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
+  assertBrainPeerCompatibility,
+  findPackageManifest,
   resolveBrainDefinitionDependencies,
   resolveInstalledPackageManifest,
 } from "../src/installed-package-metadata";
@@ -157,6 +159,64 @@ describe("installed package metadata", () => {
       resolveInstalledPackageManifest("@fixture/missing", root),
     ).toThrow(
       `Could not resolve installed package "@fixture/missing" from "${root}"; install it in the Brain application or correct the package reference`,
+    );
+  });
+});
+
+describe("the package a directory belongs to", () => {
+  it("reads the nearest manifest at or above the directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "brain-package-under-test-"));
+    temporaryDirectories.push(root);
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({
+        name: "@fixture/reminders",
+        version: "0.1.0",
+        peerDependencies: { "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0" },
+      }),
+    );
+    const nested = join(root, "test", "unit");
+    mkdirSync(nested, { recursive: true });
+
+    expect(findPackageManifest(nested)).toMatchObject({
+      name: "@fixture/reminders",
+      version: "0.1.0",
+      peerDependencies: { "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0" },
+      directory: root,
+    });
+  });
+
+  it("refuses a manifest without a name and version", () => {
+    const root = mkdtempSync(join(tmpdir(), "brain-package-nameless-"));
+    temporaryDirectories.push(root);
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({ private: true }),
+    );
+
+    expect(() => findPackageManifest(root)).toThrow(
+      `"${join(root, "package.json")}" must declare non-empty name and version fields`,
+    );
+  });
+
+  it("holds the package to its Brain peer range, as an installed package is held", () => {
+    const root = mkdtempSync(join(tmpdir(), "brain-package-under-test-peer-"));
+    temporaryDirectories.push(root);
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({
+        name: "@fixture/future",
+        version: "0.1.0",
+        peerDependencies: { "@rizom/brain": ">=0.3.0 <0.4.0" },
+      }),
+    );
+    const manifest = findPackageManifest(root);
+
+    expect(() => assertBrainPeerCompatibility(manifest, "0.3.1")).not.toThrow();
+    expect(() =>
+      assertBrainPeerCompatibility(manifest, "0.2.0-alpha.256"),
+    ).toThrow(
+      'Package "@fixture/future@0.1.0" requires @rizom/brain ">=0.3.0 <0.4.0", but "0.2.0-alpha.256" is installed',
     );
   });
 });

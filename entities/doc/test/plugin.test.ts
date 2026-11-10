@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { DocsPlugin } from "../src/plugin";
+import { docsPlugin, type DocsEntityPlugin } from "./docs-plugin";
 
 describe("DocsPlugin", () => {
   it("retires sourcePath, which nothing reads", async () => {
-    const harness = createPluginHarness<DocsPlugin>({
+    const harness = createPluginHarness<DocsEntityPlugin>({
       dataDir: "/tmp/test-docs-retired",
     });
-    await harness.installPlugin(new DocsPlugin());
+    await harness.installPlugin(docsPlugin());
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("doc").retiredFields,
@@ -17,10 +17,10 @@ describe("DocsPlugin", () => {
   });
 
   async function docsPage(
-    plugin: DocsPlugin,
+    plugin: DocsEntityPlugin,
     template: string,
   ): Promise<Record<string, unknown>> {
-    const harness = createPluginHarness<DocsPlugin>({
+    const harness = createPluginHarness<DocsEntityPlugin>({
       dataDir: "/tmp/test-docs-presentation",
     });
     await harness.installPlugin(plugin);
@@ -38,17 +38,14 @@ describe("DocsPlugin", () => {
     const hero = { title: "Build, run, and publish", accent: "brains." };
     const chrome = { brand: { label: "brains docs", href: "/docs" } };
 
-    const page = await docsPage(
-      new DocsPlugin({ hero, chrome }),
-      "docs:doc-list",
-    );
+    const page = await docsPage(docsPlugin({ hero, chrome }), "docs:doc-list");
 
     expect(page["hero"]).toMatchObject(hero);
     expect(page["chrome"]).toMatchObject(chrome);
   });
 
   it("hands no hero or chrome to the docs pages when none is configured", async () => {
-    const page = await docsPage(new DocsPlugin(), "docs:doc-list");
+    const page = await docsPage(docsPlugin(), "docs:doc-list");
 
     expect(page["hero"]).toBeNull();
     expect(page["chrome"]).toBeNull();

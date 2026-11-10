@@ -1,41 +1,40 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import type {
-  AtprotoBrainSeriesRecord,
-  AtprotoProjection,
-  AtprotoProjectionBuildInput,
+import {
+  atprotoProvenance,
+  canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import { seriesAdapter } from "./adapters/series-adapter";
-import { seriesSchema } from "./schemas/series";
+import type { AtprotoBrainSeriesRecord } from "@brains/atproto-contracts";
+import type {
+  EntityAtprotoProjection,
+  EntityAtprotoRecordInput,
+  EntityOf,
+  EntityDefinition,
+} from "@brains/sdk/entities";
+import { parseSeriesBody, type seriesMetadataSchema } from "./schemas/series";
 
+type SeriesRecord = EntityOf<
+  EntityDefinition<"series", typeof seriesMetadataSchema>
+>;
+
+/** A series as its ai.rizom.brain.series record. */
 export async function buildSeriesAtprotoRecord({
   entity,
   config,
   pageUrl,
-}: AtprotoProjectionBuildInput): Promise<AtprotoBrainSeriesRecord> {
-  const series = seriesSchema.parse(entity);
-  const body = seriesAdapter.parseBody(series.content);
+}: EntityAtprotoRecordInput<SeriesRecord>): Promise<AtprotoBrainSeriesRecord> {
+  const body = parseSeriesBody(entity.metadata.title, entity.content);
 
   return {
     $type: "ai.rizom.brain.series",
-    title: series.metadata.title,
-    slug: series.metadata.slug,
+    title: entity.metadata.title,
+    slug: entity.metadata.slug,
     ...(body.description && { description: body.description }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "series",
-    sourceEntityId: series.id,
-    createdAt: series.created,
-    ...(series.updated && { updatedAt: series.updated }),
+    ...atprotoProvenance({ config, pageUrl }, entity),
   };
 }
 
-export function createSeriesAtprotoProjection(): AtprotoProjection<AtprotoBrainSeriesRecord> {
-  return {
-    entityType: "series",
-    collection: "ai.rizom.brain.series",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.series"],
-    validate: false,
-    buildRecord: buildSeriesAtprotoRecord,
-  };
-}
+/** Series records go out unvalidated, under the canonical series lexicon. */
+export const seriesAtproto: EntityAtprotoProjection<SeriesRecord> = {
+  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.series"],
+  validate: false,
+  buildRecord: buildSeriesAtprotoRecord,
+};

@@ -244,12 +244,14 @@ describe("EntityRegistry", (): void => {
       input,
     }));
     registry.registerCreateCheck("note", async () => ({ kind: "ready" }));
+    registry.registerGenerationEnqueuer("note", async () => "job-1");
 
     registry.unregisterEntityType("note");
 
     expect(registry.hasEntityType("note")).toBe(false);
     expect(registry.getCreateInterceptor("note")).toBeUndefined();
     expect(registry.getCreateCheck("note")).toBeUndefined();
+    expect(registry.getGenerationEnqueuer("note")).toBeUndefined();
     expect(() => registry.getAdapter("note")).toThrow();
   });
 
@@ -320,6 +322,15 @@ This note has frontmatter metadata.`;
 
     expect(registry.getCreateCheck("note")).toBe(check);
     expect(registry.getCreateCheck("unknown")).toBeUndefined();
+  });
+
+  test("registerGenerationEnqueuer stores and retrieves the type's enqueuer", (): void => {
+    const enqueue = async (): Promise<string> => "job-1";
+
+    registry.registerGenerationEnqueuer("note", enqueue);
+
+    expect(registry.getGenerationEnqueuer("note")).toBe(enqueue);
+    expect(registry.getGenerationEnqueuer("unknown")).toBeUndefined();
   });
 
   test("registerUploadSaveHandler stores exact and wildcard media handlers", (): void => {

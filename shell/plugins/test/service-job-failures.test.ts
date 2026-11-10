@@ -8,8 +8,13 @@ import type { ServiceJobs } from "../src/service/service-definition-contract";
 import {
   defineJob,
   defineServicePlugin,
+  defineStudioWorkspace,
   defineTool,
+  defineWorkspaceAction,
   instantiatePluginPackageDefinition,
+  studioWorkspaceRegisterContract,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceRegistration,
   type ToolContext,
 } from "../src";
 
@@ -206,5 +211,176 @@ describe("a service job's failure is reported as a code", () => {
     expect(status?.status).toBe("pending");
     expect(status).not.toHaveProperty("code");
     expect(status).not.toHaveProperty("error");
+  });
+});
+
+describe("an operator surface's job status", () => {
+  const readStatus = defineWorkspaceAction({
+    name: "read-status",
+    label: "Read status",
+    permission: "trusted",
+    input: z.object({ id: z.string() }),
+    output: z.object({
+      code: z.string().nullable(),
+      error: z.string().nullable(),
+      days: z.number().nullable(),
+    }),
+  });
+  // A result whose schema transforms: stored once, read once.
+  const plan = defineJob({
+    name: "plan",
+    input: z.object({ outcome: z.enum(["crash", "explained", "ok"]) }),
+    output: z.object({ days: z.string().transform((days) => Number(days)) }),
+  });
+  const statusWorkspace = defineStudioWorkspace({
+    id: "statuses",
+    label: "Statuses",
+    permission: "trusted",
+    data: z.object({}),
+    actions: [readStatus],
+    view: () => ({ blocks: [] }),
+  });
+
+  async function installOperator(shell: MockShell): Promise<{
+    start: (outcome: z.input<typeof plan.input>["outcome"]) => Promise<string>;
+    read: (id: string) => Promise<unknown>;
+    serviceStatus: (id: string) => Promise<unknown>;
+  }> {
+    let captured: ServiceJobs | undefined;
+    const registrations: StudioWorkspaceRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<StudioWorkspaceRegistration>(
+        studioWorkspaceRegisterContract.name,
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true, data: { workspaceUrl: "/studio/s" } };
+        },
+      );
+    const definition = defineServicePlugin(
+      { id: "planner", config: z.object({}) },
+      {
+        jobs: () => [
+          plan.handle(async ({ input }) => {
+            if (input.outcome === "crash") throw new Error(SECRET);
+            if (input.outcome === "explained") {
+              throw new SdkError("conflict", {
+                message: SECRET,
+                publicMessage: "Someone planned it first",
+              });
+            }
+            return { days: "7" };
+          }),
+        ],
+        tools: ({ jobs }) => {
+          captured = jobs;
+          return [];
+        },
+        studioWorkspaces: (context) => [
+          statusWorkspace.bind(context, {
+            load: () => ({}),
+            actions: [
+              readStatus.bind(context, async ({ input, jobs }) => {
+                const status = await jobs.status(plan, input.id);
+                return {
+                  code: status?.code ?? null,
+                  error: status?.error ?? null,
+                  days: status?.result?.days ?? null,
+                };
+              }),
+            ],
+          }),
+        ],
+      },
+    );
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/planner", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("No service plugin");
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
+    const registration = registrations[0];
+    const jobs = captured;
+    if (!registration?.actionHandler || !jobs) {
+      throw new Error("The planner did not register");
+    }
+    const handler = registration.actionHandler;
+    return {
+      start: async (outcome) => (await jobs.enqueue(plan, { outcome })).id,
+      read: (id) =>
+        handler({ actionId: "read-status", input: { id } }, viewer()),
+      serviceStatus: (id) => jobs.status(plan, id),
+    };
+  }
+
+  function viewer(): StudioWorkspaceActor {
+    return {
+      interfaceType: "studio",
+      userId: "usr_admin",
+      actor: { kind: "user", userId: "usr_admin" },
+      userPermissionLevel: "admin",
+      visibilityScope: "restricted",
+      isAnchor: true,
+    };
+  }
+
+  /** Runs a queued job as the worker does and settles it as the queue would. */
+  async function run(shell: MockShell, jobId: string): Promise<void> {
+    const queue = shell.getJobQueueService();
+    const job = await queue.getStatus(jobId);
+    const handler = job && queue.getHandler(job.type);
+    if (!job || !handler) throw new Error(`No job ${jobId}`);
+    const data = handler.validateAndParse(JSON.parse(job.data));
+    if (data === null) throw new Error("Refused job data");
+    await handler
+      .process(
+        data,
+        job.id,
+        createMockProgressReporter(),
+        new AbortController().signal,
+      )
+      .then(
+        (result) => queue.complete(jobId, result),
+        (error: unknown) => queue.fail(jobId, toSdkError(error)),
+      );
+  }
+
+  it("tells the operator a failure's public form, never the diagnostic", async () => {
+    const shell = adminShell();
+    const { start, read } = await installOperator(shell);
+    const crashed = await start("crash");
+    await run(shell, crashed);
+    const explained = await start("explained");
+    await run(shell, explained);
+
+    const crash = await read(crashed);
+    expect(crash).toEqual({
+      code: "handler_failed",
+      error: "The operation failed",
+      days: null,
+    });
+    expect(await read(explained)).toEqual({
+      code: "conflict",
+      error: "Someone planned it first",
+      days: null,
+    });
+    expect(JSON.stringify([crash, await read(explained)])).not.toContain(
+      SECRET,
+    );
+  });
+
+  it("reads a result through its schema once, as every status reader does", async () => {
+    const shell = adminShell();
+    const { start, read, serviceStatus } = await installOperator(shell);
+    const done = await start("ok");
+    await run(shell, done);
+
+    expect(await read(done)).toEqual({ code: null, error: null, days: 7 });
+    expect(await serviceStatus(done)).toMatchObject({
+      status: "completed",
+      result: { days: 7 },
+    });
   });
 });

@@ -1,13 +1,15 @@
+import { formatVoiceGuidance, styleGuideFromRecord } from "@brains/contracts";
 import {
   defineProjectionRule,
-  generateMarkdownWithFrontmatter,
-  type BaseEntity,
+  z,
   type ProjectionRule,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
-import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
+} from "@brains/sdk/entities";
+import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
 import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
 import { createSeriesBodyFormatter } from "../schemas/series";
 import { getSeriesName } from "./series-metadata";
 
@@ -35,9 +37,10 @@ const seriesProjectionInputSchema = z.object({
 
 type SeriesProjectionInput = z.output<typeof seriesProjectionInputSchema>;
 
-function memberInput(
-  entity: BaseEntity,
-): z.output<typeof seriesMemberSchema> | null {
+function memberInput(entity: {
+  readonly id: string;
+  readonly metadata: unknown;
+}): z.output<typeof seriesMemberSchema> | null {
   const seriesName = getSeriesName(entity);
   if (!seriesName) return null;
   const metadata = z
@@ -77,8 +80,13 @@ async function selectSeriesInput(
         left.seriesName.localeCompare(right.seriesName) ||
         left.id.localeCompare(right.id),
     );
+  // Read as stored: a series is declared, so its read is its body alone,
+  // and a described series is upserted with the document it already is.
   const existingSeries = (
-    await context.entities.listEntities({ entityType: "series" })
+    await context.entities.listEntities({
+      entityType: "series",
+      options: { source: true },
+    })
   )
     .map((entity) => {
       const parsedMetadata = z
@@ -99,12 +107,25 @@ async function selectSeriesInput(
     id: "style-guide",
   });
   const voiceGuidance = styleGuideEntity
-    ? formatVoiceGuidance(parseStyleGuideContent(styleGuideEntity.content))
+    ? formatVoiceGuidance(styleGuideFromRecord(styleGuideEntity))
     : "";
   return { members, existingSeries, voiceGuidance };
 }
 
+/**
+ * The cover a stored series names in its frontmatter. The series' metadata
+ * carries it too, and an upsert names it so the written metadata keeps it.
+ */
+function storedCoverImageId(content: string | undefined): string | null {
+  if (content === undefined) return null;
+  const cover = z
+    .looseObject({ coverImageId: z.string().optional() })
+    .safeParse(readMarkdownFrontmatter(content).data);
+  return cover.success ? (cover.data.coverImageId ?? null) : null;
+}
+
 async function deriveSeries(
+  descriptionTemplate: string,
   input: SeriesProjectionInput,
   context: Parameters<ProjectionRule["derive"]>[1],
   signal: AbortSignal,
@@ -138,7 +159,7 @@ async function deriveSeries(
       const generated = await context.ai.generate(
         {
           prompt: `Series name: ${seriesName}\n\nContent in this series:\n${memberSummaries.join("\n")}`,
-          templateName: "series:description",
+          templateName: descriptionTemplate,
           representedIdentity: "none",
           ...(input.voiceGuidance && {
             styleGuide: { voice: input.voiceGuidance },
@@ -154,19 +175,21 @@ async function deriveSeries(
       const body = createSeriesBodyFormatter(seriesName).format({
         description: generated.description,
       });
-      content = generateMarkdownWithFrontmatter(body, {
-        title: seriesName,
-        slug: id,
-      });
+      content = generateMarkdown({ title: seriesName, slug: id }, body);
     }
 
+    const coverImageId = storedCoverImageId(existing?.content);
     intents.push({
       operation: "upsert",
       entity: {
         id,
         entityType: "series",
         content,
-        metadata: { title: seriesName, slug: id },
+        metadata: {
+          title: seriesName,
+          slug: id,
+          ...(coverImageId !== null && { coverImageId }),
+        },
         visibility: existing?.visibility ?? "public",
       },
     });
@@ -185,7 +208,14 @@ async function deriveSeries(
   return intents;
 }
 
-export function createSeriesProjectionRule(): ProjectionRule {
+/**
+ * The rule that derives every series from the members of every other type,
+ * describing a new or undescribed one through the description template,
+ * named as the runtime registered it.
+ */
+export function createSeriesProjectionRule(
+  descriptionTemplate: string,
+): ProjectionRule {
   return defineProjectionRule({
     id: "series-projection",
     version: "1",
@@ -193,6 +223,7 @@ export function createSeriesProjectionRule(): ProjectionRule {
     targetType: "series",
     inputSchema: seriesProjectionInputSchema,
     selectInput: async (_trigger, context) => selectSeriesInput(context),
-    derive: deriveSeries,
+    derive: (input, context, signal) =>
+      deriveSeries(descriptionTemplate, input, context, signal),
   });
 }

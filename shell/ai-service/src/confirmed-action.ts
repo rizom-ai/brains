@@ -82,8 +82,11 @@ export function buildConfirmedActionResult(
       ? pendingConfirmation.summary
       : (pendingConfirmation.completionSummary ?? pendingConfirmation.summary),
   );
-  const resultText = errorMessage
-    ? `${prefix}: ${actionLabel}\n\n${errorMessage}`
+  const successResult = toolSuccessSchema.safeParse(result);
+  // What the action verified, such as what storage now holds after a write.
+  const detail = errorMessage ?? successResult.data?.completionDetail;
+  const resultText = detail
+    ? `${prefix}: ${actionLabel}\n\n${detail}`
     : `${prefix}: ${actionLabel}`;
   const pendingArgs = parseRecord(pendingConfirmation.args);
   const toolResult: ToolResultData = {
@@ -110,7 +113,6 @@ export function buildConfirmedActionResult(
       ? { error: getStringField(result, "error") ?? "Action failed" }
       : {}),
   };
-  const successResult = toolSuccessSchema.safeParse(result);
   // A save of several files shows each saved file's attachment.
   const attachmentCards = successResult.success
     ? [successResult.data.data, ...savedItems(successResult.data.data)].flatMap(

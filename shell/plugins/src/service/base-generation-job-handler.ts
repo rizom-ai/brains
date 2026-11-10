@@ -1,4 +1,7 @@
-import { internalFullScope } from "@brains/entity-service";
+import {
+  internalFullScope,
+  type ContentVisibility,
+} from "@brains/entity-service";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
@@ -100,6 +103,11 @@ export interface GeneratedContent {
   resultExtras?: Record<string, unknown>;
   /** Options passed to createEntity */
   createOptions?: { deduplicateId?: boolean };
+  /**
+   * The visibility to write the entity at. Unset, a new entity is public and
+   * a pre-allocated stub keeps its own.
+   */
+  visibility?: ContentVisibility;
 }
 
 function withoutUndefined(
@@ -307,6 +315,9 @@ export abstract class BaseGenerationJobHandler<
               entityType: this.entityType,
               content: generatedForSave.content,
               metadata: generatedForSave.metadata,
+              ...(generatedForSave.visibility && {
+                visibility: generatedForSave.visibility,
+              }),
             },
             options: generatedForSave.createOptions,
           });
@@ -420,6 +431,7 @@ export abstract class BaseGenerationJobHandler<
         entityType: this.entityType,
         content: merged.content,
         metadata: merged.metadata,
+        ...(generated.visibility && { visibility: generated.visibility }),
       },
     });
   }

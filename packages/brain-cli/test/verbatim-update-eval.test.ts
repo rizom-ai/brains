@@ -50,7 +50,6 @@ describe("verbatim update MCP eval contract", () => {
       expect(proposal?.argsContain).toEqual({
         entityType: "note",
         id,
-        "operation.kind": "source",
         "operation.source.kind": "user-message",
       });
       for (const absent of [

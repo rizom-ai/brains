@@ -331,6 +331,8 @@ describe("Studio hierarchy editor API", () => {
       entityType: "section",
       id,
       visibilityScope: "shared",
+      // The editor reads the stored document.
+      source: true,
     });
   });
 

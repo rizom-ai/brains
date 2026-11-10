@@ -98,6 +98,7 @@ export const toolSuccessSchema: z.ZodObject<
     success: z.ZodLiteral<true>;
     data: z.ZodOptional<z.ZodUnknown>;
     message: z.ZodOptional<z.ZodString>;
+    completionDetail: z.ZodOptional<z.ZodString>;
     cached: z.ZodOptional<z.ZodLiteral<true>>;
   },
   z.core.$strict
@@ -105,6 +106,8 @@ export const toolSuccessSchema: z.ZodObject<
   success: z.literal(true),
   data: z.unknown().optional(),
   message: z.string().optional(),
+  /** What a confirmed action verified, shown after its completion summary. */
+  completionDetail: z.string().optional(),
   cached: z.literal(true).optional(),
 });
 

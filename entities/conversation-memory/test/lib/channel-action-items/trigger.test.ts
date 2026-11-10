@@ -1,5 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { Conversation, Message } from "@brains/plugins";
+import type {
+  Conversation,
+  ConversationMessageAddedPayload,
+  JobProgressEvent,
+  Message,
+} from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { channelBookmarks } from "../../../src/lib/channel-action-items/pickup";
 import {
@@ -57,6 +62,21 @@ function lastMessage(id: string): Message {
   };
 }
 
+/** A stored message as the conversation service announces it. */
+function added(
+  conversationId: string,
+  metadata?: Record<string, unknown>,
+): ConversationMessageAddedPayload {
+  return {
+    conversationId,
+    messageId: `${conversationId}-m7`,
+    role: "user",
+    content: "…",
+    timestamp: "2026-10-23T09:00:00.000Z",
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
 function deps(): ChannelTriggerDeps & { enqueue: ReturnType<typeof mock> } {
   const all = [room, otherRoom, webChat];
   return {
@@ -75,12 +95,7 @@ describe("waking a channel's pickup", () => {
   it("queues the pickup for a message in a configured space", async () => {
     const trigger = deps();
 
-    await wakeUpChannel(trigger, {
-      conversationId: ROOM,
-      messageId: "m7",
-      role: "user",
-      metadata: { spaceId: "discord:1466" },
-    });
+    await wakeUpChannel(trigger, added(ROOM, { spaceId: "discord:1466" }));
 
     expect(trigger.enqueue).toHaveBeenCalledWith(ROOM);
   });
@@ -88,13 +103,11 @@ describe("waking a channel's pickup", () => {
   it("ignores messages outside the configured spaces", async () => {
     const trigger = deps();
 
-    await wakeUpChannel(trigger, { conversationId: "web-1", role: "user" });
-    await wakeUpChannel(trigger, {
-      conversationId: OTHER_ROOM,
-      role: "user",
-      metadata: { spaceId: "discord:9999" },
-    });
-    await wakeUpChannel(trigger, { nothing: true });
+    await wakeUpChannel(trigger, added("web-1"));
+    await wakeUpChannel(
+      trigger,
+      added(OTHER_ROOM, { spaceId: "discord:9999" }),
+    );
 
     expect(trigger.enqueue).not.toHaveBeenCalled();
   });
@@ -140,7 +153,9 @@ describe("the pickup job", () => {
 
 describe("hearing a pickup finish", () => {
   const job = channelPickupJob(ROOM);
-  function finished(overrides: Record<string, unknown> = {}): unknown {
+  function finished(
+    overrides: Partial<JobProgressEvent> = {},
+  ): JobProgressEvent {
     return {
       id: "job-1",
       type: "job",

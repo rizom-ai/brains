@@ -431,6 +431,13 @@ export function normalizeActionControls(
       });
       continue;
     }
+    if (control.action.launch && control.result) {
+      issues.push({
+        path: [...actionPath, "result"],
+        message: `Action "${control.action.name}" sends the browser elsewhere, so it has no result to show`,
+      });
+      continue;
+    }
     const normalizedForm = normalizeActionForm(control, actionPath);
     const normalizedResult = normalizeActionResult(control, actionPath);
     issues.push(...normalizedForm.issues, ...normalizedResult.issues);
@@ -447,8 +454,13 @@ export function normalizeActionControls(
           })),
         );
       } else {
-        const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-        if (!jsonInput.success) {
+        // The browser sends the schema's input back, and the runtime parses
+        // it once for the callback; both forms must survive JSON.
+        const jsonInput = jsonValueSchema.safeParse(control.input);
+        if (
+          !jsonInput.success ||
+          !jsonValueSchema.safeParse(parsedInput.data).success
+        ) {
           issues.push({
             path: [...actionPath, "input"],
             message: "Workspace action input must be JSON-native",
@@ -485,6 +497,7 @@ export function normalizeActionControls(
         ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
         ...(control.disabled ? { disabled: true } : {}),
         ...(confirmation ? { confirmation } : {}),
+        ...(control.action.launch ? { launch: true } : {}),
         ...(control.dropTarget ? { dropTarget: control.dropTarget } : {}),
       }),
     );

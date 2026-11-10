@@ -82,10 +82,10 @@ async function stepOptions(modelId: string): Promise<unknown[]> {
 }
 
 describe("reasoning across agent steps", () => {
-  it("lets a local model think to choose its tools, then answer a tool result without thinking", async () => {
+  it("passes a local model's effort on every step, for its runtime to apply", async () => {
     expect(await stepOptions("local:qwen3:14b")).toEqual([
       expect.objectContaining({ local: { reasoningEffort: "low" } }),
-      expect.objectContaining({ local: { reasoningEffort: "none" } }),
+      expect.objectContaining({ local: { reasoningEffort: "low" } }),
     ]);
   });
 

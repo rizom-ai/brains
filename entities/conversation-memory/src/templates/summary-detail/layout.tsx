@@ -1,14 +1,11 @@
 import type { JSX } from "react";
 import type { SummaryDetailData } from "./schema";
+import { formatDate, Card, CardMetadata, CardTitle } from "@rizom/brain-ui";
 import {
   EmptyState,
   BackLink,
-  formatDate,
   DetailPageHeader,
-  Card,
-  CardMetadata,
-  CardTitle,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 
 const ListSection = ({
   title,

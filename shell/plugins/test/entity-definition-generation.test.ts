@@ -14,6 +14,7 @@ import {
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
+import { queuedByPackage } from "../src/test/package-job-data";
 import {
   createTemplate,
   defineEntity,
@@ -33,6 +34,13 @@ const caller: CreateExecutionContext = {
   userPermissionLevel: "admin",
 };
 
+/** What a job the caller starts through a route records about them. */
+const callerAuthority = {
+  actor: caller.actor,
+  permissionCeiling: "admin",
+  principalId: "tester",
+};
+
 const noteMetadata = z.object({
   title: z.string(),
   status: z.string().optional(),
@@ -49,6 +57,11 @@ async function install(
   );
   const harness = createPluginHarness({
     logger: createSilentLogger("entity-generation"),
+    // The caller who creates through a route is signed in as an admin.
+    resolvePrincipal: async () => ({
+      userId: "tester",
+      permissionLevel: "admin",
+    }),
   });
   for (const plugin of plugins) await harness.installPlugin(plugin);
   return harness;
@@ -88,6 +101,11 @@ function stored(
   });
 }
 
+/** A job this package queued for itself, as the runtime queues it. */
+function asPackage(input: unknown, entityId?: string): unknown {
+  return queuedByPackage("@fixture/notes", input, { entityId });
+}
+
 async function enqueued(
   harness: Harness,
 ): Promise<{ type: string; data: unknown }[]> {
@@ -119,12 +137,16 @@ describe("declared entity jobs", () => {
     ]);
     try {
       expect(
-        await run(harness, "@fixture/notes:memo:tally", { count: 2 }),
+        await run(
+          harness,
+          "@fixture/notes:memo:tally",
+          asPackage({ count: 2 }),
+        ),
       ).toEqual({ doubled: 4 });
       expect(
-        handlerFor(harness, "@fixture/notes:memo:tally").validateAndParse({
-          count: "two",
-        }),
+        handlerFor(harness, "@fixture/notes:memo:tally").validateAndParse(
+          asPackage({ count: "two" }),
+        ),
       ).toBeNull();
       if (!given) throw new Error("The job was not given a context");
       expect(Object.isFrozen(given)).toBe(true);
@@ -220,10 +242,11 @@ describe("declared generation", () => {
     const harness = await install([memoWithGeneration(seen)]);
     try {
       expect(
-        await run(harness, "memo:generation", {
-          prompt: "tides",
-          title: "Tides",
-        }),
+        await run(
+          harness,
+          "memo:generation",
+          asPackage({ prompt: "tides", title: "Tides" }),
+        ),
       ).toEqual({ success: true, entityId: "tides", words: 2 });
       expect((await stored(harness, "memo", "tides"))?.metadata).toEqual({
         title: "Tides",
@@ -252,11 +275,11 @@ describe("declared generation", () => {
       await harness.getEntityService().createEntity({ entity: stub });
 
       expect(
-        await run(harness, "memo:generation", {
-          entityId: "allocated",
-          prompt: "harbours",
-          title: "Allocated",
-        }),
+        await run(
+          harness,
+          "memo:generation",
+          asPackage({ prompt: "harbours", title: "Allocated" }, "allocated"),
+        ),
       ).toMatchObject({ success: true, entityId: "allocated" });
       expect(seen.context?.entityId).toBe("allocated");
       const filled = await stored(harness, "memo", "allocated");
@@ -279,10 +302,11 @@ describe("declared generation", () => {
         },
       });
       expect(
-        await run(harness, "memo:generation", {
-          entityId: "doomed",
-          fail: true,
-        }),
+        await run(
+          harness,
+          "memo:generation",
+          asPackage({ fail: true }, "doomed"),
+        ),
       ).toEqual({ success: false, error: "Nothing to write about" });
       expect((await stored(harness, "memo", "doomed"))?.metadata).toMatchObject(
         {
@@ -300,10 +324,11 @@ describe("declared generation", () => {
         },
       });
       expect(
-        await run(harness, "memo:generation", {
-          entityId: "exploded",
-          explode: true,
-        }),
+        await run(
+          harness,
+          "memo:generation",
+          asPackage({ explode: true }, "exploded"),
+        ),
       ).toMatchObject({ success: false });
       expect(
         (await stored(harness, "memo", "exploded"))?.metadata,
@@ -361,8 +386,16 @@ describe("declared generation", () => {
         configs.push(config);
         return { body: `Body for ${config.prompt}` };
       };
-      await run(harness, "memo:generation", { prompt: "plain", voice: false });
-      await run(harness, "memo:generation", { prompt: "voiced", voice: true });
+      await run(
+        harness,
+        "memo:generation",
+        asPackage({ prompt: "plain", voice: false }),
+      );
+      await run(
+        harness,
+        "memo:generation",
+        asPackage({ prompt: "voiced", voice: true }),
+      );
       expect(configs.map(({ templateName }) => templateName)).toEqual([
         "@fixture/notes:memo:draft",
         "@fixture/notes:memo:draft",
@@ -396,7 +429,9 @@ describe("declared generation", () => {
       }),
     ]);
     try {
-      expect(await run(harness, "memo:generation", {})).toMatchObject({
+      expect(
+        await run(harness, "memo:generation", asPackage({})),
+      ).toMatchObject({
         success: false,
       });
     } finally {
@@ -502,19 +537,19 @@ describe("linking what a generation produced", () => {
     const harness = await install([post, plainTarget, render]);
     try {
       await seedTargets(harness);
-      await run(harness, "render:generation", {
-        target: "essay",
-        targetType: "post",
-        mode: "cover",
-      });
+      await run(
+        harness,
+        "render:generation",
+        asPackage({ target: "essay", targetType: "post", mode: "cover" }),
+      );
       expect((await stored(harness, "post", "essay"))?.metadata).toMatchObject({
         coverImageId: "render-essay",
       });
-      await run(harness, "render:generation", {
-        target: "essay",
-        targetType: "post",
-        mode: "list",
-      });
+      await run(
+        harness,
+        "render:generation",
+        asPackage({ target: "essay", targetType: "post", mode: "list" }),
+      );
       const linked = await stored(harness, "post", "essay");
       expect(linked?.metadata["renders"]).toEqual([
         { id: "kept" },
@@ -531,19 +566,23 @@ describe("linking what a generation produced", () => {
     try {
       await seedTargets(harness);
       expect(
-        await run(harness, "render:generation", {
-          target: "absent",
-          targetType: "post",
-          mode: "cover",
-        }),
+        await run(
+          harness,
+          "render:generation",
+          asPackage({ target: "absent", targetType: "post", mode: "cover" }),
+        ),
       ).toMatchObject({ success: false });
       expect(await stored(harness, "render", "render-absent")).toBeNull();
       expect(
-        await run(harness, "render:generation", {
-          target: "scribble",
-          targetType: "jotting",
-          mode: "cover",
-        }),
+        await run(
+          harness,
+          "render:generation",
+          asPackage({
+            target: "scribble",
+            targetType: "jotting",
+            mode: "cover",
+          }),
+        ),
       ).toEqual({
         success: false,
         error: "Entity type 'jotting' doesn't support cover images",
@@ -551,11 +590,15 @@ describe("linking what a generation produced", () => {
       // A declared type's metadata is its frontmatter: a link into a field its
       // schema does not declare would be stored where no read reaches it.
       expect(
-        await run(harness, "render:generation", {
-          target: "scribble",
-          targetType: "jotting",
-          mode: "list",
-        }),
+        await run(
+          harness,
+          "render:generation",
+          asPackage({
+            target: "scribble",
+            targetType: "jotting",
+            mode: "list",
+          }),
+        ),
       ).toEqual({
         success: false,
         error:
@@ -671,16 +714,18 @@ describe("create routes that allocate and delegate", () => {
         title: "Importing",
         status: "generating",
       });
-      expect(await enqueued(harness)).toEqual([
+      const queued = await enqueued(harness);
+      expect(queued).toEqual([
         {
           type: "@fixture/notes:memo:import",
-          data: { source: "file.md", entityId: "draft" },
+          data: {
+            authority: callerAuthority,
+            input: { source: "file.md" },
+            entityId: "draft",
+          },
         },
       ]);
-      await run(harness, "@fixture/notes:memo:import", {
-        source: "file.md",
-        entityId: "draft",
-      });
+      await run(harness, "@fixture/notes:memo:import", queued[0]?.data);
       expect((await stored(harness, "memo", "draft"))?.content).toContain(
         "Imported file.md",
       );
@@ -728,7 +773,11 @@ describe("create routes that allocate and delegate", () => {
       expect(await enqueued(harness)).toEqual([
         {
           type: "@fixture/notes:memo:import",
-          data: { source: "again", entityId: "kept" },
+          data: {
+            authority: callerAuthority,
+            input: { source: "again" },
+            entityId: "kept",
+          },
         },
       ]);
     } finally {
@@ -751,7 +800,7 @@ describe("create routes that allocate and delegate", () => {
       expect(await enqueued(harness)).toEqual([
         {
           type: "@fixture/notes:memo:reindex",
-          data: { reason: "asked" },
+          data: { authority: callerAuthority, input: { reason: "asked" } },
         },
       ]);
     } finally {
@@ -798,6 +847,79 @@ describe("create routes that allocate and delegate", () => {
       ).toMatchObject({ result: { success: false } });
       expect(await stored(harness, "memo", "x")).toBeNull();
       expect(await enqueued(harness)).toEqual([]);
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
+describe("a delegated job's input", () => {
+  // The schema's input is queued; the job is handed its output, once.
+  const counted = z.object({
+    count: z.string().transform((count) => Number(count)),
+  });
+  const seen: unknown[] = [];
+  const ledger = defineEntity({
+    type: "ledger",
+    purpose: "Delegates jobs whose input schema transforms.",
+    metadata: noteMetadata,
+    jobs: {
+      count: defineEntityJob({
+        input: counted,
+        handle: async ({ input }) => {
+          seen.push(input.count);
+          return null;
+        },
+      }),
+      grow: defineEntityJob({
+        input: counted,
+        generate: async ({ input }) => {
+          seen.push(input.count);
+          return {
+            success: true,
+            content: `Grew ${input.count}`,
+            metadata: { title: "Grown" },
+          };
+        },
+      }),
+    },
+    create: {
+      fromContent: {
+        resolve: async ({ input }) =>
+          input.title === "grow"
+            ? {
+                create: {
+                  id: "grown",
+                  content: "",
+                  metadata: { title: "Growing", status: "generating" },
+                },
+                delegate: { job: "grow", input: { count: "3" } },
+              }
+            : { delegate: { job: "count", input: { count: "2" } } },
+      },
+    },
+  });
+
+  it("is queued as written and parsed once, when the job runs", async () => {
+    const harness = await install([ledger]);
+    try {
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("ledger");
+      if (!interceptor) throw new Error("No create interceptor registered");
+      for (const title of ["count", "grow"]) {
+        await interceptor(
+          { entityType: "ledger", title, content: "x" },
+          caller,
+        );
+      }
+      for (const { type, data } of await enqueued(harness)) {
+        await run(harness, type, data);
+      }
+      expect([...seen].sort()).toEqual([2, 3]);
+      expect((await stored(harness, "ledger", "grown"))?.content).toContain(
+        "Grew 3",
+      );
     } finally {
       await harness.reset();
     }

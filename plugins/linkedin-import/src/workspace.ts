@@ -5,6 +5,7 @@ import {
   type OperatorCaller,
   type ServicePluginContext,
 } from "@brains/plugins";
+import { SdkError } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { LinkedInApiError, type LinkedInClient } from "./lib/linkedin-client";
@@ -257,7 +258,9 @@ const linkedInWorkspace = defineStudioWorkspace({
 
 function anchorId(caller: OperatorCaller | null): string {
   if (caller?.permission !== "admin" || !caller.isAnchor) {
-    throw new Error("The LinkedIn import belongs to the Anchor alone");
+    throw new SdkError("permission_denied", {
+      publicMessage: "The LinkedIn import belongs to the Anchor alone",
+    });
   }
   return caller.actor.id;
 }
@@ -292,7 +295,9 @@ export async function registerLinkedInWorkspace(
   ): Promise<StoredConnection> => {
     const connection = await deps.connections.get(anchorId(caller));
     if (!connection || isExpired(connection)) {
-      throw new Error("Connect LinkedIn before importing.");
+      throw new SdkError("conflict", {
+        publicMessage: "Connect LinkedIn before importing.",
+      });
     }
     return connection;
   };
@@ -347,9 +352,10 @@ export async function registerLinkedInWorkspace(
               const filled = labelled("fill");
               const kept = labelled("preserve");
               if (filled.length === 0) {
-                throw new Error(
-                  "Your profile already has everything LinkedIn holds.",
-                );
+                throw new SdkError("conflict", {
+                  publicMessage:
+                    "Your profile already has everything LinkedIn holds.",
+                });
               }
               return {
                 summary: `Fill your ${list(filled)} from LinkedIn?${kept.length > 0 ? ` Your ${list(kept)} stay as you wrote them.` : ""}`,

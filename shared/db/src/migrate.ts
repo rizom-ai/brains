@@ -67,15 +67,21 @@ export async function runPackageMigrations(
 
 /**
  * Resolve a package's migrations folder, accounting for bundled dist builds
- * where migrations are copied next to the bundle.
+ * where migrations are copied into the bundle's `dist/migrations`. A bundled
+ * module may be an entry in `dist` or a chunk below it, so the folder is found
+ * from the `dist` directory rather than beside the module.
  */
 export function resolveMigrationsFolder(
   moduleUrl: string,
   bundledSubpath: string,
 ): string {
-  const isBundled = moduleUrl.includes("/dist/");
-  return isBundled
-    ? new URL(`./migrations/${bundledSubpath}`, moduleUrl).pathname
+  const distSegment = "/dist/";
+  const distIndex = moduleUrl.lastIndexOf(distSegment);
+  return distIndex >= 0
+    ? new URL(
+        `migrations/${bundledSubpath}`,
+        moduleUrl.slice(0, distIndex + distSegment.length),
+      ).pathname
     : new URL("../drizzle", moduleUrl).pathname;
 }
 

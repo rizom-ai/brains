@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`60bd903`](https://github.com/rizom-ai/brains/commit/60bd90309108aaa24bf8597d8245260dbc479e39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The entity display description sits on `EntityDisplayEntry`, where editors show it, and `SectionDefinitionInput` says what it is: one section placed on a route, by its id, its `namespace:name` template and its content or data query. It had carried the entity display description.
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

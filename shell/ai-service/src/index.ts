@@ -58,8 +58,15 @@ export { openAiGuestPricing } from "./openai-guest-pricing";
 export type { GuestPricing } from "./openai-guest-pricing";
 export { aiServiceEnvSchema } from "./env-schema";
 export {
+  TOOL_EVENT_CHANNELS,
   createToolExecuteWrapper,
   createMessageBusEmitter,
+  toolCompletedChannel,
+  toolCompletionEventSchema,
+  toolFailedChannel,
+  toolFailureEventSchema,
+  toolInvocationEventSchema,
+  toolInvokingChannel,
 } from "./tool-events";
 
 export type {
@@ -90,5 +97,6 @@ export type {
   ToolContextInfo,
   ToolInvocationEvent,
   ToolCompletionEvent,
+  ToolFailureEvent,
   ToolEventEmitter,
 } from "./tool-events";
