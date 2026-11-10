@@ -45,35 +45,32 @@ export type ProjectFrontmatter = z.output<typeof projectFrontmatterSchema>;
 
 type ProjectMetadataSchema = z.ZodObject<{
   title: z.ZodString;
+  slug: z.ZodString;
   status: typeof projectStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
+  description: z.ZodString;
   year: z.ZodNumber;
-  slug: z.ZodString;
-  description: z.ZodOptional<z.ZodString>;
+  coverImageId: z.ZodOptional<z.ZodString>;
+  ogImageId: z.ZodOptional<z.ZodString>;
+  url: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
+  authoredSlug: z.ZodOptional<z.ZodBoolean>;
 }>;
 
 /**
- * Project metadata schema - derived from frontmatter
- * Only includes fields needed for fast DB queries/filtering
- * Using .pick() ensures metadata stays in sync with frontmatter
+ * A project's metadata: its frontmatter, decoded, with the slug resolved
+ * from the title when the file states none, and the error a failed
+ * generation recorded. Bookkeeping Studio and the vault leave out: the
+ * error, and whether the file states its slug, so a stated slug stays where
+ * the file states it and a resolved one is written after the other fields,
+ * as the project adapter wrote them.
  */
 export const projectMetadataSchema: ProjectMetadataSchema =
-  projectFrontmatterSchema
-    .pick({
-      title: true,
-      status: true,
-      publishedAt: true,
-      year: true,
-    })
-    .extend({
-      // slug is required in metadata (auto-generated from title if not in frontmatter)
-      slug: z.string(),
-      // The card description, so a listing shows what each project is
-      // without reading it in full. Optional: stored before it was kept.
-      description: z.string().optional(),
-      error: z.string().optional(),
-    });
+  projectFrontmatterSchema.extend({
+    slug: z.string(),
+    error: z.string().optional().meta({ studioWidget: "hidden" }),
+    authoredSlug: z.boolean().optional().meta({ studioWidget: "hidden" }),
+  });
 
 export type ProjectMetadata = z.output<typeof projectMetadataSchema>;
 

@@ -87,7 +87,8 @@ function itemXml(item: ValidFeedItem, url: string): string {
 /**
  * Render an RSS 2.0 document. Items are emitted newest first, and the
  * channel's lastBuildDate follows the newest item so a reader can tell
- * whether anything changed without parsing the body.
+ * whether anything changed without parsing the body. The document ends at
+ * its closing tag.
  */
 export function renderRssFeed(
   items: readonly ValidFeedItem[],
@@ -116,6 +117,5 @@ export function renderRssFeed(
     <atom:link href="${escapeXml(channel.selfLink)}" rel="self" type="application/rss+xml"/>${copyright}
 ${ordered.map((item) => itemXml(item, itemUrl(item))).join("\n")}
   </channel>
-</rss>
-`;
+</rss>`;
 }

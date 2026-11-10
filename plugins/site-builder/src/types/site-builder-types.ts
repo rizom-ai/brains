@@ -1,6 +1,7 @@
 import {
   languageTagSchema,
   siteMetadataSchema,
+  type RouteDefinition,
 } from "@brains/site-composition";
 import { type ProgressCallback } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -49,6 +50,8 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaInput {
   slots?: LayoutSlots | undefined;
   // Head scripts registered by other plugins (e.g., analytics beacon)
   headScripts?: string[] | undefined;
+  /** Pages plugins add to this build, asked for when it runs. */
+  pages?: RouteDefinition[] | undefined;
   /**
    * Static assets to write into the output directory at build time.
    * Keys are output paths relative to outputDir (e.g. `/canvases/tree.js`),

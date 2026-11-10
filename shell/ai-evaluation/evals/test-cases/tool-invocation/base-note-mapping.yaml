@@ -11,7 +11,7 @@ tags:
   - base
   - note
   - discord
-  - preset-core
+  - recipe-headless
 
 turns:
   - userMessage: "Capture this as a note: buy milk, eggs, and coffee filters"
@@ -21,7 +21,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
-            source.kind: text
+            source.kind: user-message
 
   - userMessage: "yes"
     confirmPendingAction: true
@@ -33,7 +33,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
-            source.kind: text
+            source.kind: user-message
 
   - userMessage: "yes"
     confirmPendingAction: true

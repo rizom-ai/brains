@@ -19,20 +19,17 @@ function createContext(): MediaAttachmentContext {
         getEntity: {
           id: "resilience",
           entityType: "post",
-          content: `---
-title: Resilience Is Not Redundancy
-slug: resilience
-status: published
-excerpt: Robust systems are not piles of backups.
-author: Test Author
-publishedAt: "2026-01-10T12:00:00.000Z"
-coverImageId: cover-image
----
-Body`,
+          // As a declared post reads back: its body, its metadata.
+          content: "Body",
           metadata: {
             title: "Resilience Is Not Redundancy",
             slug: "resilience",
+            authoredSlug: true,
             status: "published",
+            excerpt: "Robust systems are not piles of backups.",
+            author: "Test Author",
+            publishedAt: "2026-01-10T12:00:00.000Z",
+            coverImageId: "cover-image",
           },
           contentHash: "hash",
           visibility: "public",

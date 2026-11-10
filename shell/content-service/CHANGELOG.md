@@ -1,5 +1,96 @@
 # @brains/content-service
 
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.670
+  - @brains/contracts@0.2.0-alpha.670
+  - @brains/utils@0.2.0-alpha.670
+  - @brains/ai-service@0.2.0-alpha.670
+  - @brains/entity-service@0.2.0-alpha.670
+  - @brains/job-queue@0.2.0-alpha.670
+  - @brains/templates@0.2.0-alpha.670
+
+## 0.2.0-alpha.669
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.669
+  - @brains/contracts@0.2.0-alpha.669
+  - @brains/utils@0.2.0-alpha.669
+  - @brains/ai-service@0.2.0-alpha.669
+  - @brains/entity-service@0.2.0-alpha.669
+  - @brains/job-queue@0.2.0-alpha.669
+  - @brains/templates@0.2.0-alpha.669
+
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.668
+  - @brains/contracts@0.2.0-alpha.668
+  - @brains/utils@0.2.0-alpha.668
+  - @brains/ai-service@0.2.0-alpha.668
+  - @brains/entity-service@0.2.0-alpha.668
+  - @brains/job-queue@0.2.0-alpha.668
+  - @brains/templates@0.2.0-alpha.668
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies [[`d726625`](https://github.com/rizom-ai/brains/commit/d72662546b43ab95f286ca2a408bc85ab677e309)]:
+  - @brains/entity-service@0.2.0-alpha.667
+  - @brains/ai-service@0.2.0-alpha.667
+  - @brains/content-formatters@0.2.0-alpha.667
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/job-queue@0.2.0-alpha.667
+  - @brains/templates@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.666
+  - @brains/contracts@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/ai-service@0.2.0-alpha.666
+  - @brains/entity-service@0.2.0-alpha.666
+  - @brains/job-queue@0.2.0-alpha.666
+  - @brains/templates@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.665
+  - @brains/contracts@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/ai-service@0.2.0-alpha.665
+  - @brains/entity-service@0.2.0-alpha.665
+  - @brains/job-queue@0.2.0-alpha.665
+  - @brains/templates@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.664
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/ai-service@0.2.0-alpha.664
+  - @brains/entity-service@0.2.0-alpha.664
+  - @brains/job-queue@0.2.0-alpha.664
+  - @brains/templates@0.2.0-alpha.664
+
 ## 0.2.0-alpha.663
 
 ### Patch Changes

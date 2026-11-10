@@ -2,7 +2,10 @@ import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { formatDate as formatDateStyled } from "@rizom/brain-ui";
 import { OgCard } from "@rizom/brain-ui/internal";
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 
 export const BLOG_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const BLOG_OG_IMAGE_TEMPLATE_NAME = "blog:og-image";

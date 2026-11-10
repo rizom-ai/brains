@@ -31,6 +31,7 @@ export interface DurableEntityExportDeps<TCheckpoint = unknown> {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
+    source?: true;
   }): Promise<BaseEntity | null>;
   writeEntity(entity: BaseEntity): Promise<void>;
   deleteEntityFile(entityType: string, entityId: string): Promise<void>;
@@ -83,6 +84,9 @@ export async function drainDurableEntityExports<TCheckpoint = unknown>(
       visibilityScope: internalFullScope(
         "directory sync drains durable exports across all visibility tiers",
       ),
+      // As stored: a declared type reads back its body alone, and the file is
+      // its stored document, frontmatter it does not write included.
+      source: true,
     });
     if (!entity) {
       throw new Error(

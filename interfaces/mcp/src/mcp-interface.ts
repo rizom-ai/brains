@@ -1,4 +1,7 @@
-import { type IMCPTransport } from "@brains/plugins";
+import {
+  FatalPluginConfigurationError,
+  type IMCPTransport,
+} from "@brains/plugins";
 import { MCP_INTERACTION_ID } from "@brains/contracts";
 import type {
   InterfacePluginContext,
@@ -49,6 +52,13 @@ export class MCPInterface
     context: InterfacePluginContext,
   ): Promise<void> {
     this.domain = context.domain;
+
+    if (context.production && this.config.authToken) {
+      throw new FatalPluginConfigurationError(
+        this.id,
+        "MCP static bearer token (plugins.mcp.authToken / MCP_AUTH_TOKEN) is for local development only; a production brain refuses it. Remove it and connect MCP clients through OAuth with passkeys.",
+      );
+    }
 
     if (this.config.transport === "http" && !context.plugins.has("webserver")) {
       throw new Error(

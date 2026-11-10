@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
@@ -36,7 +36,7 @@ export async function preparePublishContent(
     documents,
     sourceEntityType,
     sourceEntityId,
-  } = parsePublishContent(entity.content);
+  } = parsePublishContent(entity);
   const imageData = coverImageId
     ? await fetchPublishImageData(context, coverImageId)
     : undefined;
@@ -68,7 +68,8 @@ export async function preparePublishContent(
   return prepared;
 }
 
-function parsePublishContent(content: string): ParsedPublishContent {
+function parsePublishContent(entity: PublishableEntity): ParsedPublishContent {
+  const { content } = entity;
   // Only the frontmatter parse is tolerated, and only because gray-matter
   // raises on malformed YAML: a body whose frontmatter block will not parse
   // carries nothing we can use, so it publishes verbatim. The field reads
@@ -77,25 +78,26 @@ function parsePublishContent(content: string): ParsedPublishContent {
   // its cover image and attachments dropped.
   let parsed;
   try {
-    parsed = parseMarkdownWithFrontmatter(
-      content,
-      z.record(z.string(), z.unknown()),
-    );
+    // A declared type reads back as its body, its frontmatter its metadata;
+    // a stored document carries its frontmatter in its content.
+    parsed = frontmatterRecordFields(entity);
   } catch {
     return { bodyContent: content };
   }
+  const fields = z
+    .record(z.string(), z.unknown())
+    .catch({})
+    .parse(parsed.fields);
 
-  const rawCoverImageId = parsed.metadata["coverImageId"];
+  const rawCoverImageId = fields["coverImageId"];
   const coverImageId =
     typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
-  const documents = parseDocumentReferences(parsed.metadata["documents"]);
-  const sourceEntityType = parseStringField(
-    parsed.metadata["sourceEntityType"],
-  );
-  const sourceEntityId = parseStringField(parsed.metadata["sourceEntityId"]);
+  const documents = parseDocumentReferences(fields["documents"]);
+  const sourceEntityType = parseStringField(fields["sourceEntityType"]);
+  const sourceEntityId = parseStringField(fields["sourceEntityId"]);
 
   return {
-    bodyContent: parsed.content,
+    bodyContent: parsed.body,
     ...(coverImageId && { coverImageId }),
     ...(documents.length > 0 && { documents }),
     ...(sourceEntityType && { sourceEntityType }),

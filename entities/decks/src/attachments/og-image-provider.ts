@@ -3,9 +3,8 @@ import {
   preferredSlug,
   type OgImageProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
 import type { DeckEntity } from "../schemas/deck";
-import { deckFrontmatterSchema, deckSchema } from "../schemas/deck";
+import { deckSchema } from "../schemas/deck";
 import {
   DECK_OG_IMAGE_ATTACHMENT_TYPE,
   DECK_OG_IMAGE_TEMPLATE_NAME,
@@ -19,10 +18,10 @@ export const createDeckOgImageProvider: OgImageProviderFactory =
     attachmentType: DECK_OG_IMAGE_ATTACHMENT_TYPE,
     templateName: DECK_OG_IMAGE_TEMPLATE_NAME,
     themeMode: "dark",
+    // A deck reads back as its slides, its frontmatter its metadata.
     buildContent: async (deck, helpers) => {
-      const { frontmatter, content: body } = parseMarkdown(deck.content);
-      const parsed = deckFrontmatterSchema.parse(frontmatter);
-      const slideCount = countSlides(body);
+      const parsed = deck.metadata;
+      const slideCount = countSlides(deck.content);
       const coverImageUrl = await helpers.resolveImageDataUrl(
         parsed.coverImageId,
       );

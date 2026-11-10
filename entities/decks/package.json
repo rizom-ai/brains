@@ -1,7 +1,7 @@
 {
   "name": "@brains/decks",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.663",
+  "version": "0.2.0-alpha.670",
   "description": "Presentation decks plugin for creating and viewing slide presentations",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
@@ -10,6 +10,7 @@
     "@brains/image": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*"

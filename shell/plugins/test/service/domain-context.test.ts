@@ -114,6 +114,22 @@ describe("Top-level context properties", () => {
     });
   });
 
+  describe("context.production", () => {
+    it("should expose whether the brain runs in production", () => {
+      const shell = createMockShell({ logger, production: true });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.production).toBe(true);
+    });
+
+    it("should default to false", () => {
+      const shell = createMockShell({ logger });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.production).toBe(false);
+    });
+  });
+
   describe("context.themeCSS", () => {
     it("should expose active theme CSS", () => {
       const shell = createMockShell({

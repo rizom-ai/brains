@@ -269,6 +269,7 @@ export function createBasePluginContext(
   const domain = shell.getDomain();
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
+  const production = shell.isProduction();
   const themeCSS = shell.getThemeCSS();
   const getAppInfo = createAppInfoGetter(shell);
   const attachments = shell.getAttachmentRegistry();
@@ -310,6 +311,7 @@ export function createBasePluginContext(
     localSiteUrl,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
     preferLocalUrls,
+    production,
     themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
     spaces: shell.getSpaces(),

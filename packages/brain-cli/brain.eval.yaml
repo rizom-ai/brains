@@ -54,8 +54,6 @@ suites:
     plugins:
       directory-sync:
         seedContentPath: eval-content/publishing
-      site-builder:
-        autoRebuild: false
   # Professional plus the optional Buttondown and stock-photo providers, to
   # prove their conditional tool exposure. The keys are placeholders: provider
   # calls fail, so cases assert routing and refusal to invent results.
@@ -71,6 +69,14 @@ suites:
           apiKey: eval-placeholder-buttondown-key
       stock-photo:
         apiKey: eval-placeholder-stock-photo-key
+  # Professional against live third-party hosts: peer brains such as
+  # yeehaa.io and docs.rizom.ai, and the pages links are saved from. Kept out
+  # of the other suites so their runs never depend on someone else's server.
+  network:
+    extends: professional
+    inheritTags: false
+    tags:
+      - recipe-network
   team:
     extends: personal
     inheritTags: false
@@ -96,8 +102,6 @@ suites:
         requestTimeoutMs: 1000
         streamIdleTimeoutMs: 1000
         maxNetworkAttempts: 1
-      site-builder:
-        autoRebuild: false
   # The doc-brain at docs.rizom.ai: reference docs and moving-in guides on
   # the docs site, so answers cite each at its page.
   # Its seeded docs and guides are what the docs sync writes for them:
@@ -130,8 +134,6 @@ suites:
     plugins:
       directory-sync:
         seedContentPath: eval-content/recipes/docs
-      site-builder:
-        autoRebuild: false
 models:
   - gpt-6-luna
 judge: gpt-5.4-mini
@@ -161,3 +163,6 @@ plugins:
     strictSeedEntityTypes: true
     autoSync: false
     deleteOnFileRemoval: false
+  # An eval brain builds its site only when a case asks for a build.
+  site-builder:
+    autoRebuild: false

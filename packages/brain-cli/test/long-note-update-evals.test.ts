@@ -81,12 +81,8 @@ describe("long-note agent eval coverage", () => {
     ).toEqual({ success: true, "data.updated": id });
   });
 
-  it.each([
-    { id: "long-note-update-7kb", bytes: 7_000 },
-    { id: "long-note-update-14kb", bytes: 14_000 },
-    { id: "long-note-update-17kb", bytes: 17_000 },
-    { id: "long-note-update-title-and-body", bytes: 1_000 },
-  ])(
+  // 17 KB and a combined title and body edit are mcp-long-note-update's.
+  it.each([{ id: "long-note-update-7kb", bytes: 7_000 }])(
     "checks exact proposals, cancelled state, and saved state: $id",
     async ({ id, bytes }) => {
       const testCase = await load(id);

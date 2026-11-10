@@ -6,8 +6,7 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
-import { DecksPlugin } from "../src/plugin";
-import { deckAdapter } from "../src/adapters/deck-adapter";
+import { decksPlugin } from "./decks-plugin";
 
 const executionContext = {
   interfaceType: "test",
@@ -26,7 +25,7 @@ function expectUserFacing(question: string): void {
   }
 }
 
-describe("DecksPlugin create interceptor", () => {
+describe("the deck create route", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let prompts: Array<{ templateName: string; prompt: string | undefined }>;
   let failDescription: boolean;
@@ -47,7 +46,7 @@ describe("DecksPlugin create interceptor", () => {
       if (failDescription) throw new Error("model unavailable");
       return { description: "Why shipping less makes better software." };
     };
-    await harness.installPlugin(new DecksPlugin());
+    await harness.installPlugin(decksPlugin());
   });
 
   afterEach(async () => {
@@ -85,7 +84,9 @@ describe("DecksPlugin create interceptor", () => {
   } {
     const content = continued(result).content ?? "";
     // The direct create stores exactly this document through the adapter.
-    expect(() => deckAdapter.fromMarkdown(content)).not.toThrow();
+    expect(() =>
+      harness.getEntityRegistry().getAdapter("deck").fromMarkdown(content),
+    ).not.toThrow();
     const { frontmatter, content: body } = parseMarkdown(content);
     return { frontmatter, body };
   }

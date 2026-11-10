@@ -1,77 +1,72 @@
-import { playbookSeedContract } from "@brains/contracts";
-import type {
-  EntityPluginContext,
-  EntityTypeConfig,
-  Plugin,
-} from "@brains/plugins";
-import { EntityPlugin, internalFullScope } from "@brains/plugins";
+import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
+import { writesInDocumentOrder } from "@brains/sdk/internal/entity-runtime";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { definedFields } from "@brains/utils/strip-undefined";
+import { parsePlaybookBody } from "./playbook-markdown";
 import {
-  playbookAdapter,
-  type PlaybookAdapter,
-} from "./adapters/playbook-adapter";
-import { playbookSchema, type PlaybookEntity } from "./schemas/playbook";
-import {
-  playbookConfigSchema,
-  type PlaybookConfig,
-  type PlaybookConfigInput,
-} from "./schemas/playbook-config";
-import packageJson from "../../package.json";
+  playbookFrontmatterSchema,
+  playbookMetadataSchema,
+} from "./schemas/playbook";
 
-const playbookEntityType = "playbook";
+const PLAYBOOK_INSTRUCTIONS =
+  "Playbook entities describe durable, editable guided workflows for the agent. Use them as operating guidance when a playbook run is active; do not treat them as content to publish unless the user explicitly asks. To inspect a playbook's lifecycle, run status, current state, or valid events, call playbook_manage action=status directly; do not use system_search as a substitute.";
 
-export class PlaybookPlugin extends EntityPlugin<
-  PlaybookEntity,
-  PlaybookConfig,
-  PlaybookConfigInput
-> {
-  readonly entityType: typeof playbookEntityType = playbookEntityType;
-  readonly schema: typeof playbookSchema = playbookSchema;
-  readonly adapter: PlaybookAdapter = playbookAdapter;
+/**
+ * A playbook: a guided workflow the agent runs with the operator, its
+ * steps in the body and its frontmatter its metadata. A file that leaves
+ * its status, audience or completion mode unstated reads with their
+ * defaults, and its stored document states them, as the playbook adapter
+ * wrote it; a body that is not a valid playbook is refused. Its files are
+ * written by hand, so a write keeps the order of the frontmatter it
+ * replaces.
+ */
+export const playbookEntity: EntityDefinition<
+  "playbook",
+  typeof playbookMetadataSchema
+> = writesInDocumentOrder(
+  defineEntity({
+    type: "playbook",
+    purpose:
+      "A guided multi-step workflow the assistant runs together with the user.",
+    classification: "system",
+    metadata: playbookMetadataSchema,
+    markdown: {
+      decode: ({ content, frontmatter }) => ({
+        content,
+        metadata: definedFields(playbookFrontmatterSchema.parse(frontmatter)),
+      }),
+      // In the frontmatter schema's order, the defaults stated.
+      encode: ({ content, metadata }) => ({
+        // The body directly under the frontmatter, as the adapter wrote it.
+        content: content.replace(/^\n+/u, ""),
+        frontmatter: definedFields({
+          title: metadata.title,
+          status: metadata.status,
+          audience: metadata.audience,
+          trigger: metadata.trigger,
+          lifecycle: metadata.lifecycle,
+          once: metadata.once,
+          starterText: metadata.starterText,
+          description: metadata.description,
+          starterPrompt: metadata.starterPrompt,
+          completionMode: metadata.completionMode,
+        }),
+      }),
+    },
+    // As the adapter refused one on import: a body that is no playbook.
+    validatePersist: ({ content }) => {
+      parsePlaybookBody(parseMarkdown(content).content);
+    },
+    config: { projectionSource: false, projectionSourceRole: "excluded" },
+    instructions: PLAYBOOK_INSTRUCTIONS,
+  }),
+);
 
-  constructor(config: PlaybookConfigInput = {}) {
-    super("playbook", packageJson, config, playbookConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return {
-      classification: "system",
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    };
-  }
-
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    // Another package plants a playbook it bundles through the type's
-    // steward: only where none with that id exists at any visibility, so a
-    // seed never overwrites what an owner wrote.
-    context.messaging.answer(playbookSeedContract, async ({ id, markdown }) => {
-      const existing = await context.entityService.getEntity({
-        entityType: playbookEntityType,
-        id,
-        visibilityScope: internalFullScope(
-          "bundled playbook seed existence check",
-        ),
-      });
-      if (existing) return { created: false };
-      await context.entityService.createEntityFromMarkdown({
-        input: { entityType: playbookEntityType, id, markdown },
-      });
-      return { created: true };
-    });
-  }
-
-  protected override async getInstructions(): Promise<string> {
-    return "Playbook entities describe durable, editable guided workflows for the agent. Use them as operating guidance when a playbook run is active; do not treat them as content to publish unless the user explicitly asks. To inspect a playbook's lifecycle, run status, current state, or valid events, call playbook_manage action=status directly; do not use system_search as a substitute.";
-  }
-}
-
-export function playbookPlugin(config: PlaybookConfigInput = {}): Plugin {
-  return new PlaybookPlugin(config);
-}
-
-export { PlaybookAdapter, playbookAdapter } from "./adapters/playbook-adapter";
+export {
+  createPlaybookContent,
+  parsePlaybookBody,
+  parsePlaybookContent,
+} from "./playbook-markdown";
 export {
   PlaybookBodyFormatter,
   playbookBodyFormatter,
@@ -98,11 +93,6 @@ export {
   type PlaybookStatus,
   type PlaybookTransition,
 } from "./schemas/playbook";
-export {
-  playbookConfigSchema,
-  type PlaybookConfig,
-  type PlaybookConfigInput,
-} from "./schemas/playbook-config";
 export {
   assertValidPlaybookBody,
   validatePlaybookBody,

@@ -1,11 +1,11 @@
 id: tool-invocation-agent-add-explicit-save-no-approval-gate
 name: Explicit Agent Save Does Not Require Separate Approval
-description: Tests that explicitly saving an agent does not tell the user they still need a separate approval step
+description: Tests that an explicit agent-save request connects the agent at once, without asking for a description or telling the user a separate approval step is still needed
 type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - a2a
   - tool-invocation
@@ -28,6 +28,10 @@ successCriteria:
     - "Once it’s ready and approved"
     - "Once it's ready and approved"
     - "discovered rather than approved"
+    - "No URL or domain provided"
+    - "needs either content or a prompt"
+    - "short description"
+    - "what this agent is for"
 
 efficiency:
   maxToolCalls: 3

@@ -9,11 +9,8 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  InboxDataSource,
-  UnifiedInboxPlugin,
-  inboxProjectionSchema,
-} from "../src";
+import { InboxDataSource, inboxProjectionSchema } from "../src";
+import { createUnifiedInboxPlugin } from "./unified-inbox-plugin";
 
 function item(
   id: string,
@@ -138,7 +135,7 @@ describe("InboxDataSource", () => {
   });
 
   it("registers the digest execution dependency before worker ready hooks", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       domain: "brain.test",
       logContext: "unified-inbox-worker-registration-test",
     });
@@ -155,7 +152,7 @@ describe("InboxDataSource", () => {
       },
     });
 
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     await plugin.register(shell, { executionOnly: true });
 
     expect(check).toMatchObject({
@@ -167,7 +164,7 @@ describe("InboxDataSource", () => {
   });
 
   it("keeps Dashboard semantic while handing the Studio destination to interactions and digest", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       domain: "brain.test",
       logContext: "unified-inbox-order-test",
     });
@@ -215,10 +212,10 @@ describe("InboxDataSource", () => {
       act: async () => undefined,
     });
 
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(events).toEqual(["digest", "workspace", "dashboard"]);
     if (!widget || !check)
@@ -282,7 +279,7 @@ describe("InboxDataSource", () => {
   });
 
   it("does not advertise or forward an invalid Studio workspace target", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       logContext: "unified-inbox-invalid-target-test",
     });
     const shell = harness.getMockShell();
@@ -306,10 +303,10 @@ describe("InboxDataSource", () => {
         },
       );
 
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect((await shell.getAppInfo()).interactions).not.toContainEqual(
       expect.objectContaining({ id: "unified-inbox" }),
@@ -328,7 +325,7 @@ describe("InboxDataSource", () => {
   });
 
   it("answers the headless tool without webserver, Studio, or Dashboard plugins", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       logContext: "unified-inbox-test",
     });
     harness
@@ -342,10 +339,10 @@ describe("InboxDataSource", () => {
         ],
         act: async () => undefined,
       });
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
@@ -364,6 +361,6 @@ describe("InboxDataSource", () => {
         entries: [{ item: { title: "Attention mail-high" } }],
       },
     });
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(plugin.getWebRoutes?.()).toEqual([]);
   });
 });

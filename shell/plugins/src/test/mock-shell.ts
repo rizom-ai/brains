@@ -118,6 +118,8 @@ export interface MockShellOptions {
   localSiteUrl?: string;
   /** Prefer local runtime URLs over public domain URLs */
   preferLocalUrls?: boolean;
+  /** Run as a production brain rather than local development */
+  production?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
   /** Optional composition-selected semantic profile kind */
@@ -431,6 +433,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,
+    isProduction: (): boolean => options.production ?? false,
     getThemeCSS: (): string => options.themeCSS ?? "",
     getSpaces: (): string[] => options.spaces ?? [],
 

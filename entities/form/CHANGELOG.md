@@ -1,0 +1,10 @@
+# @brains/form
+
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/forms@0.2.0-alpha.670
+  - @brains/utils@0.2.0-alpha.670
+  - @brains/plugins@0.2.0-alpha.670

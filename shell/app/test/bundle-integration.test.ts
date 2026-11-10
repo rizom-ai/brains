@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
+import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -119,6 +120,42 @@ preset: core
         resolve(definition, {}, parseInstanceOverrides(input)),
       ).toThrow(/cms.*brain config migrate/i);
     }
+  });
+
+  test("warns about an add or remove naming no capability, and still boots", () => {
+    const definition = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["alpha", trackingFactory("alpha"), {}],
+        ["beta", trackingFactory("beta"), {}],
+        ["gamma", trackingFactory("gamma"), {}],
+      ],
+      interfaces: [],
+      bundles: [defineBundle({ id: "core", members: ["alpha"] })],
+    });
+    const warnings: string[] = [];
+    const logger = {
+      ...createMockLogger(),
+      warn: (message: string): void => {
+        warnings.push(message);
+      },
+    };
+
+    const config = resolve(
+      definition,
+      {},
+      parseInstanceOverrides(
+        "brain: brain\nbundles: [core]\nadd: [beta, playbook]\nremove: [gamma, retired]\n",
+      ),
+      logger,
+    );
+
+    expect(pluginIds(config)).toEqual(["alpha", "beta"]);
+    expect(warnings).toEqual([
+      'brain.yaml add names "playbook", which is not a capability or interface of this brain; it is ignored. Known: alpha, beta, gamma',
+      'brain.yaml remove names "retired", which is not a capability or interface of this brain; it is ignored. Known: alpha, beta, gamma',
+    ]);
   });
 
   test("requires explicit selection when a definition declares bundles", () => {

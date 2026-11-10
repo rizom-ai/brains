@@ -70,6 +70,10 @@ describe("RSS feed rendering", () => {
     );
   });
 
+  it("ends at the closing tag, with no trailing newline", () => {
+    expect(render([item()]).endsWith("</rss>")).toBe(true);
+  });
+
   it("refuses an item without the fields a reader needs", () => {
     expect(feedItemSchema.safeParse(item({ title: "" })).success).toBe(false);
     expect(

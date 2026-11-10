@@ -1,14 +1,21 @@
 import { describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { publishRegisterContract } from "@brains/contracts";
+import { createMockProgressReporter } from "@brains/test-utils";
 import { createPluginHarness } from "../src/test/harness";
+import { queuedByPackage } from "../src/test/package-job-data";
 import {
   PluginConfigValidationError,
+  SYSTEM_CHANNELS,
   defineDataSource,
   defineEntity,
+  defineEntityJob,
   defineEntityPackage,
+  defineProjectionRule,
   instantiatePluginPackageDefinition,
   type AnyEntityDefinition,
+  type EntityGenerationDeclaration,
   type EntityPackageConfiguration,
   type Plugin,
 } from "../src";
@@ -19,10 +26,11 @@ import {
  * sources, and an entity's create route and evals.
  */
 
+const bookmarkMetadata = z.object({ title: z.string() });
 const bookmark = defineEntity({
   type: "bookmark",
   purpose: "A saved page.",
-  metadata: z.object({ title: z.string() }),
+  metadata: bookmarkMetadata,
 });
 const digest = defineEntity({
   type: "digest",
@@ -182,6 +190,163 @@ describe("an entity package's config", () => {
   });
 });
 
+/** A configured job or generation, run as the package queued it. */
+async function runJob(
+  harness: ReturnType<typeof createPluginHarness>,
+  type: string,
+  input: unknown,
+): Promise<unknown> {
+  const handler = harness.getMockShell().getJobQueueService().getHandler(type);
+  if (!handler) throw new Error(`No job handler registered for ${type}`);
+  return handler.process(
+    handler.validateAndParse(
+      queuedByPackage("@fixture/library:bookmark", input),
+    ),
+    "job-under-test",
+    createMockProgressReporter(),
+    new AbortController().signal,
+  );
+}
+
+const promptInput = z.object({ prompt: z.string() });
+
+/** A generation that names the token it was configured with. */
+function promptGeneration(
+  token: string,
+): EntityGenerationDeclaration<typeof promptInput, typeof bookmarkMetadata> {
+  return {
+    input: promptInput,
+    generate: async ({ input }) => ({
+      success: true,
+      content: `${input.prompt} (${token})`,
+      metadata: { title: "Generated" },
+    }),
+  };
+}
+
+describe("the slots configure binds from a package's config", () => {
+  // A package with an API token: its publish provider, its job, its
+  // generation and its projection rules read the token from the config.
+  const tokenConfig = z.object({ token: z.string().default("none") });
+  const published: string[] = [];
+  const tokened = defineEntityPackage({
+    id: "library",
+    config: tokenConfig,
+    entities: [bookmark],
+    configure: ({ config }) => ({
+      entities: [
+        {
+          entity: bookmark,
+          publish: {
+            provider: {
+              name: `reader-${config.token}`,
+              publish: async (content: string): Promise<{ id: string }> => {
+                published.push(`${config.token}:${content}`);
+                return { id: "remote-1" };
+              },
+            },
+          },
+          jobs: {
+            check: defineEntityJob({
+              input: z.object({ url: z.string() }),
+              handle: async ({ input }) => ({
+                checked: `${input.url} with ${config.token}`,
+              }),
+            }),
+          },
+          generation: promptGeneration(config.token),
+          // A rule that only runs once a token is configured.
+          projectionRules:
+            config.token === "none"
+              ? []
+              : [
+                  defineProjectionRule({
+                    id: "bookmark-check",
+                    version: "1",
+                    sources: [{ kind: "entity", types: ["bookmark"] }],
+                    targetType: "bookmark",
+                    inputSchema: z.object({}),
+                    selectInput: async () => ({}),
+                    derive: async () => [],
+                  }),
+                ],
+        },
+      ],
+    }),
+  });
+
+  it("registers the bound publish provider, job and generation with the config's values", async () => {
+    const plugins = instantiatePluginPackageDefinition(
+      tokened,
+      { token: "secret" },
+      metadata,
+    );
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    const rules: unknown[] = [];
+    for (const plugin of plugins) {
+      rules.push(
+        ...((await harness.installPlugin(plugin)).projectionRules ?? []),
+      );
+    }
+    try {
+      expect(rules).toEqual([
+        expect.objectContaining({ id: "bookmark-check" }),
+      ]);
+      const registrations: unknown[] = [];
+      harness
+        .getMockShell()
+        .getMessageBus()
+        .subscribe(publishRegisterContract.name, async (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        });
+      await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+      expect(registrations).toEqual([
+        expect.objectContaining({
+          entityType: "bookmark",
+          provider: expect.objectContaining({ name: "reader-secret" }),
+        }),
+      ]);
+      expect(
+        await runJob(harness, "@fixture/library:bookmark:check", {
+          url: "https://example.com",
+        }),
+      ).toEqual({ checked: "https://example.com with secret" });
+      expect(
+        await runJob(harness, "bookmark:generation", { prompt: "About tides" }),
+      ).toMatchObject({ success: true });
+      const [written] = await harness
+        .getEntityService()
+        .listEntities({ entityType: "bookmark" });
+      expect(written?.content).toBe("About tides (secret)");
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("leaves the slots out when configure binds none", async () => {
+    const bare = defineEntityPackage({
+      id: "library",
+      config: tokenConfig,
+      entities: [bookmark],
+      configure: () => ({}),
+    });
+    const plugins = instantiatePluginPackageDefinition(bare, {}, metadata);
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    for (const plugin of plugins) await harness.installPlugin(plugin);
+    try {
+      expect(
+        harness
+          .getMockShell()
+          .getJobQueueService()
+          .getHandler("bookmark:generation"),
+      ).toBeUndefined();
+    } finally {
+      await harness.reset();
+    }
+  });
+});
+
 describe("what configure binds is held to the package's checks", () => {
   function refusal(configure: Parameters<typeof library>[0]): () => Plugin[] {
     return () =>
@@ -237,6 +402,42 @@ describe("what configure binds is held to the package's checks", () => {
         ],
       })),
     ).toThrow(/twice/);
+  });
+
+  it("refuses a slot configure cannot bind", () => {
+    // Held in a variable, as a caller building bindings does, so the extra
+    // key is not refused by the types.
+    const binding = { entity: digest, templates: {} };
+    expect(refusal(() => ({ entities: [binding] }))).toThrow(
+      /cannot configure the templates of "digest"/,
+    );
+  });
+
+  it("refuses a publish provider, job, generation or rules the entity declares already", () => {
+    const declared = defineEntity({
+      type: "declared",
+      purpose: "Declares its jobs.",
+      metadata: z.object({}),
+      jobs: {
+        own: defineEntityJob({
+          input: z.object({}),
+          handle: async (): Promise<null> => null,
+        }),
+      },
+    });
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        defineEntityPackage({
+          id: "declared",
+          entities: [declared],
+          configure: () => ({
+            entities: [{ entity: declared, jobs: {} }],
+          }),
+        }),
+        {},
+        metadata,
+      ),
+    ).toThrow(/configures the jobs of "declared", which declares it already/);
   });
 
   it("refuses a slot the entity declares already", () => {

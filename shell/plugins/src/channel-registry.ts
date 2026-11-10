@@ -36,6 +36,8 @@ export interface ChannelDeliveryInput {
   sensitivity?: ChannelDeliverySensitivity | undefined;
   /** Optional transport threading metadata. Unsupported channels may ignore it. */
   threading?: ChannelDeliveryThreading | undefined;
+  /** Where the recipient's answer goes. Channels without replies may ignore it. */
+  replyTo?: string | undefined;
 }
 
 export type ChannelDeliveryResult =

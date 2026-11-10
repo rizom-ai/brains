@@ -75,8 +75,8 @@ export function coalesceLatestInputs(
  *
  * - `completed` — every rule in it finished.
  * - `failed` — something went wrong; its inputs were requeued for a later wave.
- * - `superseded` — the admission epoch moved under it, so its work is stale;
- *   its inputs were requeued too.
+ * - `superseded` — the admission epoch or the projection graph moved under
+ *   it, so its work is stale; its inputs were requeued too.
  */
 export type ProjectionWaveStatus =
   "running" | "completed" | "failed" | "superseded";

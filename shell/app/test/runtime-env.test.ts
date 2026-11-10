@@ -3,7 +3,10 @@ import { runProcess } from "@brains/utils/run-process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { preferLocalUrlsForRuntime } from "../src/runtime-env";
+import {
+  isProductionRuntime,
+  preferLocalUrlsForRuntime,
+} from "../src/runtime-env";
 
 const originalNodeEnv = process.env["NODE_ENV"];
 
@@ -20,6 +23,19 @@ describe("runtime environment helpers", () => {
     process.env["NODE_ENV"] = "production";
     try {
       expect(preferLocalUrlsForRuntime()).toBe(false);
+    } finally {
+      restoreNodeEnv();
+    }
+  });
+
+  it("reports a production runtime only when NODE_ENV is production", () => {
+    try {
+      process.env["NODE_ENV"] = "production";
+      expect(isProductionRuntime()).toBe(true);
+      process.env["NODE_ENV"] = "development";
+      expect(isProductionRuntime()).toBe(false);
+      delete process.env["NODE_ENV"];
+      expect(isProductionRuntime()).toBe(false);
     } finally {
       restoreNodeEnv();
     }

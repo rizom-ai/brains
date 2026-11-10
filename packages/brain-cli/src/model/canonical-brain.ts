@@ -12,22 +12,24 @@ import {
   type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
 import { A2AInterface } from "@brains/a2a";
-import { adminPlugin } from "@brains/admin";
+import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
-import { blogPlugin } from "@brains/blog";
+import blogPackage from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
+import { formPlugin } from "@brains/form";
+import { quizPlugin } from "@brains/quiz";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
-import { decksPlugin } from "@brains/decks";
+import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
@@ -36,10 +38,10 @@ import documentPackage from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
-import { linkPlugin } from "@brains/link";
+import linkPackage from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
-import { notePlugin } from "@brains/note";
+import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
@@ -48,8 +50,8 @@ import {
   type OAuthBrokerPlugin,
 } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
-import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
-import { portfolioPlugin } from "@brains/portfolio";
+import playbooksPackage from "@brains/playbooks";
+import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
@@ -57,13 +59,13 @@ import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import siteInfoPackage from "@brains/site-info";
-import { socialMediaPlugin } from "@brains/social-media";
+import socialMediaPackage from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
-import { unifiedInboxPlugin } from "@brains/unified-inbox";
+import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
@@ -165,8 +167,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("document", "@brains/document-plugin", documentPackage, {
       pluginId: "document",
     }),
-    ["note", notePlugin, undefined],
-    ["link", linkPlugin, undefined],
+    packageCapability("note", "@brains/note", notePackage, {
+      pluginId: "note",
+    }),
+    packageCapability("link", "@brains/link", linkPackage, {
+      pluginId: "link",
+    }),
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
       pluginId: "wishlist",
     }),
@@ -185,7 +191,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       ],
       undefined,
     ],
-    ["decks", decksPlugin, undefined],
+    packageCapability("decks", "@brains/decks", decksPackage, {
+      pluginId: "decks",
+    }),
     [
       "directory-sync",
       directorySync,
@@ -211,30 +219,46 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "notifications" },
     ),
     ["contact", contactPlugin, undefined],
-    ["playbook", playbookPlugin, undefined],
-    ["playbooks", playbooksPlugin, undefined],
+    ["quiz", quizPlugin, undefined],
+    // The playbooks service owns the playbook type: one capability installs
+    // both plugins, playbook and playbooks, as the two capabilities did.
+    packageCapability("playbooks", "@brains/playbooks", playbooksPackage, {
+      pluginId: "playbooks",
+    }),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage, {
       pluginId: "onboarding",
       dependencies: ["playbook", "playbooks"],
     }),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
-    ["admin", adminPlugin, undefined],
+    packageCapability("admin", "@brains/admin", adminPackage, {
+      pluginId: "admin",
+    }),
 
     packageCapability("site-info", "@brains/site-info", siteInfoPackage, {
       pluginId: "site-metadata",
     }),
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, undefined],
+    ["form", formPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
 
-    ["blog", blogPlugin, undefined],
+    packageCapability("blog", "@brains/blog", blogPackage, {
+      pluginId: "blog",
+    }),
     packageCapability("series", "@brains/series", seriesPackage, {
       pluginId: "series",
     }),
-    ["portfolio", portfolioPlugin, undefined],
+    packageCapability("portfolio", "@brains/portfolio", portfolioPackage, {
+      pluginId: "portfolio",
+    }),
     ["content-pipeline", contentPipelinePlugin, undefined],
-    ["social-media", socialMediaPlugin, undefined],
+    packageCapability(
+      "social-media",
+      "@brains/social-media",
+      socialMediaPackage,
+      { pluginId: "social-media" },
+    ),
     ["newsletter", newsletter, undefined],
     ["stock-photo", stockPhotoPlugin, undefined],
     [
@@ -264,7 +288,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { autoSync: true },
     ),
     ["email-workflows", emailWorkflows, undefined],
-    ["unified-inbox", unifiedInboxPlugin, undefined],
+    packageCapability(
+      "unified-inbox",
+      "@brains/unified-inbox",
+      unifiedInboxPackage,
+      { pluginId: "unified-inbox" },
+    ),
     ["linkedin-import", linkedInImportPlugin, undefined],
     [
       "oauth-broker",

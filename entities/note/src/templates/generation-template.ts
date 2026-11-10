@@ -1,5 +1,8 @@
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 
 /**
  * Schema for AI-generated note

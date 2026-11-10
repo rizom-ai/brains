@@ -19,13 +19,21 @@ export type WebRouteHandler = (
   transport?: WebRouteTransportContext,
 ) => Response | Promise<Response>;
 
-export type WebRouteMatch = "exact" | "prefix";
+export type WebRouteMatch = "exact" | "prefix" | "claim";
 
 export interface WebRouteDefinition {
   /** Absolute mounted path (e.g. "/studio" or "/studio-config") */
   path: string;
-  /** Match only `path` (default) or descendants on a segment boundary. */
+  /**
+   * Match only `path` (default), its descendants on a segment boundary
+   * (`prefix`), or whatever `claims` says per request (`claim`): asked only
+   * when no exact or prefix route matches, before the site's static pages,
+   * so a plugin serves paths it learns after the routes are fixed. `path`
+   * then only names the route.
+   */
   match?: WebRouteMatch;
+  /** For a `claim` route: whether it serves this request path right now. */
+  claims?: (path: string) => boolean;
   /** HTTP method */
   method?: WebRouteMethod;
   /** Allow unauthenticated access */

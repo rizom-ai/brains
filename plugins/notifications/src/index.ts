@@ -84,6 +84,7 @@ const notificationsPackage: ServicePackageDefinition<
             subject: request.title,
             text: request.body,
             ...(request.html ? { html: request.html } : {}),
+            ...(request.replyTo ? { replyTo: request.replyTo } : {}),
             sensitivity: request.sensitivity,
             // Providers dedupe on this, so mint one when the caller has no
             // natural key rather than leaving retries to double-send.

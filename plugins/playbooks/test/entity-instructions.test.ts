@@ -1,17 +1,19 @@
 import { describe, expect, it } from "bun:test";
-import { PlaybookPlugin } from "../src/entity";
+import { createPluginHarness } from "@brains/plugins/test";
+import { createPlaybooksPlugins } from "./playbooks-plugins";
 
-class TestPlaybookPlugin extends PlaybookPlugin {
-  public instructions(): Promise<string> {
-    return this.getInstructions();
-  }
+/** The instructions the playbook type's plugin registers, as the brain reads them. */
+async function instructions(): Promise<string | undefined> {
+  const [playbookType] = createPlaybooksPlugins();
+  if (!playbookType) throw new Error("The package installs no playbook type");
+  return (await createPluginHarness().installPlugin(playbookType)).instructions;
 }
 
 describe("PlaybookPlugin instructions", () => {
   it("routes playbook status checks to the canonical tool", async () => {
-    const instructions = await new TestPlaybookPlugin().instructions();
+    const text = await instructions();
 
-    expect(instructions).toContain("call playbook_manage action=status");
-    expect(instructions).not.toContain("playbook_status");
+    expect(text).toContain("call playbook_manage action=status");
+    expect(text).not.toContain("playbook_status");
   });
 });

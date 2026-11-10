@@ -2,11 +2,8 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  playbookAdapter,
-  playbookPlugin,
-  playbooksPlugin,
-} from "@brains/playbooks";
+import { createPlaybooksPackage, parsePlaybookBody } from "@brains/playbooks";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -31,8 +28,16 @@ async function installHarness(): Promise<
   ReturnType<typeof createPluginHarness>
 > {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(playbookPlugin({}));
-  await harness.installPlugin(playbooksPlugin({}));
+  // The playbooks package as the canonical brain composes it: the playbook
+  // type, then the service.
+  for (const plugin of instantiatePluginPackageDefinition(
+    createPlaybooksPackage(),
+    {},
+    { name: "@brains/playbooks", version: "0.0.0-test" },
+    { pluginId: "playbooks" },
+  )) {
+    await harness.installPlugin(plugin);
+  }
   return harness;
 }
 
@@ -131,9 +136,8 @@ describe("onboarding", () => {
       lifecycle: "onboarding",
     });
     // Only the step whose outcome is an answer in chat accepts a reply as proof.
-    const loopStates = playbookAdapter.parsePlaybookContent(
-      firstLoop?.content ?? "",
-    ).body.states;
+    // A declared playbook reads back its body; its metadata is checked above.
+    const loopStates = parsePlaybookBody(firstLoop?.content ?? "").states;
     expect(
       loopStates.find((state) => state.id === "retrieve-and-transform")
         ?.provenBy,
@@ -174,6 +178,8 @@ describe("onboarding", () => {
       entityType: "playbook",
       id: "onboarding",
       visibilityScope: "restricted",
+      // As stored: a declared type reads back its body alone.
+      source: true,
     });
 
     expect(setup?.content).toBe(existingContent);
