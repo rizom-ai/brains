@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- [#897](https://github.com/rizom-ai/brains/pull/897) [`8b80bb2`](https://github.com/rizom-ai/brains/commit/8b80bb2dba3f3e00cf51f4e50faf356ff4f27a7c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connecting or dismissing an agent sighting in the Inbox no longer overwrites a card refresh that lands at the same moment; the action fails and asks to reload instead.
+
 ## 0.2.0-alpha.672
 
 ### Patch Changes
