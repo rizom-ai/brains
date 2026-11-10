@@ -69,6 +69,9 @@ const convertedInterfacePackages = [
   "web-chat",
 ];
 
+/** Service packages converted to declarative definitions. */
+const convertedServicePackages = ["stock-photo"];
+
 const classBaseBan = {
   name: "@brains/plugins",
   importNames: pluginClassBases,
@@ -243,6 +246,21 @@ module.exports = {
       files: convertedInterfacePackages.flatMap((name) => [
         `**/interfaces/${name}/src/**/*.ts`,
         `**/interfaces/${name}/src/**/*.tsx`,
+      ]),
+      excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
+      rules: {
+        "no-restricted-imports": shellImportBan(
+          [...shellServicePackages, ...contextServedPackages],
+          [classBaseBan],
+        ),
+      },
+    },
+    {
+      // A converted service's production code imports no plugin class base
+      // either. Restates the import restrictions above for these files.
+      files: convertedServicePackages.flatMap((name) => [
+        `**/plugins/${name}/src/**/*.ts`,
+        `**/plugins/${name}/src/**/*.tsx`,
       ]),
       excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
       rules: {

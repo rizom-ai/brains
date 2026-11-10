@@ -1,8 +1,9 @@
 import { z } from "@brains/utils/zod";
 import type {
+  BaseEntity,
   EnqueueJobRequest,
+  ListEntitiesRequest,
   Tool,
-  ServiceEntityService,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type {
@@ -10,13 +11,19 @@ import type {
   FetchImageFn,
   SelectResult,
 } from "../lib/types";
-import { setCoverImage } from "../lib/set-cover-image";
+import {
+  setCoverImage,
+  type StockPhotoEntityWriter,
+} from "../lib/set-cover-image";
 import { getErrorMessage } from "@brains/utils/error";
 import { definedFields } from "@brains/utils/strip-undefined";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
-  entityService: ServiceEntityService;
+  /** Reads and the writes the class made, as the package. */
+  entityService: StockPhotoEntityWriter & {
+    listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  };
   fetchImage: FetchImageFn;
   /** Only enqueue by job type is used; asking for the whole job service would be a claim these tools do not make. */
   jobs: { enqueue(request: EnqueueJobRequest): Promise<string> };

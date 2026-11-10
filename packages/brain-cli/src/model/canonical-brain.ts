@@ -61,7 +61,7 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import siteInfoPackage from "@brains/site-info";
 import socialMediaPackage from "@brains/social-media";
-import { stockPhotoPlugin } from "@brains/stock-photo";
+import stockPhotoPackage from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
@@ -280,7 +280,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "social-media" },
     ),
     ["newsletter", newsletter, undefined],
-    ["stock-photo", stockPhotoPlugin, undefined],
+    packageCapability("stock-photo", "@brains/stock-photo", stockPhotoPackage, {
+      pluginId: "stock-photo",
+    }),
     [
       "atproto",
       atprotoPlugin,

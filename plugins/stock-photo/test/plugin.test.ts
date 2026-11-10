@@ -1,11 +1,11 @@
 import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { StockPhotoPlugin } from "../src/plugin";
+import { createStockPhotoPlugin } from "./stock-photo-plugin";
 
 describe("StockPhotoPlugin", () => {
   it("should register with correct metadata", async () => {
     const harness = createPluginHarness();
-    const plugin = new StockPhotoPlugin();
+    const plugin = createStockPhotoPlugin();
     await harness.installPlugin(plugin);
 
     expect(plugin.id).toBe("stock-photo");
@@ -13,7 +13,7 @@ describe("StockPhotoPlugin", () => {
 
   it("should return no tools when API key is absent", async () => {
     const harness = createPluginHarness();
-    const plugin = new StockPhotoPlugin();
+    const plugin = createStockPhotoPlugin();
     await harness.installPlugin(plugin);
 
     const { tools } = harness.getCapabilities();
@@ -25,7 +25,7 @@ describe("StockPhotoPlugin", () => {
 
   it("should return tools when API key is provided", async () => {
     const harness = createPluginHarness();
-    const plugin = new StockPhotoPlugin({ apiKey: "test-key" });
+    const plugin = createStockPhotoPlugin({ apiKey: "test-key" });
     await harness.installPlugin(plugin);
 
     const { tools } = harness.getCapabilities();
