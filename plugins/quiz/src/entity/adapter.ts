@@ -48,13 +48,11 @@ export class QuizResultAdapter extends BaseEntityAdapter<
     }
   }
 
-  /** What results are queried by; listed under their quiz's title. */
-  metadataFor(
-    frontmatter: QuizResultFrontmatter,
-    quizTitle: string,
-  ): QuizResultMetadata {
+  /** What results are queried by; listed under their quiz's title as it
+   * was taken, or, for a result that predates keeping it, the quiz's id. */
+  metadataFor(frontmatter: QuizResultFrontmatter): QuizResultMetadata {
     return {
-      title: quizTitle,
+      title: frontmatter.quizTitle ?? frontmatter.quiz,
       quiz: frontmatter.quiz,
       receivedAt: frontmatter.receivedAt,
       status: frontmatter.status,
@@ -69,7 +67,7 @@ export class QuizResultAdapter extends BaseEntityAdapter<
       entityType: "quiz-result",
       visibility: "restricted",
       content: markdown,
-      metadata: this.metadataFor(frontmatter, frontmatter.quiz),
+      metadata: this.metadataFor(frontmatter),
     };
   }
 }

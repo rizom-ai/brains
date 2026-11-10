@@ -61,6 +61,7 @@ function frontmatterFor(submission: FormSubmission): QuizResultFrontmatter {
   const email = answerText(answers, "email");
   return {
     quiz: form.id,
+    quizTitle: form.title,
     ...(language ? { language } : {}),
     receivedAt: new Date(receivedAt).toISOString(),
     status: "new",
@@ -89,14 +90,11 @@ function frontmatterFor(submission: FormSubmission): QuizResultFrontmatter {
   };
 }
 
-function record(
-  frontmatter: QuizResultFrontmatter,
-  quizTitle: string,
-): FormRecord {
+function record(frontmatter: QuizResultFrontmatter): FormRecord {
   return {
     content: quizResultAdapter.createContent(frontmatter),
     metadata: quizResultMetadataSchema.parse(
-      quizResultAdapter.metadataFor(frontmatter, quizTitle),
+      quizResultAdapter.metadataFor(frontmatter),
     ),
   };
 }
@@ -123,7 +121,7 @@ export const quizResultTarget: FormTarget<QuizResult> = {
   },
 
   record(submission: FormSubmission): FormRecord {
-    return record(frontmatterFor(submission), submission.form.title);
+    return record(frontmatterFor(submission));
   },
 
   matches(entity: QuizResult, submission: FormSubmission): boolean {
