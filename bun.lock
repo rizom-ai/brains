@@ -664,24 +664,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "interfaces/webserver": {
-      "name": "@brains/webserver",
-      "version": "0.2.0-alpha.671",
-      "dependencies": {
-        "@brains/http-host": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.4.0",
-        "@types/node": "^24.13.3",
-        "eslint": "^10.5.0",
-        "typescript": "^7.0.2",
-      },
-    },
     "packages/book-import": {
       "name": "@brains/book-import",
       "version": "0.2.0-alpha.671",
@@ -755,6 +737,7 @@
         "@brains/faq": "workspace:*",
         "@brains/form": "workspace:*",
         "@brains/guide": "workspace:*",
+        "@brains/http-host": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/knowledge-map": "workspace:*",
@@ -797,7 +780,6 @@
         "@brains/unified-inbox": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/web-chat": "workspace:*",
-        "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
         "@libsql/client": "^0.17.4",
         "@manypkg/get-packages": "^3.1.0",
@@ -2191,6 +2173,7 @@
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/http-host": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/operation-context": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -2953,8 +2936,6 @@
     "@brains/utils": ["@brains/utils@workspace:shared/utils"],
 
     "@brains/web-chat": ["@brains/web-chat@workspace:interfaces/web-chat"],
-
-    "@brains/webserver": ["@brains/webserver@workspace:interfaces/webserver"],
 
     "@brains/wishlist": ["@brains/wishlist@workspace:entities/wishlist"],
 

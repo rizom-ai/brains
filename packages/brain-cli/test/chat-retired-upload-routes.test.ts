@@ -10,7 +10,7 @@ import {
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { refuseNetwork } from "./helpers/refuse-network";
-import { ServerManager, type ServerManagerOptions } from "@brains/webserver";
+import { ServerManager, type ServerManagerOptions } from "@brains/http-host";
 
 type RegisteredHttpRoute = ReturnType<
   NonNullable<ServerManagerOptions["getRoutes"]>

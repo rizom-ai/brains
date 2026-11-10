@@ -57,7 +57,6 @@ const expectedCatalogIds = [
   "oauth-broker",
   "mcp",
   "email",
-  "webserver",
   "web-chat",
   "chat",
   "a2a",
@@ -188,12 +187,12 @@ describe("canonical brain core", () => {
       "starterIdentity.anchorKind",
     );
 
-    const resolvedIds =
-      resolve(
-        canonicalBrain,
-        {},
-        { bundleContract, bundles: ["core"] },
-      ).plugins?.map((plugin) => plugin.id) ?? [];
+    const headless = resolve(
+      canonicalBrain,
+      {},
+      { bundleContract, bundles: ["core"] },
+    );
+    const resolvedIds = headless.plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
       "prompt",
       "profile",
@@ -212,7 +211,7 @@ describe("canonical brain core", () => {
       "a2a",
     ]);
     expect(resolvedIds).toContain("unified-inbox");
-    expect(resolvedIds).not.toContain("webserver");
+    expect(headless.http.enabled).toBe(false);
     expect(resolvedIds).not.toContain("notifications");
   });
 

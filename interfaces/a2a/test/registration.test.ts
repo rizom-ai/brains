@@ -2,11 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { a2aAgentsContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import {
-  createA2APlugin,
-  routeOf,
-  webserverPlugin as webserver,
-} from "./a2a-plugin";
+import { createA2APlugin, routeOf } from "./a2a-plugin";
 
 /**
  * What the A2A interface registers, pinned as its class registered it: the
@@ -47,8 +43,8 @@ describe("the A2A interface's registered surface", () => {
     ).toBe(false);
   });
 
-  it("with a webserver: the card, directory and JSON-RPC routes, its endpoint and way in", async () => {
-    harness.getMockShell().addPlugin(webserver);
+  it("serving HTTP: the card, directory and JSON-RPC routes, its endpoint and way in", async () => {
+    harness.getMockShell().serveHttp();
     const plugin = createA2APlugin();
     await harness.installPlugin(plugin);
     const shell = harness.getMockShell();
@@ -90,7 +86,7 @@ describe("the A2A interface's registered surface", () => {
   });
 
   it("serves no Agent Card until the brain is ready, then the card", async () => {
-    harness.getMockShell().addPlugin(webserver);
+    harness.getMockShell().serveHttp();
     const plugin = createA2APlugin();
     await harness.installPlugin(plugin);
     harness.getMockShell().getProfileKindRegistry().finalize();
@@ -114,7 +110,7 @@ describe("the A2A interface's registered surface", () => {
     });
   });
 
-  it("without a webserver: no route, endpoint or way in", async () => {
+  it("without HTTP: no route, endpoint or way in", async () => {
     const plugin = createA2APlugin();
     await harness.installPlugin(plugin);
     const shell = harness.getMockShell();

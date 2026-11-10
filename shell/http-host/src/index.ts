@@ -12,4 +12,8 @@ export type {
   ServeFn,
 } from "./server-manager";
 export { createApiRouteHandler } from "./api-server";
+export {
+  createRouteToolExecutor,
+  type RouteToolExecutor,
+} from "./route-tool-executor";
 export { placeholderHtml } from "./templates/placeholder";

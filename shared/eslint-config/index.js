@@ -1,8 +1,12 @@
 /* global module */
 
-/** Shell packages plugins never import; @brains/plugins serves them. */
+/**
+ * Shell packages plugins never import; @brains/plugins serves them. The
+ * runtime's HTTP host serves their routes; no plugin opens a listener.
+ */
 const shellServicePackages = [
   "@brains/core",
+  "@brains/http-host",
   "@brains/job-queue",
   "@brains/identity-service",
   "@brains/entity-service",

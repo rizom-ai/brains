@@ -416,23 +416,25 @@ async function bootAndRecord(surface: SurfaceCase): Promise<SurfaceRecord[]> {
       },
       () => new Error(`Brain on ${port} was not ready within 120s`),
     );
-    // Startup work settles before the surface is read: the operational
-    // health answer stops changing between two reads in a row.
+    // Startup work settles before the surface is read: the brain reports
+    // itself operational, with its worker live and no projection wave
+    // running, and that answer stops changing between two reads in a row.
     await pollUntil(
-      Date.now() + 60_000,
+      Date.now() + 90_000,
       async () => {
-        const read = async (): Promise<string> =>
-          JSON.stringify(
-            await requestSurface(port, {
-              path: "/health/operate",
-              read: "json",
-            }),
-          );
+        const read = async (): Promise<SurfaceRecord> =>
+          requestSurface(port, { path: "/health/operate", read: "json" });
         const first = await read();
+        const settled =
+          first.status === 200 &&
+          !JSON.stringify(first.body).includes("is progressing");
+        if (!settled) return undefined;
         await Bun.sleep(1_000);
-        return first === (await read()) ? true : undefined;
+        return JSON.stringify(first) === JSON.stringify(await read())
+          ? true
+          : undefined;
       },
-      () => new Error("Operational health did not settle within 60s"),
+      () => new Error("Operational health did not settle within 90s"),
     );
     return await surface.requests.reduce<Promise<SurfaceRecord[]>>(
       async (records, request) => [

@@ -16,14 +16,8 @@ describe("A2A HTTP routes", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   const tempDirs: string[] = [];
 
-  function installWebserverPlugin(): void {
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+  function serveHttp(): void {
+    harness.getMockShell().serveHttp();
   }
 
   beforeEach(() => {
@@ -101,7 +95,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("returns a helpful 405 for GET /a2a", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
@@ -132,7 +126,7 @@ describe("A2A HTTP routes", () => {
     });
   });
 
-  it("registers without webserver in tool-only mode", async () => {
+  it("registers without HTTP in tool-only mode", async () => {
     const plugin = createA2APlugin({ port: 0 });
 
     const capabilities = await harness.installPlugin(plugin);
@@ -142,7 +136,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("aborts active turns when the A2A daemon stops", async () => {
-    installWebserverPlugin();
+    serveHttp();
     let receivedSignal: AbortSignal | undefined;
     let markStarted: (() => void) | undefined;
     const started = new Promise<void>((resolve) => {
@@ -200,7 +194,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("exposes shared-host routes for agent card and a2a", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
@@ -345,7 +339,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("verifies reverse-proxied signed requests against the external URL", async () => {
-    installWebserverPlugin();
+    serveHttp();
     await harness.installPlugin(
       authServicePlugin({
         storageDir: await tempStorageDir(),
@@ -431,7 +425,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("rejects signed inbound requests with a bad digest", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const remoteAuth = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://remote.example",
@@ -464,7 +458,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("adds cors headers to the agent card route", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 

@@ -37,6 +37,7 @@ import { registerSiteHealthWidget } from "./lib/dashboard-widget";
 import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
+import type { StaticSiteOutput } from "@brains/plugins/internal/http-host";
 import packageJson from "../package.json";
 
 /**
@@ -75,6 +76,15 @@ export class SiteBuilderPlugin extends ServicePlugin<
       siteBuilderConfigSchema,
     );
     this.layouts = layouts;
+  }
+
+  /** Where this builder writes the site the runtime's HTTP host serves. */
+  public getStaticSiteOutput(): StaticSiteOutput {
+    return {
+      productionOutputDir: this.config.productionOutputDir,
+      previewOutputDir: this.config.previewOutputDir,
+      sharedImagesDir: this.config.sharedImagesDir,
+    };
   }
 
   protected override async onRegister(

@@ -69,8 +69,8 @@ export interface A2AInterfaceDeps {
 interface A2AState {
   /** Whether the brain is ready, so the Agent Card reflects it. */
   cardReady: boolean;
-  /** Whether the shared webserver hosts the card and JSON-RPC routes. */
-  readonly hasWebserver: boolean;
+  /** Whether the brain's HTTP host serves the card and JSON-RPC routes. */
+  readonly servesHttp: boolean;
   readonly taskManager: TaskManager;
   readonly turnSupervisor: A2ATurnSupervisor;
   /** Resolves a peer's keys to verify its HTTP signature. */
@@ -363,11 +363,11 @@ export function createA2AInterface(
     setup: (context): A2AState => {
       const { config } = context;
       const runtime = interfaceRuntime(context);
-      const hasWebserver = runtime.hasPlugin("webserver");
+      const { servesHttp } = runtime;
       const clientDeps = createClientDeps(runtime, config, deps);
       const state: A2AState = {
         cardReady: false,
-        hasWebserver,
+        servesHttp,
         taskManager: new TaskManager(),
         turnSupervisor: new A2ATurnSupervisor(),
         // Inbound signature verification fetches the peer's JWKS through the
@@ -384,7 +384,7 @@ export function createA2AInterface(
         networkAskTimeoutMs: config.networkAskTimeoutMs,
       });
 
-      if (hasWebserver) {
+      if (servesHttp) {
         runtime.endpoint({ label: "A2A", url: "/a2a", priority: 25 });
         runtime.interaction({
           id: "a2a",
@@ -413,7 +413,7 @@ export function createA2AInterface(
   /** The card, directory and JSON-RPC routes, on the shared webserver only. */
   const withRoutes = withWebRoutes(a2a, (context: A2ASlotContext) => {
     const { config, state } = context;
-    if (!state.hasWebserver) {
+    if (!state.servesHttp) {
       return [];
     }
     const runtime = interfaceRuntime(context);
@@ -446,7 +446,7 @@ export function createA2AInterface(
     return {
       id: "a2a",
       start: async (): Promise<void> => {
-        if (state.hasWebserver) {
+        if (state.servesHttp) {
           logger.info("A2A mounted on shared webserver host");
         } else {
           logger.info("A2A running without webserver routes");

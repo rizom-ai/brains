@@ -94,6 +94,11 @@ export interface MockShell extends IShell {
   clearEntities(): void;
   registerPlugin(plugin: Plugin): void;
   addPlugin(plugin: Plugin): void;
+  /**
+   * Serve the brain's HTTP surface, as a web brain does. A plugin reads it
+   * when it registers, so set it before the plugin under test registers.
+   */
+  serveHttp(): void;
   getPlugin(pluginId: string): Plugin | undefined;
   getTemplates(): Map<string, Template>;
   setAgentService(agentService: IAgentService): void;
@@ -120,6 +125,8 @@ export interface MockShellOptions {
   preferLocalUrls?: boolean;
   /** Run as a production brain rather than local development */
   production?: boolean;
+  /** Serve the brain's HTTP surface, as a web brain's serving process does */
+  servesHttp?: boolean;
   /** Shared conversation spaces */
   spaces?: string[];
   /** Optional composition-selected semantic profile kind */
@@ -284,6 +291,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const { entities, types: entityTypes } = entityStore;
   const templates = InMemoryTemplateRegistry.createFresh();
   const plugins = new Map<string, Plugin>();
+  let servesHttp = options.servesHttp ?? false;
 
   let agentService: IAgentService =
     options.agentService ?? createDefaultMockAgentService();
@@ -434,6 +442,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,
     isProduction: (): boolean => options.production ?? false,
+    servesHttp: (): boolean => servesHttp,
     getThemeCSS: (): string => options.themeCSS ?? "",
     getSpaces: (): string[] => options.spaces ?? [],
 
@@ -706,6 +715,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
     addPlugin: (plugin: Plugin) => {
       plugins.set(plugin.id, plugin);
+    },
+    serveHttp: () => {
+      servesHttp = true;
     },
     getPlugin: (pluginId: string) => plugins.get(pluginId),
     getTemplates: () => templates.getAll(),

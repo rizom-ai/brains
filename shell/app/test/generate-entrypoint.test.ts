@@ -122,7 +122,7 @@ plugins:
 brain: brain
 bundles: [core]
 plugins:
-  webserver:
+  mcp:
     port: 9090
 `;
     const code = generateEntrypoint(yaml);

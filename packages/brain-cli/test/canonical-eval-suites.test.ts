@@ -91,15 +91,15 @@ const expectedMembers: Record<SuiteName, string> = {
   headless:
     "a2a agents directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat",
   professional:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat",
   providers:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat",
   network:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  docs: "a2a admin agents analytics ask-content auth-service blog chat conversation-memory dashboard decks directory-sync docs email faq form guides link mcp note notifications profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq form image link mcp note notifications onboarding playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat",
+  docs: "a2a admin agents analytics ask-content auth-service blog chat conversation-memory dashboard decks directory-sync docs email faq form guides link mcp note notifications profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat",
+  team: "a2a action-board admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq form image link mcp note notifications onboarding playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 28,
@@ -187,7 +187,7 @@ function createSuiteApp(
     includeMcp,
   );
   if (includeMcp) {
-    expect(resolved.plugins?.some(({ id }) => id === "webserver")).toBe(false);
+    expect(resolved.http.enabled).toBe(false);
     expect(
       resolved.plugins?.find(({ id }) => id === "mcp")?.getWebRoutes?.(),
     ).toEqual([]);

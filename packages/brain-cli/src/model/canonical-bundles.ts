@@ -49,7 +49,9 @@ export const automationBundle: CapabilityBundleDefinition = defineBundle({
 
 export const webBundle: CapabilityBundleDefinition = defineBundle({
   id: WEB_BUNDLE_ID,
-  members: ["webserver", "auth-service", "admin", "dashboard", "studio"],
+  members: ["auth-service", "admin", "dashboard", "studio"],
+  // The runtime serves the web surface, health and the built site over HTTP.
+  http: true,
   config: [{ member: "dashboard", value: { routePath: "/" } }],
   permissions: [
     {
@@ -70,7 +72,7 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
       },
     },
   ],
-  evalDisable: ["webserver", "dashboard"],
+  evalDisable: ["dashboard"],
 });
 
 export const chatBundle: CapabilityBundleDefinition = defineBundle({

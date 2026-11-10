@@ -25,6 +25,7 @@ import {
   type RuntimeProcessRole,
   type RuntimeRoleProfile,
 } from "../runtime-process-role";
+import { HTTP_HOST_DAEMON } from "../http-host";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -246,7 +247,7 @@ export class ShellBootloader {
     // knowledge base stays gated, since an empty index reads as ready.
     let pendingStartupContent: Promise<void> | undefined;
     if (options?.mode !== "startup-check") {
-      await this.startEarlyWebserver();
+      await this.startHttpHost();
 
       // A pluginsRegistered subscriber may queue the initial import for the
       // worker and answer that it is pending. Ready-state defaults then wait
@@ -336,12 +337,12 @@ export class ShellBootloader {
     this.services.logger.debug("Shell boot complete");
   }
 
-  private async startEarlyWebserver(): Promise<void> {
-    const webserverDaemonName = "webserver:webserver";
-    if (!this.services.daemonRegistry.has(webserverDaemonName)) return;
+  /** The HTTP host serves before initial sync, so a brain answers while it imports. */
+  private async startHttpHost(): Promise<void> {
+    if (!this.services.daemonRegistry.has(HTTP_HOST_DAEMON)) return;
 
-    await this.services.daemonRegistry.start(webserverDaemonName);
-    this.services.logger.debug("Started webserver before initial sync");
+    await this.services.daemonRegistry.start(HTTP_HOST_DAEMON);
+    this.services.logger.debug("Started the HTTP host before initial sync");
   }
 
   /** Emit pluginsRegistered; true when a subscriber's initial sync is pending. */

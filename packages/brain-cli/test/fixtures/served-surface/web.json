@@ -228,8 +228,8 @@
             }
           },
           {
-            "name": "mcp:mcp",
-            "pluginId": "mcp",
+            "name": "webserver:webserver",
+            "pluginId": "webserver",
             "status": "running",
             "health": {
               "status": "healthy",
@@ -237,8 +237,8 @@
             }
           },
           {
-            "name": "webserver:webserver",
-            "pluginId": "webserver",
+            "name": "mcp:mcp",
+            "pluginId": "mcp",
             "status": "running",
             "health": {
               "status": "healthy",

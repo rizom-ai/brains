@@ -246,7 +246,6 @@ export type {
   IPermissionsNamespace,
   IDaemonsNamespace,
   IToolsNamespace,
-  IApiRoutesNamespace,
   IWebRoutesNamespace,
   IPluginsNamespace,
   IInterfaceConversationsNamespace,
@@ -715,6 +714,7 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export { toPublicAppInfo } from "./base/public-app-info";
 export {
   publicDaemonHealthSchema,
   publicHealthInfoSchema,

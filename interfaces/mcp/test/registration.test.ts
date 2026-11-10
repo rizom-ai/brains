@@ -10,14 +10,6 @@ function routesOf(plugin: Plugin): WebRouteDefinition[] {
     : [];
 }
 
-const webserver: Plugin = {
-  id: "webserver",
-  version: "1.0.0",
-  type: "interface",
-  packageName: "@brains/webserver",
-  register: async () => ({ tools: [], resources: [] }),
-};
-
 const toolSurface = [
   {
     name: "chat",
@@ -53,7 +45,7 @@ describe("the MCP interface's registered surface", () => {
   it.each(["http", "stdio"] as const)(
     "registers plugin mcp with the chat and confirm tools over %s",
     async (transport) => {
-      if (transport === "http") harness.getMockShell().addPlugin(webserver);
+      if (transport === "http") harness.getMockShell().serveHttp();
       const plugin = createMcpPlugin({ transport });
       const capabilities = await harness.installPlugin(plugin);
 
@@ -96,7 +88,7 @@ describe("the MCP interface's registered surface", () => {
   );
 
   it("over http: the shared-host routes, the MCP endpoint and its way in", async () => {
-    harness.getMockShell().addPlugin(webserver);
+    harness.getMockShell().serveHttp();
     const plugin = createMcpPlugin({ transport: "http" });
     await harness.installPlugin(plugin);
     const shell = harness.getMockShell();

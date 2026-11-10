@@ -16,6 +16,7 @@ import {
   type StandardConfig,
   type StandardPaths,
 } from "./standardConfig";
+import { httpHostConfigSchema, type HttpHostConfigInput } from "./http-config";
 
 export type { StandardConfig } from "./standardConfig";
 
@@ -110,6 +111,7 @@ export const shellConfigSchema: z.ZodObject<{
     z.ZodRecord<z.ZodString, typeof entityDisplayEntrySchema>
   >;
   profileKind: z.ZodOptional<z.ZodString>;
+  http: z.ZodPrefault<typeof httpHostConfigSchema>;
 }> = z.object({
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
@@ -168,6 +170,8 @@ export const shellConfigSchema: z.ZodObject<{
   themeCSS: z.string().default(""),
   entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
   profileKind: z.string().trim().min(1).optional(),
+  /** The runtime's HTTP listener, resolved by the app layer. */
+  http: httpHostConfigSchema.prefault({}),
 });
 
 export type ShellConfigSchemaOutput = z.output<typeof shellConfigSchema>;
@@ -188,13 +192,14 @@ export type ShellConfig = Omit<
 export type ShellConfigInput = Partial<
   Omit<
     ShellConfig,
-    "ai" | "logging" | "database" | "embedding" | "jobQueue"
+    "ai" | "logging" | "database" | "embedding" | "jobQueue" | "http"
   > & {
     ai?: Partial<ShellConfig["ai"]>;
     logging?: Partial<ShellConfig["logging"]>;
     database?: Partial<ShellConfig["database"]>;
     embedding?: Partial<ShellConfig["embedding"]>;
     jobQueue?: Partial<ShellConfig["jobQueue"]>;
+    http?: HttpHostConfigInput;
   }
 >;
 

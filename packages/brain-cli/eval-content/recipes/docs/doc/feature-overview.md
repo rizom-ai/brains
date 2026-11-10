@@ -78,7 +78,7 @@ A core-only brain is headless and private. It can call approved peers, but it se
 
 `web` owns the inbound HTTP surface:
 
-- shared webserver and health endpoints;
+- the runtime's shared HTTP host and health endpoints;
 - passkey and OAuth authentication;
 - Account and Admin consoles;
 - Dashboard operator views;

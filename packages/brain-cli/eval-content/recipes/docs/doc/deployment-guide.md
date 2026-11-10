@@ -323,7 +323,7 @@ docker run -d \
 
 ## Health checks and recovery
 
-The webserver exposes three health surfaces:
+The brain's HTTP host exposes three health surfaces:
 
 - `/health/live` is a dependency-free event-loop liveness probe;
 - `/health/ready` checks web-critical database and routing readiness;

@@ -397,7 +397,7 @@ plugins:
       ).toBe(true);
       expect(stderr).not.toContain("Production server listening");
       expect(stderr).not.toContain(
-        "MCP HTTP transport requires the webserver interface",
+        "MCP HTTP transport requires the brain to serve HTTP",
       );
     } finally {
       if (connected) await client.close();

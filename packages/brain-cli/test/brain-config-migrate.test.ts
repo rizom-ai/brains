@@ -374,13 +374,23 @@ describe("brain config migration preview", () => {
           `brain: ${migrationCase.model}\npreset: ${migrationCase.preset}\n`,
         ).output,
       );
-      const members = resolveBundleSelection({
+      const resolution = resolveBundleSelection({
         catalogIds,
         definitions: canonicalBundles,
         selected: migrated.bundles ?? [],
         ...(migrated.add ? { add: migrated.add } : {}),
         ...(migrated.remove ? { remove: migrated.remove } : {}),
-      }).activeMembers;
+      });
+      // The retired webserver member is the runtime's HTTP host now, which a
+      // selected bundle that hosts HTTP keeps serving.
+      const hostsHttp = canonicalBundles.some(
+        ({ id, http }) =>
+          http === true && resolution.activeBundles.includes(id),
+      );
+      const members = [
+        ...resolution.activeMembers,
+        ...(hostsHttp ? ["webserver"] : []),
+      ];
       const legacyMembers = [...new Set(migrationCase.legacyMembers)];
 
       expect(
