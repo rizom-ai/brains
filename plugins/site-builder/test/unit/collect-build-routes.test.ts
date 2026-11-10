@@ -192,6 +192,39 @@ describe("collectBuildRoutes alternates and navigation", () => {
 });
 
 describe("collectBuildRoutes translated chrome", () => {
+  it("builds a page its plugin fills per request in each language it names, without saved copy", async () => {
+    const FORM = {
+      id: "brand-test",
+      path: "/brand-test",
+      title: "Brand test",
+      sections: [
+        { id: "form", template: "quiz:page", content: { slot: "brand-test" } },
+      ],
+      languages: ["zh-TW"],
+      translations: { "zh-TW": { title: "品牌測驗" } },
+    };
+    const copy = savedCopy([]);
+    const { routes } = await collectBuildRoutes(registry([FORM]), {
+      languages: ["en", "zh-TW", "nl"],
+      siteTranslations: { ...CHINESE_SITE, nl: { title: "De vierde" } },
+      hasSavedCopy: copy.hasSavedCopy,
+    });
+    expect(
+      routes.map(({ id, path, language, title }) => [
+        id,
+        path,
+        language,
+        title,
+      ]),
+    ).toEqual([
+      ["brand-test", "/brand-test", "en", "Brand test"],
+      ["zh-tw:brand-test", "/zh-tw/brand-test", "zh-TW", "品牌測驗"],
+    ]);
+    // Its plugin fills it, so it keeps the content it names the slot with.
+    expect(routes[1]?.sections[0]?.content).toEqual({ slot: "brand-test" });
+    expect(copy.asked).toEqual([]);
+  });
+
   it("builds nothing in a language the site-info is not translated into", async () => {
     const copy = savedCopy(["zh-tw:home:cover", "zh-tw:home:story"]);
     const { routes } = await collectBuildRoutes(registry([HOME]), {

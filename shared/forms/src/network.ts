@@ -6,7 +6,7 @@ const ipv6 = z.ipv6();
 /** Caller supplies host-owned socket metadata, never a forwarding header or cookie.
  * /24 and /64 buckets intentionally limit address rotation within one network.
  */
-export function contactNetwork(peer: string | undefined): string | undefined {
+export function peerNetwork(peer: string | undefined): string | undefined {
   if (!peer) return undefined;
   if (ipv4.safeParse(peer).success)
     return `v4:${peer.split(".").slice(0, 3).join(".")}`;
@@ -45,7 +45,7 @@ export function isPrivatePeer(peer: string | undefined): boolean {
   if (!peer) return false;
   if (ipv6.safeParse(peer).success && !peer.includes("%"))
     if (new URL(`http://[${peer}]`).hostname === "[::1]") return true;
-  const network = contactNetwork(peer);
+  const network = peerNetwork(peer);
   if (!network) return false;
   if (network.startsWith("v4:")) {
     const [a, b] = network.slice(3).split(".").map(Number);

@@ -401,6 +401,65 @@ describe("EmailInterface", () => {
     });
   });
 
+  it("sends an answer to the reply-to address, and refuses one that is not an address", async () => {
+    const fetchImpl = mock(
+      async (_input: string | URL | Request) =>
+        new Response(JSON.stringify({ id: "resend_alert_1" }), { status: 200 }),
+    );
+    const harness = createPluginHarness();
+    await harness.installPlugin(
+      createEmailPlugin(
+        {
+          transport: "resend",
+          apiKey: "resend-key",
+          from: "Rover <rover@example.com>",
+        },
+        { fetchImpl },
+      ),
+    );
+    await harness.finalizeRegistration();
+    const provider = harness
+      .getMockShell()
+      .getChannelRegistry()
+      .getDeliveryProvider("email");
+    expect(
+      await provider?.send({
+        recipient: "owner@example.com",
+        subject: "New contact request",
+        text: "Name: Ada",
+        idempotencyKey: "contact-notification:1",
+        sensitivity: "secret",
+        replyTo: "ada@example.com",
+      }),
+    ).toEqual({ status: "sent", providerDeliveryId: "resend_alert_1" });
+    expect(fetchImpl).toHaveBeenCalledWith("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer resend-key",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "contact-notification:1",
+      },
+      body: JSON.stringify({
+        from: "Rover <rover@example.com>",
+        to: "owner@example.com",
+        subject: "New contact request",
+        text: "Name: Ada",
+        reply_to: "ada@example.com",
+      }),
+    });
+    expect(
+      await provider?.send({
+        recipient: "owner@example.com",
+        subject: "New contact request",
+        text: "Name: Ada",
+        idempotencyKey: "contact-notification:2",
+        sensitivity: "secret",
+        replyTo: "ada@example.com\r\nBcc: other@example.com",
+      }),
+    ).toEqual({ status: "failed", failureCode: "email_delivery_failed" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it("maps ordered reply threading into Resend headers", async () => {
     const fetchImpl = mock(
       async (_input: string | URL | Request) =>

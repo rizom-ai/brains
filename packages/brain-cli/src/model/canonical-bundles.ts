@@ -99,7 +99,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
 
 export const siteBundle: CapabilityBundleDefinition = defineBundle({
   id: SITE_BUNDLE_ID,
-  members: ["site-info", "site-content", "site-builder", "analytics"],
+  members: ["site-info", "site-content", "site-builder", "form", "analytics"],
   config: [
     {
       member: "dashboard",

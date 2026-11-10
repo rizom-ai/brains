@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.245
+
+### Patch Changes
+
+- [#857](https://github.com/rizom-ai/brains/pull/857) [`b48235b`](https://github.com/rizom-ai/brains/commit/b48235b1589bfcfe46398086b35a678ae0ac7863) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site route may name the languages its plugin fills it in per request (`languages`); the site builds the page in each without saved copy, so a form's pages exist in every language it is translated to. The Fourth dresses the brain's forms, the brand test among them, on its paper stage: each step a card, each answer a cut-out that turns mustard when picked, its ink pills for buttons and its red for errors. Deploy with the brain release that serves forms from content.
+
 ## 0.2.0-alpha.244
 
 ### Patch Changes

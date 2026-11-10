@@ -472,18 +472,36 @@ Use `type: "buttondown"` with `apiKey` and optional `doubleOptIn` for Buttondown
 
 ### `contact-request`
 
-`contact-request` records are created only by the explicitly configured, default-off `@brains/contact` capability. They are always `restricted`, excluded from embeddings, full-text search, and projection inputs, and shown only through the Admin-only contact Inbox source. Submitted name, email, and message stay in the Markdown body/frontmatter rather than query metadata.
+`contact-request` records are created only by the explicitly added `@brains/contact` capability, from its contact form or another form that targets them. They are always `restricted`, excluded from embeddings, full-text search, and projection inputs, and shown only through the Admin-only contact Inbox source. Submitted name, email, and message stay in the Markdown body/frontmatter rather than query metadata. Requests are kept until the owner deletes them.
 
 Key frontmatter:
 
 - `name`
 - `email`
 - `receivedAt`
-- `expiresAt`
 - `status` (`new` or `handled`)
 - `notification` (`pending`, `sent`, or `failed`)
 
-The configured retention period must be finite and no longer than 90 days. Startup and recurring maintenance recover pending notification jobs and delete expired records; deployment-specific retention, backup privacy, proxy policy, limits, publication, and enablement require separate approval.
+A request written before requests were kept, with an `expiresAt`, is still read; the field is never written again. Startup and recurring maintenance re-enqueue pending notification jobs and delete nothing.
+
+### `quiz-result`
+
+`quiz-result` records are created only by the explicitly added `@brains/quiz` capability, one for each quiz taken. They are always `restricted` and excluded from embeddings, full-text search, and projection inputs. Each says what was asked and answered and which results were shown, so a later edit to its quiz never changes it, and is filed under its quiz (`<quiz>:<key>`). It is an Inbox to-do only when its taker left an email.
+
+Key frontmatter:
+
+- `quiz`, `language` (when taken in a translation), `receivedAt`
+- `results` (`dimension`, `title`, `outcome`, `outcomeTitle`)
+- `answers` (`field`, `label`, `value`)
+- `name`, `email` (when given)
+- `status` (`new` or `handled`)
+- `notification` (`pending`, `sent`, `failed`, or `none`)
+
+## Site forms
+
+### `form`
+
+A `form` entity (`@brains/form`, in the `site` bundle) defines a public form on the brain's site: its frontmatter is the definition (`target`, `path`, copy, `steps` of fields, optional `scoring`, `notify`, `limits`, `translations`), its body the intro, and its id the form's. The package that owns the target type serves it; a form with a built-in form's id rewords that form. A definition the engine would not run is refused on persist. Forms are never knowledge or model input. See `shared/forms/README.md`.
 
 ## Agent directory entities
 

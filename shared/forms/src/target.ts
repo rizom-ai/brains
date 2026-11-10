@@ -1,0 +1,59 @@
+import type { BaseEntity } from "@brains/plugins";
+import type { z } from "@brains/utils/zod";
+import type { FormAlertAnswer } from "./alert";
+import type { FormDefinition } from "./definition";
+import type { FormNotificationState } from "./delivery";
+import type { FormResult } from "./score";
+import type { FormAnswers } from "./validate";
+
+/** One accepted submission, before it is stored. */
+export interface FormSubmission {
+  form: FormDefinition;
+  answers: FormAnswers;
+  receivedAt: number;
+  /** Whether the owner is alerted; a record without an alert says none. */
+  notify: boolean;
+  /** A scored form's result in each dimension it scored. */
+  results: FormResult[];
+  /** The language it was answered in, when not the one the form is written in. */
+  language?: string | undefined;
+}
+
+/** A record as its package writes it: markdown and the metadata queried. */
+export interface FormRecord {
+  content: string;
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * The package that owns a form's submissions: it stores each as its own
+ * entity type and says what its records mean. The engine never interprets
+ * a record itself.
+ */
+export interface FormTarget<E extends BaseEntity = BaseEntity> {
+  readonly entityType: string;
+  /** `:` files the type's records in a folder per form, as Studio lists
+   * them (`brand-test:<key>`); `-` (the default) keeps them side by side. */
+  readonly idSeparator?: "-" | ":" | undefined;
+  readonly schema: z.ZodType<E>;
+  /** Why a form cannot produce this type, or nothing when it can. */
+  refuse(form: FormDefinition): string | undefined;
+  /** The new record for a submission, its alert pending, or none when its
+   * form sends none. */
+  record(submission: FormSubmission): FormRecord;
+  /** Whether a stored record is this submission, read back after a write. */
+  matches(entity: E, submission: FormSubmission): boolean;
+  notification(entity: E): FormNotificationState;
+  withNotification(entity: E, notification: "sent" | "failed"): FormRecord;
+  /** Whether its owner has dealt with it. */
+  handled(entity: E): boolean;
+  /** What the owner's alert carries, and who answering it reaches. */
+  alert(
+    entity: E,
+    form: FormDefinition,
+  ): {
+    answers: FormAlertAnswer[];
+    outcomes?: FormAlertAnswer[] | undefined;
+    replyTo?: string | undefined;
+  };
+}

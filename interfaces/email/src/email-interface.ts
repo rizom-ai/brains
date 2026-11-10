@@ -399,6 +399,8 @@ async function deliver(
       ...(input.threading
         ? { threading: emailDeliveryThreadingSchema.parse(input.threading) }
         : {}),
+      // An address only: never a header line of its own.
+      ...(input.replyTo ? { replyTo: z.email().parse(input.replyTo) } : {}),
       idempotencyKey: input.idempotencyKey,
     });
     if (result.status === "sent")
@@ -441,6 +443,7 @@ async function sendWithResend(
     text: string;
     html?: string | undefined;
     threading?: EmailDeliveryThreading | undefined;
+    replyTo?: string | undefined;
     idempotencyKey?: string | undefined;
   },
 ): Promise<EmailSendResult> {
@@ -459,6 +462,7 @@ async function sendWithResend(
       subject: input.subject,
       text: input.text,
       ...(input.html ? { html: input.html } : {}),
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
       ...(input.threading
         ? {
             headers: {

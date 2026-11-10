@@ -115,6 +115,7 @@ export const RouteDefinitionSchema: z.ZodObject<{
   translations: z.ZodOptional<
     z.ZodRecord<typeof languageTagSchema, typeof routeTranslationSchema>
   >;
+  languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
 }> = z.object({
   id: z.string(),
   path: z.string(),
@@ -130,6 +131,12 @@ export const RouteDefinitionSchema: z.ZodObject<{
   external: z.boolean().optional(),
   navigation: NavigationMetadataSchema,
   translations: z.record(languageTagSchema, routeTranslationSchema).optional(),
+  /**
+   * Languages its plugin fills this page in per request, such as a form's
+   * translations: built in each without saved copy, its sections as they
+   * are. Other routes are translated by their saved copy.
+   */
+  languages: z.array(languageTagSchema).optional(),
 });
 
 /** Message payload schemas for route operations. */
@@ -184,6 +191,38 @@ export const siteBuilderRoutesContract: BusContract<
   request: siteBuilderRoutesRequestSchema,
   response: siteBuilderRoutesResponseSchema,
   delivery: "request",
+});
+
+type SiteBuilderPagesRequestSchema = z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
+>;
+
+export const siteBuilderPagesRequestSchema: SiteBuilderPagesRequestSchema =
+  z.strictObject({});
+
+type SiteBuilderPagesResponseSchema = z.ZodArray<typeof RouteDefinitionSchema>;
+
+export const siteBuilderPagesResponseSchema: SiteBuilderPagesResponseSchema =
+  z.array(RouteDefinitionSchema);
+
+/**
+ * Collected when a site builds: each plugin answers with the pages it adds
+ * to this build, such as one per form defined in the brain's content. Asked
+ * for at build time, like slots, because the worker that builds never hears
+ * a registration made after it booted; answer in every process. A page
+ * names its templates in full (`<pluginId>:<name>`) and never displaces a
+ * registered route at the same path.
+ */
+export const siteBuilderPagesContract: BusContract<
+  SiteBuilderPagesRequestSchema,
+  SiteBuilderPagesResponseSchema,
+  "collect"
+> = defineBusContract({
+  channel: "plugin:site-builder:pages",
+  request: siteBuilderPagesRequestSchema,
+  response: siteBuilderPagesResponseSchema,
+  delivery: "collect",
 });
 
 /** Navigation item shape for extracted navigation data. */
