@@ -41,6 +41,7 @@ import type {
   UpdateEntityRequest,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
+import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { SystemChannelName } from "../system-channels";
 import type { DashboardWidgetRenderer } from "../contracts/dashboard-widget-contracts";
 import type {
@@ -293,6 +294,12 @@ export interface ServiceRuntime {
    */
   readonly localSiteUrl: string | undefined;
   readonly preferLocalUrls: boolean;
+  /**
+   * The site's entity display, as registration hands it: each type's
+   * label and the page its records live on, which routes and links follow.
+   */
+  readonly entityDisplay:
+    Readonly<Record<string, EntityDisplayEntry>> | undefined;
   /** The route another plugin mounts for a well-known role, if any. */
   routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
   /**
@@ -510,6 +517,8 @@ export interface ServiceRuntimeBinding {
   readonly previewUrl: string | undefined;
   readonly localSiteUrl: string | undefined;
   readonly preferLocalUrls: boolean;
+  readonly entityDisplay:
+    Readonly<Record<string, EntityDisplayEntry>> | undefined;
   readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
@@ -563,6 +572,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     previewUrl: binding.previewUrl,
     localSiteUrl: binding.localSiteUrl,
     preferLocalUrls: binding.preferLocalUrls,
+    entityDisplay: binding.entityDisplay,
     routeByRole: binding.routeByRole,
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,

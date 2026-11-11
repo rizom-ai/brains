@@ -1155,6 +1155,7 @@ class DeclarativeServicePlugin<
       previewUrl: context.previewUrl,
       localSiteUrl: context.localSiteUrl,
       preferLocalUrls: context.preferLocalUrls,
+      entityDisplay: context.entityDisplay,
       routeByRole: (role) => context.webRoutes.findByRole(role),
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);

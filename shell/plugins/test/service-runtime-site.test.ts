@@ -5,16 +5,21 @@ import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
   serviceRuntime,
+  type PluginRegistrationContext,
   type ServiceRuntime,
 } from "../src";
 
 /**
  * A first-party site builder converted from a class reads where the site
  * is as its class did: its preview URL beside the site URL, the local URL
- * a brain without a public domain links to and whether links prefer it.
+ * a brain without a public domain links to and whether links prefer it,
+ * and the site's entity display, which names each type's page.
  */
 
-async function runtimeOn(options: MockShellOptions): Promise<ServiceRuntime> {
+async function runtimeOn(
+  options: MockShellOptions,
+  registration: PluginRegistrationContext = {},
+): Promise<ServiceRuntime> {
   let runtime: ServiceRuntime | undefined;
   const [plugin] = instantiatePluginPackageDefinition(
     defineServicePlugin({
@@ -29,7 +34,7 @@ async function runtimeOn(options: MockShellOptions): Promise<ServiceRuntime> {
     { name: "@brains/probe", version: "0.1.0" },
     { pluginId: "probe" },
   );
-  await plugin?.register(createMockShell(options));
+  await plugin?.register(createMockShell(options), registration);
   if (!runtime) throw new Error("Setup did not run");
   return runtime;
 }
@@ -65,5 +70,15 @@ describe("where a first-party site builder's site is", () => {
       previewUrl: undefined,
       preferLocalUrls: false,
     });
+  });
+
+  it("reads the site's entity display, as registration hands it", async () => {
+    const entityDisplay = {
+      post: { label: "Essay", pluralName: "essays" },
+    };
+    expect((await runtimeOn({}, { entityDisplay })).entityDisplay).toEqual(
+      entityDisplay,
+    );
+    expect((await runtimeOn({})).entityDisplay).toBeUndefined();
   });
 });
