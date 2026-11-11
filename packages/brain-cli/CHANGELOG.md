@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.684
+
+### Patch Changes
+
+- [#921](https://github.com/rizom-ai/brains/pull/921) [`4a34334`](https://github.com/rizom-ai/brains/commit/4a34334821c55487e9f4fc2481240c8b741ffaba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio creates a missing singleton of a declared type, such as a deleted style guide, under its type's id again instead of refusing it.
+
 ## 0.2.0-alpha.683
 
 ### Patch Changes
