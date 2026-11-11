@@ -1,7 +1,8 @@
 import {
-  generateObject,
+  generateText,
   jsonSchema,
   NoSuchToolError,
+  Output,
   type LanguageModel,
   type ToolCallRepairFunction,
   type ToolSet,
@@ -18,13 +19,13 @@ export function createToolCallRepair(
   model: LanguageModel,
   providerOptions?: ReasoningProviderOptions,
 ): ToolCallRepairFunction<ToolSet> {
-  return async ({ toolCall, inputSchema, error, messages, system }) => {
+  return async ({ toolCall, inputSchema, error, messages, instructions }) => {
     if (NoSuchToolError.isInstance(error)) return null;
     const schema = await inputSchema({ toolName: toolCall.toolName });
-    const { object } = await generateObject({
+    const { output } = await generateText({
       model,
-      schema: jsonSchema(schema),
-      ...(system !== undefined && { system }),
+      output: Output.object({ schema: jsonSchema(schema) }),
+      ...(instructions !== undefined && { instructions }),
       messages: [
         ...messages,
         {
@@ -34,6 +35,6 @@ export function createToolCallRepair(
       ],
       ...(providerOptions && { providerOptions }),
     });
-    return { ...toolCall, input: JSON.stringify(object) };
+    return { ...toolCall, input: JSON.stringify(output) };
   };
 }
