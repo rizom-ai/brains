@@ -1,5 +1,16 @@
 # @brains/knowledge-map
 
+## 0.2.0-alpha.683
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.683
+  - @rizom/brain-ui@0.2.0-alpha.683
+  - @brains/content-formatters@0.2.0-alpha.683
+  - @brains/contracts@0.2.0-alpha.683
+  - @brains/utils@0.2.0-alpha.683
+
 ## 0.2.0-alpha.682
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.683
+
+### Patch Changes
+
+- [#920](https://github.com/rizom-ai/brains/pull/920) [`0018a6e`](https://github.com/rizom-ai/brains/commit/0018a6e18c9c76410a053373b63781d32f0c3802) Thanks [@yeehaa123](https://github.com/yeehaa123)! - After an upload with no answer of the brain's own to save, "save it" saves the newest upload as itself: the upload refs name that save as a call candidate, as they name the prior response and the save of several attached files.
+
 ## 0.2.0-alpha.682
 
 ### Patch Changes
