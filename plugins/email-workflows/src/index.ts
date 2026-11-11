@@ -60,10 +60,12 @@ export {
 } from "./triage-processor";
 export {
   createMailClassifier,
+  MailClassificationError,
   buildClassificationPrompt,
   DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
   EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
   type MailClassifier,
+  type MailClassificationCause,
 } from "./lib/classifier";
 export {
   MailThreadOrdinalCoordinator,

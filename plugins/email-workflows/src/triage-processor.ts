@@ -2,7 +2,11 @@ import { inboundEmailSchema, type InboundEmail } from "@brains/contracts";
 import type { IRuntimeStateStore, MessageResponse } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { isDeterministicBulkMail } from "./lib/bulk-filter";
-import type { MailClassifier } from "./lib/classifier";
+import {
+  MailClassificationError,
+  type MailClassificationCause,
+  type MailClassifier,
+} from "./lib/classifier";
 import {
   createMailItemProjection,
   createUnclassifiedMailItemProjection,
@@ -85,21 +89,55 @@ export class EmailTriageProcessor {
       return this.persistFallback(email, itemId);
     }
 
+    let projection: MailItemProjection;
     try {
-      const decision = mailTriageDecisionSchema.parse(
-        await this.classify(email),
-      );
+      const decision = await this.classification(email);
       if (decision.decision === "discard") {
         return await this.resolveAttemptState(itemId);
       }
+      projection = this.derivedProjection(email, decision);
+    } catch (error) {
+      // Only the failure's content-free category is carried into the failure
+      // path: classification runs over mail content, and "does not expose
+      // mailbox or exception content in logs" asserts none of it reaches a log.
+      return this.handleClassificationFailure(
+        email,
+        itemId,
+        priorFailures,
+        error instanceof MailClassificationError
+          ? error.classificationCause
+          : "model-call",
+      );
+    }
+    return this.persistProjection(projection, itemId);
+  }
+
+  /** The classifier's decision, checked against the fixed schema. */
+  private async classification(
+    email: InboundEmail,
+  ): Promise<ReturnType<typeof mailTriageDecisionSchema.parse>> {
+    // A classifier that fails without naming its stage failed its call.
+    const answer = await this.classify(email);
+    try {
+      return mailTriageDecisionSchema.parse(answer);
+    } catch (error) {
+      throw new MailClassificationError("decision-schema", error);
+    }
+  }
+
+  /** The projection a retained decision derives, refused when it copies the mail. */
+  private derivedProjection(
+    email: InboundEmail,
+    decision: Extract<
+      ReturnType<typeof mailTriageDecisionSchema.parse>,
+      { decision: "retain" }
+    >,
+  ): MailItemProjection {
+    try {
       assertClassificationIsDerived(email, decision);
-      const projection = createMailItemProjection(email, decision);
-      return await this.persistProjection(projection, itemId);
-    } catch {
-      // The error is dropped rather than carried into the failure path:
-      // classification runs over mail content, and "does not expose mailbox
-      // or exception content in logs" asserts none of it reaches a log.
-      return this.handleClassificationFailure(email, itemId, priorFailures);
+      return createMailItemProjection(email, decision);
+    } catch (error) {
+      throw new MailClassificationError("not-derived", error);
     }
   }
 
@@ -107,6 +145,7 @@ export class EmailTriageProcessor {
     email: InboundEmail,
     itemId: string,
     priorFailures: number,
+    cause: MailClassificationCause,
   ): Promise<MessageResponse> {
     const failures = priorFailures + 1;
     try {
@@ -117,6 +156,7 @@ export class EmailTriageProcessor {
     this.logger.warn("Inbound email classification failed", {
       itemId,
       attempt: failures,
+      cause,
     });
     if (failures < 3) {
       return { success: false, error: "Email classification failed" };
