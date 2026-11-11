@@ -1,5 +1,29 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.683
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.683
+  - @brains/contracts@0.2.0-alpha.683
+  - @brains/media-renderer@0.2.0-alpha.683
+  - @brains/site-engine@0.2.0-alpha.683
+  - @brains/utils@0.2.0-alpha.683
+  - @brains/plugins@0.2.0-alpha.683
+
+## 0.2.0-alpha.682
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.682
+  - @brains/contracts@0.2.0-alpha.682
+  - @brains/media-renderer@0.2.0-alpha.682
+  - @brains/site-engine@0.2.0-alpha.682
+  - @brains/utils@0.2.0-alpha.682
+  - @brains/plugins@0.2.0-alpha.682
+
 ## 0.2.0-alpha.681
 
 ### Patch Changes
