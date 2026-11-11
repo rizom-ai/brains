@@ -70,7 +70,7 @@ const convertedInterfacePackages = [
 ];
 
 /** Service packages converted to declarative definitions. */
-const convertedServicePackages = ["stock-photo"];
+const convertedServicePackages = ["stock-photo", "site-builder"];
 
 const classBaseBan = {
   name: "@brains/plugins",

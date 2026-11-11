@@ -86,7 +86,7 @@ async function installed(
     payload: {},
     sender: "shell",
   });
-  await plugin.ready?.();
+  await plugin.ready();
   return { shell, plugin, workspaces, widgets, capabilities };
 }
 

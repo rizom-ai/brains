@@ -3,7 +3,7 @@ import {
   siteBuilderRoutesContract,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { IMessagingNamespace } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { registerConfigRoutes } from "./route-helpers";
 
@@ -15,7 +15,7 @@ import { registerConfigRoutes } from "./route-helpers";
 // ordinary subscriptions, and its registry has to hear the pages plugins
 // declare.
 export function setupRouteHandlers(
-  context: Pick<ServicePluginContext, "messaging">,
+  context: { readonly messaging: Pick<IMessagingNamespace, "answer"> },
   routeRegistry: RouteRegistry,
   logger: Logger,
 ): void {

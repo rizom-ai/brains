@@ -2,6 +2,7 @@ import { createMockShell } from "@brains/plugins/test";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
+  createBuiltInStudioWorkspaceRegistration,
   createServicePluginContext,
   type BaseEntity,
   type StudioWorkspaceActor,
@@ -180,7 +181,27 @@ export async function createDeliveryViewFixtures(
     }
   }
   await new FixtureSiteProvider({
-    context: siteContext,
+    messaging: siteContext.messaging,
+    siteUrl: siteContext.siteUrl,
+    previewUrl: siteContext.previewUrl,
+    // Studio as a first-party service reaches it: the workspace built under
+    // the plugin's id and registered with the fixture's Studio.
+    studio: {
+      isAvailable: (): boolean => siteContext.studio.isAvailable(),
+      source: (
+        input,
+      ): ReturnType<typeof createBuiltInStudioWorkspaceRegistration> =>
+        createBuiltInStudioWorkspaceRegistration({
+          ...input,
+          context: siteContext,
+        }),
+      register: async (registration): Promise<string | undefined> => {
+        const result = await siteContext.studio.registerWorkspace(registration);
+        return result === false ? undefined : result.workspaceUrl;
+      },
+      unregister: (workspaceId): Promise<boolean> =>
+        siteContext.studio.unregisterWorkspace(workspaceId),
+    },
     config: siteBuilderConfigSchema.parse({}),
     routeRegistry: new RouteRegistry(siteContext.logger),
     statusService: new SiteBuildStatusService(

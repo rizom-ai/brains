@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
+import { navigationDataSource } from "../../src/datasources/navigation-datasource";
 import { RouteRegistry } from "@brains/site-engine";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import type { ServiceCorpusReads } from "@brains/sdk/internal/service-runtime";
 
 // Test schema for navigation data (matches what NavigationDataSource returns)
 const testNavigationSchema = z.object({
@@ -15,14 +16,40 @@ const testNavigationSchema = z.object({
   ),
 });
 
+const unread = (): Promise<never> =>
+  Promise.reject(new Error("Navigation reads no records"));
+
+/** Navigation answers from the route registry alone. */
+const noCorpus: ServiceCorpusReads = {
+  listEntities: unread,
+  getEntity: unread,
+  countEntities: unread,
+  nearestToEntity: unread,
+  projectSemanticSpace: unread,
+};
+
+/** The source as the runtime serves it: its answer validated by the caller's schema. */
+interface ServedSource {
+  fetch<T>(query: unknown, schema: z.ZodType<T>): Promise<T>;
+}
+
 describe("NavigationDataSource", () => {
-  let dataSource: NavigationDataSource;
+  let dataSource: ServedSource;
   let routeRegistry: RouteRegistry;
   const logger = createSilentLogger("test");
 
   beforeEach(() => {
     routeRegistry = new RouteRegistry(logger);
-    dataSource = new NavigationDataSource(routeRegistry, logger);
+    const declaration = navigationDataSource(routeRegistry, logger);
+    dataSource = {
+      fetch: async <T>(query: unknown, schema: z.ZodType<T>): Promise<T> =>
+        schema.parse(
+          await declaration.fetch(query, {
+            corpus: noCorpus,
+            publishedOnly: false,
+          }),
+        ),
+    };
   });
 
   it("should provide navigation data for footer component", async () => {

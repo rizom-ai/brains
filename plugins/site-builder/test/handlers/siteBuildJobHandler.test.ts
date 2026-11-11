@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { messagingFor } from "../test-helpers";
-import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
+import {
+  createSiteBuildJobHandler,
+  type SiteBuildTestHandler,
+} from "../site-build-job";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
 import { UISlotRegistry } from "@brains/site-engine";
@@ -10,8 +13,8 @@ import { createSilentLogger } from "@brains/test-utils";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import type { BuildStatusRecorder } from "../../src/handlers/siteBuildJobHandler";
 
-describe("SiteBuildJobHandler", () => {
-  let handler: SiteBuildJobHandler;
+describe("SiteBuildTestHandler", () => {
+  let handler: SiteBuildTestHandler;
   let mockSiteBuilder: ISiteBuilder;
 
   beforeEach(() => {
@@ -32,7 +35,7 @@ describe("SiteBuildJobHandler", () => {
       description: "Test Description",
     };
 
-    handler = new SiteBuildJobHandler(
+    handler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(),
       {
@@ -148,7 +151,7 @@ describe("SiteBuildJobHandler", () => {
         description: "Test Description",
       };
 
-      const handlerWithSlots = new SiteBuildJobHandler(
+      const handlerWithSlots = createSiteBuildJobHandler(
         createSilentLogger("test"),
         messagingFor(),
         {
@@ -187,7 +190,7 @@ describe("SiteBuildJobHandler", () => {
         };
       },
     };
-    const bilingualHandler = new SiteBuildJobHandler(
+    const bilingualHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(),
       {
@@ -238,7 +241,7 @@ describe("SiteBuildJobHandler", () => {
         errors: ["[build-cancelled] Site build cancelled: superseded"],
       })),
     };
-    const cancelledHandler = new SiteBuildJobHandler(
+    const cancelledHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(),
       {
@@ -294,7 +297,7 @@ describe("SiteBuildJobHandler", () => {
           errors: ["[build-cancelled] Site build cancelled"],
         })),
       };
-      const handler = new SiteBuildJobHandler(
+      const handler = createSiteBuildJobHandler(
         createSilentLogger("test"),
         messagingFor(),
         {
@@ -332,7 +335,7 @@ describe("SiteBuildJobHandler", () => {
         errors: ["tailwindcss: Can't resolve 'tailwindcss'", "Second problem"],
       })),
     };
-    const handler = new SiteBuildJobHandler(
+    const handler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(),
       {
@@ -381,7 +384,7 @@ describe("SiteBuildJobHandler", () => {
         routesBuilt: 10,
       })),
     };
-    const unchangedHandler = new SiteBuildJobHandler(
+    const unchangedHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(),
       {
@@ -426,7 +429,7 @@ describe("SiteBuildJobHandler", () => {
         filesGenerated: 10,
         routesBuilt: 10,
       }));
-      const retryHandler = new SiteBuildJobHandler(
+      const retryHandler = createSiteBuildJobHandler(
         createSilentLogger("test"),
         messagingFor(),
         {
@@ -468,7 +471,7 @@ describe("SiteBuildJobHandler", () => {
       markFailure: mock(async () => undefined),
       markCancelled: mock(async () => undefined),
     };
-    const failingWriteHandler = new SiteBuildJobHandler(
+    const failingWriteHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(),
       {
@@ -500,7 +503,7 @@ describe("SiteBuildJobHandler", () => {
     // listens for a completion broadcast, so a published build sends none.
     // Its messaging can only ask, and all it asks for is the site's metadata.
     const asked: string[] = [];
-    const publishingHandler = new SiteBuildJobHandler(
+    const publishingHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
       messagingFor(asked),
       {

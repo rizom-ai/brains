@@ -57,7 +57,7 @@ import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
-import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import siteBuilderPackage from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import siteInfoPackage from "@brains/site-info";
 import socialMediaPackage from "@brains/social-media";
@@ -259,7 +259,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       pluginId: "site-metadata",
     }),
     ["site-content", siteContentPlugin, undefined],
-    ["site-builder", siteBuilderPlugin, undefined],
+    packageCapability(
+      "site-builder",
+      "@brains/site-builder-plugin",
+      siteBuilderPackage,
+      { pluginId: "site-builder" },
+    ),
     ["form", formPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
 

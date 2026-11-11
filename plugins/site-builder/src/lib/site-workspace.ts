@@ -2,11 +2,13 @@ import {
   defineStudioWorkspace,
   defineEntity,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ServicePluginContext,
 } from "@brains/plugins";
+import type {
+  ServiceClassMessaging,
+  ServiceStudio,
+} from "@brains/sdk/internal/service-runtime";
 import type { RouteRegistry } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import type { SiteBuilderConfig } from "../config";
@@ -403,7 +405,12 @@ const siteWorkspace = defineStudioWorkspace({
 });
 
 export interface SiteWorkspaceProviderOptions {
-  context: ServicePluginContext;
+  /** The bus the site's metadata is asked over. */
+  messaging: Pick<ServiceClassMessaging, "request">;
+  siteUrl: string | undefined;
+  previewUrl: string | undefined;
+  /** Studio, which hosts the workspace once the brain is ready. */
+  studio: ServiceStudio;
   config: SiteBuilderConfig;
   routeRegistry: RouteRegistry;
   statusService: SiteBuildStatusService;
@@ -419,10 +426,17 @@ export class SiteWorkspaceProvider {
   }
 
   async getSnapshot(): Promise<SiteWorkspaceSnapshot> {
-    const { context, config, routeRegistry, statusService } = this.options;
+    const {
+      messaging,
+      previewUrl,
+      siteUrl,
+      config,
+      routeRegistry,
+      statusService,
+    } = this.options;
     const [metadata, status, previewPublication, productionPublication] =
       await Promise.all([
-        resolveSiteMetadata(context.messaging, config.siteInfo),
+        resolveSiteMetadata(messaging, config.siteInfo),
         statusService.getSnapshot(),
         readSitePublicationStatus(config.previewOutputDir, "preview"),
         readSitePublicationStatus(config.productionOutputDir, "production"),
@@ -430,8 +444,8 @@ export class SiteWorkspaceProvider {
     return siteWorkspaceDataSchema.parse({
       site: {
         title: metadata.title,
-        ...(context.previewUrl ? { previewUrl: context.previewUrl } : {}),
-        ...(context.siteUrl ? { liveUrl: context.siteUrl } : {}),
+        ...(previewUrl ? { previewUrl } : {}),
+        ...(siteUrl ? { liveUrl: siteUrl } : {}),
       },
       automation: {
         autoRebuild: config.autoRebuild,
@@ -455,8 +469,9 @@ export class SiteWorkspaceProvider {
   }
 
   async registerStudioWorkspace(): Promise<string | undefined> {
-    const result = await registerBuiltInStudioWorkspace({
-      context: this.options.context,
+    const { studio } = this.options;
+    if (!studio.isAvailable()) return undefined;
+    const registration = studio.source({
       definition: siteWorkspace,
       bind: (context) =>
         siteWorkspace.bind(context, {
@@ -481,15 +496,14 @@ export class SiteWorkspaceProvider {
           ],
         }),
     });
-    this.registered = result !== false;
-    return result === false ? undefined : result.workspaceUrl;
+    const workspaceUrl = await studio.register(registration);
+    this.registered = workspaceUrl !== undefined;
+    return workspaceUrl;
   }
 
   async unregisterStudioWorkspace(): Promise<void> {
     if (!this.registered) return;
-    await this.options.context.studio.unregisterWorkspace(
-      `${this.options.context.pluginId}:site`,
-    );
+    await this.options.studio.unregister(`site-builder:${siteWorkspace.id}`);
     this.registered = false;
   }
 }
