@@ -318,6 +318,21 @@ describe("a converted tool", () => {
     });
   });
 
+  it("writes a schema it uses twice in full each time for a model without strict tools", async () => {
+    // A local runtime's model does not follow a reference: it sees no
+    // fields behind one, so each use is written out.
+    const source = z.object({ startAfter: z.string(), endBefore: z.string() });
+    const tool = createTool({ source, fallback: source.optional() });
+    const sdkTool = convertToSDKTools([tool], context, emitter)[
+      "publishing_manage"
+    ];
+    if (!sdkTool) throw new Error("Expected the converted tool");
+
+    const json = JSON.stringify(await asSchema(sdkTool.inputSchema).jsonSchema);
+    expect(json).not.toContain('"$ref"');
+    expect(json.split('"startAfter":{').length - 1).toBe(2);
+  });
+
   it("is sent as it is when its model takes no strict tools", async () => {
     const tool = createTool({
       entityType: z.string(),
