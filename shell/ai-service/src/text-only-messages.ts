@@ -2,6 +2,7 @@ import { extractPdfMarkdown } from "@brains/document";
 import { getErrorMessage } from "@brains/utils/error";
 import type { FilePart, LanguageModelMiddleware, TextPart } from "ai";
 import { fileBytes } from "./file-bytes";
+import { framedFileText } from "./file-text";
 import type { ImageDescriber } from "./image-description";
 
 /** A prompt as a model runtime receives it. */
@@ -63,7 +64,11 @@ async function describeFile(
   try {
     return {
       type: "text",
-      text: `User uploaded a PDF ${name}. Its text:\n\n${await extractPdfMarkdown(data)}`,
+      text: framedFileText(
+        "a PDF",
+        part.filename ?? "an unnamed file",
+        await extractPdfMarkdown(data),
+      ),
     };
   } catch (error) {
     return {
