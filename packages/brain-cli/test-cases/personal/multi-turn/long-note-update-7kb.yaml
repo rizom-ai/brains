@@ -282,8 +282,7 @@ turns:
           argsAbsent:
             ["operation.fields", "operation.content", operation.source]
           resultContains:
-            success: true
-            data.updated: long-note-update-7kb
+            updated: long-note-update-7kb
   - userMessage: "Read note 'long-note-update-7kb' from storage again to verify the saved edit. Do not change anything; briefly state its title and review cadence."
     successCriteria:
       expectedTools:
