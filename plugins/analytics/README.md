@@ -60,7 +60,7 @@ system_analytics({
 
 ### `traffic-by-entity`
 
-Pageviews per published piece over the range, busiest first, with each piece's top referrers. Pieces are the public, published entities of every type the site has pages for, each matched to its page through the site's entity display (the same routes the site builds). Extra params: `entityType` (one type), `limit` (default 10), `firstDays` (also count views in the first N days after `publishedAt`). Counts come from each day's top 25 pages, so a quiet page can read low.
+Pageviews per published piece over the range, busiest first (pieces with the same views by type, then id), with each piece's top referrers. Pieces are the public, published entities of every type the site has pages for, each matched to its page through the site's entity display (the same routes the site builds). Extra params: `entityType` (one type), `limit` (default 10), `firstDays` (also count views in the first N days after `publishedAt`). Counts come from each day's top 25 pages, so a quiet page can read low.
 
 ```typescript
 system_analytics({

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createTrafficSnapshotPlugin } from "../analytics-plugins";
 import { entitySnapshotStore } from "../../src/lib/traffic-capture";
@@ -37,8 +38,24 @@ type EntityService = ReturnType<
   >["getEntityService"]
 >;
 
+type Work = Array<[string, string, Record<string, unknown>]>;
+
+const defaultWork: Work = [
+  [
+    "post",
+    "a",
+    { title: "Essay A", status: "published", publishedAt: "2026-10-08" },
+  ],
+  ["post", "b", { title: "Draft B", status: "draft" }],
+  ["deck", "talk", { title: "The Talk", status: "published" }],
+  ["post", "quiet", { title: "Quiet Essay", status: "published" }],
+];
+
 /** A brain with traffic snapshots and the published work they point at. */
-async function brainWith(days: TrafficDay[]): Promise<EntityService> {
+async function brainWith(
+  days: TrafficDay[],
+  work: Work = defaultWork,
+): Promise<EntityService> {
   const harness = createPluginHarness();
   await harness.installPlugin(createTrafficSnapshotPlugin());
   const entityService = harness.getMockShell().getEntityService();
@@ -66,16 +83,6 @@ async function brainWith(days: TrafficDay[]): Promise<EntityService> {
       updated: `${TODAY}T00:00:00.000Z`,
     });
   }
-  const work: Array<[string, string, Record<string, unknown>]> = [
-    [
-      "post",
-      "a",
-      { title: "Essay A", status: "published", publishedAt: "2026-10-08" },
-    ],
-    ["post", "b", { title: "Draft B", status: "draft" }],
-    ["deck", "talk", { title: "The Talk", status: "published" }],
-    ["post", "quiet", { title: "Quiet Essay", status: "published" }],
-  ];
   for (const [entityType, id, metadata] of work) {
     await entityService.createEntity({
       entity: { id, entityType, content: id, metadata, visibility: "public" },
@@ -124,6 +131,45 @@ const traffic = [
 ];
 
 describe("traffic-by-entity", () => {
+  // The store lists pieces by when they were written, which differs from
+  // one import to the next; pieces with the same views are ordered by type,
+  // then id, whatever order they were written in.
+  it("orders pieces with the same views by type, then id, whatever order they were written in", async () => {
+    const tied: Work = [
+      ["post", "zeta", { title: "Zeta", status: "published" }],
+      ["deck", "talk", { title: "The Talk", status: "published" }],
+      ["post", "alpha", { title: "Alpha", status: "published" }],
+      ["post", "a", { title: "Essay A", status: "published" }],
+    ];
+    const orders = await Promise.all(
+      [tied, [...tied].reverse()].map(async (work) => {
+        const result = await run(await brainWith(traffic, work), {
+          days: 5,
+        });
+        const entities = z
+          .array(z.object({ entityType: z.string(), id: z.string() }))
+          .parse(result["entities"]);
+        return entities.map(({ entityType, id }) => `${entityType}:${id}`);
+      }),
+    );
+    expect(orders[0]).toEqual([
+      "post:a",
+      "deck:talk",
+      "post:alpha",
+      "post:zeta",
+    ]);
+    expect(orders[1]).toEqual(orders[0]);
+    // The limit keeps the same pieces too.
+    const limited = await run(await brainWith(traffic, [...tied].reverse()), {
+      days: 5,
+      limit: 2,
+    });
+    expect(limited["entities"]).toMatchObject([
+      { entityType: "post", id: "a" },
+      { entityType: "deck", id: "talk" },
+    ]);
+  });
+
   it("is the owner's report", () => {
     expect(report.type).toBe("traffic-by-entity");
     expect(report.minVisibility).toBe("admin");

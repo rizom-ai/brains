@@ -165,7 +165,14 @@ export function createTrafficByEntityReport(
             ...(firstDays ? { firstDays } : {}),
           };
         })
-        .sort((a, b) => b.pageviews - a.pageviews)
+        // Busiest first; pieces with the same views by type, then id, so
+        // the order and the limit never follow when the store wrote them.
+        .sort(
+          (a, b) =>
+            b.pageviews - a.pageviews ||
+            a.entityType.localeCompare(b.entityType) ||
+            a.id.localeCompare(b.id),
+        )
         .slice(0, params.limit);
 
       return {
