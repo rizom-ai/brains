@@ -23,6 +23,8 @@ import type { IServiceContentNamespace } from "./context";
 import type { IViewsNamespace } from "../entity/namespaces";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
+import type { AppInfo } from "../contracts/app-info";
+import type { IPublicSkillsNamespace } from "../a2a/public-skills";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
@@ -260,6 +262,13 @@ export interface ServiceRuntime {
   readonly identity: ServiceIdentity;
   /** The brain's bare domain, when it has one. */
   readonly domain: string | undefined;
+  /** Whether this process serves the brain's HTTP surface, as the class read it. */
+  readonly servesHttp: boolean;
+  /**
+   * The public skills the brain advertises, as the class read them through
+   * `context.publicSkills`: its public skill entities, or its public tools.
+   */
+  readonly publicSkills: Pick<IPublicSkillsNamespace, "list">;
   /**
    * The auth backend the brain bound, read when asked, as the class read
    * `context.auth.get()`: none while the brain runs without auth-service.
@@ -555,6 +564,8 @@ export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
 export interface ServiceIdentity {
   get(): BrainCharacter;
   getProfile(): AnchorProfile;
+  /** The app's metadata (version, model, plugins), as the class read it. */
+  getAppInfo(): Promise<AppInfo>;
 }
 
 /** What the runtime binds a first-party service's runtime to. */
@@ -582,6 +593,8 @@ export interface ServiceRuntimeBinding {
   readonly dataDir: string;
   readonly identity: ServiceIdentity;
   readonly domain: string | undefined;
+  readonly servesHttp: boolean;
+  readonly publicSkills: Pick<IPublicSkillsNamespace, "list">;
   readonly auth: () => AuthBackend | undefined;
   readonly studio: ServiceStudio;
   readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
@@ -649,6 +662,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     dataDir: binding.dataDir,
     identity: binding.identity,
     domain: binding.domain,
+    servesHttp: binding.servesHttp,
+    publicSkills: binding.publicSkills,
     auth: binding.auth,
     studio: binding.studio,
     inbox: binding.inbox,

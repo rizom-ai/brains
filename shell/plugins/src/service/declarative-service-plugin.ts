@@ -1147,8 +1147,13 @@ class DeclarativeServicePlugin<
       identity: Object.freeze({
         get: () => context.identity.get(),
         getProfile: () => context.identity.getProfile(),
+        getAppInfo: () => context.identity.getAppInfo(),
       }),
       domain: context.domain,
+      servesHttp: context.servesHttp,
+      publicSkills: Object.freeze({
+        list: () => context.publicSkills.list(),
+      }),
       auth: () => context.auth.get(),
       studio: firstPartyStudioOf(context),
       inbox: Object.freeze({
