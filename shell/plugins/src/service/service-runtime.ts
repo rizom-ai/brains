@@ -48,6 +48,7 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
+import type { AssignableMember } from "@brains/contracts";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type {
   BaseEntity,
@@ -344,6 +345,11 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * The people work can be assigned to, as the class read
+   * `context.auth.listAssignableMembers()`: none without an auth backend.
+   */
+  assignableMembers(): Promise<AssignableMember[]>;
   /**
    * The brain's groupings, as Studio's class reached them through
    * `context.entities` and `context.entityService`: Studio owns them, and
@@ -812,6 +818,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly assignableMembers: () => Promise<AssignableMember[]>;
   readonly groupings: () => ServiceGroupings;
   readonly sharedUploads: ServiceRuntime["sharedUploads"];
   readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
@@ -901,6 +908,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    assignableMembers: binding.assignableMembers,
     groupings: binding.groupings,
     sharedUploads: binding.sharedUploads,
     uploadSaveHandler: binding.uploadSaveHandler,

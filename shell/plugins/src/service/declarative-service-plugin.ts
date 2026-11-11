@@ -1267,6 +1267,7 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      assignableMembers: () => context.auth.listAssignableMembers(),
       groupings: () => this.groupingsOf(context),
       sharedUploads: (options = {}) =>
         context.uploads.scoped({

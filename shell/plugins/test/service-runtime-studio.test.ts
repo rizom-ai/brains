@@ -259,4 +259,13 @@ describe("a first-party service reaching what Studio's class did", () => {
     );
     expect(Object.keys(shapes)).not.toContain("adapter");
   });
+
+  it("lists the members work can be assigned to, as its class read context.auth", async () => {
+    const shell = createMockShell();
+    const auth = shell.getAuthRegistry();
+    const listed = spyOn(auth, "listAssignableMembers").mockResolvedValue([]);
+    const { runtime } = await runtimeOn(shell);
+    expect(await runtime.assignableMembers()).toEqual([]);
+    expect(listed).toHaveBeenCalledTimes(1);
+  });
 });
