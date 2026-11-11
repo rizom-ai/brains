@@ -5,7 +5,10 @@ import type {
   CreateEntityRequest,
   UpdateEntityRequest,
   UpsertEntityRequest,
+  IEntityService,
 } from "@brains/entity-service";
+
+type DeleteEntityRequest = Parameters<IEntityService["deleteEntity"]>[0];
 import { createMockShell } from "../src/test/mock-shell";
 import {
   defineServicePlugin,
@@ -40,6 +43,7 @@ describe("a first-party service writing as its class wrote", () => {
     const created: CreateEntityRequest<BaseEntity>[] = [];
     const updated: UpdateEntityRequest<BaseEntity>[] = [];
     const upserted: UpsertEntityRequest<BaseEntity>[] = [];
+    const deleted: DeleteEntityRequest[] = [];
     const shell = createMockShell({
       entityService: {
         ...createMockEntityService(),
@@ -58,6 +62,12 @@ describe("a first-party service writing as its class wrote", () => {
         ): Promise<EntityMutationResult> => {
           updated.push(request);
           return { entityId: request.entity.id, jobId: "", skipped: false };
+        },
+        deleteEntity: async (
+          request: DeleteEntityRequest,
+        ): Promise<boolean> => {
+          deleted.push(request);
+          return true;
         },
         upsertEntity: async <T extends BaseEntity>(
           request: UpsertEntityRequest<T>,
@@ -135,11 +145,21 @@ describe("a first-party service writing as its class wrote", () => {
         },
       },
     ]);
+    // A record an operator deletes, after the package's own policy check.
+    expect(
+      await runtime.entityWrites.deleteEntity({
+        entityType: "post",
+        id: "my-post",
+      }),
+    ).toBe(true);
+    expect(deleted).toEqual([{ entityType: "post", id: "my-post" }]);
+
     expect(upserted).toEqual([
       { entity: { ...post, id: "week", entityType: "traffic-snapshot" } },
     ]);
     expect(Object.keys(runtime.entityWrites).sort()).toEqual([
       "createEntity",
+      "deleteEntity",
       "updateEntity",
       "upsertEntity",
     ]);

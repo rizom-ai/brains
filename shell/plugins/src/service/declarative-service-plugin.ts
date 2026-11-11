@@ -1969,6 +1969,7 @@ function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
     createEntity: (request) => entityService.createEntity(request),
     updateEntity: (request) => entityService.updateEntity(request),
     upsertEntity: (request) => entityService.upsertEntity(request),
+    deleteEntity: (request) => entityService.deleteEntity(request),
   } satisfies ServiceEntityWrites);
 }
 

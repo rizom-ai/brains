@@ -704,7 +704,7 @@ export interface ServiceClassJobs {
 /** The entity service's writes a first-party class made. */
 export type ServiceEntityWrites = Pick<
   IEntityService,
-  "createEntity" | "updateEntity" | "upsertEntity"
+  "createEntity" | "updateEntity" | "upsertEntity" | "deleteEntity"
 >;
 
 /** Where the brain's git broker listens and keeps its checkout; none without Git. */
