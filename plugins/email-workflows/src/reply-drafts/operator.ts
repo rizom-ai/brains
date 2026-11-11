@@ -5,7 +5,6 @@ import {
   type ChannelDeliveryProvider,
   type IEntityAINamespace,
   type InboxActor,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import type { EmailSourceMessage } from "@brains/contracts";
 import { sha256Hex } from "@brains/utils/hash";
@@ -26,6 +25,7 @@ import {
   type EmailReplyDraftWorkspaceSnapshot,
   type SentDraftView,
 } from "./schemas";
+import type { EmailContext } from "../lib/email-context";
 
 const generatedReplySchema = z.strictObject({
   replyText: z.string().trim().min(1).max(20_000),
@@ -39,10 +39,7 @@ Answer the sender's request directly. Ask a brief clarifying question when requi
 Do not invent commitments, dates, prices, facts, or prior conversations.
 Return only newly authored reply text. Do not quote the source message or include transport headers.`;
 
-type DraftOperatorContext = Pick<
-  ServicePluginContext,
-  "channels" | "entityService" | "permissions"
->;
+type DraftOperatorContext = EmailContext;
 
 interface DraftActor {
   userPermissionLevel?: "admin" | "trusted" | "public" | undefined;

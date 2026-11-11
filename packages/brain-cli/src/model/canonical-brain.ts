@@ -37,7 +37,7 @@ import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailInterface from "@brains/email";
-import { emailWorkflows } from "@brains/email-workflows";
+import emailWorkflowsPackage from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import mcpInterface from "@brains/mcp";
@@ -356,7 +356,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "obsidian-vault" },
       { autoSync: true },
     ),
-    ["email-workflows", emailWorkflows, undefined],
+    packageCapability(
+      "email-workflows",
+      "@brains/email-workflows",
+      emailWorkflowsPackage,
+      // Under the id its class had; its mail-item type installs as itself.
+      { pluginId: "email-workflows" },
+    ),
     packageCapability(
       "unified-inbox",
       "@brains/unified-inbox",

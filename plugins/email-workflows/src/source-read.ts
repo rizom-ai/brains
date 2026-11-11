@@ -2,13 +2,10 @@ import {
   emailSourceReadContract,
   type EmailSourceReadResponse,
 } from "@brains/contracts";
-import {
-  inboxActorSchema,
-  inboxItemIdSchema,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import { inboxActorSchema, inboxItemIdSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { MailTriageOperatorService } from "./operator-service";
+import type { ServiceClassMessaging } from "@brains/sdk/internal/service-runtime";
 
 const abortSignalSchema: z.ZodCustom<AbortSignal, AbortSignal> =
   z.custom<AbortSignal>(
@@ -37,11 +34,13 @@ export type EmailWorkflowsSourceReadRequest = z.output<
 >;
 
 export class EmailWorkflowsSourceReader {
-  private readonly context: Pick<ServicePluginContext, "messaging">;
+  private readonly context: {
+    readonly messaging: Pick<ServiceClassMessaging, "request">;
+  };
   private readonly operator: MailTriageOperatorService;
 
   constructor(
-    context: Pick<ServicePluginContext, "messaging">,
+    context: { readonly messaging: Pick<ServiceClassMessaging, "request"> },
     operator: MailTriageOperatorService,
   ) {
     this.context = context;

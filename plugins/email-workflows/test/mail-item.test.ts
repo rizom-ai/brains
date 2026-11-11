@@ -1,10 +1,10 @@
+import { createMailItemPlugin } from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import { applyVisibilityToMarkdown } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
   createMailItemProjection,
   createUnclassifiedMailItemProjection,
   mailItemAdapter,
@@ -216,7 +216,7 @@ describe("mail-item entity", () => {
 
   it("retires the sender hash and domain stored by earlier releases", async () => {
     const harness = createPluginHarness({ logContext: "mail-item-test" });
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("mail-item")
@@ -314,7 +314,7 @@ describe("mail-item entity", () => {
       registeredEntityType = entityType;
       validator = candidate;
     };
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     const projection = createMailItemProjection(email, classification);
     const entity = mailItemSchema.parse({
       ...projection,
