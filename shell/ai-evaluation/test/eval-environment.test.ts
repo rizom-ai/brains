@@ -40,12 +40,12 @@ describe("prepareEvalEnvironment", () => {
   });
 
   it("lets the remote brain under evaluation through", async () => {
-    bases.push(
-      prepareEvalEnvironment({ remoteUrl: "https://remote-brain.invalid/mcp" }),
-    );
+    // An address the guard does not count as loopback, which the real network
+    // refuses at once: no name to resolve, so the test waits on no resolver.
+    bases.push(prepareEvalEnvironment({ remoteUrl: "http://0.0.0.0:1/mcp" }));
 
-    // Passed to the real network, which has no such host: not refused here.
-    const error = await fetch("https://remote-brain.invalid/mcp").then(
+    // Passed to the real network, which refuses the connection: not refused here.
+    const error = await fetch("http://0.0.0.0:1/mcp").then(
       () => undefined,
       (failure: unknown) => failure,
     );
