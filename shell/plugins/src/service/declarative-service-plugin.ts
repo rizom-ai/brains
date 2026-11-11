@@ -1183,6 +1183,9 @@ class DeclarativeServicePlugin<
         getRecentJobs: (types?: string[], limit?: number) =>
           context.jobs.getRecentJobs(types, limit),
         getActiveJobs: (types?: string[]) => context.jobs.getActiveJobs(types),
+        enqueueBatch: context.jobs.enqueueBatch,
+        getBatchStatus: (batchId: string) =>
+          context.jobs.getBatchStatus(batchId),
       }),
       entityWrites: entityWritesOf(context),
       dataDir: context.dataDir,

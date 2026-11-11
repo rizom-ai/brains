@@ -3,7 +3,12 @@ import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
-import type { EnqueueJobFn, JobInfo } from "@brains/job-queue";
+import type {
+  BatchJobStatus,
+  EnqueueBatchFn,
+  EnqueueJobFn,
+  JobInfo,
+} from "@brains/job-queue";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
@@ -625,6 +630,13 @@ export interface ServiceClassJobs {
   getRecentJobs(types?: string[], limit?: number): Promise<JobInfo[]>;
   /** The jobs pending or running, of the types named or of every type. */
   getActiveJobs(types?: string[]): Promise<JobInfo[]>;
+  /**
+   * A batch of jobs, each type scoped to the plugin, as the class queued
+   * one through `context.jobs.enqueueBatch`; its batch id.
+   */
+  readonly enqueueBatch: EnqueueBatchFn;
+  /** A batch's status, by its id; none for a batch the queue does not hold. */
+  getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
 }
 
 /** The entity service's writes a first-party class made. */

@@ -157,4 +157,24 @@ describe("a first-party service queueing a job as its class did", () => {
       ),
     ).toEqual([first]);
   });
+
+  it("queues a batch scoped to the plugin and reads its status, as its class did", async () => {
+    const shell = createMockShell();
+    const runtime = await runtimeOn(shell);
+
+    const batchId = await runtime.jobs.enqueueBatch(
+      [{ type: "directory-import", data: { paths: ["note/a.md"] } }],
+      {
+        source: "probe-watcher",
+        priority: 5,
+        metadata: { operationType: "file_operations" },
+      },
+    );
+    const status = await runtime.jobs.getBatchStatus(batchId);
+    // The status the queue holds for the batch, read through the plugin.
+    expect(status).toEqual(await shell.jobs.getBatchStatus(batchId));
+    const [job] = await shell.jobs.getActiveJobs();
+    expect(job?.type).toBe("probe:directory-import");
+    expect(job?.metadata.rootJobId).toBe(batchId);
+  });
 });
