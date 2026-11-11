@@ -20,6 +20,7 @@ export {
   type ServiceAI,
   type ServiceClassJobs,
   type ServiceClassMessaging,
+  type ServiceTemplateOptions,
   type ServiceViews,
   type ServiceStudio,
   type ServiceToolCall,

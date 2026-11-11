@@ -1202,9 +1202,13 @@ class DeclarativeServicePlugin<
           ),
         );
       },
-      template: (name, template): void => {
-        context.templates.register({ [name]: template }, this.id);
+      template: (name, template, options = {}): void => {
+        context.templates.register(
+          { [name]: template },
+          options.namespace ?? this.id,
+        );
       },
+      generateContent: (request) => context.content.generate(request),
       dashboardWidget: (widget): void => {
         // Once the Dashboard host has mounted, as the class registered it.
         this.answered.push(

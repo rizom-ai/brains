@@ -16,6 +16,7 @@ import type {
   IProfileKindsNamespace,
 } from "../base/context-types";
 import type { IEntityAINamespace } from "../entity/ai-types";
+import type { IServiceContentNamespace } from "./context";
 import type { IViewsNamespace } from "../entity/namespaces";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
@@ -360,9 +361,24 @@ export interface ServiceRuntime {
   /**
    * Register a template built with the internal template builder under
    * `<plugin id>:<name>`, such as a site section that names a data source
-   * and keeps its own overlay formatter.
+   * and keeps its own overlay formatter; with a namespace, under
+   * `<namespace>:<name>`, as a class registered the section templates its
+   * config defines (`landing-page:hero`).
    */
-  template(name: string, template: Template): void;
+  template(
+    name: string,
+    template: Template,
+    options?: ServiceTemplateOptions,
+  ): void;
+  /**
+   * Ask the content service to generate, as the class asked through
+   * `context.content.generate`: the targets as written, a template name
+   * local to the plugin or in full, with the tool call's caller the request
+   * names, or the package's own configured grant without one.
+   */
+  generateContent(
+    request: Parameters<IServiceContentNamespace["generate"]>[0],
+  ): ReturnType<IServiceContentNamespace["generate"]>;
   /**
    * A Dashboard widget as the class's built-in widget was, drawing itself
    * or its declared view: registered once every plugin has registered, never
@@ -371,6 +387,11 @@ export interface ServiceRuntime {
   dashboardWidget<TDefinition extends AnyDashboardWidgetDefinition>(
     widget: ServiceDashboardWidget<TDefinition>,
   ): void;
+}
+
+/** Where a template registers: under the plugin's id unless it names a namespace. */
+export interface ServiceTemplateOptions {
+  readonly namespace?: string | undefined;
 }
 
 /** What a running tool call says about itself, as a class's handler read it. */
@@ -536,7 +557,12 @@ export interface ServiceRuntimeBinding {
     declaration: ServiceDataSourceDeclaration,
     options?: ServiceDataSourceOptions,
   ) => void;
-  readonly template: (name: string, template: Template) => void;
+  readonly template: (
+    name: string,
+    template: Template,
+    options?: ServiceTemplateOptions,
+  ) => void;
+  readonly generateContent: ServiceRuntime["generateContent"];
   readonly dashboardWidget: <TDefinition extends AnyDashboardWidgetDefinition>(
     widget: ServiceDashboardWidget<TDefinition>,
   ) => void;
@@ -588,6 +614,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     ai: binding.ai,
     dataSource: binding.dataSource,
     template: binding.template,
+    generateContent: binding.generateContent,
     dashboardWidget: binding.dashboardWidget,
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
