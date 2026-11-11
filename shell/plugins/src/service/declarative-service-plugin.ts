@@ -1160,9 +1160,8 @@ class DeclarativeServicePlugin<
       publicSkills: Object.freeze({
         list: () => context.publicSkills.list(),
       }),
-      atprotoProjections: Object.freeze({
-        get: (entityType: string) => context.atprotoProjections.get(entityType),
-      }),
+      // The registry itself, read through its own get and its post overload.
+      atprotoProjections: context.atprotoProjections,
       auth: () => context.auth.get(),
       studio: firstPartyStudioOf(context),
       inbox: Object.freeze({

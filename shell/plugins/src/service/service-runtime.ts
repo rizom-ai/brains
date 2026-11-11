@@ -25,7 +25,10 @@ import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { AppInfo } from "../contracts/app-info";
 import type { IPublicSkillsNamespace } from "../a2a/public-skills";
-import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type {
+  AtprotoProjectedPostRecord,
+  AtprotoProjection,
+} from "@brains/atproto-contracts";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
@@ -521,6 +524,9 @@ export interface ServiceEntityReads {
 
 /** The AT Protocol projections a class read, and nothing that registers one. */
 export interface ServiceAtprotoProjections {
+  get(
+    entityType: "post",
+  ): AtprotoProjection<AtprotoProjectedPostRecord> | undefined;
   get(entityType: string): AtprotoProjection | undefined;
 }
 
