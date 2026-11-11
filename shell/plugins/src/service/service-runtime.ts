@@ -41,7 +41,10 @@ import type {
   AtprotoProjectedPostRecord,
   AtprotoProjection,
 } from "@brains/atproto-contracts";
-import type { ChannelDeliveryProvider } from "../channel-registry";
+import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
+} from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type {
@@ -323,6 +326,11 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * The channel descriptors other packages registered, as the class read
+   * `context.channels.listDescriptors()`.
+   */
+  channelDescriptors(): ChannelDescriptor[];
   /** The brain's readiness, as the class read `context.readiness()`. */
   readiness(): Promise<RuntimeReadiness>;
   /**
@@ -729,6 +737,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly channelDescriptors: () => ChannelDescriptor[];
   readonly readiness: () => Promise<RuntimeReadiness>;
   readonly inboxFollowUpKind: ServiceRuntime["inboxFollowUpKind"];
   readonly registering: ServiceRuntime["registering"];
@@ -814,6 +823,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    channelDescriptors: binding.channelDescriptors,
     readiness: binding.readiness,
     inboxFollowUpKind: binding.inboxFollowUpKind,
     registering: binding.registering,

@@ -74,4 +74,20 @@ describe("a first-party service reaching what Studio's class did", () => {
       await shell.getRuntimeReadiness(),
     );
   });
+
+  it("lists the channel descriptors other packages registered, as its class did", async () => {
+    const shell = createMockShell();
+    const channels = shell.getChannelRegistry();
+    channels.registerDescriptor("test-email", {
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+    });
+    channels.finalize();
+    const { runtime } = await runtimeOn(shell);
+    expect(runtime.channelDescriptors()).toEqual(channels.listDescriptors());
+    expect(runtime.channelDescriptors().map(({ type }) => type)).toEqual([
+      "email",
+    ]);
+  });
 });
