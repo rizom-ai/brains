@@ -1,6 +1,8 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import { writesInDocumentOrder } from "@brains/sdk/internal/entity-runtime";
-import { generateMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  storedDocumentCodec,
+  writesInDocumentOrder,
+} from "@brains/sdk/internal/entity-runtime";
 import { mailItemAdapter } from "./adapters/mail-item-adapter";
 import {
   mailItemFrontmatterSchema,
@@ -9,20 +11,6 @@ import {
 
 /** Written by earlier releases and never read. */
 const MAIL_ITEM_RETIRED_FIELDS = ["source.senderKey", "source.domain"];
-
-/**
- * The frontmatter a mail item's metadata indexes, in the file's order:
- * everything else in the file (its source locator, sender label,
- * organization and requested actions) stays in the file alone.
- */
-const INDEXED_FIELDS = [
-  "title",
-  "category",
-  "priority",
-  "status",
-  "needsReply",
-  "receivedAt",
-] as const;
 
 /**
  * A restricted, derived routing summary for an inbound email whose original
@@ -40,7 +28,8 @@ const INDEXED_FIELDS = [
  * read it unchanged. Writing, the type states its indexed fields and the
  * serializer keeps the rest of the header the document carries, once, in
  * the order the document gives it: the header is never written twice, and
- * its visibility closes it, as the class wrote it.
+ * its visibility closes it, as the class wrote it (storedDocumentCodec with
+ * writesInDocumentOrder).
  */
 export const mailItemEntity: EntityDefinition<
   "mail-item",
@@ -56,38 +45,24 @@ export const mailItemEntity: EntityDefinition<
       projectionSourceRole: "excluded",
       retiredFields: MAIL_ITEM_RETIRED_FIELDS,
     },
-    markdown: {
-      decode: ({ content, frontmatter }) => {
-        const { visibility: _visibility, ...header } = frontmatter;
-        const parsed = mailItemFrontmatterSchema.parse(header);
-        return {
-          // The whole document, as the class's adapter read it.
-          content: generateMarkdownWithFrontmatter(content, parsed),
-          metadata: {
-            title: parsed.title,
-            category: parsed.category,
-            priority: parsed.priority,
-            status: parsed.status,
-            needsReply: parsed.needsReply,
-            receivedAt: parsed.receivedAt,
-            ...(parsed.source.threadKey
-              ? { threadKey: parsed.source.threadKey }
-              : {}),
-            ...(parsed.source.threadOrdinal !== undefined
-              ? { threadOrdinal: parsed.source.threadOrdinal }
-              : {}),
-          },
-        };
-      },
-      // Only the indexed fields: the rest of the header, the thread position
-      // under `source` included, is kept from the document written.
-      encode: ({ content, metadata }) => ({
-        content: content.trim(),
-        frontmatter: Object.fromEntries(
-          INDEXED_FIELDS.map((field) => [field, metadata[field]]),
-        ),
+    // The header's routing fields and thread position, and nothing else.
+    markdown: storedDocumentCodec({
+      header: mailItemFrontmatterSchema,
+      deriveMetadata: (header) => ({
+        title: header.title,
+        category: header.category,
+        priority: header.priority,
+        status: header.status,
+        needsReply: header.needsReply,
+        receivedAt: header.receivedAt,
+        ...(header.source.threadKey
+          ? { threadKey: header.source.threadKey }
+          : {}),
+        ...(header.source.threadOrdinal !== undefined
+          ? { threadOrdinal: header.source.threadOrdinal }
+          : {}),
       }),
-    },
+    }),
     // Restricted, always; and only the system fallback may carry no
     // category, so a classification the model failed to make cannot pass
     // for one it did.

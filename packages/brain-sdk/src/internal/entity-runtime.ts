@@ -19,6 +19,7 @@ export {
   withBodyTemplate,
   withUrlRoute,
   writesInDocumentOrder,
+  storedDocumentCodec,
   afterGeneration,
   loggedProvider,
   type AnyEntityReads,

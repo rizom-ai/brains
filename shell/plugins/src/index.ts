@@ -978,6 +978,7 @@ export {
   withBodyTemplate,
   withUrlRoute,
   writesInDocumentOrder,
+  storedDocumentCodec,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
   type AnyEntityReads,

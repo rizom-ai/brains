@@ -1,0 +1,141 @@
+import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
+import { createPluginHarness } from "../src/test/harness";
+import {
+  defineEntity,
+  defineEntityPackage,
+  instantiatePluginPackageDefinition,
+  storedDocumentCodec,
+  writesInDocumentOrder,
+} from "../src";
+
+/**
+ * A first-party declared type whose read is its stored document and whose
+ * metadata is derived from part of its header, as an entity plugin class
+ * kept one: the header holds what the type records, metadata indexes only
+ * what is derived from it, a read hands back the whole document, and a
+ * write states the header fields metadata names and keeps the rest of the
+ * header once, in the document's order. Mail items and traffic snapshots
+ * are stored this way.
+ */
+
+const header = z.object({
+  title: z.string(),
+  status: z.enum(["new", "done"]),
+  source: z.object({ ref: z.string() }),
+});
+
+const ticket = writesInDocumentOrder(
+  defineEntity({
+    type: "ticket",
+    purpose: "A record whose metadata indexes part of its header.",
+    metadata: z.object({ title: z.string(), status: z.enum(["new", "done"]) }),
+    markdown: storedDocumentCodec({
+      header,
+      deriveMetadata: (parsed) => ({
+        title: parsed.title,
+        status: parsed.status,
+      }),
+    }),
+  }),
+);
+
+const document =
+  "---\ntitle: First\nstatus: new\nsource:\n  ref: private-locator\n---\nThe summary.\n";
+
+async function store(): Promise<ReturnType<typeof createPluginHarness>> {
+  const harness = createPluginHarness();
+  for (const plugin of instantiatePluginPackageDefinition(
+    defineEntityPackage({ id: "tickets", entities: [ticket] }),
+    {},
+    { name: "@fixture/tickets", version: "0.1.0" },
+  )) {
+    await harness.installPlugin(plugin);
+  }
+  return harness;
+}
+
+describe("a stored-document codec", () => {
+  it("reads the whole document and derives metadata from its header", async () => {
+    const harness = await store();
+    const entities = harness.getEntityService();
+    await entities.createEntity({
+      entity: {
+        id: "first",
+        entityType: "ticket",
+        content: document,
+        metadata: { title: "First", status: "new" },
+      },
+    });
+
+    const read = await entities.getEntity({
+      entityType: "ticket",
+      id: "first",
+    });
+    expect(read?.content).toBe(
+      "---\ntitle: First\nstatus: new\nsource:\n  ref: private-locator\n---\nThe summary.\n",
+    );
+    // Only what is derived; the header's source stays out of metadata.
+    expect(read?.metadata).toEqual({ title: "First", status: "new" });
+  });
+
+  it("writes the header once, in the document's order", async () => {
+    const harness = await store();
+    const entities = harness.getEntityService();
+    await entities.createEntity({
+      entity: {
+        id: "first",
+        entityType: "ticket",
+        content: document,
+        metadata: { title: "First", status: "new" },
+      },
+    });
+    const read = await entities.getEntity({
+      entityType: "ticket",
+      id: "first",
+    });
+    if (!read) throw new Error("No ticket");
+
+    await entities.updateEntity({
+      entity: {
+        ...read,
+        content: read.content.replace("status: new", "status: done"),
+        metadata: { ...read.metadata, status: "done" },
+      },
+    });
+
+    const stored = await entities.getEntity({
+      entityType: "ticket",
+      id: "first",
+      source: true,
+    });
+    expect(stored?.content).toBe(
+      "---\ntitle: First\nstatus: done\nsource:\n  ref: private-locator\n---\nThe summary.\n",
+    );
+    expect(stored?.content.split("source:")).toHaveLength(2);
+    expect(stored?.metadata).toEqual({ title: "First", status: "done" });
+  });
+
+  it("refuses a header its schema refuses", async () => {
+    const harness = await store();
+    const created = await harness
+      .getEntityService()
+      .createEntity({
+        entity: {
+          id: "broken",
+          entityType: "ticket",
+          content: "---\ntitle: Broken\nstatus: lost\n---\nNo source.\n",
+          metadata: { title: "Broken", status: "new" },
+        },
+      })
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+    const read = await harness
+      .getEntityService()
+      .getEntity({ entityType: "ticket", id: "broken" });
+    // A document the header schema refuses never reads back as a record.
+    expect(created === undefined ? read : null).toBeNull();
+  });
+});

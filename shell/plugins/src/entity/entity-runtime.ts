@@ -18,6 +18,7 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
+import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
@@ -32,6 +33,8 @@ import type {
   EntityGenerationResult,
   EntityJobDeclaration,
   EntityJobHandleContext,
+  EntityMarkdownCodec,
+  EntityMetadataSchema,
   EntityOf,
   EntityReader,
   EntityVisibility,
@@ -952,6 +955,54 @@ export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
   definition: TDefinition,
 ): TDefinition {
   return Object.freeze({ ...definition, [documentOrderKey]: true });
+}
+
+/**
+ * The codec of a first-party declared type whose read is its stored
+ * document and whose metadata is derived from part of its header, as an
+ * entity plugin class kept one (its adapter's toMarkdown over existing
+ * frontmatter): the header holds what the type records, parsed by its
+ * schema; metadata indexes only what `deriveMetadata` takes from it; a
+ * read hands back the whole document, the header as stored and the body;
+ * a write states the header fields metadata names and the serializer keeps
+ * the rest of the header once. Pair it with `writesInDocumentOrder`, so a
+ * write keeps the header in the order of the document it replaces. An
+ * exception to metadata being the frontmatter, for a type whose header
+ * holds what must not be indexed (a mail item's sender and source) or what
+ * is too large to (a traffic snapshot's days).
+ */
+export function storedDocumentCodec<
+  THeader extends z.ZodObject,
+  TMetadataSchema extends EntityMetadataSchema,
+>(options: {
+  readonly header: THeader;
+  readonly deriveMetadata: (
+    header: z.output<THeader>,
+  ) => z.input<TMetadataSchema>;
+}): EntityMarkdownCodec<TMetadataSchema> {
+  const headerKeys = new Set(Object.keys(options.header.shape));
+  return {
+    decode: ({
+      content,
+      frontmatter,
+    }): { content: string; metadata: z.input<TMetadataSchema> } => {
+      const { visibility: _visibility, ...stored } = frontmatter;
+      const parsed = options.header.parse(stored);
+      return {
+        // The whole document, its header as stored.
+        content: generateMarkdownWithFrontmatter(content, stored),
+        metadata: options.deriveMetadata(parsed),
+      };
+    },
+    // The header fields metadata names; the rest of the header is kept
+    // from the document written.
+    encode: ({ content, metadata }) => ({
+      content: content.trim(),
+      frontmatter: Object.fromEntries(
+        Object.entries(metadata).filter(([key]) => headerKeys.has(key)),
+      ),
+    }),
+  };
 }
 
 /** Whether a definition writes in the order of the document it replaces. */
