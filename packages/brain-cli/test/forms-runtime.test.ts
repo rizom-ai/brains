@@ -13,7 +13,6 @@ import {
   quizResultTarget,
   type QuizResultFrontmatter,
 } from "@brains/quiz";
-import type { FormRecord, FormSubmission } from "@brains/forms";
 import {
   defineEntityPackage,
   type BaseEntity,
@@ -64,6 +63,10 @@ const main = z
       ),
     ),
   );
+
+/** A record as the forms engine writes one, and a submission as it reads one. */
+type FormRecord = ReturnType<typeof contactRequestTarget.record>;
+type FormSubmission = Parameters<typeof contactRequestTarget.record>[0];
 
 const typeConfig = {
   embeddable: false,
