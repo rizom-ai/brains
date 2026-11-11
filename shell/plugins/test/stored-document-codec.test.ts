@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
 import {
+  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
@@ -137,5 +139,86 @@ describe("a stored-document codec", () => {
       .getEntity({ entityType: "ticket", id: "broken" });
     // A document the header schema refuses never reads back as a record.
     expect(created === undefined ? read : null).toBeNull();
+  });
+});
+
+/**
+ * A stored document read as written, as Grouping definitions' class read
+ * its one document: the read is the stored bytes, header and visibility
+ * included, and a header that does not parse still reads, so an editor can
+ * show it for repair.
+ */
+const settings = writesInDocumentOrder(
+  defineEntity({
+    type: "settings",
+    purpose: "One document an admin writes and repairs by hand.",
+    metadata: z.object({}),
+    singleton: true,
+    hasBody: false,
+    markdown: storedDocumentCodec({
+      header: z.looseObject({}),
+      deriveMetadata: () => ({}),
+      readAsWritten: true,
+    }),
+  }),
+);
+
+function settingsAdapter(): EntityAdapter<BaseEntity> {
+  const [plugin] = instantiatePluginPackageDefinition(
+    defineEntityPackage({ id: "settings", entities: [settings] }),
+    {},
+    { name: "@fixture/settings", version: "0.1.0" },
+  );
+  if (!(plugin instanceof EntityPlugin)) throw new Error("No settings plugin");
+  return plugin.adapter;
+}
+
+describe("a stored-document codec read as written", () => {
+  it("reads a header that does not parse, as written, with no metadata", () => {
+    const broken = "---\nareas: [unterminated\n---\n";
+    expect(settingsAdapter().fromMarkdown(broken)).toEqual({
+      id: "settings",
+      content: broken,
+      metadata: {},
+    });
+  });
+
+  it("reads a document as written, byte for byte", () => {
+    const written =
+      "---\nvisibility: shared\nareas:\n  clients:\n    excludeTypes: [gone]\n---\n";
+    expect(settingsAdapter().fromMarkdown(written).content).toBe(written);
+  });
+
+  it("round-trips a written document byte for byte", async () => {
+    const harness = createPluginHarness();
+    for (const plugin of instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "settings", entities: [settings] }),
+      {},
+      { name: "@fixture/settings", version: "0.1.0" },
+    )) {
+      await harness.installPlugin(plugin);
+    }
+    const entities = harness.getEntityService();
+    const written = "---\nareas:\n  clients:\n    label: Clients\n---\n";
+    await entities.createEntity({
+      entity: {
+        id: "settings",
+        entityType: "settings",
+        content: written,
+        metadata: {},
+      },
+    });
+    const stored = await entities.getEntity({
+      entityType: "settings",
+      id: "settings",
+      source: true,
+    });
+    if (!stored) throw new Error("No settings");
+    const read = await entities.getEntity({
+      entityType: "settings",
+      id: "settings",
+    });
+    expect(read?.content).toBe(stored.content);
+    expect(read?.metadata).toEqual({});
   });
 });

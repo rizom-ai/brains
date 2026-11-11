@@ -69,6 +69,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
   queuedCreateOf,
@@ -384,6 +385,42 @@ function documentBody(content: string): string {
     : content;
 }
 
+/**
+ * A stored document read as written (storedDocumentCodec's readAsWritten):
+ * the stored bytes as its content, and metadata derived from its header
+ * when the header parses.
+ */
+function readAsWritten(
+  definition: AnyEntityDefinition,
+  markdown: string,
+): Partial<EntityOf<AnyEntityDefinition>> {
+  const header = readableHeader(markdown);
+  const metadata =
+    header && definition.markdown
+      ? definition.markdown.decode(header).metadata
+      : {};
+  return {
+    ...(definition.singleton === true && { id: definition.type }),
+    content: markdown,
+    metadata: definition.metadata.parse(currentMetadata(definition, metadata)),
+  };
+}
+
+/** A document's header and body; none when its header does not parse. */
+function readableHeader(
+  markdown: string,
+): { content: string; frontmatter: Record<string, unknown> } | undefined {
+  try {
+    const parsed = parseMarkdownWithFrontmatter(markdown, rawFrontmatterSchema);
+    return { content: parsed.content, frontmatter: parsed.metadata };
+  } catch {
+    // A header that does not parse still reads, as written and with no
+    // metadata, so an editor can show the document for repair; a write
+    // refuses it as before.
+    return undefined;
+  }
+}
+
 type DeclaredAdapter = EntityAdapter<
   EntityOf<AnyEntityDefinition>,
   Record<string, unknown>
@@ -423,6 +460,8 @@ function markdownStorage(
       });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
+      if (readsAsWritten(definition.markdown))
+        return readAsWritten(definition, markdown);
       const parsed = parseMarkdownWithFrontmatter(
         markdown,
         rawFrontmatterSchema,

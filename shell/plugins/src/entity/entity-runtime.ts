@@ -970,6 +970,12 @@ export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
  * exception to metadata being the frontmatter, for a type whose header
  * holds what must not be indexed (a mail item's sender and source) or what
  * is too large to (a traffic snapshot's days).
+ *
+ * With `readAsWritten`, a read is the stored document byte for byte, its
+ * visibility line included, as a class adapter that never parsed its
+ * document read it; a header that does not parse still reads, with empty
+ * metadata, so an editor can show it for repair (the grouping definitions
+ * document). Writes are the same either way.
  */
 export function storedDocumentCodec<
   THeader extends z.ZodObject,
@@ -979,9 +985,10 @@ export function storedDocumentCodec<
   readonly deriveMetadata: (
     header: z.output<THeader>,
   ) => z.input<TMetadataSchema>;
+  readonly readAsWritten?: boolean | undefined;
 }): EntityMarkdownCodec<TMetadataSchema> {
   const headerKeys = new Set(Object.keys(options.header.shape));
-  return {
+  const codec: EntityMarkdownCodec<TMetadataSchema> = {
     decode: ({
       content,
       frontmatter,
@@ -1003,6 +1010,16 @@ export function storedDocumentCodec<
       ),
     }),
   };
+  if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
+  return codec;
+}
+
+/** The stored-document codecs whose read is the document as written. */
+const readAsWrittenCodecs = new WeakSet<object>();
+
+/** Whether a codec reads its stored document as written. */
+export function readsAsWritten(codec: object | undefined): boolean {
+  return codec !== undefined && readAsWrittenCodecs.has(codec);
 }
 
 const frontmatterSchemaKey = Symbol("rizom.frontmatter-schema");
