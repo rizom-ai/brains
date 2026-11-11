@@ -41,7 +41,7 @@ import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import mcpInterface from "@brains/mcp";
-import { newsletter } from "@brains/newsletter";
+import { selectNewsletterPackages } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
@@ -133,6 +133,35 @@ function packagePlugins(
   const metadata = { name: packageName, version: packageJson.version };
   return (config) =>
     instantiatePluginPackageDefinition(definition, config, metadata, options);
+}
+
+/**
+ * The newsletter capability: the newsletter entity under newsletter, and
+ * the delivery provider its config selects under the id its class had,
+ * buttondown or resend.
+ */
+function newsletterPlugins(config: PluginConfig): Plugin[] {
+  const { entity, provider } = selectNewsletterPackages(config);
+  const metadata = {
+    name: "@brains/newsletter",
+    version: packageJson.version,
+  };
+  return [
+    ...instantiatePluginPackageDefinition(
+      entity.definition,
+      entity.config,
+      metadata,
+      { pluginId: "newsletter" },
+    ),
+    ...(provider
+      ? instantiatePluginPackageDefinition(
+          provider.definition,
+          provider.config,
+          metadata,
+          { pluginId: provider.kind },
+        )
+      : []),
+  ];
 }
 
 /** A capability whose package is a declarative definition. */
@@ -295,7 +324,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       socialMediaPackage,
       { pluginId: "social-media" },
     ),
-    ["newsletter", newsletter, undefined],
+    ["newsletter", newsletterPlugins, undefined],
     packageCapability("stock-photo", "@brains/stock-photo", stockPhotoPackage, {
       pluginId: "stock-photo",
     }),

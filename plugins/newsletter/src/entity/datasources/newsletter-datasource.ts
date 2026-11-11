@@ -1,260 +1,179 @@
 import {
-  BaseEntityDataSource,
-  type BaseQuery,
-  type EntityDataSourceConfig,
-  type PaginationInfo,
-} from "@brains/plugins";
-import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
+  defineDataSource,
+  type EntityDataSourceDefinition,
+  type EntityDefinition,
+} from "@brains/sdk/entities";
+import {
+  entityRuntime,
+  type AnyEntityReads,
+} from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { readString } from "@brains/utils/record-fields";
-import type { Logger } from "@brains/utils/logger";
 import { truncateText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   newsletterFrontmatterSchema,
-  newsletterSchema,
   newsletterStatusSchema,
   type Newsletter,
+  type newsletterMetadataSchema,
 } from "../schemas/newsletter";
 import type {
   NewsletterListData,
   NewsletterListItem,
 } from "../templates/newsletter-list";
 
-const newsletterQuerySchema: z.ZodObject<
-  {
-    id: z.ZodOptional<z.ZodString>;
-    limit: z.ZodOptional<z.ZodNumber>;
-    page: z.ZodOptional<z.ZodNumber>;
-    pageSize: z.ZodOptional<z.ZodNumber>;
-    baseUrl: z.ZodOptional<z.ZodString>;
-    status: z.ZodOptional<typeof newsletterStatusSchema>;
-  },
-  z.core.$loose
-> = z.looseObject({
-  id: z.string().optional(),
-  limit: z.number().optional(),
-  page: z.number().optional(),
-  pageSize: z.number().optional(),
-  baseUrl: z.string().optional(),
-  status: newsletterStatusSchema.optional(),
-});
-
-type NewsletterQuery = z.output<typeof newsletterQuerySchema>;
-
-const newsletterInputSchema: z.ZodObject<
-  {
-    entityType: z.ZodOptional<z.ZodString>;
-    query: z.ZodOptional<typeof newsletterQuerySchema>;
-  },
-  z.core.$loose
-> = z.looseObject({
-  entityType: z.string().optional(),
-  query: newsletterQuerySchema.optional(),
-});
+type NewsletterDefinition = EntityDefinition<
+  "newsletter",
+  typeof newsletterMetadataSchema
+>;
 
 /**
- * Extract body content from newsletter (strips frontmatter).
+ * The issue's body. A declared issue reads back as its body already; a
+ * stored document's frontmatter is stripped, as the class's source did.
  */
-function getNewsletterBody(newsletter: Newsletter): string {
+function newsletterBody(newsletter: Newsletter): string {
   try {
-    const { content } = parseMarkdownWithFrontmatter(
+    return parseMarkdownWithFrontmatter(
       newsletter.content,
       newsletterFrontmatterSchema,
-    );
-    return content;
+    ).content;
   } catch {
     return newsletter.content;
   }
 }
 
 /**
- * DataSource for fetching and transforming newsletter entities.
- * Handles list views with pagination/status filtering and detail views
- * with prev/next navigation and source entity resolution.
+ * What one issue becomes for rendering: the list item, plus what only the
+ * detail view reads.
  */
-export class NewsletterDataSource extends BaseEntityDataSource<
-  Newsletter,
-  NewsletterListItem,
+export interface TransformedNewsletter {
+  readonly item: NewsletterListItem;
+  readonly body: string;
+  readonly updated: string;
+  readonly scheduledFor: string | undefined;
+  readonly sentAt: string | undefined;
+  readonly entityIds: readonly string[];
+  readonly sourceEntityType: string;
+}
+
+interface SourceEntityLink {
+  readonly id: string;
+  readonly title: string;
+  readonly url: string;
+}
+
+/**
+ * The posts an issue was written from, those that still exist, read by the
+ * type the issue names at the build's scope, as the class read them.
+ */
+async function resolveSourceEntities(
+  newsletter: TransformedNewsletter,
+  entities: Pick<AnyEntityReads, "getEntity">,
+): Promise<SourceEntityLink[]> {
+  const found = await Promise.all(
+    newsletter.entityIds.map(async (id) => {
+      const entity = await entities.getEntity({
+        entityType: newsletter.sourceEntityType,
+        id,
+      });
+      if (!entity) return null;
+      return {
+        id,
+        title: readString(entity.metadata, "title") ?? id,
+        url: `/${newsletter.sourceEntityType}s/${readString(entity.metadata, "slug") ?? id}`,
+      };
+    }),
+  );
+  return found.filter((link): link is SourceEntityLink => link !== null);
+}
+
+const navigationLink = (
+  neighbour: TransformedNewsletter | null | undefined,
+): { id: string; subject: string; url: string } | null =>
+  neighbour
+    ? {
+        id: neighbour.item.id,
+        subject: neighbour.item.subject,
+        url: neighbour.item.url,
+      }
+    : null;
+
+/** The status a list query may narrow by. */
+const listFilterSchema = z.looseObject({
+  status: newsletterStatusSchema.optional(),
+});
+
+/**
+ * Issues as a list, newest first by creation, narrowed by status when
+ * asked; and one issue by its id, with its neighbours and the posts it was
+ * written from.
+ */
+export function newsletterDataSource(
+  newsletter: NewsletterDefinition,
+): EntityDataSourceDefinition<
+  NewsletterDefinition,
+  TransformedNewsletter,
   NewsletterListData
 > {
-  readonly id = "newsletter:entities";
-  readonly name = "Newsletter Entity DataSource";
-  readonly description =
-    "Fetches and transforms newsletter entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<Newsletter> = {
-    entityType: "newsletter",
-    entitySchema: newsletterSchema,
-    defaultSort: [{ field: "created" as const, direction: "desc" as const }],
+  return defineDataSource({
+    id: "entities",
+    name: "Newsletter Entity DataSource",
+    description: "Fetches and transforms newsletter entities for rendering",
+    entity: newsletter,
+    defaultSort: [{ field: "created", direction: "desc" }],
     defaultLimit: 10,
-    lookupField: "id" as const,
+    lookupField: "id",
     enableNavigation: true,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("NewsletterDataSource initialized");
-  }
-
-  protected override parseQuery(query: unknown): {
-    entityType: string;
-    query: NewsletterQuery;
-  } {
-    const parsed = newsletterInputSchema.parse(query);
-    return {
-      entityType: parsed.entityType ?? this.config.entityType,
-      query: parsed.query ?? {},
-    };
-  }
-
-  protected transformEntity(entity: Newsletter): NewsletterListItem {
-    const body = getNewsletterBody(entity);
-    const item: NewsletterListItem = {
-      id: entity.id,
-      subject: entity.metadata.subject,
-      status: entity.metadata.status,
-      excerpt: truncateText(body, 150),
-      created: entity.created,
-      sentAt: entity.metadata.sentAt ?? null,
-      url: `/newsletters/${entity.id}`,
-    };
-    return item;
-  }
-
-  protected buildListResult(
-    items: NewsletterListItem[],
-    pagination: PaginationInfo | null,
-    _query: BaseQuery,
-  ): NewsletterListData {
-    return {
-      newsletters: items,
+    filter: (query) => {
+      const { status } = listFilterSchema.parse(query);
+      return status ? { metadata: { status } } : undefined;
+    },
+    transform: (entity): TransformedNewsletter => {
+      const body = newsletterBody(entity);
+      return {
+        item: {
+          id: entity.id,
+          subject: entity.metadata.subject,
+          status: entity.metadata.status,
+          excerpt: truncateText(body, 150),
+          created: entity.created,
+          sentAt: entity.metadata.sentAt ?? null,
+          url: `/newsletters/${entity.id}`,
+        },
+        body,
+        updated: entity.updated,
+        scheduledFor: entity.metadata.scheduledFor,
+        sentAt: entity.metadata.sentAt,
+        entityIds: entity.metadata.entityIds ?? [],
+        sourceEntityType: entity.metadata.sourceEntityType ?? "post",
+      };
+    },
+    list: (items, pagination) => ({
+      newsletters: items.map(({ item }) => item),
       totalCount: pagination?.totalItems ?? items.length,
       pagination,
-    };
-  }
-
-  /**
-   * Override fetch to handle:
-   * - Detail view with source entity resolution (richer than base)
-   * - List view with status filtering
-   */
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { query: parsedQuery } = this.parseQuery(query);
-    const entityService = context.entityService;
-
-    // Detail view — custom because it resolves source entities
-    if (parsedQuery.id) {
-      return this.fetchSingleNewsletter(
-        parsedQuery.id,
-        outputSchema,
-        entityService,
+    }),
+    detail: async (context) => {
+      const { item, navigation } = context;
+      const sourceEntities = await resolveSourceEntities(
+        item,
+        entityRuntime(context).anyEntities,
       );
-    }
-
-    // List view — use base fetchList with optional status filter
-    const statusFilter = parsedQuery.status;
-    const filterOpts = statusFilter
-      ? { filter: { metadata: { status: statusFilter } } }
-      : undefined;
-
-    const { items, pagination } = await this.fetchList(
-      parsedQuery,
-      entityService,
-      filterOpts,
-    );
-
-    return outputSchema.parse(
-      this.buildListResult(items, pagination, parsedQuery),
-    );
-  }
-
-  /**
-   * Fetch a single newsletter with full detail data including
-   * navigation and source entity resolution.
-   */
-  private async fetchSingleNewsletter<T>(
-    id: string,
-    outputSchema: DataSourceSchema<T>,
-    entityService: BaseDataSourceContext["entityService"],
-  ): Promise<T> {
-    const newsletter = await entityService.getEntity(
-      {
-        entityType: this.config.entityType,
-        id: id,
-      },
-      newsletterSchema,
-    );
-
-    if (!newsletter) {
-      throw new Error(`Newsletter not found: ${id}`);
-    }
-
-    // Use base class utility for prev/next navigation
-    const navigation = await this.resolveNavigation(newsletter, entityService);
-
-    // Resolve source entities if present
-    let sourceEntities: Array<{ id: string; title: string; url: string }> = [];
-    if (newsletter.metadata.entityIds?.length) {
-      const entityType = newsletter.metadata.sourceEntityType ?? "post";
-      const resolvedEntities = await Promise.all(
-        newsletter.metadata.entityIds.map(async (entityId) => {
-          const entity = await entityService.getEntity({
-            entityType: entityType,
-            id: entityId,
-          });
-          if (entity) {
-            return {
-              id: entityId,
-              title: readString(entity.metadata, "title") ?? entityId,
-              url: `/${entityType}s/${readString(entity.metadata, "slug") ?? entityId}`,
-            };
-          }
-          return null;
+      return {
+        id: item.item.id,
+        subject: item.item.subject,
+        status: item.item.status,
+        content: item.body,
+        created: item.item.created,
+        updated: item.updated,
+        ...(item.sentAt !== undefined && { sentAt: item.sentAt }),
+        ...(item.scheduledFor !== undefined && {
+          scheduledFor: item.scheduledFor,
         }),
-      );
-      sourceEntities = resolvedEntities.filter(
-        (e): e is { id: string; title: string; url: string } => e !== null,
-      );
-    }
-
-    const body = getNewsletterBody(newsletter);
-
-    const detailData = {
-      id: newsletter.id,
-      subject: newsletter.metadata.subject,
-      status: newsletter.metadata.status,
-      content: body,
-      created: newsletter.created,
-      updated: newsletter.updated,
-      ...(newsletter.metadata.sentAt !== undefined && {
-        sentAt: newsletter.metadata.sentAt,
-      }),
-      ...(newsletter.metadata.scheduledFor !== undefined && {
-        scheduledFor: newsletter.metadata.scheduledFor,
-      }),
-      newsletter,
-      prevNewsletter: navigation.prev
-        ? {
-            id: navigation.prev.id,
-            subject: navigation.prev.subject,
-            url: navigation.prev.url,
-          }
-        : null,
-      nextNewsletter: navigation.next
-        ? {
-            id: navigation.next.id,
-            subject: navigation.next.subject,
-            url: navigation.next.url,
-          }
-        : null,
-      ...(sourceEntities.length > 0 && { sourceEntities }),
-    };
-
-    return outputSchema.parse(detailData);
-  }
+        prevNewsletter: navigationLink(navigation?.prev),
+        nextNewsletter: navigationLink(navigation?.next),
+        ...(sourceEntities.length > 0 && { sourceEntities }),
+      };
+    },
+  });
 }

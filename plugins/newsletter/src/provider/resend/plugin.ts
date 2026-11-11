@@ -1,11 +1,11 @@
-import type {
-  ApiRouteDefinition,
-  ServicePluginContext,
-  Tool,
-} from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../../../package.json";
+import { defineServicePlugin, z } from "@brains/sdk/services";
+import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  serviceRuntime,
+  withApiRoutes,
+  withTools,
+} from "@brains/sdk/internal/service-runtime";
+import { subscribeRoute } from "../plugin";
 import { registerNewsletterProvider } from "../register-provider";
 import { createNewsletterSubscriberTools } from "../tools";
 import type { ResendClientDeps } from "./resend-client";
@@ -26,7 +26,7 @@ const optionalNonEmptyString: z.ZodOptional<z.ZodString> = z
   .min(1)
   .optional();
 
-const resendConfigSchema: ResendPluginConfigSchema = z.object({
+export const resendConfigSchema: ResendPluginConfigSchema = z.object({
   apiKey: optionalNonEmptyString.describe("Resend API key"),
   segmentId: optionalNonEmptyString.describe("Resend newsletter Segment ID"),
   from: optionalNonEmptyString.describe("Verified Resend sender"),
@@ -41,84 +41,57 @@ const resendConfigSchema: ResendPluginConfigSchema = z.object({
 export type ResendPluginConfig = z.output<typeof resendConfigSchema>;
 export type ResendPluginConfigInput = z.input<typeof resendConfigSchema>;
 
-/** Resend newsletter delivery and subscriber integration. */
-export class ResendPlugin extends ServicePlugin<
-  ResendPluginConfig,
-  ResendPluginConfigInput
-> {
-  private readonly deps: ResendClientDeps;
-
-  constructor(
-    config: ResendPluginConfigInput = {},
-    deps: ResendClientDeps = {},
-  ) {
-    super("resend", packageJson, config, resendConfigSchema);
-    this.deps = deps;
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const provider = this.createProvider();
-    if (!provider) return;
-
-    registerNewsletterProvider(
-      context,
-      provider,
-      {
-        pluginId: this.id,
-        signupAction: "/api/resend/subscribe",
-        signupSuccessMessage: "You are subscribed.",
-        autoSendOnPublish: this.config.autoSendOnPublish,
-      },
-      this.logger,
-    );
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    const provider = this.createProvider();
-    return provider ? createNewsletterSubscriberTools(provider) : [];
-  }
-
-  override getApiRoutes(): ApiRouteDefinition[] {
-    if (!this.isConfigured()) return [];
-    return [
-      {
-        path: "/subscribe",
-        method: "POST",
-        tool: "newsletter_signup",
-        public: true,
-        successRedirect: "/subscribe/thanks",
-        errorRedirect: "/subscribe/error",
-      },
-    ];
-  }
-
-  private isConfigured(): boolean {
-    return Boolean(
-      this.config.apiKey && this.config.segmentId && this.config.from,
-    );
-  }
-
-  private createProvider(): ResendNewsletterProvider | undefined {
-    const { apiKey, segmentId, from, replyTo, topicId } = this.config;
-    if (!apiKey || !segmentId || !from) return undefined;
-    return new ResendNewsletterProvider(
-      {
-        apiKey,
-        segmentId,
-        from,
-        ...(replyTo ? { replyTo } : {}),
-        ...(topicId ? { topicId } : {}),
-      },
-      this.logger,
-      this.deps,
-    );
-  }
+/** Whether the config names everything a Resend broadcast needs. */
+function isConfigured(config: ResendPluginConfig): boolean {
+  return Boolean(config.apiKey && config.segmentId && config.from);
 }
 
-export function resendPlugin(
-  config: ResendPluginConfigInput = {},
-): ResendPlugin {
-  return new ResendPlugin(config);
+/** What the service holds once set up: no provider until it is configured. */
+interface ResendState {
+  readonly provider: ResendNewsletterProvider | undefined;
+}
+
+/**
+ * Resend newsletter delivery and subscriber integration: with an API key,
+ * a Segment and a sender, it publishes newsletters, offers the subscriber
+ * tools and the signup route, and adds the signup form to the site's
+ * footer.
+ */
+export function createResendPackage(
+  deps: ResendClientDeps = {},
+): ServicePackageDefinition<typeof resendConfigSchema> {
+  const service = defineServicePlugin({
+    id: "resend",
+    config: resendConfigSchema,
+    setup: (context): ResendState => {
+      const { apiKey, segmentId, from, replyTo, topicId, autoSendOnPublish } =
+        context.config;
+      if (!apiKey || !segmentId || !from) return { provider: undefined };
+      const runtime = serviceRuntime(context);
+      const provider = new ResendNewsletterProvider(
+        {
+          apiKey,
+          segmentId,
+          from,
+          ...(replyTo ? { replyTo } : {}),
+          ...(topicId ? { topicId } : {}),
+        },
+        runtime.logger,
+        deps,
+      );
+      registerNewsletterProvider(runtime, provider, {
+        pluginId: runtime.pluginId,
+        signupAction: `/api/${runtime.pluginId}/subscribe`,
+        signupSuccessMessage: "You are subscribed.",
+        autoSendOnPublish,
+      });
+      return { provider };
+    },
+  });
+  return withApiRoutes(
+    withTools<typeof resendConfigSchema, ResendState>(service, ({ state }) =>
+      state.provider ? createNewsletterSubscriberTools(state.provider) : [],
+    ),
+    ({ config }) => (isConfigured(config) ? [subscribeRoute] : []),
+  );
 }

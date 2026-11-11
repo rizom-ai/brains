@@ -3,9 +3,11 @@ import {
   publishRegisterContract,
 } from "@brains/contracts";
 import { siteBuilderSlotsContract } from "@brains/site-composition";
-import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { NewsletterSignup } from "@rizom/brain-ui/internal";
-import type { Logger } from "@brains/utils/logger";
 import { createElement as h, type ReactElement } from "react";
 import type { NewsletterDeliveryProvider } from "./contracts";
 import { handlePublishCompleted } from "./publish-handler";
@@ -17,31 +19,41 @@ export interface NewsletterProviderRegistration {
   autoSendOnPublish: boolean;
 }
 
-/** Register the selected newsletter provider's shared runtime integrations. */
+/**
+ * Register the selected newsletter provider's shared runtime integrations,
+ * as the provider classes did: publishing for newsletters once every
+ * plugin registered, the site's signup slot in every process, and with
+ * auto-send, an issue for each published post.
+ */
 export function registerNewsletterProvider(
-  context: ServicePluginContext,
+  runtime: Pick<
+    ServiceRuntime,
+    "listen" | "answer" | "messaging" | "entityReads" | "logger"
+  >,
   provider: NewsletterDeliveryProvider,
   options: NewsletterProviderRegistration,
-  logger: Logger,
 ): void {
-  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-    await context.messaging.command(publishRegisterContract, {
-      entityType: "newsletter",
-      provider,
-      config: { publishTimestampField: "sentAt" },
-    });
-
-    logger.info("Newsletter provider registered", {
-      provider: provider.name,
-    });
-    return { success: true };
-  });
+  const { logger } = runtime;
+  runtime.listen(
+    SYSTEM_CHANNELS.pluginsRegistered,
+    async () => {
+      await runtime.messaging.command(publishRegisterContract, {
+        entityType: "newsletter",
+        provider,
+        config: { publishTimestampField: "sentAt" },
+      });
+      logger.info("Newsletter provider registered", {
+        provider: provider.name,
+      });
+    },
+    { mode: "subscribe" },
+  );
 
   // Site builds run in the worker and ask for slots as they render; that
   // process never emits pluginsRegistered, so the signup answers there.
-  context.messaging.answer(
+  runtime.answer(
     siteBuilderSlotsContract,
-    async () => [
+    () => [
       {
         pluginId: options.pluginId,
         slotName: "footer-top",
@@ -58,23 +70,25 @@ export function registerNewsletterProvider(
 
   if (!options.autoSendOnPublish) return;
 
-  context.messaging.subscribe(publishCompletedChannel, async (payload) => {
-    const result = await handlePublishCompleted(
-      payload,
-      provider,
-      context.entityService,
-      logger,
-    );
-    if (!result.success) {
-      logger.error("Newsletter auto-send failed", {
-        provider: provider.name,
-        entityId: payload.entityId,
-        error: result.error,
-      });
-      return { success: false, error: result.error };
-    }
-    return { success: true };
-  });
+  runtime.listen(
+    publishCompletedChannel,
+    async ({ payload }) => {
+      const result = await handlePublishCompleted(
+        payload,
+        provider,
+        runtime.entityReads,
+        logger,
+      );
+      if (!result.success) {
+        logger.error("Newsletter auto-send failed", {
+          provider: provider.name,
+          entityId: payload.entityId,
+          error: result.error,
+        });
+      }
+    },
+    { mode: "subscribe" },
+  );
   logger.info("Newsletter auto-send on publish enabled", {
     provider: provider.name,
   });

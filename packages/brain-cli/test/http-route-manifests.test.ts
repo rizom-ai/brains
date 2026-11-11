@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
 import chatInterface from "@brains/chat";
-import { newsletter } from "@brains/newsletter";
 import {
   instantiatePluginPackageDefinition,
   isPackageDefinitionPlugin,
@@ -238,6 +237,15 @@ describe("canonical HTTP route manifests", () => {
   });
 
   test("records configured newsletter provider routes", () => {
+    // The newsletter capability as the canonical brain composes it.
+    const entry = canonicalBrain.capabilities.find(
+      ([id]) => id === "newsletter",
+    );
+    if (!entry) throw new Error("No newsletter capability");
+    const newsletter = (config: Record<string, unknown>): Plugin[] => {
+      const created = entry[1](config);
+      return Array.isArray(created) ? created : [created];
+    };
     expect(
       routeManifest(
         newsletter({
