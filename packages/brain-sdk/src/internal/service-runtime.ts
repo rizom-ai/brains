@@ -33,6 +33,7 @@ export {
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceEntityWrites,
+  type ServiceGitBroker,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,

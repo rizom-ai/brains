@@ -1215,6 +1215,10 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      gitBroker: Object.freeze({
+        socket: context.gitBrokerSocket,
+        checkout: context.gitBrokerCheckout,
+      }),
       initialSync: (handler): void => {
         this.answerInitialSync(context, handler);
       },

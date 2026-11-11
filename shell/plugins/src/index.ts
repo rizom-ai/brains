@@ -1036,6 +1036,7 @@ export {
   type ServiceTemplateOptions,
   type ServiceViews,
   type ServiceEntityWrites,
+  type ServiceGitBroker,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,

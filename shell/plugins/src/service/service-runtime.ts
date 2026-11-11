@@ -322,6 +322,11 @@ export interface ServiceRuntime {
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
   /**
+   * Where the brain's git broker listens and keeps its checkout, as the
+   * class read `context.gitBrokerSocket` and `context.gitBrokerCheckout`.
+   */
+  readonly gitBroker: ServiceGitBroker;
+  /**
    * Tell the shell, once every plugin has registered, whether startup
    * content is still importing, as the class answered `pluginsRegistered`
    * through `context.messaging`: the shell then waits for
@@ -645,6 +650,12 @@ export type ServiceEntityWrites = Pick<
   "createEntity" | "updateEntity" | "upsertEntity"
 >;
 
+/** Where the brain's git broker listens and keeps its checkout; none without Git. */
+export interface ServiceGitBroker {
+  readonly socket: string | undefined;
+  readonly checkout: string | undefined;
+}
+
 /** What a first-party service asks the brain's AI. */
 export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
   readonly judge: IShell["judge"];
@@ -692,6 +703,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly gitBroker: ServiceGitBroker;
   readonly initialSync: ServiceRuntime["initialSync"];
   readonly operationalHealth: Pick<IOperationalHealthNamespace, "register">;
   readonly endpoint: ServiceRuntime["endpoint"];
@@ -772,6 +784,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    gitBroker: binding.gitBroker,
     initialSync: binding.initialSync,
     operationalHealth(name, provider): void {
       binding.onRelease(binding.operationalHealth.register(name, provider));
