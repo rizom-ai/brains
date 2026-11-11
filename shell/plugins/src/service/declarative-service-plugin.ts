@@ -27,7 +27,7 @@ import type {
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
 } from "@brains/entity-service";
-import type { EnqueueJobRequest, JobHandler } from "@brains/job-queue";
+import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createConfirmationGate,
@@ -1127,8 +1127,7 @@ class DeclarativeServicePlugin<
       resolveTemplate: (templateName, options) =>
         context.templates.resolve(templateName, options),
       jobs: Object.freeze({
-        enqueue: (request: EnqueueJobRequest): Promise<string> =>
-          context.jobs.enqueue(request),
+        enqueue: context.jobs.enqueue,
         getStatus: (jobId: string) => context.jobs.getStatus(jobId),
         getRecentJobs: (types?: string[], limit?: number) =>
           context.jobs.getRecentJobs(types, limit),

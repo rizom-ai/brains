@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { defineJobContract } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
@@ -87,6 +88,42 @@ describe("a first-party service queueing a job as its class did", () => {
       requestedByUserId: "operator",
       requestedByInterface: "cli",
     });
+  });
+
+  it("queues another package's job through its contract, as its class did", async () => {
+    const shell = createMockShell();
+    const runtime = await runtimeOn(shell);
+    const render = defineJobContract({
+      type: "image:render-source",
+      input: z.object({ sourceEntityId: z.string().min(1) }),
+    });
+
+    const jobId = await runtime.jobs.enqueue(
+      render,
+      { sourceEntityId: "post-1" },
+      {
+        options: {
+          source: "probe",
+          metadata: { operationType: "content_operations" },
+          deduplication: "skip",
+          deduplicationKey: "post-1:cover",
+        },
+      },
+    );
+
+    const job = await shell.getJobQueueService().getStatus(jobId);
+    // The contract's full type, never rescoped to the plugin.
+    expect({
+      type: job?.type,
+      data: JSON.parse(job?.data ?? "null"),
+    }).toEqual({
+      type: "image:render-source",
+      data: { sourceEntityId: "post-1" },
+    });
+    // Data the contract refuses throws before anything is queued.
+    expect(
+      runtime.jobs.enqueue(render, { sourceEntityId: "" }),
+    ).rejects.toThrow();
   });
 
   it("reads the active jobs of the types it names, as its class did", async () => {

@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
-import type { EnqueueJobRequest, JobInfo } from "@brains/job-queue";
+import type { EnqueueJobFn, JobInfo } from "@brains/job-queue";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
@@ -522,7 +522,11 @@ export type ServiceClassMessaging = Pick<
 
 /** The job queue as a class queued through it. */
 export interface ServiceClassJobs {
-  enqueue(request: EnqueueJobRequest): Promise<string>;
+  /**
+   * A job by its type, or another package's job through its contract, its
+   * data parsed by the contract's input before anything is queued.
+   */
+  readonly enqueue: EnqueueJobFn;
   /** A job's status, by its id; none for a job the queue does not hold. */
   getStatus(jobId: string): Promise<JobInfo | null>;
   /** The latest jobs of the types named, newest first, at most `limit`. */
