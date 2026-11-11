@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import { entityMirrorOf } from "./entity-mirror";
+import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
@@ -1221,6 +1222,13 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      sharedUploads: (options = {}) =>
+        context.uploads.scoped({
+          ...sharedUploadScope,
+          ...(options.routePath ? { routePath: options.routePath } : {}),
+        }),
+      uploadSaveHandler: (mediaType: string) =>
+        context.entities.getUploadSaveHandler(mediaType),
       channelDescriptors: () => context.channels.listDescriptors(),
       readiness: () => context.readiness(),
       inboxFollowUpKind: (kind): void => {

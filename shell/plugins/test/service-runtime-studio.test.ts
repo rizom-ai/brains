@@ -1,7 +1,8 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
-import type { EntityHierarchyPage } from "@brains/entity-service";
+import type { CreateResult, EntityHierarchyPage } from "@brains/entity-service";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
+import { createTempDataDir } from "../src/test/temp-dir";
 import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
@@ -118,5 +119,30 @@ describe("a first-party service reaching what Studio's class did", () => {
     expect(
       runtime.entityReads.deserializeEntity("---\ntitle: A\n---\nBody", "note"),
     ).toEqual(entities.deserializeEntity("---\ntitle: A\n---\nBody", "note"));
+  });
+
+  it("saves to the shared upload store and finds the handler a file's type promotes through, as Studio did", async () => {
+    const shell = createMockShell({ dataDir: await createTempDataDir() });
+    const handler = async (): Promise<CreateResult> => ({
+      success: true,
+      data: { entityId: "photo", status: "created" },
+    });
+    shell.getEntityRegistry().registerUploadSaveHandler({
+      entityType: "image",
+      mediaTypes: ["image/png"],
+      handler,
+    });
+    const { runtime } = await runtimeOn(shell);
+    expect(runtime.uploadSaveHandler("image/png")?.entityType).toBe("image");
+    expect(runtime.uploadSaveHandler("text/plain")).toBeUndefined();
+
+    const store = runtime.sharedUploads({ routePath: "/studio/api/uploads" });
+    const saved = await store.save({
+      filename: "a.png",
+      mediaType: "image/png",
+      content: Buffer.from("png"),
+    });
+    // The store create requests and promotion read: under upload.
+    expect(saved.ref).toMatchObject({ kind: "upload", id: saved.id });
   });
 });

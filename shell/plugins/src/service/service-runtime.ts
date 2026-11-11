@@ -31,6 +31,8 @@ import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import type { RuntimeReadiness } from "../contracts/runtime-health";
+import type { ScopedRuntimeUploadStore } from "./upload-registry";
+import type { UploadSaveHandlerRegistration } from "@brains/entity-service";
 import type { ServiceEntityMirror } from "./entity-mirror";
 import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { ResolutionOptions } from "@brains/content-service";
@@ -326,6 +328,21 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * The runtime's shared upload store (`upload`), which create requests,
+   * attachment restore and entity promotion read, served at `routePath`:
+   * the store Studio's class saved an upload to through `context.uploads`.
+   */
+  sharedUploads(options?: {
+    readonly routePath?: string | undefined;
+  }): ScopedRuntimeUploadStore;
+  /**
+   * The handler a file's media type is promoted through, as the class read
+   * `context.entities.getUploadSaveHandler`; none for a type nothing takes.
+   */
+  uploadSaveHandler(
+    mediaType: string,
+  ): UploadSaveHandlerRegistration | undefined;
   /**
    * The channel descriptors other packages registered, as the class read
    * `context.channels.listDescriptors()`.
@@ -743,6 +760,8 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly sharedUploads: ServiceRuntime["sharedUploads"];
+  readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
   readonly channelDescriptors: () => ChannelDescriptor[];
   readonly readiness: () => Promise<RuntimeReadiness>;
   readonly inboxFollowUpKind: ServiceRuntime["inboxFollowUpKind"];
@@ -829,6 +848,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    sharedUploads: binding.sharedUploads,
+    uploadSaveHandler: binding.uploadSaveHandler,
     channelDescriptors: binding.channelDescriptors,
     readiness: binding.readiness,
     inboxFollowUpKind: binding.inboxFollowUpKind,
