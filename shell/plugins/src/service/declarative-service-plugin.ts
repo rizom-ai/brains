@@ -1176,6 +1176,9 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      analyticsReport: (report): void => {
+        context.analytics.register(report);
+      },
       inboxFollowUps: Object.freeze({
         resolve: (
           input: Parameters<typeof context.inboxFollowUps.resolve>[0],

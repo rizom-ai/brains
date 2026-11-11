@@ -22,6 +22,7 @@ import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
+import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { AppInfo } from "../contracts/app-info";
@@ -307,6 +308,13 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * Register a report the system_analytics tool answers, as the class did
+   * through `context.analytics.register`; a job worker registers none.
+   */
+  analyticsReport<TParams extends z.ZodObject>(
+    report: AnalyticsReportDefinition<TParams>,
+  ): void;
   /**
    * The follow-ups the Inbox's destinations resolve for an item, as the
    * class read them through `context.inboxFollowUps`.
@@ -634,6 +642,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly analyticsReport: ServiceRuntime["analyticsReport"];
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
   readonly recurringCheck: (check: RecurringCheckDefinition) => void;
   readonly interaction: (interaction: ServiceInteraction) => void;
@@ -707,6 +716,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    analyticsReport: binding.analyticsReport,
     inboxFollowUps: binding.inboxFollowUps,
     recurringCheck: binding.recurringCheck,
     interaction: binding.interaction,
