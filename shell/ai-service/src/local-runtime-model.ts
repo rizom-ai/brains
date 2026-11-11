@@ -37,6 +37,7 @@ export function withLocalRuntime(
     middleware: [
       ...(options.readsImages ? [] : [textOnlyFiles(options)]),
       ...(options.answersWithoutThinking ? [answerWithoutThinking] : []),
+      withoutStoredQuotes,
       callAfterSilence,
       requiredToolChoice,
     ],
@@ -83,6 +84,40 @@ function silent(result: GenerateResult): boolean {
       part.type === "reasoning" || (part.type === "text" && !part.text.trim()),
   );
 }
+
+/** The quote an update's reply gives of what it stored, with its tail. */
+const STORED_QUOTE =
+  /(^|\n)(?:Stored now:|No longer stored:)\n(?:> [^\n]*(?:\n|$))+(?:… and \d+ more changed lines\n?)?/g;
+
+/**
+ * An earlier reply's quote of what an update stored reaches a local model as
+ * a pointer to storage: given the quote, it answered a later request to read
+ * the entity from it, though the quote is partial and storage can change.
+ */
+const withoutStoredQuotes: LanguageModelMiddleware = {
+  specificationVersion: "v3",
+  transformParams: async ({ params }) => ({
+    ...params,
+    prompt: params.prompt.map((message) =>
+      message.role === "assistant"
+        ? {
+            ...message,
+            content: message.content.map((part) =>
+              part.type === "text"
+                ? {
+                    ...part,
+                    text: part.text.replace(
+                      STORED_QUOTE,
+                      "$1(What was stored was shown to the user; read it from storage to quote it.)",
+                    ),
+                  }
+                : part,
+            ),
+          }
+        : message,
+    ),
+  }),
+};
 
 const callAfterSilence: LanguageModelMiddleware = {
   specificationVersion: "v3",

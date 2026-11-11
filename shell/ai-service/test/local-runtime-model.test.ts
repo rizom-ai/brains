@@ -252,6 +252,32 @@ describe("a first step that ends with no reply and no call", () => {
   });
 });
 
+describe("an earlier reply that quoted what an update stored", () => {
+  it("reaches a local model without the quote, which it reads from storage", async () => {
+    const inner = scripted([reply("Done.")]);
+
+    await generateText({
+      model: withLocalRuntime(inner, {}),
+      messages: [
+        {
+          role: "assistant",
+          content:
+            "Completed: Updated note.\n\nStored now:\n> ## Operations revision 1\n> Rewrite this section.\n… and 4 more changed lines",
+        },
+        { role: "user", content: "Read the note from storage again." },
+      ],
+    });
+
+    const [call] = inner.doGenerateCalls;
+    const earlier = JSON.stringify(
+      call?.prompt.filter((message) => message.role === "assistant"),
+    );
+    expect(earlier).toContain("Completed: Updated note.");
+    expect(earlier).not.toContain("Operations revision 1");
+    expect(earlier).toContain("read it from storage");
+  });
+});
+
 describe("a tool result", () => {
   const thinking = { local: { reasoningEffort: "low" } } as const;
 
