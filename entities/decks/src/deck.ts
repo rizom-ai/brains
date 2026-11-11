@@ -15,7 +15,7 @@ import { deckGeneration } from "./handlers/deckGenerationJobHandler";
 import { deckFromText } from "./lib/create-from-text";
 import { deckMarkdown } from "./lib/deck-markdown";
 import { deckEvals } from "./lib/eval-handlers";
-import { deckMetadataSchema } from "./schemas/deck";
+import { deckCreateFieldsSchema, deckMetadataSchema } from "./schemas/deck";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
 import { deckDescriptionTemplate } from "./templates/description-template";
@@ -53,7 +53,7 @@ export const deck: EntityDefinition<"deck", typeof deckMetadataSchema> =
         "og-image": deckOgImageTemplate,
         carousel: deckCarouselTemplate,
       },
-      create: { fromContent: deckFromText },
+      create: { fromContent: deckFromText, fields: deckCreateFieldsSchema },
       generation: deckGeneration,
       attachments: [
         {

@@ -504,6 +504,9 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
+    ...(definition.create?.fields && {
+      createFieldsSchema: definition.create.fields,
+    }),
     ...(definition.displayTitle && {
       displayTitle: (entity): string | undefined =>
         displayTitle(definition, entity),

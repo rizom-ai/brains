@@ -576,6 +576,13 @@ export interface EntityAdapter<
   /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
+  /**
+   * Optional: fields a creator may state that the type does not store, such
+   * as where a deck's slides break. The brain's create tool takes them with
+   * the editable fields; nothing updates them.
+   */
+  createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
+
   /** Optional: Declares this entity type is a singleton (one file, e.g., identity/identity.md). Used by Studio to generate files collection. */
   isSingleton?: boolean;
 
@@ -1580,6 +1587,22 @@ export interface EntityRegistry {
   getEffectiveFrontmatterSchema(
     type: string,
   ): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields of an entity type's effective frontmatter that callers may
+   * set through the brain's create and update tools, typed as the
+   * frontmatter types them: every field but those a schema marks as the
+   * brain's own record, `studioWidget: "provenance"` or `"hidden"`, the
+   * marks by which Studio shows a field read-only or leaves it off its
+   * form. Undefined when the type has no frontmatter.
+   */
+  getEditableFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields a caller may state when creating an entity of this type: its
+   * editable fields and those its adapter takes only on create.
+   */
+  getCreateFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**

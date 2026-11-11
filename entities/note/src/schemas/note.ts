@@ -18,8 +18,9 @@ export const noteFrontmatterSchema: z.ZodObject<{
   error: z.ZodOptional<z.ZodString>;
 }> = z.object({
   title: z.string().optional(),
-  status: noteStatusSchema.optional(),
-  error: z.string().optional(),
+  // Set by the generation that writes the note.
+  status: noteStatusSchema.optional().meta({ studioWidget: "provenance" }),
+  error: z.string().optional().meta({ studioWidget: "provenance" }),
 });
 
 export type NoteFrontmatter = z.output<typeof noteFrontmatterSchema>;

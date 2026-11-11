@@ -15,6 +15,7 @@ import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
 import { definedFields } from "@brains/utils/strip-undefined";
+import { dropModelNulls, toStrictModelSchema } from "./strict-model-schema";
 
 const GUEST_RETRIEVAL_UNAVAILABLE = {
   success: false,
@@ -129,35 +130,61 @@ export function toModelVisibleInputSchema(
   return visibleSchema;
 }
 
+/** A model input of its own, and the tool input it becomes. */
+interface ModelInputView {
+  shape: ModelVisibleInputSchema;
+  toToolInput: (input: Record<string, unknown>) => Record<string, unknown>;
+}
+
 function toSDKInputSchema(
   shape: ModelVisibleInputSchema,
-): Schema<Record<string, unknown>> {
-  const schema = z.strictObject(shape);
+  strictTools: boolean,
+  modelInput?: ModelInputView,
+): { inputSchema: Schema<Record<string, unknown>>; strict: boolean } {
+  const toolSchema = z.strictObject(shape);
+  const schema = modelInput ? z.strictObject(modelInput.shape) : toolSchema;
   // The SDK's automatic Zod conversion closes every object, including
   // records whose keys belong to plugins. Preserve Zod's actual JSON schema:
   // strict operation branches stay closed, while field maps stay open.
-  return jsonSchema<Record<string, unknown>>(
-    () => {
-      // Zod's declared keyword types span drafts. The selected renderer
-      // produces the SDK's draft-7 contract; preserve the generated object.
-      // The `$schema` URI is dropped: it is resent on every agent step and
-      // tells the model nothing.
-      const { $schema: _draftUri, ...draft7 }: Record<string, unknown> =
-        z.toJSONSchema(schema, {
-          target: "draft-7",
-          io: "input",
-        });
-      return draft7;
-    },
-    {
-      validate: async (value) => {
-        const parsed = await schema.safeParseAsync(value);
-        return parsed.success
-          ? { success: true, value: parsed.data }
-          : { success: false, error: parsed.error };
+  // Zod's declared keyword types span drafts. The selected renderer
+  // produces the SDK's draft-7 contract; preserve the generated object.
+  // The `$schema` URI is dropped: it is resent on every agent step and
+  // tells the model nothing.
+  const { $schema: _draftUri, ...draft7 }: Record<string, unknown> =
+    z.toJSONSchema(schema, {
+      target: "draft-7",
+      io: "input",
+      // A schema used twice, such as a list of field changes, is written
+      // once and referred to: tool schemas are resent on every step.
+      reused: "ref",
+    });
+  // A model that takes strict tools is held to the tool's strict form; the
+  // nulls it writes there for left-out fields are dropped before the tool's
+  // own schema validates the call.
+  const strictSchema = strictTools ? toStrictModelSchema(draft7) : undefined;
+  return {
+    inputSchema: jsonSchema<Record<string, unknown>>(
+      () => strictSchema ?? draft7,
+      {
+        validate: async (value) => {
+          const parsed = await schema.safeParseAsync(
+            strictSchema ? dropModelNulls(value, draft7) : value,
+          );
+          if (!parsed.success) return { success: false, error: parsed.error };
+          if (!modelInput) return { success: true, value: parsed.data };
+          // A call in the model's own input is checked there, then becomes
+          // the tool's input, which the tool's schema validates.
+          const toolInput = await toolSchema.safeParseAsync(
+            modelInput.toToolInput(parsed.data),
+          );
+          return toolInput.success
+            ? { success: true, value: toolInput.data }
+            : { success: false, error: toolInput.error };
+        },
       },
-    },
-  );
+    ),
+    strict: strictSchema !== undefined,
+  };
 }
 
 export function toModelToolOutput(output: unknown): {
@@ -213,6 +240,7 @@ export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
+  options: { strictTools?: boolean } = {},
 ): SDKToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -297,19 +325,37 @@ export function convertToSDKTools(
       guest ? undefined : emitter,
     );
 
+    const visibility = {
+      toolName: t.name,
+      ...(contextInfo.enableCreateUpload !== undefined && {
+        enableCreateUpload: contextInfo.enableCreateUpload,
+      }),
+      ...(contextInfo.enableCreateTransform !== undefined && {
+        enableCreateTransform: contextInfo.enableCreateTransform,
+      }),
+    };
+    const strictTools = options.strictTools ?? false;
+    // A model input exists for strict mode, which cannot hold the tool's own
+    // form; a model not held to strict tools writes that form.
+    const modelInput =
+      strictTools && t.modelInput
+        ? {
+            shape: toModelVisibleInputSchema(
+              t.modelInput.inputSchema(),
+              visibility,
+            ),
+            toToolInput: t.modelInput.toToolInput,
+          }
+        : undefined;
+    const { inputSchema, strict } = toSDKInputSchema(
+      toModelVisibleInputSchema(t.inputSchema, visibility),
+      strictTools,
+      modelInput,
+    );
     sdkTools[t.name] = dynamicTool({
       description: t.description,
-      inputSchema: toSDKInputSchema(
-        toModelVisibleInputSchema(t.inputSchema, {
-          toolName: t.name,
-          ...(contextInfo.enableCreateUpload !== undefined && {
-            enableCreateUpload: contextInfo.enableCreateUpload,
-          }),
-          ...(contextInfo.enableCreateTransform !== undefined && {
-            enableCreateTransform: contextInfo.enableCreateTransform,
-          }),
-        }),
-      ),
+      inputSchema,
+      ...(strict && { strict: true }),
       execute: wrappedExecute,
       toModelOutput: ({ output }) => toModelToolOutput(output),
     });

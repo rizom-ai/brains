@@ -28,8 +28,10 @@ successCriteria:
         entityType: post
         source.kind: user-message
         fields.status: published
-        fields.publishedAt: "2025-03-12"
         fields.canonicalUrl: https://janhein.substack.com/p/on-patience
+      # The date, with or without a time of day: both are stored as that day.
+      argsMatch:
+        fields.publishedAt: "^2025-03-12"
       argsAbsent:
         - prompt
     - toolName: system_generate
@@ -43,4 +45,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 31000
+  maxTokens: 25000

@@ -14,6 +14,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
+  deckCreateFieldsSchema,
   deckFrontmatterSchema,
   type deckMetadataSchema,
 } from "../schemas/deck";
@@ -29,8 +30,7 @@ const deckTextFieldsSchema = z.object({
   author: z.string().trim().min(1).optional(),
   event: z.string().trim().min(1).optional(),
   coverImageId: z.string().min(1).optional(),
-  /** Where the slides break in text without --- separators; not stored. */
-  slides: z.enum(["headings", "paragraphs"]).optional(),
+  slides: deckCreateFieldsSchema.shape.slides,
 });
 
 type DeckTextFields = z.output<typeof deckTextFieldsSchema>;
