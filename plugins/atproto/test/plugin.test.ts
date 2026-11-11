@@ -1,3 +1,5 @@
+import atprotoPackage from "../src";
+import { createAtprotoPlugin } from "./atproto-plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
@@ -7,12 +9,7 @@ import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   type AtprotoBrainCardRecord,
 } from "@brains/atproto-contracts";
-import {
-  AtprotoPlugin,
-  atprotoPlugin,
-  plugin,
-  type AtprotoPdsClientLike,
-} from "../src";
+import { type AtprotoPdsClientLike } from "../src";
 
 /**
  * What the plugin's own did.json routes must put on the wire. Parsing rather
@@ -92,16 +89,18 @@ function createTestBrainCardRecord(): AtprotoBrainCardRecord {
 }
 
 describe("atproto plugin", () => {
-  it("exports a conventional external plugin factory", () => {
-    expect(plugin).toBe(atprotoPlugin);
+  it("exports the package a brain composes", () => {
+    expect(atprotoPackage.id).toBe("atproto");
   });
 
   it("validates configuration", () => {
-    expect(() => atprotoPlugin({ pdsEndpoint: "not-a-url" })).toThrowError();
+    expect(() =>
+      createAtprotoPlugin({ pdsEndpoint: "not-a-url" }),
+    ).toThrowError();
   });
 
   it("exposes conventional did:web routes when enabled", () => {
-    const plugin = atprotoPlugin();
+    const plugin = createAtprotoPlugin();
 
     expect(
       plugin
@@ -116,7 +115,7 @@ describe("atproto plugin", () => {
     // atproto-integration.md): the brain self-verifies its owner atproto
     // handle by serving the account DID at /.well-known/atproto-did — the
     // HTTP verification method, no per-user DNS records.
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
     });
 
@@ -135,7 +134,7 @@ describe("atproto plugin", () => {
   });
 
   it("does not serve atproto-did without an account DID", () => {
-    const plugin = atprotoPlugin();
+    const plugin = createAtprotoPlugin();
     expect(
       plugin
         .getWebRoutes()
@@ -144,7 +143,7 @@ describe("atproto plugin", () => {
   });
 
   it("serves conventional did:web document routes when DIDs are omitted", async () => {
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
     });
@@ -186,7 +185,7 @@ describe("atproto plugin", () => {
   });
 
   it("serves did:web document routes when configured", async () => {
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
@@ -234,7 +233,7 @@ describe("atproto plugin", () => {
   });
 
   it("hides routes when disabled", () => {
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       enabled: false,
       brainDid: "did:web:brain.example.com",
     });
@@ -243,7 +242,7 @@ describe("atproto plugin", () => {
   });
 
   it("does not expose AT Protocol operations as agent tools or instructions", async () => {
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
@@ -256,7 +255,7 @@ describe("atproto plugin", () => {
   });
 
   it("reports invalid credentials without throwing", async () => {
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -288,7 +287,7 @@ describe("atproto plugin", () => {
       value: cardRecord,
     }));
     const pdsEndpoints: string[] = [];
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
       },
@@ -365,7 +364,7 @@ describe("atproto plugin", () => {
         kind: "organization",
       },
     };
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
@@ -418,7 +417,7 @@ describe("atproto plugin", () => {
         description: "missing required name and createdAt",
       },
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
@@ -480,7 +479,7 @@ describe("atproto plugin", () => {
       })),
       getRecord,
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { pdsEndpoint: "https://fallback-pds.example.com" },
       {
         fetch: mock(async () => jsonResponse({ message: "Not found" }, 404)),
@@ -518,7 +517,7 @@ describe("atproto plugin", () => {
       accessJwt: "access-token",
       refreshJwt: "refresh-token",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",

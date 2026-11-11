@@ -17,7 +17,7 @@ import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import { assessment } from "@brains/assessment";
-import { atprotoPlugin } from "@brains/atproto";
+import atprotoPackage from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
@@ -330,7 +330,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     }),
     [
       "atproto",
-      atprotoPlugin,
+      packagePlugins("@brains/atproto", atprotoPackage, {
+        pluginId: "atproto",
+      }),
       (env): PluginConfig => ({
         ...(env["ATPROTO_APP_PASSWORD"]
           ? { appPassword: env["ATPROTO_APP_PASSWORD"] }

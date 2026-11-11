@@ -45,6 +45,7 @@ export {
   withOwnedDataSources,
   withStaticSiteOutput,
   withApiRoutes,
+  withWebRoutes,
   withTools,
   type FirstPartyJobCall,
   type FirstPartyJobHandler,

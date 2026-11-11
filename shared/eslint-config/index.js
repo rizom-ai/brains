@@ -76,6 +76,7 @@ const convertedServicePackages = [
   "site-content",
   "content-pipeline",
   "newsletter",
+  "atproto",
 ];
 
 const classBaseBan = {
