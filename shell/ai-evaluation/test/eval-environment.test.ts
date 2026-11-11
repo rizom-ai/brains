@@ -40,15 +40,40 @@ describe("prepareEvalEnvironment", () => {
   });
 
   it("lets the remote brain under evaluation through", async () => {
-    bases.push(
-      prepareEvalEnvironment({ remoteUrl: "https://remote-brain.invalid/mcp" }),
-    );
+    // The remote brain, served on a loopback address the eval network does
+    // not pass on its own, so only naming it as the remote lets it through,
+    // with no lookup on the real network.
+    const remote = Bun.serve({
+      hostname: "127.0.0.2",
+      port: 0,
+      fetch: () => new Response("remote brain"),
+    });
+    try {
+      const remoteUrl = `http://127.0.0.2:${remote.port}/mcp`;
+      bases.push(prepareEvalEnvironment({ remoteUrl }));
 
-    // Passed to the real network, which has no such host: not refused here.
-    const error = await fetch("https://remote-brain.invalid/mcp").then(
-      () => undefined,
-      (failure: unknown) => failure,
-    );
-    expect(String(error)).not.toContain("An eval reached the network");
+      const response = await fetch(remoteUrl);
+      expect(await response.text()).toBe("remote brain");
+    } finally {
+      await remote.stop(true);
+    }
+  });
+
+  it("refuses that address when it is not the remote brain", async () => {
+    const remote = Bun.serve({
+      hostname: "127.0.0.2",
+      port: 0,
+      fetch: () => new Response("remote brain"),
+    });
+    try {
+      bases.push(prepareEvalEnvironment());
+      const refused = await fetch(`http://127.0.0.2:${remote.port}/mcp`).then(
+        () => undefined,
+        (failure: unknown) => failure,
+      );
+      expect(String(refused)).toContain("An eval reached the network");
+    } finally {
+      await remote.stop(true);
+    }
   });
 });
