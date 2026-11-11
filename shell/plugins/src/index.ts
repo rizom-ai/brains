@@ -1028,6 +1028,7 @@ export {
   type ServiceEntityShapes,
   type ServiceClassJobs,
   type ServiceClassMessaging,
+  type ServicePermissions,
   type ServiceTemplateOptions,
   type ServiceViews,
   type ServiceEntityWrites,

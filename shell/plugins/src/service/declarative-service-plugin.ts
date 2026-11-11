@@ -1185,6 +1185,15 @@ class DeclarativeServicePlugin<
           : undefined;
       },
       entityReads: entityReadsOf(context),
+      permissions: Object.freeze({
+        assertEntityActionAllowed: (entityType, action, caller): void => {
+          context.permissions.assertEntityActionAllowed(
+            entityType,
+            action,
+            caller,
+          );
+        },
+      }),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,
       ai: Object.freeze<ServiceAI>({

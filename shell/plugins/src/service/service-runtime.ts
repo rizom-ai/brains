@@ -13,6 +13,7 @@ import type {
   IInboxNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
+  IPermissionsNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
 import type { IEntityAINamespace } from "../entity/ai-types";
@@ -331,6 +332,12 @@ export interface ServiceRuntime {
    */
   readonly entityReads: ServiceEntityReads;
   /**
+   * The brain's entity action policy, checked for a caller as the class
+   * checked it through `context.permissions.assertEntityActionAllowed`:
+   * a caller below the level a type's action needs is refused.
+   */
+  readonly permissions: ServicePermissions;
+  /**
    * Claim a shell system type for this package: it alone keeps the type's
    * records, as the class kept them. A type that is not one of the shell's
    * own, one nobody registered, and one another package claimed are
@@ -472,6 +479,12 @@ export interface ServiceEntityReads {
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
 }
 
+/** The entity action policy check a class made, and nothing that sets one. */
+export type ServicePermissions = Pick<
+  IPermissionsNamespace,
+  "assertEntityActionAllowed"
+>;
+
 /** The view templates a class read, and nothing that registers one. */
 export type ServiceViews = Pick<IViewsNamespace, "get" | "list">;
 
@@ -551,6 +564,7 @@ export interface ServiceRuntimeBinding {
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
   readonly entityReads: ServiceEntityReads;
+  readonly permissions: ServicePermissions;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: ServiceAI;
@@ -611,6 +625,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
     entityReads: binding.entityReads,
+    permissions: binding.permissions,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
     ai: binding.ai,
