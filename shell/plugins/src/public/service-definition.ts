@@ -173,6 +173,7 @@ function createServicePackage<
       scope,
       pluginId,
       dependencies,
+      ownedTypePluginId,
     }) => [
       ...createEntityPackagePlugins(
         entities,
@@ -180,7 +181,12 @@ function createServicePackage<
         metadata,
         pluginId === undefined
           ? scope
-          : legacyOwnedScope(definition.id, entities, pluginId),
+          : legacyOwnedScope(
+              definition.id,
+              entities,
+              pluginId,
+              ownedTypePluginId,
+            ),
         dataSources,
       ),
       createDeclarativeServicePlugin(
@@ -242,6 +248,8 @@ function legacyOwnedScope(
   serviceId: string,
   entities: readonly AnyEntityDefinition[],
   pluginId: string,
+  /** Where the type installs when the service keeps the type's own id. */
+  ownedTypePluginId: string | undefined,
 ): (localId: string) => string {
   const [only, ...rest] = entities;
   if (rest.length > 0) {
@@ -249,16 +257,18 @@ function legacyOwnedScope(
       `Service "${serviceId}" keeps a legacy plugin id only when it owns at most one entity type`,
     );
   }
-  if (only?.type === pluginId) {
+  if (only?.type === pluginId && ownedTypePluginId === undefined) {
     throw new Error(
       `Service "${serviceId}" cannot keep legacy plugin id "${pluginId}", which its entity type is installed under`,
     );
   }
+  const typePluginId = ownedTypePluginId ?? only?.type;
   return (localId) => {
     assertIdentifier(localId, "Local plugin id");
-    return only === undefined || localId === only.type
-      ? localId
-      : `${only.type}:${localId}`;
+    if (only === undefined) return localId;
+    return localId === only.type
+      ? (typePluginId ?? localId)
+      : `${typePluginId ?? only.type}:${localId}`;
   };
 }
 

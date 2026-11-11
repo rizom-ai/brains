@@ -51,6 +51,11 @@ export interface PluginPackageInstantiationContext<TConfig extends object> {
   readonly pluginId?: string | undefined;
   /** The plugins a first-party service's class declared it depends on. */
   readonly dependencies?: readonly string[] | undefined;
+  /**
+   * The plugin id a first-party service's one owned type installs under,
+   * when the service keeps the id the type has.
+   */
+  readonly ownedTypePluginId?: string | undefined;
 }
 
 /**
@@ -71,6 +76,13 @@ export interface PluginPackageInstantiationOptions {
    * on, which register before it and without which it does not start.
    */
   readonly dependencies?: readonly string[] | undefined;
+  /**
+   * The plugin id a converted first-party service's one owned type
+   * installs under, when the service keeps a legacy plugin id the type
+   * itself has: its class registered the type inside itself, under that one
+   * id (`site-content`), and a type and its service cannot share one.
+   */
+  readonly ownedTypePluginId?: string | undefined;
 }
 
 type PluginPackageRuntimeFactory<TConfig extends object> = (
@@ -270,11 +282,29 @@ export function instantiatePluginPackageDefinition(
   metadata: InstalledPluginPackageMetadata,
   options: PluginPackageInstantiationOptions = {},
 ): Plugin[] {
-  const { pluginId, dependencies } = options;
+  const { pluginId, dependencies, ownedTypePluginId } = options;
   if (dependencies !== undefined && definition.family !== "service") {
     throw new Error(
       `Plugin definition "${definition.id}" is not a service package; only a service keeps the dependencies its class declared`,
     );
+  }
+  if (ownedTypePluginId !== undefined) {
+    if (definition.family !== "service") {
+      throw new Error(
+        `Plugin definition "${definition.id}" is not a service package; only a service names a plugin id for the type it owns`,
+      );
+    }
+    if (pluginId === undefined) {
+      throw new Error(
+        `Service "${definition.id}" names a plugin id for its owned type only beside a legacy plugin id`,
+      );
+    }
+    if (ownedTypePluginId === pluginId) {
+      throw new Error(
+        `Service "${definition.id}" cannot install its owned type under its own plugin id "${pluginId}"`,
+      );
+    }
+    assertIdentifier(ownedTypePluginId, "Owned type plugin id");
   }
   if (pluginId !== undefined) {
     assertIdentifier(pluginId, "Legacy plugin id");
@@ -304,6 +334,7 @@ export function instantiatePluginPackageDefinition(
     },
     ...(pluginId !== undefined && { pluginId }),
     ...(dependencies !== undefined && { dependencies }),
+    ...(ownedTypePluginId !== undefined && { ownedTypePluginId }),
   });
   const plugins = isSeveral(created) ? [...created] : [created];
   const expectedTypes = FAMILY_PLUGIN_TYPES[definition.family];
