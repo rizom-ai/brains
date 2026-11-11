@@ -26,6 +26,7 @@ export type {
 import {
   isServicePackage,
   withServiceTools,
+  withServiceWebRoutes,
 } from "../service/first-party-service";
 
 /**
@@ -327,15 +328,40 @@ export function withWebRoutes<
   routes: (
     context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
   ) => readonly WebRouteDefinition[],
-): InterfacePackage<TConfigSchema> {
-  return rebuildWith(definition, "withWebRoutes", (declarations) => {
-    if (declarations.webRoutes) {
-      throw new Error(
-        `Interface "${definition.id}" declares its web routes more than once`,
-      );
-    }
-    return { ...declarations, webRoutes: erased(routes) };
-  });
+): InterfacePackage<TConfigSchema>;
+export function withWebRoutes<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  routes: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly WebRouteDefinition[],
+): ServicePackage<TConfigSchema>;
+export function withWebRoutes<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  routes: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly WebRouteDefinition[],
+): PluginPackageDefinition<TConfigSchema> {
+  if (isServicePackage(definition)) {
+    return withServiceWebRoutes(definition, routes);
+  }
+  return rebuildWith(
+    asInterfacePackage(definition, "withWebRoutes"),
+    "withWebRoutes",
+    (declarations) => {
+      if (declarations.webRoutes) {
+        throw new Error(
+          `Interface "${definition.id}" declares its web routes more than once`,
+        );
+      }
+      return { ...declarations, webRoutes: erased(routes) };
+    },
+  );
 }
 
 /**

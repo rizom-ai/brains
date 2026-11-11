@@ -5,6 +5,7 @@ import type { Tool } from "@brains/mcp-service";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { StaticSiteOutput } from "../internal/http-host";
 import type { ApiRouteDefinition } from "../types/api-routes";
+import type { WebRouteDefinition } from "../types/web-routes";
 import type { PluginPackageDefinition } from "../package-definition";
 import type {
   FirstPartySlot,
@@ -30,6 +31,9 @@ export interface FirstPartyServiceDeclarations {
   readonly staticSiteOutput?: StaticSiteOutputSlot | undefined;
   /** The tool-backed API routes its class served under /api/<plugin id>. */
   readonly apiRoutes?: ApiRoutesSlot | undefined;
+  /** The HTTP routes its class served, as written. */
+  readonly webRoutes?:
+    FirstPartySlot<readonly WebRouteDefinition[]> | undefined;
 }
 
 /** The API routes a class served, from its config, as the runtime keeps them. */
@@ -222,6 +226,30 @@ export function withServiceTools<
       );
     }
     return { ...declarations, tools: { run: tools } };
+  });
+}
+
+/**
+ * The HTTP routes a service's class served, as written, from the parsed
+ * config and the state setup returned, added once: served in every process
+ * once the service registers, after the routes its definition declares.
+ */
+export function withServiceWebRoutes<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  routes: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly WebRouteDefinition[],
+): ServicePackage<TConfigSchema> {
+  return rebuildServiceWith(definition, "withWebRoutes", (declarations) => {
+    if (declarations.webRoutes) {
+      throw new Error(
+        `Service "${definition.id}" declares its web routes more than once`,
+      );
+    }
+    return { ...declarations, webRoutes: { run: routes } };
   });
 }
 

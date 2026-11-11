@@ -470,6 +470,12 @@ class DeclarativeServicePlugin<
         }),
       ) ?? []
     ).map((route) => this.runtimeRoute(route));
+    // As its class served them, after the routes the definition declares.
+    this.routes.push(
+      ...(this.declarations.webRoutes?.run(
+        this.withRuntime(context, { config: this.config, state: this.state }),
+      ) ?? []),
+    );
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
