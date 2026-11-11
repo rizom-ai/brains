@@ -12,6 +12,7 @@ import {
   type BaseDataSourceContext,
   type DataSourceSchema,
   type PluginPackageDefinition,
+  type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
@@ -62,7 +63,9 @@ export interface DeclaredEntityStore {
 export async function declaredEntityStore(
   definition: PluginPackageDefinition,
   packageName: string,
-  pluginId: string,
+  // The plugin id it installs under, or the composer's options in full,
+  // such as a service that installs its owned type apart.
+  pluginId: string | PluginPackageInstantiationOptions,
   config: EntityTypeConfig = {},
   // Packages installed beside it under their own scoped ids, such as the
   // types a cross-type package reads.
@@ -82,7 +85,7 @@ export async function declaredEntityStore(
       definition,
       packageConfig,
       { name: packageName, version: "0.0.0-test" },
-      { pluginId },
+      typeof pluginId === "string" ? { pluginId } : pluginId,
     ),
     ...companions.flatMap((companion) =>
       instantiatePluginPackageDefinition(

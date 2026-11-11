@@ -51,6 +51,16 @@ describe("the site-content package's registered surface", () => {
     }
   });
 
+  it("installs its type apart, under site-content-entity", async () => {
+    // The class registered the type inside itself; the declared type is a
+    // plugin of its own, and the service keeps the id the class had.
+    const { plugins } = await installed();
+    expect(plugins.map(({ id, type }) => [id, type])).toEqual([
+      ["site-content-entity", "entity"],
+      ["site-content", "service"],
+    ]);
+  });
+
   it("registers its generate tool and no resources", async () => {
     const { capabilities } = await installed();
     expect(
@@ -77,8 +87,11 @@ describe("the site-content package's registered surface", () => {
     const { shell } = await installed();
     const registry = shell.getEntityRegistry();
     expect(registry.hasEntityType("site-content")).toBe(true);
-    // Nothing but its retired fields: every other setting is the default.
+    // Nothing but its retired fields: every other setting is the default,
+    // and content is the classification the registry gives a type that
+    // names none.
     expect(registry.getEntityTypeConfig("site-content")).toEqual({
+      classification: "content",
       retiredFields: ["routeId", "sectionId"],
     });
   });

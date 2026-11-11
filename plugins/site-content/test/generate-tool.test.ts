@@ -1,3 +1,4 @@
+import { siteContentDepsOf } from "./site-content-deps";
 import { describe, expect, spyOn, test } from "bun:test";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { SiteContentService } from "../src/lib/site-content-service";
@@ -5,7 +6,9 @@ import { createSiteContentTools } from "../src/tools";
 
 describe("a plan of the site's content", () => {
   test("is a dry run, which names the sections it would generate", async () => {
-    const service = new SiteContentService(createMockServicePluginContext());
+    const service = new SiteContentService(
+      siteContentDepsOf(createMockServicePluginContext()),
+    );
     spyOn(service, "generateContent").mockResolvedValue({
       totalSections: 1,
       queuedSections: 0,
@@ -38,7 +41,7 @@ describe("a plan of the site's content", () => {
 describe("site generation tool admission messages", () => {
   test("uses the trusted tool signal before route discovery or enqueue", async () => {
     const context = createMockServicePluginContext();
-    const service = new SiteContentService(context);
+    const service = new SiteContentService(siteContentDepsOf(context));
     const tool = createSiteContentTools(() => service, "site-content")[0];
     if (!tool) throw new Error("Missing generation tool");
     const result = await tool.handler(
@@ -80,7 +83,9 @@ describe("site generation tool admission messages", () => {
   ])(
     "reports $message",
     async ({ dryRun, total, queued, batchId, message }) => {
-      const service = new SiteContentService(createMockServicePluginContext());
+      const service = new SiteContentService(
+        siteContentDepsOf(createMockServicePluginContext()),
+      );
       spyOn(service, "generateContent").mockResolvedValue({
         totalSections: total,
         queuedSections: queued,

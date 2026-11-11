@@ -58,7 +58,7 @@ import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
 import siteBuilderPackage from "@brains/site-builder-plugin";
-import { siteContentPlugin } from "@brains/site-content";
+import siteContentPackage from "@brains/site-content";
 import siteInfoPackage from "@brains/site-info";
 import socialMediaPackage from "@brains/social-media";
 import stockPhotoPackage from "@brains/stock-photo";
@@ -258,7 +258,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("site-info", "@brains/site-info", siteInfoPackage, {
       pluginId: "site-metadata",
     }),
-    ["site-content", siteContentPlugin, undefined],
+    packageCapability(
+      "site-content",
+      "@brains/site-content",
+      siteContentPackage,
+      // Under the id its class had; its type installs apart.
+      { pluginId: "site-content", ownedTypePluginId: "site-content-entity" },
+    ),
     packageCapability(
       "site-builder",
       "@brains/site-builder-plugin",
