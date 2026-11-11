@@ -323,6 +323,14 @@ export interface ServiceRuntime {
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
   /**
+   * Finish the package's registration where the rest of the class's
+   * onRegister ran: after the job handlers, subscriptions and routes it
+   * declares are registered, so work it does there can queue its own jobs.
+   * Awaited as the package, in every process; a failure fails its
+   * registration.
+   */
+  registering(handler: () => Promise<void>): void;
+  /**
    * The brain's records as a mirror keeps them, across every type, as the
    * class reached them through `context.entityService` and
    * `context.bulkMutations`: read as stored, written as the file says, the
@@ -711,6 +719,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly registering: ServiceRuntime["registering"];
   readonly entityMirror: ServiceEntityMirror;
   readonly gitBroker: ServiceGitBroker;
   readonly initialSync: ServiceRuntime["initialSync"];
@@ -793,6 +802,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    registering: binding.registering,
     entityMirror: binding.entityMirror,
     gitBroker: binding.gitBroker,
     initialSync: binding.initialSync,

@@ -321,6 +321,7 @@ class DeclarativeServicePlugin<
   /** What a first-party package runs once every plugin has registered. */
   private readonly registeredHandlers: Array<() => Promise<void>> = [];
   private initialSyncAnswered = false;
+  private readonly registeringHandlers: Array<() => Promise<void>> = [];
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -484,6 +485,10 @@ class DeclarativeServicePlugin<
         this.withRuntime(context, { config: this.config, state: this.state }),
       ) ?? []),
     );
+    // Where the rest of its class's onRegister ran, as the package.
+    for (const handler of this.registeringHandlers.splice(0)) {
+      await this.calls.run(this.packageCall(), handler);
+    }
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -1216,6 +1221,9 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      registering: (handler): void => {
+        this.registeringHandlers.push(handler);
+      },
       entityMirror: entityMirrorOf(context),
       gitBroker: Object.freeze({
         socket: context.gitBrokerSocket,
