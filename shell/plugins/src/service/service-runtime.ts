@@ -16,6 +16,8 @@ import type {
   IProfileKindsNamespace,
 } from "../base/context-types";
 import type { IEntityAINamespace } from "../entity/ai-types";
+import type { IViewsNamespace } from "../entity/namespaces";
+import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
@@ -201,6 +203,22 @@ export interface ServiceRuntime {
   registered(handler: () => void | Promise<void>): void;
   /** The shape of every registered entity type, read-only. */
   readonly entityShapes: ServiceEntityShapes;
+  /**
+   * The brain's view templates, as the class read them through
+   * `context.views`: one by its full name, and every one registered.
+   */
+  readonly views: ServiceViews;
+  /**
+   * A template's content, as the class resolved it through
+   * `context.templates.resolve`: by its full name, or one local to the
+   * plugin under its id, with the options the caller names (saved content,
+   * a data query, a fallback, the scope it reads at); none for a template
+   * nobody registered.
+   */
+  resolveTemplate(
+    templateName: string,
+    options?: ResolutionOptions,
+  ): Promise<unknown>;
   /**
    * Queue a job as the class queued it through `context.jobs`: the type
    * scoped to the plugin unless it names a scope, sourced to the plugin,
@@ -410,6 +428,9 @@ export interface ServiceEntityReads {
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
 }
 
+/** The view templates a class read, and nothing that registers one. */
+export type ServiceViews = Pick<IViewsNamespace, "get" | "list">;
+
 /** The bus as a class asked it, and nothing that answers or hears. */
 export type ServiceClassMessaging = Pick<
   IMessagingNamespace,
@@ -454,6 +475,8 @@ export interface ServiceRuntimeBinding {
   /** Keeps a handler to run once every plugin has registered. */
   readonly onRegistered: (handler: () => Promise<void>) => void;
   readonly entityShapes: ServiceEntityShapes;
+  readonly views: ServiceViews;
+  readonly resolveTemplate: ServiceRuntime["resolveTemplate"];
   readonly jobs: ServiceClassJobs;
   readonly entityWrites: ServiceEntityWrites;
   readonly dataDir: string;
@@ -503,6 +526,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     } satisfies ServiceClassMessaging),
     deliveryProvider: binding.deliveryProvider,
     entityShapes: binding.entityShapes,
+    views: binding.views,
+    resolveTemplate: binding.resolveTemplate,
     jobs: binding.jobs,
     entityWrites: binding.entityWrites,
     dataDir: binding.dataDir,

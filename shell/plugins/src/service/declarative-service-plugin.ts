@@ -1112,6 +1112,12 @@ class DeclarativeServicePlugin<
         this.registeredHandlers.push(handler);
       },
       entityShapes: entityShapesOf(context),
+      views: Object.freeze({
+        get: (name: string) => context.views.get(name),
+        list: () => context.views.list(),
+      }),
+      resolveTemplate: (templateName, options) =>
+        context.templates.resolve(templateName, options),
       jobs: Object.freeze({
         enqueue: (request: EnqueueJobRequest): Promise<string> =>
           context.jobs.enqueue(request),
