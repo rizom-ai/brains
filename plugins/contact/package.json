@@ -8,6 +8,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/forms": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"

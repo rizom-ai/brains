@@ -1,6 +1,5 @@
-import { ContactPlugin } from "./plugin";
-import { ContactRequestPlugin } from "./entity/plugin";
-import type { ContactPluginConfig } from "./config";
+import { formPackageDependencies } from "@brains/forms";
+import { createContactPackage } from "./plugin";
 
 export { CONTACT_ADMISSION, CONTACT_SLOTS } from "./state";
 export { CONTACT_COPY, CONTACT_FORM } from "./form";
@@ -15,7 +14,8 @@ export type {
   ContactIntakeOverrides,
   ContactIntakePolicy,
 } from "./config";
-export { ContactPlugin, ContactRequestPlugin };
+export { createContactPackage } from "./plugin";
+export { contactRequestEntity } from "./entity/contact-request-entity";
 export { ContactRequestAdapter, contactRequestAdapter } from "./entity/adapter";
 export {
   contactSubmissionSchema,
@@ -30,9 +30,15 @@ export type {
   ContactRequest,
 } from "./entity/schema";
 
-/** Explicit compound composition; no site or default bundle activates intake. */
-export function contactPlugin(
-  config: ContactPluginConfig = {},
-): [ContactRequestPlugin, ContactPlugin] {
-  return [new ContactRequestPlugin(), new ContactPlugin(config)];
-}
+/**
+ * The contact form and its contact-request type, as a brain composes them:
+ * explicitly, as no site or default bundle activates intake.
+ */
+const contactPackage: ReturnType<typeof createContactPackage> =
+  createContactPackage();
+export default contactPackage;
+
+/** The plugins the contact service registers after, as its class declared. */
+export const CONTACT_DEPENDENCIES: readonly string[] = Object.freeze(
+  formPackageDependencies("contact-request"),
+);

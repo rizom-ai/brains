@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/forms": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

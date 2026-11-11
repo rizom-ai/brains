@@ -3,15 +3,19 @@
 A contact form for a brain's site, on the forms engine (`@brains/forms`). The
 package is in the canonical catalog for explicit addition and belongs to no
 bundle: a brain that adds `contact` gets the form at `/contact` on the engine's
-policy, with no configuration. `contactPlugin()` composes the private entity and
-the service. There are no public tools.
+policy, with no configuration. The package default-exports a declarative
+service on the forms engine (`createContactPackage()`), which owns the private
+`contact-request` type; the canonical brain composes it under the plugin id
+`contact`, after `CONTACT_DEPENDENCIES`. There are no public tools.
 
 ## What contact owns
 
-- **`contact-request` records.** `ContactRequestPlugin` registers restricted
+- **`contact-request` records.** `contactRequestEntity` declares restricted
   Markdown records: name, email, received time, `status` (`new` or `handled`)
   and `notification` (`pending`, `sent` or `failed`) in the frontmatter, the
-  message as the body. Contact details stay out of query metadata. Persistence
+  message as the body. Contact details stay out of query metadata: a read hands
+  back the whole document, and metadata holds only the title, `receivedAt`,
+  `status` and `notification`. Persistence
   rejects any visibility but restricted; embedding, full-text indexing and
   projection sourcing are off. Requests are kept until the owner deletes them.
   A request written before that, with an `expiresAt`, is still read; the field

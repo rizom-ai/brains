@@ -91,7 +91,11 @@ function readExpected(name: string): string[] {
 function shellWithIdentityTypes(
   servesHttp = false,
 ): ReturnType<typeof createMockShell> {
-  const shell = createMockShell({ servesHttp });
+  // The site URL a brain's forms serve on, as the app's local runtime gives it.
+  const shell = createMockShell({
+    servesHttp,
+    localSiteUrl: "http://localhost:8080",
+  });
   for (const type of ["anchor-profile", "brain-character"]) {
     shell
       .getEntityRegistry()
