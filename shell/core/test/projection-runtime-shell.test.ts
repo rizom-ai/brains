@@ -127,16 +127,16 @@ class ProjectionTargetPlugin extends EntityPlugin<
 }
 
 const embeddingService = {
-  dimensions: 1536,
-  generateEmbedding: async (): Promise<{
+  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+  embedQuery: async (): Promise<{
     embedding: Float32Array;
     usage: { tokens: number };
   }> => ({
     embedding: new Float32Array(1536),
     usage: { tokens: 0 },
   }),
-  generateEmbeddings: async (
-    texts: string[],
+  embedDocuments: async (
+    texts: { content: string }[],
   ): Promise<{
     embeddings: Float32Array[];
     usage: { tokens: number };

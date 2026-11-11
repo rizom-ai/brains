@@ -166,6 +166,67 @@ model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
 ```
 
+An explicit `provider:` prefix selects the provider; a bare name is matched to one. Supported providers are `anthropic`, `openai`, `google` and `local` (the model runtime, below); any other prefix fails config validation.
+
+### `embeddingModel`
+
+Select the model that builds the semantic index. Defaults to `openai:text-embedding-3-small`; `openai:text-embedding-3-large` and `local:embeddinggemma-2:270m` are also supported, and any other model fails config validation.
+
+```yaml
+embeddingModel: openai:text-embedding-3-large
+```
+
+A `local:` model is served by the model runtime at `modelRuntime.url`: any server that implements the OpenAI-compatible `/v1/embeddings` API, such as Ollama. A `local:` model without `modelRuntime.url` fails config validation.
+
+```yaml
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+A deployed brain needs no `modelRuntime.url`: when `brain.yaml` names a `local:` model, the generated Kamal deploy pulls it into `/opt/brain-models` on the server, runs a `models` accessory beside the brain and gives the brain its address. A brain without a `local:` model deploys without the accessory.
+
+To run EmbeddingGemma 2 on a development machine:
+
+```sh
+ollama pull embeddinggemma-2:270m
+ollama serve
+```
+
+A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`.
+
+```sh
+ollama pull qwen3:14b
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve
+```
+
+Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.
+
+### `answerModel`
+
+A `local:` model that writes while `model` chooses the tools: it answers tool results and runs every generation that chooses no tools, such as background derivations and content drafts. A reasoning model makes the calls and a fast model writes; on a local runtime this cuts most of a turn's time and keeps background work from holding the runtime. It must be a `local:` model, and the deploy pulls it with the others.
+
+```yaml
+model: local:qwen3:30b-a3b
+answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+Without `answerModel`, a local `model` answers tool results with its reasoning switched off.
+
+### `visionModel`
+
+A `local:` model that describes uploaded images for a local `model` that reads only text. The vision model describes each image once, and the description reaches `model` in place of the image; without `visionModel`, an image reaches a local `model` as its name and type only. It must be a `local:` model, and the deploy pulls it with the others.
+
+```yaml
+model: local:qwen3:30b-a3b
+visionModel: local:qwen3-vl:8b
+modelRuntime:
+  url: http://localhost:11434
+```
+
 ### `embedding`
 
 Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.

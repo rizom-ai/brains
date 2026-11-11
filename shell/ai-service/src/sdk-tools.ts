@@ -154,9 +154,11 @@ function toSDKInputSchema(
     z.toJSONSchema(schema, {
       target: "draft-7",
       io: "input",
-      // A schema used twice, such as a list of field changes, is written
-      // once and referred to: tool schemas are resent on every step.
-      reused: "ref",
+      // For strict tools, a schema used twice, such as a list of field
+      // changes, is written once and referred to: tool schemas are resent on
+      // every step. A model on a local runtime sees no fields behind a
+      // reference, so other models get each use written out.
+      reused: strictTools ? "ref" : "inline",
     });
   // A model that takes strict tools is held to the tool's strict form; the
   // nulls it writes there for left-out fields are dropped before the tool's

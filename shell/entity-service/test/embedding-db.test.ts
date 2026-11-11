@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 import { z } from "@brains/utils/zod";
 import {
   createEmbeddingDatabase,
@@ -15,6 +15,18 @@ import { setupEntityService } from "./helpers/setup-entity-service";
 import { mockEmbeddingService } from "./helpers/mock-services";
 import { EntityService } from "../src/entityService";
 import { createSilentLogger } from "@brains/test-utils";
+import type { EmbeddingIdentity } from "../src/embedding-types";
+
+const legacyIdentity: EmbeddingIdentity = {
+  model: "openai:text-embedding-3-small",
+  dimensions: 1536,
+  promptRevision: 0,
+};
+const fourDimensions: EmbeddingIdentity = {
+  model: "test:four",
+  dimensions: 4,
+  promptRevision: 0,
+};
 
 describe("Embedding Database", () => {
   let tempDir: string;
@@ -55,7 +67,7 @@ describe("Embedding Database", () => {
       const config: EntityDbConfig = { url: `file:${dbPath}` };
       const { client } = createEmbeddingDatabase(config);
 
-      await migrateEmbeddingDatabase(client, 1536);
+      await migrateEmbeddingDatabase(client, legacyIdentity);
 
       const tables = await client.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='embeddings'",
@@ -77,13 +89,161 @@ describe("Embedding Database", () => {
     });
   });
 
+  describe("model identity", () => {
+    const meta = async (client: Client): Promise<unknown[]> =>
+      (
+        await client.execute(
+          "SELECT model, dimensions, prompt_revision FROM embedding_meta",
+        )
+      ).rows.map((row) => ({ ...row }));
+    const count = async (client: Client): Promise<unknown> =>
+      (await client.execute("SELECT count(*) AS n FROM embeddings")).rows[0]?.[
+        "n"
+      ];
+    const columnType = async (client: Client): Promise<unknown> =>
+      (await client.execute("PRAGMA table_info(embeddings)")).rows.find(
+        (row) => row["name"] === "embedding",
+      )?.["type"];
+    const insertVector = (client: Client, id: string): Promise<unknown> =>
+      client.execute(
+        `INSERT INTO embeddings VALUES ('${id}', 'note', vector32('[1,0,0,0]'), 'hash-${id}')`,
+      );
+    const open = (name: string): Client =>
+      createEmbeddingDatabase({ url: `file:${join(tempDir, name)}` }).client;
+
+    test("a fresh database records the configured identity", async () => {
+      const client = open("fresh.db");
+      try {
+        expect(await migrateEmbeddingDatabase(client, fourDimensions)).toEqual({
+          rebuilt: false,
+        });
+        expect(await meta(client)).toEqual([
+          { model: "test:four", dimensions: 4, prompt_revision: 0 },
+        ]);
+        expect(await columnType(client)).toBe("F32_BLOB(4)");
+      } finally {
+        client.close();
+      }
+    });
+
+    test("the same identity keeps every vector", async () => {
+      const client = open("same.db");
+      try {
+        await migrateEmbeddingDatabase(client, fourDimensions);
+        await insertVector(client, "kept");
+        expect(await migrateEmbeddingDatabase(client, fourDimensions)).toEqual({
+          rebuilt: false,
+        });
+        expect(await count(client)).toBe(1);
+      } finally {
+        client.close();
+      }
+    });
+
+    test.each([
+      ["model", { ...fourDimensions, model: "test:other" }],
+      ["dimensions", { ...fourDimensions, dimensions: 8 }],
+      ["prompt revision", { ...fourDimensions, promptRevision: 1 }],
+    ] as const)(
+      "a changed %s drops the vectors and recreates the table for it",
+      async (_change, changed) => {
+        const client = open("changed.db");
+        try {
+          await migrateEmbeddingDatabase(client, fourDimensions);
+          await insertVector(client, "stale");
+          expect(await migrateEmbeddingDatabase(client, changed)).toEqual({
+            rebuilt: true,
+            previous: fourDimensions,
+          });
+          expect(await count(client)).toBe(0);
+          expect(await columnType(client)).toBe(
+            `F32_BLOB(${changed.dimensions})`,
+          );
+          expect(await meta(client)).toEqual([
+            {
+              model: changed.model,
+              dimensions: changed.dimensions,
+              prompt_revision: changed.promptRevision,
+            },
+          ]);
+        } finally {
+          client.close();
+        }
+      },
+    );
+
+    test("processes migrating at once rebuild once, keeping what the first re-embedded", async () => {
+      const first = open("shared.db");
+      const second = open("shared.db");
+      try {
+        await migrateEmbeddingDatabase(first, fourDimensions);
+        await insertVector(first, "stale");
+        const changed = { ...fourDimensions, model: "test:other" };
+
+        const results = await Promise.all([
+          migrateEmbeddingDatabase(first, changed),
+          migrateEmbeddingDatabase(second, changed),
+        ]);
+
+        expect(results.filter((result) => result.rebuilt)).toHaveLength(1);
+        await insertVector(first, "re-embedded");
+        await migrateEmbeddingDatabase(second, changed);
+        expect(await count(first)).toBe(1);
+      } finally {
+        first.close();
+        second.close();
+      }
+    });
+
+    test("rows written before identity was recorded belong to text-embedding-3-small at 1536", async () => {
+      const client = open("legacy.db");
+      try {
+        await client.execute(`
+          CREATE TABLE embeddings (
+            entity_id TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            embedding F32_BLOB(1536) NOT NULL,
+            content_hash TEXT NOT NULL,
+            PRIMARY KEY(entity_id, entity_type)
+          )
+        `);
+        await client.execute(
+          `INSERT INTO embeddings VALUES ('old', 'note', vector32('[${Array(1536).fill(0.1).join(",")}]'), 'hash-old')`,
+        );
+
+        expect(await migrateEmbeddingDatabase(client, legacyIdentity)).toEqual({
+          rebuilt: false,
+        });
+        expect(await count(client)).toBe(1);
+        expect(await meta(client)).toEqual([
+          {
+            model: "openai:text-embedding-3-small",
+            dimensions: 1536,
+            prompt_revision: 0,
+          },
+        ]);
+
+        expect(
+          await migrateEmbeddingDatabase(client, {
+            ...legacyIdentity,
+            model: "openai:text-embedding-3-large",
+            dimensions: 3072,
+          }),
+        ).toEqual({ rebuilt: true, previous: legacyIdentity });
+        expect(await count(client)).toBe(0);
+      } finally {
+        client.close();
+      }
+    });
+  });
+
   describe("unused vector-index retirement", () => {
     test("drops an existing index without changing vectors, cosine search or other indexes", async () => {
       const { client } = createEmbeddingDatabase({
         url: `file:${join(tempDir, "legacy.db")}`,
       });
       try {
-        await migrateEmbeddingDatabase(client, 4);
+        await migrateEmbeddingDatabase(client, fourDimensions);
         await client.execute(
           "CREATE INDEX embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
         );
@@ -114,8 +274,8 @@ describe("Embedding Database", () => {
           ).rows,
         ).toHaveLength(1);
 
-        await migrateEmbeddingDatabase(client, 4);
-        await migrateEmbeddingDatabase(client, 4);
+        await migrateEmbeddingDatabase(client, fourDimensions);
+        await migrateEmbeddingDatabase(client, fourDimensions);
 
         expect(
           (
@@ -159,7 +319,7 @@ describe("Embedding Database", () => {
       for (let startup = 0; startup < 2; startup++) {
         const { client } = createEmbeddingDatabase(config);
         try {
-          await migrateEmbeddingDatabase(client, 4);
+          await migrateEmbeddingDatabase(client, fourDimensions);
           expect(
             (
               await client.execute(

@@ -40,6 +40,7 @@ interface Parser<T> {
 }
 
 import { createAnalyticsRegistry } from "../../src/system/analytics";
+import { DEFAULT_SEARCH_BUDGET } from "../../src/system/search-excerpt";
 
 /**
  * Create mock SystemServices for testing system tools.
@@ -661,7 +662,7 @@ export function createMockSystemServices(
       endpoints: [],
       interactions: [],
     }),
-    searchLimit: 10,
+    searchBudget: DEFAULT_SEARCH_BUDGET,
     analytics: createAnalyticsRegistry(entityRegistry),
     permissionService: new PermissionService({}),
     ...overrides,

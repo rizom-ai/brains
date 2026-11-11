@@ -15,6 +15,7 @@ class AppInfoReader extends ServicePlugin<
   Record<string, never>
 > {
   public model: string | undefined;
+  public embeddingModel: string | undefined;
 
   public constructor() {
     super(
@@ -29,7 +30,9 @@ class AppInfoReader extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    this.model = (await context.identity.getAppInfo()).ai.model;
+    const { ai } = await context.identity.getAppInfo();
+    this.model = ai.model;
+    this.embeddingModel = ai.embeddingModel;
   }
 }
 
@@ -64,4 +67,36 @@ it("serves app info to a plugin while it registers", async () => {
 
   expect(reader.model).toBe(config.ai?.model);
   expect(reader.model).toBeString();
+});
+
+it("reports the configured embedding model", async () => {
+  const testDirectory = await createTestDirectory();
+  cleanups.push(testDirectory.cleanup);
+  await Promise.all([
+    migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+    migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+    migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+    migrateRuntimeState({
+      url: `file:${testDirectory.dir}/test-runtime-state.db`,
+    }),
+  ]);
+  const reader = new AppInfoReader();
+  const config = createTestShellConfig(testDirectory.dir, {
+    plugins: [reader],
+    ai: {
+      model: "claude-haiku-4-5",
+      apiKey: "test-key",
+      embeddingModel: "openai:text-embedding-3-large",
+    },
+  });
+  const shell = Shell.createFresh(
+    config,
+    { logger: createSilentLogger("app-info-embedding-model") },
+    { processRole: "web" },
+  );
+  cleanups.push(() => shell.shutdown());
+
+  await shell.initialize();
+
+  expect(reader.embeddingModel).toBe("openai:text-embedding-3-large");
 });

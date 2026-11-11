@@ -77,10 +77,159 @@ describe("shell config", () => {
     expect(config.ai).toEqual({
       apiKey: "test-key",
       model: "gpt-4o-mini",
+      embeddingModel: "openai:text-embedding-3-small",
       temperature: 0.7,
       webSearch: true,
     });
     expect(config.embedding).toEqual({ enabled: true });
+  });
+
+  it("keeps a configured embedding model", () => {
+    const config = createShellConfig({
+      ai: {
+        apiKey: "test-key",
+        model: "gpt-4o-mini",
+        embeddingModel: "openai:text-embedding-3-large",
+      },
+    });
+
+    expect(config.ai.embeddingModel).toBe("openai:text-embedding-3-large");
+  });
+
+  it("rejects an embedding model without a profile", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-4o-mini",
+          embeddingModel: "openai:text-embedding-ada-002",
+        },
+      }),
+    ).toThrow(/Unsupported embedding model .*openai:text-embedding-ada-002/);
+  });
+
+  it("serves a local embedding model from the model runtime", () => {
+    const config = createShellConfig({
+      ai: {
+        apiKey: "test-key",
+        model: "gpt-4o-mini",
+        embeddingModel: "local:embeddinggemma-2:270m",
+        modelRuntimeUrl: "http://models:11434",
+      },
+    });
+
+    expect(config.ai.modelRuntimeUrl).toBe("http://models:11434");
+  });
+
+  it("rejects a local embedding model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-4o-mini",
+          embeddingModel: "local:embeddinggemma-2:270m",
+        },
+      }),
+    ).toThrow(/local:embeddinggemma-2:270m needs modelRuntime\.url/);
+  });
+
+  it("rejects a local text model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: { apiKey: "test-key", model: "local:qwen3:4b" },
+      }),
+    ).toThrow(/local:qwen3:4b needs modelRuntime\.url/);
+    expect(
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "local:qwen3:4b",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.model,
+    ).toBe("local:qwen3:4b");
+  });
+
+  it("takes a local answer model from the model runtime", () => {
+    expect(
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "local:qwen3:30b-a3b",
+          answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.answerModel,
+    ).toBe("local:qwen3:30b-a3b-instruct-2507-q4_K_M");
+  });
+
+  it("rejects an answer model that is not local", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          answerModel: "openai:gpt-5.4-mini",
+        },
+      }),
+    ).toThrow(/answerModel must be a local: model/);
+  });
+
+  it("rejects a local answer model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+        },
+      }),
+    ).toThrow(/qwen3:30b-a3b-instruct-2507-q4_K_M needs modelRuntime\.url/);
+  });
+
+  it("takes a local vision model", () => {
+    expect(
+      createShellConfig({
+        ai: {
+          model: "local:qwen3:30b-a3b",
+          visionModel: "local:qwen3-vl:8b",
+          embeddingModel: "local:embeddinggemma-2:270m",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.visionModel,
+    ).toBe("local:qwen3-vl:8b");
+  });
+
+  it("rejects a vision model that is not local", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          visionModel: "openai:gpt-5.4-mini",
+        },
+      }),
+    ).toThrow(/visionModel must be a local: model/);
+  });
+
+  it("rejects a local vision model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          apiKey: "test-key",
+          model: "gpt-6-luna",
+          visionModel: "local:qwen3-vl:8b",
+        },
+      }),
+    ).toThrow(/qwen3-vl:8b needs modelRuntime\.url/);
+  });
+
+  it("rejects a text model of an unknown provider", () => {
+    expect(() =>
+      createShellConfig({
+        ai: { apiKey: "test-key", model: "groq:llama-3.1-70b" },
+      }),
+    ).toThrow(/Unsupported model .*groq:llama-3\.1-70b/);
   });
 
   it("uses the standard database paths unless a database is overridden", () => {

@@ -201,6 +201,54 @@ describe("EntityTypeConfig embeddable flag", () => {
     );
   });
 
+  test("embedding jobs are claimed ahead of default-priority work", async () => {
+    await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        { title: "Ahead", content: "Indexed before derivations", tags: [] },
+        "ahead-note",
+      ),
+    });
+
+    // The queue claims the lowest priority value first; derivations run at 0.
+    expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        options: expect.objectContaining({ priority: -10 }),
+      }),
+    );
+  });
+
+  test("backfillMissingEmbeddings retries an embedding that failed for good", async () => {
+    const created = await ctx.entityService.createEntity({
+      entity: createNoteInput(
+        {
+          title: "Outage Note",
+          content: "Embedding failed while the provider was down",
+          tags: [],
+        },
+        "outage-note",
+      ),
+      options: { maxRetries: 0 },
+    });
+    await ctx.jobQueueService.fail(
+      created.jobId,
+      new Error("embedding provider unreachable"),
+    );
+
+    const result = await ctx.entityService.backfillMissingEmbeddings();
+
+    expect(result.queued).toBe(1);
+    expect(ctx.jobQueueService.enqueue).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        data: expect.objectContaining({
+          id: "outage-note",
+          operation: "update",
+        }),
+      }),
+    );
+  });
+
   test("backfillMissingEmbeddings queues stale embeddings and skips current ones", async () => {
     await ctx.entityService.createEntity({
       entity: createNoteInput(

@@ -24,6 +24,27 @@ describe("checkApiKey", () => {
   });
 });
 
+describe("checkApiKey for a brain on the model runtime", () => {
+  const local = {
+    model: "local:qwen3:8b",
+    embeddingModel: "local:embeddinggemma-2:270m",
+  };
+
+  it("needs no key when its text and embedding models are both local", () => {
+    expect(checkApiKey({}, local).ok).toBe(true);
+  });
+
+  it("still needs the key when either model comes from a cloud provider", () => {
+    expect(checkApiKey({}, { ...local, model: "gpt-6-luna" }).ok).toBe(false);
+    expect(checkApiKey({}, { ...local, embeddingModel: undefined }).ok).toBe(
+      false,
+    );
+    expect(checkApiKey({}, { embeddingModel: local.embeddingModel }).ok).toBe(
+      false,
+    );
+  });
+});
+
 describe("checkBunVersion", () => {
   it("should pass for valid version", () => {
     const result = checkBunVersion("1.3.3");

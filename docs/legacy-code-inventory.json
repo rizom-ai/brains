@@ -398,6 +398,18 @@
       "removalPrerequisite": "Observe zero stored FAQs without an \"## Answer\" section, with frontmatter sources or with quoted sources across supported upgrade sources, or rewrite them in place.",
       "rollbackDependency": "A brain rolled back to a release before the formatter layout cannot read FAQs rewritten in it; they need the forward release.",
       "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "embedding-index-identity",
+      "paths": ["shell/entity-service/src/db/embedding-db.ts"],
+      "symbol": "LEGACY_IDENTITY: the model of an embedding index written before it recorded its identity",
+      "owner": "@brains/entity-service",
+      "class": "durable-data-compatibility",
+      "behavior": "An embedding index with rows and no embedding_meta row is read as written by openai:text-embedding-3-small at 1536 dimensions and prompt revision 0, so a brain still on that model keeps its index, and one that changed model rebuilds it.",
+      "currentConsumers": "Embedding indexes of deployed brains written before the index recorded its identity.",
+      "removalPrerequisite": "Observe an embedding_meta row in the embedding index of every supported upgrade source.",
+      "rollbackDependency": "A brain rolled back to a release before the identity record ignores embedding_meta, so after a switch to another embedding model it reads vectors of the wrong dimensions until its index is rebuilt.",
+      "targetRelease": "0.3.0-or-later"
     }
   ],
   "exemptions": [

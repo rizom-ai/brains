@@ -453,6 +453,14 @@ function resolveRuntimeDefinition(
     // AI config from environment + brain/instance model
     ...resolveAIConfig(env, {
       ...(effectiveModel && { model: effectiveModel }),
+      ...(overrides?.embeddingModel && {
+        embeddingModel: overrides.embeddingModel,
+      }),
+      ...(overrides?.modelRuntime && {
+        modelRuntimeUrl: overrides.modelRuntime.url,
+      }),
+      ...(overrides?.answerModel && { answerModel: overrides.answerModel }),
+      ...(overrides?.visionModel && { visionModel: overrides.visionModel }),
       ...(effectiveReasoningEffort && {
         reasoningEffort: effectiveReasoningEffort,
       }),

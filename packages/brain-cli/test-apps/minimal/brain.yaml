@@ -2,6 +2,11 @@ brain: brain
 bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
+# Embeds with EmbeddingGemma 2 from a local Ollama:
+#   ollama pull embeddinggemma-2:270m && ollama serve
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
 bundles:
   - core
 

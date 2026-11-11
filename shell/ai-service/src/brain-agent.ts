@@ -23,7 +23,7 @@ import {
 } from "./guest-execution";
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
-import { openAIReasoningOptions } from "./generation-options";
+import { reasoningProviderOptions } from "./generation-options";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -40,6 +40,7 @@ import { buildAgentInstructions } from "./brain-instructions";
 import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 import { retryDeclinedTurnOnce } from "./provider-declined";
+import { createToolCallRepair } from "./tool-call-repair";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
@@ -111,6 +112,11 @@ export function shouldStopToolLoop(input: {
  */
 export interface BrainAgentFactoryOptions {
   model: LanguageModel;
+  /**
+   * Answers a tool result in place of `model`, which keeps choosing tools:
+   * a fast model writes the answer while a reasoning one makes the calls.
+   */
+  answerModel?: LanguageModel | undefined;
   modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
@@ -132,6 +138,7 @@ export function createBrainAgentFactory(
 ): BrainAgentFactory {
   const {
     model,
+    answerModel,
     modelId,
     webSearch,
     temperature,
@@ -139,6 +146,22 @@ export function createBrainAgentFactory(
     messageBus,
   } = options;
   const capabilities = resolveTextModelCapabilities(modelId);
+  const reasoning = reasoningProviderOptions(
+    capabilities.provider,
+    reasoningEffort,
+    capabilities.supportsTemperature,
+  );
+
+  // A local model's call that fails validation is generated again by the
+  // same model, reasoning as it does when choosing tools, with the tool's
+  // schema constraining the arguments: without reasoning, a constrained model
+  // picks a valid but different operation. A cloud model retries from the
+  // validation error itself.
+  const repairToolCall =
+    capabilities.provider === "local"
+      ? createToolCallRepair(model, reasoning)
+      : undefined;
+
   // OpenAI holds the model to a tool's strict schema, so a call cannot leave
   // out a required field or carry one the tool lacks.
   const toolOptions = { strictTools: capabilities.provider === "openai" };
@@ -164,6 +187,17 @@ export function createBrainAgentFactory(
     const agent = new ToolLoopAgent({
       model,
       callOptionsSchema: brainCallOptionsSchema,
+      // A tool result is answered by the answer model when one is set.
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+      prepareStep: ({ steps }) => {
+        const last = steps.at(-1);
+        if (!answerModel || !last?.toolResults.length) return {};
+        // A tool the answer model calls hands the next step back to the
+        // model that chooses tools: retries and follow-up calls need it.
+        return last.model.modelId === modelIdOf(answerModel)
+          ? {}
+          : { model: answerModel };
+      },
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: async ({ options: callOptions, ...settings }) => {
@@ -223,18 +257,9 @@ export function createBrainAgentFactory(
           ...(temperature !== undefined &&
             capabilities.supportsTemperature && { temperature }),
           // Guests answer from the brain, never from provider web search.
-          ...((capabilities.provider === "openai" &&
-          reasoningEffort !== undefined
-            ? true
-            : webSearch && !guest) && {
+          ...((reasoning !== undefined || (webSearch && !guest)) && {
             providerOptions: {
-              ...(capabilities.provider === "openai" &&
-                reasoningEffort && {
-                  openai: openAIReasoningOptions(
-                    reasoningEffort,
-                    capabilities.supportsTemperature,
-                  ),
-                }),
+              ...reasoning,
               ...(webSearch &&
                 !guest && {
                   anthropic: { webSearch: true },
@@ -245,6 +270,7 @@ export function createBrainAgentFactory(
       },
 
       tools: allTools,
+      ...(repairToolCall && { experimental_repairToolCall: repairToolCall }),
       stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
     });
     return {
@@ -318,6 +344,11 @@ export function createBrainAgentFactory(
     };
   };
   return factory;
+}
+
+/** The model ID a step reports for the model that generated it. */
+function modelIdOf(model: LanguageModel): string {
+  return typeof model === "string" ? model : model.modelId;
 }
 
 /**

@@ -13,6 +13,7 @@ import {
 } from "@brains/plugins";
 import type { ShellServices } from "./types/shell-types";
 import { registerSystemCapabilities } from "./system/register";
+import { searchBudgetFor } from "./system/search-excerpt";
 
 export interface ShellSystemCapabilityOptions {
   services: ShellServices;
@@ -51,7 +52,7 @@ export function registerShellSystemCapabilities(
       getIdentity: () => services.identityService.getCharacter(),
       getProfile: () => services.profileService.getProfile(),
       getAppInfo,
-      searchLimit: 10,
+      searchBudget: searchBudgetFor(services.aiService.getConfig().model),
       analytics,
       permissionService: services.permissionService,
     },

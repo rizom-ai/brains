@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
+  isSupportedTextModel,
   resolveTextProvider,
   selectTextProvider,
   selectImageProvider,
@@ -30,11 +31,11 @@ describe("selectTextProvider", () => {
     expect(selectTextProvider("gemini-2.0-flash")).toBe("google");
   });
 
-  it("should detect ollama from local model names", () => {
-    expect(selectTextProvider("llama-3.1-8b")).toBe("ollama");
-    expect(selectTextProvider("mistral-7b")).toBe("ollama");
-    expect(selectTextProvider("phi-3")).toBe("ollama");
-    expect(selectTextProvider("qwen-2.5")).toBe("ollama");
+  it("should detect the local runtime from open model names", () => {
+    expect(selectTextProvider("llama-3.1-8b")).toBe("local");
+    expect(selectTextProvider("mistral-7b")).toBe("local");
+    expect(selectTextProvider("phi-3")).toBe("local");
+    expect(selectTextProvider("qwen-2.5")).toBe("local");
   });
 
   it("should handle explicit provider prefix", () => {
@@ -48,7 +49,35 @@ describe("selectTextProvider", () => {
   });
 });
 
+describe("isSupportedTextModel", () => {
+  it("accepts models of providers the brain has a client for", () => {
+    expect(isSupportedTextModel("claude-haiku-4-5")).toBe(true);
+    expect(isSupportedTextModel("openai:gpt-6-luna")).toBe(true);
+    expect(isSupportedTextModel("google:gemini-2.0-flash")).toBe(true);
+  });
+
+  it("accepts models of the local runtime", () => {
+    expect(isSupportedTextModel("local:qwen3:4b")).toBe(true);
+    expect(isSupportedTextModel("qwen3:4b")).toBe(true);
+  });
+
+  it("rejects an unknown provider instead of falling back to anthropic", () => {
+    expect(isSupportedTextModel("groq:llama-3.1-70b")).toBe(false);
+  });
+});
+
 describe("resolveTextProvider", () => {
+  it("keeps a runtime tag's colon in the model id", () => {
+    expect(resolveTextProvider("local:qwen3:4b")).toEqual({
+      provider: "local",
+      modelId: "qwen3:4b",
+    });
+    expect(resolveTextProvider("qwen3:4b")).toEqual({
+      provider: "local",
+      modelId: "qwen3:4b",
+    });
+  });
+
   it("should return provider and SDK model ID for explicit prefixes", () => {
     expect(resolveTextProvider("openai:gpt-4o-mini")).toEqual({
       provider: "openai",

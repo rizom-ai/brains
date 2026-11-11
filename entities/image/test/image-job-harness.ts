@@ -114,11 +114,11 @@ export async function imageJobs(
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: 1536,
-      generateEmbedding: async () => {
+      identity: { model: "test:none", dimensions: 1536, promptRevision: 0 },
+      embedQuery: async () => {
         throw new Error("Unexpected embedding");
       },
-      generateEmbeddings: async () => {
+      embedDocuments: async () => {
         throw new Error("Unexpected embedding");
       },
     },

@@ -16,8 +16,13 @@ interface SDKUsage {
 
 interface TextGenerationOptions {
   temperature?: number;
-  providerOptions?: { openai: ReturnType<typeof openAIReasoningOptions> };
+  providerOptions?: ReasoningProviderOptions;
 }
+
+/** Provider options carrying a configured reasoning effort. */
+export type ReasoningProviderOptions =
+  | { openai: ReturnType<typeof openAIReasoningOptions> }
+  | { local: { reasoningEffort: ReasoningEffort } };
 
 /**
  * The SDK applies reasoning only to model names on its own allowlist. A model
@@ -44,6 +49,25 @@ export function openAIReasoningOptions(
   };
 }
 
+/**
+ * The reasoning effort a provider is asked for: OpenAI's own options, or the
+ * model runtime's `reasoning_effort` (`none` turns a local model's thinking
+ * off). Other providers ignore it.
+ */
+export function reasoningProviderOptions(
+  provider: string,
+  reasoningEffort: ReasoningEffort | undefined,
+  supportsTemperature: boolean,
+): ReasoningProviderOptions | undefined {
+  if (!reasoningEffort) return undefined;
+  if (provider === "openai")
+    return {
+      openai: openAIReasoningOptions(reasoningEffort, supportsTemperature),
+    };
+  if (provider === "local") return { local: { reasoningEffort } };
+  return undefined;
+}
+
 export function withAIModelDefaults(config: AIModelConfig): AIModelConfig {
   return {
     ...config,
@@ -63,11 +87,12 @@ export function getTextGenerationOptions(
     options.temperature = config.temperature;
   }
 
-  if (provider === "openai" && config.reasoningEffort) {
-    options.providerOptions = {
-      openai: openAIReasoningOptions(config.reasoningEffort, supportsTemp),
-    };
-  }
+  const reasoning = reasoningProviderOptions(
+    provider,
+    config.reasoningEffort,
+    supportsTemp,
+  );
+  if (reasoning) options.providerOptions = reasoning;
 
   return options;
 }

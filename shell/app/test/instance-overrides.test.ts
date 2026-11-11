@@ -132,6 +132,34 @@ describe("parseInstanceOverrides", () => {
     expect(result.reasoningEffort).toBe("low");
   });
 
+  test("should parse the embedding model", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nembeddingModel: openai:text-embedding-3-large',
+    );
+    expect(result.embeddingModel).toBe("openai:text-embedding-3-large");
+  });
+
+  test("should parse the answer model", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nanswerModel: local:qwen3:30b-a3b-instruct',
+    );
+    expect(result.answerModel).toBe("local:qwen3:30b-a3b-instruct");
+  });
+
+  test("should parse the vision model", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nvisionModel: local:qwen3-vl:8b',
+    );
+    expect(result.visionModel).toBe("local:qwen3-vl:8b");
+  });
+
+  test("should parse the model runtime URL", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nmodelRuntime:\n  url: http://models:11434',
+    );
+    expect(result.modelRuntime?.url).toBe("http://models:11434");
+  });
+
   test("should parse port as number", () => {
     const result = parseInstanceOverrides('brain: "brain"\nport: 9090');
     expect(result.port).toBe(9090);

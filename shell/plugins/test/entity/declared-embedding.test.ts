@@ -65,18 +65,22 @@ async function store(embedded: string[]): Promise<EntityService> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingService: {
-      dimensions: DIMENSIONS,
-      generateEmbedding: async (text: string) => {
-        embedded.push(text);
+      identity: {
+        model: "test:mock",
+        dimensions: DIMENSIONS,
+        promptRevision: 0,
+      },
+      embedQuery: async () => ({
+        embedding: new Float32Array(DIMENSIONS),
+        usage: { tokens: 1 },
+      }),
+      embedDocuments: async (documents: { content: string }[]) => {
+        embedded.push(...documents.map(({ content }) => content));
         return {
-          embedding: new Float32Array(DIMENSIONS),
-          usage: { tokens: 1 },
+          embeddings: documents.map(() => new Float32Array(DIMENSIONS)),
+          usage: { tokens: documents.length },
         };
       },
-      generateEmbeddings: async (texts: string[]) => ({
-        embeddings: texts.map(() => new Float32Array(DIMENSIONS)),
-        usage: { tokens: texts.length },
-      }),
     },
   });
   await service.initialize();
@@ -110,18 +114,22 @@ describe("a declared type's embedding", () => {
     expect(stored.content).toContain("title: Water my plants");
 
     await EmbeddingJobHandler.createFresh(service, {
-      dimensions: DIMENSIONS,
-      generateEmbedding: async (text: string) => {
-        embedded.push(text);
+      identity: {
+        model: "test:mock",
+        dimensions: DIMENSIONS,
+        promptRevision: 0,
+      },
+      embedQuery: async () => ({
+        embedding: new Float32Array(DIMENSIONS),
+        usage: { tokens: 1 },
+      }),
+      embedDocuments: async (documents: { content: string }[]) => {
+        embedded.push(...documents.map(({ content }) => content));
         return {
-          embedding: new Float32Array(DIMENSIONS),
-          usage: { tokens: 1 },
+          embeddings: documents.map(() => new Float32Array(DIMENSIONS)),
+          usage: { tokens: documents.length },
         };
       },
-      generateEmbeddings: async () => ({
-        embeddings: [],
-        usage: { tokens: 0 },
-      }),
     }).process(
       {
         id: "water-plants",

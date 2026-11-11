@@ -118,14 +118,18 @@ async function store(
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingService: {
-      dimensions: DIMENSIONS,
-      generateEmbedding: async (text: string) => ({
+      identity: {
+        model: "test:mock",
+        dimensions: DIMENSIONS,
+        promptRevision: 0,
+      },
+      embedQuery: async (text: string) => ({
         embedding: vector(text),
         usage: { tokens: 1 },
       }),
-      generateEmbeddings: async (texts: string[]) => ({
-        embeddings: texts.map(vector),
-        usage: { tokens: texts.length },
+      embedDocuments: async (documents: { content: string }[]) => ({
+        embeddings: documents.map(({ content }) => vector(content)),
+        usage: { tokens: documents.length },
       }),
     },
   });
