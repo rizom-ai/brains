@@ -6,9 +6,9 @@ import { fetchVerifiedAgentCard } from "@brains/plugins";
 import {
   createFakePeerFetch,
   readSeedPeers,
-  serveSeedPeers,
   type FakePeer,
 } from "../src/fake-a2a-peers";
+import { serveSeedPeers } from "../src/eval-environment";
 
 const seed = (host: string, extra = ""): string => `---
 name: Yeehaa
@@ -58,8 +58,10 @@ const unreachable = (): Promise<Response> =>
 
 describe("fake A2A peers for evals", () => {
   const dirs: string[] = [];
+  const processFetch = globalThis.fetch;
 
   afterEach(async () => {
+    globalThis.fetch = processFetch;
     await Promise.all(dirs.map((dir) => rm(dir, { recursive: true })));
     dirs.length = 0;
   });

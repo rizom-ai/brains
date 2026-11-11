@@ -7,7 +7,7 @@ import type {
   Resource,
   ToolContext,
 } from "./interfaces";
-import type { MessageHandler, MessageSender } from "@brains/messaging-service";
+import type { MessageHandler } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
@@ -48,7 +48,6 @@ export interface CoreContext {
   pluginId: string;
   logger: Logger;
   messaging: {
-    send: MessageSender;
     subscribe: <T = unknown, R = unknown>(
       channel: string,
       handler: MessageHandler<T, R>,

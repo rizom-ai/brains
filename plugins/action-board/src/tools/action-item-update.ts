@@ -59,7 +59,10 @@ async function findCard(
   const [only, ...others] = named;
   if (!only) return `No action item ${identifier}.`;
   if (others.length > 0)
-    return `More than one action item is called "${identifier}": ${named.map((card) => card.id).join(", ")}. Give its id.`;
+    return `More than one action item is called "${identifier}": ${named
+      .map((card) => card.id)
+      .sort()
+      .join(", ")}. Give its id.`;
   return only;
 }
 

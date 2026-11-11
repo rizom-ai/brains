@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { toolResultSchema } from "@brains/plugins";
-import type { IApiRoutesNamespace, RegisteredApiRoute } from "@brains/plugins";
+import type { RegisteredApiRoute } from "@brains/plugins";
+import type { RouteToolExecutor } from "./route-tool-executor";
 
 /**
  * Create a Hono handler for a registered plugin API route.
@@ -9,7 +10,7 @@ import type { IApiRoutesNamespace, RegisteredApiRoute } from "@brains/plugins";
  */
 export function createApiRouteHandler(
   route: RegisteredApiRoute,
-  executeTool: IApiRoutesNamespace["executeTool"],
+  executeTool: RouteToolExecutor,
 ): (c: Context) => Promise<Response> {
   return async (c: Context): Promise<Response> => {
     const req = c.req.raw;

@@ -37,6 +37,7 @@ import type {
   UpdateEntityRequest,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
+import type { SystemChannelName } from "../system-channels";
 import type { DashboardWidgetRenderer } from "../contracts/dashboard-widget-contracts";
 import type {
   AnyDashboardWidgetDefinition,
@@ -159,9 +160,11 @@ export interface ServiceRuntime {
     options?: { readonly everyProcess?: boolean | undefined },
   ): void;
   /**
-   * Hear a system or broadcast channel, as the package: through its typed
-   * channel the payload is validated and a malformed one is never handed on;
-   * by name it is handed on as sent. Released when the package shuts down.
+   * Hear a broadcast channel, as the package: through its typed channel the
+   * payload is validated and a malformed one is never handed on. A system
+   * lifecycle channel (`SYSTEM_CHANNELS`) may also be heard by name, for a
+   * handler that reads no payload; it is handed on as sent. Released when
+   * the package shuts down.
    */
   listen<TPayload>(
     channel: Channel<TPayload>,
@@ -169,7 +172,7 @@ export interface ServiceRuntime {
     options?: ServiceListenOptions,
   ): void;
   listen(
-    channel: string,
+    channel: SystemChannelName,
     handler: ServiceListenHandler<unknown>,
     options?: ServiceListenOptions,
   ): void;

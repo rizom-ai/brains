@@ -90,10 +90,24 @@ describe("a converted interface package's imports", () => {
     ]);
   });
 
+  test("keep the runtime's HTTP host out of every interface", () => {
+    const rule = importRuleFor("interfaces/web-chat/src/web-chat-interface.ts");
+
+    expect(
+      messagesFor(rule, 'import { ServerManager } from "@brains/http-host";'),
+    ).toEqual([expect.stringContaining("Import from @brains/plugins instead")]);
+    expect(
+      messagesFor(
+        importRuleFor("interfaces/web-chat/test/web-chat.test.ts"),
+        'import { ServerManager } from "@brains/http-host";',
+      ),
+    ).toEqual([expect.stringContaining("Import from @brains/plugins instead")]);
+  });
+
   test("leave an interface that has not converted alone", () => {
-    const rule = importRuleFor(
-      "interfaces/webserver/src/webserver-interface.ts",
-    );
+    // Every interface in the repository has converted; a package not on the
+    // converted list keeps its class base until it does.
+    const rule = importRuleFor("interfaces/not-yet-converted/src/plugin.ts");
 
     expect(messagesFor(rule, classBase)).toEqual([]);
     expect(messagesFor(rule, shellPackage)).toEqual([

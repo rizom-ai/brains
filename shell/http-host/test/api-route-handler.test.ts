@@ -15,7 +15,7 @@ function executorReplying(
   return mock<ToolExecutor>(() => Promise.resolve(reply));
 }
 
-describe("webserver exports", () => {
+describe("http-host exports", () => {
   it("does not export a standalone API server", async () => {
     const exports = await import("../src");
     expect(Object.keys(exports)).not.toContain("ApiServer");

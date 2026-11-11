@@ -1,3 +1,5 @@
+import { defineChannel, type Channel } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import type { AtprotoProjectedPostRecord } from "@brains/atproto-contracts";
 import type { BrainCardRecord } from "./records";
 
@@ -63,15 +65,49 @@ export interface DiscoverBrainCardsResult {
   results: DiscoverBrainCardResult[];
 }
 
-export type AtprotoPublishOperation =
-  "publish-card" | "upsert-record" | "delete-record";
-
-export interface AtprotoPublishFailedPayload {
-  operation: AtprotoPublishOperation;
-  entityType: string;
-  entityId: string;
-  collection: string;
-  error: string;
-}
-
 export const ATPROTO_PUBLISH_FAILED = "atproto:publish:failed";
+
+type AtprotoPublishOperationSchema = z.ZodEnum<{
+  "publish-card": "publish-card";
+  "upsert-record": "upsert-record";
+  "delete-record": "delete-record";
+}>;
+
+const atprotoPublishOperationSchema: AtprotoPublishOperationSchema = z.enum([
+  "publish-card",
+  "upsert-record",
+  "delete-record",
+]);
+
+export type AtprotoPublishOperation = z.output<
+  typeof atprotoPublishOperationSchema
+>;
+
+type AtprotoPublishFailedPayloadSchema = z.ZodObject<{
+  operation: AtprotoPublishOperationSchema;
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+  collection: z.ZodString;
+  error: z.ZodString;
+}>;
+
+/** An ambient AT Protocol write failed: which one, for which record, and why. */
+export const atprotoPublishFailedPayloadSchema: AtprotoPublishFailedPayloadSchema =
+  z.object({
+    operation: atprotoPublishOperationSchema,
+    entityType: z.string(),
+    entityId: z.string(),
+    collection: z.string(),
+    error: z.string(),
+  });
+
+export type AtprotoPublishFailedPayload = z.output<
+  typeof atprotoPublishFailedPayloadSchema
+>;
+
+/** Broadcast when an ambient AT Protocol write fails. */
+export const atprotoPublishFailedChannel: Channel<
+  AtprotoPublishFailedPayload,
+  unknown,
+  typeof ATPROTO_PUBLISH_FAILED
+> = defineChannel(ATPROTO_PUBLISH_FAILED, atprotoPublishFailedPayloadSchema);

@@ -7,12 +7,16 @@ import { isPlainRecord } from "@brains/utils/predicates";
 import { type AppConfig, App } from "@brains/app";
 
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
+import { readSeedPeers } from "./fake-a2a-peers";
+import { serveEvalNetwork } from "./eval-network";
 
 export interface PrepareEvalEnvironmentOptions {
   brainModelPath?: string | undefined;
   config?: AppConfig | undefined;
   cloneData?: boolean;
   suffix?: string;
+  /** The remote brain under evaluation, when the eval runs against one. */
+  remoteUrl?: string | undefined;
 }
 
 export interface BootEvalAppOptions {
@@ -41,8 +45,28 @@ export function prepareEvalEnvironment(
 
   copyEvaluationContent(evalDbBase, brainModelPath, config);
   createEvalGitRemote(evalDbBase);
+  // Before any brain boots: the seed agents are peers on .example hosts and
+  // every other external service is answered or refused, never reached.
+  serveSeedPeers(options);
 
   return evalDbBase;
+}
+
+/**
+ * Serve the eval network for this run's brain: the seed agents of the eval
+ * content it imports as peers, every external service answered as a
+ * provider or refused (eval-network.ts).
+ */
+export function serveSeedPeers(options: {
+  brainModelPath?: string | undefined;
+  config?: SeedContentConfig | undefined;
+  remoteUrl?: string | undefined;
+}): void {
+  const contentDir = resolveEvaluationContentDirectory(options);
+  serveEvalNetwork({
+    peers: contentDir ? readSeedPeers(contentDir) : [],
+    remoteUrl: options.remoteUrl,
+  });
 }
 
 /**

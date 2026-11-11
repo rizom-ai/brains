@@ -37,7 +37,6 @@ describe("canonical personal posture", () => {
     for (const id of [
       "image",
       "document",
-      "webserver",
       "dashboard",
       "web-chat",
       "conversation-memory",
@@ -48,6 +47,7 @@ describe("canonical personal posture", () => {
     for (const id of ["site-builder", "blog", "onboarding", "atproto"]) {
       expect(ids).not.toContain(id);
     }
+    expect(resolved.http.enabled).toBe(true);
     expect(pluginConfig(resolved, "mcp")).toMatchObject({ transport: "http" });
     expect(pluginConfig(resolved, "dashboard")).toMatchObject({
       routePath: "/",

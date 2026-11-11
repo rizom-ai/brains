@@ -32,8 +32,9 @@ successCriteria:
         agent: "partner-brain.example"
     - toolName: system_create
       shouldBeCalled: false
-  responseContains:
-    - "partner-brain.example"
+  # The peer is named as the user named it or as it introduces itself.
+  responseCriteria:
+    - "Reports the answer as the partner brain's own, attributed to the peer it asked."
   responseNotContains:
     - "wish"
     - "save it first"

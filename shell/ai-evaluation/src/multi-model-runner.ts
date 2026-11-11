@@ -9,7 +9,6 @@ import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { resolveProviderKey } from "./multi-model";
 import { prepareEvalEnvironment } from "./eval-environment";
-import { serveSeedPeers } from "./fake-a2a-peers";
 import { runEvalSession } from "./eval-session";
 import {
   renderModelComparison,
@@ -218,12 +217,7 @@ async function runSingleModelIteration(
     config: options.config,
     cloneData: options.cloneData,
     suffix: `${model.replace(/[^a-z0-9-]/gi, "-")}${options.samples > 1 ? `-s${sampleIndex + 1}` : ""}`,
-  });
-  // The seed agents are peers on .example hosts: the brain asks them here,
-  // never a real brain.
-  serveSeedPeers({
-    brainModelPath: options.brainModelPath,
-    config: options.config,
+    remoteUrl: options.remoteUrl,
   });
 
   const modelConfig = options.resolveConfig

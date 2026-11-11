@@ -23,6 +23,10 @@ export {
 } from "./import/merge-profile";
 export { fetchAnchorProfile, fetchAnchorProfileData } from "./helpers";
 export {
+  ProfileAboutDataSource,
+  type ProfileAboutDataSourceOptions,
+} from "./about-datasource";
+export {
   buildStarterCharacterBrief,
   buildStarterCharacterPrompt,
   generateStarterCharacter,

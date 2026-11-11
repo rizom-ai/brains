@@ -56,11 +56,11 @@ both under the same `mcp` identity.
 The embedding connects SDK transports to permission-scoped servers created by the
 shell's MCP service. It owns connection cleanup and must supply trusted caller
 context; protocol-only registration is not an authentication bypass for remote
-clients. Hosted HTTP still requires webserver and retains its authentication and
+clients. Hosted HTTP still requires the brain to serve HTTP and retains its authentication and
 debug-mode checks.
 
 The evaluator uses this registration path for `--mcp-basic`. It does not change
-transport configuration, restore a production webserver, or open stdio. From
+transport configuration, start an HTTP listener, or open stdio. From
 `packages/brain-cli`, run the protocol-specific regression with:
 
 ```bash

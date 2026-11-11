@@ -1,6 +1,6 @@
 import type { AtprotoBlobRef, AtprotoLexicon } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
-import type { PublishProvider } from "@brains/contracts";
+import type { Channel, PublishProvider } from "@brains/contracts";
 import type {
   RecurringAlert,
   RecurringCheckCadence,
@@ -1013,12 +1013,17 @@ export interface EntityJobProgress {
   }): Promise<void>;
 }
 
-/** How a job announces what happened, to every subscriber. */
+/**
+ * How a job announces what happened, to every subscriber: an event on a
+ * channel declared with `defineChannel`, its payload typed by the channel and
+ * parsed by its schema before it is sent. A payload the channel refuses
+ * throws, and nothing is sent.
+ */
 export interface EntityJobMessaging {
-  publish(message: {
-    readonly topic: string;
-    readonly data: object;
-  }): Promise<void>;
+  publish<TPayload>(
+    channel: Channel<TPayload>,
+    payload: NoInfer<TPayload>,
+  ): Promise<void>;
 }
 
 /**

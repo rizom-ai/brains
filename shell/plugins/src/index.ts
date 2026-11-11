@@ -167,12 +167,18 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
+  identityChangedSchema,
   initialSyncCompletedChannel,
   initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  shellReadyChannel,
+  startupContentSettledChannel,
+  type IdentityChanged,
   type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
+  type SystemTimestamp,
 } from "./system-channels";
 export { defineChannel, type Channel } from "@brains/contracts";
 export {
@@ -246,7 +252,6 @@ export type {
   IPermissionsNamespace,
   IDaemonsNamespace,
   IToolsNamespace,
-  IApiRoutesNamespace,
   IWebRoutesNamespace,
   IPluginsNamespace,
   IInterfaceConversationsNamespace,
@@ -715,6 +720,7 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export { toPublicAppInfo } from "./base/public-app-info";
 export {
   publicDaemonHealthSchema,
   publicHealthInfoSchema,
@@ -760,9 +766,6 @@ export {
   type BaseMessage,
   type MessageContext,
   type MessageResponse,
-  type MessageSendOptions,
-  type MessageSendRequest,
-  type MessageSender,
   type MessageWithPayload,
 } from "./contracts/messaging";
 export type {

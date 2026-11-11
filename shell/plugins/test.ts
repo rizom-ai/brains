@@ -57,7 +57,9 @@ export type {
 } from "./src/index";
 // Logger comes from @brains/utils
 export type { Logger } from "@brains/utils/logger";
-export { createMockMessageBus } from "@brains/messaging-service/test";
+// A bus double that delivers to its subscribers, for a test that sends on the
+// bus a context rides as the shell does.
+export { createMockMessageBus } from "./src/test/mock-message-bus";
 export {
   baseEntitySchema,
   emptyFrontmatterSchema,

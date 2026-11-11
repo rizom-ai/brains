@@ -31,6 +31,8 @@ import {
   createRuntimeUploadsNamespace,
   ProjectionJsonObjectSchema,
   resolvePrompt,
+  toPublicAppInfo,
+  toPublicHealthInfo,
   type IAttachmentsNamespace,
   type IChannelRegistry,
   type IInboxFollowUpRegistry,
@@ -41,7 +43,7 @@ import {
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
-  SYSTEM_CHANNELS,
+  shellReadyChannel,
 } from "@brains/plugins";
 
 // Entity service types
@@ -58,7 +60,7 @@ import type {
 } from "@brains/content-service";
 
 // Messaging
-import type { IMessageBus } from "@brains/messaging-service";
+import { broadcastChannel, type IMessageBus } from "@brains/messaging-service";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 
 // Identity
@@ -117,6 +119,13 @@ import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
 import { Exit } from "@brains/utils/effect";
 import type { ShellRuntimeOptions } from "./runtime-process-role";
+import { runtimeRoleProfile } from "./runtime-process-role";
+import {
+  createHttpHostDaemon,
+  HTTP_HOST_DAEMON,
+  HTTP_HOST_ID,
+  httpHostAdvertisements,
+} from "./http-host";
 
 export type { ShellDependencies };
 
@@ -138,6 +147,8 @@ export class Shell implements IShell {
   private readonly endpointRegistry = new EndpointRegistry();
   private readonly interactionRegistry = new InteractionRegistry();
   private readonly httpRouteRegistry = HttpRouteRegistry.createFresh();
+  /** Whether this process serves the brain's HTTP surface. */
+  private readonly httpServed: boolean;
 
   public readonly jobs: IJobsNamespace;
 
@@ -155,6 +166,9 @@ export class Shell implements IShell {
     runtimeOptions?: ShellRuntimeOptions,
   ) {
     this.config = config;
+    this.httpServed =
+      config.http.enabled &&
+      runtimeRoleProfile(runtimeOptions?.processRole).serves;
     this.lifecycle = new ShellLifecycle();
     bindHttpRouteSnapshot(this, () => this.httpRouteRegistry.getSnapshot());
     const constructionLogger =
@@ -236,6 +250,7 @@ export class Shell implements IShell {
       );
 
       shellInitializer.wireShell(this.services, this);
+      if (this.httpServed) this.registerHttpHost();
       registerShellRuntimeFinalizers(this.lifecycle, this.services);
     } catch (error) {
       try {
@@ -300,12 +315,12 @@ export class Shell implements IShell {
         this.lifecycleState = "running";
         this.initialized = true;
         if (options?.mode === undefined) {
-          await this.services.messageBus.send({
-            type: SYSTEM_CHANNELS.shellReady,
-            payload: { timestamp: new Date().toISOString() },
-            sender: "shell",
-            broadcast: true,
-          });
+          await broadcastChannel(
+            this.services.messageBus,
+            shellReadyChannel,
+            { timestamp: new Date().toISOString() },
+            "shell",
+          );
           this.services.logger.debug("Emitted shell ready event");
         }
       }
@@ -730,6 +745,48 @@ export class Shell implements IShell {
 
   public isProduction(): boolean {
     return this.config.production;
+  }
+
+  public servesHttp(): boolean {
+    return this.httpServed;
+  }
+
+  /**
+   * The brain's one HTTP listener, under the webserver's name: its daemon,
+   * registered after the shell's own and started before initial sync, and
+   * the Site and Preview it serves.
+   */
+  private registerHttpHost(): void {
+    const { daemonRegistry, logger, messageBus, pluginManager } = this.services;
+    daemonRegistry.register(
+      HTTP_HOST_DAEMON,
+      createHttpHostDaemon({
+        config: this.config.http,
+        domain: this.config.siteBaseUrl,
+        logger: logger.child(HTTP_HOST_ID),
+        messageBus,
+        getRoutes: () => this.httpRouteRegistry.getSnapshot(),
+        getPlugins: () =>
+          [...pluginManager.getAllPlugins().values()].map(
+            ({ plugin }) => plugin,
+          ),
+        getOperationalInfo: async () =>
+          toPublicHealthInfo(toPublicAppInfo(await this.getAppInfo())),
+        getReadinessData: () => this.getRuntimeReadiness(),
+      }),
+      HTTP_HOST_ID,
+    );
+    this.lifecycle.addSyncFinalizer(() =>
+      daemonRegistry.abandon(HTTP_HOST_DAEMON),
+    );
+    const { endpoints, interactions } = httpHostAdvertisements(
+      this.config.http,
+      this.config.siteBaseUrl,
+    );
+    for (const endpoint of endpoints) this.endpointRegistry.register(endpoint);
+    for (const interaction of interactions) {
+      this.interactionRegistry.register(interaction);
+    }
   }
 
   public getThemeCSS(): string {

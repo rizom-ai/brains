@@ -22,7 +22,7 @@ import type * as MessagingService from "@brains/messaging-service";
 
 type ServiceSatisfiesContract<Service extends Contract, Contract> = Service;
 
-// Messaging. A plugin receives these off the bus and sends through it.
+// Messaging. A plugin receives these off the bus.
 type _BaseMessage = ServiceSatisfiesContract<
   MessagingService.BaseMessage,
   MessagingContract.BaseMessage
@@ -38,18 +38,6 @@ type _MessageContext = ServiceSatisfiesContract<
 type _MessageResponse = ServiceSatisfiesContract<
   MessagingService.MessageResponse,
   MessagingContract.MessageResponse
->;
-type _MessageSendOptions = ServiceSatisfiesContract<
-  MessagingService.MessageSendOptions,
-  MessagingContract.MessageSendOptions
->;
-type _MessageSendRequest = ServiceSatisfiesContract<
-  MessagingService.MessageSendRequest,
-  MessagingContract.MessageSendRequest
->;
-type _MessageSender = ServiceSatisfiesContract<
-  MessagingService.MessageSender,
-  MessagingContract.MessageSender
 >;
 
 // Identity.
@@ -86,9 +74,6 @@ export type ContractFidelityAssertions = [
   _MessageWithPayload,
   _MessageContext,
   _MessageResponse,
-  _MessageSendOptions,
-  _MessageSendRequest,
-  _MessageSender,
   _AnchorProfile,
   _BrainCharacter,
   _ChatContext,

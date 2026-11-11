@@ -131,7 +131,23 @@ Select an optional semantic profile kind from the composed catalog. The standard
 
 ### `domain`, `port`, `database`
 
-Override deployment domain, production port, or database URL.
+Override deployment domain, production port, or database URL. `port` is the port the brain's HTTP host listens on (default `8080`); the preview site shares it.
+
+### `http`
+
+How the runtime serves HTTP. Every field is optional.
+
+```yaml
+http:
+  enabled: true # default: whether the selected bundles include web
+  preview: true # default: whether a site builder runs
+  hostname: 127.0.0.1 # bind address; default: all interfaces
+  productionDistDir: ./dist/site-production # only for a site no site builder writes
+  previewDistDir: ./dist/site-preview
+  sharedImagesDir: ./dist/images
+```
+
+A site builder's own output directories are the ones served; an `http` directory that names another one is refused at start. `plugins.webserver` and `add`/`remove: [webserver]` are retired and refused.
 
 ### `model`
 
