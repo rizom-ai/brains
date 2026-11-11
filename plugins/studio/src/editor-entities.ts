@@ -5,13 +5,11 @@ import {
   preserveSourceFrontmatter,
   getPublishBoundaryState,
   entityIdPathSchema,
-  entityDisplayTitle as sharedEntityDisplayTitle,
 } from "@brains/plugins";
 import type {
   BaseEntity,
   EntityIdPath,
   GetEntityRequest,
-  ServicePluginContext,
 } from "@brains/plugins";
 import {
   directorySyncPathContract,
@@ -49,20 +47,18 @@ import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
 } from "./collection-query";
+import type { StudioContext } from "./studio-context";
 
 /** Entity adapters own title derivation; Studio must not reinterpret source. */
 /** How Studio names an entry; the same rule the ⌘K palette uses. */
 export function entityDisplayTitle(
-  context: ServicePluginContext,
+  context: StudioContext,
   entity: BaseEntity,
 ): string | undefined {
   // Studio reads a declared type as stored, while its title is derived from
   // the record as the type reads it: the body, not the document.
-  const declared =
-    context.entities.getAdapter(entity.entityType)?.metadataFromFrontmatter ===
-    true;
-  return sharedEntityDisplayTitle(
-    context.entities,
+  const declared = context.shapes.metadataFromFrontmatter(entity.entityType);
+  return context.shapes.displayTitle(
     declared
       ? {
           ...entity,
@@ -82,7 +78,7 @@ export function entityDisplayTitle(
  * type's ordinary reads leave out.
  */
 function readEditorEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: GetEntityRequest,
 ): Promise<BaseEntity | null> {
   return context.entityService.getEntityRaw({ ...request, source: true });
@@ -92,7 +88,7 @@ const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
 
 /** Binary images are readable for previews, not editable frontmatter types. */
 export async function handleGetImagePreview(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -162,7 +158,7 @@ function invalidCreatePayload(error: unknown, input: unknown): Response {
 
 /** Directory-sync is optional; only an explicit placement denial blocks creation. */
 async function resolvePlacement(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   entityId: string,
   entity: Pick<BaseEntity, "metadata" | "content">,
@@ -177,7 +173,7 @@ async function resolvePlacement(
 }
 
 export async function handlePreviewDestination(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -231,7 +227,7 @@ const deleteEntityPayloadSchema = z.object({
 });
 
 export async function handleGetEntities(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -331,7 +327,7 @@ export async function handleGetEntities(
 }
 
 export async function handleGetEntityHierarchy(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -450,7 +446,7 @@ export async function handleGetEntityHierarchy(
 }
 
 export async function handleUpdateEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
@@ -661,7 +657,7 @@ export async function handleUpdateEntity(
 }
 
 function deserializeStudioEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   content: string,
 ): Partial<BaseEntity> | Response {
@@ -675,7 +671,7 @@ function deserializeStudioEntity(
 }
 
 function prepareStudioCreation(
-  context: ServicePluginContext,
+  context: StudioContext,
   payload: z.infer<typeof createEntityPayloadSchema>,
 ):
   | (Partial<BaseEntity> &
@@ -740,7 +736,7 @@ function prepareStudioCreation(
 }
 
 export async function handleCreateEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
@@ -898,7 +894,7 @@ export async function handleCreateEntity(
 }
 
 export async function handleDeleteEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],

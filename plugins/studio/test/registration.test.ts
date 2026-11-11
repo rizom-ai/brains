@@ -67,11 +67,13 @@ async function installed(
  * What Studio registers, pinned as its service class registered it: the
  * editor's routes, its endpoints and ways in, the Inbox follow-ups it
  * offers, its answers to the workspace and jump contracts, the activity it
- * hears, and, once every plugin has registered, the grouping definitions
- * type it owns.
+ * hears, and the grouping definitions type it owns: the class registered
+ * the type once every plugin had registered; the package installs it as
+ * its own plugin, grouping-definitions, and installs the definitions
+ * source and its validators once every plugin has registered.
  */
 describe("the Studio package's registered surface", () => {
-  it("is the studio service, with no tools and the editor's routes", async () => {
+  it("is the grouping-definitions type and the studio service, with no tools and the editor's routes", async () => {
     const { plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -80,7 +82,10 @@ describe("the Studio package's registered surface", () => {
         packageName,
         dependencies ?? [],
       ]),
-    ).toEqual([["studio", "service", "@brains/studio", []]]);
+    ).toEqual([
+      ["grouping-definitions", "entity", "@brains/studio", []],
+      ["studio", "service", "@brains/studio", []],
+    ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
     const routes = plugins.flatMap((plugin) => plugin.getWebRoutes?.() ?? []);
@@ -191,13 +196,17 @@ describe("the Studio package's registered surface", () => {
     }
   });
 
-  it("owns the grouping definitions type once every plugin has registered", async () => {
+  it("owns the grouping definitions type, and its source once every plugin has registered", async () => {
     const { shell, plugins } = await installed();
     const registry = shell.getEntityRegistry();
-    expect(registry.hasEntityType("grouping-definitions")).toBe(false);
+    expect(registry.hasEntityType("grouping-definitions")).toBe(true);
+    expect(registry.getGroupingSourceType()).toBeUndefined();
+    expect(
+      registry.getPersistValidator("grouping-definitions"),
+    ).toBeUndefined();
     expect(registry.getPersistValidator("note")).toBeUndefined();
     for (const plugin of plugins) await plugin.finalizeRegistration?.();
-    expect(registry.hasEntityType("grouping-definitions")).toBe(true);
+    expect(registry.getGroupingSourceType()).toBe("grouping-definitions");
     expect(registry.getEntityTypeConfig("grouping-definitions")).toMatchObject({
       classification: "system",
       embeddable: false,

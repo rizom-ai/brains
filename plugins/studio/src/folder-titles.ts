@@ -3,8 +3,8 @@ import type {
   BaseEntity,
   ContentVisibility,
   EntityIdPath,
-  ServicePluginContext,
 } from "@brains/plugins";
+import type { StudioContext } from "./studio-context";
 
 interface Folder {
   path: EntityIdPath;
@@ -19,7 +19,7 @@ interface Folder {
  * when they cover exactly the folders the entry's id stands in.
  */
 export async function titleFolders<TFolder extends Folder>(
-  context: ServicePluginContext,
+  context: StudioContext,
   input: {
     entityType: string;
     prefix: EntityIdPath | null;
@@ -28,8 +28,7 @@ export async function titleFolders<TFolder extends Folder>(
     signal?: AbortSignal | undefined;
   },
 ): Promise<{ folders: TFolder[]; trail: Array<string | null> }> {
-  const adapter = context.entities.getAdapter(input.entityType);
-  const titlesOf = adapter?.getFolderTitles?.bind(adapter);
+  const titlesOf = context.shapes.folderTitles(input.entityType);
   const prefix = input.prefix ?? [];
   if (!titlesOf) {
     return { folders: input.folders, trail: prefix.map(() => null) };

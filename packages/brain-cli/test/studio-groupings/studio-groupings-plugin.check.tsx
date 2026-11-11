@@ -21,8 +21,10 @@ import {
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
-import { studioPlugin } from "@brains/studio";
-import type { GroupingDefinitionsFrontmatter } from "@brains/studio/test";
+import {
+  studioPlugin,
+  type GroupingDefinitionsFrontmatter,
+} from "@brains/studio/test";
 import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 
 const type = "grouping-definitions";

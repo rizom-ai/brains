@@ -1,7 +1,4 @@
-import type {
-  StudioWorkspaceActor,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { StudioWorkspaceActor } from "@brains/plugins";
 import { jsonResponse } from "./editor-response";
 import { getErrorMessage } from "@brains/utils/error";
 import type {
@@ -9,6 +6,7 @@ import type {
   StudioTypeCapabilities,
   EditorRouteOptions,
 } from "./editor-contracts";
+import type { StudioContext } from "./studio-context";
 
 export function toStudioWorkspaceActor(
   access: StudioRequestAccess,
@@ -82,7 +80,7 @@ export function requireAdminCapability(
 }
 
 export function requireEntityAction(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   action: "create" | "update" | "delete" | "extract" | "publish",
   access: StudioRequestAccess,
@@ -103,7 +101,7 @@ export function requireEntityAction(
 }
 
 export function canPerformEntityAction(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   action: "create" | "update" | "delete" | "extract" | "publish",
   access: StudioRequestAccess,
@@ -119,7 +117,7 @@ export function canPerformEntityAction(
 }
 
 export function deriveTypeCapabilities(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   visibleCount: number,
   access: StudioRequestAccess,
@@ -175,7 +173,7 @@ export function deriveTypeCapabilities(
 }
 
 export async function getTypeCapabilities(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   access: StudioRequestAccess,
 ): Promise<StudioTypeCapabilities | undefined> {

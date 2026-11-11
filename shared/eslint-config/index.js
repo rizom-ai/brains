@@ -82,6 +82,7 @@ const convertedServicePackages = [
   "contact",
   "quiz",
   "directory-sync",
+  "studio",
 ];
 
 const classBaseBan = {

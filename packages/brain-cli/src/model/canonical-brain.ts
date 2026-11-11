@@ -22,7 +22,7 @@ import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
 import chatInterface, { chatConfigFromEnv } from "@brains/chat";
-import { studioPlugin } from "@brains/studio";
+import studioPackage from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
 import contactPackage, { CONTACT_DEPENDENCIES } from "@brains/contact";
 import { formPlugin } from "@brains/form";
@@ -288,7 +288,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       pluginId: "onboarding",
       dependencies: ["playbook", "playbooks"],
     }),
-    ["studio", studioPlugin, undefined],
+    // Under the id its class had; its grouping-definitions type installs
+    // as itself.
+    packageCapability("studio", "@brains/studio", studioPackage, {
+      pluginId: "studio",
+    }),
     ["dashboard", dashboardPlugin, undefined],
     packageCapability("admin", "@brains/admin", adminPackage, {
       pluginId: "admin",

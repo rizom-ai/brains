@@ -7,7 +7,7 @@ import {
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
-import { studioPlugin } from "../src";
+import { studioPlugin } from "./studio-plugins";
 
 function createStudioTestShell(): MockShell {
   return createMockShell({ domain: "yeehaa.io" });

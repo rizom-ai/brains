@@ -6,7 +6,6 @@ import {
   groupingSortSchema,
   groupingValueSchema,
 } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
 import type {
@@ -20,8 +19,9 @@ import type {
   GroupingDefinitionsFrontmatter,
   StudioGrouping,
 } from "./grouping-definitions-contract";
-import { isGroupingContributorType } from "./grouping-definitions";
+import { isGroupingContributorType } from "./studio-context";
 import { studioGroupingUsageQuerySchema } from "./grouping-query";
+import type { StudioContext } from "./studio-context";
 
 const querySchema = studioGroupingUsageQuerySchema.extend({
   type: z.string().min(1).max(100).optional(),
@@ -64,7 +64,7 @@ export function studioGroupDescriptors(
 }
 
 export async function handleGroupingRead(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   mode: "catalog" | "members" | "usage",

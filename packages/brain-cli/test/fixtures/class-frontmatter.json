@@ -49,6 +49,53 @@
         }
       }
     },
+    "grouping-definitions": {
+      "type": "object",
+      "properties": {
+        "groupings": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "excludeTypes": {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "multiple": {
+                "type": "boolean"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": ["label", "multiple"],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
     "post": {
       "type": "object",
       "properties": {

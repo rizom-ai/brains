@@ -1,4 +1,4 @@
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/plugins";
 import {
   contentVisibilitySchema,
   parseMarkdownWithFrontmatter,
@@ -8,6 +8,7 @@ import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import { isRawEntityType } from "./config";
 import { jsonResponse } from "./editor-response";
+import type { StudioContext } from "./studio-context";
 
 export function stripStudioPolicyMetadata(
   metadata: Record<string, unknown>,
@@ -43,13 +44,12 @@ export function withStudioVisibility(
 }
 
 export function rejectBodyForBodylessType(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   body: string | undefined,
 ): Response | null {
   if (body === undefined) return null;
-  const adapter = context.entities.getAdapter(entityType);
-  if (adapter?.hasBody === false) {
+  if (!context.shapes.hasBody(entityType)) {
     return jsonResponse(
       { error: `Entity type ${entityType} does not have a body` },
       400,
@@ -61,7 +61,7 @@ export function rejectBodyForBodylessType(
 export function splitEntityContent(
   entityType: string,
   content: string,
-  context: ServicePluginContext,
+  context: StudioContext,
 ): {
   frontmatter: Record<string, unknown>;
   body: string;

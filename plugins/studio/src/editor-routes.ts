@@ -10,11 +10,7 @@ import {
 import { join } from "node:path";
 import { sdkErrorHttpStatus, toSdkError } from "@brains/contracts";
 import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
-import type {
-  ServicePluginContext,
-  UserPermissionLevel,
-  WebRouteDefinition,
-} from "@brains/plugins";
+import type { UserPermissionLevel, WebRouteDefinition } from "@brains/plugins";
 import {
   MCP_INTERACTION_ID,
   directorySyncStatusContract,
@@ -38,7 +34,7 @@ import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
-import { isGroupingContributorType } from "./grouping-definitions";
+import { isGroupingContributorType } from "./studio-context";
 import {
   handleCreateEntity,
   handleDeleteEntity,
@@ -67,6 +63,7 @@ import type {
   StudioRequestAccessResolution,
   EditorRouteOptions,
 } from "./editor-contracts";
+import type { StudioContext } from "./studio-context";
 
 export type {
   StudioRequestAccess,
@@ -77,9 +74,9 @@ export type {
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
 export function resolveStudioChatApiPath(
-  context: ServicePluginContext,
+  context: StudioContext,
 ): string | undefined {
-  return context.webRoutes.findByRole("chat-api")?.fullPath;
+  return context.routeByRole("chat-api")?.fullPath;
 }
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
@@ -243,7 +240,7 @@ export function createEditorRoutes(
       return new Response("Chat is not configured", { status: 404 });
     }
     const context = getContext();
-    const dashboardHref = context.webRoutes.findByRole("dashboard")?.fullPath;
+    const dashboardHref = context.routeByRole("dashboard")?.fullPath;
     const profileName = context.identity.getProfile().name.trim();
     const mcpUrl = await resolveMcpUrl(
       context,
@@ -571,9 +568,7 @@ export function createEditorRoutes(
  * over the message bus; when it (or git) is absent the payload degrades to
  * nulls and the strip simply doesn't render those stations.
  */
-async function handleSyncStatus(
-  context: ServicePluginContext,
-): Promise<Response> {
+async function handleSyncStatus(context: StudioContext): Promise<Response> {
   const result = await context.messaging.request(
     directorySyncStatusContract,
     {},
@@ -592,7 +587,7 @@ async function handleSyncStatus(
 }
 
 async function handleListTypes(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityDisplay: StudioEntityDisplayMap | undefined,
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
@@ -625,7 +620,6 @@ async function handleListTypes(
         access,
       );
       if (!capabilities) continue;
-      const adapter = context.entities.getAdapter(entityType);
       const containedIn =
         context.entityService.getEntityTypeConfig(entityType).containedIn;
       const labels = entityTypeLabels(entityType, entityDisplay?.[entityType]);
@@ -636,8 +630,8 @@ async function handleListTypes(
         ),
         label: labels.pluralLabel,
         singularLabel: labels.label,
-        isSingleton: adapter?.isSingleton === true,
-        hasBody: adapter?.hasBody !== false,
+        isSingleton: context.shapes.isSingleton(entityType),
+        hasBody: context.shapes.hasBody(entityType),
         count,
         capabilities,
         // A container's ids are flat; its folders hold its contents.
@@ -780,7 +774,7 @@ async function handleWorkspaceAction(
 }
 
 async function handleGetSchema(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   options: EditorRouteOptions,
@@ -799,7 +793,6 @@ async function handleGetSchema(
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const adapter = context.entities.getAdapter(entityType);
   const raw = isRawEntityType(entityType, context.entities);
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
@@ -872,8 +865,8 @@ async function handleGetSchema(
     }),
     entityType,
     format: raw ? "raw" : "frontmatter",
-    isSingleton: adapter?.isSingleton === true,
-    hasBody: raw || adapter?.hasBody !== false,
+    isSingleton: context.shapes.isSingleton(entityType),
+    hasBody: raw || context.shapes.hasBody(entityType),
     fields,
   });
 }
@@ -884,7 +877,7 @@ async function handleGetSchema(
  * one OAuth issues tokens for.
  */
 async function resolveMcpUrl(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   role: UserPermissionLevel,
 ): Promise<string | undefined> {

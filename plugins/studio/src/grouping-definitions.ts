@@ -1,49 +1,35 @@
-import {
-  internalFullScope,
-  isGroupingContributor,
-  type BaseEntity,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import { internalFullScope, type BaseEntity } from "@brains/plugins";
+import type { ServiceGroupings } from "@brains/sdk/internal/service-runtime";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
-  groupingDefinitionsAdapter,
-  groupingDefinitionsEntitySchema,
-} from "./entity/grouping-definitions";
-import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
+  GROUPING_DEFINITIONS_TYPE,
+  groupingDefinitionsFrontmatterSchema,
+  type GroupingDefinitionsFrontmatter,
+} from "./grouping-definitions-contract";
 import { GroupingDefinitionSource } from "./grouping-definition-source";
+import {
+  isGroupingContributorType,
+  type StudioContext,
+} from "./studio-context";
 
-/** Eligibility is shared by source enforcement and the editor's type choices. */
-export function isGroupingContributorType(
-  context: ServicePluginContext,
-  type: string,
-): boolean {
-  return isGroupingContributor(
-    context.entities.getAdapter(type),
-    context.entityService.getEntityTypeConfig(type),
+/** The definitions a grouping definitions document states; it throws when they need repair. */
+export function readGroupingDefinitions(
+  content: string,
+): GroupingDefinitionsFrontmatter {
+  return groupingDefinitionsFrontmatterSchema.parse(
+    parseMarkdown(content, { cache: false }).frontmatter,
   );
 }
 
-/** Install after contributor types register; this document is the only source. */
+/**
+ * Install once every plugin has registered, after contributor types
+ * register: the grouping definitions document is the only source.
+ */
 export function registerGroupingDefinitions(
-  context: ServicePluginContext,
+  context: StudioContext,
+  groupings: ServiceGroupings,
 ): GroupingDefinitionSource {
-  context.entities.register(
-    GROUPING_DEFINITIONS_TYPE,
-    groupingDefinitionsEntitySchema,
-    groupingDefinitionsAdapter,
-    {
-      classification: "system",
-      embeddable: false,
-      projectionSource: false,
-      actionPolicy: {
-        create: "admin",
-        update: "admin",
-        delete: "admin",
-        publish: "never",
-      },
-    },
-  );
   const source = new GroupingDefinitionSource({
     getContributorTypes: (): string[] =>
       context.entityService
@@ -59,21 +45,22 @@ export function registerGroupingDefinitions(
           "refresh the shared grouping definitions before use",
         ),
       }),
-    validate: (groupings): void =>
-      context.entities.validateGroupings(groupings),
-    replace: (groupings, options): void =>
-      context.entities.replaceGroupings(groupings, options),
+    validate: (definitions): void => groupings.validateGroupings(definitions),
+    replace: (definitions, options): void =>
+      groupings.replaceGroupings(definitions, options),
   });
-  context.entities.registerGroupingSource({
+  groupings.registerGroupingSource({
     entityType: GROUPING_DEFINITIONS_TYPE,
     ensureCurrent: (options) => source.ensureCurrent(options),
   });
-  context.entities.registerPersistValidator(
+  groupings.registerPersistValidator(
     GROUPING_DEFINITIONS_TYPE,
     async (entity) => {
-      const { groupings } = groupingDefinitionsAdapter.read(entity.content);
+      const { groupings: definitions } = readGroupingDefinitions(
+        entity.content,
+      );
       const issues: z.core.$ZodIssue[] = source
-        .validateDefinitions(groupings)
+        .validateDefinitions(definitions)
         .issues.map((issue) => ({ code: "custom", ...issue }));
       if (entity.visibility !== "shared")
         issues.push({
@@ -88,7 +75,7 @@ export function registerGroupingDefinitions(
 
   for (const type of context.entityService.getEntityTypes()) {
     if (!isGroupingContributorType(context, type)) continue;
-    context.entities.registerPersistValidator(type, async (entity) => {
+    groupings.registerPersistValidator(type, async (entity) => {
       // The persistence boundary refreshed the source before projecting fields.
       // Read the authored values, never caller-supplied or stale row metadata.
       const definitions = Object.entries(source.getSnapshot().groupings).filter(

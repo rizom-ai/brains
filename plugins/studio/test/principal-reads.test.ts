@@ -2,15 +2,12 @@ import type { AuthPrincipal } from "@brains/contracts";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({ title: z.string() });
 
@@ -57,10 +54,10 @@ function fixtureEntity(
   };
 }
 
-function createReadFixture(): {
+async function createReadFixture(): Promise<{
   shell: MockShell;
   routes: WebRouteDefinition[];
-} {
+}> {
   const shell = createMockShell({ domain: "yeehaa.io" });
   const registry = shell.getEntityRegistry();
   for (const entityType of ["post", "empty-collab", "secret"]) {
@@ -115,7 +112,7 @@ function createReadFixture(): {
     dataProvider: async (): Promise<Record<string, never>> => ({}),
   });
 
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   const routes = createEditorRoutes({
     routePath: "/studio",
     getContext: () => context,
@@ -156,7 +153,7 @@ function request(
 
 describe("Studio principal-aware reads behind the rollout gate", () => {
   it("scopes counts, filters type discovery, and returns policy capabilities", async () => {
-    const { routes } = createReadFixture();
+    const { routes } = await createReadFixture();
     const response = await findRoute(routes, "/studio/api/types").handler(
       request("/studio/api/types"),
     );
@@ -215,7 +212,7 @@ describe("Studio principal-aware reads behind the rollout gate", () => {
   });
 
   it("allows only visible schemas, lists, and entity details", async () => {
-    const { routes } = createReadFixture();
+    const { routes } = await createReadFixture();
 
     const [postSchema, secretSchema, unknownSchema, list, shared, restricted] =
       await Promise.all([

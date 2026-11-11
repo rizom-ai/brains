@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
 
 import { GroupingDefinitionSource } from "../src/grouping-definition-source";
-import { groupingDefinitionsAdapter } from "../src/entity/grouping-definitions";
+import { EntityPlugin } from "@brains/plugins";
+import { readGroupingDefinitions } from "../src/grouping-definitions";
+import { createStudioPlugins } from "./studio-plugins";
 import { groupingDefinitionsFrontmatterSchema } from "../src/grouping-definitions-contract";
 
 type DefinitionRow = Pick<BaseEntity, "content" | "contentHash">;
@@ -47,7 +49,7 @@ describe("grouping definitions contract", () => {
     const definitions = {
       areas: { ...areas, values: [" Acme, Inc. ", "Acme", "acme"] },
     };
-    expect(groupingDefinitionsAdapter.read(document(definitions))).toEqual({
+    expect(readGroupingDefinitions(document(definitions))).toEqual({
       groupings: definitions,
     });
     expect(
@@ -59,16 +61,19 @@ describe("grouping definitions contract", () => {
     ).toBe(false);
   });
   test("keeps even malformed stored documents reconstructable for repair", () => {
+    const type = createStudioPlugins().find(
+      (plugin) => plugin instanceof EntityPlugin,
+    );
+    if (!(type instanceof EntityPlugin)) throw new Error("No type plugin");
     const content = "---\ngroupings: [broken\n---\n";
-    expect(groupingDefinitionsAdapter.fromMarkdown(content)).toMatchObject({
+    expect(type.adapter.fromMarkdown(content)).toMatchObject({
       id: "grouping-definitions",
       content,
       metadata: {},
     });
-    expect(() => groupingDefinitionsAdapter.read(content)).toThrow();
-    expect(() => groupingDefinitionsAdapter.read(content)).toThrow();
-    expect(groupingDefinitionsAdapter.hasBody).toBe(false);
-    expect(groupingDefinitionsAdapter.isSingleton).toBe(true);
+    expect(() => readGroupingDefinitions(content)).toThrow();
+    expect(type.adapter.hasBody).toBe(false);
+    expect(type.adapter.isSingleton).toBe(true);
   });
 });
 

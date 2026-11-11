@@ -31,7 +31,7 @@ import type {
 import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
-import { studioPlugin, type StudioPlugin } from "../src";
+import { studioPlugin, type StudioPlugin } from "./studio-plugins";
 
 const postFrontmatterSchema = z.object({
   title: z.string(),

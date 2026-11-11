@@ -5,12 +5,12 @@ import type {
 import type { ActorRef } from "@brains/contracts";
 import type {
   ContentVisibility,
-  ServicePluginContext,
   EntityTypeClassification,
 } from "@brains/plugins";
 import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
 import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
+import type { StudioContext } from "./studio-context";
 
 export const STUDIO_ENTITY_PAGE_LIMIT = 25;
 
@@ -52,7 +52,7 @@ export interface StudioEntityTypeInfo {
 export interface EditorRouteOptions {
   /** Base route the editor is served from, e.g. "/studio". */
   routePath: string;
-  getContext: () => ServicePluginContext;
+  getContext: () => StudioContext;
   resolveAuthPrincipal: (
     request: Request,
   ) => Promise<AuthPrincipal | undefined>;

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import styleGuidePackage from "@brains/style-guide";
-import { createServicePluginContext } from "@brains/plugins";
 import {
   createEditorRoutes,
   StudioWorkspaceRegistry,
+  studioContextOn,
 } from "@brains/studio/test";
 import { z } from "@brains/utils/zod";
 import {
@@ -30,7 +30,7 @@ describe("Studio creating a missing declared singleton", () => {
       "style-guide",
     );
     stores.push(opened);
-    const context = createServicePluginContext(opened.shell, "studio");
+    const context = await studioContextOn(opened.shell);
     const create = createEditorRoutes({
       routePath: "/studio",
       getContext: () => context,
