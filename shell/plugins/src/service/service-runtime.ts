@@ -17,6 +17,7 @@ import type {
   IProfileKindsNamespace,
 } from "../base/context-types";
 import type { IAttachmentsNamespace } from "./attachment-registry";
+import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
 import type { IViewsNamespace } from "../entity/namespaces";
@@ -346,6 +347,12 @@ export interface ServiceRuntime {
    */
   readonly attachments: ServiceAttachments;
   /**
+   * Background retries the package owns, as its class's `this.retries`:
+   * work a refusal must not lose, retried with backoff, every retry stopped
+   * when the package shuts down.
+   */
+  readonly retries: RetryScope;
+  /**
    * Claim a shell system type for this package: it alone keeps the type's
    * records, as the class kept them. A type that is not one of the shell's
    * own, one nobody registered, and one another package claimed are
@@ -587,6 +594,7 @@ export interface ServiceRuntimeBinding {
   readonly entityReads: ServiceEntityReads;
   readonly permissions: ServicePermissions;
   readonly attachments: ServiceAttachments;
+  readonly retries: RetryScope;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: ServiceAI;
@@ -649,6 +657,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     entityReads: binding.entityReads,
     permissions: binding.permissions,
     attachments: binding.attachments,
+    retries: binding.retries,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
     ai: binding.ai,
