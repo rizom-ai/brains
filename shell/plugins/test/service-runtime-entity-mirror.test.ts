@@ -112,4 +112,29 @@ describe("a first-party service's entity mirror", () => {
     // entity service itself.
     expect(mirror.coordination).toBe(shell.getEntityService());
   });
+
+  it("calls the entity service as it is when called, as its class did", async () => {
+    const shell = createMockShell();
+    let runtime: ServiceRuntime | undefined;
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineServicePlugin({
+        id: "probe",
+        config: z.object({}),
+        setup: (context) => {
+          runtime = serviceRuntime(context);
+          return {};
+        },
+      }),
+      {},
+      { name: "@brains/probe", version: "0.1.0" },
+      { pluginId: "probe" },
+    );
+    await plugin?.register(shell);
+    if (!runtime) throw new Error("Setup did not run");
+
+    // Replaced on the service after the package set up.
+    const entities = shell.getEntityService();
+    entities.hasPendingEntityExports = async (): Promise<boolean> => true;
+    expect(await runtime.entityMirror.hasPendingEntityExports()).toBe(true);
+  });
 });
