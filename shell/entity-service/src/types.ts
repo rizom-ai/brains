@@ -577,6 +577,15 @@ export interface EntityAdapter<
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
   /**
+   * Optional: the frontmatter fields the type writes itself, when they are
+   * more than the frontmatter it presents: a declared type whose metadata
+   * holds fields its class kept out of the file presents the class's
+   * header, and still writes, or leaves out, every field its metadata
+   * names. The serializer keeps from the source only fields neither names.
+   */
+  writtenFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+
+  /**
    * Optional: fields a creator may state that the type does not store, such
    * as where a deck's slides break. The brain's create tool takes them with
    * the editable fields; nothing updates them.

@@ -19,6 +19,7 @@ export {
   withBodyTemplate,
   withUrlRoute,
   writesInDocumentOrder,
+  withFrontmatterSchema,
   afterGeneration,
   loggedProvider,
   type AnyEntityReads,
