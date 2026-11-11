@@ -31,6 +31,7 @@ import type {
   ReadOnlyEntityService,
   SemanticSpaceProjection,
 } from "@brains/entity-service";
+import { isGroupingContributor } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -1057,12 +1058,29 @@ class DeclarativeServicePlugin<
       );
     }
     const { entities, entityService } = context;
+    const sourceTypes = new Set<string>();
     return Object.freeze({
       validateGroupings: (groupings) => entities.validateGroupings(groupings),
       replaceGroupings: (groupings, options) =>
         entities.replaceGroupings(groupings, options),
-      registerGroupingSource: (source) =>
-        entities.registerGroupingSource(source),
+      registerGroupingSource: (source): void => {
+        entities.registerGroupingSource(source);
+        sourceTypes.add(source.entityType);
+      },
+      registerPersistValidator: (type, validator): void => {
+        if (
+          !sourceTypes.has(type) &&
+          !isGroupingContributor(
+            entities.getAdapter(type),
+            entityService.getEntityTypeConfig(type),
+          )
+        ) {
+          throw new Error(
+            `Studio enforces groupings only on a contributing type or its grouping source: ${type} is neither`,
+          );
+        }
+        entities.registerPersistValidator(type, validator);
+      },
       getGroupings: () => entities.getGroupings(),
       ensureGroupingsCurrent: () => entities.ensureGroupingsCurrent(),
       ensureGroupingsReady: () => entityService.ensureGroupingsReady(),

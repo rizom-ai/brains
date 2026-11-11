@@ -182,4 +182,48 @@ describe("a first-party service reaching what Studio's class did", () => {
       `Service "probe" cannot reach the brain's groupings: Studio owns them`,
     );
   });
+
+  it("keeps grouping fields valid on a contributing type or its own source type, and nowhere else", async () => {
+    const shell = createMockShell();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(
+      "grouping-definitions",
+      baseEntitySchema,
+      createTestEntityAdapter("grouping-definitions"),
+      { classification: "system" },
+    );
+    registry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      createTestEntityAdapter("note"),
+    );
+    registry.registerEntityType(
+      "site-info",
+      baseEntitySchema,
+      createTestEntityAdapter("site-info", { isSingleton: true }),
+    );
+    spyOn(shell, "getEntityRegistry").mockReturnValue(registry);
+    spyOn(shell.getEntityService(), "getEntityTypeConfig").mockImplementation(
+      (type) => registry.getEntityTypeConfig(type),
+    );
+    const { runtime } = await runtimeOn(shell, false, "studio");
+    const groupings = runtime.groupings();
+    const validator = async (): Promise<void> => {};
+    groupings.registerGroupingSource({
+      entityType: "grouping-definitions",
+      ensureCurrent: async () => {},
+    });
+    groupings.registerPersistValidator("grouping-definitions", validator);
+    groupings.registerPersistValidator("note", validator);
+    expect(registry.getPersistValidator("grouping-definitions")).toBe(
+      validator,
+    );
+    expect(registry.getPersistValidator("note")).toBe(validator);
+    // A singleton contributes no grouping: nothing of Studio's guards it.
+    expect(() =>
+      groupings.registerPersistValidator("site-info", validator),
+    ).toThrow(
+      "Studio enforces groupings only on a contributing type or its grouping source: site-info is neither",
+    );
+  });
 });

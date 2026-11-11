@@ -735,7 +735,14 @@ export interface ServiceGroupings
       | "queryGroupingUsage"
       | "queryGroupingMembers"
       | "queryGroupingCatalog"
-    > {}
+    > {
+  /**
+   * Keep grouping fields valid when a record is written, as Studio's class
+   * registered its validators through context.entities: only on a type that
+   * contributes groupings, or on the type a grouping source reads them from.
+   */
+  registerPersistValidator(type: string, validator: PersistValidator): void;
+}
 
 /** Where the brain's git broker listens and keeps its checkout; none without Git. */
 export interface ServiceGitBroker {
