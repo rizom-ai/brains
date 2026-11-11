@@ -450,6 +450,10 @@ function markdownStorage(
           })
         : { content: parsed.content, metadata: parsed.metadata };
       return {
+        // A singleton's document is its one record, whose id is the type,
+        // as a class adapter read it; a writer that names none, such as
+        // Studio creating a missing one, creates it there.
+        ...(definition.singleton === true && { id: definition.type }),
         content: decoded.content,
         metadata: definition.metadata.parse(
           currentMetadata(definition, decoded.metadata),
