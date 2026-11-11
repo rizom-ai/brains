@@ -285,6 +285,14 @@ export interface ServiceRuntime {
   workspaceUrl(workspace: AnyStudioWorkspaceDefinition): string | undefined;
   /** The brain's site URL, when it has a domain. */
   readonly siteUrl: string | undefined;
+  /** The preview site's URL, when the brain has a domain. */
+  readonly previewUrl: string | undefined;
+  /**
+   * The site's local URL, and whether links prefer it over the public one,
+   * as the class read them.
+   */
+  readonly localSiteUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
   /** The route another plugin mounts for a well-known role, if any. */
   routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
   /**
@@ -499,6 +507,9 @@ export interface ServiceRuntimeBinding {
     workspace: AnyStudioWorkspaceDefinition,
   ) => string | undefined;
   readonly siteUrl: string | undefined;
+  readonly previewUrl: string | undefined;
+  readonly localSiteUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
   readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
@@ -549,6 +560,9 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     interaction: binding.interaction,
     workspaceUrl: binding.workspaceUrl,
     siteUrl: binding.siteUrl,
+    previewUrl: binding.previewUrl,
+    localSiteUrl: binding.localSiteUrl,
+    preferLocalUrls: binding.preferLocalUrls,
     routeByRole: binding.routeByRole,
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,

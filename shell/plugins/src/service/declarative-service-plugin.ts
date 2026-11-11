@@ -1152,6 +1152,9 @@ class DeclarativeServicePlugin<
       },
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       siteUrl: context.siteUrl,
+      previewUrl: context.previewUrl,
+      localSiteUrl: context.localSiteUrl,
+      preferLocalUrls: context.preferLocalUrls,
       routeByRole: (role) => context.webRoutes.findByRole(role),
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);
