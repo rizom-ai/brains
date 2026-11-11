@@ -78,6 +78,7 @@ const convertedServicePackages = [
   "newsletter",
   "atproto",
   "email-workflows",
+  "analytics",
 ];
 
 const classBaseBan = {

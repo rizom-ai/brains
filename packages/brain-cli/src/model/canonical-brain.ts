@@ -15,7 +15,7 @@ import {
 import a2aInterface from "@brains/a2a";
 import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
-import { analyticsPlugin } from "@brains/analytics";
+import analyticsPackage from "@brains/analytics";
 import { assessment } from "@brains/assessment";
 import atprotoPackage from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
@@ -301,7 +301,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "site-builder" },
     ),
     ["form", formPlugin, undefined],
-    ["analytics", analyticsPlugin, undefined],
+    packageCapability("analytics", "@brains/analytics", analyticsPackage, {
+      // Under the id its class had; its traffic-snapshot type installs as
+      // itself.
+      pluginId: "analytics",
+    }),
 
     packageCapability("blog", "@brains/blog", blogPackage, {
       pluginId: "blog",

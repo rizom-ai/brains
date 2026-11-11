@@ -1,5 +1,8 @@
 import { internalFullScope } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type {
+  ServiceEntityWrites,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { computeContentHash } from "@brains/utils/hash";
 import { trafficSnapshotAdapter } from "../entity/adapter";
 import {
@@ -45,17 +48,16 @@ export interface TrafficCaptureDeps {
 /**
  * Snapshots in the brain's entities. Reads pass the restricted scope
  * explicitly: an unscoped read fails closed to public and would never find
- * the snapshots, so every run would fetch everything again.
+ * the snapshots, so every run would fetch everything again. A save writes
+ * the week whether or not it is stored yet.
  */
 export function entitySnapshotStore(
-  entityService: Pick<
-    ServicePluginContext["entityService"],
-    "listEntities" | "upsertEntity"
-  >,
+  reads: Pick<ServiceRuntime["reportEntityService"], "listEntities">,
+  writes: Pick<ServiceEntityWrites, "upsertEntity">,
 ): TrafficSnapshotStore {
   return {
     list: () =>
-      entityService.listEntities(
+      reads.listEntities(
         {
           entityType: "traffic-snapshot",
           options: {
@@ -70,7 +72,7 @@ export function entitySnapshotStore(
         trafficSnapshotSchema,
       ),
     save: async (snapshot): Promise<void> => {
-      await entityService.upsertEntity({ entity: snapshot });
+      await writes.upsertEntity({ entity: snapshot });
     },
   };
 }

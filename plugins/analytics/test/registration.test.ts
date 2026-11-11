@@ -74,7 +74,8 @@ async function installed(
 
 /**
  * What the analytics package registers, pinned as its traffic-snapshot
- * entity plugin class and its analytics service class registered it:
+ * entity plugin class and its analytics service class registered it, and
+ * kept by the declarative package:
  * system_analytics answers its traffic reports, site builds carry the
  * beacon, the daily check captures traffic, and Studio and the Dashboard
  * show the Traffic workspace and widget.
@@ -163,7 +164,9 @@ describe("the analytics package's registered surface", () => {
     }
   });
 
-  it("shows its workspace and widget once the brain is ready, and takes the workspace off when it shuts down", async () => {
+  // The widget registers once every plugin has, as a first-party service's
+  // widget does; the class registered it once the brain was ready.
+  it("shows its widget once every plugin has registered and its workspace once the brain is ready, and takes the workspace off when it shuts down", async () => {
     const brain = await installed();
     brain.events.push("plugins registered");
     await brain.shell.getMessageBus().send({
@@ -176,9 +179,9 @@ describe("the analytics package's registered surface", () => {
     for (const plugin of brain.plugins) await plugin.shutdown?.();
     expect(brain.events).toEqual([
       "plugins registered",
+      "widget analytics:traffic",
       "ready",
       "workspace analytics:traffic",
-      "widget analytics:traffic",
       "unregister analytics:traffic",
     ]);
   });
