@@ -252,6 +252,68 @@ describe("a first step that ends with no reply and no call", () => {
   });
 });
 
+describe("a first step the brain marks as a read the user asked for", () => {
+  const asked = { local: { callRequired: true } } as const;
+
+  it("is asked again for a call when it answers in text", async () => {
+    const inner = scripted([
+      reply("The note says monthly."),
+      reply('{"tool":"system_create","input":{"title":"Harbor"}}'),
+    ]);
+
+    const result = await generateText({
+      model: withLocalRuntime(inner, {}),
+      prompt: "Read the note from storage now.",
+      tools: { system_create: save },
+      providerOptions: asked,
+    });
+
+    expect(result.steps[0]?.toolCalls.map((call) => call.input)).toEqual([
+      { title: "Harbor" },
+    ]);
+    // The mark is the brain's: the runtime never receives it.
+    expect(
+      JSON.stringify(inner.doGenerateCalls.map((call) => call.providerOptions)),
+    ).not.toContain("callRequired");
+  });
+
+  it("is kept when it already calls a tool", async () => {
+    const inner = scripted([
+      respond([
+        {
+          type: "tool-call",
+          toolCallId: "call-1",
+          toolName: "system_create",
+          input: JSON.stringify({ title: "Harbor" }),
+        },
+      ]),
+    ]);
+
+    await generateText({
+      model: withLocalRuntime(inner, {}),
+      prompt: "Read the note from storage now.",
+      tools: { system_create: save },
+      providerOptions: asked,
+      stopWhen: () => true,
+    });
+
+    expect(inner.doGenerateCalls).toHaveLength(1);
+  });
+
+  it("is kept as a text answer when the brain did not mark it", async () => {
+    const inner = scripted([reply("Hello there.")]);
+
+    const result = await generateText({
+      model: withLocalRuntime(inner, {}),
+      prompt: "Hi.",
+      tools: { system_create: save },
+    });
+
+    expect(result.text).toBe("Hello there.");
+    expect(inner.doGenerateCalls).toHaveLength(1);
+  });
+});
+
 describe("a tool result", () => {
   const thinking = { local: { reasoningEffort: "low" } } as const;
 

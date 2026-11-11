@@ -96,6 +96,15 @@ describe("reasoning across agent steps", () => {
   });
 });
 
+/** The answer model's steps, beside the read of the turn's intent it also makes. */
+function answering(
+  answerer: MockLanguageModelV3,
+): MockLanguageModelV3["doGenerateCalls"] {
+  return answerer.doGenerateCalls.filter(
+    (call) => call.responseFormat?.type !== "json",
+  );
+}
+
 describe("the answer model", () => {
   it("answers a tool result in place of the model that chose the tool", async () => {
     const decider = searchingModel();
@@ -135,7 +144,7 @@ describe("the answer model", () => {
     });
 
     expect(decider.doGenerateCalls).toHaveLength(1);
-    expect(answerer.doGenerateCalls).toHaveLength(1);
+    expect(answering(answerer)).toHaveLength(1);
     expect(result.text).toBe("Found it.");
   });
 });
@@ -188,7 +197,7 @@ describe("a tool the answer model calls", () => {
     // The model searches, the answer model searches again, and the model,
     // given that result, answers.
     expect(decider.doGenerateCalls).toHaveLength(2);
-    expect(answerer.doGenerateCalls).toHaveLength(1);
+    expect(answering(answerer)).toHaveLength(1);
     expect(result.text).toBe("Found it.");
   });
 });

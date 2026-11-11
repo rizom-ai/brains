@@ -39,6 +39,7 @@ export function withLocalRuntime(
       ...(options.answersWithoutThinking ? [answerWithoutThinking] : []),
       callAfterSilence,
       requiredToolChoice,
+      dropBrainOptions,
     ],
   });
 }
@@ -84,6 +85,16 @@ function silent(result: GenerateResult): boolean {
   );
 }
 
+/**
+ * The brain marks a turn whose user asks to read stored content: its first
+ * step reads before it answers.
+ */
+function callRequired(params: { providerOptions?: SharedOptions }): boolean {
+  return params.providerOptions?.["local"]?.["callRequired"] === true;
+}
+
+type SharedOptions = Record<string, Record<string, unknown>>;
+
 const callAfterSilence: LanguageModelMiddleware = {
   specificationVersion: "v3",
   wrapGenerate: async ({ doGenerate, params, model }) => {
@@ -92,7 +103,9 @@ const callAfterSilence: LanguageModelMiddleware = {
     const canCall =
       (params.tools?.length ?? 0) > 0 &&
       (params.toolChoice === undefined || params.toolChoice.type === "auto");
-    if (!firstStep || !canCall || !silent(result)) return result;
+    const called = result.content.some((part) => part.type === "tool-call");
+    const owedCall = silent(result) || (callRequired(params) && !called);
+    if (!firstStep || !canCall || !owedCall) return result;
     const retry = await model.doGenerate({
       ...params,
       toolChoice: { type: "required" },
@@ -102,6 +115,20 @@ const callAfterSilence: LanguageModelMiddleware = {
     return retry.content.some((part) => part.type === "tool-call")
       ? { ...retry, usage }
       : { ...result, usage };
+  },
+};
+
+/** The brain's own marks stay with the brain, never sent to the runtime. */
+const dropBrainOptions: LanguageModelMiddleware = {
+  specificationVersion: "v3",
+  transformParams: async ({ params }) => {
+    const local = params.providerOptions?.["local"];
+    if (!local || !("callRequired" in local)) return params;
+    const { callRequired: _mark, ...rest } = local;
+    return {
+      ...params,
+      providerOptions: { ...params.providerOptions, local: rest },
+    };
   },
 };
 

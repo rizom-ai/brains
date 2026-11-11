@@ -41,6 +41,7 @@ import { createMessageBusEmitter } from "./tool-events";
 import { convertToSDKTools } from "./sdk-tools";
 import { retryDeclinedTurnOnce } from "./provider-declined";
 import { createToolCallRepair } from "./tool-call-repair";
+import { readTurnIntent } from "./turn-intent";
 
 export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
@@ -217,11 +218,26 @@ export function createBrainAgentFactory(
               // Only a model held to strict tools is shown a model input.
               { prepareModelInputs: toolOptions.strictTools },
             );
-        const allowedToolNames = allowedTools.map((t) => t.name);
+        // A local model misjudges what a message asks: with an answer model
+        // to read it quickly, its turn is read for intent first, so a message
+        // that asks no change gets no tool that writes, and one that asks to
+        // read stored content reads first.
+        const intent =
+          capabilities.provider === "local" &&
+          answerModel &&
+          !guest &&
+          allowedTools.length > 0
+            ? await readTurnIntent(answerModel, settings.messages ?? [])
+            : undefined;
+        const turnTools =
+          intent && !intent.asksToChange
+            ? allowedTools.filter((t) => t.sideEffects !== "writes")
+            : allowedTools;
+        const allowedToolNames = turnTools.map((t) => t.name);
 
         // Convert tools with proper context from call options
         const toolsWithContext = convertToSDKTools(
-          allowedTools,
+          turnTools,
           {
             conversationId: callOptions.conversationId,
             channelId: callOptions.channelId,
@@ -257,9 +273,17 @@ export function createBrainAgentFactory(
           ...(temperature !== undefined &&
             capabilities.supportsTemperature && { temperature }),
           // Guests answer from the brain, never from provider web search.
-          ...((reasoning !== undefined || (webSearch && !guest)) && {
+          ...((reasoning !== undefined ||
+            (webSearch === true && !guest) ||
+            intent?.asksToRead === true) && {
             providerOptions: {
               ...reasoning,
+              ...(intent?.asksToRead && {
+                local: {
+                  ...(reasoning && "local" in reasoning && reasoning.local),
+                  callRequired: true,
+                },
+              }),
               ...(webSearch &&
                 !guest && {
                   anthropic: { webSearch: true },

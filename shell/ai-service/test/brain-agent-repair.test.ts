@@ -107,7 +107,11 @@ describe("a local model's tool call that fails validation", () => {
   it("is repaired into the tool's input shape by the model that chose it, its output constrained", async () => {
     const tool = createTool();
     const model = scriptedModel("decider", [misplacedCall, repairedArguments]);
-    const answerModel = scriptedModel("answer", [text("Saved.")]);
+    // The answer model first reads the turn's intent: a change.
+    const answerModel = scriptedModel("answer", [
+      text('{"asksToRead":false,"asksToChange":true}'),
+      text("Saved."),
+    ]);
 
     await run({ modelId: "local:qwen3:30b-a3b", model, answerModel, tool });
 
@@ -123,7 +127,8 @@ describe("a local model's tool call that fails validation", () => {
       type: "json",
       schema: expect.objectContaining({ type: "object" }),
     });
-    expect(answerModel.doGenerateCalls).toHaveLength(1);
+    // The intent read, then the answer to the repaired call's result.
+    expect(answerModel.doGenerateCalls).toHaveLength(2);
   });
 
   it("is left to the model to retry when the repair fails", async () => {
