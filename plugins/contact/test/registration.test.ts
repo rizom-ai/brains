@@ -303,9 +303,10 @@ describe("the contact package's registered surface", () => {
       await plugin.shutdown?.();
   });
 
-  it("takes its health off when it shuts down", async () => {
+  it("takes its health and its maintenance check off when it shuts down", async () => {
     const main = await installed();
     for (const plugin of main.plugins) await plugin.shutdown?.();
+    expect(main.shell.getRecurringCheck("contact:maintenance")).toBeUndefined();
     expect(await main.shell.getOperationalHealthRegistry().getChecks()).toEqual(
       [],
     );

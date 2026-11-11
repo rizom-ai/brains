@@ -347,7 +347,8 @@ export interface ServiceRuntime {
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
   /**
    * Register a recurring check under the plugin's id, in every process, as
-   * the class registered it through `context.recurringChecks`.
+   * the class registered it through `context.recurringChecks`; taken off
+   * when the package shuts down.
    */
   recurringCheck(check: RecurringCheckDefinition): void;
   /**

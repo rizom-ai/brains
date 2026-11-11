@@ -1197,8 +1197,9 @@ class DeclarativeServicePlugin<
         ) => context.inboxFollowUps.resolve(input),
       }),
       recurringCheck: (check): void => {
-        // As the class registered it: in every process, for as long as it runs.
-        context.recurringChecks.register(check);
+        // In every process, taken off when the package shuts down, as every
+        // runtime registration is.
+        this.answered.push(context.recurringChecks.register(check));
       },
       interaction: (interaction): void => {
         context.interactions.register(interaction);

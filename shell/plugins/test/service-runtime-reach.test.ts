@@ -6,6 +6,7 @@ import {
   defineStudioWorkspace,
   instantiatePluginPackageDefinition,
   serviceRuntime,
+  type Plugin,
   type RegisteredWebRoute,
   type ServiceRuntime,
 } from "../src";
@@ -13,7 +14,7 @@ import {
 /**
  * A first-party service that points people at what it serves, as the
  * unified inbox points them at its workspace: a recurring check under the
- * plugin's id, in every process; a way in, never from a worker; the URL
+ * plugin's id, in every process, taken off when it shuts down; a way in, never from a worker; the URL
  * Studio serves one of its workspaces at; the brain's site URL; and the
  * route another plugin mounts for a well-known role.
  */
@@ -29,6 +30,7 @@ const inbox = defineStudioWorkspace({
 
 interface Reached {
   runtime: ServiceRuntime;
+  plugin: Plugin;
   /** What the ready handler saw: the workspace's URL, once Studio took it. */
   readyUrl: string | undefined;
 }
@@ -79,7 +81,7 @@ async function install(
   await plugin.finalizeRegistration?.();
   await plugin.ready?.();
   if (!runtime) throw new Error("No runtime");
-  return { runtime, readyUrl };
+  return { runtime, plugin, readyUrl };
 }
 
 function withStudio(shell: MockShell): MockShell {
@@ -100,6 +102,20 @@ describe("a first-party service pointing at what it serves", () => {
       id: "daily-digest",
       cadence: "daily",
       includeInInbox: false,
+    });
+  });
+
+  it("takes its recurring check off when it shuts down, so it registers again in the same process", async () => {
+    const shell = createMockShell();
+    const { plugin } = await install(shell);
+    await plugin.shutdown?.();
+    expect(shell.getRecurringCheck("probe:daily-digest")).toBeUndefined();
+
+    // Registered again, as a restarted plugin registers it.
+    await install(shell);
+    expect(shell.getRecurringCheck("probe:daily-digest")).toMatchObject({
+      id: "daily-digest",
+      cadence: "daily",
     });
   });
 
