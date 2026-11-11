@@ -120,6 +120,7 @@ function applyAIConfig(
     !config.aiModelRuntimeUrl &&
     !config.aiAnswerModel &&
     !config.aiVisionModel &&
+    !config.aiImageModel &&
     !config.aiReasoningEffort &&
     !isStartupCheck
   ) {
@@ -143,6 +144,7 @@ function applyAIConfig(
     }),
     ...(config.aiAnswerModel && { answerModel: config.aiAnswerModel }),
     ...(config.aiVisionModel && { visionModel: config.aiVisionModel }),
+    ...(config.aiImageModel && { imageModel: config.aiImageModel }),
     ...(config.aiReasoningEffort && {
       reasoningEffort: config.aiReasoningEffort,
     }),

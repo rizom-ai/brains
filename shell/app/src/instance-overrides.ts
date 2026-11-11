@@ -85,6 +85,7 @@ type InstanceOverridesSchema = z.ZodObject<
     embeddingModel: z.ZodOptional<z.ZodString>;
     answerModel: z.ZodOptional<z.ZodString>;
     visionModel: z.ZodOptional<z.ZodString>;
+    imageModel: z.ZodOptional<z.ZodString>;
     modelRuntime: z.ZodOptional<
       z.ZodObject<{ url: z.ZodString }, z.core.$strict>
     >;
@@ -199,6 +200,9 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
 
   /** A `local:` model that describes images for a model reading only text. */
   visionModel: z.string().optional(),
+
+  /** The image model, `provider:model`; `local:` runs on the model runtime. */
+  imageModel: z.string().optional(),
 
   /** The model runtime serving `local:` models: an OpenAI-compatible API. */
   modelRuntime: z.strictObject({ url: z.string() }).optional(),

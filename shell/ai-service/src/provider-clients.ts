@@ -4,7 +4,11 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { ImageModel, LanguageModel } from "ai";
 import type { AIModelConfig } from "./types";
-import { resolveTextProvider, selectTextProvider } from "./provider-selection";
+import {
+  resolveTextProvider,
+  selectImageProvider,
+  selectTextProvider,
+} from "./provider-selection";
 import {
   withLocalRuntime,
   type LocalRuntimeOptions,
@@ -99,8 +103,15 @@ export function getLanguageModel(
   return clients.anthropicProvider(resolvedModel.modelId);
 }
 
-export function canGenerateImages(clients: ProviderClients): boolean {
-  return clients.openaiProvider !== null || clients.googleProvider !== null;
+/** Whether the image model's provider, the default one when unset, can run. */
+export function canGenerateImages(
+  clients: ProviderClients,
+  imageModel: string | undefined,
+): boolean {
+  const { provider } = selectImageProvider(imageModel);
+  if (provider === "local") return clients.localProvider !== null;
+  if (provider === "google") return clients.googleProvider !== null;
+  return clients.openaiProvider !== null;
 }
 
 export function getImageModel(
@@ -123,6 +134,12 @@ export function getImageModel(
       );
     }
     return clients.googleProvider.image(modelId);
+  }
+  if (provider === "local") {
+    if (!clients.localProvider) {
+      throw new Error(`local:${modelId} needs modelRuntime.url`);
+    }
+    return clients.localProvider.imageModel(modelId);
   }
   throw new Error(`Image generation not supported for provider: ${provider}`);
 }

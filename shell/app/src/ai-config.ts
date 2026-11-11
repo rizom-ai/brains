@@ -20,6 +20,7 @@ export interface AIConfigFields {
   aiModelRuntimeUrl?: string;
   aiAnswerModel?: string;
   aiVisionModel?: string;
+  aiImageModel?: string;
   aiReasoningEffort?: ReasoningEffort;
 }
 
@@ -31,6 +32,7 @@ export function resolveAIConfig(
     modelRuntimeUrl?: string;
     answerModel?: string;
     visionModel?: string;
+    imageModel?: string;
     reasoningEffort?: ReasoningEffort;
   },
 ): AIConfigFields {
@@ -59,6 +61,9 @@ export function resolveAIConfig(
   }
   if (overrides?.visionModel) {
     result.aiVisionModel = overrides.visionModel;
+  }
+  if (overrides?.imageModel) {
+    result.aiImageModel = overrides.imageModel;
   }
   // brain.yaml names the model runtime, or the deploy that runs one beside
   // the brain does.

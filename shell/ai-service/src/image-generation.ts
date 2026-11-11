@@ -41,9 +41,9 @@ export async function generateImageResult(
             prompt,
             size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
             ...(signal ? { abortSignal: signal } : {}),
-            providerOptions: {
-              openai: { quality: "medium" },
-            },
+            ...(provider === "openai" && {
+              providerOptions: { openai: { quality: "medium" } },
+            }),
           });
 
     const base64 = result.image.base64;

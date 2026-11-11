@@ -66,6 +66,12 @@ describe("resolveAIConfig", () => {
     ).toBe("local:qwen3-vl:8b");
   });
 
+  it("passes the image model through", () => {
+    expect(
+      resolveAIConfig({}, { imageModel: "local:z-image-turbo" }).aiImageModel,
+    ).toBe("local:z-image-turbo");
+  });
+
   it("does not set an embedding model when none is configured", () => {
     expect(
       resolveAIConfig({ AI_API_KEY: "sk-test" }).aiEmbeddingModel,
