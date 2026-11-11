@@ -1,6 +1,10 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
-import type { CreateResult, EntityHierarchyPage } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  CreateResult,
+  EntityHierarchyPage,
+} from "@brains/entity-service";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createTempDataDir } from "../src/test/temp-dir";
 import { baseEntitySchema, createTestEntityAdapter } from "../test";
@@ -258,6 +262,45 @@ describe("a first-party service reaching what Studio's class did", () => {
       shell.getEntityRegistry().isGroupingContributor("note"),
     );
     expect(Object.keys(shapes)).not.toContain("adapter");
+  });
+
+  it("names a record as its type's adapter names it, by the shared rule", async () => {
+    const shell = createMockShell();
+    const registry = shell.getEntityRegistry();
+    const titled = createTestEntityAdapter("deck");
+    Object.assign(titled, {
+      displayTitle: (entity: { content: string }) => `Deck: ${entity.content}`,
+    });
+    registry.registerEntityType("deck", baseEntitySchema, titled);
+    registry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      createTestEntityAdapter("note"),
+    );
+    const { runtime } = await runtimeOn(shell);
+    const record = (
+      entityType: string,
+      metadata: Record<string, unknown>,
+    ): BaseEntity => ({
+      id: "one",
+      entityType,
+      content: "Intro",
+      contentHash: "",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      visibility: "public" as const,
+      metadata,
+    });
+    // The adapter's own title first, else the title its metadata holds.
+    expect(runtime.entityShapes.displayTitle(record("deck", {}))).toBe(
+      "Deck: Intro",
+    );
+    expect(
+      runtime.entityShapes.displayTitle(record("note", { title: "Stored" })),
+    ).toBe("Stored");
+    expect(runtime.entityShapes.displayTitle(record("note", {}))).toBe(
+      undefined,
+    );
   });
 
   it("lists the members work can be assigned to, as its class read context.auth", async () => {

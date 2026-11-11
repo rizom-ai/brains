@@ -190,6 +190,12 @@ export interface ServiceEntityShapes {
     | undefined;
   /** Whether the type contributes groupings, by the shell's own rule. */
   isGroupingContributor(type: string): boolean;
+  /**
+   * How a record is named to people, by the shared rule: its adapter's own
+   * title, else the title its adapter reads from the content, else the one
+   * its metadata holds; none when none does.
+   */
+  displayTitle(entity: BaseEntity): string | undefined;
 }
 
 /** The internal capabilities a first-party service's slot context carries. */

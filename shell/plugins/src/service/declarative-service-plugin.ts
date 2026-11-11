@@ -32,6 +32,7 @@ import type {
   SemanticSpaceProjection,
 } from "@brains/entity-service";
 import { isGroupingContributor } from "@brains/entity-service";
+import { entityDisplayTitle } from "../entity/display-title";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -2040,6 +2041,8 @@ function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
     },
     isGroupingContributor: (type: string) =>
       context.entities.isGroupingContributor(type),
+    displayTitle: (entity: BaseEntity) =>
+      entityDisplayTitle(context.entities, entity),
   });
 }
 
