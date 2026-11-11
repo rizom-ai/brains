@@ -1111,6 +1111,7 @@ class DeclarativeServicePlugin<
   ): TContext {
     return withServiceRuntime(slotContext, {
       logger: this.logger,
+      pluginId: this.id,
       messaging: context.messaging,
       deliveryProvider: (channelType) =>
         context.channels.getDeliveryProvider(channelType),

@@ -153,6 +153,11 @@ export interface ServiceRuntime {
   /** The package's logger, as its class logged. */
   readonly logger: Logger;
   /**
+   * The plugin id the package installed under, as its class read `this.id`:
+   * the legacy id the composer names, or the package-scoped one.
+   */
+  readonly pluginId: string;
+  /**
    * Answer a first-party contract under the channel it already has, such as
    * `notifications:send`, as the package; with `everyProcess`, in job
    * workers too, as the class answered it. A request, a command, or a
@@ -555,6 +560,7 @@ export interface ServiceIdentity {
 /** What the runtime binds a first-party service's runtime to. */
 export interface ServiceRuntimeBinding {
   readonly logger: Logger;
+  readonly pluginId: string;
   readonly messaging: IMessagingNamespace;
   readonly deliveryProvider: (
     channelType: string,
@@ -626,6 +632,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
   const { messaging, asPackage, onRelease, onReady, onRegistered } = binding;
   const runtime: ServiceRuntime = {
     logger: binding.logger,
+    pluginId: binding.pluginId,
     messaging: Object.freeze({
       request: (contract, payload) => messaging.request(contract, payload),
       command: (contract, payload) => messaging.command(contract, payload),
