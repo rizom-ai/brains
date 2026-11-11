@@ -309,6 +309,8 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /** The brain's theme stylesheet, for a page the package serves, as the class read `context.themeCSS`. */
+  readonly themeCSS: string;
   /**
    * Register a report the system_analytics tool answers, as the class did
    * through `context.analytics.register`; a job worker registers none.
@@ -649,6 +651,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly themeCSS: string;
   readonly analyticsReport: ServiceRuntime["analyticsReport"];
   readonly reportEntityService: ReadOnlyEntityService;
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
@@ -724,6 +727,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    themeCSS: binding.themeCSS,
     analyticsReport: binding.analyticsReport,
     reportEntityService: binding.reportEntityService,
     inboxFollowUps: binding.inboxFollowUps,
