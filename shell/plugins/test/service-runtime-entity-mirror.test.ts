@@ -24,6 +24,7 @@ describe("a first-party service's entity mirror", () => {
     const methods = [
       "getEntityTypes",
       "hasEntityType",
+      "getEntityTypeConfig",
       "listEntities",
       "getEntityRaw",
       "getEntityWriteSnapshot",
@@ -85,6 +86,7 @@ describe("a first-party service's entity mirror", () => {
     };
     mirror.getEntityTypes();
     mirror.hasEntityType("note");
+    mirror.getEntityTypeConfig("note");
     await mirror.listEntities({ entityType: "note" });
     await mirror.getEntityRaw(read);
     await mirror.getEntityWriteSnapshot(read);

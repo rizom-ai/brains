@@ -7,7 +7,7 @@ import type { ServicePluginContext } from "./context";
 /**
  * The reads and writes a filesystem mirror makes across every type, as
  * directory-sync's class made them through context.entityService: records
- * read as stored and written as the file says, serialized and parsed by
+ * read as stored and placed by their type's config, written as the file says, serialized and parsed by
  * their type's own adapter, and the durable export ledger it drains.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
@@ -16,6 +16,7 @@ export type ServiceEntityMirrorClient = Pick<
   EntityServiceClient,
   | "getEntityTypes"
   | "hasEntityType"
+  | "getEntityTypeConfig"
   | "listEntities"
   | "getEntityRaw"
   | "getEntityWriteSnapshot"
@@ -50,6 +51,7 @@ export function entityMirrorOf(
   return Object.freeze({
     getEntityTypes: entityService.getEntityTypes.bind(entityService),
     hasEntityType: entityService.hasEntityType.bind(entityService),
+    getEntityTypeConfig: entityService.getEntityTypeConfig.bind(entityService),
     listEntities: entityService.listEntities.bind(entityService),
     getEntityRaw: entityService.getEntityRaw.bind(entityService),
     getEntityWriteSnapshot:
