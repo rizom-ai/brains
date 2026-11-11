@@ -6,6 +6,7 @@ import {
   filterConversationHistoryForPermission,
   resolveConversationUploadContinuity,
   toModelMessages,
+  type ConversationUploadRef,
 } from "../src/conversation-messages";
 
 describe("toModelMessages", () => {
@@ -564,6 +565,105 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toContain(
       'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
     );
+  });
+
+  describe("the newest upload as the save candidate", () => {
+    const ref = (
+      filename: string,
+      mediaType: string,
+      id: string,
+    ): ConversationUploadRef => ({
+      filename,
+      mediaType,
+      source: { kind: "upload", id },
+    });
+    const candidate = (
+      saved: string,
+      entityType: string,
+      id: string,
+      transform: string,
+    ): string =>
+      `Available system_create candidate for saving the newest upload, newest, as ${saved} when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${entityType}", source: { kind: "upload", id: "${id}", transform: "${transform}" } }`;
+
+    it.each([
+      ["image/png", "an image", "image", "preserve"],
+      ["application/pdf", "a document", "document", "preserve"],
+      ["text/markdown", "a note", "note", "extract-markdown"],
+    ])(
+      "is offered for a %s upload when no prior response can be saved",
+      (mediaType, saved, entityType, transform) => {
+        const content = buildMessageWithAttachments("save it", undefined, {
+          uploadRefs: [
+            ref("newest", mediaType, "upload-newest"),
+            ref("alpha-guide.pdf", "application/pdf", "upload-older"),
+          ],
+        });
+
+        expect(content).toContain(
+          candidate(saved, entityType, "upload-newest", transform),
+        );
+        expect(content).not.toContain('id: "upload-older", transform');
+      },
+    );
+
+    it("is offered for a PDF as a note too, its text extracted, for a request for a note", () => {
+      const content = buildMessageWithAttachments(
+        "turn it into a note",
+        undefined,
+        { uploadRefs: [ref("primer.pdf", "application/pdf", "upload-pdf")] },
+      );
+
+      expect(content).toContain(
+        'Available system_create candidate for saving the newest upload, primer.pdf, as a note of its text when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "upload-pdf", transform: "extract-markdown" } }',
+      );
+    });
+
+    it("is not offered when the prior response can be saved", () => {
+      const content = buildMessageWithAttachments("save it", undefined, {
+        uploadRefs: [ref("beta-diagram.png", "image/png", "upload-newest")],
+        priorResponseRef: { messageId: "message-summary" },
+      });
+
+      expect(content).not.toContain("the newest upload");
+    });
+
+    it("is not offered when the newest upload is already saved", () => {
+      const content = buildMessageWithAttachments("save it", undefined, {
+        uploadRefs: [
+          {
+            ...ref("beta-diagram.png", "image/png", "upload-newest"),
+            savedAs: { entityType: "image", entityId: "beta-diagram" },
+          },
+        ],
+      });
+
+      expect(content).not.toContain("the newest upload");
+    });
+
+    it("is not offered beside keeping several attached files", () => {
+      const content = buildMessageWithAttachments("Keep these files.", [
+        {
+          kind: "text",
+          filename: "draft.md",
+          mediaType: "text/markdown",
+          content: "# Draft",
+          source: { kind: "upload", id: "upload-text" },
+        },
+        {
+          kind: "file",
+          filename: "harbor.png",
+          mediaType: "image/png",
+          data: new Uint8Array([1]),
+          sizeBytes: 1,
+          source: { kind: "upload", id: "upload-image" },
+        },
+      ]);
+      const textPart = Array.isArray(content) ? content[0] : undefined;
+      const text = textPart?.type === "text" ? textPart.text : "";
+
+      expect(text).toContain("keeping every file attached to this message");
+      expect(text).not.toContain("the newest upload");
+    });
   });
 
   it("offers every file attached to the message as one keep candidate", () => {
