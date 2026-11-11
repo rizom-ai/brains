@@ -30,6 +30,7 @@ import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
 import type { OperationalHealthProvider } from "../operational-health-registry";
+import type { RuntimeReadiness } from "../contracts/runtime-health";
 import type { ServiceEntityMirror } from "./entity-mirror";
 import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { ResolutionOptions } from "@brains/content-service";
@@ -322,6 +323,8 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /** The brain's readiness, as the class read `context.readiness()`. */
+  readiness(): Promise<RuntimeReadiness>;
   /**
    * Offer an Inbox follow-up kind under the plugin id, as the class
    * registered one through `context.inboxFollowUps.registerKind`.
@@ -726,6 +729,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly readiness: () => Promise<RuntimeReadiness>;
   readonly inboxFollowUpKind: ServiceRuntime["inboxFollowUpKind"];
   readonly registering: ServiceRuntime["registering"];
   readonly entityMirror: ServiceEntityMirror;
@@ -810,6 +814,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    readiness: binding.readiness,
     inboxFollowUpKind: binding.inboxFollowUpKind,
     registering: binding.registering,
     entityMirror: binding.entityMirror,

@@ -1221,6 +1221,7 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      readiness: () => context.readiness(),
       inboxFollowUpKind: (kind): void => {
         context.inboxFollowUps.registerKind(kind);
       },

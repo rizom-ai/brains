@@ -66,4 +66,12 @@ describe("a first-party service reaching what Studio's class did", () => {
     registry.unregisterPlugin("probe");
     expect(registry.listKinds()).toEqual([]);
   });
+
+  it("reads the brain's readiness, as its class read context.readiness", async () => {
+    const shell = createMockShell();
+    const { runtime } = await runtimeOn(shell);
+    expect(await runtime.readiness()).toEqual(
+      await shell.getRuntimeReadiness(),
+    );
+  });
 });
