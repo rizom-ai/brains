@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
+import type { EntityHierarchyPage } from "@brains/entity-service";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
   defineServicePlugin,
@@ -89,5 +90,33 @@ describe("a first-party service reaching what Studio's class did", () => {
     expect(runtime.channelDescriptors().map(({ type }) => type)).toEqual([
       "email",
     ]);
+  });
+
+  it("reads a type's hierarchy and config and parses a document, as the editor did", async () => {
+    const shell = createMockShell();
+    const entities = shell.getEntityService();
+    const { runtime } = await runtimeOn(shell);
+    const request = {
+      entityType: "note",
+      visibilityScope: "public" as const,
+    };
+    const page: EntityHierarchyPage = {
+      prefix: null,
+      folders: [],
+      entities: [],
+      offset: 0,
+      totalEntities: 0,
+    };
+    const query = spyOn(entities, "queryEntityHierarchy").mockResolvedValue(
+      page,
+    );
+    expect(await runtime.entityReads.queryEntityHierarchy(request)).toBe(page);
+    expect(query).toHaveBeenCalledWith(request);
+    expect(runtime.entityReads.getEntityTypeConfig("note")).toEqual(
+      entities.getEntityTypeConfig("note"),
+    );
+    expect(
+      runtime.entityReads.deserializeEntity("---\ntitle: A\n---\nBody", "note"),
+    ).toEqual(entities.deserializeEntity("---\ntitle: A\n---\nBody", "note"));
   });
 });

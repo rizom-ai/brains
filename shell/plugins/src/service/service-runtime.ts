@@ -625,6 +625,12 @@ export interface ServiceEntityReads {
   getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   /** A search of the brain at the scope the request names. */
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
+  /** A type's records as their containment hierarchy, at the request's scope. */
+  queryEntityHierarchy: IEntityService["queryEntityHierarchy"];
+  /** A registered type's config. */
+  getEntityTypeConfig: IEntityService["getEntityTypeConfig"];
+  /** A document parsed as its type's adapter reads it, written nowhere. */
+  deserializeEntity: IEntityService["deserializeEntity"];
 }
 
 /** The AT Protocol projections a class read, and nothing that registers one. */

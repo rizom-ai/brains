@@ -1927,6 +1927,11 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntity: (request) => entityService.getEntity(request),
     getEntityRaw: (request) => entityService.getEntityRaw(request),
     search: (request) => entityService.search(request),
+    queryEntityHierarchy: (request) =>
+      entityService.queryEntityHierarchy(request),
+    getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
+    deserializeEntity: (markdown, entityType) =>
+      entityService.deserializeEntity(markdown, entityType),
   } satisfies ServiceEntityReads);
 }
 

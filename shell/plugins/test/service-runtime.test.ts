@@ -679,11 +679,14 @@ describe("a first-party service's read-only view of the entity service", () => {
 
     expect(Object.keys(view).sort()).toEqual([
       "countEntities",
+      "deserializeEntity",
       "getEntity",
       "getEntityCounts",
       "getEntityRaw",
+      "getEntityTypeConfig",
       "getEntityTypes",
       "listEntities",
+      "queryEntityHierarchy",
       "search",
     ]);
   });
