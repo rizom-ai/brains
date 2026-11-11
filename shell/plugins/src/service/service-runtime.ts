@@ -25,6 +25,7 @@ import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { AppInfo } from "../contracts/app-info";
 import type { IPublicSkillsNamespace } from "../a2a/public-skills";
+import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
@@ -270,6 +271,11 @@ export interface ServiceRuntime {
    */
   readonly publicSkills: Pick<IPublicSkillsNamespace, "list">;
   /**
+   * The AT Protocol projections entity packages registered, as the class
+   * read them through `context.atprotoProjections`: a type's newest one.
+   */
+  readonly atprotoProjections: ServiceAtprotoProjections;
+  /**
    * The auth backend the brain bound, read when asked, as the class read
    * `context.auth.get()`: none while the brain runs without auth-service.
    */
@@ -513,6 +519,11 @@ export interface ServiceEntityReads {
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
 }
 
+/** The AT Protocol projections a class read, and nothing that registers one. */
+export interface ServiceAtprotoProjections {
+  get(entityType: string): AtprotoProjection | undefined;
+}
+
 /** The entity action policy check a class made, and nothing that sets one. */
 export type ServicePermissions = Pick<
   IPermissionsNamespace,
@@ -595,6 +606,7 @@ export interface ServiceRuntimeBinding {
   readonly domain: string | undefined;
   readonly servesHttp: boolean;
   readonly publicSkills: Pick<IPublicSkillsNamespace, "list">;
+  readonly atprotoProjections: ServiceAtprotoProjections;
   readonly auth: () => AuthBackend | undefined;
   readonly studio: ServiceStudio;
   readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
@@ -664,6 +676,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     domain: binding.domain,
     servesHttp: binding.servesHttp,
     publicSkills: binding.publicSkills,
+    atprotoProjections: binding.atprotoProjections,
     auth: binding.auth,
     studio: binding.studio,
     inbox: binding.inbox,

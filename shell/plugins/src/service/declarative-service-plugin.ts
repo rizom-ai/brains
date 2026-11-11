@@ -1154,6 +1154,9 @@ class DeclarativeServicePlugin<
       publicSkills: Object.freeze({
         list: () => context.publicSkills.list(),
       }),
+      atprotoProjections: Object.freeze({
+        get: (entityType: string) => context.atprotoProjections.get(entityType),
+      }),
       auth: () => context.auth.get(),
       studio: firstPartyStudioOf(context),
       inbox: Object.freeze({

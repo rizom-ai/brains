@@ -1031,6 +1031,7 @@ export {
   type ServiceClassMessaging,
   type ServicePermissions,
   type ServiceAttachments,
+  type ServiceAtprotoProjections,
   type ServiceTemplateOptions,
   type ServiceViews,
   type ServiceEntityWrites,
