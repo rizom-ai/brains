@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { OperationalHealthProvider } from "../operational-health-registry";
+import { entityMirrorOf } from "./entity-mirror";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
@@ -1215,6 +1216,7 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      entityMirror: entityMirrorOf(context),
       gitBroker: Object.freeze({
         socket: context.gitBrokerSocket,
         checkout: context.gitBrokerCheckout,

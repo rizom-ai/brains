@@ -41,6 +41,8 @@ export {
   type ServiceRuntime,
   classEntityServiceOf,
   type ServiceClassEntityService,
+  type ServiceEntityMirror,
+  type ServiceEntityMirrorClient,
 } from "@brains/plugins";
 export {
   firstPartyJobHandler,

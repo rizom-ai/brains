@@ -30,6 +30,7 @@ import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
 import type { OperationalHealthProvider } from "../operational-health-registry";
+import type { ServiceEntityMirror } from "./entity-mirror";
 import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
@@ -321,6 +322,13 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * The brain's records as a mirror keeps them, across every type, as the
+   * class reached them through `context.entityService` and
+   * `context.bulkMutations`: read as stored, written as the file says, the
+   * export ledger and the bulk coordination its sweeps run under.
+   */
+  readonly entityMirror: ServiceEntityMirror;
   /**
    * Where the brain's git broker listens and keeps its checkout, as the
    * class read `context.gitBrokerSocket` and `context.gitBrokerCheckout`.
@@ -703,6 +711,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly entityMirror: ServiceEntityMirror;
   readonly gitBroker: ServiceGitBroker;
   readonly initialSync: ServiceRuntime["initialSync"];
   readonly operationalHealth: Pick<IOperationalHealthNamespace, "register">;
@@ -784,6 +793,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    entityMirror: binding.entityMirror,
     gitBroker: binding.gitBroker,
     initialSync: binding.initialSync,
     operationalHealth(name, provider): void {

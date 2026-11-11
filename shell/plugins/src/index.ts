@@ -1047,6 +1047,10 @@ export {
   classEntityServiceOf,
   type ServiceClassEntityService,
 } from "./service/class-entity-service";
+export type {
+  ServiceEntityMirror,
+  ServiceEntityMirrorClient,
+} from "./service/entity-mirror";
 // First-party interfaces converted from a class reach what the public
 // interface contract does not offer here.
 export {
