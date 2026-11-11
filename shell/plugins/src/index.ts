@@ -1042,6 +1042,10 @@ export {
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "./service/service-runtime";
+export {
+  classEntityServiceOf,
+  type ServiceClassEntityService,
+} from "./service/class-entity-service";
 // First-party interfaces converted from a class reach what the public
 // interface contract does not offer here.
 export {

@@ -38,6 +38,8 @@ export {
   type ServiceListenMode,
   type ServiceListenOptions,
   type ServiceRuntime,
+  classEntityServiceOf,
+  type ServiceClassEntityService,
 } from "@brains/plugins";
 export {
   firstPartyJobHandler,
