@@ -444,6 +444,22 @@ describe("resolveConversationUploadContinuity", () => {
 });
 
 describe("buildMessageWithAttachments", () => {
+  it("tells the model a bare reply to an upload receipt asks for nothing yet", () => {
+    const content = buildMessageWithAttachments("drunken", undefined, {
+      uploadRefs: [
+        {
+          filename: "drunken-robot.png",
+          mediaType: "image/png",
+          source: { kind: "upload", id: "upload-image" },
+        },
+      ],
+    });
+
+    expect(content).toContain(
+      "A reply of only a word or a name, after you asked what to do with an upload, is no request to save, create or change anything: ask what the user wants done with the upload.",
+    );
+  });
+
   it("tells the model that upload descriptions and summaries are read-only", () => {
     const content = buildMessageWithAttachments(
       "Summarize the uploaded PDF.",
