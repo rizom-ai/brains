@@ -68,4 +68,32 @@ describe("a first-party service's forms-engine reads and registrations", () => {
     expect(runtime.hasPlugin("unified-inbox")).toBe(true);
     expect(runtime.hasPlugin("studio")).toBe(false);
   });
+
+  it("advertises a URL under its plugin id, and none from a worker, as its class did through context.endpoints", async () => {
+    const shell = shellWith();
+    const { runtime } = await runtimeOn(shell);
+    runtime.endpoint({
+      label: "Contact",
+      url: "https://brain.test/contact",
+      priority: 50,
+      visibility: "public",
+    });
+    expect(shell.listEndpoints()).toEqual([
+      {
+        pluginId: "probe",
+        label: "Contact",
+        url: "https://brain.test/contact",
+        priority: 50,
+        visibility: "public",
+      },
+    ]);
+
+    const workerShell = shellWith();
+    const worker = await runtimeOn(workerShell, true);
+    worker.runtime.endpoint({
+      label: "Contact",
+      url: "https://brain.test/contact",
+    });
+    expect(workerShell.listEndpoints()).toEqual([]);
+  });
 });

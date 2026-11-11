@@ -9,6 +9,7 @@ import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
+  IEndpointsNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
   IInteractionsNamespace,
@@ -309,6 +310,11 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * Advertise a URL of the package under its plugin id, as the class
+   * registered one through `context.endpoints`; a worker advertises none.
+   */
+  endpoint(endpoint: Parameters<IEndpointsNamespace["register"]>[0]): void;
   /** Whether a plugin is installed, as the class read `context.plugins.has`. */
   hasPlugin(pluginId: string): boolean;
   /** The brain's theme stylesheet, for a page the package serves, as the class read `context.themeCSS`. */
@@ -653,6 +659,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly endpoint: ServiceRuntime["endpoint"];
   readonly hasPlugin: (pluginId: string) => boolean;
   readonly themeCSS: string;
   readonly analyticsReport: ServiceRuntime["analyticsReport"];
@@ -730,6 +737,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    endpoint: binding.endpoint,
     hasPlugin: binding.hasPlugin,
     themeCSS: binding.themeCSS,
     analyticsReport: binding.analyticsReport,
