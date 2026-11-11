@@ -1,5 +1,9 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.681
+
+No changes in this release.
+
 ## 0.2.0-alpha.680
 
 No changes in this release.

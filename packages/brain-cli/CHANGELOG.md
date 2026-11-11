@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.681
+
+### Minor Changes
+
+- [#864](https://github.com/rizom-ai/brains/pull/864) [`5553517`](https://github.com/rizom-ai/brains/commit/5553517d73c6736750f9c51e5664f5f6055691ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain.yaml` takes `imageModel`, the model that generates images as `provider:model`. An `openai:` or `google:` model uses the provider's key; a `local:` model runs on the model runtime's OpenAI-compatible images API at `modelRuntime.url`, with no image provider key. A brain can generate images when its image model's provider is available, rather than whenever an OpenAI or Google key is set.
+
 ## 0.2.0-alpha.680
 
 ### Patch Changes
