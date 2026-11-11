@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- [#916](https://github.com/rizom-ai/brains/pull/916) [`101ca06`](https://github.com/rizom-ai/brains/commit/101ca06a42e5b81cdfbb46d0ffbdd4ec3cef76d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking a saved contact something by the name you call them ("ask Yeehaa about …") reaches that saved contact. `agent_call` resolves a saved contact by its name, and asks which one when two share it. Its description no longer gives real brains' domains as example ids, which the model had copied into live calls to those brains.
+
+- [#889](https://github.com/rizom-ai/brains/pull/889) [`f0b45c9`](https://github.com/rizom-ai/brains/commit/f0b45c9db5be96f5b580c684f77e111386b4f3d6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain runs on AI SDK 7 with the 4.x OpenAI, Anthropic and Google providers. Structured output uses `generateText` with an `output` setting in place of the deprecated `generateObject`, and system prompts are passed as `instructions`.
+
 ## 0.2.0-alpha.677
 
 ### Patch Changes

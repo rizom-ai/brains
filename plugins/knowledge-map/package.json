@@ -1,7 +1,7 @@
 {
   "name": "@brains/knowledge-map",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.677",
+  "version": "0.2.0-alpha.678",
   "description": "The corpus in semantic space, with topic territories: a site section and a Dashboard widget",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
