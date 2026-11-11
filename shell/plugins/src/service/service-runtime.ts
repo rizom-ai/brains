@@ -190,19 +190,20 @@ export interface ServiceRuntime {
    * Hear a broadcast channel, as the package: through its typed channel the
    * payload is validated and a malformed one is never handed on. A system
    * lifecycle channel (`SYSTEM_CHANNELS`) may also be heard by name, for a
-   * handler that reads no payload; it is handed on as sent. Released when
-   * the package shuts down.
+   * handler that reads no payload; it is handed on as sent. Returns what
+   * stops it, as the class unsubscribed with what context.messaging
+   * returned; released when the package shuts down if never stopped.
    */
   listen<TPayload>(
     channel: Channel<TPayload>,
     handler: ServiceListenHandler<TPayload>,
     options?: ServiceListenOptions,
-  ): void;
+  ): () => void;
   listen(
     channel: SystemChannelName,
     handler: ServiceListenHandler<unknown>,
     options?: ServiceListenOptions,
-  ): void;
+  ): () => void;
   /**
    * Ask the bus as the class asked through `context.messaging`, as the
    * package, from wherever it builds what it serves: a request's one owner,
@@ -803,7 +804,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
       channel: Channel<unknown> | string,
       handler: ServiceListenHandler<unknown>,
       options: ServiceListenOptions = {},
-    ): void {
+    ): () => void {
       const mode = options.mode ?? "subscribe";
       const hear = async (
         payload: unknown,
@@ -812,7 +813,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
         await asPackage(async () => handler({ payload, sender }));
         return { success: true };
       };
-      onRelease(
+      const unsubscribe =
         typeof channel === "string"
           ? // By name, the payload is handed on as sent.
             subscribeByName(messaging, mode, channel, (message) =>
@@ -820,8 +821,17 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
             )
           : subscribeTyped(messaging, mode, channel, (payload, message) =>
               hear(payload, message.source),
-            ),
-      );
+            );
+      // Stopped by the package, as the class unsubscribed, or released
+      // when it shuts down; never twice.
+      let stopped = false;
+      const stop = (): void => {
+        if (stopped) return;
+        stopped = true;
+        unsubscribe();
+      };
+      onRelease(stop);
+      return stop;
     },
   };
   return Object.freeze(runtime);
