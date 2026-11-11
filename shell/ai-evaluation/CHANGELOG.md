@@ -1,5 +1,31 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`d288c2e`](https://github.com/rizom-ai/brains/commit/d288c2e8f2f94dd71a9d361c80f7d64fef8eae81) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `model: local:<name>` runs the brain's agent on a text model from the model runtime, over its OpenAI-compatible `/v1/chat/completions` API; a local text model without a model runtime URL fails config validation. Runtime model tags keep their colon (`qwen3:4b`), and evals run `local:` models without an API key.
+
+  Object generation on a local text model sends its JSON schema to the runtime, which constrains the output to it.
+
+  `brain start` no longer requires `AI_API_KEY` when `brain.yaml` names `local:` models for both `model` and `embeddingModel`.
+
+  `reasoningEffort` in `brain.yaml` reaches local text models as the runtime's `reasoning_effort`; `reasoningEffort: none` turns a model's thinking off.
+
+  A local text model thinks while it chooses its tools and answers a tool result without thinking; on a runtime that generates about 20 tokens a second this removes most of a turn's answer time. Its searches return five hits of at most 800 characters each instead of ten of 3,000, so the model reads results in seconds.
+
+  `answerModel` in `brain.yaml` names a `local:` model that writes while `model` chooses the tools: it answers tool results and runs text and object generation, such as background derivations, so a reasoning model makes the calls and a fast one writes. The deploy pulls it with the other local models.
+
+- Updated dependencies [[`212e346`](https://github.com/rizom-ai/brains/commit/212e34652bb525cab2a0f9eb0812f9caa288f413), [`b0cc6e4`](https://github.com/rizom-ai/brains/commit/b0cc6e41d1e84468bd3c8536796bc95a2fdea856), [`d288c2e`](https://github.com/rizom-ai/brains/commit/d288c2e8f2f94dd71a9d361c80f7d64fef8eae81), [`1b68a6a`](https://github.com/rizom-ai/brains/commit/1b68a6aca508ce1b8bbfe2368ef28fc73f20123b)]:
+  - @brains/ai-service@0.2.0-alpha.680
+  - @brains/app@0.2.0-alpha.680
+  - @brains/plugins@0.2.0-alpha.680
+  - @brains/content-formatters@0.2.0-alpha.680
+  - @brains/contracts@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+  - @brains/mcp-service@0.2.0-alpha.680
+  - @brains/templates@0.2.0-alpha.680
+
 ## 0.2.0-alpha.679
 
 ### Patch Changes

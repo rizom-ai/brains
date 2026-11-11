@@ -1,5 +1,14 @@
 # @brains/quiz
 
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.680
+  - @brains/forms@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+
 ## 0.2.0-alpha.679
 
 ### Patch Changes
