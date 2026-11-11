@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- [#890](https://github.com/rizom-ai/brains/pull/890) [`49fb143`](https://github.com/rizom-ai/brains/commit/49fb143c3ee53c1b89d9b22d0680bccd937ebed7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_create` and `system_update` set only the fields a person may edit: every frontmatter field but those a schema marks as the brain's own record (`studioWidget: "provenance"` or `"hidden"`), the same marks by which Studio shows a field read-only or leaves it off its form. A field the brain keeps for itself, such as an agent's card id or a file's processing state, is refused with the fields that can be set. For an OpenAI model, both tools are now strict: the model writes field changes as a list of `{ name, value }`, each typed as the entity types declare the field, and `null` removes a field on update.
+
+  An entity type can also declare fields it takes only on create, such as where a deck's slides break: `system_create` accepts them with the editable fields, and `system_update` does not.
+
+- [#890](https://github.com/rizom-ai/brains/pull/890) [`e1ec0d2`](https://github.com/rizom-ai/brains/commit/e1ec0d28f3fdecfbea3acb6c3c695017cf5b669d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An OpenAI model is held to each tool's input schema in strict mode, so a call cannot leave out a required field or carry one the tool lacks. The brain derives the strict form from the tool's own schema: every object closed, every field listed, and a field the caller may leave out accepting `null`, which the brain drops before the tool's schema validates the call. A tool that takes a map of any keys, such as an entity's frontmatter fields, is sent as before.
+
 ## 0.2.0-alpha.678
 
 ### Patch Changes
