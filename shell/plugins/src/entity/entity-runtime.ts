@@ -17,7 +17,7 @@ import {
 } from "@brains/entity-service";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
@@ -952,6 +952,32 @@ export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
   definition: TDefinition,
 ): TDefinition {
   return Object.freeze({ ...definition, [documentOrderKey]: true });
+}
+
+const frontmatterSchemaKey = Symbol("rizom.frontmatter-schema");
+
+/**
+ * A first-party definition whose file header is not its metadata states the
+ * header as its frontmatter schema, as its entity plugin class's adapter
+ * declared it: what Studio's editor, the Obsidian vault's templates and
+ * frontmatter extensions read as the type's frontmatter. A type that
+ * states none keeps its metadata as its frontmatter. A type whose metadata
+ * holds what its class kept out of the file (a generation error, a stated
+ * slug) states the file's own, with the defaults its class gave.
+ */
+export function withFrontmatterSchema<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  schema: z.ZodObject,
+): TDefinition {
+  return Object.freeze({ ...definition, [frontmatterSchemaKey]: schema });
+}
+
+/** The frontmatter schema a definition states, if it states one. */
+export function frontmatterSchemaOf(
+  definition: object,
+): z.ZodObject | undefined {
+  const schema: unknown = Reflect.get(definition, frontmatterSchemaKey);
+  return schema instanceof z.ZodObject ? schema : undefined;
 }
 
 /** Whether a definition writes in the order of the document it replaces. */

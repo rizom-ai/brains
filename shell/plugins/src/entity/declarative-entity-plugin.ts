@@ -69,6 +69,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  frontmatterSchemaOf,
   builtProvider,
   queuedCreateOf,
   storedCreateOf,
@@ -388,12 +389,27 @@ type DeclaredAdapter = EntityAdapter<
   Record<string, unknown>
 >;
 
+/** The fields a type writes: its metadata's and its header's, by name. */
+function writtenFields(
+  metadata: z.ZodObject,
+  header: z.ZodObject | undefined,
+): z.ZodObject {
+  const names = new Set([
+    ...Object.keys(metadata.shape),
+    ...Object.keys(header?.shape ?? {}),
+  ]);
+  return z.object(
+    Object.fromEntries([...names].map((name) => [name, z.unknown()])),
+  );
+}
+
 /** How a text type's record is its markdown: its metadata is its frontmatter. */
 function markdownStorage(
   definition: AnyEntityDefinition,
 ): Pick<
   DeclaredAdapter,
   | "frontmatterSchema"
+  | "writtenFrontmatterSchema"
   | "toMarkdown"
   | "fromMarkdown"
   | "parseFrontMatter"
@@ -401,7 +417,16 @@ function markdownStorage(
   | "metadataFromFrontmatter"
 > {
   return {
-    frontmatterSchema: definition.metadata,
+    // The header its class declared, when it states one; else its metadata.
+    frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
+    // What it writes is still every field its metadata names, and the
+    // header's: the serializer keeps from the source only what neither names.
+    ...(frontmatterSchemaOf(definition) && {
+      writtenFrontmatterSchema: writtenFields(
+        definition.metadata,
+        frontmatterSchemaOf(definition),
+      ),
+    }),
     // A whole document handed in, as an import or an editor writes one, had
     // its frontmatter decoded into the metadata already: the type writes the
     // body under its own frontmatter, in its own order, as an entity plugin
