@@ -13,7 +13,8 @@ import {
  * A first-party service converted from a class queues a job as its class
  * queued it through context.jobs: the type scoped to the plugin unless the
  * request names a scope, sourced to the plugin, attributed to the call the
- * request names and to nobody when it names none.
+ * request names and to nobody when it names none; and reads a job's status
+ * and the recent jobs of its types, as its build status read them.
  */
 
 async function runtimeOn(shell: MockShell): Promise<ServiceRuntime> {
@@ -86,5 +87,25 @@ describe("a first-party service queueing a job as its class did", () => {
       requestedByUserId: "operator",
       requestedByInterface: "cli",
     });
+  });
+
+  it("reads a job's status and the recent jobs of the types it names", async () => {
+    const shell = createMockShell();
+    const runtime = await runtimeOn(shell);
+    const first = await runtime.jobs.enqueue({
+      type: "site-build",
+      data: { environment: "preview" },
+    });
+    await runtime.jobs.enqueue({ type: "other", data: {} });
+
+    expect((await runtime.jobs.getStatus(first))?.type).toBe(
+      "probe:site-build",
+    );
+    expect(await runtime.jobs.getStatus("job-unknown")).toBeNull();
+    expect(
+      (await runtime.jobs.getRecentJobs(["probe:site-build"], 5)).map(
+        ({ id }) => id,
+      ),
+    ).toEqual([first]);
   });
 });

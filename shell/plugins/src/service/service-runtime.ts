@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { RecurringCheckDefinition } from "@brains/recurring-checks";
 import type { ToolContext } from "@brains/mcp-service";
-import type { EnqueueJobRequest } from "@brains/job-queue";
+import type { EnqueueJobRequest, JobInfo } from "@brains/job-queue";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
@@ -230,7 +230,8 @@ export interface ServiceRuntime {
    * Queue a job as the class queued it through `context.jobs`: the type
    * scoped to the plugin unless it names a scope, sourced to the plugin,
    * attributed to the call the request names and to nobody when it names
-   * none.
+   * none; and read a job's status and the recent jobs of its types, as the
+   * class read them.
    */
   readonly jobs: ServiceClassJobs;
   /**
@@ -461,6 +462,10 @@ export type ServiceClassMessaging = Pick<
 /** The job queue as a class queued through it. */
 export interface ServiceClassJobs {
   enqueue(request: EnqueueJobRequest): Promise<string>;
+  /** A job's status, by its id; none for a job the queue does not hold. */
+  getStatus(jobId: string): Promise<JobInfo | null>;
+  /** The latest jobs of the types named, newest first, at most `limit`. */
+  getRecentJobs(types?: string[], limit?: number): Promise<JobInfo[]>;
 }
 
 /** The entity service's writes a first-party class made. */

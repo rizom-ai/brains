@@ -1124,6 +1124,9 @@ class DeclarativeServicePlugin<
       jobs: Object.freeze({
         enqueue: (request: EnqueueJobRequest): Promise<string> =>
           context.jobs.enqueue(request),
+        getStatus: (jobId: string) => context.jobs.getStatus(jobId),
+        getRecentJobs: (types?: string[], limit?: number) =>
+          context.jobs.getRecentJobs(types, limit),
       }),
       entityWrites: entityWritesOf(context),
       dataDir: context.dataDir,
