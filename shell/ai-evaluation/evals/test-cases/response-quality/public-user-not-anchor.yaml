@@ -70,7 +70,9 @@ successCriteria:
     - "I can delete"
     - "I can delete them"
     - "you have permission to delete"
-  minInstructionFollowingScore: 4
+  # Each turn's checks state its contract. A whole-conversation instruction
+  # score read one turn's rule into another: it marked "cannot verify" on
+  # the Karim question, which that turn allows, as a violation.
 
 efficiency:
   maxToolCalls: 2
