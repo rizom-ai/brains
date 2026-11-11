@@ -1885,6 +1885,7 @@ function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
   return Object.freeze({
     createEntity: (request) => entityService.createEntity(request),
     updateEntity: (request) => entityService.updateEntity(request),
+    upsertEntity: (request) => entityService.upsertEntity(request),
   } satisfies ServiceEntityWrites);
 }
 

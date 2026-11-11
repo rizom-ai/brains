@@ -4,6 +4,7 @@ import { createMockEntityService } from "@brains/entity-service/test";
 import type {
   CreateEntityRequest,
   UpdateEntityRequest,
+  UpsertEntityRequest,
 } from "@brains/entity-service";
 import { createMockShell } from "../src/test/mock-shell";
 import {
@@ -38,6 +39,7 @@ describe("a first-party service writing as its class wrote", () => {
   it("hands each write to the entity service as written", async () => {
     const created: CreateEntityRequest<BaseEntity>[] = [];
     const updated: UpdateEntityRequest<BaseEntity>[] = [];
+    const upserted: UpsertEntityRequest<BaseEntity>[] = [];
     const shell = createMockShell({
       entityService: {
         ...createMockEntityService(),
@@ -56,6 +58,17 @@ describe("a first-party service writing as its class wrote", () => {
         ): Promise<EntityMutationResult> => {
           updated.push(request);
           return { entityId: request.entity.id, jobId: "", skipped: false };
+        },
+        upsertEntity: async <T extends BaseEntity>(
+          request: UpsertEntityRequest<T>,
+        ): Promise<EntityMutationResult & { created: boolean }> => {
+          upserted.push(request);
+          return {
+            entityId: request.entity.id,
+            jobId: "",
+            skipped: false,
+            created: true,
+          };
         },
       },
     });
@@ -93,6 +106,14 @@ describe("a first-party service writing as its class wrote", () => {
       },
     });
 
+    // A record written whether or not it is stored yet, as the class wrote
+    // its traffic snapshots.
+    expect(
+      await runtime.entityWrites.upsertEntity({
+        entity: { ...post, id: "week", entityType: "traffic-snapshot" },
+      }),
+    ).toEqual({ entityId: "week", jobId: "", skipped: false, created: true });
+
     expect(created).toEqual([
       {
         entity: {
@@ -114,9 +135,13 @@ describe("a first-party service writing as its class wrote", () => {
         },
       },
     ]);
+    expect(upserted).toEqual([
+      { entity: { ...post, id: "week", entityType: "traffic-snapshot" } },
+    ]);
     expect(Object.keys(runtime.entityWrites).sort()).toEqual([
       "createEntity",
       "updateEntity",
+      "upsertEntity",
     ]);
   });
 });

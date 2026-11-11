@@ -599,7 +599,7 @@ export interface ServiceClassJobs {
 /** The entity service's writes a first-party class made. */
 export type ServiceEntityWrites = Pick<
   IEntityService,
-  "createEntity" | "updateEntity"
+  "createEntity" | "updateEntity" | "upsertEntity"
 >;
 
 /** What a first-party service asks the brain's AI. */
