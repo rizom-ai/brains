@@ -217,6 +217,7 @@ async function runSingleModelIteration(
     config: options.config,
     cloneData: options.cloneData,
     suffix: `${model.replace(/[^a-z0-9-]/gi, "-")}${options.samples > 1 ? `-s${sampleIndex + 1}` : ""}`,
+    remoteUrl: options.remoteUrl,
   });
 
   const modelConfig = options.resolveConfig

@@ -1,7 +1,8 @@
 import type { Shell } from "@brains/core";
 import { CLI_OPERATOR_PRINCIPAL } from "./cli-operator";
 import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
-import { preferLocalUrlsForRuntime } from "./runtime-env";
+import { isProductionRuntime, preferLocalUrlsForRuntime } from "./runtime-env";
+import { definedFields } from "@brains/utils/strip-undefined";
 import {
   resolveGitBrokerCheckout,
   resolveGitBrokerSocket,
@@ -67,6 +68,7 @@ export function buildShellConfig(
   applyIdentityConfig(config, shellConfig);
   applyAgentInstructions(config, shellConfig);
   applyAppMetadata(config, shellConfig);
+  applyHttpConfig(config, shellConfig);
 
   return shellConfig;
 }
@@ -200,6 +202,14 @@ function applyAgentInstructions(
   }
 }
 
+/** The host listens on the production port the brain links to. */
+function applyHttpConfig(config: AppConfig, shellConfig: ShellConfig): void {
+  shellConfig.http ??= {
+    ...definedFields(config.http),
+    port: config.deployment.ports.production,
+  };
+}
+
 function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
   shellConfig.name = config.name;
   shellConfig.version = config.version;
@@ -211,4 +221,5 @@ function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
 
   shellConfig.localSiteUrl = `http://localhost:${config.deployment.ports.production}`;
   shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
+  shellConfig.production = isProductionRuntime();
 }

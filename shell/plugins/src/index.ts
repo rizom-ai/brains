@@ -167,12 +167,18 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
+  identityChangedSchema,
   initialSyncCompletedChannel,
   initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  shellReadyChannel,
+  startupContentSettledChannel,
+  type IdentityChanged,
   type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
+  type SystemTimestamp,
 } from "./system-channels";
 export { defineChannel, type Channel } from "@brains/contracts";
 export {
@@ -233,10 +239,6 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
-export {
-  createScheduledMaintenanceDaemon,
-  type ScheduledMaintenanceOptions,
-} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -250,7 +252,6 @@ export type {
   IPermissionsNamespace,
   IDaemonsNamespace,
   IToolsNamespace,
-  IApiRoutesNamespace,
   IWebRoutesNamespace,
   IPluginsNamespace,
   IInterfaceConversationsNamespace,
@@ -273,6 +274,7 @@ export {
   createPluginPackageDefinition,
   getPluginPackageMetadata,
   instantiatePluginPackageDefinition,
+  isPackageDefinitionPlugin,
   isPluginPackageDefinition,
   type AnyPluginConfigSchema,
   type CreatePluginPackageDefinitionInput,
@@ -347,6 +349,7 @@ export {
   type EntityAtprotoRecordInput,
   type EntityDefinition,
   type EntityDefinitionConfig,
+  type EntityFeedBuild,
   type EntityFeedDeclaration,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
@@ -717,6 +720,7 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export { toPublicAppInfo } from "./base/public-app-info";
 export {
   publicDaemonHealthSchema,
   publicHealthInfoSchema,
@@ -762,9 +766,6 @@ export {
   type BaseMessage,
   type MessageContext,
   type MessageResponse,
-  type MessageSendOptions,
-  type MessageSendRequest,
-  type MessageSender,
   type MessageWithPayload,
 } from "./contracts/messaging";
 export type {
@@ -896,6 +897,9 @@ export {
   resolveMessageArtifactAccess,
   sanitizeUploadFilename,
   urlCaptureConfigSchema,
+  captureUrlViaAgent,
+  extractCaptureableUrls,
+  type LinkCaptureHost,
   validateMessageUpload,
   validateTextUpload,
   type ArtifactCardState,
@@ -966,16 +970,82 @@ export {
 // the public contexts never name it.
 export {
   contractJob,
+  answering,
+  entityAnswer,
   entityRuntime,
+  uniqueTitleContext,
+  restatingMetadata,
+  withBodyTemplate,
+  withUrlRoute,
+  writesInDocumentOrder,
+  type EntityAnswerContext,
+  type EntityAnswerDeclaration,
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,
+  type EntityRuntimeIdentity,
   type EntityRuntimeImages,
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,
   type QueuedCreate,
+  type EntityCreateCaller,
+  type EvalGenerationOptions,
+  type EvalGenerationProgress,
+  type EvalGenerationResult,
+  type QueuedAttribution,
+  type QueuedPlaceholder,
   type StoredCreate,
+  afterGeneration,
+  loggedProvider,
+  type GenerationOutcome,
+  type GenerationOutcomeContext,
+  type GenerationStep,
+  type RestateMetadata,
 } from "./entity/entity-runtime";
+// First-party services converted from a class reach what the public
+// service contract does not offer here.
+export { withOwnedDataSources } from "./public/service-definition";
+export {
+  firstPartyTool,
+  serviceRuntime,
+  type ClaimedSystemType,
+  type ServiceCorpusReads,
+  type ServiceDashboardWidget,
+  type ServiceInteraction,
+  type ServiceAI,
+  type ServiceStudio,
+  type ServiceToolCall,
+  type ServiceDataSourceDeclaration,
+  type ServiceEntityReads,
+  type ServiceEntityShapes,
+  type ServiceIdentity,
+  type ServiceListenHandler,
+  type ServiceListenMode,
+  type ServiceListenOptions,
+  type ServiceRuntime,
+} from "./service/service-runtime";
+// First-party interfaces converted from a class reach what the public
+// interface contract does not offer here.
+export {
+  interfaceRuntime,
+  type InterfaceMessages,
+  type InterfaceRuntime,
+} from "./interface/interface-runtime";
+export {
+  withChannels,
+  withDaemon,
+  withMessageTransport,
+  withProtocolPlugin,
+  withTools,
+  withWebRoutes,
+  type FirstPartyChannel,
+  type FirstPartyChannelsContext,
+  type FirstPartyDaemon,
+  type FirstPartySlotContext,
+  type MessageTransport,
+  type MessageTransportEdit,
+  type MessageTransportSend,
+} from "./interface/first-party-interface";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";
@@ -1172,7 +1242,7 @@ export type {
 export { PluginManager } from "./manager";
 
 // Error handling
-export { PluginError } from "./errors";
+export { FatalPluginConfigurationError, PluginError } from "./errors";
 export {
   deriveConsoleSurfaces,
   type ConsoleSurface,

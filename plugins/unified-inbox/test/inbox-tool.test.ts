@@ -1,16 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import {
-  InboxFollowUpRegistry,
-  InboxRegistry,
-  type InboxItem,
-} from "@brains/plugins";
+import type { IInboxRegistry, InboxItem, Tool } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
 
 import {
   InboxDataSource,
   InboxOperatorService,
-  createInboxListTool,
   inboxListToolOutputSchema,
 } from "../src";
+import { createUnifiedInboxPlugin } from "./unified-inbox-plugin";
 
 function item(
   id: string,
@@ -31,38 +28,56 @@ function item(
   };
 }
 
-function createToolFixture(items?: InboxItem[]): {
-  service: InboxOperatorService;
-  tool: ReturnType<typeof createInboxListTool>;
-} {
-  const registry = new InboxRegistry();
-  if (items) {
-    registry.registerSource("mail-plugin", {
-      sourceId: "mail-items",
-      displayName: "Email Triage",
-      facets: [
-        {
-          key: "category",
-          label: "Category",
-          values: [
-            { value: "work", label: "Work" },
-            { value: "opportunity", label: "Opportunity" },
-          ],
-        },
-      ],
-      list: async () => items,
-      act: async () => undefined,
-    });
-  }
+/**
+ * The tool as the unified inbox registers it, over the sources `register`
+ * puts in the brain's Inbox, and an operator reading the same sources.
+ */
+async function installedTool(
+  register: (registry: IInboxRegistry) => void,
+): Promise<{ service: InboxOperatorService; tool: Tool }> {
+  const harness = createPluginHarness({ logContext: "inbox-tool-test" });
+  const shell = harness.getMockShell();
+  const registry = shell.getInboxRegistry();
+  register(registry);
   registry.finalize();
-  const followUps = new InboxFollowUpRegistry();
+  const followUps = shell.getInboxFollowUpRegistry();
   followUps.finalize();
-  const service = new InboxOperatorService(
-    registry,
-    new InboxDataSource(registry),
-    followUps,
-  );
-  return { service, tool: createInboxListTool(service) };
+  const capabilities = await harness.installPlugin(createUnifiedInboxPlugin());
+  const tool = capabilities.tools.find(({ name }) => name === "inbox_list");
+  if (!tool) throw new Error("inbox_list was not registered");
+  return {
+    service: new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+      followUps,
+    ),
+    tool,
+  };
+}
+
+async function createToolFixture(
+  items?: InboxItem[],
+): Promise<{ service: InboxOperatorService; tool: Tool }> {
+  return installedTool((registry) => {
+    if (items) {
+      registry.registerSource("mail-plugin", {
+        sourceId: "mail-items",
+        displayName: "Email Triage",
+        facets: [
+          {
+            key: "category",
+            label: "Category",
+            values: [
+              { value: "work", label: "Work" },
+              { value: "opportunity", label: "Opportunity" },
+            ],
+          },
+        ],
+        list: async () => items,
+        act: async () => undefined,
+      });
+    }
+  });
 }
 
 const adminContext = {
@@ -78,7 +93,7 @@ const attentionItems = [
 
 describe("inbox_list tool", () => {
   it("returns a bounded content-safe field allowlist for Admin callers", async () => {
-    const { tool } = createToolFixture(attentionItems);
+    const { tool } = await createToolFixture(attentionItems);
     const result = inboxListToolOutputSchema.parse(
       await tool.handler(
         {
@@ -119,7 +134,7 @@ describe("inbox_list tool", () => {
   });
 
   it("uses the same source and urgency filters as the workspace", async () => {
-    const { service, tool } = createToolFixture(attentionItems);
+    const { service, tool } = await createToolFixture(attentionItems);
     const workspace = await service.workspace(
       {
         sourceId: "mail-items",
@@ -158,18 +173,19 @@ describe("inbox_list tool", () => {
   });
 
   it("rejects source-scoped facets without a selected source", async () => {
-    const { tool } = createToolFixture(attentionItems);
+    const { tool } = await createToolFixture(attentionItems);
 
     expect(
       await tool.handler({ facets: { category: "work" } }, adminContext),
     ).toEqual({
       success: false,
+      code: "invalid_input",
       error: "Invalid unified inbox filters",
     });
   });
 
   it("returns an empty result when no source is registered", async () => {
-    const { tool } = createToolFixture();
+    const { tool } = await createToolFixture();
 
     expect(await tool.handler({}, adminContext)).toEqual({
       success: true,
@@ -178,7 +194,7 @@ describe("inbox_list tool", () => {
   });
 
   it("omits source locators, actions, bodies, addresses, and hashes", async () => {
-    const { tool } = createToolFixture([
+    const { tool } = await createToolFixture([
       {
         id: "sender-hash-8ab1",
         title: "Safe routing title",
@@ -218,26 +234,17 @@ describe("inbox_list tool", () => {
 
   it("rejects non-Admin callers before reading any source", async () => {
     let reads = 0;
-    const registry = new InboxRegistry();
-    registry.registerSource("mail-plugin", {
-      sourceId: "mail-items",
-      displayName: "Email Triage",
-      list: async () => {
-        reads += 1;
-        return attentionItems;
-      },
-      act: async () => undefined,
+    const { tool } = await installedTool((registry) => {
+      registry.registerSource("mail-plugin", {
+        sourceId: "mail-items",
+        displayName: "Email Triage",
+        list: async () => {
+          reads += 1;
+          return attentionItems;
+        },
+        act: async () => undefined,
+      });
     });
-    registry.finalize();
-    const followUps = new InboxFollowUpRegistry();
-    followUps.finalize();
-    const tool = createInboxListTool(
-      new InboxOperatorService(
-        registry,
-        new InboxDataSource(registry),
-        followUps,
-      ),
-    );
 
     const result = await tool.handler(
       {},
@@ -250,6 +257,7 @@ describe("inbox_list tool", () => {
 
     expect(result).toEqual({
       success: false,
+      code: "permission_denied",
       error: "Unified inbox requires admin permission",
     });
     expect(reads).toBe(0);

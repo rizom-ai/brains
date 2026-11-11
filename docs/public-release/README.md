@@ -91,7 +91,7 @@ A **brain instance** selects explicit bundles in `brain.yaml` and supplies its o
 
 External packages default-export a definition. A brain-definition package imports those defaults and composes typed configured references through `use()`, `defineBundle()`, and `defineBrain()`. Runtime classes and YAML-loaded factories are not public authoring contracts. See the [exact `0.2` authoring ledger](./AUTHORING_API_0.2.md) and [alpha migration guide](./AUTHORING_0.2_MIGRATION.md).
 
-**Interfaces** are how users and other agents talk to your brain. Built in: MCP, A2A, Discord/Slack, email, Web Chat, and the chat REPL. HTTP hosting is infrastructure rather than a public extension contract; the current alpha still carries the built-in webserver while the intended stable source moves that ownership into the runtime.
+**Interfaces** are how users and other agents talk to your brain. Built in: MCP, A2A, Discord/Slack, email, Web Chat, and the chat REPL. HTTP hosting is infrastructure rather than a public extension contract: the runtime owns the one HTTP listener and serves the routes interfaces declare.
 
 For the deeper picture: [Architecture Overview](../architecture-overview.md), [Plugin System](../plugin-system.md), [Entity Model](../entity-model.md).
 
@@ -126,8 +126,9 @@ plugins:
     git:
       repo: your-org/your-content
       authToken: ${GIT_SYNC_TOKEN}
-  mcp:
-    authToken: ${MCP_AUTH_TOKEN}
+  # Static MCP token, local development only; a production brain refuses it:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
 ```
 
 Secrets stay in `.env`; everything else goes in `brain.yaml`. Full reference: [packages/brain-cli/docs/brain-yaml-reference.md](../../packages/brain-cli/docs/brain-yaml-reference.md).
@@ -162,7 +163,7 @@ shell/                Core framework: orchestration, storage, AI, MCP, jobs, mes
 shared/               Utilities and primitives: themes, UI components, types, test helpers
 entities/             Built-in entity types: blog, link, deck, project, note, topic, ...
 plugins/              Built-in service plugins: site-builder, git sync, analytics, ...
-interfaces/           Built-in interfaces: MCP, A2A, Discord, webserver, CLI
+interfaces/           Built-in interfaces: MCP, A2A, Discord, web chat, CLI
 packages/brain-cli    Canonical definition, recipes, runtime assets, and CLI
 sites/                Site packages: default, personal, professional, rizom
 packages/brain-cli    The `brain` command-line tool

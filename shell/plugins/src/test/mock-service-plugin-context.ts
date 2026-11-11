@@ -1,6 +1,5 @@
 import {
   createMockLogger,
-  genericSpy,
   spyOnMembers,
   type SpiedMembers,
 } from "@brains/test-utils";
@@ -11,8 +10,7 @@ import {
   type IEntityService,
   type BaseEntity,
   type ResolvedProfileSelection,
-  type MessageSendRequest,
-  type MessageResponse,
+  type IMessageBus,
 } from "../index";
 import type { Logger } from "@brains/utils/logger";
 import {
@@ -29,14 +27,6 @@ export interface MockServicePluginContextReturns {
   entityService?: MockEntityServiceReturns;
   /** Return value for jobs.enqueue */
   jobsEnqueue?: string;
-  /** Custom messaging.send implementation.
-   *
-   * Deliberately the concrete shape a test writes rather than the generic
-   * MessageSender the namespace declares: a handler returning a specific data
-   * type can never satisfy `<T, R>` for arbitrary R. The generic signature is
-   * reconstructed once, below, where the context is assembled.
-   */
-  messagingSend?: (request: MessageSendRequest) => Promise<MessageResponse>;
 }
 
 /**
@@ -61,6 +51,11 @@ export interface MockServicePluginContextOptions {
   returns?: MockServicePluginContextReturns;
   /** Dynamic implementation for listEntities */
   listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
+  /**
+   * The bus the context's messaging rides; pass one to send on it as the
+   * shell does.
+   */
+  messageBus?: IMessageBus;
 }
 
 /**
@@ -102,10 +97,9 @@ export interface MockServicePluginContextOptions {
  * spies from the type system, so a test needing a captured argument had no
  * typed route to it and reached for a cast instead.
  *
- * messaging stays off the list — some of its members go through genericSpy,
- * which re-applies a generic signature that mock() had erased and cannot also
- * carry a precisely-typed Mock. Its calls are still recorded and assertable
- * with toHaveBeenCalledWith.
+ * messaging is spied too but stays off the list: its members are generic, and
+ * a Mock records a generic signature with its type parameters erased. Its calls
+ * are still recorded and assertable with toHaveBeenCalledWith.
  */
 type SpiedNamespace =
   | "content"
@@ -154,6 +148,7 @@ export function createMockServicePluginContext(
     entityService,
     dataDir,
     spaces,
+    ...(options.messageBus ? { messageBus: options.messageBus } : {}),
   });
 
   // Build the real context, then layer only what the options configure. The
@@ -184,15 +179,6 @@ export function createMockServicePluginContext(
         Promise.resolve(returns.jobsEnqueue ?? "mock-job-id"),
       ),
     },
-    messaging: {
-      ...spyOnMembers(context.messaging),
-      ...(returns.messagingSend
-        ? {
-            send: genericSpy<ServicePluginContext["messaging"]["send"]>(
-              mock(returns.messagingSend),
-            ),
-          }
-        : {}),
-    },
+    messaging: spyOnMembers(context.messaging),
   };
 }

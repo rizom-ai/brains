@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult } from "../types";
 import { getErrorMessage } from "@brains/utils/error";
+import { isNotFoundError } from "@brains/utils/predicates";
 
 export function createImportResult(): ImportResult {
   return {
@@ -34,7 +35,7 @@ export function recordImportReadError(
   result: ImportResult,
 ): void {
   // File disappeared between scan and read (e.g., git-sync pull race)
-  if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+  if (isNotFoundError(error)) {
     logger.debug("File disappeared before import, skipping", {
       path: filePath,
     });

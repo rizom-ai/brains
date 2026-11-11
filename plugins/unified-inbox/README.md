@@ -53,7 +53,7 @@ digest uses that channel-only mode so it never projects a summary of the Inbox b
 itself.
 
 `inbox_list` is directly available to Admin MCP clients in debug mode, including stdio
-brains with no webserver, Studio, or Dashboard. Basic-mode clients retrieve Inbox content
+brains that serve no HTTP, Studio, or Dashboard. Basic-mode clients retrieve Inbox content
 through `chat`. The raw tool returns source metadata and only the
 content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
 IDs, source-entity references, resolution actions, source detail, private source locators,

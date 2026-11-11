@@ -15,7 +15,7 @@ import type {
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
 import type { SiteBuildStagingPayload } from "../types/job-types";
-import { collectBuildRoutes } from "./collect-build-routes";
+import { collectBuildRoutes, withGatheredPages } from "./collect-build-routes";
 import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
 import { generateSiteRoutes } from "./generate-site-routes";
@@ -92,7 +92,10 @@ export async function runSiteBuild(
     options.signal.throwIfAborted();
 
     const buildRoutes = await collectBuildRoutes(
-      options.pipelineContext.routeRegistry,
+      withGatheredPages(
+        options.pipelineContext.routeRegistry,
+        options.buildOptions.pages,
+      ),
       {
         languages: parsedOptions.languages,
         siteTranslations: parsedOptions.siteConfig.translations,

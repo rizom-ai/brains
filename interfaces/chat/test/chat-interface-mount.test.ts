@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseDiscordConfig,
   baseSlackConfig,
@@ -51,7 +51,7 @@ describe("ChatInterface mount", () => {
   });
 
   it("creates Slack and Discord adapters together", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: {
         discord: baseDiscordConfig,
         slack: baseSlackConfig,
@@ -74,7 +74,7 @@ describe("ChatInterface mount", () => {
   });
 
   it("registers separate channel descriptors for configured adapters", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: {
         discord: baseDiscordConfig,
         slack: baseSlackConfig,
@@ -105,7 +105,7 @@ describe("ChatInterface mount", () => {
   });
 
   it("registers only its channels in the worker, without connecting", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: {
         discord: baseDiscordConfig,
         slack: baseSlackConfig,
@@ -130,7 +130,7 @@ describe("ChatInterface mount", () => {
   });
 
   it("creates a Slack-only adapter and daemon", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
 
     await suite.harness.installPlugin(plugin);
 
@@ -144,7 +144,7 @@ describe("ChatInterface mount", () => {
   });
 
   it("runs Slack Socket Mode without exposing a webhook", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: { slack: socketSlackConfig },
       gatewayRunMs: 50,
       gatewayRestartDelayMs: 0,
@@ -178,7 +178,7 @@ describe("ChatInterface mount", () => {
   });
 
   it("runs Discord gateway and Slack Socket Mode together", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: {
         discord: baseDiscordConfig,
         slack: socketSlackConfig,
@@ -201,8 +201,8 @@ describe("ChatInterface mount", () => {
     // The resolver turns this into a skipped interface, so a brain without
     // chat credentials carries no chat plugin at all rather than one that
     // registers webhook routes only to 404 on them.
-    expect(() => new ChatInterface()).toThrow(/Invalid plugin config for chat/);
-    expect(() => new ChatInterface({ adapters: {} })).toThrow(
+    expect(() => createChatPlugin()).toThrow(/Invalid plugin config for chat/);
+    expect(() => createChatPlugin({ adapters: {} })).toThrow(
       /Invalid plugin config for chat/,
     );
     expect(createDiscordAdapterMock).not.toHaveBeenCalled();

@@ -29,11 +29,24 @@ export type ReasoningProviderOptions =
  * this runtime treats as reasoning (no temperature) keeps its configured
  * effort even when the SDK does not recognize the name.
  */
+/**
+ * OpenAI options for a configured reasoning effort. The provider asks for a
+ * detailed reasoning summary by default; the brain never reads one, and
+ * writing it slows every step, so none is requested.
+ */
 export function openAIReasoningOptions(
   reasoningEffort: ReasoningEffort,
   supportsTemperature: boolean,
-): { reasoningEffort: ReasoningEffort; forceReasoning: boolean } {
-  return { reasoningEffort, forceReasoning: !supportsTemperature };
+): {
+  reasoningEffort: ReasoningEffort;
+  forceReasoning: boolean;
+  reasoningSummary: null;
+} {
+  return {
+    reasoningEffort,
+    forceReasoning: !supportsTemperature,
+    reasoningSummary: null,
+  };
 }
 
 /**

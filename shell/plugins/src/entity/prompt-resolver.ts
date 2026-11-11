@@ -159,14 +159,10 @@ export type PromptTemplateSource = Pick<TemplateRegistry, "getAll">;
 /** The entity reads and writes keeping prompt copies in step with their defaults performs. */
 export type PromptMaterializationStore = Pick<
   IEntityService,
-  | "getEntity"
-  | "createEntity"
-  | "updateEntity"
-  | "deleteEntity"
-  | "hasEntityType"
+  "getEntity" | "createEntity" | "updateEntity" | "hasEntityType"
 >;
 
-/** What one boot-time pass did to the prompt copies, by target (removed copies by entity id). */
+/** What one boot-time pass did to the prompt copies, by target. */
 export interface PromptMaterializationReport {
   /** No copy existed; the default was written with its hash. */
   created: string[];
@@ -180,14 +176,12 @@ export interface PromptMaterializationReport {
   staleOverrides: string[];
   /** The copy predates provenance and differs from the current default. */
   unverifiedOverrides: string[];
-  /** Copies written under a template's short name, which generation never read. */
-  removedLegacy: string[];
   failed: Array<{ target: string; error: string }>;
 }
 
 type SyncOutcome = Exclude<
   keyof PromptMaterializationReport,
-  "removedLegacy" | "failed" | "retitled"
+  "failed" | "retitled"
 >;
 
 async function writeDefaultHash(
@@ -293,28 +287,6 @@ async function correctGeneratedTitle(
   return true;
 }
 
-/** Delete a copy written under a short name only while it is still the one materialization wrote. */
-async function removeShortNameCopy(
-  entityService: PromptMaterializationStore,
-  id: string,
-  shortName: string,
-): Promise<boolean> {
-  const entity = await entityService.getEntity({
-    entityType: "prompt",
-    id,
-    source: true,
-  });
-  if (!entity) return false;
-  if (parsePrompt(entity.content).frontmatter["target"] !== shortName) {
-    return false;
-  }
-  return entityService.deleteEntity({
-    entityType: "prompt",
-    id,
-    options: { expectedContentHash: entity.contentHash },
-  });
-}
-
 /**
  * Keep a prompt entity for every registered template that carries a
  * basePrompt, keyed by the registry key generation resolves, and in step with
@@ -332,16 +304,13 @@ export async function materializePrompts(
     retitled: [],
     staleOverrides: [],
     unverifiedOverrides: [],
-    removedLegacy: [],
     failed: [],
   };
   if (!entityService.hasEntityType("prompt")) return report;
 
   const defaults = [...templateRegistry.getAll()].flatMap(
     ([target, template]) =>
-      template.basePrompt
-        ? [{ target, name: template.name, basePrompt: template.basePrompt }]
-        : [],
+      template.basePrompt ? [{ target, basePrompt: template.basePrompt }] : [],
   );
 
   // The title is settled after the body, on the copy the body sync left.
@@ -359,31 +328,6 @@ export async function materializePrompts(
     }
     if (result.value.outcome) report[result.value.outcome].push(target);
     if (result.value.retitled) report.retitled.push(target);
-  });
-
-  const readIds = new Set(
-    defaults.map(({ target }) => targetToEntityId(target)),
-  );
-  const shortNames = new Map<string, string>();
-  for (const { target, name } of defaults) {
-    const id = targetToEntityId(name);
-    if (name !== target && !readIds.has(id)) shortNames.set(id, name);
-  }
-  const removed = await Promise.allSettled(
-    [...shortNames].map(([id, name]) =>
-      removeShortNameCopy(entityService, id, name),
-    ),
-  );
-  [...shortNames.entries()].forEach(([id, name], index) => {
-    const result = removed[index];
-    if (result?.status === "rejected") {
-      report.failed.push({
-        target: name,
-        error: getErrorMessage(result.reason),
-      });
-    } else if (result?.value) {
-      report.removedLegacy.push(id);
-    }
   });
 
   return report;

@@ -3,9 +3,8 @@ import {
   preferredSlug,
   type PrintableProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
 import type { Project } from "../schemas/project";
-import { projectFrontmatterSchema, projectSchema } from "../schemas/project";
+import { projectSchema } from "../schemas/project";
 import {
   PROJECT_PRINTABLE_ATTACHMENT_TYPE,
   PROJECT_PRINTABLE_TEMPLATE_NAME,
@@ -20,8 +19,9 @@ export const createProjectPrintableProvider: PrintableProviderFactory =
     templateName: PROJECT_PRINTABLE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (project, helpers) => {
-      const { frontmatter, content } = parseMarkdown(project.content);
-      const parsed = projectFrontmatterSchema.parse(frontmatter);
+      // A project reads back as its body, its frontmatter its metadata.
+      const parsed = project.metadata;
+      const content = project.content;
       const coverImageUrl = await helpers.resolveImageDataUrl(
         parsed.coverImageId,
       );

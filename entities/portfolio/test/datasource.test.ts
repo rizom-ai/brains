@@ -1,22 +1,15 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { ProjectDataSource } from "../src/datasources/project-datasource";
-import { PortfolioPlugin } from "../src/plugin";
-import {
-  createMockShell,
-  createPluginHarness,
-  type MockShell,
-} from "@brains/plugins/test";
+import { createPluginHarness, type MockShell } from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
-import type { BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { createMockLogger } from "@brains/test-utils";
+import { portfolioPlugin } from "./portfolio-plugin";
 
-describe("ProjectDataSource", () => {
-  let datasource: ProjectDataSource;
+describe("the portfolio data source", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+  let datasource: DataSource & Required<Pick<DataSource, "fetch">>;
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   // Helper to create mock project entities
@@ -53,17 +46,21 @@ Outcome for ${title}`;
         title,
         slug,
         status,
+        description: `Description for ${title}`,
         year,
       },
     });
   };
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
-    shell = createMockShell();
+  beforeEach(async () => {
+    harness = createPluginHarness();
+    await harness.installPlugin(portfolioPlugin());
+    shell = harness.getMockShell();
     mockContext = { entityService: shell.getEntityService() };
 
-    datasource = new ProjectDataSource(mockLogger);
+    const registered = harness.getDataSources().get("portfolio:entities");
+    if (!registered?.fetch) throw new Error("No portfolio data source");
+    datasource = { ...registered, fetch: registered.fetch.bind(registered) };
   });
 
   describe("fetchProjectList", () => {
@@ -83,34 +80,26 @@ Outcome for ${title}`;
         ),
       ]);
 
-      const harness = createPluginHarness({
-        dataDir: "/tmp/test-portfolio-template-schema",
-      });
-      try {
-        await harness.installPlugin(new PortfolioPlugin({}));
-        const templateSchema = harness
-          .getTemplates()
-          .get("portfolio:project-list")?.schema;
-        if (!templateSchema)
-          throw new Error("portfolio:project-list template not found");
+      const templateSchema = harness
+        .getTemplates()
+        .get("portfolio:project-list")?.schema;
+      if (!templateSchema)
+        throw new Error("portfolio:project-list template not found");
 
-        const result = await datasource.fetch(
-          { entityType: "project", query: { page: 1, pageSize: 10 } },
-          templateSchema,
-          mockContext,
-        );
-        const parsed = listSchema.parse(result);
+      const result = await datasource.fetch(
+        { entityType: "project", query: { page: 1, pageSize: 10 } },
+        templateSchema,
+        mockContext,
+      );
+      const parsed = listSchema.parse(result);
 
-        expect(parsed.projects).toHaveLength(1);
-        expect(parsed.projects[0]?.url).toBeNull();
-        expect(parsed.projects[0]?.typeLabel).toBeNull();
-        expect(
-          z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
-        ).toBeNull();
-        expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
-      } finally {
-        await harness.reset();
-      }
+      expect(parsed.projects).toHaveLength(1);
+      expect(parsed.projects[0]?.url).toBeNull();
+      expect(parsed.projects[0]?.typeLabel).toBeNull();
+      expect(
+        z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
+      ).toBeNull();
+      expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
     it("should sort projects by year desc then title asc", async () => {
@@ -284,7 +273,9 @@ A normalized public data API and dashboard.`,
             title: "CityPulse",
             slug: "city-pulse",
             status: "published",
+            description: "Real-time urban data dashboard",
             year: 2025,
+            ogImageId: "og-project-city-pulse",
           },
         }),
       ]);
@@ -357,7 +348,9 @@ Outcome for ${title}`;
           title,
           slug,
           status: "published",
+          description: `Description for ${title}`,
           year: 2024,
+          coverImageId,
         },
       });
     };

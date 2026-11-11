@@ -1,17 +1,16 @@
 import { BaseJobHandler } from "@brains/plugins";
-import { SITE_CHANNELS } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
-import type { EntityDisplayMap, SiteBuilderConfig } from "../config";
+import type { SiteBuilderConfig } from "../config";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
-import { EntityUrlGenerator } from "@brains/site-composition";
+import type { RouteDefinition } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type {
   SiteBuildEnvironment,
@@ -36,8 +35,6 @@ import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
-  /** The site's entity display as the shell resolved it, for entity URLs. */
-  entityDisplay?: EntityDisplayMap | undefined;
   layouts: Record<string, LayoutComponent>;
   defaultSiteConfig: SiteBuilderConfig["siteInfo"];
   sharedImagesDir: string;
@@ -52,6 +49,7 @@ export interface SiteBuildJobHandlerConfig {
   getSlots?: (() => Promise<LayoutSlots>) | undefined;
   /** Asked on every build: the site package's scripts plus plugins' answers. */
   getHeadScripts?: (() => Promise<string[]>) | undefined;
+  getPages?: (() => Promise<RouteDefinition[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   /** The site's languages, the first its default. */
@@ -59,11 +57,8 @@ export interface SiteBuildJobHandlerConfig {
   statusService?: BuildStatusRecorder | undefined;
 }
 
-/** What a build sends: its completion event, and the site metadata it asks for. */
-type SiteBuildMessaging = Pick<
-  ServicePluginContext["messaging"],
-  "send" | "request"
->;
+/** What a build asks the bus: the site metadata. */
+type SiteBuildMessaging = Pick<ServicePluginContext["messaging"], "request">;
 
 /**
  * Job handler for site building operations
@@ -155,6 +150,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           themeCSS: this.cfg.themeCSS,
           slots: await this.cfg.getSlots?.(),
           headScripts: await this.cfg.getHeadScripts?.(),
+          pages: await this.cfg.getPages?.(),
           ...(this.cfg.staticAssets && {
             staticAssets: this.cfg.staticAssets,
           }),
@@ -223,32 +219,6 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         success: result.success,
         cancelled: result.cancelled ?? false,
       });
-
-      // A skipped build publishes nothing, so completion hooks must not run.
-      if (result.success && !result.skipped) {
-        this.logger.info(
-          `Emitting site:build:completed event for ${environment} environment`,
-        );
-
-        await this.messaging.send({
-          type: SITE_CHANNELS.buildCompleted,
-          payload: {
-            outputDir: data.outputDir,
-            environment,
-            routesBuilt: result.routesBuilt,
-            siteConfig: {
-              ...siteConfig,
-              url: siteUrl,
-            },
-            generateEntityUrl: (entityType: string, slug: string) =>
-              new EntityUrlGenerator(this.cfg.entityDisplay).generateUrl(
-                entityType,
-                slug,
-              ),
-          },
-          broadcast: true,
-        });
-      }
 
       // A superseded build's request is served by the build that replaced
       // it, so its job is done; any other cancellation is retried.

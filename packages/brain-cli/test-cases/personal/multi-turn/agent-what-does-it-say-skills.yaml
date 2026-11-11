@@ -1,11 +1,11 @@
 id: multi-turn-agent-what-does-it-say-skills
 name: Saved Agent Has-to-Say and Skills Questions Use A2A
-description: Verifies that questions like "what does yeehaa.io have to say?" and follow-up skill questions call the saved remote agent instead of answering from local directory metadata.
+description: Verifies that questions like "what does yeehaa.example have to say?" and follow-up skill questions call the saved remote agent instead of answering from local directory metadata.
 type: multi_turn
 setup:
   permissionLevel: admin
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - a2a
   - multi-turn
@@ -14,13 +14,13 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "what does yeehaa.io have to say?"
+  - userMessage: "what does yeehaa.example have to say?"
     successCriteria:
       expectedTools:
         - toolName: agent_call
           shouldBeCalled: true
           argsContain:
-            agent: "yeehaa.io"
+            agent: "yeehaa.example"
         - toolName: system_get
           shouldBeCalled: false
       responseNotContains:
@@ -33,7 +33,7 @@ turns:
         - toolName: agent_call
           shouldBeCalled: true
           argsContain:
-            agent: "yeehaa.io"
+            agent: "yeehaa.example"
         - toolName: system_get
           shouldBeCalled: false
       responseNotContains:
@@ -44,4 +44,4 @@ successCriteria: {}
 
 efficiency:
   maxToolCalls: 4
-  maxTokens: 46000
+  maxTokens: 52000

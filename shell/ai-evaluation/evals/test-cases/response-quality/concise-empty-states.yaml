@@ -9,7 +9,7 @@ tags:
   - quality
   - empty-state
   - user-experience
-  - preset-core
+  - recipe-docs
 
 turns:
   - userMessage: "List all note entities"
@@ -29,4 +29,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 16000
+  maxTokens: 23000

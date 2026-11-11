@@ -48,7 +48,7 @@ interface DeclinableTurn {
   steps: ReadonlyArray<TurnStep>;
 }
 
-type StepFinished = (step: TurnStep) => void;
+type StepEnded = (step: TurnStep) => void;
 
 /**
  * Anthropic (`refusal`), Google (`SAFETY`, `PROHIBITED_CONTENT`, a blocked
@@ -95,7 +95,7 @@ function outcome<R extends DeclinableTurn>(
  * Every other failure propagates unchanged.
  */
 export async function retryDeclinedTurnOnce<R extends DeclinableTurn>(
-  run: (onStepFinish: StepFinished) => Promise<R>,
+  run: (onStepEnd: StepEnded) => Promise<R>,
 ): Promise<DeclinableTurnOutcome<R>> {
   const attempt = async (): Promise<
     | { kind: "answered"; result: R }

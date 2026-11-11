@@ -66,6 +66,7 @@ function buildServices(input: {
     throw new Error(name + " was not expected in this test");
   };
   const runtimeUploads: IRuntimeUploadsNamespace = {
+    retire: unexpected("retire"),
     scoped: (): ScopedRuntimeUploadStore => ({
       readRecord: async (): Promise<RuntimeUploadRecord> => ({
         id: uploadId,

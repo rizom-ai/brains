@@ -9,10 +9,11 @@ import {
   AnchorProfileAdapter,
   BrainCharacterAdapter,
 } from "@brains/identity-service";
-import type {
-  Plugin,
-  PluginManager,
-  PluginRegistrationContext,
+import {
+  FatalPluginConfigurationError,
+  type Plugin,
+  type PluginManager,
+  type PluginRegistrationContext,
 } from "@brains/plugins";
 import type { TemplateRegistry } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
@@ -128,7 +129,10 @@ export async function initializeConfiguredPlugins(options: {
   if (!initOptions?.registerOnly) {
     for (const { id, error } of pluginManager.getFailedPlugins()) {
       const plugin = pluginManager.getPlugin(id);
-      if (plugin?.requiresDaemonStartup?.()) {
+      if (
+        error instanceof FatalPluginConfigurationError ||
+        plugin?.requiresDaemonStartup?.()
+      ) {
         throw error;
       }
     }

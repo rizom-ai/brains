@@ -62,17 +62,16 @@ export type CapabilityEntry = [
 ];
 
 /**
- * An interface entry is an [id, constructor, envMapper] tuple.
+ * An interface entry is an [id, factory, envMapper] tuple.
  * The id is used for disable checks and override matching in brain.yaml.
  * The envMapper receives the deployment environment and returns the interface config,
  * or null to skip this interface (e.g. when credentials are missing).
- * The constructor is called with `new` to create a fresh interface instance.
+ * The factory is called with that config to create fresh interface plugins:
+ * a class it constructs, or a package definition it instantiates.
  */
-export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
-
 export type InterfaceEntry = [
   id: string,
-  constructor: InterfaceConstructor,
+  factory: PluginFactory,
   envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];
 
@@ -171,6 +170,12 @@ export interface BrainDefinition {
   deployment?: DeploymentConfigInput;
 
   /**
+   * Whether the runtime hosts HTTP for this brain whatever its bundles. A
+   * brain whose bundles host it says so on the bundle instead.
+   */
+  http?: boolean;
+
+  /**
    * Plugin/interface IDs to disable when running in eval mode.
    * These are plugins with external side effects (chat, email, analytics, etc.)
    * that should not run during evaluation.
@@ -195,7 +200,6 @@ export interface BrainDefinition {
  * ```typescript
  * import { defineBrain } from "@brains/app";
  * import { notePlugin } from "@brains/note";
- * import { MCPInterface } from "@brains/mcp";
  *
  * export default defineBrain({
  *   name: "my-brain",
@@ -209,9 +213,9 @@ export interface BrainDefinition {
  *   capabilities: [
  *     ["note", notePlugin, {}],
  *   ],
- *   interfaces: [
- *     ["mcp", MCPInterface, (env) => ({ domain: env.DOMAIN })],
- *   ],
+ *   interfaces: [],
+ *   // The runtime serves the brain's routes, health and site over HTTP.
+ *   http: true,
  * });
  * ```
  */

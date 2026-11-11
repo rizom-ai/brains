@@ -11,7 +11,6 @@ export {
   actionItemSourceRefSchema,
   actionItemStatusSchema,
   actionItemStoredMetadataSchema,
-  memoryActorReferenceParserSchema,
   memoryActorReferenceSchema,
   memoryTimeRangeSchema,
   type ActionItemAssignee,

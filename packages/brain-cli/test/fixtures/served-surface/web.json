@@ -1,0 +1,625 @@
+[
+  {
+    "request": "GET localhost/health",
+    "status": 404,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain; charset=UTF-8",
+      "date": "<date>"
+    },
+    "body": "sha256:0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5"
+  },
+  {
+    "request": "GET localhost/health/live",
+    "status": 200,
+    "headers": {
+      "content-length": "68",
+      "content-type": "application/json",
+      "date": "<date>"
+    },
+    "body": {
+      "status": "alive",
+      "uptime": "<number>",
+      "checkedAt": "<string>"
+    }
+  },
+  {
+    "request": "HEAD localhost/health/live",
+    "status": 200,
+    "headers": {
+      "content-length": "0",
+      "content-type": "application/json"
+    }
+  },
+  {
+    "request": "POST localhost/health/live",
+    "status": 404,
+    "headers": {
+      "cache-control": "no-cache",
+      "content-encoding": "gzip",
+      "content-length": "29",
+      "content-type": "text/plain; charset=UTF-8",
+      "date": "<date>",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:9ffcf79d60f88a0c44ebd9e028ce69ab44eab081dae308c36ab3dc8ca0ad15d7"
+  },
+  {
+    "request": "GET localhost/health/ready",
+    "status": 200,
+    "headers": {
+      "content-length": "1922",
+      "content-type": "application/json",
+      "date": "<date>"
+    },
+    "body": {
+      "status": "ready",
+      "operationalStatus": "operational",
+      "checkedAt": "<string>",
+      "checks": [
+        {
+          "name": "entity-database",
+          "status": "healthy",
+          "message": "Entity database is accessible"
+        },
+        {
+          "name": "job-queue-database",
+          "status": "healthy",
+          "message": "Job queue database is accessible"
+        },
+        {
+          "name": "job-worker",
+          "status": "healthy",
+          "message": "1 live worker session(s)",
+          "details": {
+            "sessions": {
+              "total": 1,
+              "active": 1,
+              "stale": 0,
+              "latestHeartbeatAgeMs": "<number>"
+            }
+          }
+        },
+        {
+          "name": "job-queue-progress",
+          "status": "healthy",
+          "message": "Due jobs are being claimed",
+          "details": {
+            "queue": {
+              "duePending": 0,
+              "processing": 1,
+              "oldestDuePendingAgeMs": "<object>",
+              "latestClaimAgeMs": "<number>",
+              "stalled": false
+            }
+          }
+        },
+        {
+          "name": "job-execution-inventory",
+          "status": "healthy",
+          "message": "Every active job type has a declared executor"
+        },
+        {
+          "name": "attempt-leases",
+          "status": "healthy",
+          "message": "No stale processing leases"
+        },
+        {
+          "name": "projection-circuits",
+          "status": "healthy",
+          "message": "No projection circuits are open"
+        },
+        {
+          "name": "projection-waves",
+          "status": "healthy",
+          "message": "No active projection wave"
+        },
+        {
+          "name": "daemons",
+          "status": "healthy",
+          "message": "6 daemon(s) healthy"
+        },
+        {
+          "name": "directory-sync:git-progress",
+          "status": "healthy",
+          "message": "No stale directory Git pull"
+        }
+      ],
+      "resources": "<object>"
+    }
+  },
+  {
+    "request": "GET localhost/health/operate",
+    "status": 200,
+    "headers": {
+      "content-length": "2584",
+      "content-type": "application/json",
+      "date": "<date>"
+    },
+    "body": {
+      "status": "ready",
+      "operationalStatus": "operational",
+      "checkedAt": "<string>",
+      "checks": [
+        {
+          "name": "entity-database",
+          "status": "healthy",
+          "message": "Entity database is accessible"
+        },
+        {
+          "name": "job-queue-database",
+          "status": "healthy",
+          "message": "Job queue database is accessible"
+        },
+        {
+          "name": "job-worker",
+          "status": "healthy",
+          "message": "1 live worker session(s)",
+          "details": {
+            "sessions": {
+              "total": 1,
+              "active": 1,
+              "stale": 0,
+              "latestHeartbeatAgeMs": "<number>"
+            }
+          }
+        },
+        {
+          "name": "job-queue-progress",
+          "status": "healthy",
+          "message": "Due jobs are being claimed",
+          "details": {
+            "queue": {
+              "duePending": 0,
+              "processing": 1,
+              "oldestDuePendingAgeMs": "<object>",
+              "latestClaimAgeMs": "<number>",
+              "stalled": false
+            }
+          }
+        },
+        {
+          "name": "job-execution-inventory",
+          "status": "healthy",
+          "message": "Every active job type has a declared executor"
+        },
+        {
+          "name": "attempt-leases",
+          "status": "healthy",
+          "message": "No stale processing leases"
+        },
+        {
+          "name": "projection-circuits",
+          "status": "healthy",
+          "message": "No projection circuits are open"
+        },
+        {
+          "name": "projection-waves",
+          "status": "healthy",
+          "message": "No active projection wave"
+        },
+        {
+          "name": "daemons",
+          "status": "healthy",
+          "message": "6 daemon(s) healthy"
+        },
+        {
+          "name": "directory-sync:git-progress",
+          "status": "healthy",
+          "message": "No stale directory Git pull"
+        }
+      ],
+      "resources": "<object>",
+      "app": {
+        "version": "<string>",
+        "uptime": "<number>",
+        "daemons": [
+          {
+            "name": "shell:recurring-checks",
+            "pluginId": "shell",
+            "status": "running"
+          },
+          {
+            "name": "shell:guest-retention",
+            "pluginId": "shell",
+            "status": "running",
+            "health": {
+              "status": "unknown"
+            }
+          },
+          {
+            "name": "webserver:webserver",
+            "pluginId": "webserver",
+            "status": "running",
+            "health": {
+              "status": "healthy",
+              "lastCheck": "<string>"
+            }
+          },
+          {
+            "name": "mcp:mcp",
+            "pluginId": "mcp",
+            "status": "running",
+            "health": {
+              "status": "healthy",
+              "lastCheck": "<string>"
+            }
+          },
+          {
+            "name": "web-chat:guest-maintenance",
+            "pluginId": "web-chat",
+            "status": "running",
+            "health": {
+              "status": "unknown"
+            }
+          },
+          {
+            "name": "a2a:a2a",
+            "pluginId": "a2a",
+            "status": "running"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": "GET preview.localhost/health/live",
+    "status": 200,
+    "headers": {
+      "content-length": "68",
+      "content-type": "application/json",
+      "date": "<date>"
+    },
+    "body": {
+      "status": "alive",
+      "uptime": "<number>",
+      "checkedAt": "<string>"
+    }
+  },
+  {
+    "request": "GET localhost/status",
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID, Mcp-Method, Mcp-Name",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+      "access-control-allow-origin": "*",
+      "access-control-allow-private-network": "true",
+      "content-length": "38",
+      "content-type": "application/json",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "status": "ok",
+      "protocol": "stateless"
+    }
+  },
+  {
+    "request": "POST localhost/mcp {\"content-type\":\"application/json\"}",
+    "status": 401,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID, Mcp-Method, Mcp-Name",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+      "access-control-allow-origin": "*",
+      "access-control-allow-private-network": "true",
+      "content-length": "99",
+      "content-type": "application/json",
+      "date": "<date>",
+      "www-authenticate": "Bearer resource_metadata=\"http://127.0.0.1:<port>/.well-known/oauth-protected-resource\", realm=\"mcp\"",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "jsonrpc": "2.0",
+      "error": {
+        "code": -32001,
+        "message": "Unauthorized: Bearer token required"
+      },
+      "id": null
+    }
+  },
+  {
+    "request": "OPTIONS localhost/mcp {\"origin\":\"https://client.example\",\"access-control-request-method\":\"POST\"}",
+    "status": 204,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID, Mcp-Method, Mcp-Name",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+      "access-control-allow-origin": "*",
+      "access-control-allow-private-network": "true",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    }
+  },
+  {
+    "request": "GET localhost/.well-known/agent-card.json",
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Signature, Signature-Input, Content-Digest, Date",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-origin": "*",
+      "content-length": "6247",
+      "content-type": "application/json",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    }
+  },
+  {
+    "request": "GET localhost/.well-known/agent-directory.json",
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Signature, Signature-Input, Content-Digest, Date",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-origin": "*",
+      "content-length": "13",
+      "content-type": "application/json",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    }
+  },
+  {
+    "request": "OPTIONS localhost/a2a {\"origin\":\"https://client.example\",\"access-control-request-method\":\"POST\"}",
+    "status": 204,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Signature, Signature-Input, Content-Digest, Date",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-origin": "*",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    }
+  },
+  {
+    "request": "GET localhost/.well-known/oauth-protected-resource",
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-origin": "*",
+      "access-control-allow-private-network": "true",
+      "cache-control": "no-store",
+      "content-length": "203",
+      "content-type": "application/json",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "resource": "http://127.0.0.1:<port>",
+      "authorization_servers": ["http://127.0.0.1:<port>"],
+      "bearer_methods_supported": ["header"],
+      "resource_signing_alg_values_supported": ["ES256"],
+      "scopes_supported": ["mcp"]
+    }
+  },
+  {
+    "request": "GET localhost/.well-known/oauth-authorization-server",
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "Content-Type, Authorization, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-origin": "*",
+      "access-control-allow-private-network": "true",
+      "cache-control": "no-store",
+      "content-length": "751",
+      "content-type": "application/json",
+      "date": "<date>",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "issuer": "http://127.0.0.1:<port>",
+      "authorization_endpoint": "http://127.0.0.1:<port>/authorize",
+      "token_endpoint": "http://127.0.0.1:<port>/token",
+      "registration_endpoint": "http://127.0.0.1:<port>/register",
+      "revocation_endpoint": "http://127.0.0.1:<port>/revoke",
+      "jwks_uri": "http://127.0.0.1:<port>/.well-known/jwks.json",
+      "response_types_supported": ["code"],
+      "grant_types_supported": ["authorization_code", "refresh_token"],
+      "code_challenge_methods_supported": ["S256"],
+      "token_endpoint_auth_methods_supported": [
+        "none",
+        "client_secret_basic",
+        "client_secret_post"
+      ],
+      "client_id_metadata_document_supported": true,
+      "scopes_supported": [
+        "openid",
+        "profile",
+        "email",
+        "offline_access",
+        "mcp"
+      ],
+      "subject_types_supported": ["public"],
+      "id_token_signing_alg_values_supported": ["ES256"]
+    }
+  },
+  {
+    "request": "GET localhost/login",
+    "status": 200,
+    "headers": {
+      "cache-control": "no-store",
+      "content-length": "9400",
+      "content-type": "text/html; charset=utf-8",
+      "date": "<date>"
+    }
+  },
+  {
+    "request": "GET localhost/setup",
+    "status": 404,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain;charset=utf-8",
+      "date": "<date>"
+    }
+  },
+  {
+    "request": "GET localhost/studio",
+    "status": 302,
+    "headers": {
+      "cache-control": "no-store",
+      "content-length": "0",
+      "date": "<date>",
+      "location": "/login?return_to=%2Fstudio"
+    }
+  },
+  {
+    "request": "GET localhost/studio/workspaces/inbox",
+    "status": 302,
+    "headers": {
+      "cache-control": "no-store",
+      "content-length": "0",
+      "date": "<date>",
+      "location": "/login?return_to=%2Fstudio%2Fworkspaces%2Finbox"
+    }
+  },
+  {
+    "request": "GET localhost/chat",
+    "status": 302,
+    "headers": {
+      "cache-control": "no-store",
+      "content-length": "0",
+      "date": "<date>",
+      "location": "/login?return_to=%2Fchat"
+    }
+  },
+  {
+    "request": "GET localhost/ask",
+    "status": 303,
+    "headers": {
+      "cache-control": "no-store",
+      "content-length": "0",
+      "date": "<date>",
+      "location": "/chat"
+    }
+  },
+  {
+    "request": "GET localhost/api/chat/sessions",
+    "status": 403,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain;charset=utf-8",
+      "date": "<date>"
+    },
+    "body": "Forbidden"
+  },
+  {
+    "request": "GET localhost/api/chat/guest/access",
+    "status": 401,
+    "headers": {
+      "cache-control": "no-store",
+      "content-length": "35",
+      "content-type": "application/json;charset=utf-8",
+      "date": "<date>",
+      "vary": "Cookie"
+    },
+    "body": {
+      "error": "Authentication required"
+    }
+  },
+  {
+    "request": "GET localhost/api/console/jump",
+    "status": 401,
+    "headers": {
+      "content-length": "35",
+      "content-type": "application/json;charset=utf-8",
+      "date": "<date>"
+    }
+  },
+  {
+    "request": "GET localhost/favicon.svg",
+    "status": 200,
+    "headers": {
+      "cache-control": "public, max-age=86400",
+      "content-encoding": "gzip",
+      "content-length": "186",
+      "content-type": "image/svg+xml; charset=utf-8",
+      "date": "<date>",
+      "etag": "<etag>",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:992d809cadae8999023cae5ff00d60c6c27fa50d0cd5e2eacb9a9a097486af2e"
+  },
+  {
+    "request": "GET localhost/.site-build-manifest.json",
+    "status": 404,
+    "headers": {
+      "cache-control": "no-cache",
+      "content-encoding": "gzip",
+      "content-length": "29",
+      "content-type": "text/plain; charset=UTF-8",
+      "date": "<date>",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:9ffcf79d60f88a0c44ebd9e028ce69ab44eab081dae308c36ab3dc8ca0ad15d7"
+  },
+  {
+    "request": "GET localhost/images/missing.webp",
+    "status": 404,
+    "headers": {
+      "cache-control": "no-cache",
+      "content-encoding": "gzip",
+      "content-length": "29",
+      "content-type": "text/plain; charset=UTF-8",
+      "date": "<date>",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:9ffcf79d60f88a0c44ebd9e028ce69ab44eab081dae308c36ab3dc8ca0ad15d7"
+  },
+  {
+    "request": "GET localhost/missing-page",
+    "status": 404,
+    "headers": {
+      "cache-control": "no-cache",
+      "content-encoding": "gzip",
+      "content-length": "29",
+      "content-type": "text/plain; charset=UTF-8",
+      "date": "<date>",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:9ffcf79d60f88a0c44ebd9e028ce69ab44eab081dae308c36ab3dc8ca0ad15d7"
+  },
+  {
+    "request": "GET localhost/",
+    "status": 200,
+    "headers": {
+      "cache-control": "private, no-store",
+      "content-length": "35066",
+      "content-type": "text/html; charset=utf-8",
+      "date": "<date>"
+    }
+  },
+  {
+    "request": "GET preview.localhost/",
+    "status": 200,
+    "headers": {
+      "cache-control": "private, no-store",
+      "content-length": "35076",
+      "content-type": "text/html; charset=utf-8",
+      "date": "<date>"
+    }
+  },
+  {
+    "request": "GET localhost/index.html",
+    "status": 200,
+    "headers": {
+      "cache-control": "public, max-age=3600",
+      "content-encoding": "gzip",
+      "content-type": "text/html; charset=utf-8",
+      "date": "<date>",
+      "etag": "<etag>",
+      "transfer-encoding": "chunked",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:5af28015f8a14e12dd552bdc37dbea2e409935b71c356c210bd7fcf94942e92b"
+  },
+  {
+    "request": "GET preview.localhost/index.html",
+    "status": 200,
+    "headers": {
+      "cache-control": "public, max-age=3600",
+      "content-encoding": "gzip",
+      "content-type": "text/html; charset=utf-8",
+      "date": "<date>",
+      "etag": "<etag>",
+      "transfer-encoding": "chunked",
+      "vary": "Accept-Encoding"
+    },
+    "body": "sha256:5af28015f8a14e12dd552bdc37dbea2e409935b71c356c210bd7fcf94942e92b"
+  }
+]

@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { isErrnoException } from "@brains/utils/predicates";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { join, relative, sep } from "path";
 
 /**
@@ -82,8 +82,4 @@ async function collectPublicAssets(
 
     assets[assetPath] = (await fs.readFile(sourcePath)).toString("base64");
   }
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return isErrnoException(error) && error.code === "ENOENT";
 }

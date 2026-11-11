@@ -1,8 +1,11 @@
 brain: brain
 bundleContract: capability-bundles-v1
 bundles: [site]
-add: [webserver, mcp]
+add: [mcp]
 remove: [dashboard, analytics]
+port: 8085
+http:
+  enabled: true
 database: "file:./brain.db"
 embedding:
   enabled: false
@@ -16,7 +19,3 @@ plugins:
   directory-sync:
     autoSync: false
     initialSync: false
-  webserver:
-    apiPort: 3355
-    previewPort: 4325
-    productionPort: 8085

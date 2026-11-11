@@ -57,26 +57,11 @@ function createMockFactory(id: string): [PluginFactory, PluginConfig[]] {
   return [factory, configs];
 }
 
-class MockWebserver implements Plugin {
-  public readonly id = "webserver";
+class MockInterface implements Plugin {
+  public readonly id = "sample-interface";
   public readonly version = "1.0.0";
-  public readonly description = "Mock webserver";
-  public readonly packageName = "@brains/webserver";
-  public readonly type = "interface" as const;
-  public config: PluginConfig;
-  constructor(config: PluginConfig) {
-    this.config = config;
-  }
-  async register(_shell: IShell): Promise<PluginCapabilities> {
-    return { tools: [], resources: [] };
-  }
-}
-
-class MockMcp implements Plugin {
-  public readonly id = "mcp";
-  public readonly version = "1.0.0";
-  public readonly description = "Mock MCP";
-  public readonly packageName = "@brains/mcp";
+  public readonly description = "Mock interface";
+  public readonly packageName = "@brains/sample-interface";
   public readonly type = "interface" as const;
   public config: PluginConfig;
   constructor(config: PluginConfig) {
@@ -203,19 +188,19 @@ describe("parseInstanceOverrides", () => {
 
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
-      'brain: "brain"\nplugins:\n  webserver:\n    productionPort: 9090',
+      'brain: "brain"\nplugins:\n  mcp:\n    port: 9090',
     );
     expect(result.plugins).toEqual({
-      webserver: { productionPort: 9090 },
+      mcp: { port: 9090 },
     });
   });
 
   test("should parse plugins section with multiple plugins", () => {
     const result = parseInstanceOverrides(
-      'brain: "brain"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
+      'brain: "brain"\nplugins:\n  mcp:\n    port: 9090\n  git-sync:\n    autoSync: false',
     );
     expect(result.plugins).toEqual({
-      webserver: { productionPort: 9090 },
+      mcp: { port: 9090 },
       "git-sync": { autoSync: false },
     });
   });
@@ -511,14 +496,14 @@ plugins:
     // disappear, leaving only the real entries.
     const yaml = `brain: "brain"
 plugins:
-  webserver:
+  sample:
     extraHosts:
       - first.example.com
       -
       - second.example.com
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.plugins?.["webserver"]?.["extraHosts"]).toEqual([
+    expect(result.plugins?.["sample"]?.["extraHosts"]).toEqual([
       "first.example.com",
       "second.example.com",
     ]);
@@ -855,8 +840,8 @@ describe("resolve with instance overrides", () => {
       capabilities: [],
       interfaces: [
         [
-          "webserver",
-          MockWebserver,
+          "sample-interface",
+          (config: PluginConfig): Plugin => new MockInterface(config),
           (): PluginConfig => ({ productionPort: 8080 }),
         ],
       ],
@@ -866,15 +851,13 @@ describe("resolve with instance overrides", () => {
       def,
       {},
       {
-        plugins: { webserver: { productionPort: 9090 } },
+        plugins: { "sample-interface": { productionPort: 9090 } },
       },
     );
 
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-    expect(webserver).toBeDefined();
-    expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
-    // Local links and the dev sign-in issuer follow the port actually served.
-    expect(config.deployment.ports.production).toBe(9090);
+    const sample = config.plugins?.find((p) => p.id === "sample-interface");
+    expect(sample).toBeDefined();
+    expect(getConfig(sample)).toMatchObject({ productionPort: 9090 });
   });
 
   test("should apply targeted override after construction", () => {
@@ -884,20 +867,26 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "sample-interface",
+          (config: PluginConfig): Plugin => new MockInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(
       def,
       {},
       {
-        plugins: { webserver: { productionPort: 9090 } },
+        plugins: { "sample-interface": { productionPort: 9090 } },
       },
     );
 
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-    expect(webserver).toBeDefined();
-    expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
+    const sample = config.plugins?.find((p) => p.id === "sample-interface");
+    expect(sample).toBeDefined();
+    expect(getConfig(sample)).toMatchObject({ productionPort: 9090 });
   });
 
   test("should not bleed overrides between plugins", () => {
@@ -1320,13 +1309,13 @@ permissions:
     const configs: unknown[] = [];
     const factory: PluginFactory = (config) => {
       configs.push(config);
-      return createMockPlugin("webserver", config);
+      return createMockPlugin("sample", config);
     };
 
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [["webserver", factory, {}]],
+      capabilities: [["sample", factory, {}]],
       interfaces: [],
     });
 
@@ -1335,13 +1324,13 @@ permissions:
       {},
       {
         plugins: {
-          webserver: { port: 9090, title: "My Site" },
+          sample: { port: 9090, title: "My Site" },
         },
       },
     );
 
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-    expect(getConfig(webserver)).toMatchObject({
+    const sample = config.plugins?.find((p) => p.id === "sample");
+    expect(getConfig(sample)).toMatchObject({
       port: 9090,
       title: "My Site",
     });
@@ -1504,134 +1493,6 @@ describe("resolve with site package", () => {
       post: { label: "Essay" },
       note: { label: "Note" },
     });
-  });
-
-  test("derives MCP transport from webserver presence and preserves overrides", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      bundles: [
-        { id: "core", members: ["mcp"] },
-        { id: "web", members: ["webserver"] },
-      ],
-      capabilities: [],
-      interfaces: [
-        ["mcp", MockMcp, (): PluginConfig => ({ mode: "basic" })],
-        ["webserver", MockWebserver, (): PluginConfig => ({})],
-      ],
-    });
-
-    const headless = resolve(def, {}, { bundles: ["core"] });
-    expect(getConfig(headless.plugins?.find((p) => p.id === "mcp"))).toEqual({
-      mode: "basic",
-      transport: "stdio",
-    });
-
-    const withWeb = resolve(def, {}, { bundles: ["core", "web"] });
-    expect(getConfig(withWeb.plugins?.find((p) => p.id === "mcp"))).toEqual({
-      mode: "basic",
-      transport: "http",
-    });
-
-    const explicit = resolve(
-      def,
-      {},
-      {
-        bundles: ["core", "web"],
-        plugins: { mcp: { transport: "stdio" } },
-      },
-    );
-    expect(getConfig(explicit.plugins?.find((p) => p.id === "mcp"))).toEqual({
-      mode: "basic",
-      transport: "stdio",
-    });
-  });
-
-  test("should disable webserver preview when site-builder is not active", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      bundles: [
-        { id: "core", members: ["webserver"] },
-        { id: "site", members: ["site-builder", "webserver"] },
-      ],
-      capabilities: [
-        ["site-builder", createMockFactory("site-builder")[0], {}],
-      ],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
-    });
-
-    const config = resolve(def, {}, { bundles: ["core"] });
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-
-    expect(getConfig(webserver)["enablePreview"]).toBe(false);
-  });
-
-  test("should keep webserver preview when site-builder is active", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      bundles: [
-        { id: "core", members: ["webserver"] },
-        { id: "site", members: ["site-builder", "webserver"] },
-      ],
-      capabilities: [
-        ["site-builder", createMockFactory("site-builder")[0], {}],
-      ],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
-    });
-
-    const config = resolve(def, {}, { bundles: ["site"] });
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-
-    expect(getConfig(webserver)["enablePreview"]).toBe(true);
-  });
-
-  test("should disable webserver preview when webserver is enabled without site-builder", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
-    });
-
-    const config = resolve(def, {});
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-
-    expect(getConfig(webserver)["enablePreview"]).toBe(false);
-  });
-
-  test("should serve production on the port brain.yaml sets", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
-    });
-
-    const config = resolve(def, {}, { port: 8090 });
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-
-    expect(getConfig(webserver)["productionPort"]).toBe(8090);
-    expect(config.deployment.ports.production).toBe(8090);
-  });
-
-  test("should let an explicit webserver productionPort win over port", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
-    });
-
-    const config = resolve(
-      def,
-      {},
-      { port: 8090, plugins: { webserver: { productionPort: 9000 } } },
-    );
-    const webserver = config.plugins?.find((p) => p.id === "webserver");
-
-    expect(getConfig(webserver)["productionPort"]).toBe(9000);
   });
 
   test("should keep entityDisplay in shell config instead of injecting it into studio", () => {

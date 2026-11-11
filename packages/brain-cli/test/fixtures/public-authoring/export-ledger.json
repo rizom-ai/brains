@@ -26,7 +26,6 @@
         "CapabilityConfig",
         "CapabilityContext",
         "CapabilityEntry",
-        "InterfaceConstructor",
         "InterfaceEntry",
         "PLUGIN_API_VERSION",
         "Plugin",
@@ -160,6 +159,7 @@
         "EntityEvalContext",
         "EntityEvalDeclaration",
         "EntityEvalFixtures",
+        "EntityFeedBuild",
         "EntityFeedDeclaration",
         "EntityGenerationContext",
         "EntityGenerationDeclaration",
@@ -214,7 +214,9 @@
         "defineEntityPackage",
         "defineProjection",
         "defineProjectionRule",
-        "z"
+        "z",
+        "Channel",
+        "defineChannel"
       ],
       "advanced-with-consumer": [],
       "internal/removable": [
@@ -317,6 +319,8 @@
         "defineBusContract",
         "BusContract",
         "BusResult",
+        "Channel",
+        "defineChannel",
         "defineRoute",
         "protocol"
       ],

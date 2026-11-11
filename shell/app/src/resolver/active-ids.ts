@@ -16,10 +16,33 @@ export interface ResolvedBrainSelection {
   resolution: BundleSelectionResolution;
 }
 
+/**
+ * The webserver interface became the runtime's HTTP host: a brain.yaml that
+ * still configures or selects it is refused with where its settings went,
+ * rather than booting with them ignored.
+ */
+function refuseRetiredWebserver(
+  overrides: Omit<InstanceOverrides, "brain"> | undefined,
+): void {
+  if (Object.hasOwn(overrides?.plugins ?? {}, "webserver")) {
+    throw new Error(
+      'brain.yaml "plugins.webserver" is retired: the runtime hosts HTTP. Set the production port with top-level "port" and serving settings under "http" (enabled, preview, hostname, productionDistDir, previewDistDir, sharedImagesDir); preview shares the production port.',
+    );
+  }
+  for (const list of ["add", "remove"] as const) {
+    if (overrides?.[list]?.includes("webserver") === true) {
+      throw new Error(
+        `brain.yaml ${list} names "webserver", which is retired: the runtime hosts HTTP. Choose it with "http.enabled" instead.`,
+      );
+    }
+  }
+}
+
 export function resolveBrainSelection(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): ResolvedBrainSelection {
+  refuseRetiredWebserver(overrides);
   if (
     overrides?.add?.includes("cms") === true ||
     overrides?.remove?.includes("cms") === true ||
@@ -88,14 +111,6 @@ export function resolveActiveIds(
 }
 
 export function isActive(activeIds: ActiveIds, id: string): boolean {
-  return activeIds.has(id);
-}
-
-export function hasActiveInterface(
-  _definition: BrainDefinition,
-  activeIds: ActiveIds,
-  id: string,
-): boolean {
   return activeIds.has(id);
 }
 

@@ -1,10 +1,10 @@
 import type { AuthAdminUserSummary } from "@brains/contracts";
 import {
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+  z,
+  type DashboardWidgetDefinition,
+} from "@brains/sdk/services";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { formatWorkspaceDate, requireAuthBackend } from "./workspace-format";
 
 export const EXPIRING_INVITATION_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1_000;
@@ -48,7 +48,10 @@ export type InvitationsOverviewData = z.output<
   typeof invitationsOverviewDataSchema
 >;
 
-const invitationsOverviewWidget = defineDashboardWidget({
+export const invitationsOverviewWidget: DashboardWidgetDefinition<
+  "expiring-invitations",
+  typeof invitationsOverviewDataSchema
+> = defineDashboardWidget({
   id: "expiring-invitations",
   title: "Invitations",
   description: "Setup links that expire soon or need delivery attention",
@@ -178,17 +181,13 @@ export function deriveInvitationsOverview(
   };
 }
 
-export async function registerInvitationsOverview(
-  context: ServicePluginContext,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
-    definition: invitationsOverviewWidget,
-    load: async ({ signal }) => {
-      signal.throwIfAborted();
-      const users = await requireAuthBackend(context).listAdminUsers();
-      signal.throwIfAborted();
-      return deriveInvitationsOverview(users, Date.now());
-    },
-  });
+/** The widget's data: the roster as the auth backend holds it now. */
+export async function loadInvitationsOverview(
+  runtime: Pick<ServiceRuntime, "auth">,
+  signal: AbortSignal,
+): Promise<InvitationsOverviewData> {
+  signal.throwIfAborted();
+  const users = await requireAuthBackend(runtime).listAdminUsers();
+  signal.throwIfAborted();
+  return deriveInvitationsOverview(users, Date.now());
 }

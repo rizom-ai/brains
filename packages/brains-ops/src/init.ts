@@ -75,49 +75,6 @@ const templateRootDir = fileURLToPath(
   new URL("../templates/rover-pilot/", import.meta.url),
 );
 
-const legacyDeployYmlContents = [
-  `service: rover
-image: <%= ENV['IMAGE_REPOSITORY'] %>
-
-servers:
-  web:
-    hosts:
-      - <%= ENV['SERVER_IP'] %>
-
-proxy:
-  ssl:
-    certificate_pem: CERTIFICATE_PEM
-    private_key_pem: PRIVATE_KEY_PEM
-  hosts:
-    - <%= ENV['BRAIN_DOMAIN'] %>
-    - <%= ENV['PREVIEW_DOMAIN'] %>
-  app_port: 80
-  healthcheck:
-    path: /health
-
-registry:
-  server: ghcr.io
-  username: <%= ENV['REGISTRY_USERNAME'] %>
-  password:
-    - KAMAL_REGISTRY_PASSWORD
-
-builder:
-  arch: amd64
-
-env:
-  clear:
-    NODE_ENV: production
-  secret:
-    - AI_API_KEY
-    - GIT_SYNC_TOKEN
-    - DISCORD_BOT_TOKEN
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain.yaml:/app/brain.yaml
-`,
-];
-
 type StarterFilePath = (typeof starterFilePaths)[number];
 type StalenessCheck = (current: string, template: string) => boolean;
 
@@ -219,9 +176,7 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
   ".env.schema": isStalePilotEnvSchema,
   "deploy/Dockerfile": (current) => isStaleDeployDockerfile(current),
   "deploy/kamal/deploy.yml": (current) =>
-    legacyDeployYmlContents.includes(current) ||
-    isStalePilotDeployYml(current) ||
-    isStalePilotDeploySecrets(current),
+    isStalePilotDeployYml(current) || isStalePilotDeploySecrets(current),
   "deploy/scripts/decrypt-user-secrets.ts": isStaleDecryptUserSecretsScript,
   "deploy/scripts/resolve-deploy-handles.ts": (current) =>
     isStaleResolveDeployHandlesScript(current),

@@ -1,0 +1,27 @@
+id: tool-invocation-atproto-list-lexicons
+name: List the AT Protocol lexicons
+description: Tests that a request for the brain's AT Protocol lexicons lists them through the registry instead of answering from memory.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - federation
+  - atproto
+
+turns:
+  - userMessage: "Which AT Protocol lexicons does this brain publish? List them."
+
+successCriteria:
+  expectedTools:
+    - toolName: atproto-registry_list_lexicons
+      shouldBeCalled: true
+  responseContains:
+    - "ai.rizom.brain"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 50000

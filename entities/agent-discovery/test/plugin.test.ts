@@ -5,12 +5,14 @@ import { join } from "node:path";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,
+  toolResponseSchema,
 } from "@brains/plugins";
 import {
   createPluginHarness,
   confirmationArgs,
   expectConfirmation,
   expectSuccess,
+  type PluginTestHarness,
 } from "@brains/plugins/test";
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
@@ -25,9 +27,11 @@ import type {
   DashboardWidgetRegistration,
   IRuntimeStateNamespace,
   Plugin,
+  ToolResponse,
 } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
+import { PLUGIN_CHANNELS } from "@brains/contracts";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   CARD_REFRESH_STATE_NAMESPACE,
@@ -41,6 +45,36 @@ import {
 } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
 import { z } from "@brains/utils/zod";
+
+/**
+ * Call an agent tool the way MCP does: a tool execute message on the bus to
+ * the agent plugin, each call on its own, and its reply's data.
+ */
+async function overTheToolBus(
+  harness: PluginTestHarness<Plugin>,
+  toolName: string,
+  args: unknown,
+): Promise<ToolResponse> {
+  const response = await harness
+    .getMockShell()
+    .getMessageBus()
+    .send({
+      type: PLUGIN_CHANNELS.toolExecute("agent"),
+      payload: {
+        toolName,
+        args,
+        interfaceType: "mcp",
+        actor: { kind: "service", serviceId: "mcp-test" },
+        userPermissionLevel: "admin",
+      },
+      sender: "mcp",
+    });
+  if ("noop" in response || !response.success)
+    throw new Error(
+      `The tool bus refused ${toolName}: ${JSON.stringify(response)}`,
+    );
+  return toolResponseSchema.parse(response.data);
+}
 
 /** The refresh loop's record for one agent, kept outside the entity. */
 function refreshState(
@@ -775,6 +809,35 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
+  it("confirms agent_connect when both calls come over the tool bus, as MCP sends them", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "connect-mcp.example": createAgentCard("connect-mcp.example"),
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+
+    const confirmation = await overTheToolBus(harness, "agent_connect", {
+      source: { kind: "url", url: "connect-mcp.example" },
+    });
+    expectConfirmation(confirmation);
+
+    const result = await overTheToolBus(
+      harness,
+      "agent_connect",
+      confirmationArgs(confirmation),
+    );
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      status: "approved",
+      entityId: "connect-mcp.example",
+      connected: true,
+    });
+    await harness.reset();
+  });
+
   it("registers agent_set_trust_level as the explicit inbound trust tool", async () => {
     const harness = createPluginHarness<Plugin>({});
 
@@ -918,6 +981,55 @@ describe("AgentDiscoveryPlugin", () => {
       level: "public",
     });
     expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
+
+    await authPlugin.shutdown();
+    await harness.reset();
+  });
+
+  it("confirms agent_set_trust_level when both calls come over the tool bus, as MCP sends them", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await tempStorageDir(),
+      issuer: "https://local.example",
+    });
+
+    await harness.installPlugin(authPlugin);
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin());
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "trust-mcp.example",
+        name: "Trusted Peer",
+        url: "https://trust-mcp.example/a2a",
+        status: "approved",
+      }),
+    });
+    const activeAuth = harness.getMockShell().getAuthRegistry().get();
+    if (!(activeAuth instanceof AuthService))
+      throw new Error("Expected active auth service");
+    await activeAuth.grantA2APeerTrust({
+      domain: "trust-mcp.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+
+    const confirmation = await overTheToolBus(
+      harness,
+      "agent_set_trust_level",
+      { agent: "trust-mcp.example", level: "public" },
+    );
+    expectConfirmation(confirmation);
+
+    const result = await overTheToolBus(
+      harness,
+      "agent_set_trust_level",
+      confirmationArgs(confirmation),
+    );
+
+    expectSuccess(result);
+    expect(
+      await activeAuth.getA2APeerTrust("trust-mcp.example"),
+    ).toBeUndefined();
 
     await authPlugin.shutdown();
     await harness.reset();

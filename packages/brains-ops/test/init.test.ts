@@ -41,7 +41,7 @@ const upgradeManifestSchema = z.looseObject({
 
 const opsPackageDir = join(dirname(import.meta.dir));
 
-const legacyDeployYml = `service: rover
+const firstDeployYml = `service: rover
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
 servers:
@@ -825,14 +825,14 @@ describe("initPilotRepo", () => {
     expect(readme).toContain("single operator-owned repo");
   });
 
-  it("reconciles known stale generated deploy artifacts on rerun", async () => {
+  it("reconciles known stale generated deploy artifacts on rerun, but not a first-version deploy.yml", async () => {
     const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
     await writeFile(
       join(repo, "deploy", "kamal", "deploy.yml"),
-      legacyDeployYml,
+      firstDeployYml,
     );
     const dockerfilePath = join(repo, "deploy", "Dockerfile");
     await writeFile(
@@ -852,11 +852,8 @@ describe("initPilotRepo", () => {
       join(repo, "deploy", "kamal", "deploy.yml"),
       "utf8",
     );
-    expect(deployConfig).toContain("app_port: 8080");
-    expect(deployConfig).toContain("/opt/brain-state:/data");
-    expect(deployConfig).toContain("/opt/brain-config:/config");
-    expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
-    expect(deployConfig).not.toContain("\n  app_port: 80\n");
+    // A deploy.yml from the first pilot version is no longer recognized.
+    expect(deployConfig).toBe(firstDeployYml);
     expect(await readFile(dockerfilePath, "utf8")).toContain(
       'ENTRYPOINT ["/usr/bin/tini", "--"]',
     );

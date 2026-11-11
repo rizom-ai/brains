@@ -115,7 +115,7 @@ until the repository owns a corresponding format.
 
 - **CLI** — in-process REPL via `interfaces/chat-repl` (Ink)
 - **MCP** — stdio + HTTP transports via `interfaces/mcp`
-- **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/Studio routes, browser-facing APIs, and split health endpoints
+- **HTTP host** — in-process Hono via `Bun.serve`, owned by the runtime, serving site pages, dashboard/Studio routes, browser-facing APIs, and split health endpoints
 - **Chat** — Discord and Slack bot interface via `interfaces/chat` (Chat SDK)
 - **A2A** — agent-to-agent JSON-RPC via `interfaces/a2a` (Agent Card, non-blocking tasks)
 
@@ -252,7 +252,7 @@ until the repository owns a corresponding format.
 - **Three sibling plugin types** with isolated contexts:
   - **EntityPlugin** — content types (schema, adapter, generation handler, projection declarations); zero tools
   - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
-  - **InterfacePlugin** — transports (MCP, Discord, A2A, webserver, CLI)
+  - **InterfacePlugin** — transports (MCP, Discord, A2A, CLI)
 - **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
 - The **canonical definition** declares `[id, factory, config]` catalog tuples; eight ordered capability bundles plus policy-only `team` compose active members per instance
 
@@ -307,7 +307,7 @@ until the repository owns a corresponding format.
 
 - `@brains/chat-repl` — interactive Ink-based REPL
 - `@brains/mcp` — MCP transport (stdio + HTTP)
-- `@brains/webserver` — in-process Hono webserver for site pages, dashboard/Studio routes, browser-facing APIs, and split health endpoints
+- `@brains/http-host` — the runtime's in-process Hono server for site pages, dashboard/Studio routes, browser-facing APIs, and split health endpoints
 - `@brains/chat` — Discord and Slack bot interface (Chat SDK)
 - `@brains/a2a` — agent-to-agent JSON-RPC interface (Agent Card, non-blocking tasks)
 
@@ -332,7 +332,7 @@ until the repository owns a corresponding format.
 
 - **Local-first content** — Markdown files as source of truth, git-backed sync via `directory-sync`
 - **Hybrid search** — vector embeddings (OpenAI) + FTS5 keyword matching, threshold-tuned
-- **Multi-interface support** — CLI, Chat REPL, Discord, MCP, A2A, Webserver
+- **Multi-interface support** — CLI, Chat REPL, Discord, MCP, A2A, Web chat
 - **AI-powered** — single `AI_API_KEY`, provider auto-detected from model name (OpenAI / Anthropic / Google)
 - **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories
 - **Type-safe** — end-to-end TypeScript with Zod validation

@@ -1,16 +1,13 @@
 import { z } from "@brains/utils/zod";
 
 /** null means create only if absent; a token means replace that incarnation. */
-export interface EntityWriteCondition {
-  expectedRevision: string | null;
-}
-
-export const entityWriteConditionSchema: z.ZodType<
-  EntityWriteCondition,
-  unknown
-> = z.object({
+export const entityWriteConditionSchema: z.ZodObject<{
+  expectedRevision: z.ZodNullable<z.ZodString>;
+}> = z.object({
   expectedRevision: z.string().min(1).nullable(),
 });
+
+export type EntityWriteCondition = z.output<typeof entityWriteConditionSchema>;
 
 export class EntityWriteConflictError extends Error {
   constructor(entityType: string, entityId: string) {

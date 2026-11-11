@@ -3,72 +3,71 @@ import { z } from "@brains/utils/zod";
 /**
  * Schema for directory sync job data
  */
-export interface DirectorySyncJobData {
-  operation: "initial" | "scheduled" | "manual";
-  paths?: string[] | undefined;
-  entityTypes?: string[] | undefined;
-  syncDirection?: "import" | "export" | "both" | undefined;
-}
-
-export const directorySyncJobSchema: z.ZodType<
-  DirectorySyncJobData,
-  DirectorySyncJobData
-> = z.object({
+export const directorySyncJobSchema: z.ZodObject<{
+  operation: z.ZodEnum<{
+    initial: "initial";
+    scheduled: "scheduled";
+    manual: "manual";
+  }>;
+  paths: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  entityTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  syncDirection: z.ZodOptional<
+    z.ZodEnum<{ import: "import"; export: "export"; both: "both" }>
+  >;
+}> = z.object({
   operation: z.enum(["initial", "scheduled", "manual"]),
   paths: z.array(z.string()).optional(),
   entityTypes: z.array(z.string()).optional(),
   syncDirection: z.enum(["import", "export", "both"]).optional(),
 });
 
+export type DirectorySyncJobData = z.output<typeof directorySyncJobSchema>;
+
 /**
  * Schema for a tool-initiated git pull + sync batch request.
  */
-export interface DirectorySyncRequestJobData {
-  source: string;
-  runId?: string | undefined;
-  interfaceType?: string | undefined;
-  channelId?: string | undefined;
-  /** Rescan every file instead of the changes since the durable checkpoint. */
-  full?: boolean | undefined;
-}
-
-export const directorySyncRequestJobSchema: z.ZodType<
-  DirectorySyncRequestJobData,
-  DirectorySyncRequestJobData
-> = z.object({
+export const directorySyncRequestJobSchema: z.ZodObject<{
+  source: z.ZodString;
+  runId: z.ZodOptional<z.ZodString>;
+  interfaceType: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  full: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   source: z.string().min(1),
   runId: z.string().min(1).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
+  /** Rescan every file instead of the changes since the durable checkpoint. */
   full: z.boolean().optional(),
 });
 
-export interface DirectoryProjectionBatchRef {
-  operationId: string;
-  rootJobId: string;
-  childKey: string;
-  expectedChildren: number;
-}
+export type DirectorySyncRequestJobData = z.output<
+  typeof directorySyncRequestJobSchema
+>;
 
-export const directoryProjectionBatchRefSchema: z.ZodType<
-  DirectoryProjectionBatchRef,
-  DirectoryProjectionBatchRef
-> = z.object({
+export const directoryProjectionBatchRefSchema: z.ZodObject<{
+  operationId: z.ZodString;
+  rootJobId: z.ZodString;
+  childKey: z.ZodString;
+  expectedChildren: z.ZodNumber;
+}> = z.object({
   operationId: z.string().min(1),
   rootJobId: z.string().min(1),
   childKey: z.string().min(1),
   expectedChildren: z.number().int().positive(),
 });
 
-export type DirectoryImportPlan = Array<{
-  path: string;
-  entityType: string;
-  id: string;
-  expectedRevision: string | null;
-}>;
-export const directoryImportPlanSchema: z.ZodType<
-  DirectoryImportPlan,
-  DirectoryImportPlan
+export type DirectoryProjectionBatchRef = z.output<
+  typeof directoryProjectionBatchRefSchema
+>;
+
+export const directoryImportPlanSchema: z.ZodArray<
+  z.ZodObject<{
+    path: z.ZodString;
+    entityType: z.ZodString;
+    id: z.ZodString;
+    expectedRevision: z.ZodNullable<z.ZodString>;
+  }>
 > = z.array(
   z.object({
     path: z.string(),
@@ -78,73 +77,78 @@ export const directoryImportPlanSchema: z.ZodType<
   }),
 );
 
+export type DirectoryImportPlan = z.output<typeof directoryImportPlanSchema>;
+
 /**
  * Schema for directory import job data
  */
-export interface DirectoryImportJobData {
-  /** Queued batches retain their original preconditions across retries. */
-  plan?: DirectoryImportPlan | undefined;
-  /**
-   * The registered entity types the scheduling process admitted into this
-   * job. A worker that does not register one of them cannot import it.
-   */
-  entityTypes?: string[] | undefined;
-  paths?: string[] | undefined;
-  batchSize?: number | undefined;
-  batchIndex?: number | undefined;
-  projectionBatch?: DirectoryProjectionBatchRef | undefined;
-}
-
-export const directoryImportJobSchema: z.ZodType<
-  DirectoryImportJobData,
-  DirectoryImportJobData
-> = z.object({
+export const directoryImportJobSchema: z.ZodObject<{
+  paths: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  batchSize: z.ZodOptional<z.ZodNumber>;
+  batchIndex: z.ZodOptional<z.ZodNumber>;
+  projectionBatch: z.ZodOptional<typeof directoryProjectionBatchRefSchema>;
+  plan: z.ZodOptional<typeof directoryImportPlanSchema>;
+  entityTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}> = z.object({
   paths: z.array(z.string()).optional(),
   batchSize: z.number().min(1).optional(),
   batchIndex: z.number().optional(),
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
+  /** Queued batches retain their original preconditions across retries. */
   plan: directoryImportPlanSchema.optional(),
+  /**
+   * The registered entity types the scheduling process admitted into this
+   * job. A worker that does not register one of them cannot import it.
+   */
   entityTypes: z.array(z.string().min(1)).optional(),
 });
+
+export type DirectoryImportJobData = z.output<typeof directoryImportJobSchema>;
 
 /**
  * Schema for directory export job data
  */
-export interface DirectoryExportJobData {
-  entityTypes?: string[] | undefined;
-  batchSize?: number | undefined;
-}
-
-export const directoryExportJobSchema: z.ZodType<
-  DirectoryExportJobData,
-  DirectoryExportJobData
-> = z.object({
+export const directoryExportJobSchema: z.ZodObject<{
+  entityTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  batchSize: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
   entityTypes: z.array(z.string()).optional(),
   batchSize: z.number().min(1).optional(),
 });
 
+export type DirectoryExportJobData = z.output<typeof directoryExportJobSchema>;
+
 /**
  * Schema for directory delete job data
  */
-export interface DirectoryDeleteTarget {
-  entityId: string;
-  entityType: string;
-  filePath: string;
-}
-
-export type DirectoryDeleteJobData = (
-  DirectoryDeleteTarget | { deletions: DirectoryDeleteTarget[] }
-) & { projectionBatch?: DirectoryProjectionBatchRef | undefined };
-
-const directoryDeleteTargetSchema = z.object({
+const directoryDeleteTargetSchema: z.ZodObject<{
+  entityId: z.ZodString;
+  entityType: z.ZodString;
+  filePath: z.ZodString;
+}> = z.object({
   entityId: z.string(),
   entityType: z.string(),
   filePath: z.string(),
 });
 
-export const directoryDeleteJobSchema: z.ZodType<
-  DirectoryDeleteJobData,
-  DirectoryDeleteJobData
+export type DirectoryDeleteTarget = z.output<
+  typeof directoryDeleteTargetSchema
+>;
+
+export const directoryDeleteJobSchema: z.ZodUnion<
+  [
+    ReturnType<
+      typeof directoryDeleteTargetSchema.extend<{
+        projectionBatch: z.ZodOptional<
+          typeof directoryProjectionBatchRefSchema
+        >;
+      }>
+    >,
+    z.ZodObject<{
+      deletions: z.ZodArray<typeof directoryDeleteTargetSchema>;
+      projectionBatch: z.ZodOptional<typeof directoryProjectionBatchRefSchema>;
+    }>,
+  ]
 > = z.union([
   directoryDeleteTargetSchema.extend({
     projectionBatch: directoryProjectionBatchRefSchema.optional(),
@@ -155,21 +159,18 @@ export const directoryDeleteJobSchema: z.ZodType<
   }),
 ]);
 
+export type DirectoryDeleteJobData = z.output<typeof directoryDeleteJobSchema>;
+
 /**
  * Schema for cover image conversion job data
  */
-export interface CoverImageConversionJobData {
-  filePath: string;
-  sourceUrl: string;
-  postTitle: string;
-  postSlug: string;
-  customAlt?: string | undefined;
-}
-
-export const coverImageConversionJobSchema: z.ZodType<
-  CoverImageConversionJobData,
-  CoverImageConversionJobData
-> = z.object({
+export const coverImageConversionJobSchema: z.ZodObject<{
+  filePath: z.ZodString;
+  sourceUrl: z.ZodURL;
+  postTitle: z.ZodString;
+  postSlug: z.ZodString;
+  customAlt: z.ZodOptional<z.ZodString>;
+}> = z.object({
   filePath: z.string(),
   sourceUrl: z.url(),
   postTitle: z.string(),
@@ -177,23 +178,26 @@ export const coverImageConversionJobSchema: z.ZodType<
   customAlt: z.string().optional(),
 });
 
+export type CoverImageConversionJobData = z.output<
+  typeof coverImageConversionJobSchema
+>;
+
 /**
  * Schema for inline image conversion job data
  */
-export interface InlineImageConversionJobData {
-  filePath: string;
-  postSlug: string;
-}
-
-export const inlineImageConversionJobSchema: z.ZodType<
-  InlineImageConversionJobData,
-  InlineImageConversionJobData
-> = z.object({
+export const inlineImageConversionJobSchema: z.ZodObject<{
+  filePath: z.ZodString;
+  postSlug: z.ZodString;
+}> = z.object({
   /** Path to the markdown file to update */
   filePath: z.string(),
   /** Slug of the post (used for generating image IDs) */
   postSlug: z.string(),
 });
+
+export type InlineImageConversionJobData = z.output<
+  typeof inlineImageConversionJobSchema
+>;
 
 /**
  * Job request types for file watcher - discriminated union for type safety

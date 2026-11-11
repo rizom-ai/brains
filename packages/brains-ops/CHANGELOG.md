@@ -1,5 +1,77 @@
 # @brains/ops
 
+## 0.2.0-alpha.679
+
+No changes in this release.
+
+## 0.2.0-alpha.678
+
+No changes in this release.
+
+## 0.2.0-alpha.677
+
+No changes in this release.
+
+## 0.2.0-alpha.676
+
+No changes in this release.
+
+## 0.2.0-alpha.675
+
+No changes in this release.
+
+## 0.2.0-alpha.674
+
+No changes in this release.
+
+## 0.2.0-alpha.673
+
+No changes in this release.
+
+## 0.2.0-alpha.672
+
+No changes in this release.
+
+## 0.2.0-alpha.671
+
+No changes in this release.
+
+## 0.2.0-alpha.670
+
+No changes in this release.
+
+## 0.2.0-alpha.669
+
+No changes in this release.
+
+## 0.2.0-alpha.668
+
+No changes in this release.
+
+## 0.2.0-alpha.667
+
+No changes in this release.
+
+## 0.2.0-alpha.666
+
+No changes in this release.
+
+## 0.2.0-alpha.665
+
+No changes in this release.
+
+## 0.2.0-alpha.664
+
+No changes in this release.
+
+## 0.2.0-alpha.663
+
+No changes in this release.
+
+## 0.2.0-alpha.662
+
+No changes in this release.
+
 ## 0.2.0-alpha.661
 
 No changes in this release.

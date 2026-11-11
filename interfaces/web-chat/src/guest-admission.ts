@@ -91,7 +91,7 @@ export class GuestAdmission {
   private readonly requireAuthorization: boolean;
 
   constructor(
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
     policy: EnabledGuestPolicy,
     options: {
       now?: () => number;

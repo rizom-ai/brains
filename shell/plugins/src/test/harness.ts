@@ -41,6 +41,10 @@ export interface HarnessOptions {
   localSiteUrl?: string;
   /** Prefer local runtime URLs over public domain URLs */
   preferLocalUrls?: boolean;
+  /** Run as a production brain rather than local development */
+  production?: boolean;
+  /** Serve the brain's HTTP surface, as a web brain's serving process does */
+  servesHttp?: boolean;
   /** Optional composition-selected semantic profile kind */
   profileKind?: string;
   /** Broker endpoint supplied to service-plugin contexts in integration tests. */
@@ -73,6 +77,8 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       domain?: string;
       localSiteUrl?: string;
       preferLocalUrls?: boolean;
+      production?: boolean;
+      servesHttp?: boolean;
       profileKind?: string;
       gitBrokerSocket?: string;
       gitBrokerCheckout?: string;
@@ -89,6 +95,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.preferLocalUrls !== undefined) {
       mockShellOptions.preferLocalUrls = options.preferLocalUrls;
+    }
+    if (options.production !== undefined) {
+      mockShellOptions.production = options.production;
+    }
+    if (options.servesHttp !== undefined) {
+      mockShellOptions.servesHttp = options.servesHttp;
     }
     if (options.profileKind !== undefined) {
       mockShellOptions.profileKind = options.profileKind;
@@ -124,6 +136,8 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         domain?: string;
         localSiteUrl?: string;
         preferLocalUrls?: boolean;
+        production?: boolean;
+        servesHttp?: boolean;
         profileKind?: string;
         gitBrokerSocket?: string;
         gitBrokerCheckout?: string;
@@ -142,6 +156,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       }
       if (this.options.preferLocalUrls !== undefined) {
         mockShellOptions.preferLocalUrls = this.options.preferLocalUrls;
+      }
+      if (this.options.production !== undefined) {
+        mockShellOptions.production = this.options.production;
+      }
+      if (this.options.servesHttp !== undefined) {
+        mockShellOptions.servesHttp = this.options.servesHttp;
       }
       if (this.options.profileKind !== undefined) {
         mockShellOptions.profileKind = this.options.profileKind;

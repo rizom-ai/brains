@@ -1,22 +1,15 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { DecksPlugin } from "../../src/plugin";
 import { createDeckOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { DeckEntity } from "../../src/schemas/deck";
+import { decksPlugin, type DecksEntityPlugin } from "../decks-plugin";
 
 const sampleDeck: DeckEntity = {
   id: "deck-1",
   entityType: "deck",
   visibility: "public",
-  content: `---
-title: Distributed Systems Primer
-status: published
-slug: distributed-systems-primer
-description: A practical introduction to distributed systems failure modes.
-publishedAt: "2025-09-10T00:00:00.000Z"
-event: Architecture Week
----
-# Distributed Systems Primer
+  // As a declared deck reads back: its slides, its frontmatter its metadata.
+  content: `# Distributed Systems Primer
 
 What every developer should know.
 
@@ -36,6 +29,8 @@ Networks fail in surprising ways.
       "A practical introduction to distributed systems failure modes.",
     status: "published",
     publishedAt: "2025-09-10T00:00:00.000Z",
+    event: "Architecture Week",
+    authoredSlug: true,
   },
 };
 
@@ -45,8 +40,8 @@ describe("Deck OG image attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a deck OG image attachment provider", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
+    const harness = createPluginHarness<DecksEntityPlugin>();
+    await harness.installPlugin(decksPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("deck", "og-image")).toBe(true);
@@ -63,8 +58,8 @@ describe("Deck OG image attachment provider", () => {
       expect(html).toContain("Architecture Week");
       return TINY_PNG;
     });
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
+    const harness = createPluginHarness<DecksEntityPlugin>();
+    await harness.installPlugin(decksPlugin());
     await harness.getEntityService().createEntity({ entity: sampleDeck });
 
     const provider = createDeckOgImageProvider(

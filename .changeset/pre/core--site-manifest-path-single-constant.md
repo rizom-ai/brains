@@ -1,7 +1,7 @@
 ---
 "@brains/contracts": patch
 "@brains/core": patch
-"@brains/webserver": patch
+"@brains/http-host": patch
 "@brains/site-builder-plugin": patch
 ---
 

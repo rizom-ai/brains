@@ -1,49 +1,49 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
-import {
-  defineSection,
-  z,
-  type JsonObject,
-  type SiteSectionDefinition,
-} from "@rizom/site";
+import { defineSection, z, type SiteSectionDefinition } from "@rizom/site";
 
-interface FirstStep extends JsonObject {
-  /** A sentence saying what to do first. */
-  text: string | null;
-  /** Shell commands, one per line, shown as a terminal. */
-  commands: string[];
-  /** Steps in order, smallest first. */
-  steps: string[];
-  /** A closing line under the step. */
-  note: string | null;
-}
-
-export interface DocsHomeDoorsContent extends JsonObject {
-  heading: string;
-  lede: string;
-  firstStepLabel: string;
-  /** Listed in the order of the docs sections, so each door sits above its
-   *  section's guides and reference. */
-  doors: Array<{ title: string; who: string; firstStep: FirstStep }>;
-}
-
-const docsHomeDoorsSchema: z.ZodType<DocsHomeDoorsContent> = z.object({
+const docsHomeDoorsSchema: z.ZodObject<{
+  heading: z.ZodString;
+  lede: z.ZodString;
+  firstStepLabel: z.ZodString;
+  doors: z.ZodArray<
+    z.ZodObject<{
+      title: z.ZodString;
+      who: z.ZodString;
+      firstStep: z.ZodObject<{
+        text: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+        commands: z.ZodDefault<z.ZodArray<z.ZodString>>;
+        steps: z.ZodDefault<z.ZodArray<z.ZodString>>;
+        note: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+      }>;
+    }>
+  >;
+}> = z.object({
   heading: z.string(),
   lede: z.string(),
   firstStepLabel: z.string(),
+  /** Listed in the order of the docs sections, so each door sits above its
+   *  section's guides and reference. */
   doors: z.array(
     z.object({
       title: z.string(),
       who: z.string(),
       firstStep: z.object({
+        /** A sentence saying what to do first. */
         text: z.string().nullable().default(null),
+        /** Shell commands, one per line, shown as a terminal. */
         commands: z.array(z.string()).default([]),
+        /** Steps in order, smallest first. */
         steps: z.array(z.string()).default([]),
+        /** A closing line under the step. */
         note: z.string().nullable().default(null),
       }),
     }),
   ),
 });
+
+export type DocsHomeDoorsContent = z.output<typeof docsHomeDoorsSchema>;
+type FirstStep = DocsHomeDoorsContent["doors"][number]["firstStep"];
 
 /** Copy marks code with backticks: `brain.yaml`. */
 function withCode(text: string): ReactNode[] {

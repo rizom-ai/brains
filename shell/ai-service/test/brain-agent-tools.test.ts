@@ -122,3 +122,53 @@ describe("tools offered to the agent", () => {
     ]);
   });
 });
+
+describe("a tool's model input read from the brain's state", () => {
+  type ModelResponse = Awaited<ReturnType<MockLanguageModelV3["doGenerate"]>>;
+
+  it("is prepared before a strict model is shown it", async () => {
+    // A field the brain reads only when asked, as groupings are.
+    let fields: string[] = [];
+    const update: Tool = {
+      ...tool("system_update"),
+      modelInput: {
+        prepare: async (): Promise<void> => {
+          fields = ["clients"];
+        },
+        inputSchema: () => ({ field: z.enum(["title", ...fields]) }),
+        toToolInput: (input) => input,
+      },
+    };
+    const model = new MockLanguageModelV3({
+      doGenerate: async (): Promise<ModelResponse> => ({
+        content: [{ type: "text", text: "Hello." }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        },
+        warnings: [],
+      }),
+    });
+    await createBrainAgentFactory({
+      model,
+      modelId: "openai:gpt-6-luna",
+      messageBus: createMockMessageBus(),
+    })({
+      identity: { name: "Brain", role: "Keeper", purpose: "Help", values: [] },
+      tools: [update],
+      getToolsForPermission: () => [update],
+    }).generate({
+      messages: [{ role: "user", content: "Hi" }],
+      options: {
+        conversationId: "conv-1",
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+      },
+    });
+
+    const [sent] = model.doGenerateCalls[0]?.tools ?? [];
+    expect(JSON.stringify(sent)).toContain('"clients"');
+  });
+});

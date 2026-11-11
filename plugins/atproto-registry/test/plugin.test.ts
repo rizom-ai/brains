@@ -1,17 +1,27 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import type { Plugin, Tool, WebRouteDefinition } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   listCanonicalAtprotoLexiconMetadata,
   listCanonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import { atprotoRegistryPlugin, plugin } from "../src";
+import atprotoRegistryPackage from "../src";
+import { atprotoRegistryPlugin } from "./registry-plugin";
 
-async function jsonFromRoute(
-  route: NonNullable<
-    ReturnType<ReturnType<typeof atprotoRegistryPlugin>["getWebRoutes"]>[number]
-  >,
-): Promise<unknown> {
+async function installed(plugin: Plugin = atprotoRegistryPlugin()): Promise<{
+  routes: WebRouteDefinition[];
+  tools: Tool[];
+}> {
+  const harness = createPluginHarness();
+  const capabilities = await harness.installPlugin(plugin);
+  return {
+    routes: plugin.getWebRoutes?.() ?? [],
+    tools: capabilities.tools,
+  };
+}
+
+async function jsonFromRoute(route: WebRouteDefinition): Promise<unknown> {
   const response = await route.handler(
     new Request(`https://rizom.ai${route.path}`),
   );
@@ -22,20 +32,67 @@ async function jsonFromRoute(
   return response.json();
 }
 
+async function callTool(
+  tools: Tool[],
+  name: string,
+  input: Record<string, unknown>,
+): Promise<unknown> {
+  const tool = tools.find((candidate) => candidate.name === name);
+  if (!tool) throw new Error(`Missing tool ${name}`);
+  return tool.handler(input, {
+    interfaceType: "test",
+    actor: { kind: "user", userId: "test" },
+  });
+}
+
 describe("atproto registry plugin", () => {
-  it("exports a conventional external plugin factory", () => {
-    expect(plugin).toBe(atprotoRegistryPlugin);
+  it("default-exports its service package definition", () => {
+    expect(atprotoRegistryPackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "atproto-registry",
+    });
+  });
+
+  it("registers under the plugin id and tool names its class had", async () => {
+    const plugin = atprotoRegistryPlugin();
+    const { routes, tools } = await installed(plugin);
+
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "atproto-registry",
+      "service",
+      "@brains/atproto-registry",
+    ]);
+    expect(
+      tools.map(({ name, visibility, inputSchema }) => [
+        name,
+        visibility,
+        Object.keys(inputSchema),
+      ]),
+    ).toEqual([
+      ["atproto-registry_list_lexicons", "admin", []],
+      ["atproto-registry_validate_lexicon", "admin", ["nsid", "record"]],
+      ["atproto-registry_check_contracts", "admin", []],
+    ]);
+    // Every tool reads; none writes.
+    expect(tools.map(({ sideEffects }) => sideEffects)).toEqual([
+      "none",
+      "none",
+      "none",
+    ]);
+    expect(routes).toHaveLength(listCanonicalAtprotoLexicons().length + 1);
   });
 
   it("serves an index for every canonical Rizom ATProto lexicon", async () => {
-    const registry = atprotoRegistryPlugin();
-    const indexRoute = registry
-      .getWebRoutes()
-      .find((route) => route.path === "/atproto/lexicons/index.json");
+    const { routes } = await installed();
+    const indexRoute = routes.find(
+      (route) => route.path === "/atproto/lexicons/index.json",
+    );
 
     expect(indexRoute).toBeDefined();
     if (!indexRoute) throw new Error("Missing registry index route");
     expect(indexRoute.public).toBe(true);
+    expect(indexRoute.method).toBe("GET");
     const indexBodySchema = z.object({
       lexicons: z.array(
         z.object({
@@ -67,8 +124,7 @@ describe("atproto registry plugin", () => {
   });
 
   it("serves canonical lexicon JSON by NSID", async () => {
-    const registry = atprotoRegistryPlugin();
-    const routes = registry.getWebRoutes();
+    const { routes } = await installed();
 
     for (const lexicon of listCanonicalAtprotoLexicons()) {
       const route = routes.find(
@@ -77,51 +133,88 @@ describe("atproto registry plugin", () => {
       );
       expect(route).toBeDefined();
       if (!route) throw new Error(`Missing lexicon route: ${lexicon.id}`);
+      expect(route.public).toBe(true);
       expect(await jsonFromRoute(route)).toEqual(lexicon);
     }
   });
 
-  it("does not expose unknown NSID routes", () => {
-    const registry = atprotoRegistryPlugin();
+  it("does not expose unknown NSID routes", async () => {
+    const { routes } = await installed();
 
     expect(
-      registry
-        .getWebRoutes()
-        .some(
-          (route) =>
-            route.path === "/atproto/lexicons/ai.rizom.brain.unknown.json",
-        ),
+      routes.some(
+        (route) =>
+          route.path === "/atproto/lexicons/ai.rizom.brain.unknown.json",
+      ),
     ).toBe(false);
   });
 
-  it("reports canonical metadata from the contract check tool", async () => {
-    const harness = createPluginHarness();
-    const registry = atprotoRegistryPlugin();
-    await harness.installPlugin(registry);
+  it("serves no routes when disabled, and keeps its tools", async () => {
+    const { routes, tools } = await installed(
+      atprotoRegistryPlugin({ enabled: false }),
+    );
 
-    const tool = harness
-      .getCapabilities()
-      .tools.find(
-        (candidate) => candidate.name === "atproto-registry_check_contracts",
-      );
-    expect(tool).toBeDefined();
-    if (!tool) throw new Error("Missing check contracts tool");
+    expect(routes).toEqual([]);
+    expect(tools).toHaveLength(3);
+  });
 
-    const response = await tool.handler(
-      {},
+  it("lists the registry index from the list tool", async () => {
+    const { tools } = await installed();
+
+    expect(await callTool(tools, "atproto-registry_list_lexicons", {})).toEqual(
       {
-        interfaceType: "test",
-        actor: { kind: "user", userId: "test" },
+        success: true,
+        data: {
+          lexicons: listCanonicalAtprotoLexiconMetadata().map((metadata) => ({
+            ...metadata,
+            path: `/atproto/lexicons/${metadata.id}.json`,
+          })),
+        },
       },
     );
-    expect("success" in response && response.success).toBe(true);
-    if (!("success" in response) || !response.success) {
-      throw new Error("Contract check tool failed");
-    }
-    expect(response.data).toEqual({
-      lexiconCount: listCanonicalAtprotoLexicons().length,
-      nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
-      metadata: listCanonicalAtprotoLexiconMetadata(),
+  });
+
+  it("validates a record against a canonical lexicon", async () => {
+    const { tools } = await installed();
+
+    expect(
+      await callTool(tools, "atproto-registry_validate_lexicon", {
+        nsid: "ai.rizom.brain.topic",
+        record: { title: 42 },
+      }),
+    ).toMatchObject({ success: true, data: { valid: false } });
+  });
+
+  it("refuses an unknown lexicon as not found, naming it", async () => {
+    const { tools } = await installed();
+
+    expect(
+      await callTool(tools, "atproto-registry_validate_lexicon", {
+        nsid: "ai.rizom.brain.unknown",
+        record: {},
+      }),
+    ).toEqual({
+      success: false,
+      code: "not_found",
+      error: "Unknown AT Protocol lexicon: ai.rizom.brain.unknown",
+    });
+  });
+
+  it("reports canonical metadata from the contract check tool", async () => {
+    const { tools } = await installed();
+
+    const response = await callTool(
+      tools,
+      "atproto-registry_check_contracts",
+      {},
+    );
+    expect(response).toEqual({
+      success: true,
+      data: {
+        lexiconCount: listCanonicalAtprotoLexicons().length,
+        nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
+        metadata: listCanonicalAtprotoLexiconMetadata(),
+      },
     });
   });
 });

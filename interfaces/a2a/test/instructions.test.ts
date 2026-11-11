@@ -1,20 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { A2AInterface } from "../src/a2a-interface";
+import { createPluginHarness } from "@brains/plugins/test";
+import { createA2APlugin } from "./a2a-plugin";
 import { createAgentCallTool } from "../src/client";
-
-class TestA2AInterface extends A2AInterface {
-  public async instructions(): Promise<string | undefined> {
-    return this.getInstructions();
-  }
-}
 
 // Calling guidance travels with agent_call: its description reaches the model
 // only when the caller may call agents, and once per step instead of twice.
 describe("A2A instructions", () => {
   it("adds no prompt section beside the agent_call description", async () => {
-    const plugin = new TestA2AInterface({ port: 0 });
+    const capabilities = await createPluginHarness().installPlugin(
+      createA2APlugin({ port: 0 }),
+    );
 
-    expect(await plugin.instructions()).toBeUndefined();
+    expect(capabilities.instructions).toBeUndefined();
   });
 
   it("describes when and how to call an agent", () => {
@@ -23,7 +20,7 @@ describe("A2A instructions", () => {
     expect(description).toContain("bare text with a dot and no slash/protocol");
     expect(description).toContain("no system_list/system_get preflight");
     expect(description).toContain("Do not stop after listing the agent");
-    expect(description).toContain("pass only the hostname docs.rizom.ai");
+    expect(description).toContain("pass only the hostname docs.example");
     expect(description).toContain("ask for the HTTPS agent URL or exact id");
     expect(description).toContain("discovered but not approved");
     expect(description).toContain("never auto-save");

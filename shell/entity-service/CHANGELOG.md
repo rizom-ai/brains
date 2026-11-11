@@ -1,5 +1,226 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.679
+  - @brains/content-formatters@0.2.0-alpha.679
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/db@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/job-queue@0.2.0-alpha.679
+  - @brains/messaging-service@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.678
+  - @brains/content-formatters@0.2.0-alpha.678
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/db@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/job-queue@0.2.0-alpha.678
+  - @brains/messaging-service@0.2.0-alpha.678
+
+## 0.2.0-alpha.677
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.677
+  - @brains/content-formatters@0.2.0-alpha.677
+  - @brains/contracts@0.2.0-alpha.677
+  - @brains/db@0.2.0-alpha.677
+  - @brains/utils@0.2.0-alpha.677
+  - @brains/job-queue@0.2.0-alpha.677
+  - @brains/messaging-service@0.2.0-alpha.677
+
+## 0.2.0-alpha.676
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.676
+  - @brains/content-formatters@0.2.0-alpha.676
+  - @brains/contracts@0.2.0-alpha.676
+  - @brains/db@0.2.0-alpha.676
+  - @brains/utils@0.2.0-alpha.676
+  - @brains/job-queue@0.2.0-alpha.676
+  - @brains/messaging-service@0.2.0-alpha.676
+
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.675
+  - @brains/content-formatters@0.2.0-alpha.675
+  - @brains/contracts@0.2.0-alpha.675
+  - @brains/db@0.2.0-alpha.675
+  - @brains/utils@0.2.0-alpha.675
+  - @brains/job-queue@0.2.0-alpha.675
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.674
+  - @brains/content-formatters@0.2.0-alpha.674
+  - @brains/contracts@0.2.0-alpha.674
+  - @brains/db@0.2.0-alpha.674
+  - @brains/utils@0.2.0-alpha.674
+  - @brains/job-queue@0.2.0-alpha.674
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.673
+  - @brains/content-formatters@0.2.0-alpha.673
+  - @brains/contracts@0.2.0-alpha.673
+  - @brains/db@0.2.0-alpha.673
+  - @brains/utils@0.2.0-alpha.673
+  - @brains/job-queue@0.2.0-alpha.673
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.672
+  - @brains/content-formatters@0.2.0-alpha.672
+  - @brains/contracts@0.2.0-alpha.672
+  - @brains/db@0.2.0-alpha.672
+  - @brains/utils@0.2.0-alpha.672
+  - @brains/job-queue@0.2.0-alpha.672
+
+## 0.2.0-alpha.671
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.671
+  - @brains/content-formatters@0.2.0-alpha.671
+  - @brains/contracts@0.2.0-alpha.671
+  - @brains/db@0.2.0-alpha.671
+  - @brains/utils@0.2.0-alpha.671
+  - @brains/job-queue@0.2.0-alpha.671
+
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.670
+  - @brains/content-formatters@0.2.0-alpha.670
+  - @brains/contracts@0.2.0-alpha.670
+  - @brains/db@0.2.0-alpha.670
+  - @brains/utils@0.2.0-alpha.670
+  - @brains/job-queue@0.2.0-alpha.670
+
+## 0.2.0-alpha.669
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.669
+  - @brains/content-formatters@0.2.0-alpha.669
+  - @brains/contracts@0.2.0-alpha.669
+  - @brains/db@0.2.0-alpha.669
+  - @brains/utils@0.2.0-alpha.669
+  - @brains/job-queue@0.2.0-alpha.669
+
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.668
+  - @brains/content-formatters@0.2.0-alpha.668
+  - @brains/contracts@0.2.0-alpha.668
+  - @brains/db@0.2.0-alpha.668
+  - @brains/utils@0.2.0-alpha.668
+  - @brains/job-queue@0.2.0-alpha.668
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- [#813](https://github.com/rizom-ai/brains/pull/813) [`d726625`](https://github.com/rizom-ai/brains/commit/d72662546b43ab95f286ca2a408bc85ab677e309) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain whose plugin set changed while a projection wave was still running now starts. Before, the next boot failed with `Projection wave "…" graph fingerprint does not match the finalized graph` and the web process exited before it was ready. The unfinished wave is now superseded: its inputs go back to the pending queue and a fresh wave plans them against the new plugin set. Jobs the old wave had queued for a removed plugin's rules finish as superseded instead of failing through their retries, including a job that a worker on the new plugin set picks up before any sweep has superseded the wave: that job supersedes the wave itself. In a brain with separate web and worker processes, the projection sweep no longer logs `Cannot claim projection wave while "…" is running` when the other process claimed the next wave first; it leaves that wave to the process that claimed it.
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.667
+  - @brains/content-formatters@0.2.0-alpha.667
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/db@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/job-queue@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.666
+  - @brains/content-formatters@0.2.0-alpha.666
+  - @brains/contracts@0.2.0-alpha.666
+  - @brains/db@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/job-queue@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.665
+  - @brains/content-formatters@0.2.0-alpha.665
+  - @brains/contracts@0.2.0-alpha.665
+  - @brains/db@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/job-queue@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.664
+  - @brains/content-formatters@0.2.0-alpha.664
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/db@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/job-queue@0.2.0-alpha.664
+
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.663
+  - @brains/content-formatters@0.2.0-alpha.663
+  - @brains/contracts@0.2.0-alpha.663
+  - @brains/db@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/job-queue@0.2.0-alpha.663
+
+## 0.2.0-alpha.662
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.662
+  - @brains/content-formatters@0.2.0-alpha.662
+  - @brains/contracts@0.2.0-alpha.662
+  - @brains/db@0.2.0-alpha.662
+  - @brains/utils@0.2.0-alpha.662
+  - @brains/job-queue@0.2.0-alpha.662
+
 ## 0.2.0-alpha.661
 
 ### Patch Changes

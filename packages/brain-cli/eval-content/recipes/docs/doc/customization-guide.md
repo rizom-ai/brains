@@ -44,7 +44,7 @@ site:
   theme: "@acme/brain-theme"
 
 plugins:
-  # Optional deprecated fallback for MCP clients that cannot use OAuth:
+  # Static MCP token, local development only; a production brain refuses it:
   # mcp:
   #   authToken: ${MCP_AUTH_TOKEN}
 ```
@@ -333,7 +333,7 @@ Start with:
 
 ### Interface plugins
 
-Use an interface plugin for transports: MCP, Discord, A2A, webserver, or future chat platforms.
+Use an interface plugin for transports: MCP, Discord, A2A, or future chat platforms. The runtime hosts HTTP and serves the routes an interface declares.
 
 Rules of thumb:
 

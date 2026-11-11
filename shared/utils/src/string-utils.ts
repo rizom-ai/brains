@@ -179,6 +179,11 @@ export function pluralize(word: string): string {
   return word + "s";
 }
 
+/** Upper-case the first character and keep the rest as written: "site build" → "Site build". */
+export function capitalize(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
 /**
  * Convert a camelCase, snake_case, or kebab-case identifier to a
  * Title Case human-readable label. Collapses runs of whitespace.
@@ -338,6 +343,19 @@ export function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+/**
+ * Escape a string for safe interpolation into XML text or double/single-quoted
+ * attribute values, using XML's predefined entities.
+ */
+export function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
 
 /** 32-bit FNV-1a of the text in base 36: short, stable, browser-safe. */

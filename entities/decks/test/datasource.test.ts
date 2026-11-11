@@ -1,18 +1,19 @@
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import { createPluginHarness, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
-import type { BaseEntity, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type {
+  BaseEntity,
+  BaseDataSourceContext,
+  DataSource,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { createMockLogger } from "@brains/test-utils";
+import { decksPlugin } from "./decks-plugin";
 
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
-describe("DeckDataSource", () => {
-  let datasource: DeckDataSource;
+describe("the decks data source", () => {
+  let datasource: DataSource & Required<Pick<DataSource, "fetch">>;
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   const createMockDeck = (
@@ -35,12 +36,15 @@ describe("DeckDataSource", () => {
     });
   };
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
-    shell = createMockShell();
+  beforeEach(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(decksPlugin());
+    shell = harness.getMockShell();
     mockContext = { entityService: shell.getEntityService() };
 
-    datasource = new DeckDataSource(mockLogger);
+    const registered = harness.getDataSources().get("decks:entities");
+    if (!registered?.fetch) throw new Error("No decks data source");
+    datasource = { ...registered, fetch: registered.fetch.bind(registered) };
   });
 
   describe("fetchDeckList", () => {
@@ -203,6 +207,7 @@ coverImageId: cover-img-1
           slug: "deck-with-cover",
           status: "published",
           publishedAt: "2025-01-01T10:00:00.000Z",
+          coverImageId: "cover-img-1",
         },
       });
 

@@ -113,7 +113,6 @@ export {
   type AssistantTurn,
 } from "./assistant-turn";
 export {
-  actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
   authenticatedUserId,
@@ -258,7 +257,6 @@ export {
   PLUGIN_CHANNELS,
   PUBLISH_CHANNELS,
   SHELL_CHANNELS,
-  SITE_CHANNELS,
   publishCompletedChannel,
   publishFailedChannel,
   type PublishCompletedPayload,
@@ -308,7 +306,6 @@ export {
   SITE_BUILD_MANIFEST_FILE,
   SITE_BUILD_MANIFEST_PATH,
   siteBuildStagingContract,
-  type SiteBuildCompletedPayload,
   type SiteBuildStagingPayload,
 } from "./site-build";
 export {
@@ -316,6 +313,31 @@ export {
   type LifecycleStarterRegistrationResult,
   type LifecycleStarterRegistration,
 } from "./playbook-lifecycle-starter";
+export {
+  playbookSeedContract,
+  type PlaybookSeed,
+  type PlaybookSeedResult,
+} from "./playbook-seed";
+export {
+  profileImportApplyContract,
+  profileImportFieldNameSchema,
+  profileImportFieldNames,
+  profileImportFieldSchema,
+  profileImportFieldsSchema,
+  profileImportOutcomeSchema,
+  profileImportPreviewContract,
+  type ProfileImportField,
+  type ProfileImportFieldName,
+  type ProfileImportFields,
+  type ProfileImportOutcome,
+} from "./profile-import";
+export {
+  SOURCES_PER_TOPIC,
+  ownTopicSources,
+  topicSourceKey,
+  type NearSource,
+  type TopicNeighbourhood,
+} from "./topic-ownership";
 export {
   publishAssetDefinitionSchema,
   publishAssetRegisterContract,

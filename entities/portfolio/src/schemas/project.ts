@@ -45,35 +45,32 @@ export type ProjectFrontmatter = z.output<typeof projectFrontmatterSchema>;
 
 type ProjectMetadataSchema = z.ZodObject<{
   title: z.ZodString;
+  slug: z.ZodString;
   status: typeof projectStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
+  description: z.ZodString;
   year: z.ZodNumber;
-  slug: z.ZodString;
-  description: z.ZodOptional<z.ZodString>;
+  coverImageId: z.ZodOptional<z.ZodString>;
+  ogImageId: z.ZodOptional<z.ZodString>;
+  url: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
+  authoredSlug: z.ZodOptional<z.ZodBoolean>;
 }>;
 
 /**
- * Project metadata schema - derived from frontmatter
- * Only includes fields needed for fast DB queries/filtering
- * Using .pick() ensures metadata stays in sync with frontmatter
+ * A project's metadata: its frontmatter, decoded, with the slug resolved
+ * from the title when the file states none, and the error a failed
+ * generation recorded. Bookkeeping Studio and the vault leave out: the
+ * error, and whether the file states its slug, so a stated slug stays where
+ * the file states it and a resolved one is written after the other fields,
+ * as the project adapter wrote them.
  */
 export const projectMetadataSchema: ProjectMetadataSchema =
-  projectFrontmatterSchema
-    .pick({
-      title: true,
-      status: true,
-      publishedAt: true,
-      year: true,
-    })
-    .extend({
-      // slug is required in metadata (auto-generated from title if not in frontmatter)
-      slug: z.string(),
-      // The card description, so a listing shows what each project is
-      // without reading it in full. Optional: stored before it was kept.
-      description: z.string().optional(),
-      error: z.string().optional(),
-    });
+  projectFrontmatterSchema.extend({
+    slug: z.string(),
+    error: z.string().optional().meta({ studioWidget: "hidden" }),
+    authoredSlug: z.boolean().optional().meta({ studioWidget: "hidden" }),
+  });
 
 export type ProjectMetadata = z.output<typeof projectMetadataSchema>;
 
@@ -94,13 +91,6 @@ export const projectSchema: ReturnType<
 
 export type Project = z.output<typeof projectSchema>;
 
-export interface ProjectContent {
-  context: string;
-  problem: string;
-  solution: string;
-  outcome: string;
-}
-
 type ProjectContentSchema = z.ZodObject<{
   context: z.ZodString;
   problem: z.ZodString;
@@ -119,13 +109,7 @@ export const projectContentSchema: ProjectContentSchema = z.object({
   outcome: z.string(),
 });
 
-export interface ProjectWithData extends Project {
-  frontmatter: ProjectFrontmatter;
-  body: string;
-  structuredContent?: ProjectContent | undefined;
-  coverImageUrl?: string | undefined;
-  ogImageUrl?: string | undefined;
-}
+export type ProjectContent = z.output<typeof projectContentSchema>;
 
 /**
  * Project with parsed data (returned by datasource)
@@ -148,14 +132,7 @@ export const projectWithDataSchema: ReturnType<
   ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata
 });
 
-export interface ProjectEnrichment {
-  url?: string | undefined;
-  typeLabel?: string | undefined;
-  coverImageUrl?: string | undefined;
-  ogImageUrl?: string | undefined;
-  coverImageWidth?: number | undefined;
-  coverImageHeight?: number | undefined;
-}
+export type ProjectWithData = z.output<typeof projectWithDataSchema>;
 
 /**
  * Enriched project schema (used for validation)
@@ -180,19 +157,6 @@ export const enrichedProjectSchema: ReturnType<
 });
 
 /**
- * Enriched project type (used by components)
- * url and typeLabel are required - always present after enrichment
- */
-export interface EnrichedProject extends ProjectWithData {
-  url: string;
-  typeLabel: string;
-  coverImageUrl?: string | undefined;
-  ogImageUrl?: string | undefined;
-  coverImageWidth?: number | undefined;
-  coverImageHeight?: number | undefined;
-}
-
-/**
  * Template project schema (used for template validation)
  * url and typeLabel are required - always present after enrichment
  */
@@ -213,3 +177,9 @@ export const templateProjectSchema: ReturnType<
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
 });
+
+/**
+ * Enriched project type (used by components)
+ * url and typeLabel are required - always present after enrichment
+ */
+export type EnrichedProject = z.output<typeof templateProjectSchema>;

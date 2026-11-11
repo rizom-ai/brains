@@ -51,18 +51,30 @@ const metadataSchema: z.ZodObject<{
   title: z.ZodString;
   platform: typeof platformSchema;
   status: typeof socialPostStatusSchema;
+  coverImageId: typeof nullableString;
+  documents: z.ZodDefault<
+    z.ZodNullable<z.ZodArray<typeof documentAttachmentSchema>>
+  >;
   publishedAt: typeof nullableString;
   platformPostId: typeof nullableString;
+  sourceEntityId: typeof nullableString;
+  sourceEntityType: z.ZodDefault<z.ZodNullable<typeof sourceEntityTypeSchema>>;
   slug: z.ZodString;
   error: typeof nullableString;
+  statedSlug: typeof nullableString;
 }> = z.object({
   title: z.string(),
   platform: platformSchema,
   status: socialPostStatusSchema,
+  coverImageId: nullableString,
+  documents: z.array(documentAttachmentSchema).nullable().default(null),
   publishedAt: nullableString,
   platformPostId: nullableString,
+  sourceEntityId: nullableString,
+  sourceEntityType: sourceEntityTypeSchema.nullable().default(null),
   slug: z.string(),
   error: nullableString,
+  statedSlug: nullableString,
 });
 
 type JsonReady<T> = T extends undefined
@@ -119,21 +131,14 @@ function expectSocialPostViewOutput(
 void expectSocialPostSchemaData;
 void expectSocialPostViewOutput;
 
-/** Render payload after site-builder adds deterministic entity URL fields. */
-export type SocialPostView = Omit<
-  SocialPostSchemaData,
-  "url" | "typeLabel" | "listUrl" | "listLabel"
-> & {
-  url: string;
-  typeLabel: string;
-  listUrl: string;
-  listLabel: string;
-};
-
 /**
- * Runtime counterpart to {@link SocialPostView}: the same fields with the
- * link slots site-builder fills required, so the render path can prove the
- * enrichment ran instead of assuming it.
+ * The render payload after site-builder adds deterministic entity URL fields:
+ * the view's fields with the link slots site-builder fills required, so the
+ * render path can prove the enrichment ran instead of assuming it.
  */
-export const socialPostRenderSchema: z.ZodType<SocialPostView> =
-  socialPostViewSchema.extend(renderedLinkFields);
+export const socialPostRenderSchema: ReturnType<
+  typeof socialPostViewSchema.extend<typeof renderedLinkFields>
+> = socialPostViewSchema.extend(renderedLinkFields);
+
+/** Render payload after site-builder adds deterministic entity URL fields. */
+export type SocialPostView = z.output<typeof socialPostRenderSchema>;

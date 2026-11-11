@@ -5,6 +5,7 @@ import {
   type Plugin,
 } from "@brains/plugins";
 import {
+  httpSettingsSchema,
   logLevelSchema,
   reasoningEffortSchema,
   type Shell,
@@ -47,6 +48,7 @@ type AppConfigSchema = z.ZodObject<{
   identity: z.ZodOptional<typeof BrainCharacterSchema>;
   agentInstructions: z.ZodOptional<z.ZodArray<z.ZodString>>;
   deployment: z.ZodPrefault<typeof deploymentConfigSchema>;
+  http: z.ZodPrefault<typeof httpSettingsSchema>;
 }>;
 
 // App config focuses on app-level concerns, plugins come from Shell
@@ -77,6 +79,8 @@ export const appConfigSchema: AppConfigSchema = z.object({
   agentInstructions: z.array(z.string()).optional(),
   // Deployment configuration
   deployment: deploymentConfigSchema.prefault({}),
+  // The runtime's HTTP host; it listens on deployment.ports.production
+  http: httpSettingsSchema.prefault({}),
 });
 
 type AppConfigSchemaOutput = Omit<

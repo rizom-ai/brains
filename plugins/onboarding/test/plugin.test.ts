@@ -2,15 +2,13 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  playbookAdapter,
-  playbookPlugin,
-  playbooksPlugin,
-} from "@brains/playbooks";
+import { createPlaybooksPackage, parsePlaybookBody } from "@brains/playbooks";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { onboardingPlugin } from "../src";
+import onboardingPackage from "../src";
+import { onboardingPlugin } from "./onboarding-plugin";
 
 /** The `playbooks:lifecycle-starters` answer, as the plugin builds it. */
 const startersAnswerSchema = z.object({ starters: z.array(z.unknown()) });
@@ -30,12 +28,49 @@ async function installHarness(): Promise<
   ReturnType<typeof createPluginHarness>
 > {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(playbookPlugin({}));
-  await harness.installPlugin(playbooksPlugin({}));
+  // The playbooks package as the canonical brain composes it: the playbook
+  // type, then the service.
+  for (const plugin of instantiatePluginPackageDefinition(
+    createPlaybooksPackage(),
+    {},
+    { name: "@brains/playbooks", version: "0.0.0-test" },
+    { pluginId: "playbooks" },
+  )) {
+    await harness.installPlugin(plugin);
+  }
   return harness;
 }
 
-describe("OnboardingPlugin", () => {
+describe("onboarding", () => {
+  it("default-exports its service package definition", () => {
+    expect(onboardingPackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "onboarding",
+    });
+  });
+
+  it("registers under the plugin id its class had, after the playbook plugins", async () => {
+    const harness = await installHarness();
+    const plugin = onboardingPlugin({ enabled: true });
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "onboarding",
+      "service",
+      "@brains/onboarding",
+    ]);
+    expect(plugin.dependencies).toEqual(["playbook", "playbooks"]);
+    expect(capabilities.tools).toEqual([]);
+    expect(capabilities.resources).toEqual([]);
+  });
+
+  it("refuses an unknown config key", () => {
+    // The config is strict, as the class's was.
+    const config = { enabled: true, extra: 1 };
+    expect(() => onboardingPlugin(config)).toThrow(/extra/);
+  });
+
   it("does nothing when disabled", async () => {
     const harness = await installHarness();
     const plugin = onboardingPlugin({});
@@ -101,9 +136,8 @@ describe("OnboardingPlugin", () => {
       lifecycle: "onboarding",
     });
     // Only the step whose outcome is an answer in chat accepts a reply as proof.
-    const loopStates = playbookAdapter.parsePlaybookContent(
-      firstLoop?.content ?? "",
-    ).body.states;
+    // A declared playbook reads back its body; its metadata is checked above.
+    const loopStates = parsePlaybookBody(firstLoop?.content ?? "").states;
     expect(
       loopStates.find((state) => state.id === "retrieve-and-transform")
         ?.provenBy,
@@ -144,6 +178,8 @@ describe("OnboardingPlugin", () => {
       entityType: "playbook",
       id: "onboarding",
       visibilityScope: "restricted",
+      // As stored: a declared type reads back its body alone.
+      source: true,
     });
 
     expect(setup?.content).toBe(existingContent);

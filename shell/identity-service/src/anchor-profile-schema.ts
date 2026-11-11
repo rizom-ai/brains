@@ -37,17 +37,6 @@ export const anchorProfileKindSchema: AnchorProfileKindSchema = z.enum([
 
 export type AnchorProfileKind = z.infer<typeof anchorProfileKindSchema>;
 
-export interface AnchorProfile {
-  name: string;
-  organization?: string | undefined;
-  description?: string | undefined;
-  avatar?: string | undefined;
-  photo?: string | undefined;
-  website?: string | undefined;
-  email?: string | undefined;
-  socialLinks?: AnchorProfileSocialLink[] | undefined;
-}
-
 type SocialLinkSchema = typeof socialLinkSchema;
 
 export type AnchorProfileBodySchema = z.ZodObject<{
@@ -86,3 +75,5 @@ export const anchorProfileBodySchema: AnchorProfileBodySchema = z.object({
     .optional()
     .describe("Social media and contact links"),
 });
+
+export type AnchorProfile = z.output<typeof anchorProfileBodySchema>;

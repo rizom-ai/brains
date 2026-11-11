@@ -9,12 +9,8 @@ import {
   accountStyles as accountLayout,
 } from "../studio-account.styles";
 import { typographyStyles } from "../studio-typography.styles";
-import {
-  accountTimestamp,
-  initials,
-  roleLabel,
-  studioEntityHref,
-} from "./account-format";
+import { capitalize } from "@brains/utils/string-utils";
+import { accountTimestamp, initials, studioEntityHref } from "./account-format";
 import {
   AccountAccessItem,
   AccountButton,
@@ -71,7 +67,7 @@ export function AccountProfileTab(
                 data-account-role={role}
                 className={accountClass("account-role", accountLayout.role)}
               >
-                {roleLabel(role)}
+                {capitalize(role)}
               </span>
             </span>
           </div>

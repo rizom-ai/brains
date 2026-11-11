@@ -12,6 +12,7 @@ import { SetupFlow } from "../src/setup-flow";
 import { RuntimeSetupStateStore } from "../src/setup-state-store";
 import { TargetedSetupService } from "../src/targeted-setup-service";
 import { AuthUserStore } from "../src/user-store";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const tempDirs: string[] = [];
 
@@ -31,7 +32,10 @@ describe("PasskeySetupCoordinator", () => {
     await database.start();
     try {
       const users = new AuthUserStore(database.db);
-      const identities = new AuthIdentityStore(database.db);
+      const identities = new AuthIdentityStore(
+        database.db,
+        registeredTestChannels,
+      );
       const setupFlow = new SetupFlow({
         setupStateStore: new RuntimeSetupStateStore(database),
         passkeyService: new PasskeyService({ runtimeDatabase: database }),

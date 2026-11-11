@@ -1,12 +1,13 @@
 {
   "name": "@brains/a2a",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.661",
+  "version": "0.2.0-alpha.679",
   "dependencies": {
     "@a2a-js/sdk": "^0.3.13",
     "@brains/contracts": "workspace:*",
     "@brains/http-signatures": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "hono": "^4.13.13"
   },

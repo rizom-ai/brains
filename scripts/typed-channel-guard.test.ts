@@ -46,7 +46,6 @@ function loadParser(): Linter.Parser {
 const parser = loadParser();
 
 type Override = (typeof config.overrides)[number];
-
 const guards = config.overrides.filter((override) =>
   override.rules["no-restricted-syntax"]
     ?.slice(1)
@@ -56,18 +55,20 @@ const guards = config.overrides.filter((override) =>
     ),
 );
 
-function guardFor(pattern: string): Override {
-  const guard = guards.find((override) => override.files.includes(pattern));
-  if (!guard) throw new Error(`No typed channel guard covers ${pattern}`);
+function only(overrides: Override[]): Override {
+  const [guard] = overrides;
+  if (!guard || overrides.length !== 1) {
+    throw new Error(
+      `Expected one typed channel guard, found ${overrides.length}`,
+    );
+  }
   return guard;
 }
 
-// Entities, plugins and interfaces carry the raw-send guard as well.
-const pluginGuard = guardFor("**/plugins/*/src/**/*.ts");
-const shellGuard = guardFor("**/shell/*/src/**/*.ts");
+const guard = only(guards);
 const linter = new Linter();
 
-function violations(code: string, guard: Override = pluginGuard): string[] {
+function violations(code: string): string[] {
   const rule = guard.rules["no-restricted-syntax"];
   const messages = linter.verify(code, [
     {
@@ -82,10 +83,9 @@ function violations(code: string, guard: Override = pluginGuard): string[] {
 }
 
 describe("typed channel subscription guard", () => {
-  test("is in the last overrides, over entity, plugin, interface, shared and shell production source", () => {
-    expect(guards).toHaveLength(2);
-    expect(config.overrides.slice(-guards.length)).toEqual(guards);
-    expect(guards.flatMap((guard) => guard.files)).toEqual(
+  test("is the last override, over entity, plugin, interface, shared and shell production source", () => {
+    expect(config.overrides.at(-1)).toEqual(guard);
+    expect(guard.files).toEqual(
       expect.arrayContaining([
         "**/entities/*/src/**/*.ts",
         "**/plugins/*/src/**/*.ts",
@@ -94,15 +94,13 @@ describe("typed channel subscription guard", () => {
         "**/shell/*/src/**/*.ts",
       ]),
     );
-    for (const guard of guards) {
-      expect(guard.excludedFiles).toEqual(
-        expect.arrayContaining(["**/*.test.ts", "**/src/test/**"]),
-      );
-    }
+    expect(guard.excludedFiles).toEqual(
+      expect.arrayContaining(["**/*.test.ts", "**/src/test/**"]),
+    );
   });
 
   test("leaves out the message bus, and the one file allowed a full-scope read", () => {
-    expect(shellGuard.excludedFiles).toEqual(
+    expect(guard.excludedFiles).toEqual(
       expect.arrayContaining([
         "**/shell/messaging-service/**",
         "**/entity-service/src/internal-scope.ts",
@@ -117,11 +115,9 @@ describe("typed channel subscription guard", () => {
     "messaging.subscribeExecution<Payload>(CHANNEL, handler);",
     "context.messaging.observe<Record<string, unknown>, { recorded: boolean }>(CHANNEL, handler);",
   ])("rejects %s", (code) => {
-    for (const guard of guards) {
-      expect(violations(code, guard)).toEqual([
-        expect.stringContaining("typed channel"),
-      ]);
-    }
+    expect(violations(code)).toEqual([
+      expect.stringContaining("typed channel"),
+    ]);
   });
 
   test.each([
@@ -132,23 +128,13 @@ describe("typed channel subscription guard", () => {
     "store.subscribe<State>(listener);",
     "observer.observe<Element>(node);",
   ])("allows %s", (code) => {
-    for (const guard of guards) {
-      expect(violations(code, guard)).toEqual([]);
-    }
+    expect(violations(code)).toEqual([]);
   });
 
-  test("keeps the restrictions the overrides before them carry", () => {
-    for (const guard of guards) {
-      expect(violations("Bun.spawnSync(['ls']);", guard)).toHaveLength(1);
-      expect(
-        violations("read({ visibilityScope: 'restricted' });", guard),
-      ).toHaveLength(1);
-    }
-    const rawSend = "context.messaging.send({ type: 'a', payload: {} });";
-    expect(violations(rawSend)).toEqual([
-      expect.stringContaining("bus contract"),
-    ]);
-    // The raw-send guard stays with entities, plugins and interfaces.
-    expect(violations(rawSend, shellGuard)).toEqual([]);
+  test("keeps the restrictions the overrides before it carry", () => {
+    expect(violations("Bun.spawnSync(['ls']);")).toHaveLength(1);
+    expect(violations("read({ visibilityScope: 'restricted' });")).toHaveLength(
+      1,
+    );
   });
 });

@@ -47,6 +47,7 @@ export interface ProjectionRuleExecutionStore {
   getWave(waveId: string): Promise<ProjectionWave | null>;
   listPendingInputs(): Promise<ProjectionDirtyInput[]>;
   supersedeWaveIfStale(waveId: string, supersededAt: number): Promise<boolean>;
+  supersedeWave(waveId: string, supersededAt: number): Promise<ProjectionWave>;
   listWaveInputs(waveId: string): Promise<PersistedProjectionWaveInput[]>;
   listWaveRules(waveId: string): Promise<ProjectionWaveRule[]>;
   getRuleMemo(
@@ -108,6 +109,8 @@ export interface ProjectionRuleJobHandlerOptions {
   reconcileTargets: (
     targets: ProjectionWaveRule["changedTargets"],
   ) => Promise<void>;
+  /** Fingerprint of the projection graph this process composed. */
+  graphFingerprint: string;
   now: () => number;
 }
 
@@ -129,6 +132,7 @@ export class ProjectionRuleJobHandler implements JobHandler<
   private readonly reconcileTargets: (
     targets: ProjectionWaveRule["changedTargets"],
   ) => Promise<void>;
+  private readonly graphFingerprint: string;
   private readonly now: () => number;
 
   constructor(options: ProjectionRuleJobHandlerOptions) {
@@ -148,6 +152,7 @@ export class ProjectionRuleJobHandler implements JobHandler<
     this.inputContext = options.inputContext;
     this.executionContext = options.executionContext;
     this.reconcileTargets = options.reconcileTargets;
+    this.graphFingerprint = options.graphFingerprint;
     this.now = options.now;
   }
 
@@ -179,6 +184,15 @@ export class ProjectionRuleJobHandler implements JobHandler<
     const parsedData = projectionRuleJobDataSchema.parse(data);
     const rule = this.ruleById.get(parsedData.ruleId);
     if (!rule) {
+      if (await this.settleRetiredRuleJob(parsedData.waveId)) {
+        return {
+          waveId: parsedData.waveId,
+          ruleId: parsedData.ruleId,
+          outcome: "superseded",
+          inputFingerprint: null,
+          changedTargets: [],
+        };
+      }
       throw new Error(
         `Projection rule "${parsedData.ruleId}" is not executable`,
       );
@@ -357,6 +371,30 @@ export class ProjectionRuleJobHandler implements JobHandler<
       inputFingerprint,
       changedTargets: outcome.changedTargets,
     };
+  }
+
+  /**
+   * Whether a job for a rule this graph does not compose belongs to a wave
+   * with nothing left to report into. A wave superseded because its plugin
+   * left the composition can still have that plugin's jobs queued; so can a
+   * wave still running on the retired graph, which no sweep has superseded
+   * yet. That wave is superseded here. Supersession only transitions a
+   * running wave, so when the sweep supersedes it first the store returns it
+   * as the sweep left it, and the job settles the same way.
+   */
+  private async settleRetiredRuleJob(waveId: string): Promise<boolean> {
+    const wave = await this.store.getWave(waveId);
+    if (wave?.status === "superseded") return true;
+    if (
+      wave?.status !== "running" ||
+      wave.graphFingerprint === this.graphFingerprint
+    ) {
+      return false;
+    }
+    const settled = await this.store.supersedeWave(waveId, this.now());
+    if (settled.status !== "superseded") return false;
+    await this.coordinator.continueAfterSupersession(waveId);
+    return true;
   }
 
   private async recordDiagnostic(

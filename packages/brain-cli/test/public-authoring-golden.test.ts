@@ -697,6 +697,9 @@ describe("public authoring 0.2 golden packages", () => {
     expect(entity).toContain("type Bookmark = EntityOf<typeof bookmark>");
     expect(entity).toContain("source: bookmark");
     expect(entity).toContain("target: readingDigest");
+    // A provider and a job bound from the package's config.
+    expect(entity).toContain('name: "reading-archive"');
+    expect(entity).toContain("archive: defineEntityJob(");
 
     for (const capability of [
       "instructions:",

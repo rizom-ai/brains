@@ -92,14 +92,15 @@ export const projectViewSchema: z.ZodObject<
 
 export type ProjectSchemaData = z.output<typeof projectViewSchema>;
 
-export type ProjectView = Omit<ProjectSchemaData, "url" | "typeLabel"> & {
-  url: string;
-  typeLabel: string;
-};
-
 /** A project once site-builder has filled the link fields it renders. */
-export const projectRenderSchema: z.ZodType<ProjectView> =
-  projectViewSchema.extend({
-    url: renderedLinkFields.url,
-    typeLabel: renderedLinkFields.typeLabel,
-  });
+export const projectRenderSchema: ReturnType<
+  typeof projectViewSchema.extend<{
+    url: typeof renderedLinkFields.url;
+    typeLabel: typeof renderedLinkFields.typeLabel;
+  }>
+> = projectViewSchema.extend({
+  url: renderedLinkFields.url,
+  typeLabel: renderedLinkFields.typeLabel,
+});
+
+export type ProjectView = z.output<typeof projectRenderSchema>;

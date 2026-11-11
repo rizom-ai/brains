@@ -1,0 +1,26 @@
+id: doc-public-visitor-cannot-write
+name: A docs visitor cannot add to the docs
+description: Verifies that a public visitor of the docs brain who asks to add a guide gets a refusal and nothing is created or generated.
+type: tool_invocation
+setup:
+  permissionLevel: public
+tags:
+  - recipe-docs
+  - docs
+  - permissions
+
+turns:
+  - userMessage: "Add a guide to the docs about connecting a brain to Discord."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_generate
+      shouldBeCalled: false
+  responseCriteria:
+    - "Says a visitor cannot add to the docs, without claiming anything was added or drafted for saving."
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

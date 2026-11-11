@@ -3,6 +3,38 @@ import { createMockServicePluginContext } from "@brains/plugins/test";
 import { SiteContentService } from "../src/lib/site-content-service";
 import { createSiteContentTools } from "../src/tools";
 
+describe("a plan of the site's content", () => {
+  test("is a dry run, which names the sections it would generate", async () => {
+    const service = new SiteContentService(createMockServicePluginContext());
+    spyOn(service, "generateContent").mockResolvedValue({
+      totalSections: 1,
+      queuedSections: 0,
+      batchId: "",
+      jobs: [],
+      planned: [{ routeId: "about", sectionId: "highlights" }],
+    });
+    const tool = createSiteContentTools(() => service, "site-content")[0];
+    if (!tool) throw new Error("Missing generation tool");
+
+    // The model is told to plan with a dry run, not by listing content.
+    expect(tool.description).toContain("dryRun");
+    expect(
+      await tool.handler(
+        { dryRun: true },
+        {
+          interfaceType: "test",
+          actor: { kind: "service", serviceId: "test" },
+          userPermissionLevel: "admin",
+        },
+      ),
+    ).toMatchObject({
+      success: true,
+      message: "Planned 1 section: about/highlights. No jobs were queued.",
+      data: { planned: [{ routeId: "about", sectionId: "highlights" }] },
+    });
+  });
+});
+
 describe("site generation tool admission messages", () => {
   test("uses the trusted tool signal before route discovery or enqueue", async () => {
     const context = createMockServicePluginContext();
@@ -19,7 +51,7 @@ describe("site generation tool admission messages", () => {
       },
     );
     expect(result).toMatchObject({ success: false });
-    expect(context.messaging.send).not.toHaveBeenCalled();
+    expect(context.messaging.request).not.toHaveBeenCalled();
     expect(context.content.generate).not.toHaveBeenCalled();
   });
 
@@ -54,6 +86,7 @@ describe("site generation tool admission messages", () => {
         queuedSections: queued,
         batchId,
         jobs: [],
+        planned: [],
       });
       const tool = createSiteContentTools(() => service, "site-content")[0];
       if (!tool) throw new Error("Missing generation tool");

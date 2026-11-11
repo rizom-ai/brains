@@ -17,7 +17,6 @@ import type {
   UpdateConversationMetadataRequest,
 } from "./types";
 import {
-  CONVERSATION_STARTED_CHANNEL,
   conversationGuestMessageAddedChannel,
   conversationMessageAddedChannel,
   type ConversationGuestMessageAddedPayload,
@@ -37,7 +36,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 const messageInsertionOrder = sql`"messages"."rowid"`;
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
-import type { MessageBus } from "@brains/messaging-service";
+import { broadcastChannel, type MessageBus } from "@brains/messaging-service";
 import {
   and,
   eq,
@@ -235,19 +234,6 @@ export class ConversationService implements IConversationService {
       interfaceType,
     });
 
-    // Emit event for plugins
-    await this.messageBus.send({
-      type: CONVERSATION_STARTED_CHANNEL,
-      payload: {
-        conversationId: sessionId,
-        sessionId,
-        interfaceType,
-        timestamp: now,
-      },
-      sender: "conversation-service",
-      broadcast: true,
-    });
-
     return sessionId;
   }
 
@@ -309,12 +295,12 @@ export class ConversationService implements IConversationService {
         role,
         position: await this.countMessages(conversationId),
       };
-      await this.messageBus.send({
-        type: conversationGuestMessageAddedChannel.name,
+      await broadcastChannel(
+        this.messageBus,
+        conversationGuestMessageAddedChannel,
         payload,
-        sender: "conversation-service",
-        broadcast: true,
-      });
+        "conversation-service",
+      );
       return;
     } else {
       await this.db.insert(messages).values(newMessage);
@@ -351,12 +337,12 @@ export class ConversationService implements IConversationService {
       metadata,
       timestamp: now,
     };
-    await this.messageBus.send({
-      type: conversationMessageAddedChannel.name,
+    await broadcastChannel(
+      this.messageBus,
+      conversationMessageAddedChannel,
       payload,
-      sender: "conversation-service",
-      broadcast: true,
-    });
+      "conversation-service",
+    );
   }
 
   /**

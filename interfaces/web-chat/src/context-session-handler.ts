@@ -1,3 +1,4 @@
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import { createHash } from "node:crypto";
 import {
   chatContextHandoffRequestSchema,
@@ -10,11 +11,10 @@ import {
 } from "./conversation-access";
 import {
   coerceConversationMetadata,
-  type InterfacePluginContext,
   type UserPermissionLevel,
 } from "@brains/plugins";
 
-type ConversationService = InterfacePluginContext["conversations"];
+type ConversationService = InterfaceRuntime["conversations"];
 
 interface ContextSessionHandlerDeps {
   conversations: ConversationService;

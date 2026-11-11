@@ -34,6 +34,20 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
     this.pending = pending;
   }
 
+  /** A wave a previous run left running, claimed against `graphFingerprint`. */
+  leaveRunningWave(waveId: string, graphFingerprint: string): void {
+    this.pending = false;
+    this.active = {
+      id: waveId,
+      cutoffGeneration: 1,
+      graphFingerprint,
+      admissionEpoch: 0,
+      status: "running",
+      startedAt: 0,
+      completedAt: null,
+    };
+  }
+
   getWave(waveId: string): Promise<ProjectionWave | null> {
     return Promise.resolve(this.active?.id === waveId ? this.active : null);
   }
@@ -147,6 +161,22 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
     input: ProjectionIncidentInput,
   ): Promise<ProjectionWave> {
     return this.failWave(input.waveId, input.failedAt);
+  }
+
+  supersedeWave(
+    _waveId: string,
+    supersededAt: number,
+  ): Promise<ProjectionWave> {
+    if (!this.active) throw new Error("missing wave");
+    const superseded: ProjectionWave = {
+      ...this.active,
+      status: "superseded",
+      completedAt: supersededAt,
+    };
+    this.active = null;
+    this.pending = true;
+    this.rules = [];
+    return Promise.resolve(superseded);
   }
 
   completeWave(_waveId: string, completedAt: number): Promise<ProjectionWave> {
@@ -359,6 +389,43 @@ describe("activateProjectionRuntime", () => {
 
     runtime.dispose();
     expect(sweepCancelled).toBe(true);
+  });
+
+  it("activates past a wave left running under a different plugin set", async () => {
+    const store = new MemoryRuntimeStore();
+    store.leaveRunningWave("wave-before-plugin-removed", "retired-graph");
+    const requests: JobQueueEnqueueRequest[] = [];
+    const runtime = await activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async (request): Promise<string> => {
+          requests.push(request);
+          return "job-replanned";
+        },
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (): (() => void) => () => {},
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "wave-replanned",
+      now: () => 10,
+      scheduleSweep: (): (() => void) => () => {},
+    });
+
+    expect(await store.getWave("wave-replanned")).toEqual(
+      expect.objectContaining({ status: "running" }),
+    );
+    expect(requests.map(({ data }) => data)).toEqual([
+      { waveId: "wave-replanned", ruleId: "document-summary" },
+    ]);
+    runtime.dispose();
   });
 
   it("does not overlap projection coordination sweeps", async () => {

@@ -18,7 +18,7 @@ import {
   askBoxAvailabilitySchema,
   type AskBoxAvailability,
 } from "@brains/contracts";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
 import {
   guestIssuanceNamespace,
   guestIssuanceStateSchema,
@@ -29,7 +29,7 @@ import {
   type GuestAdmissionState,
 } from "../src/guest-admission-state";
 
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness<WebChatPlugin>[] = [];
 afterEach(async () => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -65,9 +65,7 @@ async function fixture(
     state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
-  const harness = createPluginHarness<WebChatInterface>(
-    domain ? { domain } : {},
-  );
+  const harness = createPluginHarness<WebChatPlugin>(domain ? { domain } : {});
   harnesses.push(harness);
   if (options.state)
     spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
@@ -85,7 +83,7 @@ async function fixture(
     },
     invalidateAgent: (): void => {},
   });
-  const plugin = new WebChatInterface(
+  const plugin = createWebChatPlugin(
     options.disabled
       ? { guest: false }
       : options.guest

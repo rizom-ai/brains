@@ -7,6 +7,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { brainAnchorConfigKindSchema } from "./brain-definition";
 import { logLevelSchema, reasoningEffortSchema } from "./types";
+import { httpSettingsSchema } from "@brains/core";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -74,6 +75,7 @@ type InstanceOverridesSchema = z.ZodObject<
     logLevel: z.ZodOptional<typeof logLevelSchema>;
     logFile: z.ZodOptional<z.ZodString>;
     port: z.ZodOptional<z.ZodNumber>;
+    http: z.ZodOptional<typeof httpSettingsSchema>;
     domain: z.ZodOptional<z.ZodString>;
     database: z.ZodOptional<z.ZodString>;
     embedding: z.ZodOptional<
@@ -169,6 +171,9 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
 
   /** Production server port */
   port: z.number().optional(),
+
+  /** How the runtime's HTTP listener serves; preview shares `port`. */
+  http: httpSettingsSchema.optional(),
 
   /** Production domain */
   domain: z.string().optional(),

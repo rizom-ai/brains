@@ -94,11 +94,12 @@ export const guestPresetSchema: z.ZodUnion<
   [z.ZodLiteral<false>, z.ZodLiteral<"local-test">, typeof localPresetSchema]
 > = z.union([z.literal(false), z.literal("local-test"), localPresetSchema]);
 
+/** The guest policy a configured preset resolves to; unset, guest chat is off. */
 export function resolveGuestPreset(
-  input: z.output<typeof guestPresetSchema>,
+  input: z.output<typeof guestPresetSchema> | undefined,
   model: string,
 ): GuestPolicy {
-  if (input === false) return { enabled: false };
+  if (input === undefined || input === false) return { enabled: false };
   return createDefaultGuestPolicy(
     localPresetSchema.parse(input === "local-test" ? { preset: input } : input)
       .origin,

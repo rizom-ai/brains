@@ -2,7 +2,7 @@ import { expectToolError } from "@brains/mcp-service/test";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemTools } from "../../src/system/tools";
-import { createMockSystemServices } from "./mock-services";
+import { createMockSystemServices, postFrontmatter } from "./mock-services";
 import {
   updateInputSchema,
   updateOperationInputSchema,
@@ -956,6 +956,7 @@ describe("system_update tool", () => {
   });
 
   it("removes optional metadata fields when a field update sets them to null", async () => {
+    services.registerEntityTypes(["post"], { post: postFrontmatter });
     services.addEntities([
       {
         id: "resilience-in-distributed-systems",
@@ -2024,6 +2025,120 @@ describe("system_update tool", () => {
         "Invalid content replacement for this entity type. Provide full markdown with valid frontmatter, or use 'fields' for partial updates.",
     });
     expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  describe("a content replacement for a type whose metadata is decoded from its file", () => {
+    // A social post's metadata holds a slug derived from its platform and
+    // title, which its file never states.
+    const metadata = z.object({
+      title: z.string(),
+      platform: z.enum(["linkedin"]),
+      slug: z.string(),
+    });
+
+    function withDecodedType(): void {
+      services.addEntities([
+        {
+          id: "policy-draft",
+          entityType: "social-post",
+          // Its content is the body; its frontmatter is decoded into metadata.
+          content: "Old copy.\n",
+          contentHash: "hash-policy-draft",
+          visibility: "public",
+          metadata: {
+            title: "Policy Draft",
+            platform: "linkedin",
+            slug: "linkedin-policy-draft",
+          },
+          created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+          updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+        },
+      ]);
+      const originalRegistry = services.entityRegistry;
+      const originalAdapter = originalRegistry.getAdapter("social-post");
+      const effectiveSchema =
+        originalRegistry.getEffectiveFrontmatterSchema.bind(originalRegistry);
+      const adapterOf = originalRegistry.getAdapter.bind(originalRegistry);
+      Object.assign(services.entityRegistry, {
+        getEffectiveFrontmatterSchema: (type: string) =>
+          type === "social-post" ? metadata : effectiveSchema(type),
+        getAdapter: (type: string) =>
+          type === "social-post"
+            ? {
+                ...originalAdapter,
+                metadataFromFrontmatter: true,
+                // The type decodes its file: the slug comes from platform
+                // and title, then the metadata is checked.
+                fromMarkdown: (
+                  markdown: string,
+                ): { content: string; metadata: z.output<typeof metadata> } => {
+                  const frontmatter = z.looseObject({}).parse(
+                    Object.fromEntries(
+                      (markdown.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "")
+                        .split("\n")
+                        .filter((line) => line.includes(": "))
+                        .map((line) => line.split(": ")),
+                    ),
+                  );
+                  return {
+                    content: markdown,
+                    metadata: metadata.parse({
+                      ...frontmatter,
+                      slug: `${String(frontmatter["platform"])}-x`,
+                    }),
+                  };
+                },
+              }
+            : adapterOf(type),
+      });
+      tools = createSystemTools(services);
+    }
+
+    it("is checked as the file will be stored, its derived fields not asked of the file", async () => {
+      withDecodedType();
+
+      const result = await exec({
+        entityType: "social-post",
+        id: "policy-draft",
+        operation: {
+          content:
+            "---\ntitle: Policy Draft\nplatform: linkedin\n---\nNew copy.\n",
+        },
+      });
+
+      expect(result).toMatchObject({ needsConfirmation: true });
+    });
+
+    it("is an edit of the body, its metadata kept as stored", async () => {
+      withDecodedType();
+
+      const result = await exec({
+        entityType: "social-post",
+        id: "policy-draft",
+        operation: { edits: [{ oldText: "Old copy.", newText: "New copy." }] },
+      });
+
+      expect(result).toMatchObject({ needsConfirmation: true });
+    });
+
+    it("is still refused when the file it states does not decode", async () => {
+      withDecodedType();
+
+      const result = await exec({
+        entityType: "social-post",
+        id: "policy-draft",
+        operation: {
+          content:
+            "---\ntitle: Policy Draft\nplatform: myspace\n---\nNew copy.\n",
+        },
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error:
+          "Invalid content replacement for this entity type. Provide full markdown with valid frontmatter, or use 'fields' for partial updates.",
+      });
+    });
   });
 
   it("rejects blank content replacement for frontmatter entities", async () => {

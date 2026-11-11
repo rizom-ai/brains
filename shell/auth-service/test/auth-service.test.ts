@@ -28,6 +28,7 @@ import {
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 function getTestChannelDescriptor(
   channelType: string,
@@ -904,6 +905,7 @@ describe("AuthService", () => {
 
   it("binds the delivered channel once when targeted setup is claimed", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });

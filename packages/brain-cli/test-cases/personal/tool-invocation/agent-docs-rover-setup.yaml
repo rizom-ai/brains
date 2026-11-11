@@ -1,11 +1,11 @@
 id: tool-invocation-agent-docs-brain-setup
 name: Ask Saved Docs Agent for Brain Setup
-description: Tests that a direct request to ask docs.rizom.ai is handled by contacting the saved agent instead of answering from local memory or docs.
+description: Tests that a direct request to ask docs.rizom.example is handled by contacting the saved agent instead of answering from local memory or docs.
 type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - a2a
   - tool-invocation
@@ -14,14 +14,14 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "Can you ask docs.rizom.ai for help? I want to know how to set up a new brain"
+  - userMessage: "Can you ask docs.rizom.example for help? I want to know how to set up a new brain"
 
 successCriteria:
   expectedTools:
     - toolName: agent_call
       shouldBeCalled: true
       argsContain:
-        agent: "docs.rizom.ai"
+        agent: "docs.rizom.example"
     - toolName: agent_connect
       shouldBeCalled: false
     - toolName: system_get
@@ -29,8 +29,8 @@ successCriteria:
     - toolName: system_search
       shouldBeCalled: false
   responseNotContains:
-    - "I can't contact docs.rizom.ai directly"
-    - "I can’t contact docs.rizom.ai directly"
+    - "I can't contact docs.rizom.example directly"
+    - "I can’t contact docs.rizom.example directly"
     - "onboarding doc"
     - "From the onboarding doc"
     - "Discord is the default interface"

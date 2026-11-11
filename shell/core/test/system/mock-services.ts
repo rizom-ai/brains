@@ -17,6 +17,7 @@ import {
   EntityRegistry,
   getVisibleContentVisibilities,
   parseMarkdownWithFrontmatter,
+  editableFieldsOf,
   type BaseEntity,
   type EntitySearchRequest,
   type ListEntitiesRequest,
@@ -50,6 +51,21 @@ import { DEFAULT_SEARCH_BUDGET } from "../../src/system/search-excerpt";
  * service: a test that stubs `getMessages` used to have to assert the gap away,
  * and then had no working implementation of anything else on it.
  */
+/** A post's frontmatter, as the blog plugin declares it. */
+export const postFrontmatter: z.ZodObject = z.object({
+  title: z.string(),
+  slug: z.string().optional(),
+  status: z.enum(["draft", "queued", "published"]),
+  publishedAt: z.string().optional(),
+  excerpt: z.string().optional(),
+  author: z.string().optional(),
+  coverImageId: z.string().optional(),
+  ogImageId: z.string().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
+  canonicalUrl: z.string().optional(),
+});
+
 export function createMockSystemServices(
   overrides: Partial<Omit<SystemServices, "conversationService">> & {
     conversationService?: Partial<SystemServices["conversationService"]>;
@@ -60,7 +76,14 @@ export function createMockSystemServices(
   /** Seed entities for testing */
   addEntities: (entities: SeedEntity[]) => void;
   /** Register entity types without seeding entities (mirrors plugin registration) */
-  registerEntityTypes: (types: string[]) => void;
+  /**
+   * Register entity types without seeding entities (mirrors plugin
+   * registration), each with the frontmatter its adapter declares when given.
+   */
+  registerEntityTypes: (
+    types: string[],
+    frontmatter?: Record<string, z.ZodObject>,
+  ) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
   /** Get the last direct create request */
@@ -90,9 +113,16 @@ export function createMockSystemServices(
     }
   };
 
-  const registerEntityTypes = (types: string[]): void => {
+  // Frontmatter a test declares for a registered type, as its adapter would.
+  const declaredFrontmatter = new Map<string, z.ZodObject>();
+  const registerEntityTypes = (
+    types: string[],
+    frontmatter: Record<string, z.ZodObject> = {},
+  ): void => {
     for (const type of types) {
       registeredTypes.add(type);
+      const schema = frontmatter[type];
+      if (schema) declaredFrontmatter.set(type, schema);
     }
   };
 
@@ -114,6 +144,13 @@ export function createMockSystemServices(
     title: z.string().optional(),
     status: z.string().optional(),
   });
+
+  const editableFields = (type: string): z.ZodObject | undefined => {
+    const schema =
+      declaredFrontmatter.get(type) ??
+      (entityTypes.has(type) ? defaultFrontmatterSchema : undefined);
+    return schema && editableFieldsOf(schema);
+  };
 
   const parseFrontMatter = <T>(markdown: string, schema: Parser<T>): T =>
     parseMarkdownWithFrontmatter(markdown, schema).metadata;
@@ -236,7 +273,13 @@ export function createMockSystemServices(
       return {};
     },
     getEffectiveFrontmatterSchema: (type: string) =>
-      entityTypes.has(type) ? defaultFrontmatterSchema : undefined,
+      declaredFrontmatter.get(type) ??
+      (entityTypes.has(type) ? defaultFrontmatterSchema : undefined),
+    getEditableFieldsSchema: editableFields,
+    // The mock declares no groupings: they are always current.
+    ensureGroupingsCurrent: async (): Promise<void> => {},
+    // The mock's types take no fields on create alone.
+    getCreateFieldsSchema: editableFields,
     registerCreateInterceptor: (
       type: string,
       interceptor: (...args: unknown[]) => Promise<unknown>,
@@ -520,6 +563,7 @@ export function createMockSystemServices(
   };
 
   const runtimeUploads: SystemServices["runtimeUploads"] = {
+    retire: unreached("retire"),
     scoped: () => ({
       readRecord: async (): Promise<never> => {
         throw new Error("Upload ref not found");

@@ -343,7 +343,7 @@ describe("ATProto brain cards for agents already saved above public", () => {
 
     expect(result).toMatchObject({ created: false, skipped: true });
     expect(await readFull(service, "hidden.example")).toEqual(before);
-    expect(context.messaging.send).not.toHaveBeenCalled();
+    expect(context.messaging.broadcast).not.toHaveBeenCalled();
     expect(
       await context.runtimeState
         .scoped({

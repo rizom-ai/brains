@@ -210,49 +210,6 @@ export function renderKamalDeploy(options: KamalDeployTemplateOptions): string {
   );
 }
 
-export const legacyStandaloneDeployYmlContents: readonly string[] = [
-  `service: brain
-image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
-
-servers:
-  web:
-    hosts:
-      - <%= ENV['SERVER_IP'] %>
-
-proxy:
-  ssl: true
-  hosts:
-    - <%= ENV['BRAIN_DOMAIN'] %>:80
-    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
-  app_port: 80
-  healthcheck:
-    path: /health
-
-registry:
-  server: ghcr.io
-  username: rizom-ai
-  password:
-    - KAMAL_REGISTRY_PASSWORD
-
-builder:
-  arch: amd64
-
-env:
-  clear:
-    NODE_ENV: production
-  secret:
-    - AI_API_KEY
-    - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
-    - DISCORD_BOT_TOKEN
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain-dist:/app/dist
-  - /opt/brain.yaml:/app/brain.yaml
-`,
-];
-
 export const REQUIRED_DEPLOY_MOUNTS = [
   "/opt/brain-runtime:/app/data",
   "/opt/brain-state:/data",

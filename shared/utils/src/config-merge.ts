@@ -1,10 +1,4 @@
-import { z } from "./zod";
-
-const recordSchema = z.record(z.string(), z.unknown());
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return recordSchema.safeParse(value).success;
-}
+import { isPlainRecord } from "./predicates";
 
 /**
  * Merge explicit configuration over defaults before serialization or validation.
@@ -22,7 +16,7 @@ export function deepMerge(
     const overrideVal = override[key];
     if (overrideVal === null && options.nulls !== "preserve") {
       delete result[key];
-    } else if (isPlainObject(result[key]) && isPlainObject(overrideVal)) {
+    } else if (isPlainRecord(result[key]) && isPlainRecord(overrideVal)) {
       result[key] = deepMerge(result[key], overrideVal, options);
     } else {
       result[key] = overrideVal;

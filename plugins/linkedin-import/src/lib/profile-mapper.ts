@@ -1,14 +1,8 @@
+import type { ProfileImportFields } from "@brains/contracts";
 import type { LinkedInSnapshotRecord } from "./linkedin-client";
 
 /** Profile values read from LinkedIn, in the profile's own field names. */
-export interface ProfileImport {
-  name?: string | undefined;
-  headline?: string | undefined;
-  industry?: string | undefined;
-  location?: string | undefined;
-  website?: string | undefined;
-  story?: string | undefined;
-}
+export type ProfileImport = ProfileImportFields;
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;

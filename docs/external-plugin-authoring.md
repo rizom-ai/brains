@@ -278,6 +278,7 @@ shows both. Formatting that a service's work produces belongs in that service's
 ```ts
 import { bookmark } from "@example/reading-entities";
 import {
+  defineChannel,
   defineJob,
   defineServicePlugin,
   z,
@@ -294,6 +295,11 @@ const compileReadingDigest = defineJob({
   input: digestRequest,
   output: digestResult,
 });
+// The event the job announces, its payload typed by the channel.
+const digestReady = defineChannel(
+  "@example/reading-insights:digest-ready",
+  digestResult.extend({ markdown: z.string() }),
+);
 
 // A helper written outside the `jobs` slot is handed the slot's `entities`.
 async function summarize(
@@ -319,9 +325,9 @@ export default defineServicePlugin(
     jobs: ({ entities, messaging, templates }) => [
       compileReadingDigest.handle(async ({ input }) => {
         const result = await summarize(entities, input.bookmarkId);
-        await messaging.publish({
-          topic: "digest-ready",
-          data: { ...result, markdown: templates.format("digest", result) },
+        await messaging.publish(digestReady, {
+          ...result,
+          markdown: templates.format("digest", result),
         });
         return result;
       }),

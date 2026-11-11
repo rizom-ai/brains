@@ -58,32 +58,16 @@ describe("Shell initialization order", () => {
     await testDir.cleanup();
   });
 
-  it("should start webserver before plugins-registered initial sync handlers complete", async () => {
+  it("should start the HTTP host before plugins-registered initial sync handlers complete", async () => {
     const order: string[] = [];
     const finishInitialSync = deferred();
-
-    const webserverPlugin: Plugin = {
-      id: "webserver-plugin",
-      version: "1.0.0",
-      type: "service",
-      description: "Registers the shared webserver daemon",
-      packageName: "@test/webserver-plugin",
-      register: async (shellInstance) => {
-        shellInstance.registerDaemon(
-          "webserver:webserver",
-          {
-            start: async () => {
-              order.push("webserver-started");
-            },
-            stop: async () => {
-              order.push("webserver-stopped");
-            },
-          },
-          "webserver",
-        );
-        return { tools: [], resources: [] };
-      },
-    };
+    const listener = Bun.listen({
+      hostname: "127.0.0.1",
+      port: 0,
+      socket: { data() {} },
+    });
+    const port = listener.port;
+    listener.stop(true);
 
     const directorySyncLikePlugin: Plugin = {
       id: "directory-sync-like-plugin",
@@ -104,11 +88,19 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestShellConfig(testDir.dir);
-    config.plugins = [webserverPlugin, directorySyncLikePlugin];
+    const config = createTestShellConfig(testDir.dir, {
+      http: {
+        enabled: true,
+        port,
+        productionDistDir: `${testDir.dir}/dist/site-production`,
+        previewDistDir: `${testDir.dir}/dist/site-preview`,
+        sharedImagesDir: `${testDir.dir}/dist/images`,
+      },
+    });
+    config.plugins = [directorySyncLikePlugin];
     shell = Shell.createFresh(config, deps);
     // Held open rather than made slow with a 50ms sleep. The claim in the name
-    // is that the webserver is up *before the sync handler completes*, and
+    // is that the host is up *before the sync handler completes*, and
     // holding the handler is what lets that be asserted while it is still
     // running — the sleep only allowed a comparison of the two start indices,
     // which is a weaker statement than the test's own title.
@@ -118,14 +110,14 @@ describe("Shell initialization order", () => {
       "the initial sync handler to start",
     );
 
-    expect(order).toContain("webserver-started");
+    const live = await fetch(`http://127.0.0.1:${port}/health/live`);
+    expect(live.status).toBe(200);
     expect(order).not.toContain("initial-sync-completed");
 
     finishInitialSync.resolve();
     await initializing;
 
     expect(order).toContain("initial-sync-completed");
-    expect(order).not.toContain("webserver-stopped");
   });
 
   it("should complete plugins-registered handlers before job processing can start", async () => {

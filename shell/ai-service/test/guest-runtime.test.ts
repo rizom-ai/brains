@@ -948,7 +948,7 @@ describe("guest tool dispatch", () => {
     expect(Object.keys(tools)).toEqual(["system_search"]);
     const execute = tools["system_search"]?.execute;
     if (!execute) throw new Error("Expected guest read tool");
-    await execute({}, { toolCallId: "read", messages: [] });
+    await execute({}, { toolCallId: "read", messages: [], context: {} });
     expect(read.handler).toHaveBeenCalledWith(
       {},
       expect.objectContaining({
@@ -974,7 +974,7 @@ describe("guest tool dispatch", () => {
       );
       const execute = tools[read.name]?.execute;
       if (!execute) throw new Error("Expected guest read tool");
-      return execute({}, { toolCallId: "read", messages: [] });
+      return execute({}, { toolCallId: "read", messages: [], context: {} });
     }
 
     it("passes a lookup's own answer to the model, so it can correct its request", async () => {
@@ -1040,7 +1040,7 @@ describe("guest tool dispatch", () => {
     if (!execute) throw new Error("Expected reviewed read");
     read.sideEffects = "writes";
     expect(
-      execute({}, { toolCallId: "changed", messages: [] }),
+      execute({}, { toolCallId: "changed", messages: [], context: {} }),
     ).rejects.toThrow("Guest execution denied");
     expect(read.handler).not.toHaveBeenCalled();
   });

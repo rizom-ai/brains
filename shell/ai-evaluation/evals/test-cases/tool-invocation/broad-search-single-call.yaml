@@ -1,9 +1,9 @@
 id: shell-broad-search-single-call
-name: Broad Search Uses Single system_search Call
+name: Broad Search Does Not Fan Out Per Entity Type
 description: >-
-  Verifies that broad or vague content lookup requests use one broad
-  system_search call with scope.kind all, instead of fanning out into one
-  search per entity type.
+  Verifies that broad or vague content lookup requests search with scope.kind
+  all instead of fanning out into one search per entity type. One retry with a
+  lower minScore is the designed answer to matches below the threshold.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -12,7 +12,7 @@ tags:
   - search
   - efficiency
   - tool-invocation
-  - preset-core
+  - recipe-headless
 
 turns:
   - userMessage: "Search broadly for foo across all entity types in my knowledge base."
@@ -24,6 +24,10 @@ successCriteria:
       argsContain:
         query: foo
         scope.kind: all
+    - toolName: system_search
+      shouldBeCalled: false
+      argsContain:
+        scope.kind: type
 
   responseNotContains:
     - "Unknown entity type"
@@ -36,5 +40,5 @@ successCriteria:
     - ".js:"
 
 efficiency:
-  maxToolCalls: 1
-  maxTokens: 30000
+  maxToolCalls: 2
+  maxTokens: 44000

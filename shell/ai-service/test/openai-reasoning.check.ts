@@ -20,20 +20,52 @@ const inputSchema = z.array(
 const requestSchema = z.discriminatedUnion("model", [
   z.object({
     model: z.literal("gpt-6-luna"),
-    reasoning: z.object({ effort: z.literal("low") }),
+    // Exactly the effort: no reasoning summary the brain never reads.
+    reasoning: z.strictObject({ effort: z.literal("low") }),
     temperature: z.never().optional(),
     input: inputSchema,
+    tools: z
+      .array(
+        z.looseObject({
+          name: z.string(),
+          strict: z.boolean().optional(),
+          parameters: z.looseObject({ required: z.array(z.string()) }),
+        }),
+      )
+      .optional(),
   }),
   z.object({
     model: z.literal("gpt-4o-mini"),
     reasoning: z.never().optional(),
     temperature: z.literal(0.7),
     input: inputSchema,
+    tools: z
+      .array(
+        z.looseObject({
+          name: z.string(),
+          strict: z.boolean().optional(),
+          parameters: z.looseObject({ required: z.array(z.string()) }),
+        }),
+      )
+      .optional(),
   }),
 ]);
 
 const fetchSpy = spyOn(globalThis, "fetch");
 afterEach(() => fetchSpy.mockReset());
+
+/** The warnings the SDK reports, kept from the test output. */
+function captureWarnings(): unknown[] {
+  const warnings: unknown[] = [];
+  globalThis.AI_SDK_LOG_WARNINGS = ({ warnings: reported }): void => {
+    warnings.push(...reported);
+  };
+  return warnings;
+}
+
+afterEach(() => {
+  globalThis.AI_SDK_LOG_WARNINGS = undefined;
+});
 
 function captureRequests(
   text: string,
@@ -108,21 +140,21 @@ for (const model of ["gpt-6-luna", "openai:gpt-6-luna"]) {
 
 it("does not force a non-reasoning model when effort is inherited", async () => {
   const requests = captureRequests("Answer");
-  const warnings = spyOn(console, "warn").mockImplementation(() => undefined);
-  try {
-    const service = AIService.createFresh(
-      { apiKey: "test-key", model: "gpt-4o-mini", reasoningEffort: "low" },
-      createSilentLogger(),
-    );
-    expect((await service.generateText("System", "Question")).text).toBe(
-      "Answer",
-    );
-    expect(requests).toHaveLength(1);
-    expect(requests[0]?.input[0]?.role).toBe("system");
-    expect(warnings).toHaveBeenCalled();
-  } finally {
-    warnings.mockRestore();
-  }
+  const warnings = captureWarnings();
+  const service = AIService.createFresh(
+    { apiKey: "test-key", model: "gpt-4o-mini", reasoningEffort: "low" },
+    createSilentLogger(),
+  );
+  expect((await service.generateText("System", "Question")).text).toBe(
+    "Answer",
+  );
+  expect(requests).toHaveLength(1);
+  expect(requests[0]?.input[0]?.role).toBe("system");
+  // The provider drops the effort for a model that cannot reason, and says so.
+  expect(requests.map((request) => request.reasoning)).toEqual([undefined]);
+  expect(warnings).toEqual([
+    expect.objectContaining({ feature: "reasoningEffort" }),
+  ]);
 });
 
 it("sends low reasoning without temperature for structured generation", async () => {
@@ -148,49 +180,43 @@ for (const guest of [false, true]) {
   for (const model of ["gpt-6-luna", "gpt-4o-mini"]) {
     it(`uses reasoning capabilities on the real agent wire (${model}, guest=${guest})`, async () => {
       const requests = captureRequests("Answer");
-      const warnings =
-        model === "gpt-4o-mini"
-          ? spyOn(console, "warn").mockImplementation(() => undefined)
-          : undefined;
-      try {
-        const service = AIService.createFresh(
-          { apiKey: "test-key", model },
-          createSilentLogger(),
-        );
-        const agent = createBrainAgentFactory({
-          model: service.getModel(),
-          modelId: model,
-          reasoningEffort: "low",
-          temperature: 0.7,
-          messageBus: createMockMessageBus(),
-        })({
-          identity: {
-            name: "Brain",
-            role: "Assistant",
-            purpose: "Help",
-            values: [],
-          },
-          tools: [],
-          getToolsForPermission: () => [],
-        });
-        const result = await agent.generate({
-          messages: [{ role: "user", content: "Question" }],
-          options: {
-            interfaceType: guest ? guestInterfaceType : "evaluation",
-            userPermissionLevel: "public",
-            isAnchor: false,
-            conversationId: "test",
-            ...(guest ? { guestExecution: testGuestExecution } : {}),
-          },
-        });
-        expect(result.text).toBe("Answer");
-        expect(requests).toHaveLength(1);
-        expect(requests[0]?.input[0]?.role).toBe(
-          model === "gpt-6-luna" ? "developer" : "system",
-        );
-      } finally {
-        warnings?.mockRestore();
-      }
+      // gpt-4o-mini cannot reason: the provider warns and drops the effort.
+      captureWarnings();
+      const service = AIService.createFresh(
+        { apiKey: "test-key", model },
+        createSilentLogger(),
+      );
+      const agent = createBrainAgentFactory({
+        model: service.getModel(),
+        modelId: model,
+        reasoningEffort: "low",
+        temperature: 0.7,
+        messageBus: createMockMessageBus(),
+      })({
+        identity: {
+          name: "Brain",
+          role: "Assistant",
+          purpose: "Help",
+          values: [],
+        },
+        tools: [],
+        getToolsForPermission: () => [],
+      });
+      const result = await agent.generate({
+        messages: [{ role: "user", content: "Question" }],
+        options: {
+          interfaceType: guest ? guestInterfaceType : "evaluation",
+          userPermissionLevel: "public",
+          isAnchor: false,
+          conversationId: "test",
+          ...(guest ? { guestExecution: testGuestExecution } : {}),
+        },
+      });
+      expect(result.text).toBe("Answer");
+      expect(requests).toHaveLength(1);
+      expect(requests[0]?.input[0]?.role).toBe(
+        model === "gpt-6-luna" ? "developer" : "system",
+      );
     });
   }
 }
@@ -270,3 +296,48 @@ for (const guest of [false, true]) {
     else expect(result.guestSettlement).toBeUndefined();
   });
 }
+
+it("holds an OpenAI model to each tool's strict schema", async () => {
+  const requests = captureRequests("Answer");
+  const publish: Tool = {
+    name: "publishing_manage",
+    description: "Publish an entity.",
+    inputSchema: { entityType: z.string(), id: z.string().optional() },
+    visibility: "public",
+    handler: async () => ({ success: true as const, data: {} }),
+  };
+  const service = AIService.createFresh(
+    { apiKey: "test-key", model: "gpt-6-luna" },
+    createSilentLogger(),
+  );
+  const agent = createBrainAgentFactory({
+    model: service.getModel(),
+    modelId: "gpt-6-luna",
+    reasoningEffort: "low",
+    messageBus: createMockMessageBus(),
+  })({
+    identity: { name: "Brain", role: "Assistant", purpose: "Help", values: [] },
+    tools: [publish],
+    getToolsForPermission: () => [publish],
+  });
+
+  await agent.generate({
+    messages: [{ role: "user", content: "Publish it." }],
+    options: {
+      interfaceType: "evaluation",
+      userPermissionLevel: "public",
+      isAnchor: false,
+      conversationId: "test",
+    },
+  });
+
+  expect(
+    requests[0]?.tools?.map(({ name, strict, parameters }) => ({
+      name,
+      strict,
+      required: parameters.required,
+    })),
+  ).toEqual([
+    { name: "publishing_manage", strict: true, required: ["entityType", "id"] },
+  ]);
+});

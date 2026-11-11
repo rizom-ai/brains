@@ -1,6 +1,5 @@
 import {
   conversationMessageActorSchema,
-  conversationMessageMetadataSchema,
   conversationMessageSourceSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -40,6 +39,7 @@ export type TestCaseType = z.output<typeof testCaseTypeSchema>;
 type ExpectedToolCallSchema = z.ZodObject<{
   toolName: z.ZodString;
   argsContain: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  argsMatch: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
   argsAbsent: z.ZodOptional<z.ZodArray<z.ZodString>>;
   argsNotBeforeToday: z.ZodOptional<z.ZodArray<z.ZodString>>;
   resultContains: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -54,6 +54,12 @@ type ExpectedToolCallSchema = z.ZodObject<{
 export const expectedToolCallSchema: ExpectedToolCallSchema = z.object({
   toolName: z.string(),
   argsContain: z.record(z.string(), z.unknown()).optional(),
+  argsMatch: z
+    .record(z.string(), z.string())
+    .optional()
+    .describe(
+      "Dotted argument paths whose string value must match a regular expression in some matching call, for a value with more than one right spelling, such as a date written with or without its time.",
+    ),
   argsAbsent: z
     .array(z.string())
     .optional()
@@ -253,13 +259,6 @@ const userPermissionLevelSchema: z.ZodEnum<{
   public: "public";
 }> = z.enum(["admin", "trusted", "public"]);
 
-const evalConversationMessageActorSchema: z.ZodPreprocess<
-  typeof conversationMessageActorSchema
-> = z.preprocess((value) => {
-  const parsed = conversationMessageMetadataSchema.safeParse({ actor: value });
-  return parsed.success ? parsed.data.actor : value;
-}, conversationMessageActorSchema);
-
 export type ConversationMessageSource = z.output<
   typeof conversationMessageSourceSchema
 >;
@@ -270,7 +269,7 @@ type TurnContextSchema = z.ZodObject<{
   interfaceType: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
-  actor: z.ZodOptional<typeof evalConversationMessageActorSchema>;
+  actor: z.ZodOptional<typeof conversationMessageActorSchema>;
   source: z.ZodOptional<typeof conversationMessageSourceSchema>;
 }>;
 
@@ -280,7 +279,7 @@ export const turnContextSchema: TurnContextSchema = z.object({
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
-  actor: evalConversationMessageActorSchema.optional(),
+  actor: conversationMessageActorSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
 });
 

@@ -1,11 +1,12 @@
 {
   "name": "@brains/email",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.661",
+  "version": "0.2.0-alpha.679",
   "description": "Email transport with Resend delivery, threaded replies, IMAP intake, and private bounded source reads",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "imapflow": "^1.6.5",
     "mailparser": "^3.9.37"

@@ -1,61 +1,23 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import {
-  defineSection,
-  z,
-  type JsonObject,
-  type SiteSectionDefinition,
-} from "@rizom/site";
+import { defineSection, z, type SiteSectionDefinition } from "@rizom/site";
 
-interface Sources extends JsonObject {
-  draft: string;
-  pdf: string;
-  link: string;
-  photo: string;
-}
+type Words<Key extends string> = z.ZodObject<Record<Key, z.ZodString>>;
 
-interface Files extends JsonObject {
-  note: string;
-  paper: string;
-  link: string;
-  image: string;
-  post: string;
-}
-
-interface Destinations extends JsonObject {
-  site: string;
-  chat: string;
-  ai: string;
-  brains: string;
-}
-
-interface Captions extends JsonObject {
-  draft: string;
-  pdf: string;
-  link: string;
-  photo: string;
-  chat: string;
-  ai: string;
-  brains: string;
-  site: string;
-}
-
-/** The copy of the home's opening: what a brain is, drawn as the brain. */
-export interface DocsHomeHeroContent extends JsonObject {
-  title: string;
-  lede: string;
-  bringHeading: string;
-  brainLabel: string;
-  showsUpHeading: string;
-  hint: string;
-  sources: Sources;
-  files: Files;
-  destinations: Destinations;
-  /** One sentence per route, shown as the route lights up. */
-  captions: Captions;
-}
-
-const docsHomeHeroSchema: z.ZodType<DocsHomeHeroContent> = z.object({
+const docsHomeHeroSchema: z.ZodObject<{
+  title: z.ZodString;
+  lede: z.ZodString;
+  bringHeading: z.ZodString;
+  brainLabel: z.ZodString;
+  showsUpHeading: z.ZodString;
+  hint: z.ZodString;
+  sources: Words<"draft" | "pdf" | "link" | "photo">;
+  files: Words<"note" | "paper" | "link" | "image" | "post">;
+  destinations: Words<"site" | "chat" | "ai" | "brains">;
+  captions: Words<
+    "draft" | "pdf" | "link" | "photo" | "chat" | "ai" | "brains" | "site"
+  >;
+}> = z.object({
   title: z.string(),
   lede: z.string(),
   bringHeading: z.string(),
@@ -81,6 +43,7 @@ const docsHomeHeroSchema: z.ZodType<DocsHomeHeroContent> = z.object({
     ai: z.string(),
     brains: z.string(),
   }),
+  /** One sentence per route, shown as the route lights up. */
   captions: z.object({
     draft: z.string(),
     pdf: z.string(),
@@ -92,6 +55,9 @@ const docsHomeHeroSchema: z.ZodType<DocsHomeHeroContent> = z.object({
     site: z.string(),
   }),
 });
+
+/** The copy of the home's opening: what a brain is, drawn as the brain. */
+export type DocsHomeHeroContent = z.output<typeof docsHomeHeroSchema>;
 
 type Story =
   "draft" | "pdf" | "link" | "photo" | "chat" | "ai" | "brains" | "site";

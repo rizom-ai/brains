@@ -1,22 +1,16 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import type { BlogPost } from "../schemas/blog-post";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
 import {
-  blogPostFrontmatterSchema,
-  blogPostSchema,
-} from "../schemas/blog-post";
-import type { BlogPostWithData } from "./blog-datasource";
-import { generateRSSFeed, type RSSFeedConfig } from "../rss/feed-generator";
+  defineDataSource,
+  type DataSourceDefinition,
+  type EntityDefinition,
+} from "@brains/sdk/entities";
+import { z } from "@brains/utils/zod";
+import type { blogPostMetadataSchema } from "../schemas/blog-post";
+import { postFeedItem } from "../feed";
 
-/**
- * RSS feed query schema
- */
+type PostDefinition = EntityDefinition<"post", typeof blogPostMetadataSchema>;
+
+/** RSS feed query schema */
 const rssFeedQuerySchema = z.object({
   siteUrl: z.url(),
   title: z.string(),
@@ -25,85 +19,41 @@ const rssFeedQuerySchema = z.object({
   copyright: z.string().optional(),
 });
 
-type RSSFeedQuery = z.output<typeof rssFeedQuerySchema>;
-
 /**
- * DataSource for generating RSS feed from blog posts
+ * The RSS 2.0 document of the published posts, for the channel the query
+ * names, as the blog plugin class's RSS data source wrote it: each post
+ * under /posts/<slug>, the self link the site URL and /feed.xml.
  */
-export class RSSDataSource implements DataSource {
-  private readonly logger: Logger;
-  public readonly id = "blog:rss";
-  public readonly name = "Blog RSS Feed DataSource";
-  public readonly description =
-    "Generates RSS 2.0 feed XML from published blog posts";
-
-  constructor(logger: Logger) {
-    this.logger = logger;
-    this.logger.debug("RSSDataSource initialized");
-  }
-
-  /**
-   * Fetch and generate RSS feed XML
-   * @param context - Optional context (environment, etc.)
-   */
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    // Parse query parameters
-    const params: RSSFeedQuery = rssFeedQuerySchema.parse(query);
-    // Use context.entityService for automatic publishedOnly filtering
-    const entityService = context.entityService;
-
-    // Fetch all published posts
-    const allPosts: BlogPost[] = await entityService.listEntities(
-      {
-        entityType: "post",
-        options: {
-          limit: 1000,
-        },
-      },
-      blogPostSchema,
-    );
-
-    // Filter only published posts and parse frontmatter
-    const publishedPosts: BlogPostWithData[] = allPosts
-      .filter(
-        (p) => p.metadata.status === "published" && p.metadata.publishedAt,
-      )
-      .map((entity) => {
-        const parsed = parseMarkdownWithFrontmatter(
-          entity.content,
-          blogPostFrontmatterSchema,
-        );
-        return {
-          ...entity,
-          frontmatter: parsed.metadata,
-          body: parsed.content,
-        };
+export function rssDataSource(post: PostDefinition): DataSourceDefinition {
+  return defineDataSource({
+    id: "rss",
+    name: "Blog RSS Feed DataSource",
+    description: "Generates RSS 2.0 feed XML from published blog posts",
+    fetch: async (query, entities) => {
+      const params = rssFeedQuerySchema.parse(query);
+      const posts = await entities.list(post, {
+        limit: 1000,
+        sort: [{ field: "publishedAt", direction: "desc" }],
       });
-
-    this.logger.debug(
-      `Generating RSS feed with ${publishedPosts.length} posts`,
-    );
-
-    // Build RSS config
-    const rssConfig: RSSFeedConfig = {
-      title: params.title,
-      description: params.description,
-      link: params.siteUrl,
-      language: params.language ?? "en-us",
-      ...(params.copyright && { copyright: params.copyright }),
-    };
-
-    // Generate RSS XML
-    const xml = generateRSSFeed(publishedPosts, rssConfig);
-
-    const result = {
-      xml,
-    };
-
-    return outputSchema.parse(result);
-  }
+      const items = posts.flatMap((entry) => {
+        const item = postFeedItem(entry, { environment: "production" });
+        return item ? [feedItemSchema.parse(item)] : [];
+      });
+      const siteRoot = params.siteUrl.replace(/\/+$/u, "");
+      return {
+        xml: renderRssFeed(
+          items,
+          {
+            title: params.title,
+            description: params.description,
+            link: params.siteUrl,
+            selfLink: `${params.siteUrl}/feed.xml`,
+            language: params.language ?? "en-us",
+            copyright: params.copyright,
+          },
+          (item) => `${siteRoot}/posts/${item.slug}`,
+        ),
+      };
+    },
+  });
 }

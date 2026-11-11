@@ -57,11 +57,18 @@ export function filterToolsForCallOptions(
 }
 
 /** The tools that can serve a call now; a tool whose check fails cannot. */
-async function availableTools(tools: Tool[]): Promise<Tool[]> {
+async function availableTools(
+  tools: Tool[],
+  options: { prepareModelInputs: boolean },
+): Promise<Tool[]> {
   const available = await Promise.all(
-    tools.map(async (tool) =>
-      tool.isAvailable ? tool.isAvailable().catch(() => false) : true,
-    ),
+    tools.map(async (tool) => {
+      if (options.prepareModelInputs)
+        // A model input whose state cannot be read is shown as it stands;
+        // the tool's own schema still validates every call.
+        await tool.modelInput?.prepare?.().catch(() => undefined);
+      return tool.isAvailable ? tool.isAvailable().catch(() => false) : true;
+    }),
   );
   return tools.filter((_, index) => available[index]);
 }
@@ -155,6 +162,10 @@ export function createBrainAgentFactory(
       ? createToolCallRepair(model, reasoning)
       : undefined;
 
+  // OpenAI holds the model to a tool's strict schema, so a call cannot leave
+  // out a required field or carry one the tool lacks.
+  const toolOptions = { strictTools: capabilities.provider === "openai" };
+
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
 
@@ -170,6 +181,7 @@ export function createBrainAgentFactory(
         interfaceType: "agent",
       },
       emitter,
+      toolOptions,
     );
 
     const agent = new ToolLoopAgent({
@@ -202,6 +214,8 @@ export function createBrainAgentFactory(
                 config.getToolsForPermission(callOptions.userPermissionLevel),
                 callOptions,
               ),
+              // Only a model held to strict tools is shown a model input.
+              { prepareModelInputs: toolOptions.strictTools },
             );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
@@ -221,6 +235,7 @@ export function createBrainAgentFactory(
             enableCreateTransform: callOptions.enableCreateTransform,
           },
           emitter,
+          toolOptions,
         );
 
         return {
@@ -265,7 +280,7 @@ export function createBrainAgentFactory(
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
           const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-            (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+            (onStepEnd) => agent.generate({ ...params, onStepEnd }),
           );
           return {
             text,
@@ -306,7 +321,7 @@ export function createBrainAgentFactory(
             guestScreening: { outcome: "refused", category: judgment.category },
           };
         const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-          (onStepFinish) => agent.generate({ ...params, onStepFinish }),
+          (onStepEnd) => agent.generate({ ...params, onStepEnd }),
         );
         return {
           text,

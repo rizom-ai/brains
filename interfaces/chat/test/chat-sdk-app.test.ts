@@ -1,35 +1,13 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
-import {
-  RuntimeUploadStoreError,
-  type WebRouteDefinition,
-} from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/plugins";
 import { caughtError } from "@brains/test-utils";
-import type { ChatUploadReader } from "../src/types";
 import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
-import type {
-  DiscordChatAdapterConfig,
-  SlackChatAdapterConfig,
-} from "../src/config";
+import type { SlackChatAdapterConfig } from "../src/config";
 
 // No module mocks: ChatSdkAppHost imports no SDK at runtime, and the app it
 // drives is injected via `buildApp`. The test supplies a plain fake app.
-
-const DISCORD_CONFIG: DiscordChatAdapterConfig = {
-  botToken: "discord-token",
-  publicKey: "a".repeat(64),
-  applicationId: "bot-user-123",
-  mentionRoleIds: [],
-  allowedChannels: [],
-  blockedUrlDomains: [],
-  requireMention: true,
-  allowDMs: true,
-  showTypingIndicator: true,
-  useThreads: true,
-  captureUrls: true,
-  captureUrlEmoji: "🔖",
-};
 
 const SLACK_CONFIG: SlackChatAdapterConfig = {
   botToken: "slack-token",
@@ -76,28 +54,8 @@ function createFakeApp(options?: { withWebhook?: boolean }): FakeApp {
   };
 }
 
-function createUploadStore(read?: ChatUploadReader["read"]): ChatUploadReader {
-  return {
-    read:
-      read ??
-      mock(async (id: string) => ({
-        record: {
-          id,
-          filename: "report.pdf",
-          mediaType: "application/pdf",
-          ref: { kind: "discord-chat-upload", id },
-          sizeBytes: 8,
-          createdAt: "2026-01-01T00:00:00.000Z",
-        },
-        content: Buffer.from("%PDF-1.7"),
-      })),
-  } satisfies ChatUploadReader;
-}
-
 function makeApp(options?: {
-  discord?: DiscordChatAdapterConfig | undefined;
   slack?: SlackChatAdapterConfig | undefined;
-  uploadStore?: ChatUploadReader | undefined;
   app?: FakeApp;
   build?: boolean;
 }): {
@@ -108,42 +66,13 @@ function makeApp(options?: {
   const app = options?.app ?? createFakeApp();
   const buildApp = mock(() => app);
   const discordApp = new ChatSdkAppHost({
-    discord: options && "discord" in options ? options.discord : DISCORD_CONFIG,
     slack: options && "slack" in options ? options.slack : SLACK_CONFIG,
-    getUploadStore: (): ChatUploadReader | undefined =>
-      options && "uploadStore" in options
-        ? options.uploadStore
-        : createUploadStore(),
     buildApp,
   });
   if (options?.build !== false) {
     discordApp.build(createMockShell().getRuntimeState());
   }
   return { discordApp, app, buildApp };
-}
-
-function uploadRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
-  const route = discordApp
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === "/api/webhooks/chat/discord/uploads" &&
-        candidate.method === "GET",
-    );
-  if (!route) throw new Error("upload route missing");
-  return route;
-}
-
-function slackUploadRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
-  const route = discordApp
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === "/api/webhooks/chat/slack/uploads" &&
-        candidate.method === "GET",
-    );
-  if (!route) throw new Error("Slack upload route missing");
-  return route;
 }
 
 function webhookRoute(discordApp: ChatSdkAppHost): WebRouteDefinition {
@@ -225,101 +154,15 @@ describe("ChatSdkAppHost", () => {
     expect(await response.text()).toBe("Slack chat webhook not configured");
   });
 
-  it("serves stored upload refs with inline and download dispositions", async () => {
+  it("serves the webhooks and no platform upload route", () => {
     const { discordApp } = makeApp();
-    const inline = await uploadRoute(discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
-    );
-    const download = await uploadRoute(discordApp).handler(
-      new Request(
-        "https://brain.test/api/webhooks/chat/discord/uploads?id=u1&download=1",
-      ),
-    );
 
-    expect(inline.status).toBe(200);
-    expect(inline.headers.get("Content-Type")).toBe("application/pdf");
-    expect(inline.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(inline.headers.get("X-Content-Type-Options")).toBe("nosniff");
-    expect(inline.headers.get("Content-Disposition")).toContain("inline;");
-    expect(await inline.text()).toBe("%PDF-1.7");
-    expect(download.headers.get("Content-Disposition")).toContain(
-      "attachment;",
-    );
-  });
-
-  it("returns 404 from the upload route when Discord is not configured", async () => {
-    const { discordApp } = makeApp({ discord: undefined });
-    const response = await uploadRoute(discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
-    );
-    expect(response.status).toBe(404);
-    expect(await response.text()).toBe("Discord chat uploads not configured");
-  });
-
-  it("serves Slack uploads only when Slack is configured", async () => {
-    const configured = makeApp();
-    const response = await slackUploadRoute(configured.discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/slack/uploads?id=u1"),
-    );
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-
-    const unconfigured = makeApp({ slack: undefined });
-    const missing = await slackUploadRoute(unconfigured.discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/slack/uploads?id=u1"),
-    );
-    expect(missing.status).toBe(404);
-    expect(await missing.text()).toBe("Slack chat uploads not configured");
-  });
-
-  it("rejects a missing upload id with 400", async () => {
-    const { discordApp } = makeApp();
-    const response = await uploadRoute(discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads"),
-    );
-    expect(response.status).toBe(400);
-    expect(await response.text()).toBe("Missing upload id");
-  });
-
-  it("returns 404 when the store reports the ref does not exist", async () => {
-    const { discordApp } = makeApp({
-      uploadStore: createUploadStore(
-        mock(async (): Promise<never> => {
-          throw new RuntimeUploadStoreError("not_found", "Upload not found");
-        }),
-      ),
-    });
-    const response = await uploadRoute(discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
-    );
-    expect(response.status).toBe(404);
-    expect(await response.text()).toBe("Upload not found");
-  });
-
-  it("returns 500 when the store fails for a reason other than absence", async () => {
-    // A store that blows up has not told us the upload is missing. Reporting
-    // 404 would blame the caller for a fault on this side.
-    const { discordApp } = makeApp({
-      uploadStore: createUploadStore(
-        mock(async (): Promise<never> => {
-          throw new Error("disk went away");
-        }),
-      ),
-    });
-    const response = await uploadRoute(discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
-    );
-    expect(response.status).toBe(500);
-    expect(await response.text()).toBe("Upload could not be read");
-  });
-
-  it("returns 503 when the adapter is configured but no store was registered", async () => {
-    const { discordApp } = makeApp({ uploadStore: undefined });
-    const response = await uploadRoute(discordApp).handler(
-      new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
-    );
-    expect(response.status).toBe(503);
-    expect(await response.text()).toBe("Chat upload storage unavailable");
+    expect(
+      discordApp.getWebRoutes().map(({ method, path }) => `${method} ${path}`),
+    ).toEqual([
+      "POST /api/webhooks/chat/discord",
+      "POST /api/webhooks/chat/slack",
+    ]);
   });
 
   it("delegates initialize and shutdown to the built app", async () => {

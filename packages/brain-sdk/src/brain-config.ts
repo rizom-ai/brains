@@ -80,7 +80,7 @@ export const deploymentConfigSchema: DeploymentConfigSchema = z.object({
     })
     .prefault({}),
 
-  // Port configuration (also used by WebserverInterface)
+  // Port configuration; the HTTP host listens on ports.production
   ports: z
     .object({
       default: z.number().default(3333),

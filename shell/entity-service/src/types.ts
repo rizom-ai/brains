@@ -12,6 +12,7 @@ import type {
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type { ActorRef } from "@brains/contracts";
 import type { EnqueueJobRouting } from "@brains/job-queue";
+import type { BroadcastBus } from "@brains/messaging-service";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -520,19 +521,10 @@ export type PersistValidator<T extends BaseEntity = BaseEntity> = (
 ) => Promise<void>;
 
 /**
- * Minimal event bus contract used by entity-service for lifecycle events.
- * Kept structural to avoid coupling this package to a concrete messaging service.
+ * The part of the message bus entity-service uses: it broadcasts its
+ * lifecycle events on their typed channels, as `broadcastChannel` sends them.
  */
-export interface EntityEventBus {
-  send(request: {
-    type: string;
-    payload: Record<string, unknown>;
-    sender: string;
-    target?: string;
-    metadata?: Record<string, unknown>;
-    broadcast?: boolean;
-  }): Promise<unknown>;
-}
+export type EntityEventBus = BroadcastBus;
 
 /**
  * Interface for entity adapter - handles conversion between entities and markdown
@@ -584,6 +576,13 @@ export interface EntityAdapter<
   /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
+  /**
+   * Optional: fields a creator may state that the type does not store, such
+   * as where a deck's slides break. The brain's create tool takes them with
+   * the editable fields; nothing updates them.
+   */
+  createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
+
   /** Optional: Declares this entity type is a singleton (one file, e.g., identity/identity.md). Used by Studio to generate files collection. */
   isSingleton?: boolean;
 
@@ -603,6 +602,16 @@ export interface EntityAdapter<
    * social card recorded by id — and the metadata follows it.
    */
   metadataFromFrontmatter?: boolean;
+
+  /**
+   * Optional: keep the frontmatter order of the document a write replaces
+   * (the one handed in whole, or the one stored when an update carries the
+   * body alone): written values land where that document has them, an
+   * unchanged nested value keeps its own key order, and a field it lacks
+   * follows the rest, as an entity plugin class's adapter wrote over
+   * existing frontmatter. For types whose files people write by hand.
+   */
+  writesInDocumentOrder?: boolean;
 
   /**
    * Optional: the `metadata.status` values that count as published for
@@ -1578,6 +1587,22 @@ export interface EntityRegistry {
   getEffectiveFrontmatterSchema(
     type: string,
   ): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields of an entity type's effective frontmatter that callers may
+   * set through the brain's create and update tools, typed as the
+   * frontmatter types them: every field but those a schema marks as the
+   * brain's own record, `studioWidget: "provenance"` or `"hidden"`, the
+   * marks by which Studio shows a field read-only or leaves it off its
+   * form. Undefined when the type has no frontmatter.
+   */
+  getEditableFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields a caller may state when creating an entity of this type: its
+   * editable fields and those its adapter takes only on create.
+   */
+  getCreateFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**

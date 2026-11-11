@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   createPlugin,
@@ -12,7 +12,7 @@ describe("ChatInterface gateway daemons", () => {
   const suite = setupChatInterfaceTest();
 
   it("runs Slack without starting the Discord gateway", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const registry = suite.harness.getMockShell().getDaemonRegistry();
 

@@ -14,6 +14,7 @@ import {
   unwrittenFields,
 } from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
+import { editableFieldsOf } from "./editable-fields";
 import {
   getArrayElement,
   getObjectShape,
@@ -693,6 +694,33 @@ export class EntityRegistry implements IEntityRegistry {
   getEffectiveFrontmatterSchema(type: string): FrontmatterSchema | undefined {
     const adapter = this.entityAdapters.get(type);
     return this.mergeExtensions(type, adapter?.frontmatterSchema);
+  }
+
+  /**
+   * The fields of an entity type's effective frontmatter that callers may
+   * set, typed as the frontmatter types them: all but the brain's own
+   * record, which a schema marks as Studio's provenance or hidden fields.
+   */
+  getEditableFieldsSchema(type: string): FrontmatterSchema | undefined {
+    const effective = this.getEffectiveFrontmatterSchema(type);
+    if (effective) return editableFieldsOf(effective);
+    // A type without frontmatter, such as a stored file, keeps what callers
+    // set in its metadata.
+    const entitySchema = this.entitySchemas.get(type);
+    const metadata =
+      entitySchema instanceof z.ZodObject
+        ? entitySchema.shape["metadata"]
+        : undefined;
+    return metadata instanceof z.ZodObject
+      ? editableFieldsOf(metadata)
+      : undefined;
+  }
+
+  getCreateFieldsSchema(type: string): FrontmatterSchema | undefined {
+    const editable = this.getEditableFieldsSchema(type);
+    const createOnly = this.entityAdapters.get(type)?.createFieldsSchema;
+    if (!createOnly) return editable;
+    return editable ? editable.extend(createOnly.shape) : createOnly;
   }
 
   /**

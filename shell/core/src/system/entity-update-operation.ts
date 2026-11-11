@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { diffArrays } from "diff";
 import {
+  generateMarkdown,
   parseMarkdown,
   updateFrontmatterField,
 } from "@brains/utils/markdown-frontmatter";
@@ -56,7 +57,7 @@ export function fieldPersists(
   return Object.hasOwn(store, key) && isDeepStrictEqual(store[key], requested);
 }
 
-function sourceFieldKeys(
+export function sourceFieldKeys(
   entityType: string,
   registry: SystemServices["entityRegistry"],
 ): Set<string> {
@@ -79,6 +80,37 @@ function currentFieldValue(
   if (sourceFields.has(key))
     return parseMarkdown(entity.content).frontmatter[key];
   return key === "visibility" ? entity.visibility : entity.metadata[key];
+}
+
+/**
+ * A declared type's entity, with the stored frontmatter its own fields do
+ * not cover laid over its body, so a field update to a grouping or other
+ * frontmatter extension sees the value stored and keeps every other field
+ * the document carries. Its reads hand back its body alone, and those
+ * fields live only in the stored document; an entity plugin class's
+ * content is the stored document already.
+ */
+export function withStoredSourceFields(
+  entity: BaseEntity,
+  stored: string,
+  registry: SystemServices["entityRegistry"],
+): BaseEntity {
+  // The type's own fields come from its metadata; the source fields
+  // (groupings and extensions), and fields no one claims, from the file.
+  const sourceFields = sourceFieldKeys(entity.entityType, registry);
+  const owned = new Set(
+    Object.keys(
+      registry.getAdapter(entity.entityType).frontmatterSchema?.shape ?? {},
+    ).filter((key) => !sourceFields.has(key)),
+  );
+  const kept = Object.fromEntries(
+    Object.entries(parseMarkdown(stored).frontmatter).filter(
+      ([key]) => !owned.has(key),
+    ),
+  );
+  return Object.keys(kept).length > 0
+    ? { ...entity, content: generateMarkdown(kept, entity.content) }
+    : entity;
 }
 
 export function applyFieldUpdates(
@@ -392,11 +424,19 @@ function validateContentReplacement(
     };
   }
 
+  const adapter = entityRegistry.getAdapter(entityType);
+  // A type whose metadata is decoded from its file derives some of it, such
+  // as a social post's slug, which the file never states: a replacement with
+  // frontmatter is checked as the file will be stored. Its content is the
+  // body, so a body alone keeps the stored metadata.
+  const decoded = adapter.metadataFromFrontmatter === true;
+  if (decoded && !FRONTMATTER_BLOCK.test(operation.content)) return undefined;
   try {
-    entityRegistry
-      .getAdapter(entityType)
-      .parseFrontMatter(operation.content, frontmatterSchema);
+    if (decoded) adapter.fromMarkdown(operation.content);
+    else adapter.parseFrontMatter(operation.content, frontmatterSchema);
   } catch {
+    // Only the replacement's own frontmatter is parsed here: a failure is
+    // the caller's text not decoding, answered with what to send instead.
     return {
       success: false,
       error:

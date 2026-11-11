@@ -36,8 +36,8 @@ const mcp = plugins.find(({ id }) => id === "mcp");
 const mcpConfig =
   mcp && "config" in mcp && isRecord(mcp.config) ? mcp.config : undefined;
 
-if (plugins.some(({ id }) => id === "webserver")) {
-  throw new Error("Canonical headless app unexpectedly selected webserver");
+if (config.http.enabled === true) {
+  throw new Error("Canonical headless app unexpectedly serves HTTP");
 }
 if (plugins.some(({ id }) => id === "notifications")) {
   throw new Error("Canonical headless app unexpectedly selected notifications");
