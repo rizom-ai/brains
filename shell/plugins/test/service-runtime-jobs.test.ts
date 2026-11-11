@@ -89,6 +89,18 @@ describe("a first-party service queueing a job as its class did", () => {
     });
   });
 
+  it("reads the active jobs of the types it names, as its class did", async () => {
+    const shell = createMockShell();
+    const runtime = await runtimeOn(shell);
+    const active = await runtime.jobs.enqueue({ type: "publish", data: {} });
+    await runtime.jobs.enqueue({ type: "other", data: {} });
+
+    expect(
+      (await runtime.jobs.getActiveJobs(["probe:publish"])).map(({ id }) => id),
+    ).toEqual([active]);
+    expect(await runtime.jobs.getActiveJobs()).toHaveLength(2);
+  });
+
   it("reads a job's status and the recent jobs of the types it names", async () => {
     const shell = createMockShell();
     const runtime = await runtimeOn(shell);

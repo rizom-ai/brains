@@ -31,6 +31,7 @@ import type {
   CountEntitiesRequest,
   CreateEntityRequest,
   EntityMutationResult,
+  GetEntityRawRequest,
   GetEntityRequest,
   IEntityService,
   ListEntitiesRequest,
@@ -482,6 +483,11 @@ export interface ServiceEntityReads {
   ): Promise<Array<{ entityType: string; count: number }>>;
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  /**
+   * One record as stored, its references left unresolved, at the scope the
+   * request names: what an identifier lookup reads by id.
+   */
+  getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   /** A search of the brain at the scope the request names. */
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
 }
@@ -514,6 +520,8 @@ export interface ServiceClassJobs {
   getStatus(jobId: string): Promise<JobInfo | null>;
   /** The latest jobs of the types named, newest first, at most `limit`. */
   getRecentJobs(types?: string[], limit?: number): Promise<JobInfo[]>;
+  /** The jobs pending or running, of the types named or of every type. */
+  getActiveJobs(types?: string[]): Promise<JobInfo[]>;
 }
 
 /** The entity service's writes a first-party class made. */

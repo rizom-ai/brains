@@ -1132,6 +1132,7 @@ class DeclarativeServicePlugin<
         getStatus: (jobId: string) => context.jobs.getStatus(jobId),
         getRecentJobs: (types?: string[], limit?: number) =>
           context.jobs.getRecentJobs(types, limit),
+        getActiveJobs: (types?: string[]) => context.jobs.getActiveJobs(types),
       }),
       entityWrites: entityWritesOf(context),
       dataDir: context.dataDir,
@@ -1818,6 +1819,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntityCounts: (scope) => entityService.getEntityCounts(scope),
     listEntities: (request) => entityService.listEntities(request),
     getEntity: (request) => entityService.getEntity(request),
+    getEntityRaw: (request) => entityService.getEntityRaw(request),
     search: (request) => entityService.search(request),
   } satisfies ServiceEntityReads);
 }

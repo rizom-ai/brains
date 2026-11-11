@@ -657,12 +657,30 @@ describe("a first-party service's read-only view of the entity service", () => {
     ).toBeNull();
   });
 
+  it("reads a record raw, at the scope it names, as an identifier lookup does", async () => {
+    const view = await reads(seeded());
+
+    expect(
+      (
+        await view.getEntityRaw({
+          entityType: "note",
+          id: "private-note",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+    ).toBe("Private");
+    expect(
+      await view.getEntityRaw({ entityType: "note", id: "private-note" }),
+    ).toBeNull();
+  });
+
   it("offers no writes", async () => {
     const view = await reads(seeded());
 
     expect(Object.keys(view).sort()).toEqual([
       "getEntity",
       "getEntityCounts",
+      "getEntityRaw",
       "getEntityTypes",
       "listEntities",
       "search",
