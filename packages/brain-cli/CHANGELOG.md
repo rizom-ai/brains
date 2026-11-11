@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.682
+
+### Patch Changes
+
+- [#919](https://github.com/rizom-ai/brains/pull/919) [`1238960`](https://github.com/rizom-ai/brains/commit/1238960bf6003140d4bcf8661cb5dba3468ffbbe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Posts, decks, docs, notes, projects, prompts, social posts, wishes and playbooks report the frontmatter their entity plugin classes declared again, so Studio's editor fields and the Obsidian vault's templates and fileClasses show those headers as before their conversion: no generation error or stated slug fields, and a playbook's status, audience and completion mode optional with their defaults.
+
+- [#919](https://github.com/rizom-ai/brains/pull/919) [`8e63733`](https://github.com/rizom-ai/brains/commit/8e637337bdf382bb4d1b9352c0e9c2281194692a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party declared type can state its file header as its frontmatter schema when its metadata holds more, as its entity plugin class declared it.
+
 ## 0.2.0-alpha.681
 
 ### Minor Changes
