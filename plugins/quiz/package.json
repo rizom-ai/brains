@@ -9,6 +9,7 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/site-composition": "workspace:*",
