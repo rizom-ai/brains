@@ -33,6 +33,7 @@ import type {
 } from "@brains/entity-service";
 import { isGroupingContributor } from "@brains/entity-service";
 import { entityDisplayTitle } from "../entity/display-title";
+import { deriveConsoleSurfaces } from "../console-surfaces";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -1326,6 +1327,8 @@ class DeclarativeServicePlugin<
       preferLocalUrls: context.preferLocalUrls,
       entityDisplay: context.entityDisplay,
       routeByRole: (role) => context.webRoutes.findByRole(role),
+      consoleSurfaces: (options) =>
+        deriveConsoleSurfaces(context.webRoutes.getRoutes(), options),
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);
       },

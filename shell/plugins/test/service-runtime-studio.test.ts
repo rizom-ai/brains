@@ -12,6 +12,7 @@ import { EntityRegistry } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   defineServicePlugin,
+  deriveConsoleSurfaces,
   instantiatePluginPackageDefinition,
   serviceRuntime,
   type Plugin,
@@ -301,6 +302,52 @@ describe("a first-party service reaching what Studio's class did", () => {
     expect(runtime.entityShapes.displayTitle(record("note", {}))).toBe(
       undefined,
     );
+  });
+
+  it("derives the console surfaces from the routes registered when asked, never handing them out", async () => {
+    const shell = createMockShell();
+    const { runtime } = await runtimeOn(shell);
+    const options = {
+      activeId: "dashboard",
+      permissionLevel: "admin",
+      hasActiveSession: true,
+    } as const;
+    expect(runtime.consoleSurfaces(options)).toEqual(
+      deriveConsoleSurfaces(shell.getPluginWebRoutes(), options),
+    );
+    expect(
+      runtime.consoleSurfaces(options).some(({ id }) => id === "studio"),
+    ).toBe(false);
+
+    // A surface whose plugin registers later is offered once it has.
+    shell.registerPlugin({
+      id: "studio",
+      version: "1.0.0",
+      type: "service",
+      packageName: "@brains/studio",
+      register: async () => ({
+        tools: [],
+        resources: [],
+        commands: [],
+        handlers: [],
+      }),
+      getWebRoutes: () => [
+        {
+          path: "/studio",
+          role: "studio",
+          method: "GET",
+          public: true,
+          handler: async (): Promise<Response> => new Response("ok"),
+        },
+      ],
+    });
+    expect(runtime.consoleSurfaces(options)).toEqual(
+      deriveConsoleSurfaces(shell.getPluginWebRoutes(), options),
+    );
+    expect(
+      runtime.consoleSurfaces(options).find(({ id }) => id === "studio")?.href,
+    ).toBe("/studio");
+    expect(Object.keys(runtime)).not.toContain("webRoutes");
   });
 
   it("lists the members work can be assigned to, as its class read context.auth", async () => {

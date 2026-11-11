@@ -14,6 +14,13 @@ import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
 import type { RegisteredWebRoute } from "../types/web-routes";
 import type {
+  ConsoleSurface,
+  deriveConsoleSurfaces,
+} from "../console-surfaces";
+
+/** Who a console surface strip is for, as deriveConsoleSurfaces reads it. */
+export type ConsoleSurfaceOptions = Parameters<typeof deriveConsoleSurfaces>[1];
+import type {
   IEndpointsNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
@@ -487,6 +494,12 @@ export interface ServiceRuntime {
   /** The route another plugin mounts for a well-known role, if any. */
   routeByRole(role: WebRouteRole): RegisteredWebRoute | undefined;
   /**
+   * The console surface strip for a caller, as Dashboard's class derived it
+   * from every registered web route: read when asked, so a surface whose
+   * plugin registered later is offered; the routes are never handed out.
+   */
+  consoleSurfaces(options: ConsoleSurfaceOptions): ConsoleSurface[];
+  /**
    * The tool call that is running, as the class's handler was handed it:
    * the conversation it was called in and the caller's permission level.
    * None outside a tool call.
@@ -854,6 +867,9 @@ export interface ServiceRuntimeBinding {
   readonly entityDisplay:
     Readonly<Record<string, EntityDisplayEntry>> | undefined;
   readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
+  readonly consoleSurfaces: (
+    options: ConsoleSurfaceOptions,
+  ) => ConsoleSurface[];
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
@@ -943,6 +959,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     preferLocalUrls: binding.preferLocalUrls,
     entityDisplay: binding.entityDisplay,
     routeByRole: binding.routeByRole,
+    consoleSurfaces: binding.consoleSurfaces,
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
