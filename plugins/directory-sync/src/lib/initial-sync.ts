@@ -1,11 +1,10 @@
+import type { DirectorySyncContext } from "./sync-context";
 import { getErrorMessage } from "@brains/utils/error";
 import {
-  SYSTEM_CHANNELS,
   initialSyncCompletedChannel,
   jobProgressChannel,
   type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -26,7 +25,7 @@ export interface InitialSyncRecovery {
 }
 
 export interface InitialSyncOptions {
-  context: ServicePluginContext;
+  context: DirectorySyncContext;
   getDirectorySync: () => IDirectorySync;
   config: DirectorySyncConfig;
   logger: Logger;
@@ -79,7 +78,7 @@ export function setupInitialSync(options: InitialSyncOptions): void {
       logger.error("Initial sync failed", error);
       await requireRescan(options);
       await options.recovery?.onGitRecoveryFailed(error);
-      await context.messaging.broadcast(initialSyncCompletedChannel, {
+      await context.runtime.messaging.broadcast(initialSyncCompletedChannel, {
         success: false,
         error: getErrorMessage(error),
       });
@@ -90,7 +89,7 @@ export function setupInitialSync(options: InitialSyncOptions): void {
 
     const { batchIds, runId } = startup;
     if (batchIds.length === 0) {
-      await context.messaging.broadcast(initialSyncCompletedChannel, {
+      await context.runtime.messaging.broadcast(initialSyncCompletedChannel, {
         success: true,
       });
       return { initialSyncPending: false };
@@ -100,7 +99,10 @@ export function setupInitialSync(options: InitialSyncOptions): void {
     void followBatches(context, batchIds)
       .then(async (outcome) => {
         await settleStartupRun(options, runId, outcome);
-        await context.messaging.broadcast(initialSyncCompletedChannel, outcome);
+        await context.runtime.messaging.broadcast(
+          initialSyncCompletedChannel,
+          outcome,
+        );
       })
       .catch((error: unknown) => {
         logger.error("Unable to report initial sync completion", error);
@@ -108,10 +110,9 @@ export function setupInitialSync(options: InitialSyncOptions): void {
     return { initialSyncPending: true };
   };
 
-  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+  context.runtime.initialSync(async () => {
     logger.debug("Plugins registered, queueing initial sync");
-    const answer = await queueInitialSync();
-    return { success: true, data: answer };
+    return queueInitialSync();
   });
 }
 
@@ -217,7 +218,7 @@ async function settleStartupRun(
  * a batch that settled before the subscription is not waited on forever.
  */
 function followBatches(
-  context: ServicePluginContext,
+  context: DirectorySyncContext,
   batchIds: string[],
 ): Promise<InitialSyncOutcome> {
   return new Promise((resolve) => {
@@ -241,16 +242,15 @@ function followBatches(
       );
     };
 
-    const unsubscribe = context.messaging.subscribe(
+    const unsubscribe = context.runtime.listen(
       jobProgressChannel,
-      async (event) => {
+      ({ payload: event }) => {
         if (event.type === "batch") {
           if (event.status === "completed") settle(event.id, null);
           if (event.status === "failed") {
             settle(event.id, event.batchDetails?.errors ?? []);
           }
         }
-        return { success: true };
       },
     );
 

@@ -1,5 +1,5 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -22,7 +22,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   ImportResult
 > {
   private directorySync: IDirectorySync;
-  private readonly context: ServicePluginContext;
+  private readonly context: DirectorySyncCore;
   private readonly operationStatus:
     DirectorySyncOperationStatusService | undefined;
   private readonly reconciliation:
@@ -30,7 +30,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
     reconciliation?: Pick<GitReconciliationService, "requireFullScan">,
@@ -140,7 +140,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     );
   }
 
-  protected override summarizeDataForLog(
+  public override summarizeDataForLog(
     data: DirectoryImportJobData,
   ): Record<string, unknown> {
     return {

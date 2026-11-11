@@ -1,5 +1,5 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -22,7 +22,7 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
 
   constructor(
     logger: Logger,
-    _context: ServicePluginContext,
+    _context: DirectorySyncCore,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
   ) {
@@ -69,7 +69,7 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     }
   }
 
-  protected override summarizeDataForLog(
+  public override summarizeDataForLog(
     data: DirectoryExportJobData,
   ): Record<string, unknown> {
     return {

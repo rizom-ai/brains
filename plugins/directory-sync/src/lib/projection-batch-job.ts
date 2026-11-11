@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncCore } from "./sync-context";
 import type { DirectoryProjectionBatchRef } from "../types";
 
 interface ProjectionBatchJobData {
@@ -6,7 +6,7 @@ interface ProjectionBatchJobData {
 }
 
 export function runDirectoryProjectionBatchChild<TResult>(
-  context: ServicePluginContext,
+  context: DirectorySyncCore,
   data: ProjectionBatchJobData,
   jobId: string,
   mutation: () => Promise<TResult>,
@@ -28,7 +28,7 @@ export function runDirectoryProjectionBatchChild<TResult>(
 }
 
 export async function settleDirectoryProjectionBatchChild(
-  context: ServicePluginContext,
+  context: DirectorySyncCore,
   data: ProjectionBatchJobData,
   jobId: string,
   outcome: "completed" | "failed",

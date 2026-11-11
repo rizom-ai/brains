@@ -1,5 +1,5 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -13,7 +13,7 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-const directoryCleanupJobSchema: z.ZodObject<{
+export const directoryCleanupJobSchema: z.ZodObject<{
   projectionBatch: z.ZodOptional<typeof directoryProjectionBatchRefSchema>;
 }> = z.object({
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
@@ -26,12 +26,12 @@ export class DirectoryCleanupJobHandler extends BaseJobHandler<
   DirectoryCleanupJobData,
   CleanupResult
 > {
-  private readonly context: ServicePluginContext;
+  private readonly context: DirectorySyncCore;
   private directorySync: IDirectorySync;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     directorySync: IDirectorySync,
   ) {
     super(logger, {
@@ -94,5 +94,12 @@ export class DirectoryCleanupJobHandler extends BaseJobHandler<
       jobId,
       "failed",
     );
+  }
+
+  /** What a log line says of the job: its data, as the base logs it. */
+  public override summarizeDataForLog(
+    data: DirectoryCleanupJobData,
+  ): Record<string, unknown> {
+    return super.summarizeDataForLog(data);
   }
 }

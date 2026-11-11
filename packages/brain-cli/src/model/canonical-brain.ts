@@ -31,7 +31,7 @@ import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
 import decksPackage from "@brains/decks";
-import { directorySync } from "@brains/directory-sync";
+import directorySyncPackage from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
 import { bookPlugin } from "@brains/book";
@@ -243,15 +243,17 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("decks", "@brains/decks", decksPackage, {
       pluginId: "decks",
     }),
-    [
+    packageCapability(
       "directory-sync",
-      directorySync,
+      "@brains/directory-sync",
+      directorySyncPackage,
+      { pluginId: "directory-sync" },
       {
         seedContent: true,
         seedContentPath: "./seed-content",
         initialSync: true,
       },
-    ],
+    ),
     packageCapability(
       "atproto-registry",
       "@brains/atproto-registry",

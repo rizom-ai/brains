@@ -3,7 +3,10 @@ import {
   createTestEntity,
 } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { normalizeDirectorySyncOptions } from "../src/lib/directory-options";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
@@ -31,7 +34,7 @@ describe("DirectorySync AutoSync", () => {
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
 
-    plugin = new DirectorySyncPlugin({
+    plugin = createDirectorySyncPlugin({
       syncPath: testDir,
       autoSync: true,
       initialSync: false,
@@ -147,7 +150,7 @@ describe("DirectorySync AutoSync", () => {
     });
 
     it("should not setup handlers when autoSync is false", async () => {
-      const noAutoPlugin = new DirectorySyncPlugin({
+      const noAutoPlugin = createDirectorySyncPlugin({
         syncPath: testDir,
         autoSync: false,
         initialSync: false,
@@ -199,7 +202,7 @@ describe("Export echo suppression", () => {
     harness
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
-    plugin = new DirectorySyncPlugin({
+    plugin = createDirectorySyncPlugin({
       syncPath: testDir,
       autoSync: true,
       initialSync: false,

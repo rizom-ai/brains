@@ -46,7 +46,7 @@ class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
  * Studio as a first-party service reaches it: a workspace built under the
  * plugin's id and registered with the fixture's Studio.
  */
-function fixtureStudio(
+export function fixtureStudio(
   context: ReturnType<typeof createServicePluginContext>,
 ): ServiceStudio {
   return {

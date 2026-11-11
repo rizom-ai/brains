@@ -1,4 +1,5 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncCore } from "../lib/sync-context";
+import type { BaseEntity } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
 import type { MatchesHead } from "../lib/file-watcher";
@@ -75,7 +76,7 @@ export interface IDirectorySync {
   ensureDirectoryStructure(): Promise<void>;
   getStatus(): Promise<DirectorySyncStatus>;
   queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: DirectorySyncCore,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],

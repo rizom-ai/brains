@@ -1,6 +1,6 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { readFile } from "fs/promises";
 import { writeFileAtomic } from "../lib/atomic-write";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -46,11 +46,11 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
   CoverImageConversionJobData,
   ImageConversionResult
 > {
-  private readonly context: ServicePluginContext;
+  private readonly context: DirectorySyncCore;
   private readonly fetcher: ImageFetcher;
 
   constructor(
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
@@ -260,7 +260,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
     }
   }
 
-  protected override summarizeDataForLog(
+  public override summarizeDataForLog(
     data: CoverImageConversionJobData,
   ): Record<string, unknown> {
     return {

@@ -1,9 +1,6 @@
-import {
-  createId,
-  type BaseEntity,
-  type EntityServiceClient,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
+import type { DirectorySyncCore } from "./sync-context";
+import { createId, type BaseEntity } from "@brains/plugins";
 import type { BatchMetadata, BatchResult } from "../types";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -65,7 +62,7 @@ export { directorySyncOptionsSchema } from "./directory-options";
 export type { DirectorySyncOptions } from "./directory-options";
 
 export class DirectorySync implements IDirectorySync {
-  private entityService: EntityServiceClient;
+  private entityService: ServiceEntityMirrorClient;
   private logger: Logger;
   private syncPath: string;
   private autoSync: boolean;
@@ -321,7 +318,7 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: DirectorySyncCore,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],

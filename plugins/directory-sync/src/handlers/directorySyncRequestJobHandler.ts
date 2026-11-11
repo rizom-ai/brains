@@ -1,5 +1,5 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { GitReconciliationService } from "../lib/git-reconciliation";
@@ -25,7 +25,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
   DirectorySyncRequestJobData,
   DirectorySyncRequestJobResult
 > {
-  private readonly context: ServicePluginContext;
+  private readonly context: DirectorySyncCore;
   private readonly getDirectorySync: () => IDirectorySync;
   private readonly getGitSync: () => IGitSync;
   private readonly reconciliation: Pick<
@@ -38,7 +38,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     | undefined;
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     getDirectorySync: () => IDirectorySync,
     getGitSync: () => IGitSync,
     reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
@@ -108,7 +108,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     return toJobResult(result);
   }
 
-  protected override summarizeDataForLog(
+  public override summarizeDataForLog(
     data: DirectorySyncRequestJobData,
   ): Record<string, unknown> {
     return {

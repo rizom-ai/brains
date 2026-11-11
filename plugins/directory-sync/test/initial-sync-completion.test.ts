@@ -1,7 +1,10 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SYSTEM_CHANNELS, initialSyncCompletedChannel } from "@brains/plugins";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -54,7 +57,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
       return { success: true };
     });
 
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath,
       initialSync: true,
       autoSync: false,

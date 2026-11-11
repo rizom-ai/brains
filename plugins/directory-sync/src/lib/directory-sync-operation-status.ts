@@ -1,10 +1,10 @@
+import type { DirectorySyncCore } from "./sync-context";
 import {
   createId,
   SerializedStatusStore,
   type IRuntimeStateNamespace,
   type IRuntimeStateStore,
   type RuntimeHealthCheck,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -199,7 +199,7 @@ export class DirectorySyncOperationStatusService {
     z.infer<typeof progressSchema>
   >;
   private readonly jobs: Pick<
-    ServicePluginContext["jobs"],
+    DirectorySyncCore["jobs"],
     "getStatus" | "getBatchStatus"
   >;
   private readonly logger: Logger;
@@ -212,7 +212,7 @@ export class DirectorySyncOperationStatusService {
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
-    jobs: ServicePluginContext["jobs"],
+    jobs: DirectorySyncCore["jobs"],
     logger: Logger,
     syncPath: string,
     options: DirectorySyncOperationStatusOptions = {},

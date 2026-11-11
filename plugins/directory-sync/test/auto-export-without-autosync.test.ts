@@ -1,6 +1,9 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -57,7 +60,7 @@ describe("auto-export without autoSync", () => {
       new TestAdapter(),
     );
 
-    plugin = new DirectorySyncPlugin({
+    plugin = createDirectorySyncPlugin({
       syncPath,
       autoSync: false,
       initialSync: false,

@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { initializeDirectorySync } from "../src/lib/directory-lifecycle";
 
 interface Deferred<T> {
@@ -78,7 +81,7 @@ describe("directory-sync lifecycle characterization", () => {
     const harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: syncPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath,
       autoSync: true,
       initialSync: false,
@@ -103,7 +106,7 @@ describe("directory-sync lifecycle characterization", () => {
     const harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: originalPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath: originalPath,
       autoSync: false,
       initialSync: false,
@@ -129,7 +132,7 @@ describe("directory-sync lifecycle characterization", () => {
     const harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: originalPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath: originalPath,
       autoSync: true,
       initialSync: false,
@@ -162,7 +165,7 @@ describe("directory-sync lifecycle characterization", () => {
     const harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: originalPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath: originalPath,
       autoSync: true,
       initialSync: false,

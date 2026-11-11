@@ -1,8 +1,8 @@
+import type { DirectorySyncCore } from "./sync-context";
 import {
   createId,
   SerializedStatusStore,
   type IRuntimeStateNamespace,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type {
@@ -41,7 +41,7 @@ export interface GitReconciliationResult {
 interface QueueReconciliationOptions {
   gitSync: IGitSync;
   directorySync: IDirectorySync;
-  context: ServicePluginContext;
+  context: DirectorySyncCore;
   source: string;
   /** Queue every file rather than the delta since the durable checkpoint. */
   full?: boolean | undefined;

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { join } from "path";
@@ -55,7 +58,7 @@ describe("Seed Content Git Detection", () => {
 
     process.chdir(testDir);
 
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath: brainDataPath,
       autoSync: false,
       initialSync: true,

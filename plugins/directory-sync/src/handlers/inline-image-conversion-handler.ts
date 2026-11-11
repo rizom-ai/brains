@@ -1,6 +1,6 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { readFile } from "fs/promises";
 import { writeFileAtomic } from "../lib/atomic-write";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -38,7 +38,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
   private readonly converter: MarkdownImageConverter;
 
   constructor(
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
@@ -160,7 +160,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
     }
   }
 
-  protected override summarizeDataForLog(
+  public override summarizeDataForLog(
     data: InlineImageConversionJobData,
   ): Record<string, unknown> {
     return {

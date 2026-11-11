@@ -1,5 +1,5 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { IDirectorySync } from "../types";
@@ -20,12 +20,12 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
   DirectoryDeleteJobData,
   DirectoryDeleteJobResult
 > {
-  private context: ServicePluginContext;
+  private context: DirectorySyncCore;
   private readonly directorySync: IDirectorySync;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     directorySync: IDirectorySync,
   ) {
     super(logger, {
@@ -104,7 +104,7 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     );
   }
 
-  protected override summarizeDataForLog(
+  public override summarizeDataForLog(
     data: DirectoryDeleteJobData,
   ): Record<string, unknown> {
     if ("deletions" in data) return { deletionCount: data.deletions.length };

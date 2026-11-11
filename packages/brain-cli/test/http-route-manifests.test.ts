@@ -128,6 +128,9 @@ async function resolveTestApp(name: string): Promise<Plugin[]> {
   const resolved = resolve(canonicalBrain, {}, overrides);
   const plugins = resolved.plugins ?? [];
   for (const plugin of plugins) {
+    // Directory sync serves no routes (its registration test pins that), and
+    // registering it reaches the git broker a test app's Git sync names.
+    if (plugin.id === "directory-sync") continue;
     if (isPackageDefinitionPlugin(plugin)) {
       const shell = shellWithIdentityTypes(resolved.http.enabled === true);
       for (const other of plugins) shell.addPlugin(other);

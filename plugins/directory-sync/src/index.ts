@@ -3,8 +3,19 @@
  * Provides file-based entity synchronization
  */
 
-export { directorySync, directorySyncPlugin } from "./plugin";
-export { DirectorySyncPlugin } from "./plugin";
+import { createDirectorySyncPackage } from "./plugin";
+
+export {
+  createDirectorySyncPackage,
+  type DirectorySyncDeps,
+  type DirectorySyncState,
+} from "./plugin";
+export { DirectorySyncService, resolveRuntimeSyncPath } from "./service";
+
+/** Directory sync, as a brain composes it. */
+const directorySyncPackage: ReturnType<typeof createDirectorySyncPackage> =
+  createDirectorySyncPackage();
+export default directorySyncPackage;
 export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 

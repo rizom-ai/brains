@@ -1,4 +1,5 @@
-import type { BatchOperation, ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncCore } from "./sync-context";
+import type { BatchOperation } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
 import { captureImportPlan } from "./import-plan";
@@ -78,7 +79,7 @@ export class BatchOperationsManager {
   }
 
   async queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: DirectorySyncCore,
     source: string,
     files: string[],
     metadata?: BatchMetadata,
