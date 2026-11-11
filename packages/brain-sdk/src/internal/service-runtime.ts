@@ -19,6 +19,7 @@ export {
   type ServiceInteraction,
   type ServiceAI,
   type ServiceClassJobs,
+  type ServiceClassMessaging,
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,

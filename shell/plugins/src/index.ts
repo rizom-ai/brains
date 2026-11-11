@@ -1026,6 +1026,7 @@ export {
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceClassJobs,
+  type ServiceClassMessaging,
   type ServiceEntityWrites,
   type ServiceIdentity,
   type ServiceListenHandler,

@@ -178,6 +178,12 @@ export interface ServiceRuntime {
     handler: ServiceListenHandler<unknown>,
     options?: ServiceListenOptions,
   ): void;
+  /**
+   * Ask the bus as the class asked through `context.messaging`, as the
+   * package, from wherever it builds what it serves: a request's one owner,
+   * a command every hearer takes, and every owner of a collect contract.
+   */
+  readonly messaging: ServiceClassMessaging;
   /** The transport registered for a recipient's channel type, if any. */
   deliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
   /**
@@ -391,6 +397,12 @@ export interface ServiceEntityReads {
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
 }
 
+/** The bus as a class asked it, and nothing that answers or hears. */
+export type ServiceClassMessaging = Pick<
+  IMessagingNamespace,
+  "request" | "command" | "gather"
+>;
+
 /** The job queue as a class queued through it. */
 export interface ServiceClassJobs {
   enqueue(request: EnqueueJobRequest): Promise<string>;
@@ -468,6 +480,11 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
   const { messaging, asPackage, onRelease, onReady, onRegistered } = binding;
   const runtime: ServiceRuntime = {
     logger: binding.logger,
+    messaging: Object.freeze({
+      request: (contract, payload) => messaging.request(contract, payload),
+      command: (contract, payload) => messaging.command(contract, payload),
+      gather: (contract, payload) => messaging.gather(contract, payload),
+    } satisfies ServiceClassMessaging),
     deliveryProvider: binding.deliveryProvider,
     entityShapes: binding.entityShapes,
     jobs: binding.jobs,
