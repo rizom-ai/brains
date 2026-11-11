@@ -1168,6 +1168,14 @@ class DeclarativeServicePlugin<
         listSources: () => context.inbox.listSources(),
         getSource: (sourceId: string) => context.inbox.getSource(sourceId),
       }),
+      inboxSource: (source): void => {
+        context.inbox.registerSource(source);
+      },
+      prompts: Object.freeze({
+        resolve: (target: string, fallback: string) =>
+          context.prompts.resolve(target, fallback),
+      }),
+      executionOnly: context.executionOnly,
       inboxFollowUps: Object.freeze({
         resolve: (
           input: Parameters<typeof context.inboxFollowUps.resolve>[0],
@@ -1838,6 +1846,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
   const { entityService } = context;
   return Object.freeze({
     getEntityTypes: () => entityService.getEntityTypes(),
+    countEntities: (request) => entityService.countEntities(request),
     getEntityCounts: (scope) => entityService.getEntityCounts(scope),
     listEntities: (request) => entityService.listEntities(request),
     getEntity: (request) => entityService.getEntity(request),

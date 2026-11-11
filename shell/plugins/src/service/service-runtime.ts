@@ -20,7 +20,8 @@ import type { IAttachmentsNamespace } from "./attachment-registry";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
-import type { IViewsNamespace } from "../entity/namespaces";
+import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
+import type { InboxSource } from "../inbox-registry";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { AppInfo } from "../contracts/app-info";
@@ -295,6 +296,18 @@ export interface ServiceRuntime {
    */
   readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
   /**
+   * Offer an Inbox source under the plugin's id, as the class registered
+   * one through `context.inbox.registerSource`.
+   */
+  inboxSource(source: InboxSource): void;
+  /**
+   * An editable prompt by its target, or the default when no prompt entity
+   * names it, as the class resolved it through `context.prompts`.
+   */
+  readonly prompts: Pick<IPromptsNamespace, "resolve">;
+  /** Whether this process is a job worker, as the class read `executionOnly`. */
+  readonly executionOnly: boolean;
+  /**
    * The follow-ups the Inbox's destinations resolve for an item, as the
    * class read them through `context.inboxFollowUps`.
    */
@@ -508,6 +521,8 @@ export interface ServiceDashboardWidget<
 /** The entity service's reads a first-party class made, and nothing that writes. */
 export interface ServiceEntityReads {
   getEntityTypes(): string[];
+  /** How many records of a type the request's scope sees. */
+  countEntities(request: CountEntitiesRequest): Promise<number>;
   getEntityCounts(
     visibilityScope?: ContentVisibility,
   ): Promise<Array<{ entityType: string; count: number }>>;
@@ -616,6 +631,9 @@ export interface ServiceRuntimeBinding {
   readonly auth: () => AuthBackend | undefined;
   readonly studio: ServiceStudio;
   readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
+  readonly inboxSource: (source: InboxSource) => void;
+  readonly prompts: Pick<IPromptsNamespace, "resolve">;
+  readonly executionOnly: boolean;
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
   readonly recurringCheck: (check: RecurringCheckDefinition) => void;
   readonly interaction: (interaction: ServiceInteraction) => void;
@@ -686,6 +704,9 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     auth: binding.auth,
     studio: binding.studio,
     inbox: binding.inbox,
+    inboxSource: binding.inboxSource,
+    prompts: binding.prompts,
+    executionOnly: binding.executionOnly,
     inboxFollowUps: binding.inboxFollowUps,
     recurringCheck: binding.recurringCheck,
     interaction: binding.interaction,

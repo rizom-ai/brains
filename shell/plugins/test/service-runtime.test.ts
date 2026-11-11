@@ -678,6 +678,7 @@ describe("a first-party service's read-only view of the entity service", () => {
     const view = await reads(seeded());
 
     expect(Object.keys(view).sort()).toEqual([
+      "countEntities",
       "getEntity",
       "getEntityCounts",
       "getEntityRaw",
