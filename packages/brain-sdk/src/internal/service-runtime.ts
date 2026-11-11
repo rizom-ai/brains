@@ -4,7 +4,8 @@
  * `serviceRuntime(context)` on a slot context the brain built, tools that
  * keep snake-case names, the system and entity channels such a service
  * hears, and what its class declared beside the definition, as written
- * (`withTools`, `withJobHandlers`, `withStaticSiteOutput`). No public
+ * (`withTools`, `withJobHandlers`, `withStaticSiteOutput`,
+ * `withApiRoutes`). No public
  * entry exports this module.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
@@ -42,6 +43,7 @@ export {
   withJobHandlers,
   withOwnedDataSources,
   withStaticSiteOutput,
+  withApiRoutes,
   withTools,
   type FirstPartyJobCall,
   type FirstPartyJobHandler,

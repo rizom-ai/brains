@@ -1009,6 +1009,7 @@ export {
   firstPartyJobHandler,
   withJobHandlers,
   withStaticSiteOutput,
+  withApiRoutes,
   type FirstPartyJobCall,
   type FirstPartyJobHandler,
 } from "./service/first-party-service";

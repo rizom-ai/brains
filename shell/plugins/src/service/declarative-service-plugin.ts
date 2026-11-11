@@ -160,6 +160,7 @@ import {
 import { createDeclaredRoute } from "../internal/declared-route";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { StaticSiteOutput } from "../internal/http-host";
+import type { ApiRouteDefinition } from "../types/api-routes";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -473,6 +474,13 @@ class DeclarativeServicePlugin<
 
   override getWebRoutes(): WebRouteDefinition[] {
     return [...this.routes];
+  }
+
+  /** The tool-backed API routes its class served, as written. */
+  override getApiRoutes(): ApiRouteDefinition[] {
+    return [
+      ...(this.declarations.apiRoutes?.run({ config: this.config }) ?? []),
+    ];
   }
 
   /** Where its class wrote the site the runtime's HTTP host serves, if it did. */

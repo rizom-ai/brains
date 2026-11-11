@@ -4,6 +4,7 @@ import type { JobHandler } from "@brains/job-queue";
 import type { Tool } from "@brains/mcp-service";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { StaticSiteOutput } from "../internal/http-host";
+import type { ApiRouteDefinition } from "../types/api-routes";
 import type { PluginPackageDefinition } from "../package-definition";
 import type {
   FirstPartySlot,
@@ -27,6 +28,13 @@ export interface FirstPartyServiceDeclarations {
     FirstPartySlot<readonly FirstPartyJobHandler[]> | undefined;
   /** Where it writes the site the runtime's HTTP host serves. */
   readonly staticSiteOutput?: StaticSiteOutputSlot | undefined;
+  /** The tool-backed API routes its class served under /api/<plugin id>. */
+  readonly apiRoutes?: ApiRoutesSlot | undefined;
+}
+
+/** The API routes a class served, from its config, as the runtime keeps them. */
+export interface ApiRoutesSlot {
+  run(context: { readonly config: unknown }): readonly ApiRouteDefinition[];
 }
 
 /**
@@ -234,6 +242,27 @@ export function withJobHandlers<
       );
     }
     return { ...declarations, jobHandlers: { run: jobHandlers } };
+  });
+}
+
+/**
+ * The tool-backed API routes a service's class served, as written, from the
+ * parsed config, added once: each names one of the package's tools, and the
+ * HTTP host mounts it under /api/<plugin id>.
+ */
+export function withApiRoutes<TConfigSchema extends z.ZodType<object, object>>(
+  definition: ServicePackage<TConfigSchema>,
+  routes: (context: {
+    readonly config: z.output<TConfigSchema>;
+  }) => readonly ApiRouteDefinition[],
+): ServicePackage<TConfigSchema> {
+  return rebuildServiceWith(definition, "withApiRoutes", (declarations) => {
+    if (declarations.apiRoutes) {
+      throw new Error(
+        `Service "${definition.id}" declares its API routes more than once`,
+      );
+    }
+    return { ...declarations, apiRoutes: { run: routes } };
   });
 }
 
