@@ -309,6 +309,8 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /** Whether a plugin is installed, as the class read `context.plugins.has`. */
+  hasPlugin(pluginId: string): boolean;
   /** The brain's theme stylesheet, for a page the package serves, as the class read `context.themeCSS`. */
   readonly themeCSS: string;
   /**
@@ -651,6 +653,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly hasPlugin: (pluginId: string) => boolean;
   readonly themeCSS: string;
   readonly analyticsReport: ServiceRuntime["analyticsReport"];
   readonly reportEntityService: ReadOnlyEntityService;
@@ -727,6 +730,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    hasPlugin: binding.hasPlugin,
     themeCSS: binding.themeCSS,
     analyticsReport: binding.analyticsReport,
     reportEntityService: binding.reportEntityService,

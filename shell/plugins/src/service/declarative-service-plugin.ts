@@ -1177,6 +1177,7 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      hasPlugin: (pluginId: string) => context.plugins.has(pluginId),
       themeCSS: context.themeCSS,
       analyticsReport: (report): void => {
         context.analytics.register(report);

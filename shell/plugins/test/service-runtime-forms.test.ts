@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   createMockShell,
@@ -57,5 +57,15 @@ describe("a first-party service's forms-engine reads and registrations", () => {
       shellWith({ themeCSS: ":root { --color: red; }" }),
     );
     expect(runtime.themeCSS).toBe(":root { --color: red; }");
+  });
+
+  it("says whether a plugin is installed, as its class read context.plugins.has", async () => {
+    const shell = shellWith();
+    spyOn(shell, "getPluginPackageName").mockImplementation((id) =>
+      id === "unified-inbox" ? "@brains/unified-inbox" : undefined,
+    );
+    const { runtime } = await runtimeOn(shell);
+    expect(runtime.hasPlugin("unified-inbox")).toBe(true);
+    expect(runtime.hasPlugin("studio")).toBe(false);
   });
 });
