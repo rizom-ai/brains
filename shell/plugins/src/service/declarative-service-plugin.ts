@@ -2029,6 +2029,16 @@ function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
       context.entities.getAdapter(type)?.isSingleton === true,
     bodyTemplate: (type: string) =>
       context.entities.getAdapter(type)?.getBodyTemplate() ?? "",
+    hasBody: (type: string) =>
+      context.entities.getAdapter(type)?.hasBody !== false,
+    metadataFromFrontmatter: (type: string) =>
+      context.entities.getAdapter(type)?.metadataFromFrontmatter === true,
+    folderTitles: (type: string) => {
+      const adapter = context.entities.getAdapter(type);
+      return adapter?.getFolderTitles?.bind(adapter);
+    },
+    isGroupingContributor: (type: string) =>
+      context.entities.isGroupingContributor(type),
   });
 }
 

@@ -174,6 +174,21 @@ export interface ServiceEntityShapes {
   isSingleton(type: string): boolean;
   /** The body a new record of the type starts with; empty when unknown. */
   bodyTemplate(type: string): string;
+  /** Whether the type's records have a body; true when unknown. */
+  hasBody(type: string): boolean;
+  /** Whether a frontmatter write carries into the type's metadata. */
+  metadataFromFrontmatter(type: string): boolean;
+  /**
+   * How the type names the folders above a record, from the record; none
+   * when the type names none.
+   */
+  folderTitles(
+    type: string,
+  ):
+    | ((entity: { readonly content: string }) => Array<string | undefined>)
+    | undefined;
+  /** Whether the type contributes groupings, by the shell's own rule. */
+  isGroupingContributor(type: string): boolean;
 }
 
 /** The internal capabilities a first-party service's slot context carries. */

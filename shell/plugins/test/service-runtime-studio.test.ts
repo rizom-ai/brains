@@ -226,4 +226,37 @@ describe("a first-party service reaching what Studio's class did", () => {
       "Studio enforces groupings only on a contributing type or its grouping source: site-info is neither",
     );
   });
+
+  it("reads what a type's adapter says of its records, and never the adapter itself", async () => {
+    const shell = createMockShell();
+    const registry = shell.getEntityRegistry();
+    registry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      createTestEntityAdapter("note"),
+    );
+    const bodyless = createTestEntityAdapter("site-info", {
+      isSingleton: true,
+    });
+    Object.assign(bodyless, {
+      hasBody: false,
+      metadataFromFrontmatter: true,
+      getFolderTitles: (entity: { content: string }) => [entity.content],
+    });
+    registry.registerEntityType("site-info", baseEntitySchema, bodyless);
+    const { runtime } = await runtimeOn(shell);
+    const shapes = runtime.entityShapes;
+    expect(shapes.hasBody("note")).toBe(true);
+    expect(shapes.hasBody("site-info")).toBe(false);
+    expect(shapes.metadataFromFrontmatter("note")).toBe(false);
+    expect(shapes.metadataFromFrontmatter("site-info")).toBe(true);
+    expect(shapes.folderTitles("note")).toBeUndefined();
+    expect(shapes.folderTitles("site-info")?.({ content: "Folder" })).toEqual([
+      "Folder",
+    ]);
+    expect(shapes.isGroupingContributor("note")).toBe(
+      shell.getEntityRegistry().isGroupingContributor("note"),
+    );
+    expect(Object.keys(shapes)).not.toContain("adapter");
+  });
 });
