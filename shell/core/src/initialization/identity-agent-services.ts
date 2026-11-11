@@ -3,6 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
+  createMessageBusEmitter,
   openAiGuestPricing,
   type ChatAttachment,
   type EmbeddingUsageMeter,
@@ -288,6 +289,7 @@ export function initializeIdentityAndAgentServices(
     logger,
     {
       agentFactory,
+      turnEvents: createMessageBusEmitter(messageBus),
       canonicalIdentityResolver: canonicalIdentityService,
       // A turn's sources link to the pages the site shows them on.
       entityLinks,

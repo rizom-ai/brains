@@ -69,6 +69,11 @@ export {
   toolInvocationEventSchema,
   toolInvokingChannel,
 } from "./tool-events";
+export {
+  agentTurnCompletedChannel,
+  agentTurnCompletedEventSchema,
+  type AgentTurnCompletedEvent,
+} from "./turn-events";
 
 export type {
   AgentConfig,

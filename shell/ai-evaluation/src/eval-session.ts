@@ -10,6 +10,7 @@ import { RemoteAgentService } from "./remote-agent-service";
 import {
   MCPProtocolAgentService,
   type RemoteMCPConnectionOptions,
+  type TurnEventBus,
 } from "./mcp-protocol-agent-service";
 import { bootEvalApp, type BootEvalAppOptions } from "./eval-environment";
 import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
@@ -20,6 +21,7 @@ export interface EvalSessionShell {
     getActiveJobs(): Promise<Array<{ type: string }>>;
   };
   getMCPService(): IMCPTransport;
+  getMessageBus(): TurnEventBus;
   getAgentService(): IAgentService;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
   getEntityService(): IndexReadinessGate;
@@ -42,7 +44,10 @@ export interface EvalSessionDeps {
 const defaultDeps: EvalSessionDeps = {
   bootEvalApp,
   connectMcpAgent: (shell) =>
-    MCPProtocolAgentService.connect(shell.getMCPService()),
+    MCPProtocolAgentService.connect(
+      shell.getMCPService(),
+      shell.getMessageBus(),
+    ),
   connectRemoteMcpAgent: (remote) =>
     MCPProtocolAgentService.connectRemote(remote),
 };

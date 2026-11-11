@@ -170,6 +170,61 @@ describe("TestRunner", () => {
       expect(mockAgentService.chat).toHaveBeenCalledTimes(1);
     });
 
+    it("refuses a case that checks tool calls the agent service cannot observe", async () => {
+      const blind = Object.assign(mockAgentService, {
+        toolCallsObservable: false,
+      });
+      const testCase: TestCase = {
+        id: "checks-tools",
+        name: "Checks tool calls",
+        type: "tool_invocation",
+        turns: [
+          {
+            userMessage: "Find the note",
+            successCriteria: {
+              expectedTools: [{ toolName: "system_get", shouldBeCalled: true }],
+            },
+          },
+        ],
+        successCriteria: { toolCountRange: { min: 1, max: 2 } },
+      };
+
+      const result = await new TestRunner(blind).runTest(testCase);
+
+      const reason =
+        "This agent service cannot observe tool calls, which this case checks: expectedTools, toolCountRange";
+      expect(result).toMatchObject({
+        testCaseId: "checks-tools",
+        passed: false,
+        failures: [
+          {
+            criterion: "agentCall",
+            actual: reason,
+            message: `The agent call failed: ${reason}`,
+          },
+        ],
+      });
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("runs a case without tool criteria when tool calls cannot be observed", async () => {
+      const blind = Object.assign(mockAgentService, {
+        toolCallsObservable: false,
+      });
+      const testCase: TestCase = {
+        id: "text-only",
+        name: "Text only",
+        type: "response_quality",
+        turns: [{ userMessage: "Hello" }],
+        successCriteria: { responseContains: ["response"] },
+      };
+
+      const result = await new TestRunner(blind).runTest(testCase);
+
+      expect(result.passed).toBe(true);
+      expect(mockAgentService.chat).toHaveBeenCalledTimes(1);
+    });
+
     it("should pass when all criteria are met", async () => {
       const testCase: TestCase = {
         id: "test-1",

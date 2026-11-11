@@ -79,6 +79,7 @@ function harness(): Harness {
       },
     }),
     getMCPService: () => unused("getMCPService"),
+    getMessageBus: () => unused("getMessageBus"),
     getAgentService: () => shellAgent,
     getRuntimeUploadRegistry: () => runtimeUploads,
     getEntityService: () => indexReadiness,
