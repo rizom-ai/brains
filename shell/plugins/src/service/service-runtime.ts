@@ -185,7 +185,8 @@ export interface ServiceRuntime {
   /**
    * Ask the bus as the class asked through `context.messaging`, as the
    * package, from wherever it builds what it serves: a request's one owner,
-   * a command every hearer takes, and every owner of a collect contract.
+   * a command every hearer takes, every owner of a collect contract, and an
+   * event broadcast on its typed channel to every hearer.
    */
   readonly messaging: ServiceClassMessaging;
   /**
@@ -477,7 +478,7 @@ export type ServiceViews = Pick<IViewsNamespace, "get" | "list">;
 /** The bus as a class asked it, and nothing that answers or hears. */
 export type ServiceClassMessaging = Pick<
   IMessagingNamespace,
-  "request" | "command" | "gather"
+  "request" | "command" | "gather" | "broadcast"
 >;
 
 /** The job queue as a class queued through it. */
@@ -581,6 +582,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
       request: (contract, payload) => messaging.request(contract, payload),
       command: (contract, payload) => messaging.command(contract, payload),
       gather: (contract, payload) => messaging.gather(contract, payload),
+      broadcast: (channel, payload) => messaging.broadcast(channel, payload),
     } satisfies ServiceClassMessaging),
     deliveryProvider: binding.deliveryProvider,
     instructions: binding.instructions,
