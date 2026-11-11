@@ -161,4 +161,58 @@ describe("a first-party service composing a Studio workspace", () => {
     });
     expect(registered).toEqual([]);
   });
+
+  it("unregisters a workspace it registered, as its class did when it shut down", async () => {
+    const shell = createMockShell();
+    studio(shell);
+    const unregistered: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe("studio:unregister-workspace", (message) => {
+        unregistered.push(message.payload);
+        return { success: true };
+      });
+    let runtime: ReturnType<typeof serviceRuntime> | undefined;
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            runtime = serviceRuntime(context);
+            return [];
+          },
+        },
+      ),
+      {},
+      { name: "@brains/probe", version: "0.1.0" },
+      { pluginId: "probe" },
+    );
+    await plugin?.register(shell);
+    if (!runtime) throw new Error("No runtime");
+
+    expect(await runtime.studio.unregister("probe:site")).toBe(true);
+    expect(unregistered).toEqual([
+      { pluginId: "probe", workspaceId: "probe:site" },
+    ]);
+  });
+
+  it("unregisters nothing without a Studio", async () => {
+    let runtime: ReturnType<typeof serviceRuntime> | undefined;
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            runtime = serviceRuntime(context);
+            return [];
+          },
+        },
+      ),
+      {},
+      { name: "@brains/probe", version: "0.1.0" },
+      { pluginId: "probe" },
+    );
+    await plugin?.register(createMockShell());
+    expect(await runtime?.studio.unregister("probe:site")).toBe(false);
+  });
 });
