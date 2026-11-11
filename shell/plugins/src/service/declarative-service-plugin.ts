@@ -107,6 +107,7 @@ import {
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceEntityWrites,
+  type ServiceGroupings,
   type ServiceAI,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
@@ -1048,6 +1049,32 @@ class DeclarativeServicePlugin<
     return Object.freeze(messaging);
   }
 
+  /** The brain's groupings, which Studio owns; refused to any other package. */
+  private groupingsOf(context: ServicePluginContext): ServiceGroupings {
+    if (this.id !== "studio") {
+      throw new Error(
+        `Service "${this.id}" cannot reach the brain's groupings: Studio owns them`,
+      );
+    }
+    const { entities, entityService } = context;
+    return Object.freeze({
+      validateGroupings: (groupings) => entities.validateGroupings(groupings),
+      replaceGroupings: (groupings, options) =>
+        entities.replaceGroupings(groupings, options),
+      registerGroupingSource: (source) =>
+        entities.registerGroupingSource(source),
+      getGroupings: () => entities.getGroupings(),
+      ensureGroupingsCurrent: () => entities.ensureGroupingsCurrent(),
+      ensureGroupingsReady: () => entityService.ensureGroupingsReady(),
+      queryGroupingUsage: (request) =>
+        entityService.queryGroupingUsage(request),
+      queryGroupingMembers: (request) =>
+        entityService.queryGroupingMembers(request),
+      queryGroupingCatalog: (request) =>
+        entityService.queryGroupingCatalog(request),
+    } satisfies ServiceGroupings);
+  }
+
   /**
    * Answer pluginsRegistered with whether startup content is still
    * importing, as the package, in the main process only and once.
@@ -1222,6 +1249,7 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      groupings: () => this.groupingsOf(context),
       sharedUploads: (options = {}) =>
         context.uploads.scoped({
           ...sharedUploadScope,

@@ -34,6 +34,7 @@ export {
   type ServiceEntityShapes,
   type ServiceEntityWrites,
   type ServiceGitBroker,
+  type ServiceGroupings,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,

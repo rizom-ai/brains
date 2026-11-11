@@ -58,6 +58,7 @@ import type {
   GetEntityRawRequest,
   GetEntityRequest,
   IEntityService,
+  IEntitiesNamespace,
   ListEntitiesRequest,
   EntitySearchRequest,
   SearchResult,
@@ -328,6 +329,12 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * The brain's groupings, as Studio's class reached them through
+   * `context.entities` and `context.entityService`: Studio owns them, and
+   * any other package is refused.
+   */
+  groupings(): ServiceGroupings;
   /**
    * The runtime's shared upload store (`upload`), which create requests,
    * attachment restore and entity promotion read, served at `routePath`:
@@ -707,6 +714,29 @@ export type ServiceEntityWrites = Pick<
   "createEntity" | "updateEntity" | "upsertEntity" | "deleteEntity"
 >;
 
+/**
+ * The brain's groupings, which Studio owns: their definitions validated
+ * and replaced, the source that keeps them current, and reads of their
+ * usage, members and catalog.
+ */
+export interface ServiceGroupings
+  extends
+    Pick<
+      IEntitiesNamespace,
+      | "validateGroupings"
+      | "replaceGroupings"
+      | "registerGroupingSource"
+      | "getGroupings"
+      | "ensureGroupingsCurrent"
+    >,
+    Pick<
+      IEntityService,
+      | "ensureGroupingsReady"
+      | "queryGroupingUsage"
+      | "queryGroupingMembers"
+      | "queryGroupingCatalog"
+    > {}
+
 /** Where the brain's git broker listens and keeps its checkout; none without Git. */
 export interface ServiceGitBroker {
   readonly socket: string | undefined;
@@ -760,6 +790,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly groupings: () => ServiceGroupings;
   readonly sharedUploads: ServiceRuntime["sharedUploads"];
   readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
   readonly channelDescriptors: () => ChannelDescriptor[];
@@ -848,6 +879,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    groupings: binding.groupings,
     sharedUploads: binding.sharedUploads,
     uploadSaveHandler: binding.uploadSaveHandler,
     channelDescriptors: binding.channelDescriptors,

@@ -3,6 +3,9 @@ import { z } from "@brains/utils/zod";
 import type { CreateResult, EntityHierarchyPage } from "@brains/entity-service";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createTempDataDir } from "../src/test/temp-dir";
+import { baseEntitySchema, createTestEntityAdapter } from "../test";
+import { EntityRegistry } from "@brains/entity-service";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
@@ -144,5 +147,39 @@ describe("a first-party service reaching what Studio's class did", () => {
     });
     // The store create requests and promotion read: under upload.
     expect(saved.ref).toMatchObject({ kind: "upload", id: saved.id });
+  });
+
+  it("reaches the brain's groupings as Studio, and refuses them to any other package", async () => {
+    const shell = createMockShell();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(
+      "grouping-definitions",
+      baseEntitySchema,
+      createTestEntityAdapter("grouping-definitions"),
+    );
+    spyOn(shell, "getEntityRegistry").mockReturnValue(registry);
+    const entities = shell.getEntityService();
+    const ready = spyOn(entities, "ensureGroupingsReady").mockResolvedValue(
+      true,
+    );
+    const { runtime } = await runtimeOn(shell, false, "studio");
+    const groupings = runtime.groupings();
+    expect(groupings.getGroupings()).toEqual(registry.getGroupings());
+    expect(await groupings.ensureGroupingsReady()).toBe(true);
+    expect(ready).toHaveBeenCalled();
+    let ensured = 0;
+    groupings.registerGroupingSource({
+      entityType: "grouping-definitions",
+      ensureCurrent: async () => {
+        ensured += 1;
+      },
+    });
+    await groupings.ensureGroupingsCurrent();
+    expect(ensured).toBe(1);
+
+    const other = await runtimeOn(createMockShell(), false, "probe");
+    expect(() => other.runtime.groupings()).toThrow(
+      `Service "probe" cannot reach the brain's groupings: Studio owns them`,
+    );
   });
 });

@@ -1038,6 +1038,7 @@ export {
   type ServiceViews,
   type ServiceEntityWrites,
   type ServiceGitBroker,
+  type ServiceGroupings,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
