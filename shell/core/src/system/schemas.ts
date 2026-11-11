@@ -540,7 +540,12 @@ export const createInputSchema: StrictObjectSchema<{
       .describe(
         "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes.",
       ),
-    title: z.string().optional().describe("Title for a new entity."),
+    title: z
+      .string()
+      .optional()
+      .describe(
+        "Title for a new entity. Leave it out when saving several uploads: each item in source.items takes its own title.",
+      ),
     visibility: canonicalContentVisibilitySchema
       .optional()
       .describe(

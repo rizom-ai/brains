@@ -176,6 +176,18 @@ describe("system_create's model input", () => {
     });
   });
 
+  it("tells the model several uploads take their titles per file", () => {
+    // Strict mode writes every key: a shared title for several uploads is
+    // refused, so the model is told to leave it out.
+    const { modelInput } = toolNamed("system_create");
+    if (!modelInput) throw new Error("Expected a model input");
+
+    const title = modelInput.inputSchema()["title"];
+    expect(
+      title instanceof z.ZodType ? title.description : undefined,
+    ).toContain("each item in source.items takes its own");
+  });
+
   it("shows the model field changes, not a map of any keys", () => {
     const { modelInput } = toolNamed("system_create");
     if (!modelInput) throw new Error("Expected a model input");
