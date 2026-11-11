@@ -7,6 +7,7 @@ import {
   toolFailedChannel,
   toolInvokingChannel,
   type ToolEventEmitter,
+  type ToolInvocationEvent,
 } from "../src/tool-events";
 import { z } from "@brains/utils/zod";
 
@@ -63,8 +64,8 @@ function recordEvents(): EventRecorder {
     events,
     types: (): string[] => events.map((e) => e.type),
     emitter: {
-      emit: (type, payload): void => {
-        events.push({ type, payload });
+      emit: (channel, payload): void => {
+        events.push({ type: channel.name, payload });
       },
     },
   };
@@ -588,15 +589,22 @@ describe("tool invocation events", () => {
   });
 
   describe("message bus emitter", () => {
+    const invoking: ToolInvocationEvent = {
+      toolName: "test_tool",
+      conversationId: "test-conv",
+      interfaceType: "test",
+      actor: { kind: "agent", agentId: "brain-agent" },
+    };
+
     it("broadcasts tool events to all interface subscribers", async () => {
       const send = mock(async () => ({ success: true }));
       const emitter = createMessageBusEmitter({ send });
 
-      await emitter.emit("tool:invoking", { toolName: "test_tool" });
+      await emitter.emit(toolInvokingChannel, invoking);
 
       expect(send).toHaveBeenCalledWith({
         type: "tool:invoking",
-        payload: { toolName: "test_tool" },
+        payload: invoking,
         sender: "brain-agent",
         broadcast: true,
       });
@@ -608,22 +616,31 @@ describe("tool invocation events", () => {
       });
       const emitter = createMessageBusEmitter({ send });
 
-      await emitter.emit("tool:invoking", { toolName: "test_tool" });
+      await emitter.emit(toolInvokingChannel, invoking);
 
       expect(send).toHaveBeenCalledWith({
         type: "tool:invoking",
-        payload: { toolName: "test_tool" },
+        payload: invoking,
         sender: "brain-agent",
         broadcast: true,
       });
     });
 
+    it("sends nothing for an event its channel refuses", async () => {
+      const send = mock(async () => ({ success: true }));
+      const emitter = createMessageBusEmitter({ send });
+
+      await emitter.emit(toolInvokingChannel, { ...invoking, toolName: "" });
+
+      expect(send).not.toHaveBeenCalled();
+    });
+
     it("awaits invoking event delivery before executing the tool", async () => {
       const order: string[] = [];
       const emitter: ToolEventEmitter = {
-        emit: async (type) => {
+        emit: async (channel) => {
           await Promise.resolve();
-          order.push(`${type} delivered`);
+          order.push(`${channel.name} delivered`);
         },
       };
       const handler = mock(async () => {

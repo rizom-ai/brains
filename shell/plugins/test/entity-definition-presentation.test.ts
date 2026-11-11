@@ -494,9 +494,11 @@ describe("declared feeds", () => {
     metadata: bookmarkMetadata,
     feed: {
       path: "reading/bookmarks.xml",
-      routePrefix: "bookmarks",
-      toItem: (entity) =>
-        entity.metadata.title === "Skip"
+      title: "Bookmarks",
+      description: "Saved pages",
+      toItem: (entity, { environment }) =>
+        entity.metadata.title === "Skip" ||
+        (environment === "production" && entity.metadata.title === "Third")
           ? null
           : {
               title: entity.metadata.title,
@@ -512,6 +514,11 @@ describe("declared feeds", () => {
   function stage(
     harness: Harness,
     environment: "preview" | "production",
+    siteConfig: Record<string, string> = {
+      title: "Reader",
+      url: "https://reader.example/",
+      copyright: "(c) Reader",
+    },
   ): Promise<unknown> {
     return harness.sendMessage(
       siteBuildStagingContract.name,
@@ -519,7 +526,7 @@ describe("declared feeds", () => {
         outputDir,
         environment,
         routesBuilt: 1,
-        siteConfig: { title: "Reader", url: "https://reader.example/" },
+        siteConfig,
         generateEntityUrl: (entityType: string, slug: string): string =>
           `/${entityType}s/${slug}`,
         reportFailure: (detail: string): void => {
@@ -551,14 +558,20 @@ describe("declared feeds", () => {
       );
       expect(failures).toEqual([]);
       expect(xml).toContain("<title>Reader</title>");
-      expect(xml).toContain("<link>https://reader.example/bookmarks</link>");
+      // The channel links the site as configured, and the feed hangs off it,
+      // as the blog plugin class wrote its feed.
+      expect(xml).toContain("<link>https://reader.example/</link>");
       expect(xml).toContain(
-        '<atom:link href="https://reader.example/reading/bookmarks.xml"',
+        '<atom:link href="https://reader.example//reading/bookmarks.xml"',
       );
       expect(xml).toContain(
         "<link>https://reader.example/bookmarks/first</link>",
       );
       expect(xml).not.toContain("/bookmarks/second<");
+      // A production build leaves out what the type says is not ready.
+      expect(xml).not.toContain("/bookmarks/third<");
+      expect(xml).not.toContain("<copyright>");
+      expect(xml.endsWith("</rss>")).toBe(true);
     } finally {
       await harness.reset();
     }
@@ -574,6 +587,27 @@ describe("declared feeds", () => {
         "utf8",
       );
       expect(xml).toContain("/bookmarks/second<");
+      expect(xml).toContain("/bookmarks/third<");
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("titles the channel from the type when the site gives no title", async () => {
+    const { harness } = await install([bookmark]);
+    try {
+      await seedBookmarks(harness);
+      await stage(harness, "production", { url: "https://reader.example" });
+      const xml = await readFile(
+        join(outputDir, "reading/bookmarks.xml"),
+        "utf8",
+      );
+      expect(xml).toContain("<title>Bookmarks</title>");
+      expect(xml).toContain("<description>Saved pages</description>");
+      expect(xml).toContain("<link>https://reader.example</link>");
+      expect(xml).toContain(
+        '<atom:link href="https://reader.example/reading/bookmarks.xml"',
+      );
     } finally {
       await harness.reset();
     }
@@ -607,7 +641,6 @@ describe("declared feeds", () => {
       metadata: bookmarkMetadata,
       feed: {
         path: "bookmarks.xml",
-        routePrefix: "bookmarks",
         toItem: (entity) => ({
           title: "",
           slug: entity.metadata.slug,
@@ -661,7 +694,6 @@ describe("declared feeds", () => {
               metadata: bookmarkMetadata,
               feed: {
                 path,
-                routePrefix: "bookmarks",
                 toItem: () => null,
               },
             }),

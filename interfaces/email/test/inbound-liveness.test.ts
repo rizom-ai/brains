@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createEmailPlugin } from "./email-plugin";
 import { waitUntil } from "@brains/test-utils";
 
 import {
-  EmailInterface,
   type EmailImapConfig,
   type InboundEmailClient,
   type InboundEmailSourceMessage,
@@ -85,9 +85,9 @@ describe("inbound email liveness", () => {
     const sleep: InboundEmailSleep = async (milliseconds) => {
       sleeps.push(milliseconds);
     };
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: config },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -132,9 +132,9 @@ describe("inbound email liveness", () => {
     const events: string[] = [];
     const sleeps: number[] = [];
     let clientCount = 0;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: config },
         {
           imapClientFactory: (): InboundEmailClient => {

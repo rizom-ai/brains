@@ -44,7 +44,7 @@ function getSubscriptionNamespace(platform: ChatPlatform): string {
 }
 
 export function createThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
   platform: ChatPlatform,
 ): ChatThreadSubscriptionStore {
   return runtimeState.scoped({
@@ -54,13 +54,13 @@ export function createThreadSubscriptionStore(
 }
 
 export function createDiscordThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
 ): DiscordThreadSubscriptionStore {
   return createThreadSubscriptionStore(runtimeState, "discord");
 }
 
 export function createSlackThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
 ): ChatThreadSubscriptionStore {
   return createThreadSubscriptionStore(runtimeState, "slack");
 }
@@ -70,7 +70,7 @@ export function createSlackThreadSubscriptionStore(
  * cache, lists, and queues remain process-local in the memory adapter.
  */
 export function createChatSubscriptionStateAdapter(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
   platforms: readonly ChatPlatform[],
   memoryState: StateAdapter = createMemoryState(),
 ): StateAdapter {
@@ -85,7 +85,7 @@ export function createChatSubscriptionStateAdapter(
 }
 
 export function createDiscordSubscriptionStateAdapter(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
   memoryState: StateAdapter = createMemoryState(),
 ): StateAdapter {
   return createChatSubscriptionStateAdapter(

@@ -1,4 +1,4 @@
-import { generateText, generateObject, NoObjectGeneratedError } from "ai";
+import { generateText, NoObjectGeneratedError, Output } from "ai";
 import { AIOutputValidationError } from "./errors";
 import type { GenerationUsageMeter } from "./generation-usage-meter";
 import type { LanguageModel } from "ai";
@@ -123,7 +123,7 @@ export class AIService implements IAIService {
     try {
       const result = await generateText({
         model: this.getWritingModel(),
-        system: systemPrompt,
+        instructions: systemPrompt,
         prompt: userPrompt,
         ...(measurement ? { maxRetries: 0 } : {}),
         ...(signal ? { abortSignal: signal } : {}),
@@ -175,11 +175,11 @@ export class AIService implements IAIService {
         this.capabilities.provider,
         this.capabilities.supportsTemperature,
       );
-      const result = await generateObject({
+      const result = await generateText({
         model: this.getWritingModel(),
-        system: systemPrompt,
+        instructions: systemPrompt,
         prompt: userPrompt,
-        schema,
+        output: Output.object({ schema }),
         ...(measurement ? { maxRetries: 0 } : {}),
         ...(signal ? { abortSignal: signal } : {}),
         ...generationOptions,
@@ -194,7 +194,7 @@ export class AIService implements IAIService {
 
       this.logUsage("object_generation", usage);
 
-      return { object: result.object, usage };
+      return { object: result.output, usage };
     } catch (error) {
       signal?.throwIfAborted();
       this.logger.error("Failed to generate object", error);

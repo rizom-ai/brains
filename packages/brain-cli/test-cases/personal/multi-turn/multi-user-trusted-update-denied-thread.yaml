@@ -25,8 +25,9 @@ turns:
     context:
       userPermissionLevel: admin
       actor:
-        actorId: eval-admin-alice
-        canonicalId: eval-admin-alice
+        identity:
+          kind: external
+          externalActorId: eval-admin-alice
         interfaceType: evaluation
         role: user
         displayName: Alice Admin
@@ -45,8 +46,9 @@ turns:
     context:
       userPermissionLevel: trusted
       actor:
-        actorId: eval-trusted-tess
-        canonicalId: eval-trusted-tess
+        identity:
+          kind: external
+          externalActorId: eval-trusted-tess
         interfaceType: evaluation
         role: user
         displayName: Tess Trusted
@@ -70,4 +72,4 @@ successCriteria: {}
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 77000
+  maxTokens: 94000

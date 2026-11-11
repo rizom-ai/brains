@@ -10,6 +10,8 @@ export {
   type PublishPostOptions,
   type PublishPostResult,
   ATPROTO_PUBLISH_FAILED,
+  atprotoPublishFailedChannel,
+  atprotoPublishFailedPayloadSchema,
   type AtprotoPublishOperation,
   type AtprotoPublishFailedPayload,
   type DiscoverBrainCardsOptions,

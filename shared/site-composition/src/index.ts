@@ -12,6 +12,9 @@ export {
   SectionDefinitionSchema,
   siteBuilderRouteRegisterContract,
   siteBuilderRoutesContract,
+  siteBuilderPagesContract,
+  siteBuilderPagesRequestSchema,
+  siteBuilderPagesResponseSchema,
   siteBuilderRoutesRequestSchema,
   siteBuilderRoutesResponseSchema,
 } from "./routes";
@@ -74,7 +77,7 @@ export {
 } from "./section-templates";
 export {
   fetchSiteInfo,
-  parseSiteInfoContent,
+  siteInfoFromRecord,
   siteInfoBodySchema,
   siteInfoCTASchema,
 } from "./site-info";

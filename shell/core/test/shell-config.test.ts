@@ -65,6 +65,7 @@ describe("shell config", () => {
     expect(config.dataDir).toBe("./brain-data");
     expect(config.themeCSS).toBe("");
     expect(config.preferLocalUrls).toBe(false);
+    expect(config.production).toBe(false);
     expect(config.features).toEqual({});
     expect(config.spaces).toEqual([]);
     expect(config.plugins).toEqual([]);

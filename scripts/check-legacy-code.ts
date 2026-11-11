@@ -2,11 +2,11 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, join, normalize, relative, sep } from "node:path";
+import { basename, join, normalize, sep } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 
-const repositoryRoot = process.cwd();
+const repositoryRoot = join(import.meta.dir, "..");
 const inventoryPath = join(
   repositoryRoot,
   "docs",
@@ -14,7 +14,21 @@ const inventoryPath = join(
 );
 const checkerPath = "scripts/check-legacy-code.ts";
 const codeExtensionPattern = /\.(?:[cm]?[jt]sx?)$/;
-const legacyPattern = /\blegacy\b/i;
+
+/**
+ * What marks source as compatibility code: the word "legacy", the word
+ * "deprecated" (the JSDoc `@deprecated` included), and an identifier that
+ * carries Legacy in any case style (`legacyFoo`, `isLegacyBar`, `LEGACY_BAZ`).
+ */
+const legacyMarkerPatterns: readonly RegExp[] = [
+  /\blegacy\b/i,
+  /deprecated/i,
+  /[A-Za-z0-9_$](?:legacy|Legacy|LEGACY)|(?:legacy|Legacy|LEGACY)[A-Za-z0-9_$]/,
+];
+
+export function hasLegacyMarker(source: string): boolean {
+  return legacyMarkerPatterns.some((pattern) => pattern.test(source));
+}
 
 const inventoryItemBaseSchema = {
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -40,7 +54,11 @@ const inventoryEntrySchema = z.strictObject({
 
 const inventoryExemptionSchema = z.strictObject({
   ...inventoryItemBaseSchema,
-  class: z.enum(["historical-terminology", "third-party-naming"]),
+  class: z.enum([
+    "historical-terminology",
+    "third-party-naming",
+    "domain-vocabulary",
+  ]),
   reason: z.string().min(1),
 });
 
@@ -97,7 +115,7 @@ function trackedCodePaths(): string[] {
     .sort();
 }
 
-function readInventory(): Inventory {
+export function readInventory(): Inventory {
   if (!existsSync(inventoryPath)) {
     throw new Error("Missing docs/legacy-code-inventory.json");
   }
@@ -105,10 +123,34 @@ function readInventory(): Inventory {
   return inventorySchema.parse(JSON.parse(readFileSync(inventoryPath, "utf8")));
 }
 
+function coveredPaths(inventory: Inventory): Set<string> {
+  return new Set(
+    [...inventory.entries, ...inventory.exemptions].flatMap((item) =>
+      item.paths.map(toRepositoryPath),
+    ),
+  );
+}
+
+/** The given source paths that carry a legacy marker no inventory item covers. */
+export function untrackedLegacyMarkers(
+  inventory: Inventory,
+  paths: readonly string[],
+  readSource: (path: string) => string,
+): string[] {
+  const covered = coveredPaths(inventory);
+  return paths.filter(
+    (path) => !covered.has(path) && hasLegacyMarker(readSource(path)),
+  );
+}
+
+function readRepositorySource(path: string): string {
+  return readFileSync(join(repositoryRoot, path), "utf8");
+}
+
 function validateInventory(inventory: Inventory): string[] {
   const issues: string[] = [];
   const ids = new Set<string>();
-  const coveredPaths = new Map<string, string>();
+  const owners = new Map<string, string>();
 
   for (const item of [...inventory.entries, ...inventory.exemptions]) {
     if (ids.has(item.id)) {
@@ -118,15 +160,14 @@ function validateInventory(inventory: Inventory): string[] {
 
     for (const rawPath of item.paths) {
       const path = toRepositoryPath(rawPath);
-      const owner = coveredPaths.get(path);
+      const owner = owners.get(path);
       if (owner) {
         issues.push(`${path} is covered by both ${owner} and ${item.id}`);
         continue;
       }
-      coveredPaths.set(path, item.id);
+      owners.set(path, item.id);
 
-      const absolutePath = join(repositoryRoot, path);
-      if (!existsSync(absolutePath)) {
+      if (!existsSync(join(repositoryRoot, path))) {
         issues.push(`${item.id}: path does not exist: ${path}`);
         continue;
       }
@@ -136,25 +177,23 @@ function validateInventory(inventory: Inventory): string[] {
         );
         continue;
       }
-      if (!legacyPattern.test(readFileSync(absolutePath, "utf8"))) {
+      if (!hasLegacyMarker(readRepositorySource(path))) {
         issues.push(`${item.id}: path has no legacy marker: ${path}`);
       }
     }
   }
 
-  const legacyPaths = trackedCodePaths().filter((path) =>
-    legacyPattern.test(readFileSync(join(repositoryRoot, path), "utf8")),
-  );
-
-  for (const path of legacyPaths) {
-    if (!coveredPaths.has(path)) {
-      const displayPath = relative(repositoryRoot, join(repositoryRoot, path));
-      issues.push(`untracked legacy marker: ${displayPath}`);
-    }
+  const codePaths = trackedCodePaths();
+  for (const path of untrackedLegacyMarkers(
+    inventory,
+    codePaths,
+    readRepositorySource,
+  )) {
+    issues.push(`untracked legacy marker: ${path}`);
   }
 
-  for (const [path, id] of coveredPaths) {
-    if (!legacyPaths.includes(path)) {
+  for (const [path, id] of owners) {
+    if (!codePaths.includes(path)) {
       issues.push(
         `${id}: inventory path is not in the active legacy scan: ${path}`,
       );
@@ -164,27 +203,29 @@ function validateInventory(inventory: Inventory): string[] {
   return issues;
 }
 
-try {
-  const inventory = readInventory();
-  const issues = validateInventory(inventory);
-  if (issues.length > 0) {
-    console.error("Legacy code inventory issues found:\n");
-    for (const issue of issues) console.error(`- ${issue}`);
+if (import.meta.main) {
+  try {
+    const inventory = readInventory();
+    const issues = validateInventory(inventory);
+    if (issues.length > 0) {
+      console.error("Legacy code inventory issues found:\n");
+      for (const issue of issues) console.error(`- ${issue}`);
+      process.exit(1);
+    }
+
+    const coveredCount = inventory.entries.reduce(
+      (count, entry) => count + entry.paths.length,
+      0,
+    );
+    const exemptCount = inventory.exemptions.reduce(
+      (count, exemption) => count + exemption.paths.length,
+      0,
+    );
+    console.log(
+      `Legacy code inventory OK (${coveredCount} owned paths, ${exemptCount} exemptions)`,
+    );
+  } catch (error) {
+    console.error(getErrorMessage(error, "Legacy code inventory check failed"));
     process.exit(1);
   }
-
-  const coveredCount = inventory.entries.reduce(
-    (count, entry) => count + entry.paths.length,
-    0,
-  );
-  const exemptCount = inventory.exemptions.reduce(
-    (count, exemption) => count + exemption.paths.length,
-    0,
-  );
-  console.log(
-    `Legacy code inventory OK (${coveredCount} owned paths, ${exemptCount} exemptions)`,
-  );
-} catch (error) {
-  console.error(getErrorMessage(error, "Legacy code inventory check failed"));
-  process.exit(1);
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { generateText, jsonSchema, tool } from "ai";
+import { generateText, jsonSchema, tool, type JSONSchema7 } from "ai";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import {
   createLocalRuntimeClient,
@@ -156,5 +157,66 @@ describe("a required tool call on the local runtime", () => {
     expect(generate(fetch, "required")).rejects.toThrow(
       "did not contain a tool call",
     );
+  });
+});
+
+/** Every $ref in a schema, and whether each resolves from that schema's root. */
+function unresolvedRefs(root: unknown): string[] {
+  const refs: string[] = [];
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (typeof node !== "object" || node === null) return;
+    for (const [key, value] of Object.entries(node)) {
+      if (key === "$ref" && typeof value === "string") refs.push(value);
+      else walk(value);
+    }
+  };
+  walk(root);
+  return refs.filter((ref) => {
+    const found = ref
+      .replace(/^#\//, "")
+      .split("/")
+      .reduce<unknown>(
+        (node, key) => (isPlainRecord(node) ? node[key] : undefined),
+        root,
+      );
+    return found === undefined;
+  });
+}
+
+describe("a required call to a tool whose schema refers to its own definitions", () => {
+  it("is asked for in a schema whose references all resolve", async () => {
+    // A schema used twice is written once and referred to.
+    const action: JSONSchema7 = { type: "string", enum: ["sync", "status"] };
+    const manage = tool({
+      description: "Manage sync",
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          action: { $ref: "#/definitions/action" },
+          then: { $ref: "#/definitions/action" },
+        },
+        required: ["action"],
+        definitions: { action },
+      }),
+      execute: async () => "Done.",
+    });
+    const { fetch, requests } = runtime([
+      { content: '{"tool":"directory_sync","input":{"action":"sync"}}' },
+    ]);
+    const client = createLocalRuntimeClient("http://models:11434", fetch);
+
+    await generateText({
+      model: localChatModel(client, "qwen3:30b-a3b"),
+      prompt: "Sync.",
+      tools: { system_create: save, directory_sync: manage },
+      toolChoice: "required",
+    });
+
+    const format = z
+      .object({ json_schema: z.object({ schema: z.unknown() }) })
+      .parse(requests[0]?.["response_format"]);
+    expect(unresolvedRefs(format.json_schema.schema)).toEqual([]);
+    expect(JSON.stringify(format.json_schema.schema)).toContain('"$ref"');
   });
 });

@@ -1,4 +1,9 @@
-import { generateId, type LanguageModelMiddleware } from "ai";
+import { generateId, type JSONSchema7, type LanguageModelMiddleware } from "ai";
+import { isPlainRecord } from "@brains/utils/predicates";
+import { z } from "@brains/utils/zod";
+
+/** A JSON Schema is any object: its keywords are checked by the runtime. */
+const jsonSchemaObject = z.custom<JSONSchema7>(isPlainRecord);
 
 /**
  * Gives a required tool choice its meaning on a runtime that ignores it: a
@@ -14,6 +19,9 @@ export const requiredToolChoice: LanguageModelMiddleware = {
     if (params.toolChoice?.type !== "required" || tools.length === 0)
       return doGenerate();
 
+    // A tool's schema refers to its own definitions from its own root: in
+    // the call's schema they move to its root, named for the tool.
+    const definitions: Record<string, JSONSchema7> = {};
     const result = await model.doGenerate({
       ...params,
       responseFormat: {
@@ -24,11 +32,16 @@ export const requiredToolChoice: LanguageModelMiddleware = {
             type: "object",
             properties: {
               tool: { const: tool.name },
-              input: tool.inputSchema,
+              input: withDefinitionsAt(
+                tool.inputSchema,
+                tool.name,
+                definitions,
+              ),
             },
             required: ["tool", "input"],
             additionalProperties: false,
           })),
+          ...(Object.keys(definitions).length > 0 && { definitions }),
         },
       },
     });
@@ -54,6 +67,41 @@ export const requiredToolChoice: LanguageModelMiddleware = {
     };
   },
 };
+
+/**
+ * A tool's input schema without its definitions, which join `definitions`
+ * named `<tool>__<name>`, its references rewritten to match.
+ */
+function withDefinitionsAt(
+  schema: unknown,
+  toolName: string,
+  definitions: Record<string, JSONSchema7>,
+): JSONSchema7 {
+  const rename = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(rename);
+    if (!isPlainRecord(node)) return node;
+    return Object.fromEntries(
+      Object.entries(node).map(([key, value]) => [
+        key,
+        key === "$ref" && typeof value === "string"
+          ? value.replace(
+              /^#\/(?:definitions|\$defs)\//,
+              `#/definitions/${toolName}__`,
+            )
+          : rename(value),
+      ]),
+    );
+  };
+  if (!isPlainRecord(schema)) return {};
+  const { definitions: own, $defs, ...rest } = schema;
+  for (const group of [own, $defs])
+    if (isPlainRecord(group))
+      for (const [name, definition] of Object.entries(group))
+        definitions[`${toolName}__${name}`] = jsonSchemaObject.parse(
+          rename(definition),
+        );
+  return jsonSchemaObject.parse(rename(rest));
+}
 
 function parseCall(
   text: string[],

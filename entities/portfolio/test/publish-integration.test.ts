@@ -1,18 +1,21 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { publishRegisterContract } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { PortfolioPlugin } from "../src/plugin";
+import {
+  portfolioPlugin,
+  type PortfolioEntityPlugin,
+} from "./portfolio-plugin";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
 
-describe("PortfolioPlugin - Publish Pipeline Integration", () => {
-  let harness: PluginTestHarness<PortfolioPlugin>;
+describe("the portfolio in the publish pipeline", () => {
+  let harness: PluginTestHarness<PortfolioEntityPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    harness = createPluginHarness<PortfolioPlugin>({
+    harness = createPluginHarness<PortfolioEntityPlugin>({
       dataDir: "/tmp/test-portfolio",
     });
     receivedMessages = [];
@@ -27,7 +30,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
 
   describe("provider registration", () => {
     it("should send publish:register message after plugins-registered with internal provider", async () => {
-      await harness.installPlugin(new PortfolioPlugin({}));
+      await harness.installPlugin(portfolioPlugin());
 
       expect(
         receivedMessages.find((m) => m.type === publishRegisterContract.name),

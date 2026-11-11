@@ -140,6 +140,9 @@ export interface RouteDefinitionInput {
   navigation?: NavigationMetadataInput | undefined;
   /** The page's head and navigation label in the site's other languages. */
   translations?: Record<string, RouteTranslation> | undefined;
+  /** Languages its plugin fills the page in per request: built in each
+   * without saved copy. */
+  languages?: string[] | undefined;
 }
 
 export interface RouteDefinition {
@@ -156,6 +159,7 @@ export interface RouteDefinition {
   external?: boolean | undefined;
   navigation?: NavigationMetadata | undefined;
   translations?: Record<string, RouteTranslation> | undefined;
+  languages?: string[] | undefined;
 }
 
 export interface SiteContentStringFieldDefinition {

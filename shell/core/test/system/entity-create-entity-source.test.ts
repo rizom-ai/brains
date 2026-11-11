@@ -10,7 +10,7 @@ import type {
 } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createEntityCreateTool } from "../../src/system/entity-create-tool";
-import { createMockSystemServices } from "./mock-services";
+import { createMockSystemServices, postFrontmatter } from "./mock-services";
 
 const adminContext: ToolContext = {
   interfaceType: "mcp",
@@ -32,7 +32,9 @@ function fixture(): {
   tool: ReturnType<typeof createEntityCreateTool>;
 } {
   const services = createMockSystemServices();
-  services.registerEntityTypes(["note", "post", "base"]);
+  services.registerEntityTypes(["note", "post", "base"], {
+    post: postFrontmatter,
+  });
   services.addEntities([
     {
       id: "on-slowness",

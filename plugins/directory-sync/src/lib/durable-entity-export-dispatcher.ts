@@ -28,6 +28,7 @@ export interface DurableEntityExportEntityService {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
+    source?: true;
   }): Promise<BaseEntity | null>;
 }
 

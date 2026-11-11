@@ -61,6 +61,7 @@ import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
+import type { StaticSiteOutput } from "./internal/http-host";
 import type { ProjectionRule } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
@@ -234,6 +235,9 @@ export interface IShell {
   getDomain(): string | undefined;
   getLocalSiteUrl(): string | undefined;
   shouldPreferLocalUrls(): boolean;
+  isProduction(): boolean;
+  /** Whether this process serves the brain's HTTP surface. */
+  servesHttp(): boolean;
   getThemeCSS(): string;
 
   // Shared conversation spaces for this brain/team
@@ -416,4 +420,9 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   requiresDaemonStartup?(): boolean;
   getApiRoutes?(): ApiRouteDefinition[];
   getWebRoutes?(): WebRouteDefinition[];
+  /**
+   * Where this plugin writes the site the runtime's HTTP host serves. Read
+   * once, when the host starts.
+   */
+  getStaticSiteOutput?(): StaticSiteOutput;
 };

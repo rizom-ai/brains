@@ -433,8 +433,6 @@ async function createApp(options: { includeWishlist?: boolean } = {}): Promise<{
   await run(["git", "push", "origin", "main"], writer);
 
   const productionPort = reservePort();
-  const apiPort = reservePort();
-  const previewPort = reservePort();
   await writeFile(
     join(root, "brain.yaml"),
     `brain: brain
@@ -442,6 +440,7 @@ bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles: [core, web]
+port: ${productionPort}
 embedding:
   enabled: false
 remove:
@@ -463,10 +462,6 @@ ${options.includeWishlist ? "add:\n  - wishlist\n" : ""}plugins:
     git:
       gitUrl: file://${remote}
       bootstrapFromSeed: false
-  webserver:
-    productionPort: ${productionPort}
-    apiPort: ${apiPort}
-    previewPort: ${previewPort}
 `,
   );
 

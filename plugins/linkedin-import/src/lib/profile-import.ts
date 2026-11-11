@@ -1,15 +1,18 @@
-import { createHash } from "node:crypto";
 import {
-  internalFullScope,
-  type BaseEntity,
-  type ServiceEntityService,
-} from "@brains/plugins";
+  SdkError,
+  type BusContract,
+  type BusResult,
+  profileImportApplyContract,
+  profileImportPreviewContract,
+  type ProfileImportField,
+  type ProfileImportFieldName,
+} from "@brains/contracts";
+import type { z } from "@brains/utils/zod";
 import { LinkedInClient, type LinkedInFetch } from "./linkedin-client";
 import { mapLinkedInProfile } from "./profile-mapper";
-import { mergeProfileImport, type ImportedField } from "./merge-profile";
 
 export interface ProfileImportPreview {
-  fields: ImportedField[];
+  fields: ProfileImportField[];
   /** True when the import would fill at least one field. */
   changed: boolean;
   /** Binds a confirmation to these LinkedIn values and this profile revision. */
@@ -17,71 +20,75 @@ export interface ProfileImportPreview {
 }
 
 export interface ProfileImportResult {
-  filled: string[];
-  kept: string[];
+  filled: ProfileImportFieldName[];
+  kept: ProfileImportFieldName[];
 }
 
-interface Prepared {
-  profile: BaseEntity;
-  content: string;
-  preview: ProfileImportPreview;
+/** Asking another package by its contract, as this plugin. */
+export interface ProfileImportMessaging {
+  request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+    contract: BusContract<TRequest, TResponse, "request">,
+    request: z.input<TRequest>,
+  ): Promise<BusResult<z.output<TResponse>>>;
 }
 
-/** Previews and applies a LinkedIn import into the anchor profile. */
+/** The steward's answer, or its refusal with its code and public message. */
+function answered<T>(result: BusResult<T>): T {
+  if (result.status === "answered") return result.data;
+  if (result.status === "failed") {
+    throw new SdkError(result.error.code, {
+      message: result.error.message,
+      publicMessage: result.error.message,
+    });
+  }
+  throw new SdkError("no_handler", {
+    message: "No package keeps the anchor profile",
+    publicMessage: "This brain keeps no anchor profile to import into.",
+  });
+}
+
+/**
+ * Previews and applies a LinkedIn import into the anchor profile. Profile
+ * stewards the anchor profile, so the import asks it: profile decides what
+ * is filled and what stays as the owner wrote it.
+ */
 export class ProfileImport {
-  private readonly entityService: ServiceEntityService;
+  private readonly messaging: ProfileImportMessaging;
   private readonly fetchFn: LinkedInFetch | undefined;
 
-  constructor(entityService: ServiceEntityService, fetchFn?: LinkedInFetch) {
-    this.entityService = entityService;
+  constructor(messaging: ProfileImportMessaging, fetchFn?: LinkedInFetch) {
+    this.messaging = messaging;
     this.fetchFn = fetchFn;
   }
 
   async preview(accessToken: string): Promise<ProfileImportPreview> {
-    return (await this.prepare(accessToken)).preview;
+    return this.previewFields(await this.imported(accessToken));
   }
 
   /** Writes only while the profile is still the one this import read. */
   async apply(accessToken: string): Promise<ProfileImportResult> {
-    const { profile, content, preview } = await this.prepare(accessToken);
-    const result = {
-      filled: preview.fields
-        .filter((field) => field.outcome === "fill")
-        .map((field) => field.field),
-      kept: preview.fields
-        .filter((field) => field.outcome === "preserve")
-        .map((field) => field.field),
-    };
-    if (!preview.changed) return result;
-    const written = await this.entityService.updateEntity({
-      entity: { ...profile, content },
-      options: { expectedContentHash: profile.contentHash },
-    });
-    if (written.skipReason === "content-conflict") {
-      throw new Error(
-        "The profile changed while importing; review the import again.",
-      );
-    }
-    return result;
+    const fields = await this.imported(accessToken);
+    const { revision } = await this.previewFields(fields);
+    return answered(
+      await this.messaging.request(profileImportApplyContract, {
+        fields,
+        revision,
+      }),
+    );
   }
 
-  private async prepare(accessToken: string): Promise<Prepared> {
-    const profile = await this.entityService.getEntity({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-      visibilityScope: internalFullScope("LinkedIn import reads the owner"),
-    });
-    if (!profile) throw new Error("This brain has no anchor profile yet.");
+  private async previewFields(
+    fields: ReturnType<typeof mapLinkedInProfile>,
+  ): Promise<ProfileImportPreview> {
+    return answered(
+      await this.messaging.request(profileImportPreviewContract, { fields }),
+    );
+  }
+
+  private async imported(
+    accessToken: string,
+  ): Promise<ReturnType<typeof mapLinkedInProfile>> {
     const client = new LinkedInClient(accessToken, this.fetchFn);
-    const imported = mapLinkedInProfile(await client.fetchProfile());
-    const merge = mergeProfileImport(profile.content, imported);
-    const revision = createHash("sha256")
-      .update(JSON.stringify([profile.contentHash, merge.fields]))
-      .digest("hex");
-    return {
-      profile,
-      content: merge.content,
-      preview: { fields: merge.fields, changed: merge.changed, revision },
-    };
+    return mapLinkedInProfile(await client.fetchProfile());
   }
 }

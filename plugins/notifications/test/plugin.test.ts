@@ -1,11 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { notificationsSendContract } from "@brains/contracts";
+import {
+  notificationsSendContract,
+  sendNotificationSchema,
+} from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type {
   ChannelDeliveryInput,
   ChannelDeliveryResult,
 } from "@brains/plugins";
-import { NotificationsPlugin } from "../src";
+import notificationsPackage from "../src";
+import { notificationsPlugin } from "./notifications-plugin";
 
 /**
  * Registers an email transport the way a message interface would, so the
@@ -13,7 +17,7 @@ import { NotificationsPlugin } from "../src";
  * message channel.
  */
 function installEmailProvider(
-  harness: ReturnType<typeof createPluginHarness<NotificationsPlugin>>,
+  harness: ReturnType<typeof createPluginHarness>,
   send: (input: ChannelDeliveryInput) => Promise<ChannelDeliveryResult>,
 ): ChannelDeliveryInput[] {
   const sent: ChannelDeliveryInput[] = [];
@@ -36,10 +40,32 @@ function installEmailProvider(
   return sent;
 }
 
-describe("NotificationsPlugin", () => {
+describe("notifications", () => {
+  it("default-exports its service package definition", () => {
+    expect(notificationsPackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "notifications",
+    });
+  });
+
+  it("registers under the plugin id its class had, with no tools or resources", async () => {
+    const harness = createPluginHarness();
+    const plugin = notificationsPlugin();
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "notifications",
+      "service",
+      "@brains/notifications",
+    ]);
+    expect(capabilities.tools).toEqual([]);
+    expect(capabilities.resources).toEqual([]);
+  });
+
   it("stays channel-agnostic and registers no channel metadata", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
-    await harness.installPlugin(new NotificationsPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     expect(
@@ -51,13 +77,13 @@ describe("NotificationsPlugin", () => {
   });
 
   it("delivers through the transport registered for the recipient's channel", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     const sent = installEmailProvider(harness, async () => ({
       status: "sent",
       providerDeliveryId: "email_123",
     }));
 
-    await harness.installPlugin(new NotificationsPlugin());
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const result = await harness.sendMessage(notificationsSendContract.name, {
@@ -80,12 +106,40 @@ describe("NotificationsPlugin", () => {
     ]);
   });
 
-  it("keeps internal delivery available to execution-only workers", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+  it("passes where an answer goes to the transport", async () => {
+    const harness = createPluginHarness();
     const sent = installEmailProvider(harness, async () => ({
       status: "sent",
     }));
-    await new NotificationsPlugin({
+    await harness.installPlugin(notificationsPlugin());
+    await harness.finalizeRegistration();
+
+    expect(
+      await harness.sendMessage(notificationsSendContract.name, {
+        recipient: { type: "email", address: "owner@example.com" },
+        title: "New contact request",
+        body: "Name: Ada",
+        sensitivity: "secret",
+        idempotencyKey: "contact-notification:1",
+        replyTo: "ada@example.com",
+      }),
+    ).toEqual({ status: "sent" });
+    expect(sent[0]?.replyTo).toBe("ada@example.com");
+    expect(
+      sendNotificationSchema.safeParse({
+        title: "x",
+        body: "y",
+        replyTo: "ada@example.com\r\nBcc: other@example.com",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps internal delivery available to execution-only workers", async () => {
+    const harness = createPluginHarness();
+    const sent = installEmailProvider(harness, async () => ({
+      status: "sent",
+    }));
+    await notificationsPlugin({
       defaultRecipient: { type: "email", address: "operator@example.com" },
     }).register(harness.getMockShell(), { executionOnly: true });
     harness.getMockShell().getChannelRegistry().finalize();
@@ -101,13 +155,13 @@ describe("NotificationsPlugin", () => {
   });
 
   it("uses the configured default recipient when the message omits one", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     const sent = installEmailProvider(harness, async () => ({
       status: "sent",
     }));
 
     await harness.installPlugin(
-      new NotificationsPlugin({
+      notificationsPlugin({
         defaultRecipient: { type: "email", address: "operator@example.com" },
       }),
     );
@@ -123,14 +177,14 @@ describe("NotificationsPlugin", () => {
   });
 
   it("gives each notification its own idempotency key when none is supplied", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     let delivery = 0;
     const sent = installEmailProvider(harness, async () => {
       delivery += 1;
       return { status: "sent", providerDeliveryId: `email_${delivery}` };
     });
 
-    await harness.installPlugin(new NotificationsPlugin());
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const payload = {
@@ -157,12 +211,12 @@ describe("NotificationsPlugin", () => {
   });
 
   it("answers a failed delivery with its transport's code, never the message", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     installEmailProvider(harness, async () => ({
       status: "failed",
       failureCode: "resend_validation_error",
     }));
-    await harness.installPlugin(new NotificationsPlugin());
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const response = await harness
@@ -190,8 +244,8 @@ describe("NotificationsPlugin", () => {
   });
 
   it("answers that no transport is available for the recipient", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
-    await harness.installPlugin(new NotificationsPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const response = await harness
@@ -223,13 +277,11 @@ describe("unset recipient env interpolation", () => {
     ["no address", { type: "email" }],
   ] as const) {
     it(`boots without a default recipient given ${label}`, async () => {
-      const harness = createPluginHarness<NotificationsPlugin>();
+      const harness = createPluginHarness();
       const sent = installEmailProvider(harness, async () => ({
         status: "sent",
       }));
-      await harness.installPlugin(
-        new NotificationsPlugin({ defaultRecipient }),
-      );
+      await harness.installPlugin(notificationsPlugin({ defaultRecipient }));
       await harness.finalizeRegistration();
 
       const response = await harness

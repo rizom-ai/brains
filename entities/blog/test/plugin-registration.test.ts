@@ -5,7 +5,7 @@ import {
   siteBuildStagingContract,
 } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { BlogPlugin } from "../src/plugin";
+import { blogPlugin, type BlogEntityPlugin } from "./blog-plugin";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -22,12 +22,14 @@ const sampleDraftPost = createMockPost(
   "draft",
 );
 
-describe("BlogPlugin - Publish Pipeline Integration", () => {
-  let harness: PluginTestHarness<BlogPlugin>;
+describe("the blog in the publish pipeline and the site build", () => {
+  let harness: PluginTestHarness<BlogEntityPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    harness = createPluginHarness<BlogPlugin>({ dataDir: "/tmp/test-blog" });
+    harness = createPluginHarness<BlogEntityPlugin>({
+      dataDir: "/tmp/test-blog",
+    });
     receivedMessages = [];
 
     for (const eventType of [
@@ -43,21 +45,21 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("entity policy registration", () => {
     it("declares newest-published-first list ordering", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").defaultSort,
       ).toEqual([{ field: "publishedAt", direction: "desc" }]);
     });
 
     it("retires frontmatter fields posts no longer use", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").retiredFields,
       ).toEqual(["ogDescription", "twitterCard", "atprotoUri"]);
     });
 
     it("declares post publish statuses", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").publish,
@@ -69,7 +71,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("provider registration", () => {
     it("should send publish:register message after plugins-registered with internal provider", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
 
       expect(
         receivedMessages.find((m) => m.type === publishRegisterContract.name),
@@ -93,7 +95,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should register post OG images as publish assets after plugins-registered", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
 
       expect(
         receivedMessages.find(
@@ -122,10 +124,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("delivers deferred publish registrations to subscribers installed after blog", async () => {
-      const localHarness = createPluginHarness<BlogPlugin>({
+      const localHarness = createPluginHarness<BlogEntityPlugin>({
         dataDir: "/tmp/test-blog-late-publish-subscriber",
       });
-      await localHarness.installPlugin(new BlogPlugin({}));
+      await localHarness.installPlugin(blogPlugin());
       const lateMessages: Array<{ type: string; payload: unknown }> = [];
       for (const eventType of [
         publishRegisterContract.name,
@@ -152,16 +154,14 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("RSS staging", () => {
-    it("writes feed.xml before publication and ignores completion notifications", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+    it("writes feed.xml before publication", async () => {
+      await harness.installPlugin(blogPlugin());
       await harness
         .getEntityService()
         .createEntity({ entity: sampleDraftPost });
       const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-staging-"));
       const stagingDir = join(testDir, "staging");
-      const completedDir = join(testDir, "completed");
       await fs.mkdir(stagingDir, { recursive: true });
-      await fs.mkdir(completedDir, { recursive: true });
       const payload = {
         environment: "preview" as const,
         routesBuilt: 1,
@@ -187,19 +187,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         expect(
           await fs.readFile(join(stagingDir, "feed.xml"), "utf8"),
         ).toContain("Test Post");
-
-        await harness.sendMessage(
-          "site:build:completed",
-          { ...payload, outputDir: completedDir },
-          "site-builder",
-          true,
-        );
-        expect(
-          await fs
-            .access(join(completedDir, "feed.xml"))
-            .then(() => true)
-            .catch(() => false),
-        ).toBe(false);
       } finally {
         await fs.rm(testDir, { recursive: true, force: true });
       }
@@ -208,12 +195,15 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     it("reports a staging failure instead of leaving the feed silently missing", async () => {
       // The message bus swallows subscriber errors on broadcast, so throwing
       // here would publish a generation with no feed and still report success.
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
       await harness
         .getEntityService()
         .createEntity({ entity: sampleDraftPost });
       const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-failure-"));
       const failures: string[] = [];
+      // A staging directory that is a file cannot take the feed.
+      const notADirectory = join(testDir, "not-a-directory");
+      await fs.writeFile(notADirectory, "");
 
       try {
         await harness.sendMessage(
@@ -221,7 +211,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
           {
             environment: "preview" as const,
             routesBuilt: 1,
-            outputDir: join(testDir, "missing-generation"),
+            outputDir: notADirectory,
             siteConfig: {
               title: "Test Blog",
               description: "Test feed",
@@ -238,7 +228,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         );
 
         expect(failures).toHaveLength(1);
-        expect(failures[0]).toContain("RSS feed generation failed");
+        expect(failures[0]).toContain("post feed generation failed");
       } finally {
         await fs.rm(testDir, { recursive: true, force: true });
       }

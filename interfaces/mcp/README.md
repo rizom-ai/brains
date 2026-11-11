@@ -34,7 +34,7 @@ const stdioInterface = new MCPInterface({
   mode: "basic", // default: chat/confirm only
 });
 
-// For authenticated HTTP transport
+// For HTTP transport with a static token (local development only; a production brain refuses it)
 const httpInterface = new MCPInterface({
   transport: "http",
   httpPort: 3333,
@@ -56,11 +56,11 @@ both under the same `mcp` identity.
 The embedding connects SDK transports to permission-scoped servers created by the
 shell's MCP service. It owns connection cleanup and must supply trusted caller
 context; protocol-only registration is not an authentication bypass for remote
-clients. Hosted HTTP still requires webserver and retains its authentication and
+clients. Hosted HTTP still requires the brain to serve HTTP and retains its authentication and
 debug-mode checks.
 
 The evaluator uses this registration path for `--mcp-basic`. It does not change
-transport configuration, restore a production webserver, or open stdio. From
+transport configuration, start an HTTP listener, or open stdio. From
 `packages/brain-cli`, run the protocol-specific regression with:
 
 ```bash
@@ -187,7 +187,7 @@ interface MCPConfig {
   transport: "stdio" | "http";
   mode?: "basic" | "debug"; // default: "basic"
   httpPort?: number; // For HTTP transport
-  authToken?: string; // Bearer token for HTTP transport
+  authToken?: string; // Static bearer token: local development only; a production brain refuses it
 }
 ```
 

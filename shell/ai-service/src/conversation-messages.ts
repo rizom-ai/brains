@@ -1,4 +1,5 @@
 import type { AgentContextItem } from "@brains/contracts";
+import { framedFileText } from "./file-text";
 import type { Message } from "@brains/conversation-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { ModelMessage, UserContent } from "ai";
@@ -389,7 +390,7 @@ export function buildMessageWithAttachments(
 function formatTextAttachment(
   attachment: Extract<ChatAttachment, { kind: "text" }>,
 ): string {
-  return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
+  return framedFileText("a file", attachment.filename, attachment.content);
 }
 
 function isPdfAttachment(attachment: ChatAttachment): boolean {

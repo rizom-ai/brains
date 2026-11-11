@@ -30,7 +30,7 @@ plugins:
     organization: rizom.ai
 ```
 
-A2A is served on the shared webserver host:
+A2A is served on the runtime's shared HTTP host:
 
 - local: `http://localhost:8080/a2a`
 - deployed: `https://your-domain.com/a2a`

@@ -21,22 +21,19 @@ import { z } from "@brains/utils/zod";
 const MAX_ITEMS = 6;
 const WIDGET_ID = "action-items";
 
-export interface ActionItemWidgetItem {
-  id: string;
-  name: string;
-  description?: string;
-  meta: string[];
-  status: ActionItemEntity["metadata"]["status"];
-}
-
-export interface ActionItemsWidgetData {
-  items: ActionItemWidgetItem[];
-  /** Open, doing and blocked items, uncapped (the list is truncated for display). */
-  unfinishedCount: number;
-  blockedCount: number;
-}
-
-const actionItemsWidgetDataSchema = z.object({
+const actionItemsWidgetDataSchema: z.ZodObject<{
+  items: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      name: z.ZodString;
+      description: z.ZodOptional<z.ZodString>;
+      meta: z.ZodArray<z.ZodString>;
+      status: typeof actionItemStatusSchema;
+    }>
+  >;
+  unfinishedCount: z.ZodNumber;
+  blockedCount: z.ZodNumber;
+}> = z.object({
   items: z.array(
     z.object({
       id: z.string(),
@@ -46,9 +43,15 @@ const actionItemsWidgetDataSchema = z.object({
       status: actionItemStatusSchema,
     }),
   ),
+  /** Open, doing and blocked items, uncapped (the list is truncated for display). */
   unfinishedCount: z.number().int().nonnegative(),
   blockedCount: z.number().int().nonnegative(),
 });
+
+export type ActionItemsWidgetData = z.output<
+  typeof actionItemsWidgetDataSchema
+>;
+export type ActionItemWidgetItem = ActionItemsWidgetData["items"][number];
 
 const actionItemsWidget = defineDashboardWidget({
   id: WIDGET_ID,

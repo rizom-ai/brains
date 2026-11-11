@@ -48,6 +48,22 @@ describe("conversation message channels", () => {
     );
   });
 
+  it("starts a conversation without announcing it", async () => {
+    const send = spyOn(messageBus, "send");
+    await service.startConversation({
+      sessionId: "room",
+      interfaceType: "discord",
+      channelId: "discord:1466",
+      metadata: {
+        channelName: "Room",
+        interfaceType: "discord",
+        channelId: "discord:1466",
+      },
+    });
+
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("takes every message the service announces, with its metadata", async () => {
     await service.startConversation({
       sessionId: "room",

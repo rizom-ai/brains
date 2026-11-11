@@ -1,5 +1,5 @@
 import { topicTitlesContract } from "@brains/contracts";
-import type { InterfacePluginContext } from "@brains/plugins";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 
 /**
  * What the brain's public work is about, as its topics plugin answers: the
@@ -7,7 +7,7 @@ import type { InterfacePluginContext } from "@brains/plugins";
  * has no topics plugin or it cannot answer.
  */
 export async function loadSiteSubjects(
-  messaging: InterfacePluginContext["messaging"],
+  messaging: Pick<InterfaceRuntime, "request">,
 ): Promise<string[]> {
   try {
     const answer = await messaging.request(topicTitlesContract, {});

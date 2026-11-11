@@ -6,8 +6,7 @@ import type {
   CreateInterceptionResult,
 } from "@brains/plugins";
 import { parseMarkdown } from "@brains/utils/markdown";
-import { PortfolioPlugin } from "../src/plugin";
-import { projectAdapter } from "../src/adapters/project-adapter";
+import { portfolioPlugin } from "./portfolio-plugin";
 
 const executionContext = {
   interfaceType: "test",
@@ -26,7 +25,7 @@ function expectUserFacing(question: string): void {
   }
 }
 
-describe("PortfolioPlugin create interceptor", () => {
+describe("the project create routes", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let prompts: Array<{ templateName: string; prompt: string | undefined }>;
   let derived: { description: string; year: number | null };
@@ -50,7 +49,7 @@ describe("PortfolioPlugin create interceptor", () => {
       });
       return derived;
     };
-    await harness.installPlugin(new PortfolioPlugin({}));
+    await harness.installPlugin(portfolioPlugin());
   });
 
   afterEach(async () => {
@@ -85,7 +84,9 @@ describe("PortfolioPlugin create interceptor", () => {
     }
     const content = result.input.content ?? "";
     // The direct create stores exactly this document through the adapter.
-    expect(() => projectAdapter.fromMarkdown(content)).not.toThrow();
+    expect(() =>
+      harness.getEntityRegistry().getAdapter("project").fromMarkdown(content),
+    ).not.toThrow();
     const { frontmatter, content: savedBody } = parseMarkdown(content);
     return { title: result.input.title, frontmatter, body: savedBody };
   }

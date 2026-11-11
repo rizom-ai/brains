@@ -4,6 +4,7 @@ import {
   type ActorRef,
   type Channel,
 } from "@brains/contracts";
+import { broadcastChannel, type BroadcastBus } from "@brains/messaging-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
@@ -106,7 +107,10 @@ export const toolFailedChannel: Channel<
  * Can be backed by MessageBus or a simple callback for testing
  */
 export interface ToolEventEmitter {
-  emit(type: string, payload: unknown): Promise<void> | void;
+  emit<TPayload>(
+    channel: Channel<TPayload>,
+    payload: NoInfer<TPayload>,
+  ): Promise<void> | void;
 }
 
 /**
@@ -168,7 +172,7 @@ export function createToolExecuteWrapper(
         args,
         ...context,
       };
-      await emitter.emit(toolInvokingChannel.name, invokingPayload);
+      await emitter.emit(toolInvokingChannel, invokingPayload);
     }
 
     try {
@@ -180,7 +184,7 @@ export function createToolExecuteWrapper(
       // Emit tool:completed event
       if (emitter) {
         const completedPayload: ToolCompletionEvent = { toolName, ...context };
-        await emitter.emit(toolCompletedChannel.name, completedPayload);
+        await emitter.emit(toolCompletedChannel, completedPayload);
       }
 
       return result;
@@ -192,7 +196,7 @@ export function createToolExecuteWrapper(
           error: getErrorMessage(error),
           ...context,
         };
-        await emitter.emit(toolFailedChannel.name, failedPayload);
+        await emitter.emit(toolFailedChannel, failedPayload);
       }
 
       // Re-throw the original error
@@ -202,28 +206,23 @@ export function createToolExecuteWrapper(
 }
 
 /**
- * Create an event emitter backed by MessageBus
+ * Create an event emitter backed by MessageBus. Each event is broadcast on its
+ * channel, parsed by the channel's schema. Tool events are best-effort: a bus
+ * that fails, or an event its channel refuses, never fails the tool call.
  *
  * @param messageBus - The message bus to send events to
  * @param sender - Sender identifier for messages (usually "brain-agent")
  * @returns ToolEventEmitter that sends to MessageBus
  */
 export function createMessageBusEmitter(
-  messageBus: {
-    send: (request: {
-      type: string;
-      payload: unknown;
-      sender: string;
-      broadcast?: boolean;
-    }) => Promise<unknown>;
-  },
+  messageBus: BroadcastBus,
   sender: string = "brain-agent",
 ): ToolEventEmitter {
   return {
-    emit: async (type: string, payload: unknown): Promise<void> => {
-      await messageBus
-        .send({ type, payload, sender, broadcast: true })
-        .catch(() => undefined);
+    emit: async (channel, payload): Promise<void> => {
+      await broadcastChannel(messageBus, channel, payload, sender).catch(
+        () => undefined,
+      );
     },
   };
 }

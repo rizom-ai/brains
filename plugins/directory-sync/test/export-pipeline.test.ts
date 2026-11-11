@@ -59,6 +59,21 @@ describe("exportEntities visibility", () => {
     expect(deps.fileOperations.writeEntity).not.toHaveBeenCalled();
     expect(deps.entityService.deleteEntity).not.toHaveBeenCalled();
   });
+  // A declared type reads back its body alone; the file is the stored
+  // document, frontmatter it does not write included.
+  it("lists entities as stored, so a file is the stored document", async () => {
+    const note = createTestEntity("note", { id: "n1" });
+    const deps = createMockDeps({ entities: { note: [note] } });
+
+    await exportEntities(deps);
+
+    expect(deps.entityService.listEntities).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ source: true }),
+      }),
+    );
+  });
+
   it("lists entities across all visibility tiers (sync is system-internal)", async () => {
     const note = createTestEntity("note", { id: "n1" });
     const deps = createMockDeps({ entities: { note: [note] } });

@@ -1,4 +1,5 @@
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import { broadcastChannel } from "@brains/messaging-service";
+import { embeddingReadyChannel } from "../entity-event-channels";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { type ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -155,16 +156,16 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
           `Emitting entity:embedding:ready event for ${data.entityType}:${data.id}`,
         );
 
-        await this.messageBus.send({
-          type: ENTITY_CHANNELS.embeddingReady,
-          payload: {
+        await broadcastChannel(
+          this.messageBus,
+          embeddingReadyChannel,
+          {
             entityType: data.entityType,
             entityId: data.id,
-            entity: currentEntity,
+            entity: { ...currentEntity },
           },
-          sender: "entity-service",
-          broadcast: true,
-        });
+          "entity-service",
+        );
       }
 
       this.logger.debug("Embedding job completed successfully", {

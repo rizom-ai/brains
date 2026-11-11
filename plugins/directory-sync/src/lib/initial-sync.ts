@@ -79,7 +79,7 @@ export function setupInitialSync(options: InitialSyncOptions): void {
       logger.error("Initial sync failed", error);
       await requireRescan(options);
       await options.recovery?.onGitRecoveryFailed(error);
-      await sendCompleted(context, {
+      await context.messaging.broadcast(initialSyncCompletedChannel, {
         success: false,
         error: getErrorMessage(error),
       });
@@ -90,7 +90,9 @@ export function setupInitialSync(options: InitialSyncOptions): void {
 
     const { batchIds, runId } = startup;
     if (batchIds.length === 0) {
-      await sendCompleted(context, { success: true });
+      await context.messaging.broadcast(initialSyncCompletedChannel, {
+        success: true,
+      });
       return { initialSyncPending: false };
     }
 
@@ -98,7 +100,7 @@ export function setupInitialSync(options: InitialSyncOptions): void {
     void followBatches(context, batchIds)
       .then(async (outcome) => {
         await settleStartupRun(options, runId, outcome);
-        await sendCompleted(context, outcome);
+        await context.messaging.broadcast(initialSyncCompletedChannel, outcome);
       })
       .catch((error: unknown) => {
         logger.error("Unable to report initial sync completion", error);
@@ -280,15 +282,4 @@ async function requireRescan(options: InitialSyncOptions): Promise<void> {
   } catch (error) {
     options.logger.error("Unable to require a full rescan", error);
   }
-}
-
-async function sendCompleted(
-  context: ServicePluginContext,
-  outcome: InitialSyncOutcome,
-): Promise<void> {
-  await context.messaging.send({
-    type: initialSyncCompletedChannel.name,
-    payload: outcome,
-    broadcast: true,
-  });
 }

@@ -6,7 +6,6 @@ import { YAMLLoader } from "../src/loaders/yaml-loader";
 describe("link evaluation test cases", () => {
   it("loads the link tool capture regression evals with system_create", async () => {
     const cases = [
-      "tool-capture-basic.yaml",
       "tool-capture-bookmark.yaml",
       "tool-capture-no-fabrication.yaml",
       "tool-capture-unreachable.yaml",
@@ -35,13 +34,7 @@ describe("link evaluation test cases", () => {
 
       const expectedTool = testCase.successCriteria.expectedTools?.[0];
       expect(expectedTool?.toolName).toBe("system_create");
-      if (file === "tool-capture-basic.yaml") {
-        expect(expectedTool?.argsContain).toEqual({
-          entityType: "link",
-          "source.kind": "url",
-          "source.url": "https://anthropic.com/research",
-        });
-      } else if (file === "tool-capture-bookmark.yaml") {
+      if (file === "tool-capture-bookmark.yaml") {
         expect(expectedTool?.argsContain).toEqual({
           entityType: "link",
           "source.kind": "url",
@@ -52,7 +45,7 @@ describe("link evaluation test cases", () => {
           entityType: "link",
           "source.kind": "url",
           "source.url":
-            "https://this-domain-definitely-does-not-exist-12345.com/page",
+            "https://this-domain-definitely-does-not-exist.invalid/page",
         });
       } else {
         expect(expectedTool?.argsContain).toEqual({ entityType: "link" });

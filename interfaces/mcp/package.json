@@ -1,10 +1,11 @@
 {
   "name": "@brains/mcp",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.661",
+  "version": "0.2.0-alpha.679",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "@modelcontextprotocol/server": "^2.3.1"
   },

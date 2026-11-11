@@ -96,7 +96,7 @@ export class StreamableHTTPServer {
     ) {
       throw new Error(
         "MCP HTTP transport requires an auth token or bearer token verifier. " +
-          "Set MCP_AUTH_TOKEN, configure OAuth verification, or pass auth: { disabled: true } for local dev.",
+          "Configure OAuth verification, or for local development set MCP_AUTH_TOKEN or pass auth: { disabled: true }.",
       );
     }
   }

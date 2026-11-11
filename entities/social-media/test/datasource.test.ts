@@ -1,17 +1,14 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import { createPluginHarness, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { SocialPostDataSource } from "../src/datasources/social-post-datasource";
-import type { SocialPost } from "../src/schemas/social-post";
-import type { BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { createMockLogger } from "@brains/test-utils";
+import type { SocialPost } from "../src/schemas/social-post";
+import { socialMediaPlugin } from "./social-media-plugin";
 
-describe("SocialPostDataSource", () => {
-  let datasource: SocialPostDataSource;
+describe("the social posts data source", () => {
+  let datasource: DataSource & Required<Pick<DataSource, "fetch">>;
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   const createMockSocialPost = (
@@ -29,6 +26,7 @@ status: ${status}
 ---
 
 ${body}`;
+    // A store row: the stored document, its frontmatter decoded beside it.
     return createTestEntity<SocialPost>("social-post", {
       id,
       content,
@@ -43,12 +41,14 @@ ${body}`;
     });
   };
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
-    shell = createMockShell();
+  beforeEach(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(socialMediaPlugin());
+    shell = harness.getMockShell();
     mockContext = { entityService: shell.getEntityService() };
-
-    datasource = new SocialPostDataSource(mockLogger);
+    const registered = harness.getDataSources().get("social-media:posts");
+    if (!registered?.fetch) throw new Error("No social posts data source");
+    datasource = { ...registered, fetch: registered.fetch.bind(registered) };
   });
 
   describe("fetch by id (slug)", () => {

@@ -1,6 +1,7 @@
 import { lstat, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import { exactVersionSchema } from "./schema";
 import type { RequiredImage } from "./image-types";
@@ -57,7 +58,7 @@ async function exists(path: string): Promise<boolean> {
     return true;
   } catch (error) {
     // Only absence is expected; permission and filesystem failures propagate.
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+    if (isNotFoundError(error)) {
       return false;
     }
     throw error;

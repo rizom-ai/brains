@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import { freeze } from "@brains/utils/freeze";
+import { capitalize } from "@brains/utils/string-utils";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
@@ -136,7 +137,7 @@ function labelFromName(name: string): string {
     .replaceAll(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replaceAll(/[-_]+/g, " ")
     .trim();
-  return label ? `${label[0]?.toUpperCase() ?? ""}${label.slice(1)}` : name;
+  return label ? capitalize(label) : name;
 }
 
 function schemaShape(definition: AnyAccountSettingsDefinition): z.ZodRawShape {

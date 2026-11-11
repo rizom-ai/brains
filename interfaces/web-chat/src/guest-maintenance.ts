@@ -29,7 +29,7 @@ export class GuestStateMaintenance {
   private readonly now: () => number;
 
   constructor(
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
     now: () => number = Date.now,
   ) {
     this.now = now;

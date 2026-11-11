@@ -1,5 +1,6 @@
 import { siteBuildArtifactManifestSchema } from "@brains/site-engine";
 import { getErrorMessage } from "@brains/utils/error";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import { readFile, stat } from "fs/promises";
 import { join, resolve } from "path";
@@ -66,8 +67,4 @@ export async function readSitePublicationStatus(
       message: `Unable to read the published ${environment} generation: ${getErrorMessage(error)}`,
     };
   }
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }

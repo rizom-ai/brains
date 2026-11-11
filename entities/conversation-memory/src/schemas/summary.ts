@@ -1,9 +1,5 @@
 import { memoryTimeRangeSchema } from "@brains/action-items";
-import {
-  actorRefFromLegacy,
-  actorRefKey,
-  actorRefSchema,
-} from "@brains/contracts";
+import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema } from "@brains/plugins";
 
@@ -91,78 +87,17 @@ export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
   sourceHash: z.string().meta({ studioWidget: "hidden" }),
 });
 
-const summaryParticipantParserSchema: z.ZodPreprocess<
-  typeof summaryParticipantSchema
-> = z.preprocess(
-  (value) => normalizeLegacySummaryParticipant(value),
-  summaryParticipantSchema,
-);
-
-function normalizeLegacySummaryParticipant(value: unknown): unknown {
-  if (!isRecord(value) || "identity" in value) return value;
-  const actorId = value["actorId"];
-  const roles = value["roles"];
-  if (typeof actorId !== "string" || !Array.isArray(roles)) return value;
-  const canonicalId = value["canonicalId"];
-  const role = roles.includes("assistant") ? "assistant" : "user";
-  const sourceActorIds = Array.isArray(value["sourceActorIds"])
-    ? value["sourceActorIds"].filter(
-        (candidate): candidate is string => typeof candidate === "string",
-      )
-    : [];
-  const identityAliases = Array.from(
-    new Map(
-      [actorId, ...sourceActorIds].map((legacyActorId) => {
-        const alias = actorRefFromLegacy({
-          actorId: legacyActorId,
-          interfaceType: sourceFromLegacyActorId(legacyActorId),
-          role,
-        });
-        return [actorRefKey(alias), alias];
-      }),
-    ).values(),
-  );
-  return {
-    identity: actorRefFromLegacy({
-      actorId,
-      interfaceType: sourceFromLegacyActorId(actorId),
-      role,
-      ...(typeof canonicalId === "string" ? { canonicalId } : {}),
-    }),
-    ...(identityAliases.length > 0 ? { identityAliases } : {}),
-    ...(typeof value["displayName"] === "string"
-      ? { displayName: value["displayName"] }
-      : {}),
-    roles,
-  };
-}
-
-function sourceFromLegacyActorId(actorId: string): string {
-  const separator = actorId.indexOf(":");
-  return separator > 0 ? actorId.slice(0, separator) : "legacy";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-const summaryEntityMetadataParserSchema: z.ZodObject<
-  Omit<SummaryMetadataSchema["shape"], "participants"> & {
-    participants: z.ZodOptional<
-      z.ZodArray<typeof summaryParticipantParserSchema>
-    >;
-  }
-> = z.object({
+const summaryEntityMetadataParserSchema: SummaryMetadataSchema = z.object({
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
   timeRange: summaryTimeRangeSchema.optional(),
   messageCount: z.number().int().min(0),
-  participants: z.array(summaryParticipantParserSchema).optional(),
+  participants: z.array(summaryParticipantSchema).optional(),
   sourceHash: z.string(),
 });
 
-/** Summary entity metadata, as parsed from stored (possibly legacy) records. */
+/** Summary entity metadata, as parsed from stored records. */
 export type SummaryMetadata = z.output<
   typeof summaryEntityMetadataParserSchema
 >;

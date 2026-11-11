@@ -1,7 +1,6 @@
 import { z } from "@brains/utils/zod";
 import type { GuestConversationOwnership } from "@brains/contracts/chat";
 import {
-  actorRefFromLegacy,
   actorRefSchema,
   defineChannel,
   messageRoleSchema,
@@ -91,9 +90,6 @@ export const conversationGuestMessageAddedChannel: Channel<
   conversationGuestMessageAddedPayloadSchema,
 );
 
-/** Bus channel emitted when a new conversation is started. */
-export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
-
 /**
  * Metadata for a conversation
  */
@@ -147,50 +143,6 @@ export type ConversationMessageActor = z.output<
   typeof conversationMessageActorSchema
 >;
 
-const conversationMessageActorParserSchema: z.ZodPreprocess<
-  typeof conversationMessageActorSchema
-> = z.preprocess(
-  normalizeLegacyConversationMessageActor,
-  conversationMessageActorSchema,
-);
-
-function normalizeLegacyConversationMessageActor(value: unknown): unknown {
-  if (!isRecord(value) || "identity" in value) return value;
-  const actorId = value["actorId"];
-  const interfaceType = value["interfaceType"];
-  const role = value["role"];
-  if (
-    typeof actorId !== "string" ||
-    typeof interfaceType !== "string" ||
-    (role !== "user" && role !== "assistant")
-  ) {
-    return value;
-  }
-
-  const userId = value["userId"];
-  const canonicalId = value["canonicalId"];
-  const identity = actorRefFromLegacy({
-    actorId,
-    interfaceType,
-    role,
-    ...(typeof userId === "string" ? { userId } : {}),
-    ...(typeof canonicalId === "string" ? { canonicalId } : {}),
-  });
-
-  return {
-    identity,
-    interfaceType,
-    role,
-    ...(typeof value["displayName"] === "string"
-      ? { displayName: value["displayName"] }
-      : {}),
-    ...(typeof value["username"] === "string"
-      ? { username: value["username"] }
-      : {}),
-    ...(typeof value["isBot"] === "boolean" ? { isBot: value["isBot"] } : {}),
-  };
-}
-
 export const conversationMessageSourceSchema: z.ZodObject<{
   messageId: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
@@ -211,13 +163,13 @@ export type ConversationMessageSource = z.output<
 
 export const conversationMessageMetadataSchema: z.ZodObject<
   {
-    actor: z.ZodOptional<typeof conversationMessageActorParserSchema>;
+    actor: z.ZodOptional<typeof conversationMessageActorSchema>;
     source: z.ZodOptional<typeof conversationMessageSourceSchema>;
     spaceId: z.ZodOptional<z.ZodString>;
   },
   z.core.$loose
 > = z.looseObject({
-  actor: conversationMessageActorParserSchema.optional(),
+  actor: conversationMessageActorSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
   /** The configured space a passively stored message belongs to, e.g. "discord:<channel id>". */
   spaceId: z.string().min(1).optional(),

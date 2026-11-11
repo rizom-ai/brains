@@ -3,6 +3,7 @@ import {
   defineBusContract as defineAnyBusContract,
   type BusContract,
   type BusResult,
+  type Channel,
   type JsonObject,
   type SdkErrorCode,
 } from "@brains/contracts";
@@ -50,11 +51,17 @@ export type ServiceDeadline = `${number}ms` | `${number}s` | `${number}m`;
 export type ServiceEntityAccess<TOwned extends AnyEntityDefinition> =
   EntityReader & OwnedEntityWriter<TOwned>;
 
+/**
+ * Announcing what happened, to every subscriber: an event on a channel
+ * declared with `defineChannel`, its payload typed by the channel and parsed
+ * by its schema before it is sent. A payload the channel refuses throws, and
+ * nothing is sent.
+ */
 export interface ServiceMessagePublisher {
-  publish(input: {
-    readonly topic: string;
-    readonly data: object;
-  }): Promise<void>;
+  publish<TPayload>(
+    channel: Channel<TPayload>,
+    payload: NoInfer<TPayload>,
+  ): Promise<void>;
 }
 
 /** How a package's bus contract travels: one owner answers, or every owner hears. */
@@ -367,6 +374,20 @@ export function defineTool<
   >,
 ): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {
   assertIdentifier(definition.name, "Tool name");
+  return buildServiceTool(definition);
+}
+
+/** A tool declaration whose name its helper has already checked. */
+export function buildServiceTool<
+  const TName extends string,
+  TInputSchema extends ServiceInputSchema,
+  const TOutputSchema extends ServiceSchema,
+>(
+  definition: Omit<
+    ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,
+    "kind"
+  >,
+): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {
   if (!definition.description.trim()) {
     throw new Error(`Tool "${definition.name}" description must not be empty`);
   }

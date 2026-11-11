@@ -24,8 +24,10 @@ import { registerConfigRoutes } from "./lib/route-helpers";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import {
+  siteBuilderPagesContract,
   siteBuilderSlotsContract,
   siteMetadataUpdatedChannel,
+  type RouteDefinition,
 } from "@brains/site-composition";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
@@ -35,6 +37,7 @@ import { registerSiteHealthWidget } from "./lib/dashboard-widget";
 import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
+import type { StaticSiteOutput } from "@brains/plugins/internal/http-host";
 import packageJson from "../package.json";
 
 /**
@@ -73,6 +76,15 @@ export class SiteBuilderPlugin extends ServicePlugin<
       siteBuilderConfigSchema,
     );
     this.layouts = layouts;
+  }
+
+  /** Where this builder writes the site the runtime's HTTP host serves. */
+  public getStaticSiteOutput(): StaticSiteOutput {
+    return {
+      productionOutputDir: this.config.productionOutputDir,
+      previewOutputDir: this.config.previewOutputDir,
+      sharedImagesDir: this.config.sharedImagesDir,
+    };
   }
 
   protected override async onRegister(
@@ -143,7 +155,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
         context.messaging,
         {
           siteBuilder: this.siteBuilder,
-          entityDisplay: context.entityDisplay,
           layouts: this.layouts,
           defaultSiteConfig: this.config.siteInfo,
           sharedImagesDir: this.config.sharedImagesDir,
@@ -154,6 +165,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           themeCSS: this.config.themeCSS,
           getSlots: (): Promise<UISlotRegistry> => this.getSlots(),
           getHeadScripts: (): Promise<string[]> => this.getHeadScripts(),
+          getPages: (): Promise<RouteDefinition[]> => this.getPages(),
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
@@ -253,6 +265,18 @@ export class SiteBuilderPlugin extends ServicePlugin<
     const contributed =
       collection.status === "answered" ? collection.answers : [];
     return [...this.config.headScripts, ...contributed];
+  }
+
+  /**
+   * The pages plugins add to one build, such as forms defined in content:
+   * asked for at build time, like the head scripts, so they reach the worker.
+   */
+  public async getPages(): Promise<RouteDefinition[]> {
+    const collection = await this.getContext().messaging.gather(
+      siteBuilderPagesContract,
+      {},
+    );
+    return collection.status === "answered" ? collection.answers.flat() : [];
   }
 
   /**

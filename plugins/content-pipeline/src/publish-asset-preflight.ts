@@ -1,5 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { frontmatterRecordFields } from "@brains/contracts";
+import { isRecord } from "@brains/utils/is-record";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { slugify } from "@brains/utils/string-utils";
 import {
@@ -187,8 +188,10 @@ export class PublishAssetPreflight {
       return hasValue(entity.metadata[targetField.field]);
     }
 
-    const { frontmatter } = parseMarkdown(entity.content);
-    return hasValue(frontmatter[targetField.field]);
+    // A declared type reads back as its body, its frontmatter its metadata;
+    // a stored document carries its frontmatter in its content.
+    const { fields } = frontmatterRecordFields(entity);
+    return isRecord(fields) && hasValue(fields[targetField.field]);
   }
 
   private getPredictedMediaId(

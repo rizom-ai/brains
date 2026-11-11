@@ -1,4 +1,4 @@
-import { collectContract } from "@brains/messaging-service";
+import { broadcastChannel, collectContract } from "@brains/messaging-service";
 import { projectionWaveReadyContract } from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
@@ -6,6 +6,7 @@ import {
   materializePrompts,
   pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
+  startupContentSettledChannel,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
@@ -25,6 +26,7 @@ import {
   type RuntimeProcessRole,
   type RuntimeRoleProfile,
 } from "../runtime-process-role";
+import { HTTP_HOST_DAEMON } from "../http-host";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -246,7 +248,7 @@ export class ShellBootloader {
     // knowledge base stays gated, since an empty index reads as ready.
     let pendingStartupContent: Promise<void> | undefined;
     if (options?.mode !== "startup-check") {
-      await this.startEarlyWebserver();
+      await this.startHttpHost();
 
       // A pluginsRegistered subscriber may queue the initial import for the
       // worker and answer that it is pending. Ready-state defaults then wait
@@ -336,12 +338,12 @@ export class ShellBootloader {
     this.services.logger.debug("Shell boot complete");
   }
 
-  private async startEarlyWebserver(): Promise<void> {
-    const webserverDaemonName = "webserver:webserver";
-    if (!this.services.daemonRegistry.has(webserverDaemonName)) return;
+  /** The HTTP host serves before initial sync, so a brain answers while it imports. */
+  private async startHttpHost(): Promise<void> {
+    if (!this.services.daemonRegistry.has(HTTP_HOST_DAEMON)) return;
 
-    await this.services.daemonRegistry.start(webserverDaemonName);
-    this.services.logger.debug("Started webserver before initial sync");
+    await this.services.daemonRegistry.start(HTTP_HOST_DAEMON);
+    this.services.logger.debug("Started the HTTP host before initial sync");
   }
 
   /** Emit pluginsRegistered; true when a subscriber's initial sync is pending. */
@@ -366,12 +368,12 @@ export class ShellBootloader {
   /** Create ready-state defaults, then announce that startup content settled. */
   private async settleStartupContent(): Promise<void> {
     await this.prepareReadyState();
-    await this.services.messageBus.send({
-      type: SYSTEM_CHANNELS.startupContentSettled,
-      payload: { timestamp: new Date().toISOString() },
-      sender: "shell",
-      broadcast: true,
-    });
+    await broadcastChannel(
+      this.services.messageBus,
+      startupContentSettledChannel,
+      { timestamp: new Date().toISOString() },
+      "shell",
+    );
     this.services.logger.debug("Emitted startup content settled event");
   }
 
@@ -425,14 +427,6 @@ export class ShellBootloader {
       logger.info(
         "Prompts without provenance differ from their default and are kept; delete one to restore its default",
         { targets: prompts.unverifiedOverrides },
-      );
-    }
-    if (prompts.removedLegacy.length > 0) {
-      logger.info(
-        "Removed prompt copies stored under ids generation never read",
-        {
-          ids: prompts.removedLegacy,
-        },
       );
     }
     for (const { target, error } of prompts.failed) {

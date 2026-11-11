@@ -1,5 +1,185 @@
 # @brains/mcp-service
 
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/messaging-service@0.2.0-alpha.679
+  - @brains/templates@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/messaging-service@0.2.0-alpha.678
+  - @brains/templates@0.2.0-alpha.678
+
+## 0.2.0-alpha.677
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.677
+  - @brains/utils@0.2.0-alpha.677
+  - @brains/messaging-service@0.2.0-alpha.677
+  - @brains/templates@0.2.0-alpha.677
+
+## 0.2.0-alpha.676
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.676
+  - @brains/utils@0.2.0-alpha.676
+  - @brains/messaging-service@0.2.0-alpha.676
+  - @brains/templates@0.2.0-alpha.676
+
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.675
+  - @brains/utils@0.2.0-alpha.675
+  - @brains/messaging-service@0.2.0-alpha.675
+  - @brains/templates@0.2.0-alpha.675
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.674
+  - @brains/utils@0.2.0-alpha.674
+  - @brains/messaging-service@0.2.0-alpha.674
+  - @brains/templates@0.2.0-alpha.674
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.673
+  - @brains/utils@0.2.0-alpha.673
+  - @brains/messaging-service@0.2.0-alpha.673
+  - @brains/templates@0.2.0-alpha.673
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.672
+  - @brains/utils@0.2.0-alpha.672
+  - @brains/messaging-service@0.2.0-alpha.672
+  - @brains/templates@0.2.0-alpha.672
+
+## 0.2.0-alpha.671
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.671
+  - @brains/utils@0.2.0-alpha.671
+  - @brains/messaging-service@0.2.0-alpha.671
+  - @brains/templates@0.2.0-alpha.671
+
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.670
+  - @brains/utils@0.2.0-alpha.670
+  - @brains/messaging-service@0.2.0-alpha.670
+  - @brains/templates@0.2.0-alpha.670
+
+## 0.2.0-alpha.669
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.669
+  - @brains/utils@0.2.0-alpha.669
+  - @brains/messaging-service@0.2.0-alpha.669
+  - @brains/templates@0.2.0-alpha.669
+
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.668
+  - @brains/utils@0.2.0-alpha.668
+  - @brains/messaging-service@0.2.0-alpha.668
+  - @brains/templates@0.2.0-alpha.668
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/messaging-service@0.2.0-alpha.667
+  - @brains/templates@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/messaging-service@0.2.0-alpha.666
+  - @brains/templates@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/messaging-service@0.2.0-alpha.665
+  - @brains/templates@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/messaging-service@0.2.0-alpha.664
+  - @brains/templates@0.2.0-alpha.664
+
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/messaging-service@0.2.0-alpha.663
+  - @brains/templates@0.2.0-alpha.663
+
+## 0.2.0-alpha.662
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.662
+  - @brains/utils@0.2.0-alpha.662
+  - @brains/messaging-service@0.2.0-alpha.662
+  - @brains/templates@0.2.0-alpha.662
+
 ## 0.2.0-alpha.661
 
 ### Patch Changes

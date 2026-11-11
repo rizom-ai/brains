@@ -1,13 +1,10 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import { createPluginHarness, type MockShell } from "@brains/plugins/test";
 import { describe, expect, test, beforeEach, spyOn } from "bun:test";
-import { blogPostSchema } from "../src/schemas/blog-post";
-import { RSSDataSource } from "../src/datasources/rss-datasource";
-import { createSilentLogger } from "@brains/test-utils";
-
-import type { IEntityService } from "@brains/plugins";
+import type { DataSource, IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { z } from "@brains/utils/zod";
+import { blogPlugin } from "./blog-plugin";
 
 const outputSchema = z.object({ xml: z.string() });
 
@@ -31,6 +28,9 @@ const samplePosts: BlogPost[] = [
     metadata: {
       title: "First Post",
       slug: "first-post",
+      authoredSlug: true,
+      excerpt: "Excerpt 1",
+      author: "John",
       status: "published",
       publishedAt: "2025-01-15T10:00:00.000Z",
     },
@@ -41,6 +41,9 @@ const samplePosts: BlogPost[] = [
     metadata: {
       title: "Second Post",
       slug: "second-post",
+      authoredSlug: true,
+      excerpt: "Excerpt 2",
+      author: "Jane",
       status: "published",
       publishedAt: "2025-01-10T10:00:00.000Z",
     },
@@ -51,13 +54,16 @@ const samplePosts: BlogPost[] = [
     metadata: {
       title: "Draft Post",
       slug: "draft-post",
+      authoredSlug: true,
+      excerpt: "Draft excerpt",
+      author: "Author",
       status: "draft",
     },
   }),
 ];
 
-describe("RSSDataSource", () => {
-  let datasource: RSSDataSource;
+describe("the blog's RSS data source", () => {
+  let datasource: DataSource & Required<Pick<DataSource, "fetch">>;
   let shell: MockShell;
   let mockEntityService: IEntityService;
   let context: { entityService: IEntityService };
@@ -67,11 +73,15 @@ describe("RSSDataSource", () => {
     shell.addEntities(posts);
   }
 
-  beforeEach(() => {
-    shell = createMockShell();
+  beforeEach(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(blogPlugin());
+    shell = harness.getMockShell();
     mockEntityService = shell.getEntityService();
     context = { entityService: mockEntityService };
-    datasource = new RSSDataSource(createSilentLogger());
+    const registered = harness.getDataSources().get("blog:rss");
+    if (!registered?.fetch) throw new Error("No blog RSS data source");
+    datasource = { ...registered, fetch: registered.fetch.bind(registered) };
     setupWithPosts(samplePosts);
   });
 
@@ -211,10 +221,13 @@ describe("RSSDataSource", () => {
       const listSpy = spyOn(mockEntityService, "listEntities");
       await datasource.fetch(defaultRSSQuery, outputSchema, context);
 
-      expect(listSpy).toHaveBeenCalledWith(
-        { entityType: "post", options: { limit: 1000 } },
-        blogPostSchema,
-      );
+      expect(listSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 1000,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
+      });
     });
   });
 });

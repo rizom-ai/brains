@@ -1,8 +1,8 @@
+export { default } from "./plugin";
 export {
-  AtprotoRegistryPlugin,
-  atprotoRegistryPlugin,
-  plugin,
   atprotoRegistryConfigSchema,
+  getIndex,
+  getLexicon,
   type AtprotoLexiconRegistryEntry,
   type AtprotoLexiconRegistryIndex,
   type AtprotoRegistryConfig,

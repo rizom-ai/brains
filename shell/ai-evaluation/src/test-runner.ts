@@ -5,6 +5,7 @@ import type {
 } from "@brains/ai-service";
 import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
+import { createExternalActorId } from "@brains/contracts";
 import { randomUUID } from "crypto";
 
 import type {
@@ -27,6 +28,7 @@ import {
   evaluateQualityThresholds,
   type ResponseSource,
 } from "./criteria-evaluator";
+import { getErrorMessage } from "@brains/utils/error";
 import { isRecord } from "@brains/utils/is-record";
 import { definedFields } from "@brains/utils/strip-undefined";
 
@@ -119,11 +121,43 @@ export class TestRunner implements ITestRunner {
   }
 
   /**
-   * Run a single test case (agent-based test cases only)
+   * Run a single test case (agent-based test cases only). An agent call that
+   * throws, such as a turn the protocol under evaluation refuses, fails this
+   * case alone: the rest of the run goes on.
    */
   async runTest(
     testCase: AgentTestCase,
     options: TestRunnerOptions = {},
+  ): Promise<EvaluationResult> {
+    try {
+      return await this.runTestTurns(testCase, options);
+    } catch (error) {
+      const actual = getErrorMessage(error);
+      return {
+        testCaseId: testCase.id,
+        testCaseName: testCase.name,
+        passed: false,
+        timestamp: new Date().toISOString(),
+        turnResults: [],
+        totalMetrics: MetricCollector.createFresh().getTotalMetrics(),
+        qualityScores: undefined,
+        failures: [
+          {
+            criterion: "agentCall",
+            expected: "the agent answers every turn",
+            actual,
+            message: `The agent call failed: ${actual}`,
+          },
+        ],
+        efficiencyPassed: true,
+        efficiencyFailures: undefined,
+      };
+    }
+  }
+
+  private async runTestTurns(
+    testCase: AgentTestCase,
+    options: TestRunnerOptions,
   ): Promise<EvaluationResult> {
     const conversationId = randomUUID();
     const collector = MetricCollector.createFresh();
@@ -401,13 +435,26 @@ export class TestRunner implements ITestRunner {
   private buildChatContext(testCase: AgentTestCase): ChatContext {
     const userPermissionLevel: UserPermissionLevel =
       testCase.setup?.permissionLevel ?? "admin";
+    const interfaceType = testCase.setup?.interfaceType ?? "evaluation";
 
     return {
       userPermissionLevel,
       ...(testCase.setup?.isAnchor !== undefined
         ? { isAnchor: testCase.setup.isAnchor }
         : {}),
-      interfaceType: testCase.setup?.interfaceType ?? "evaluation",
+      interfaceType,
+      // A turn has a speaker, as on every interface. Without one, its tool
+      // calls are the brain's own agent's, and work they queue runs at the
+      // agent's grant, not the case's permission level. A turn that names
+      // its own actor replaces this one.
+      actor: {
+        identity: {
+          kind: "external",
+          externalActorId: createExternalActorId("evaluation", "operator"),
+        },
+        interfaceType,
+        role: "user",
+      },
       ...(testCase.setup?.channelId
         ? { channelId: testCase.setup.channelId }
         : {}),

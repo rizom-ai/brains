@@ -1,2 +1,4 @@
 plugin: "@brains/decks"
+export: default
+pluginId: decks
 model: gpt-5.4-mini

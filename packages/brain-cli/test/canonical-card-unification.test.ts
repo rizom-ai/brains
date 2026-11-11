@@ -1,6 +1,10 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { A2AInterface } from "@brains/a2a";
+import a2aInterface from "@brains/a2a";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
 import {
   AtprotoPlugin,
   canonicalAtprotoLexicons,
@@ -21,17 +25,22 @@ const publicTools = [
   },
 ];
 
-function resolvedPluginIds(bundles: string[]): string[] {
-  return (
-    resolve(
-      canonicalBrain,
-      {},
-      {
-        bundleContract: "capability-bundles-v1",
-        bundles,
-      },
-    ).plugins?.map(({ id }) => id) ?? []
+function resolvedSelection(bundles: string[]): {
+  ids: string[];
+  servesHttp: boolean;
+} {
+  const resolved = resolve(
+    canonicalBrain,
+    {},
+    {
+      bundleContract: "capability-bundles-v1",
+      bundles,
+    },
   );
+  return {
+    ids: resolved.plugins?.map(({ id }) => id) ?? [],
+    servesHttp: resolved.http.enabled === true,
+  };
 }
 
 function createCardShell(options: {
@@ -40,6 +49,7 @@ function createCardShell(options: {
   const shell = createMockShell({
     domain: "brain.example.com",
     profileKind: "professional",
+    servesHttp: options.web,
   });
   shell.getProfileKindRegistry().register("test", {
     kind: "professional",
@@ -49,13 +59,6 @@ function createCardShell(options: {
   });
   shell.getProfileKindRegistry().finalize();
   shell.listToolsForPermissionLevel = (): typeof publicTools => publicTools;
-  if (options.web) {
-    const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-    shell.getPluginPackageName = (pluginId): string | undefined =>
-      pluginId === "webserver"
-        ? "@brains/webserver"
-        : getPluginPackageName(pluginId);
-  }
   return shell;
 }
 
@@ -85,27 +88,51 @@ function skillSnapshot(
   }));
 }
 
+/** The skills of an Agent Card as A2A serves it. */
+const servedCardSchema = z.object({
+  skills: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string(),
+      tags: z.array(z.string()).optional(),
+      examples: z.array(z.string()).optional(),
+    }),
+  ),
+});
+
+/**
+ * The Agent Card A2A serves for a brain set up as `seed` sets up the
+ * publishing brain's shell, read where a peer reads it: on the shared host.
+ */
 async function buildA2ACard(
-  shell: ReturnType<typeof createMockShell>,
-): Promise<NonNullable<Awaited<ReturnType<A2AInterface["getAgentCard"]>>>> {
-  const a2a = new A2AInterface();
+  seed: (shell: ReturnType<typeof createMockShell>) => void = (): void => {},
+): Promise<z.output<typeof servedCardSchema>> {
+  const shell = createCardShell({ web: true });
+  seed(shell);
+  const a2a = createA2APlugin();
   await a2a.register(shell);
-  await a2a.ready();
-  const card = await a2a.getAgentCard();
-  if (!card) throw new Error("Expected A2A Agent Card");
-  return card;
+  await a2a.ready?.();
+  const route = a2a
+    .getWebRoutes?.()
+    .find(({ path }) => path === "/.well-known/agent-card.json");
+  const response = await route?.handler(
+    new Request("https://brain.example.com/.well-known/agent-card.json"),
+  );
+  if (!response) throw new Error("Expected A2A Agent Card route");
+  return servedCardSchema.parse(await response.json());
 }
 
 describe("canonical card publication channels", () => {
   it("publishes a valid federation-only card with the same tool skills as A2A", async () => {
-    const selected = resolvedPluginIds(["core", "federation"]);
-    expect(selected).toContain("a2a");
-    expect(selected).toContain("atproto");
-    expect(selected).not.toContain("webserver");
-    expect(selected).not.toContain("site-builder");
+    const selected = resolvedSelection(["core", "federation"]);
+    expect(selected.ids).toContain("a2a");
+    expect(selected.ids).toContain("atproto");
+    expect(selected.servesHttp).toBe(false);
+    expect(selected.ids).not.toContain("site-builder");
 
     const shell = createCardShell({ web: false });
-    const a2aCard = await buildA2ACard(shell);
+    const a2aCard = await buildA2ACard();
     const putRecord = mock(async () => ({
       uri: "at://did:plc:brain/ai.rizom.brain.card/self",
       cid: "card-cid",
@@ -154,31 +181,34 @@ describe("canonical card publication channels", () => {
   });
 
   it("publishes a site URL and the same entity skills when web and site are active", async () => {
-    const selected = resolvedPluginIds(["core", "federation", "web", "site"]);
-    expect(selected).toContain("a2a");
-    expect(selected).toContain("atproto");
-    expect(selected).toContain("webserver");
-    expect(selected).toContain("site-builder");
+    const selected = resolvedSelection(["core", "federation", "web", "site"]);
+    expect(selected.ids).toContain("a2a");
+    expect(selected.ids).toContain("atproto");
+    expect(selected.servesHttp).toBe(true);
+    expect(selected.ids).toContain("site-builder");
 
-    const shell = createCardShell({ web: true });
-    shell.addEntities([
-      {
-        id: "public-skill",
-        entityType: "skill",
-        content: "",
-        metadata: {
-          name: "Knowledge & Search",
-          description: "Find useful knowledge",
-          tags: ["knowledge"],
-          examples: ["Find the plan"],
+    const seedSkill = (target: ReturnType<typeof createMockShell>): void => {
+      target.addEntities([
+        {
+          id: "public-skill",
+          entityType: "skill",
+          content: "",
+          metadata: {
+            name: "Knowledge & Search",
+            description: "Find useful knowledge",
+            tags: ["knowledge"],
+            examples: ["Find the plan"],
+          },
+          visibility: "public",
+          contentHash: "public-skill-hash",
+          created: "2026-08-18T00:00:00.000Z",
+          updated: "2026-08-18T00:00:00.000Z",
         },
-        visibility: "public",
-        contentHash: "public-skill-hash",
-        created: "2026-08-18T00:00:00.000Z",
-        updated: "2026-08-18T00:00:00.000Z",
-      },
-    ]);
-    const a2aCard = await buildA2ACard(shell);
+      ]);
+    };
+    const shell = createCardShell({ web: true });
+    seedSkill(shell);
+    const a2aCard = await buildA2ACard(seedSkill);
     const plugin = new AtprotoPlugin({
       repoDid: "did:plc:brain",
       accountDid: "did:plc:anchor",
@@ -208,3 +238,15 @@ describe("canonical card publication channels", () => {
     ]);
   });
 });
+
+/** The A2A interface as the canonical brain creates it. */
+function createA2APlugin(): Plugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    a2aInterface,
+    {},
+    { name: "@brains/a2a", version: "0.0.0-test" },
+    { pluginId: "a2a" },
+  );
+  if (!plugin) throw new Error("The A2A definition created no plugin");
+  return plugin;
+}

@@ -1,8 +1,11 @@
 import {
   SdkError,
+  type ActorRef,
+  type BusContract,
   type ImageAspectRatio,
   type JobContract,
   type PublishMediaData,
+  type PublishProvider,
 } from "@brains/contracts";
 import {
   findEntityByIdentifier,
@@ -12,20 +15,31 @@ import {
   type IEntityService,
   type SearchWithDistancesRequest,
 } from "@brains/entity-service";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
+import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
+import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
 import type {
   AnyEntityDefinition,
   DataSourceListOptions,
+  EntityCreateRoute,
   EntityCreateUploadReader,
+  EntityGenerationAI,
+  EntityGenerationDeclaration,
   EntityGenerationLink,
+  EntityGenerationResult,
   EntityJobDeclaration,
   EntityJobHandleContext,
   EntityOf,
   EntityReader,
   EntityVisibility,
+  OwnedEntityWriter,
 } from "./entity-definition-contract";
+import type { SchemaValue } from "../internal/schema-value";
+import type { RetryScope } from "@brains/utils/retry-backoff";
+import type { EntityPluginContext } from "./context";
 
 /**
  * Internal runtime capabilities bound to one entity callback's call, for
@@ -55,6 +69,22 @@ export interface EntityRuntime {
     prompt: string,
     schema: TSchema,
   ): Promise<z.output<TSchema>>;
+  /**
+   * Generate through a template the declaring type declares, named
+   * locally, in the brain's voice when asked, as the entity plugin classes
+   * generated through their own templates from create routes, checks and
+   * job handlers. A template the type does not declare is refused.
+   */
+  readonly generate: EntityGenerationAI["generate"];
+  /**
+   * A generation's result, marked so the runtime creates it under the next
+   * free id when its own is taken, as the entity plugin classes' generations
+   * created with `deduplicateId`. A generation filling an allocated entity
+   * keeps that entity's id. Elsewhere the mark has no effect.
+   */
+  deduplicated<TResult extends EntityGenerationResult>(
+    result: TResult,
+  ): TResult;
   /** Reads of the declaring package's own types, at every visibility. */
   readonly packageEntities: EntityReader;
   /**
@@ -100,8 +130,26 @@ export interface EntityRuntime {
   readonly attachments: EntityRuntimeAttachments;
   /** The runtime's shared upload store. Contract jobs only. */
   readonly uploads: EntityCreateUploadReader;
-  /** The package's logger, as its entity plugin class logged. Contract jobs only. */
+  /** The package's logger, as its entity plugin class logged. */
   readonly logger: Logger;
+  /**
+   * Who asked for a create: the interface, the signed-in user and the
+   * channel, when there is one, as the entity plugin classes' interceptors
+   * read their execution context. Create routes and their checks only.
+   */
+  readonly caller: EntityCreateCaller;
+  /** The anchor's profile, as the shell's identity holds it now, read-only. */
+  readonly identity: EntityRuntimeIdentity;
+  /**
+   * Run the declaring type's own generation on this input, in process and
+   * as the package, writing its record to the store, and answer the job's
+   * result, as the entity plugin classes' evals ran their generation
+   * handlers. Evals only.
+   */
+  runGeneration(
+    input: unknown,
+    options?: EvalGenerationOptions,
+  ): Promise<EvalGenerationResult>;
   /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
@@ -112,6 +160,25 @@ export interface EntityRuntime {
    */
   linkInto(entityId: string, link: EntityGenerationLink): Promise<void>;
 }
+
+/** A step of an eval's generation run, as its job reported it. */
+export interface EvalGenerationProgress {
+  readonly progress: number;
+  readonly message?: string | undefined;
+}
+
+export interface EvalGenerationOptions {
+  /** Told each progress step the generation reports. */
+  readonly onProgress?:
+    ((step: EvalGenerationProgress) => void | Promise<void>) | undefined;
+}
+
+/** A generation job's result: whether it wrote, what, and its extras. */
+export type EvalGenerationResult = Readonly<Record<string, unknown>> & {
+  readonly success: boolean;
+  readonly entityId?: string | undefined;
+  readonly error?: string | undefined;
+};
 
 /** Read-only, untyped reads across entity types. */
 export interface AnyEntityReads {
@@ -136,6 +203,10 @@ export interface AnyEntityReads {
   }): Promise<BaseEntity | null>;
   /** A record by its id, else its slug, else its title. */
   find(entityType: string, identifier: string): Promise<BaseEntity | null>;
+}
+
+export interface EntityRuntimeIdentity {
+  getProfile(): AnchorProfile;
 }
 
 export interface EntityRuntimeImages {
@@ -172,6 +243,20 @@ export interface OrdinaryCreateOptions {
   readonly targetEntityId?: string | undefined;
 }
 
+/** The placeholder a queued create wrote, which its job fills. */
+export interface QueuedPlaceholder {
+  readonly entityId: string;
+  readonly contentHash: string;
+}
+
+/** How a queued create's job is attributed to the caller who asked. */
+export interface QueuedAttribution {
+  /** Unset, content work. */
+  readonly operationType?: "content_operations" | "data_processing" | undefined;
+  /** The caller's channel, so the job's progress reaches them there. */
+  readonly channel?: boolean | undefined;
+}
+
 export interface QueuedCreate {
   /** The record the job fills, and the answer names. */
   readonly entityId: string;
@@ -182,15 +267,32 @@ export interface QueuedCreate {
         readonly metadata: Readonly<Record<string, unknown>>;
         /** Unset, the store's default; set, a record that exists at another is refused. */
         readonly visibility?: EntityVisibility | undefined;
+        /**
+         * Write it under the next free id when `entityId` is taken, rather
+         * than reuse the record that has it; the job fills, and the answer
+         * names, the id written.
+         */
+        readonly deduplicate?: boolean | undefined;
       }
     | undefined;
   readonly job: {
     readonly contract: JobContract<z.ZodType>;
-    readonly data: unknown;
-    /** Queue the job with the caller as its requester, for attribution. */
-    readonly attributed?: boolean | undefined;
+    /**
+     * The job's input, or the input built from the placeholder as written:
+     * its id and the content hash of what was stored.
+     */
+    readonly data:
+      | Readonly<Record<string, unknown>>
+      | ((written: QueuedPlaceholder) => unknown);
+    /**
+     * Queue the job with the caller as its requester, for attribution: as
+     * content work, or as the attribution says, routed to the caller's
+     * channel when it asks for one.
+     */
+    readonly attributed?: boolean | QueuedAttribution | undefined;
   };
-  readonly attachment: CreateResultAttachment;
+  /** Unset, the answer names no attachment. */
+  readonly attachment?: CreateResultAttachment | undefined;
 }
 
 export interface StoredCreate {
@@ -219,6 +321,16 @@ export interface ContractJobRuntimeBinding {
 }
 
 /** What binding a call's runtime needs. */
+/** Who asked for a create, as a first-party create route sees them. */
+export interface EntityCreateCaller {
+  readonly interfaceType: string;
+  readonly actor: ActorRef;
+  /** The signed-in user, when the actor is one. */
+  readonly userId?: string | undefined;
+  readonly channelId?: string | undefined;
+  readonly channelName?: string | undefined;
+}
+
 export interface EntityRuntimeBinding {
   /** Where the call is, for the refusals of what it does not offer. */
   readonly where: string;
@@ -237,7 +349,16 @@ export interface EntityRuntimeBinding {
     schema: AIGenerationSchema<T>,
   ) => Promise<{ object: T }>;
   readonly anyEntities?: AnyEntityBinding | undefined;
+  /** Template generation for the declaring type; unset, refused. */
+  readonly generate?: EntityGenerationAI["generate"] | undefined;
+  /** The package's logger; unset, a contract job's, else refused. */
+  readonly logger?: Logger | undefined;
+  readonly identity?: EntityRuntimeIdentity | undefined;
   readonly job?: ContractJobRuntimeBinding | undefined;
+  /** Who asked, for a create route and its check; unset, refused. */
+  readonly caller?: EntityCreateCaller | undefined;
+  /** The declaring type's generation, run in process; unset, refused. */
+  readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -245,6 +366,12 @@ const ordinaryCreateKey = Symbol("rizom.ordinary-create");
 const queuedCreateKey = Symbol("rizom.queued-create");
 const storedCreateKey = Symbol("rizom.stored-create");
 const contractJobKey = Symbol("rizom.contract-job");
+const deduplicatedKey = Symbol("rizom.deduplicated-generation");
+
+/** Whether a generation's result asks to land under the next free id. */
+export function isDeduplicated(result: object): boolean {
+  return Reflect.get(result, deduplicatedKey) === true;
+}
 
 /** A resolution only the runtime's accessor marks; elsewhere, a refusal. */
 function marked(
@@ -395,6 +522,12 @@ function unavailable(name: string, where: string): () => never {
   };
 }
 
+function unavailableGenerate(where: string): EntityGenerationAI["generate"] {
+  return async (): Promise<never> => {
+    throw new Error(`generate is not available in ${where}`);
+  };
+}
+
 function unavailableAnyEntities(where: string): AnyEntityReads {
   const refuse = unavailable("anyEntities", where);
   return Object.freeze({
@@ -536,6 +669,17 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       const { object } = await binding.generateObject(prompt, schema);
       return schema.parse(object);
     },
+    generate: binding.generate ?? unavailableGenerate(binding.where),
+    deduplicated: <TResult extends EntityGenerationResult>(
+      result: TResult,
+    ): TResult => {
+      const marked = { ...result };
+      Object.defineProperty(marked, deduplicatedKey, {
+        value: true,
+        enumerable: false,
+      });
+      return marked;
+    },
     packageEntities: ownTypesOnly(binding.packageReader, binding.ownsType),
     ordinaryCreate: (
       document?: OrdinaryCreateDocument,
@@ -569,7 +713,21 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     images: job.images,
     attachments: job.attachments,
     uploads: job.uploads,
-    logger: job.logger,
+    logger: binding.logger ?? job.logger,
+    get caller(): EntityCreateCaller {
+      if (!binding.caller) {
+        throw new Error(`caller is not available in ${binding.where}`);
+      }
+      return binding.caller;
+    },
+    identity:
+      binding.identity ??
+      Object.freeze({ getProfile: unavailable("identity", binding.where) }),
+    runGeneration:
+      binding.runGeneration ??
+      (async (): Promise<never> => {
+        throw new Error(`runGeneration is not available in ${binding.where}`);
+      }),
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),
   });
@@ -628,6 +786,294 @@ export function withEntityRuntime<TContext extends object>(
 
 function isEntityRuntime(value: unknown): value is EntityRuntime {
   return typeof value === "object" && value !== null;
+}
+
+/** What a first-party entity type's answer is handed with its request. */
+export interface EntityAnswerContext<TRequest> {
+  readonly request: TRequest;
+  /** The package that asked, as the bus stamps it. */
+  readonly sender: string;
+  /** The declaring type's reads and writes, as the package acting as itself. */
+  readonly entities: EntityReader & OwnedEntityWriter<AnyEntityDefinition>;
+}
+
+/** A first-party contract a type answers, declared with `entityAnswer`. */
+export interface EntityAnswerDeclaration {
+  readonly contract: BusContract<z.ZodType, z.ZodType>;
+  handle(context: EntityAnswerContext<unknown>): Promise<unknown>;
+  readonly everyProcess?: boolean | undefined;
+}
+
+/**
+ * Answer a first-party contract under the channel it already has, such as
+ * `note:capture`, as an entity plugin class answered it: as the package,
+ * in the main process, or in every process with `everyProcess`. The
+ * request reaches the handler parsed, and the answer reaches the asker
+ * only when the contract accepts it; a failure crosses in its public form.
+ */
+export function entityAnswer<
+  const TRequest extends z.ZodType,
+  const TResponse extends z.ZodType,
+>(
+  contract: BusContract<TRequest, TResponse>,
+  handle: (
+    context: EntityAnswerContext<z.output<TRequest>>,
+  ) => Promise<SchemaValue<TResponse>>,
+  options: { readonly everyProcess?: boolean | undefined } = {},
+): EntityAnswerDeclaration {
+  const erased: BusContract<z.ZodType, z.ZodType> = contract;
+  return Object.freeze({
+    contract: erased,
+    handle: (context: EntityAnswerContext<unknown>): Promise<unknown> =>
+      handle({ ...context, request: contract.schema.parse(context.request) }),
+    ...(options.everyProcess === true && { everyProcess: true }),
+  });
+}
+
+const entityAnswersKey = Symbol("rizom.entity-answers");
+
+/**
+ * A first-party definition that also answers first-party contracts: the
+ * definition, carrying its answers under a key no public type names, which
+ * the runtime registers with the type and releases when it shuts down.
+ */
+export function answering<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  answers: readonly EntityAnswerDeclaration[],
+): TDefinition {
+  return Object.freeze({
+    ...definition,
+    [entityAnswersKey]: Object.freeze([...answers]),
+  });
+}
+
+/** The first-party answers a definition carries, when it carries any. */
+export function entityAnswersOf(
+  definition: object,
+): readonly EntityAnswerDeclaration[] {
+  const found: unknown = Reflect.get(definition, entityAnswersKey);
+  return Array.isArray(found) ? found : [];
+}
+
+const bodyTemplateKey = Symbol("rizom.body-template");
+
+/**
+ * A first-party definition whose body has a shape of its own: the
+ * definition, carrying the scaffold its body starts from under a key no
+ * public type names, which the runtime gives as its adapter's body template
+ * (the vault's template for a new record).
+ */
+export function withBodyTemplate<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  template: string,
+): TDefinition {
+  return Object.freeze({ ...definition, [bodyTemplateKey]: template });
+}
+
+/** The body template a definition carries, or none. */
+export function bodyTemplateOf(definition: object): string {
+  const found: unknown = Reflect.get(definition, bodyTemplateKey);
+  return typeof found === "string" ? found : "";
+}
+
+const restatedMetadataKey = Symbol("rizom.restated-metadata");
+
+/** The metadata as the document a type wrote states it. */
+export type RestateMetadata = (
+  metadata: Readonly<Record<string, unknown>>,
+) => Record<string, unknown>;
+
+/**
+ * A first-party definition whose encode writes what its metadata did not
+ * state, such as a slug resolved from the title: the definition, carrying
+ * how its metadata reads once that document is written, under a key no
+ * public type names. The runtime stores the restated metadata beside the
+ * document, so the next write reads what the file now says.
+ */
+export function restatingMetadata<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  restate: RestateMetadata,
+): TDefinition {
+  return Object.freeze({ ...definition, [restatedMetadataKey]: restate });
+}
+
+/** How a definition restates its stored metadata, when it does. */
+export function restatedMetadataOf(
+  definition: object,
+): RestateMetadata | undefined {
+  const found: unknown = Reflect.get(definition, restatedMetadataKey);
+  return typeof found === "function"
+    ? (metadata): Record<string, unknown> => {
+        const restated: unknown = Reflect.apply(found, undefined, [metadata]);
+        return isPlainRecord(restated) ? restated : { ...metadata };
+      }
+    : undefined;
+}
+
+const urlRouteKey = Symbol("rizom.url-route");
+
+/**
+ * A first-party definition created from a URL alone, as system_create hands
+ * on a `source: { kind: "url" }` request and as the link plugin class's
+ * interceptor captured it: the route that decides such a create, carried
+ * under a key no public type names. A URL beside content or a prompt goes
+ * the way content or a prompt goes.
+ */
+export function withUrlRoute<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  route: EntityCreateRoute<TDefinition["metadata"]>,
+): TDefinition {
+  return Object.freeze({ ...definition, [urlRouteKey]: route });
+}
+
+/** The route a definition carries for a create from a URL alone. */
+export function urlRouteOf(definition: object): EntityCreateRoute | undefined {
+  const found: unknown = Reflect.get(definition, urlRouteKey);
+  return isCreateRoute(found) ? found : undefined;
+}
+
+function isCreateRoute(value: unknown): value is EntityCreateRoute {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof Reflect.get(value, "resolve") === "function"
+  );
+}
+
+const documentOrderKey = Symbol("rizom.document-order");
+
+/**
+ * A first-party definition whose files people write by hand: each write
+ * keeps the frontmatter order of the document it replaces, as an entity
+ * plugin class's adapter wrote over existing frontmatter, so directory sync
+ * leaves a file it only read as it was.
+ */
+export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+): TDefinition {
+  return Object.freeze({ ...definition, [documentOrderKey]: true });
+}
+
+/** Whether a definition writes in the order of the document it replaces. */
+export function writesInDocumentOrderOf(definition: object): boolean {
+  return Reflect.get(definition, documentOrderKey) === true;
+}
+
+/** How a first-party generation came out: the record it wrote, or why it failed. */
+export type GenerationOutcome =
+  | {
+      readonly written: {
+        readonly entityId: string;
+        /** The title the record was written with, when it has one. */
+        readonly title?: string | undefined;
+      };
+    }
+  | { readonly failed: string };
+
+/**
+ * What a first-party generation's step after it runs is given: its parsed
+ * input (none when the input itself was refused), how it came out, and the
+ * package's messaging, jobs and retry scope, as an entity plugin class's
+ * generation handler had them.
+ */
+export interface GenerationOutcomeContext<TInput> {
+  readonly input: TInput | undefined;
+  readonly outcome: GenerationOutcome;
+  readonly messaging: EntityPluginContext["messaging"];
+  readonly jobs: EntityPluginContext["jobs"];
+  readonly retries: RetryScope;
+}
+
+export type GenerationStep<TInput> = (
+  context: GenerationOutcomeContext<TInput>,
+) => Promise<void>;
+
+const providerBuilders = new WeakMap<
+  PublishProvider,
+  (logger: Logger) => PublishProvider
+>();
+
+/**
+ * A first-party publish provider built with the plugin's logger, as an
+ * entity plugin class built its client with a child of its own: the runtime
+ * builds it when it hands the provider to the publish pipeline. Until then
+ * it carries its name and refuses to publish.
+ */
+export function loggedProvider(
+  name: string,
+  build: (logger: Logger) => PublishProvider,
+): PublishProvider {
+  const provider: PublishProvider = Object.freeze({
+    name,
+    publish: async (): Promise<never> => {
+      throw new Error(
+        `Publish provider "${name}" is built by the brain's runtime`,
+      );
+    },
+  });
+  providerBuilders.set(provider, build);
+  return provider;
+}
+
+/** The provider to hand the publish pipeline: built, when it is built with a logger. */
+export function builtProvider(
+  provider: PublishProvider,
+  logger: Logger,
+): PublishProvider {
+  return providerBuilders.get(provider)?.(logger) ?? provider;
+}
+
+const afterGenerationKey = Symbol("rizom.after-generation");
+
+/**
+ * A first-party generation with a step after it runs: once its record is
+ * written, told the id written (the next free one when its own was taken)
+ * and the title it was written with;
+ * when it fails, told why. The step rides on the declaration under a key no
+ * public type names.
+ */
+export function afterGeneration<
+  TInputSchema extends z.ZodType,
+  TMetadataSchema extends AnyEntityDefinition["metadata"],
+>(
+  generation: EntityGenerationDeclaration<TInputSchema, TMetadataSchema>,
+  step: GenerationStep<z.output<TInputSchema>>,
+): EntityGenerationDeclaration<TInputSchema, TMetadataSchema> {
+  return Object.freeze({ ...generation, [afterGenerationKey]: step });
+}
+
+/** The step a generation carries after it runs, when it carries one. */
+export function afterGenerationOf(
+  declaration: object,
+): GenerationStep<unknown> | undefined {
+  const found: unknown = Reflect.get(declaration, afterGenerationKey);
+  return typeof found === "function"
+    ? (context): Promise<void> =>
+        Promise.resolve(Reflect.apply(found, undefined, [context]))
+    : undefined;
+}
+
+/**
+ * What `ensureUniqueTitle` reads, through a call's runtime: a record of
+ * the title's id at the call's scope, one structured answer, and the
+ * package's logger, as the entity plugin classes' generations read them.
+ */
+export function uniqueTitleContext(runtime: EntityRuntime): UniqueTitleContext {
+  return {
+    entityService: {
+      getEntity: ({ entityType, id }) =>
+        runtime.anyEntities.getEntity({ entityType, id }),
+    },
+    ai: {
+      generateObject: async <T>(
+        prompt: string,
+        schema: AIGenerationSchema<T>,
+      ): Promise<{ object: T }> => ({
+        object: await runtime.generateObject(prompt, schema),
+      }),
+    },
+    logger: runtime.logger,
+  };
 }
 
 /**

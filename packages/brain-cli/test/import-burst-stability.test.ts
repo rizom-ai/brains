@@ -1209,11 +1209,7 @@ it.skipIf(!RUN_SOAK)(
       await run(["git", "remote", "add", "origin", remoteDir], writerDir);
       await run(["git", "push", "origin", "main"], writerDir);
 
-      const [productionPort, apiPort, previewPort] = await Promise.all([
-        reservePort(),
-        reservePort(),
-        reservePort(),
-      ]);
+      const productionPort = await reservePort();
       await writeFile(
         join(appDir, "brain.yaml"),
         `brain: brain
@@ -1221,6 +1217,7 @@ bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles: [core, web]
+port: ${productionPort}
 embedding:
   enabled: false
 remove:
@@ -1245,10 +1242,6 @@ plugins:
     git:
       gitUrl: file://${remoteDir}
       bootstrapFromSeed: false
-  webserver:
-    productionPort: ${productionPort}
-    apiPort: ${apiPort}
-    previewPort: ${previewPort}
 `,
       );
 

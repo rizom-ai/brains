@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/internal/presentation";
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { BlogPostTemplate } from "./blog-post";

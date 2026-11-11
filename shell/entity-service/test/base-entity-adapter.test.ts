@@ -2,7 +2,7 @@ import { createTestEntity } from "../src/test/index";
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
-import { baseEntitySchema, type BaseEntity } from "../src/types";
+import { baseEntitySchema } from "../src/types";
 import { applyVisibilityToMarkdown } from "../src/frontmatter";
 
 // ── Test schema setup ──
@@ -16,15 +16,12 @@ type TestFrontmatter = z.infer<typeof testFrontmatterSchema>;
 const testMetadataSchema = testFrontmatterSchema.pick({ title: true });
 type TestMetadata = z.infer<typeof testMetadataSchema>;
 
-interface TestEntity extends BaseEntity<TestMetadata> {
-  entityType: "test";
-  metadata: TestMetadata;
-}
-
 const testEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("test"),
   metadata: testMetadataSchema,
 });
+
+type TestEntity = z.output<typeof testEntitySchema>;
 
 // ── Concrete subclass that exposes protected helpers for testing ──
 

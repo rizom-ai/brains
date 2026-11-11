@@ -167,4 +167,18 @@ describe("introspectSchema", () => {
     const fields = introspectSchema(schema);
     expect(fields).toEqual([]);
   });
+
+  // Bookkeeping a type keeps beside its fields, such as whether the file
+  // states its slug, is internal, not authored: it is left off Studio's
+  // form and out of the vault alike.
+  it("leaves out a field the type hides as bookkeeping", () => {
+    const fields = introspectSchema(
+      z.object({
+        title: z.string(),
+        authoredSlug: z.boolean().optional().meta({ studioWidget: "hidden" }),
+        source: z.string().optional().meta({ studioWidget: "provenance" }),
+      }),
+    );
+    expect(fields.map(({ name }) => name)).toEqual(["title", "source"]);
+  });
 });

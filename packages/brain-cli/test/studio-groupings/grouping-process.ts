@@ -1,6 +1,7 @@
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
+import notePackage from "@brains/note";
+import { declaredType } from "../helpers/declared-type";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -21,7 +22,11 @@ const logger = createSilentLogger();
 const dbConfig = { url: `file:${dir}/entities.db` };
 await migrateEntities(dbConfig, logger);
 const registry = EntityRegistry.createFresh(logger);
-registry.registerEntityType("note", noteSchema, noteAdapter);
+{
+  // The declared note, as the canonical brain installs it.
+  const note = declaredType(notePackage, "@brains/note", "note");
+  registry.registerEntityType("note", note.schema, note.adapter);
+}
 const shell = createMockShell();
 const service = EntityService.createFresh({
   dbConfig,
@@ -96,6 +101,7 @@ async function execute(
     "",
   );
   const existing = await service.getEntityRaw({
+    source: true,
     entityType,
     id,
     visibilityScope: "shared",

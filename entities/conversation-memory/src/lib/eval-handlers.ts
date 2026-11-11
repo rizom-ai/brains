@@ -1,5 +1,11 @@
-import { actionItemSchema, type ActionItemEntity } from "@brains/action-items";
-import { actorRefFromLegacy } from "@brains/contracts";
+import {
+  actionItemAssigneeSchema,
+  actionItemRequesterSchema,
+  actionItemSchema,
+  memoryActorReferenceSchema,
+  type ActionItemEntity,
+} from "@brains/action-items";
+import { createExternalActorId } from "@brains/contracts";
 import {
   type BaseEntity,
   type ContentVisibility,
@@ -13,27 +19,14 @@ import {
   decisionSchema,
   type DecisionEntity,
 } from "../schemas/conversation-memory";
-import { summarySchema, type SummaryEntity } from "../schemas/summary";
+import {
+  summaryParticipantSchema,
+  summarySchema,
+  type SummaryEntity,
+} from "../schemas/summary";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import { buildConversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
-
-const seededActorReferenceSchema = z.object({
-  actorId: z.string(),
-  canonicalId: z.string().optional(),
-  displayName: z.string().optional(),
-});
-
-const seededParticipantSchema = seededActorReferenceSchema.extend({
-  roles: z.array(z.enum(["user", "assistant", "system"])).default(["user"]),
-  sourceActorIds: z.array(z.string()).optional(),
-});
-
-const seededAssigneeSchema = z.object({
-  actorId: z.string().optional(),
-  canonicalId: z.string().optional(),
-  displayName: z.string(),
-});
 
 const seededMemorySchema = z.object({
   id: z.string(),
@@ -48,11 +41,11 @@ const seededMemorySchema = z.object({
   updated: z.string().datetime().optional(),
   visibility: contentVisibilitySchema,
   status: z.string().optional(),
-  participants: z.array(seededParticipantSchema).optional(),
-  decidedBy: z.array(seededActorReferenceSchema).optional(),
-  mentionedBy: z.array(seededActorReferenceSchema).optional(),
-  assignedTo: z.array(seededAssigneeSchema).optional(),
-  requestedBy: z.array(seededActorReferenceSchema).optional(),
+  participants: z.array(summaryParticipantSchema).optional(),
+  decidedBy: z.array(memoryActorReferenceSchema).optional(),
+  mentionedBy: z.array(memoryActorReferenceSchema).optional(),
+  assignedTo: z.array(actionItemAssigneeSchema).optional(),
+  requestedBy: z.array(actionItemRequesterSchema).optional(),
 });
 
 const retrieveMemoryInputSchema = z.object({
@@ -62,7 +55,7 @@ const retrieveMemoryInputSchema = z.object({
   channelId: z.string().optional(),
   limit: z.number().int().min(1).optional(),
   includeOtherSpaces: z.boolean().optional(),
-  actorId: z.string().optional(),
+  /** The canonical id of the person whose memory to retrieve. */
   canonicalId: z.string().optional(),
   visibilityScope: contentVisibilitySchema.optional(),
   memory: z.array(seededMemorySchema).optional(),
@@ -92,18 +85,15 @@ export function registerMemoryEvalHandlers(params: {
       ? createSeededRetrievalContext(context, parsed.memory)
       : context;
     const retriever = new ConversationMemoryRetriever(retrievalContext);
-    const { actorId, canonicalId, memory: _memory, ...retrievalInput } = parsed;
-    const legacyIdentity = actorId ?? canonicalId;
+    const { canonicalId, memory: _memory, ...retrievalInput } = parsed;
     return retriever.retrieve({
       ...retrievalInput,
-      ...(legacyIdentity
+      ...(canonicalId
         ? {
-            identity: actorRefFromLegacy({
-              actorId: legacyIdentity,
-              interfaceType: sourceFromLegacyActorId(legacyIdentity),
-              role: "user",
-              ...(canonicalId ? { canonicalId } : {}),
-            }),
+            identity: {
+              kind: "external",
+              externalActorId: createExternalActorId("canonical", canonicalId),
+            },
           }
         : {}),
     });
@@ -224,9 +214,4 @@ function toActionItemEntity(memory: SeededMemory): ActionItemEntity {
       ...(memory.requestedBy ? { requestedBy: memory.requestedBy } : {}),
     },
   });
-}
-
-function sourceFromLegacyActorId(actorId: string): string {
-  const separator = actorId.indexOf(":");
-  return separator > 0 ? actorId.slice(0, separator) : "legacy";
 }

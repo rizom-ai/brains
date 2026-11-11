@@ -2,26 +2,34 @@ id: note-tool-create-file-upload
 name: Note Create on File Upload
 description: Verifies that the agent uses system_create for a note when a user uploads a text file
 type: tool_invocation
+setup:
+  permissionLevel: admin
+  interfaceType: web-chat
+  channelId: eval-note-upload
 tags:
   - note
   - tool-invocation
   - file-upload
 
 turns:
-  - userMessage: |
-      Please save this uploaded markdown file as a note.
+  - userMessage: Please save this uploaded markdown file as a note.
+    attachments:
+      - kind: text
+        filename: meeting-notes.md
+        mediaType: text/markdown
+        content: |
+          ---
+          tags:
+            - meetings
+          ---
 
-      User uploaded a file "meeting-notes.md":
+          # Q1 Planning Meeting
 
-      ---
-      tags:
-        - meetings
-      ---
-
-      # Q1 Planning Meeting
-
-      Discussed roadmap priorities for next quarter.
-      Key decisions: focus on platform stability before new features.
+          Discussed roadmap priorities for next quarter.
+          Key decisions: focus on platform stability before new features.
+        source:
+          kind: upload
+          id: upload-00000000-0000-4000-8000-000000000960
 
 successCriteria:
   expectedTools:

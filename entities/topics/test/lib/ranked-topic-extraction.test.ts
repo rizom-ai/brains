@@ -785,7 +785,8 @@ describe("topic extraction lease", () => {
     const { context, leases } = setup();
     await leases.set("lease", { owner: "dead-worker", expiresAt: 0 });
     const lease = await acquireExtractionLease(context, leases);
-    expect(lease?.owner).not.toBe("dead-worker");
+    if (!lease) throw new Error("expired lease was not taken over");
+    expect(lease.owner).not.toBe("dead-worker");
     expect(await leases.get("lease")).toEqual(lease);
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });

@@ -7,6 +7,7 @@ import {
   type ChatProtocolEvent,
   type ChatToolStatusEvent,
 } from "@brains/contracts/chat";
+import { isRecord } from "@brains/utils/is-record";
 
 interface StudioChatToolInput {
   toolCallId: string;
@@ -159,8 +160,4 @@ export function approvalResponseMessage(
       },
     ],
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

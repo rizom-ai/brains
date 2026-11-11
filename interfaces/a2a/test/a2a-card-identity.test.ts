@@ -7,7 +7,8 @@ import {
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { A2AInterface } from "../src/a2a-interface";
+import type { Plugin } from "@brains/plugins";
+import { createA2APlugin, routeOf } from "./a2a-plugin";
 
 /**
  * Regression: a brain whose identity lands after startup kept serving
@@ -21,13 +22,7 @@ describe("Agent Card follows the brain's current identity", () => {
     harness = createPluginHarness({
       logger: createSilentLogger("a2a-card-identity"),
     });
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+    harness.getMockShell().serveHttp();
   });
 
   afterEach(async () => {
@@ -35,24 +30,21 @@ describe("Agent Card follows the brain's current identity", () => {
     await harness.reset();
   });
 
-  async function installA2A(): Promise<A2AInterface> {
-    const plugin = new A2AInterface({ port: 0 });
+  async function installA2A(): Promise<Plugin> {
+    const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
     harness.getMockShell().getProfileKindRegistry().finalize();
     return plugin;
   }
 
-  async function fetchCard(plugin: A2AInterface): Promise<Response> {
-    const route = plugin
-      .getWebRoutes()
-      .find((candidate) => candidate.path === "/.well-known/agent-card.json");
-    if (!route) throw new Error("Expected agent card route");
+  async function fetchCard(plugin: Plugin): Promise<Response> {
+    const route = routeOf(plugin, "GET", "/.well-known/agent-card.json");
     return route.handler(
       new Request("http://brain/.well-known/agent-card.json"),
     );
   }
 
-  async function readCard(plugin: A2AInterface): Promise<ParsedAgentCard> {
+  async function readCard(plugin: Plugin): Promise<ParsedAgentCard> {
     const response = await fetchCard(plugin);
     expect(response.status).toBe(200);
     const card = parseAgentCard(await response.json());
@@ -70,7 +62,7 @@ describe("Agent Card follows the brain's current identity", () => {
 
   test("serves identity stored after startup", async () => {
     const plugin = await installA2A();
-    await plugin.ready();
+    await plugin.ready?.();
     expect((await readCard(plugin)).description).toContain("Test Owner's");
 
     const shell = harness.getMockShell();
@@ -90,7 +82,7 @@ describe("Agent Card follows the brain's current identity", () => {
 
   test("serves skills stored after startup", async () => {
     const plugin = await installA2A();
-    await plugin.ready();
+    await plugin.ready?.();
 
     await harness
       .getMockShell()

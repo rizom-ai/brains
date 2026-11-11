@@ -1,0 +1,41 @@
+id: team-permission-delete-link-admin-only
+name: Only an Admin deletes team memory
+description: Verifies that on a team brain, where trusted teammates capture and edit, deleting stays Admin-only.
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+tags:
+  - recipe-team
+  - team
+  - permissions
+  - delete
+
+turns:
+  - userMessage: "Delete the link 'model-context-protocol'."
+
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_delete
+        shouldBeCalled: false
+    responseCriteria:
+      - "Does not claim that the link was deleted."
+  trusted:
+    responseCriteria:
+      - "Says deleting requires Admin permission, without claiming the link was deleted."
+  admin:
+    expectedTools:
+      - toolName: system_delete
+        shouldBeCalled: true
+        argsContain:
+          entityType: link
+          id: model-context-protocol
+    responseNotContains:
+      - "I cannot"
+      - "I don't have access"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 30000

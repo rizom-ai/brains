@@ -1,7 +1,16 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { describe, it, expect, beforeEach } from "bun:test";
-import { NoteAdapter } from "../src/adapters/note-adapter";
-import type { Note } from "../src/schemas/note";
+import { describe, it, expect, beforeAll } from "bun:test";
+import type { BaseEntity, EntityAdapter } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import { parseMarkdown } from "@brains/utils/markdown";
+import { noteContent } from "../src/lib/note-markdown";
+import { noteMetadataSchema, type Note } from "../src/schemas/note";
+import { notePlugin } from "./note-plugin";
+
+/** The body a declared note reads back as: its markdown without frontmatter. */
+function bodyOf(markdown: string): string {
+  return parseMarkdown(markdown).content;
+}
 
 function createMockNote(overrides: Partial<Note> = {}): Note {
   return createTestEntity<Note>("note", {
@@ -11,11 +20,14 @@ function createMockNote(overrides: Partial<Note> = {}): Note {
   });
 }
 
-describe("NoteAdapter", () => {
-  let adapter: NoteAdapter;
+/** The note's adapter, as the declared note registers it. */
+describe("the note adapter", () => {
+  let adapter: EntityAdapter<BaseEntity>;
 
-  beforeEach(() => {
-    adapter = new NoteAdapter();
+  beforeAll(async () => {
+    const harness = createPluginHarness();
+    await harness.installPlugin(notePlugin());
+    adapter = harness.getEntityRegistry().getAdapter("note");
   });
 
   describe("schema", () => {
@@ -39,30 +51,33 @@ describe("NoteAdapter", () => {
     ])("caps only first-line fallbacks: %s", (line, expected) => {
       const content = `---\nstatus: generating\n---\n\n${line}\nSecond line`;
       const result = adapter.fromMarkdown(content);
-      expect(result.metadata?.title).toBe(expected);
+      expect(result.metadata?.["title"]).toBe(expected);
       expect(
-        Array.from(result.metadata?.title ?? "").length,
+        Array.from(String(result.metadata?.["title"] ?? "")).length,
       ).toBeLessThanOrEqual(80);
-      expect(result.content).toBe(content);
+      expect(result.content).toBe(bodyOf(content));
+      // A stored placeholder title is labeled from the body, not rewritten.
       const stored = createMockNote({
-        content,
+        content: bodyOf(content),
         metadata: { title: "Untitled" },
       });
-      expect(adapter.extractMetadata(stored).title).toBe(expected);
-      expect(stored.metadata.title).toBe("Untitled");
-      expect(stored.content).toBe(content);
+      expect(adapter.displayTitle?.(stored)).toBe(expected);
+      expect(adapter.extractMetadata(stored)["title"]).toBe("Untitled");
+      expect(stored.content).toBe(bodyOf(content));
     });
 
     it("preserves long authored titles and H1 headings", () => {
       const title = "Authored title ".repeat(10).trim();
       expect(
-        adapter.fromMarkdown(`---\ntitle: ${title}\n---\nBody`).metadata?.title,
+        adapter.fromMarkdown(`---\ntitle: ${title}\n---\nBody`).metadata?.[
+          "title"
+        ],
       ).toBe(title);
-      expect(adapter.fromMarkdown(`# ${title}\nBody`).metadata?.title).toBe(
+      expect(adapter.fromMarkdown(`# ${title}\nBody`).metadata?.["title"]).toBe(
         title,
       );
       expect(
-        adapter.extractMetadata(createMockNote({ metadata: { title } })).title,
+        adapter.displayTitle?.(createMockNote({ metadata: { title } })),
       ).toBe(title);
     });
 
@@ -75,9 +90,9 @@ Content here`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("note");
-      expect(result.content).toBe(markdown);
-      expect(result.metadata?.title).toBe("My Note Title");
+      expect(result.content).toBe("Content here");
+      expect(result.metadata?.["title"]).toBe("My Note Title");
+      expect(result.metadata?.["titleStated"]).toBe(true);
     });
 
     it("should extract title from H1 when no frontmatter", () => {
@@ -87,8 +102,7 @@ Some content here`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("note");
-      expect(result.metadata?.title).toBe("Note From H1 Heading");
+      expect(result.metadata?.["title"]).toBe("Note From H1 Heading");
     });
 
     it("should extract title from H1 when frontmatter has no title", () => {
@@ -102,7 +116,7 @@ Content`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.metadata?.title).toBe("Heading Title");
+      expect(result.metadata?.["title"]).toBe("Heading Title");
     });
 
     it.each([
@@ -121,8 +135,8 @@ Content`;
       (markdown, title) => {
         const result = adapter.fromMarkdown(markdown);
 
-        expect(result.metadata?.title).toBe(title);
-        expect(result.content).toBe(markdown);
+        expect(result.metadata?.["title"]).toBe(title);
+        expect(result.content).toBe(bodyOf(markdown));
       },
     );
 
@@ -137,7 +151,7 @@ Content`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.metadata?.title).toBe("Frontmatter Title");
+      expect(result.metadata?.["title"]).toBe("Frontmatter Title");
     });
   });
 
@@ -149,7 +163,10 @@ title: My Note
 
 Content here`;
 
-      const entity = createMockNote({ content });
+      const entity = createMockNote({
+        content,
+        metadata: { title: "My Note", titleStated: true },
+      });
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("title: My Note");
@@ -215,18 +232,20 @@ Body content`;
       ["---\ntitle: Untitled\n---\nFirst body line", "Untitled"],
       ["", "Untitled"],
     ])(
-      "projects stored placeholder titles without mutating notes: %s",
+      "labels stored placeholder titles without mutating notes: %s",
       (content, title) => {
         const entity = createMockNote({
-          content,
-          metadata: { title: "Untitled", status: "failed", error: "Keep this" },
+          content: bodyOf(content),
+          metadata: {
+            title: "Untitled",
+            status: "failed",
+            error: "Keep this",
+            ...(content.includes("title: Untitled") && { titleStated: true }),
+          },
         });
         const before = structuredClone(entity);
-        expect(adapter.extractMetadata(entity)).toEqual({
-          title,
-          status: "failed",
-          error: "Keep this",
-        });
+        expect(adapter.displayTitle?.(entity)).toBe(title);
+        expect(adapter.extractMetadata(entity)).toEqual(before.metadata);
         expect(entity).toEqual(before);
       },
     );
@@ -238,23 +257,28 @@ Body content`;
 
       const metadata = adapter.extractMetadata(entity);
 
-      expect(metadata.title).toBe("Extracted Title");
+      expect(metadata["title"]).toBe("Extracted Title");
     });
   });
 
-  describe("createNoteContent", () => {
+  describe("noteContent", () => {
     it("should return content as-is when it has no frontmatter", () => {
-      const markdown = adapter.createNoteContent(
-        "New Note Title",
-        "This is the body content.",
-      );
+      const note = noteContent("New Note Title", "This is the body content.");
 
-      expect(markdown).toBe("This is the body content.");
+      expect(note).toEqual({
+        content: "This is the body content.",
+        title: "New Note Title",
+        titleStated: false,
+      });
     });
 
     it("should inject title into existing frontmatter", () => {
       const content = "---\ntags:\n  - test\n---\n\nBody content";
-      const markdown = adapter.createNoteContent("My Title", content);
+      const { content: markdown, titleStated } = noteContent(
+        "My Title",
+        content,
+      );
+      expect(titleStated).toBe(true);
 
       expect(markdown).toContain("title: My Title");
       expect(markdown).toContain("tags:");
@@ -264,36 +288,36 @@ Body content`;
 
     it("should preserve existing title in frontmatter", () => {
       const content = "---\ntitle: Original\n---\n\nBody";
-      const markdown = adapter.createNoteContent("Override", content);
+      const { content: markdown, title } = noteContent("Override", content);
+      expect(title).toBe("Original");
 
       expect(markdown).toContain("title: Original");
       expect(markdown).not.toContain("title: Override");
     });
   });
 
-  describe("parseNoteFrontmatter", () => {
-    it("should parse frontmatter from entity", () => {
+  describe("stated frontmatter", () => {
+    it("should read a stated title as stated", () => {
       const content = `---
 title: Parsed Title
 ---
 
 Content`;
 
-      const entity = createMockNote({ content });
-      const frontmatter = adapter.parseNoteFrontmatter(entity);
-
-      expect(frontmatter.title).toBe("Parsed Title");
+      expect(adapter.fromMarkdown(content).metadata).toEqual({
+        title: "Parsed Title",
+        titleStated: true,
+      });
     });
 
-    it("should return empty object when no frontmatter", () => {
+    it("should state nothing when there is no frontmatter", () => {
       const content = `# Just a heading
 
 No frontmatter here`;
 
-      const entity = createMockNote({ content });
-      const frontmatter = adapter.parseNoteFrontmatter(entity);
-
-      expect(frontmatter).toEqual({});
+      expect(adapter.fromMarkdown(content).metadata).toEqual({
+        title: "Just a heading",
+      });
     });
   });
 
@@ -310,7 +334,9 @@ This is the content.`;
       const parsed = adapter.fromMarkdown(original);
       const entity = createMockNote({
         content: original,
-        metadata: parsed.metadata ?? { title: "Roundtrip Note" },
+        metadata: noteMetadataSchema.parse(
+          parsed.metadata ?? { title: "Roundtrip Note" },
+        ),
       });
       const output = adapter.toMarkdown(entity);
 

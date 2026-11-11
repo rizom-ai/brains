@@ -8,11 +8,14 @@ const publishRegistrationSchema = z.looseObject({
   entityType: z.string(),
   provider: z.unknown(),
 });
-import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import {
+  socialMediaPlugin,
+  type SocialMediaEntityPlugin,
+} from "./social-media-plugin";
 
 /**
  * Regression test: publish:register must work regardless of plugin
@@ -21,17 +24,17 @@ import {
  * message is sent.
  */
 describe("publish:register ordering", () => {
-  let harness: PluginTestHarness<SocialMediaPlugin>;
+  let harness: PluginTestHarness<SocialMediaEntityPlugin>;
 
   beforeEach(() => {
-    harness = createPluginHarness<SocialMediaPlugin>({
+    harness = createPluginHarness<SocialMediaEntityPlugin>({
       dataDir: "/tmp/test-order",
     });
   });
 
   it("should deliver publish:register to a late subscriber after plugins-registered", async () => {
     await harness.installPlugin(
-      new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
+      socialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
     );
 
     // Subscribe AFTER plugin registered (late subscriber)
@@ -62,7 +65,7 @@ describe("publish:register ordering", () => {
     });
 
     await harness.installPlugin(
-      new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
+      socialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
     );
 
     expect(received.length).toBe(0);
@@ -85,7 +88,7 @@ describe("publish:register ordering", () => {
       return { success: true };
     });
 
-    await harness.installPlugin(new SocialMediaPlugin({}));
+    await harness.installPlugin(socialMediaPlugin({}));
 
     await harness.sendMessage(
       SYSTEM_CHANNELS.pluginsRegistered,

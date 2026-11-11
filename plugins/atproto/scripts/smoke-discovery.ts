@@ -128,9 +128,8 @@ async function main(): Promise<void> {
   const events: Array<{ type: string; payload: unknown }> = [];
   const context = {
     messaging: {
-      send: async (message: { type: string; payload: unknown }) => {
-        events.push({ type: message.type, payload: message.payload });
-        return { success: true };
+      broadcast: async (channel: { name: string }, payload: unknown) => {
+        events.push({ type: channel.name, payload });
       },
     },
   } as unknown as ServicePluginContext;

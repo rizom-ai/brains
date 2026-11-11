@@ -33,6 +33,7 @@ import {
 } from "./progress-message-coordinator";
 import type { Logger } from "@brains/utils/logger";
 import {
+  captureUrlViaAgent,
   extractCaptureableUrls,
   formatFileUploadMessage,
   isFileSizeAllowed,
@@ -247,19 +248,13 @@ export abstract class MessageInterfacePlugin<
     permissionContext?: PermissionLookupContext,
   ): Promise<void> {
     if (!this.context) return;
-    const userPermissionLevel = this.context.permissions.getUserLevel(
-      interfaceType,
+    await captureUrlViaAgent(
+      this.context,
+      url,
+      channelId,
       authorId,
+      interfaceType,
       permissionContext,
-    );
-    await this.context.agent.chat(
-      `Save this link: ${url}`,
-      `links-${channelId}`,
-      {
-        userPermissionLevel,
-        interfaceType,
-        channelId,
-      },
     );
   }
 

@@ -13,7 +13,7 @@ tags:
   - quality
   - error-handling
   - user-experience
-  - preset-core
+  - recipe-headless
 
 turns:
   - userMessage: "List my foo items"
@@ -37,4 +37,4 @@ successCriteria:
   minInstructionFollowingScore: 3
 
 efficiency:
-  maxTokens: 30000
+  maxTokens: 44000

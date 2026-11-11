@@ -1,27 +1,30 @@
 import {
-  MessageInterfacePlugin,
+  captureUrlViaAgent,
+  extractCaptureableUrls,
   getToolStatusKey,
   type AgentResponse,
-  type InterfacePluginContext,
-  type MessageInterfacePluginContext,
+  type DaemonHealth,
+  type JobProgressEvent,
   type MessageInterfaceOutput,
   type ScopedRuntimeUploadStore,
-  type ToolActivityEvent,
   type ToolStatusUpdate,
 } from "@brains/plugins";
-import type {
-  Daemon,
-  DaemonHealth,
-  JobContext,
-  JobProgressEvent,
-  WebRouteDefinition,
-} from "@brains/plugins";
-import type { SentMessage } from "chat";
+import type { PluginPackageDefinition } from "@brains/sdk";
+import { defineInterface } from "@brains/sdk/interfaces";
 import {
-  chatConfigSchema,
-  type ChatConfig,
-  type ChatConfigInput,
-} from "./config";
+  interfaceRuntime,
+  withChannels,
+  withDaemon,
+  withMessageTransport,
+  withWebRoutes,
+  type FirstPartySlotContext,
+  type InterfaceRuntime,
+  type MessageTransport,
+  type MessageTransportEdit,
+  type MessageTransportSend,
+} from "@brains/sdk/internal/interface-runtime";
+import type { SentMessage } from "chat";
+import { chatConfigSchema, type ChatConfig } from "./config";
 import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
@@ -33,7 +36,7 @@ import {
 } from "./chat-platform";
 import { ChatResponseCoordinator } from "./chat-response-coordinator";
 import { ChatUploadCoordinator } from "./chat-upload-coordinator";
-import { toPlatformPostOutput, type ChatCardOutput } from "./chat-output";
+import { toPlatformPostOutput } from "./chat-output";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
 import { SlackSocketLoop } from "./slack-socket-loop";
 import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
@@ -55,10 +58,13 @@ import {
   isEnabledChatPlatform,
 } from "./chat-turn-controller";
 import { clearDiscordMessageComponents } from "./discord-message-components";
-import packageJson from "../package.json";
+import { retiredChatUploadNamespaces } from "./upload-store";
 
 /** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
 const MAX_PROMPT_ACTIONS = 1000;
+
+/** The interface type its progress and tool events are routed to. */
+const CHAT_INTERFACE_ID = "chat";
 
 /**
  * Runtime collaborators the interface needs that are not configuration.
@@ -70,453 +76,484 @@ const MAX_PROMPT_ACTIONS = 1000;
  */
 export interface ChatInterfaceDeps {
   fetch?: ChatFetch | undefined;
+  /**
+   * How a chat sender's linked account is resolved. Overridable so tests can
+   * supply a linked principal directly; production reads the brain's auth
+   * backend, per call, because auth-service binds it after registration.
+   */
+  identityAccess?: (() => ChatIdentityAccess | undefined) | undefined;
 }
 
-export class ChatInterface extends MessageInterfacePlugin<
-  ChatConfig,
-  ChatConfigInput
-> {
-  declare protected config: ChatConfig;
+/** What a running chat interface keeps: the Chat SDK app and what drives it. */
+interface ChatState {
+  readonly threadRegistry: ThreadRegistry;
+  readonly toolStatusMessenger: ToolStatusMessenger;
+  readonly compactingSlackApprovalToolStatuses: Set<string>;
+  readonly uploadCoordinator: ChatUploadCoordinator;
+  readonly responseCoordinator: ChatResponseCoordinator;
+  readonly gatewayLoop: DiscordGatewayLoop;
+  readonly slackSocketLoop: SlackSocketLoop;
+  readonly chatApp: ChatSdkAppHost;
+  chatAppRunning: boolean;
+}
 
-  private readonly threadRegistry = new ThreadRegistry();
-  private readonly promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
-  private readonly toolStatusMessenger = new ToolStatusMessenger(
-    this.threadRegistry,
-  );
-  private readonly compactingSlackApprovalToolStatuses = new Set<string>();
-  private readonly uploadCoordinator = new ChatUploadCoordinator({
-    getContext: (): InterfacePluginContext | undefined => this.context,
-    logger: this.logger,
-  });
-  private readonly responseCoordinator = new ChatResponseCoordinator({
-    getContext: (): InterfacePluginContext | undefined => this.context,
-    getDisplayBaseUrl: (): string | undefined =>
-      this.getPreferredDisplayBaseUrl(),
-    registerPromptAction: (threadId, action): string =>
-      this.promptActions.register(threadId, action),
-    clearMessageComponents: async (threadId, messageId): Promise<void> => {
-      const botToken = this.config.adapters.discord?.botToken;
-      if (!botToken) return;
-      await clearDiscordMessageComponents({
-        threadId,
-        messageId,
-        botToken,
-        logger: this.logger,
-        ...(this.deps.fetch ? { fetchFn: this.deps.fetch } : {}),
+type ChatSlotContext = FirstPartySlotContext<ChatConfig, ChatState>;
+
+export type ChatInterfaceDefinition = PluginPackageDefinition<
+  typeof chatConfigSchema,
+  "interface"
+>;
+
+/** The links chat posts: the local site when it is preferred, else the site. */
+function displayBaseUrl(runtime: InterfaceRuntime): string | undefined {
+  if (runtime.preferLocalUrls && runtime.localSiteUrl) {
+    return runtime.localSiteUrl;
+  }
+  return runtime.siteUrl ?? runtime.localSiteUrl;
+}
+
+/** Send a message to a thread, and the sent message for editing. */
+async function sendWithId(
+  state: ChatState,
+  { channelId, message }: MessageTransportSend,
+): Promise<string | undefined> {
+  const thread = state.threadRegistry.get(channelId);
+  if (!thread) return undefined;
+  const postOutput = toPlatformPostOutput(channelId, message);
+  if (postOutput !== undefined) {
+    const sent = await thread.post(postOutput);
+    state.threadRegistry.trackMessage(thread.id, sent);
+    return sent.id;
+  }
+  if (typeof message !== "string") return undefined;
+  let lastSent: SentMessage | undefined;
+  for (const chunk of chunkForChannel(channelId, message)) {
+    lastSent = await thread.post(toPlatformText(channelId, chunk));
+    state.threadRegistry.trackMessage(thread.id, lastSent);
+  }
+  return lastSent?.id;
+}
+
+/**
+ * The chat interface: one Chat SDK app for Discord and Slack, which routes
+ * each platform's messages to the agent, shows its replies, approvals and
+ * cards, follows job progress and tool status in place, and answers the
+ * space notices other packages post. The collaborators default to the real
+ * ones; a test hands its own.
+ */
+export function createChatInterface(
+  deps: ChatInterfaceDeps = {},
+): ChatInterfaceDefinition {
+  const chat = defineInterface({
+    id: CHAT_INTERFACE_ID,
+    config: chatConfigSchema,
+    setup: async (context): Promise<ChatState> => {
+      const { config } = context;
+      const runtime = interfaceRuntime(context);
+      const { logger, messages } = runtime;
+      const getContext = (): InterfaceRuntime => runtime;
+
+      // The platform upload stores chat kept before it wrote the shared one
+      // hold only expired uploads, and nothing reads them.
+      for (const namespace of retiredChatUploadNamespaces) {
+        await runtime.retireUploads(namespace).catch((error: unknown) => {
+          logger.warn("Could not delete retired chat uploads", {
+            namespace,
+            error,
+          });
+        });
+      }
+
+      const threadRegistry = new ThreadRegistry();
+      const promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
+      const toolStatusMessenger = new ToolStatusMessenger(threadRegistry);
+      const uploadCoordinator = new ChatUploadCoordinator({
+        getContext,
+        logger,
       });
-    },
-    sendMessageWithId: (input): Promise<string | undefined> =>
-      this.sendMessageWithId(input),
-    handleAgentResponseToolStatuses: (
-      response,
-      conversationId,
-    ): Promise<void> =>
-      this.handleAgentResponseToolStatuses(response, conversationId),
-    trackAgentResponseForJob: (jobId, messageId, channelId): void =>
-      this.trackAgentResponseForJob(jobId, messageId, channelId),
-    threadRegistry: this.threadRegistry,
-    logger: this.logger,
-  });
-  private readonly subscriptionRouter = new SubscriptionRouter({
-    getSubscriptions: (
-      platform: string,
-    ): ChatThreadSubscriptionStore | undefined =>
-      platform === "discord"
-        ? this.discordSubscriptions
-        : platform === "slack"
-          ? this.slackSubscriptions
-          : undefined,
-    getPlatform: (thread): string => thread.adapter.name,
-    isBotCreatedThread: isBotCreatedDiscordThread,
-    logger: this.logger,
-  });
-  private deps: ChatInterfaceDeps = {};
-  private readonly chatInputBuilder = new ChatInputBuilder({
-    getUploadStore: (platform: string): ScopedRuntimeUploadStore | undefined =>
-      platform === "discord" || platform === "slack"
-        ? this.uploadCoordinator.getCanonicalStore()
-        : undefined,
-    getThreadIdParts,
-    logger: this.logger,
-    // Read at download time, after the constructor has stored the deps.
-    fetch: (input, init): Promise<Response> =>
-      (this.deps.fetch ?? fetch)(input, init),
-  });
-  private readonly turnController: ChatTurnController;
-  private readonly gatewayLoop: DiscordGatewayLoop;
-  private readonly slackSocketLoop: SlackSocketLoop;
-  private readonly chatApp: ChatSdkAppHost;
-  private discordSubscriptions: ChatThreadSubscriptionStore | undefined;
-  private slackSubscriptions: ChatThreadSubscriptionStore | undefined;
-  private chatAppRunning = false;
+      const state: ChatState = {
+        threadRegistry,
+        toolStatusMessenger,
+        compactingSlackApprovalToolStatuses: new Set<string>(),
+        uploadCoordinator,
+        responseCoordinator: new ChatResponseCoordinator({
+          getContext,
+          getDisplayBaseUrl: (): string | undefined => displayBaseUrl(runtime),
+          registerPromptAction: (threadId, action): string =>
+            promptActions.register(threadId, action),
+          clearMessageComponents: async (
+            threadId,
+            messageId,
+          ): Promise<void> => {
+            const botToken = config.adapters.discord?.botToken;
+            if (!botToken) return;
+            await clearDiscordMessageComponents({
+              threadId,
+              messageId,
+              botToken,
+              logger,
+              ...(deps.fetch ? { fetchFn: deps.fetch } : {}),
+            });
+          },
+          sendMessageWithId: (input): Promise<string | undefined> =>
+            sendWithId(state, input),
+          handleAgentResponseToolStatuses: (
+            response,
+            conversationId,
+          ): Promise<void> =>
+            messages.handleAgentResponseToolStatuses(response, conversationId),
+          trackAgentResponseForJob: (jobId, messageId, channelId): void => {
+            messages.trackAgentResponseForJob(jobId, messageId, channelId);
+          },
+          threadRegistry,
+          logger,
+        }),
+        gatewayLoop: new DiscordGatewayLoop({
+          getApp: (): ChatSdkApp | undefined => state.chatApp.instance,
+          gatewayRunMs: config.gatewayRunMs,
+          gatewayRestartDelayMs: config.gatewayRestartDelayMs,
+          logger,
+        }),
+        slackSocketLoop: new SlackSocketLoop({
+          listenerRunMs: config.gatewayRunMs,
+          restartDelayMs: config.gatewayRestartDelayMs,
+          logger,
+        }),
+        chatApp: new ChatSdkAppHost({
+          slack: config.adapters.slack,
+          buildApp: (runtimeState): ChatSdkApp =>
+            createChatSdkApp({
+              userName: config.userName,
+              discord: config.adapters.discord,
+              slack: config.adapters.slack,
+              gatewayLoop: state.gatewayLoop,
+              slackSocketLoop: state.slackSocketLoop,
+              runtimeState,
+            }),
+        }),
+        chatAppRunning: false,
+      };
 
-  /**
-   * @param identityAccess Overridable so tests can supply a linked principal
-   * directly. Production leaves it alone and reads the context's auth backend,
-   * resolved per call because auth-service binds it after construction.
-   */
-  constructor(
-    config: ChatConfigInput = {},
-    identityAccess?: () => ChatIdentityAccess | undefined,
-    deps: ChatInterfaceDeps = {},
-  ) {
-    super("chat", packageJson, config, chatConfigSchema);
-    this.deps = deps;
-    this.turnController = new ChatTurnController({
-      identityAccess:
-        identityAccess ??
-        ((): ChatIdentityAccess | undefined => this.context?.auth.get()),
-      config: this.config,
-      host: {
-        getContext: (): InterfacePluginContext | undefined => this.context,
-        startProcessingInput: (channelId): void =>
-          this.startProcessingInput(channelId),
-        endProcessingInput: (): void => this.endProcessingInput(),
-        extractCaptureableUrls: (content, blockedDomains): string[] =>
-          this.extractCaptureableUrls(content, blockedDomains),
-        captureUrlViaAgent: (
-          url,
-          channelId,
-          authorId,
-          interfaceType,
-          permissionContext,
-        ): Promise<void> =>
-          this.captureUrlViaAgent(
+      let discordSubscriptions: ChatThreadSubscriptionStore | undefined;
+      let slackSubscriptions: ChatThreadSubscriptionStore | undefined;
+      if (config.adapters.discord)
+        discordSubscriptions = createDiscordThreadSubscriptionStore(
+          runtime.classRuntimeState,
+        );
+      if (config.adapters.slack)
+        slackSubscriptions = createSlackThreadSubscriptionStore(
+          runtime.classRuntimeState,
+        );
+
+      const turnController = new ChatTurnController({
+        identityAccess:
+          deps.identityAccess ??
+          ((): ChatIdentityAccess | undefined => runtime.auth()),
+        config,
+        host: {
+          getContext,
+          startProcessingInput: (channelId): void => {
+            messages.startProcessingInput(channelId);
+          },
+          endProcessingInput: (): void => {
+            messages.endProcessingInput();
+          },
+          extractCaptureableUrls: (content, blockedDomains): string[] =>
+            extractCaptureableUrls(content, blockedDomains),
+          captureUrlViaAgent: (
             url,
             channelId,
             authorId,
             interfaceType,
             permissionContext,
-          ),
-      },
-      promptActions: this.promptActions,
-      threadRegistry: this.threadRegistry,
-      subscriptionRouter: this.subscriptionRouter,
-      chatInputBuilder: this.chatInputBuilder,
-      uploadCoordinator: this.uploadCoordinator,
-      responseCoordinator: this.responseCoordinator,
-      channelNames: new ChannelNames(),
-      logger: {
-        debug: (message, context): void => this.logger.debug(message, context),
-        error: (message, context): void => this.logger.error(message, context),
-      },
-    });
-    this.gatewayLoop = new DiscordGatewayLoop({
-      getApp: (): ChatSdkApp | undefined => this.chatApp.instance,
-      gatewayRunMs: this.config.gatewayRunMs,
-      gatewayRestartDelayMs: this.config.gatewayRestartDelayMs,
-      logger: this.logger,
-    });
-    this.slackSocketLoop = new SlackSocketLoop({
-      listenerRunMs: this.config.gatewayRunMs,
-      restartDelayMs: this.config.gatewayRestartDelayMs,
-      logger: this.logger,
-    });
-    this.chatApp = new ChatSdkAppHost({
-      discord: this.config.adapters.discord,
-      slack: this.config.adapters.slack,
-      getUploadStore: (platform): ScopedRuntimeUploadStore | undefined =>
-        this.uploadCoordinator.getPlatformStore(platform),
-      buildApp: (runtimeState): ChatSdkApp =>
-        createChatSdkApp({
-          userName: this.config.userName,
-          discord: this.config.adapters.discord,
-          slack: this.config.adapters.slack,
-          gatewayLoop: this.gatewayLoop,
-          slackSocketLoop: this.slackSocketLoop,
-          runtimeState,
+          ): Promise<void> =>
+            captureUrlViaAgent(
+              runtime,
+              url,
+              channelId,
+              authorId,
+              interfaceType,
+              permissionContext,
+            ),
+        },
+        promptActions,
+        threadRegistry,
+        subscriptionRouter: new SubscriptionRouter({
+          getSubscriptions: (
+            platform: string,
+          ): ChatThreadSubscriptionStore | undefined =>
+            platform === "discord"
+              ? discordSubscriptions
+              : platform === "slack"
+                ? slackSubscriptions
+                : undefined,
+          getPlatform: (thread): string => thread.adapter.name,
+          isBotCreatedThread: isBotCreatedDiscordThread,
+          logger,
         }),
-    });
-  }
+        chatInputBuilder: new ChatInputBuilder({
+          getUploadStore: (
+            platform: string,
+          ): ScopedRuntimeUploadStore | undefined =>
+            platform === "discord" || platform === "slack"
+              ? uploadCoordinator.getCanonicalStore()
+              : undefined,
+          getThreadIdParts,
+          logger,
+          fetch: (input, init): Promise<Response> =>
+            (deps.fetch ?? fetch)(input, init),
+        }),
+        uploadCoordinator,
+        responseCoordinator: state.responseCoordinator,
+        channelNames: new ChannelNames(),
+        logger: {
+          debug: (message, details): void => logger.debug(message, details),
+          error: (message, details): void => logger.error(message, details),
+        },
+      });
+      turnController.registerHandlers(
+        state.chatApp.build(runtime.classRuntimeState),
+      );
+
+      // Another plugin's note for a configured space, e.g. the cards a
+      // channel pickup added; posted where the chat app runs.
+      runtime.answer(spaceNoticeContract, async ({ request }) =>
+        postSpaceNotice(
+          {
+            app: state.chatApp.instance,
+            discordBotToken: config.adapters.discord?.botToken,
+            logger,
+            fetchFn: deps.fetch,
+          },
+          request,
+        ),
+      );
+      return state;
+    },
+  });
 
   /** One channel per configured platform, in the worker too. */
-  protected override registerChannels(
-    context: MessageInterfacePluginContext,
-  ): void {
-    if (this.config.adapters.discord)
-      context.channels.registerDescriptor({
-        type: "discord",
-        displayName: "Discord",
-        subjectLabel: "Discord user ID",
-        subjectPattern: { source: "^[0-9]{17,20}$" },
-        manualDelivery: true,
-      });
-    if (this.config.adapters.slack)
-      context.channels.registerDescriptor({
-        type: "slack",
-        displayName: "Slack",
-        subjectLabel: "Slack member ID",
-        subjectPattern: { source: "^[UW][A-Z0-9]+$" },
-        manualDelivery: true,
-      });
-  }
+  const withPlatformChannels = withChannels(chat, ({ config }) => [
+    ...(config.adapters.discord
+      ? [
+          {
+            descriptor: {
+              type: "discord",
+              displayName: "Discord",
+              subjectLabel: "Discord user ID",
+              subjectPattern: { source: "^[0-9]{17,20}$" },
+              manualDelivery: true,
+            },
+          },
+        ]
+      : []),
+    ...(config.adapters.slack
+      ? [
+          {
+            descriptor: {
+              type: "slack",
+              displayName: "Slack",
+              subjectLabel: "Slack member ID",
+              subjectPattern: { source: "^[UW][A-Z0-9]+$" },
+              manualDelivery: true,
+            },
+          },
+        ]
+      : []),
+  ]);
 
-  protected override async onRegister(
-    context: MessageInterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    if (this.config.adapters.discord)
-      this.discordSubscriptions = createDiscordThreadSubscriptionStore(
-        context.runtimeState,
-      );
-    if (this.config.adapters.slack)
-      this.slackSubscriptions = createSlackThreadSubscriptionStore(
-        context.runtimeState,
-      );
-    this.turnController.registerHandlers(
-      this.chatApp.build(context.runtimeState),
-    );
-    // Another plugin's note for a configured space, e.g. the cards a channel
-    // pickup added; posted where the chat app runs.
-    context.messaging.answer(spaceNoticeContract, async (request) =>
-      postSpaceNotice(
-        {
-          app: this.chatApp.instance,
-          discordBotToken: this.config.adapters.discord?.botToken,
-          logger: this.logger,
-          fetchFn: this.deps.fetch,
+  /** The Discord and Slack webhooks, delegated to the Chat SDK app. */
+  const withWebhooks = withWebRoutes(
+    withPlatformChannels,
+    ({ state }: ChatSlotContext) => state.chatApp.getWebRoutes(),
+  );
+
+  /** chat:chat, the Chat SDK app and its gateway and socket listeners. */
+  const withChatApp = withDaemon(
+    withWebhooks,
+    ({ config, state }: ChatSlotContext) => {
+      const discordEnabled = Boolean(config.adapters.discord);
+      const slackSocketEnabled = config.adapters.slack?.mode === "socket";
+      if (!discordEnabled && !config.adapters.slack) return undefined;
+
+      return {
+        id: CHAT_INTERFACE_ID,
+        start: async (): Promise<void> => {
+          await state.chatApp.initialize();
+          state.chatAppRunning = true;
+          if (discordEnabled) state.gatewayLoop.start();
+          if (slackSocketEnabled) state.slackSocketLoop.start();
         },
-        request,
-      ),
-    );
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return this.chatApp.getWebRoutes();
-  }
-
-  protected override createDaemon(): Daemon | undefined {
-    const discordEnabled = Boolean(this.config.adapters.discord);
-    const slackSocketEnabled = this.config.adapters.slack?.mode === "socket";
-    if (!discordEnabled && !this.config.adapters.slack) return undefined;
-
-    return {
-      start: async (): Promise<void> => {
-        await this.chatApp.initialize();
-        this.chatAppRunning = true;
-        if (discordEnabled) this.gatewayLoop.start();
-        if (slackSocketEnabled) this.slackSocketLoop.start();
-      },
-      stop: async (): Promise<void> => {
-        await this.gatewayLoop.stop();
-        await this.slackSocketLoop.stop();
-        this.threadRegistry.clear();
-        this.uploadCoordinator.clear();
-        this.responseCoordinator.clear();
-        this.toolStatusMessenger.clear();
-        await this.chatApp.shutdown();
-        this.chatAppRunning = false;
-      },
-      healthCheck: async (): Promise<DaemonHealth> => {
-        const healthy =
-          this.chatAppRunning &&
-          (!discordEnabled || this.gatewayLoop.isRunning()) &&
-          (!slackSocketEnabled || this.slackSocketLoop.isRunning());
-        return {
-          status: healthy ? "healthy" : "error",
-          message: healthy ? "Chat SDK app running" : "Chat SDK app stopped",
-          lastCheck: new Date(),
-        };
-      },
-    };
-  }
-
-  override sendMessageToChannel({
-    channelId,
-    message,
-  }: {
-    channelId: string | null;
-    message: MessageInterfaceOutput;
-  }): void {
-    const thread = this.threadRegistry.get(channelId);
-    if (!thread) return;
-    const postOutput = this.toPlatformPostOutput(channelId, message);
-    if (postOutput !== undefined) {
-      thread.post(postOutput).catch((error: unknown) =>
-        this.logger.error("Failed to send chat message", {
-          error,
-          channelId,
-        }),
-      );
-      return;
-    }
-    if (typeof message !== "string") return;
-    for (const chunk of chunkForChannel(channelId, message)) {
-      thread.post(toPlatformText(channelId, chunk)).catch((error: unknown) =>
-        this.logger.error("Failed to send chat message", {
-          error,
-          channelId,
-        }),
-      );
-    }
-  }
-
-  protected override async sendMessageWithId({
-    channelId,
-    message,
-  }: {
-    channelId: string | null;
-    message: MessageInterfaceOutput;
-  }): Promise<string | undefined> {
-    const thread = this.threadRegistry.get(channelId);
-    if (!thread) return undefined;
-    const postOutput = this.toPlatformPostOutput(channelId, message);
-    if (postOutput !== undefined) {
-      const sent = await thread.post(postOutput);
-      this.threadRegistry.trackMessage(thread.id, sent);
-      return sent.id;
-    }
-    if (typeof message !== "string") return undefined;
-    let lastSent: SentMessage | undefined;
-    for (const chunk of chunkForChannel(channelId, message)) {
-      lastSent = await thread.post(toPlatformText(channelId, chunk));
-      this.threadRegistry.trackMessage(thread.id, lastSent);
-    }
-    return lastSent?.id;
-  }
-
-  protected override async editMessage({
-    channelId,
-    messageId,
-    newMessage,
-  }: {
-    channelId: string | null;
-    messageId: string;
-    newMessage: MessageInterfaceOutput;
-  }): Promise<boolean> {
-    const sent = this.threadRegistry.getMessage(channelId, messageId);
-    if (!sent) return false;
-    try {
-      const edited = await sent.edit(
-        this.toPlatformPostOutput(channelId, newMessage) ??
-          toPlatformText(
-            channelId,
-            typeof newMessage === "string" ? newMessage : "",
-          ),
-      );
-      if (channelId) this.threadRegistry.trackMessage(channelId, edited);
-      return true;
-    } catch {
-      // The platform rejected the edit. The boolean is the contract here;
-      // callers retry or fall back rather than inspect a reason.
-      return false;
-    }
-  }
-
-  protected override supportsMessageEditing(): boolean {
-    return true;
-  }
-
-  private toPlatformPostOutput(
-    channelId: string | null,
-    output: MessageInterfaceOutput,
-  ): ChatCardOutput | string | undefined {
-    return toPlatformPostOutput(channelId, output);
-  }
-
-  protected override formatProgressOutput(
-    event: JobProgressEvent,
-  ): MessageInterfaceOutput {
-    return buildProgressCard(event);
-  }
-
-  protected override formatCompletionOutput(
-    event: JobProgressEvent,
-  ): MessageInterfaceOutput {
-    return buildProgressCard(event);
-  }
-
-  protected override async handleProgressEvent(
-    event: JobProgressEvent,
-    context: JobContext,
-  ): Promise<void> {
-    const interfaceType = event.metadata.interfaceType;
-    let routedEvent = event;
-    let routedContext = context;
-    if (interfaceType && interfaceType !== this.id) {
-      if (!isEnabledChatPlatform(this.config, interfaceType)) return;
-      routedEvent = {
-        ...event,
-        metadata: {
-          ...event.metadata,
-          interfaceType: this.id,
+        stop: async (): Promise<void> => {
+          await state.gatewayLoop.stop();
+          await state.slackSocketLoop.stop();
+          state.threadRegistry.clear();
+          state.uploadCoordinator.clear();
+          state.responseCoordinator.clear();
+          state.toolStatusMessenger.clear();
+          await state.chatApp.shutdown();
+          state.chatAppRunning = false;
+        },
+        healthCheck: async (): Promise<DaemonHealth> => {
+          const healthy =
+            state.chatAppRunning &&
+            (!discordEnabled || state.gatewayLoop.isRunning()) &&
+            (!slackSocketEnabled || state.slackSocketLoop.isRunning());
+          return {
+            status: healthy ? "healthy" : "error",
+            message: healthy ? "Chat SDK app running" : "Chat SDK app stopped",
+            lastCheck: new Date(),
+          };
         },
       };
-      routedContext = routedEvent.metadata;
-    }
+    },
+  );
 
-    await super.handleProgressEvent(routedEvent, routedContext);
-    await this.responseCoordinator.deliverCompletedJobArtifacts(routedEvent);
-  }
+  /**
+   * How chat posts, edits and renders what the runtime coordinates: replies
+   * and progress as platform cards or text chunks, in the thread they belong
+   * to, and job and tool events of either platform routed as chat's own.
+   */
+  return withMessageTransport(
+    withChatApp,
+    (context: ChatSlotContext): MessageTransport => {
+      const { config, state } = context;
+      const runtime = interfaceRuntime(context);
+      const { logger } = runtime;
+      return {
+        send: ({ channelId, message }: MessageTransportSend): void => {
+          const thread = state.threadRegistry.get(channelId);
+          if (!thread) return;
+          const postOutput = toPlatformPostOutput(channelId, message);
+          if (postOutput !== undefined) {
+            thread.post(postOutput).catch((error: unknown) =>
+              logger.error("Failed to send chat message", {
+                error,
+                channelId,
+              }),
+            );
+            return;
+          }
+          if (typeof message !== "string") return;
+          for (const chunk of chunkForChannel(channelId, message)) {
+            thread
+              .post(toPlatformText(channelId, chunk))
+              .catch((error: unknown) =>
+                logger.error("Failed to send chat message", {
+                  error,
+                  channelId,
+                }),
+              );
+          }
+        },
+        sendWithId: (request) => sendWithId(state, request),
+        edit: async ({
+          channelId,
+          messageId,
+          message,
+        }: MessageTransportEdit): Promise<boolean> => {
+          const sent = state.threadRegistry.getMessage(channelId, messageId);
+          if (!sent) return false;
+          try {
+            const edited = await sent.edit(
+              toPlatformPostOutput(channelId, message) ??
+                toPlatformText(
+                  channelId,
+                  typeof message === "string" ? message : "",
+                ),
+            );
+            if (channelId) state.threadRegistry.trackMessage(channelId, edited);
+            return true;
+          } catch {
+            // The platform rejected the edit. The boolean is the contract
+            // here; callers retry or fall back rather than inspect a reason.
+            return false;
+          }
+        },
+        formatProgress: (event: JobProgressEvent): MessageInterfaceOutput =>
+          buildProgressCard(event),
+        formatCompletion: (event: JobProgressEvent): MessageInterfaceOutput =>
+          buildProgressCard(event),
+        progressEvent: async (event, next): Promise<void> => {
+          const interfaceType = event.metadata.interfaceType;
+          let routedEvent = event;
+          if (interfaceType && interfaceType !== CHAT_INTERFACE_ID) {
+            if (!isEnabledChatPlatform(config, interfaceType)) return;
+            routedEvent = {
+              ...event,
+              metadata: {
+                ...event.metadata,
+                interfaceType: CHAT_INTERFACE_ID,
+              },
+            };
+          }
 
-  protected override async handleToolActivityEvent(
-    event: ToolActivityEvent,
-  ): Promise<void> {
-    if (event.interfaceType === this.id) {
-      await super.handleToolActivityEvent(event);
-      return;
-    }
-    if (!isEnabledChatPlatform(this.config, event.interfaceType)) return;
+          await next(routedEvent);
+          await state.responseCoordinator.deliverCompletedJobArtifacts(
+            routedEvent,
+          );
+        },
+        toolActivity: async (event, next): Promise<void> => {
+          if (event.interfaceType === CHAT_INTERFACE_ID) {
+            await next(event);
+            return;
+          }
+          if (!isEnabledChatPlatform(config, event.interfaceType)) return;
 
-    await super.handleToolActivityEvent({
-      ...event,
-      interfaceType: this.id,
-    });
-  }
-
-  protected override async handleToolStatusUpdate(
-    update: ToolStatusUpdate,
-  ): Promise<void> {
-    if (update.interfaceType !== this.id || !update.channelId) return;
-    const isSlack = parseChatPlatform(update.channelId) === "slack";
-    const isActiveSlackConfirmation =
-      isSlack &&
-      this.responseCoordinator.isActiveSlackConfirmation(update.conversationId);
-    const isCompactedApprovalStatus =
-      isSlack &&
-      this.compactingSlackApprovalToolStatuses.has(getToolStatusKey(update));
-    if (
-      isCompactedApprovalStatus ||
-      isActiveSlackConfirmation ||
-      (isSlack && update.state === "completed")
-    ) {
-      await this.toolStatusMessenger.dismiss(update);
-      return;
-    }
-    await this.toolStatusMessenger.handle(update);
-  }
-
-  protected override async handleAgentResponseToolStatuses(
-    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
-    conversationId: string,
-  ): Promise<void> {
-    const toolNames = new Set([
-      ...(response.pendingConfirmations ?? []).map(
-        (confirmation) => confirmation.toolName,
-      ),
-      ...(response.cards ?? [])
-        .filter((card) => card.kind === "tool-approval")
-        .map((card) => card.toolName),
-    ]);
-    const compactedKeys = conversationId.startsWith("slack-")
-      ? [...toolNames].map((toolName) => `${conversationId}:${toolName}`)
-      : [];
-    for (const key of compactedKeys) {
-      this.compactingSlackApprovalToolStatuses.add(key);
-    }
-    try {
-      await super.handleAgentResponseToolStatuses(response, conversationId);
-    } finally {
-      for (const key of compactedKeys) {
-        this.compactingSlackApprovalToolStatuses.delete(key);
-      }
-    }
-  }
-
-  private getPreferredDisplayBaseUrl(): string | undefined {
-    if (this.context?.preferLocalUrls && this.context.localSiteUrl) {
-      return this.context.localSiteUrl;
-    }
-    return this.context?.siteUrl ?? this.context?.localSiteUrl;
-  }
+          await next({ ...event, interfaceType: CHAT_INTERFACE_ID });
+        },
+        toolStatus: async (update: ToolStatusUpdate): Promise<void> => {
+          if (update.interfaceType !== CHAT_INTERFACE_ID || !update.channelId)
+            return;
+          const isSlack = parseChatPlatform(update.channelId) === "slack";
+          const isActiveSlackConfirmation =
+            isSlack &&
+            state.responseCoordinator.isActiveSlackConfirmation(
+              update.conversationId,
+            );
+          const isCompactedApprovalStatus =
+            isSlack &&
+            state.compactingSlackApprovalToolStatuses.has(
+              getToolStatusKey(update),
+            );
+          if (
+            isCompactedApprovalStatus ||
+            isActiveSlackConfirmation ||
+            (isSlack && update.state === "completed")
+          ) {
+            await state.toolStatusMessenger.dismiss(update);
+            return;
+          }
+          await state.toolStatusMessenger.handle(update);
+        },
+        agentResponseToolStatuses: async (
+          response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
+          conversationId: string,
+          next: () => Promise<void>,
+        ): Promise<void> => {
+          const toolNames = new Set([
+            ...(response.pendingConfirmations ?? []).map(
+              (confirmation) => confirmation.toolName,
+            ),
+            ...(response.cards ?? [])
+              .filter((card) => card.kind === "tool-approval")
+              .map((card) => card.toolName),
+          ]);
+          const compactedKeys = conversationId.startsWith("slack-")
+            ? [...toolNames].map((toolName) => `${conversationId}:${toolName}`)
+            : [];
+          for (const key of compactedKeys) {
+            state.compactingSlackApprovalToolStatuses.add(key);
+          }
+          try {
+            await next();
+          } finally {
+            for (const key of compactedKeys) {
+              state.compactingSlackApprovalToolStatuses.delete(key);
+            }
+          }
+        },
+      };
+    },
+  );
 }

@@ -1,3 +1,4 @@
 plugin: "@brains/link"
-export: linkPlugin
+export: default
+pluginId: link
 model: gpt-5.4-mini

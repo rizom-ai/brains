@@ -3,22 +3,19 @@ import { randomUUID } from "node:crypto";
 import {
   brainCharacterBodySchema,
   parseMarkdownWithFrontmatter,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import {
   STARTER_ALIAS_REGISTER,
   buildStarterCharacterBrief,
-  buildStarterCharacterPrompt,
   deriveStarterIdentity,
   generatedStarterCharacterSchema,
-  ProfilePlugin,
   resolveStarterIdentityIdentifier,
   type GeneratedStarterCharacter,
   type ProfileConfigInput,
-  type StarterCharacterBrief,
 } from "../src";
+import { installProfile } from "./profile-plugin";
 import {
   isLegacyAnchorProfileContent,
   isLegacyBrainCharacterContent,
@@ -44,39 +41,33 @@ const generatedCharacter: GeneratedStarterCharacter = {
   values: ["source fidelity", "clear context", "useful synthesis"],
 };
 
-interface TestProfilePluginOptions {
+interface TestProfileOptions {
   config?: ProfileConfigInput;
   character?: GeneratedStarterCharacter;
   onGenerate?: (prompt: string) => void;
-  generateCharacter?: (
-    brief: StarterCharacterBrief,
-  ) => Promise<GeneratedStarterCharacter>;
+  generateCharacter?: () => Promise<GeneratedStarterCharacter>;
 }
 
-class TestProfilePlugin extends ProfilePlugin {
-  private readonly testOptions: TestProfilePluginOptions;
-
-  constructor(options: TestProfilePluginOptions = {}) {
-    super(options.config);
-    this.testOptions = options;
-  }
-
-  protected override async generateCharacter(
-    _context: ServicePluginContext,
-    brief: StarterCharacterBrief,
-  ): Promise<GeneratedStarterCharacter> {
-    this.testOptions.onGenerate?.(buildStarterCharacterPrompt(brief));
-    if (this.testOptions.generateCharacter) {
-      return this.testOptions.generateCharacter(brief);
-    }
-    return this.testOptions.character ?? generatedCharacter;
-  }
-}
-
-function createTestProfilePlugin(
-  options: TestProfilePluginOptions = {},
-): ProfilePlugin {
-  return new TestProfilePlugin(options);
+/**
+ * Profile on the harness, with the brain's AI answering the starter
+ * character: the mock shell's structured answer, which the plugin's AI
+ * asks, as the real one would be asked.
+ */
+async function installTestProfile(
+  harness: ReturnType<typeof createHarness>,
+  options: TestProfileOptions = {},
+): Promise<void> {
+  harness.getMockShell().generateObject = async <T>(
+    prompt: string,
+    schema: { parse(value: unknown): T },
+  ): Promise<{ object: T }> => {
+    options.onGenerate?.(prompt);
+    const character = options.generateCharacter
+      ? await options.generateCharacter()
+      : (options.character ?? generatedCharacter);
+    return { object: schema.parse(character) };
+  };
+  await installProfile(harness, options.config);
 }
 
 /** Startup content has settled (shell defaults exist) and the shell is ready. */
@@ -393,13 +384,11 @@ describe("starter identity lifecycle", () => {
   test("waits for shell readiness and settled startup content after successful initial sync", async () => {
     const harness = createHarness();
     let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      onGenerate: () => {
+        generationCalls += 1;
+      },
+    });
     await harness.finalizeRegistration();
 
     await harness.sendMessage(
@@ -434,13 +423,11 @@ describe("starter identity lifecycle", () => {
   test("seeds missing identity after successful initial sync", async () => {
     const harness = createHarness("notes.example.com", "team");
     let generationPrompt = "";
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: (prompt) => {
-          generationPrompt = prompt;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      onGenerate: (prompt) => {
+        generationPrompt = prompt;
+      },
+    });
     await signalShellReady(harness);
 
     await harness.sendMessage(
@@ -485,13 +472,11 @@ describe("starter identity lifecycle", () => {
   test("migrates exact defaults and is idempotent", async () => {
     const harness = createHarness();
     let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      onGenerate: () => {
+        generationCalls += 1;
+      },
+    });
     await signalShellReady(harness);
     await harness.getEntityService().createEntity({
       entity: {
@@ -551,14 +536,12 @@ describe("starter identity lifecycle", () => {
   test("migrates a legacy anchor without generating over its customized brain", async () => {
     const harness = createHarness();
     let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        generateCharacter: async () => {
-          generationCalls += 1;
-          throw new Error("AI should not be called");
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      generateCharacter: async () => {
+        generationCalls += 1;
+        throw new Error("AI should not be called");
+      },
+    });
     await signalShellReady(harness);
     const customBrain = `---
 name: Atlas
@@ -607,13 +590,11 @@ values:
   test("preserves non-public authored identity without taking the create branch", async () => {
     const harness = createHarness();
     let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      onGenerate: () => {
+        generationCalls += 1;
+      },
+    });
     await signalShellReady(harness);
 
     const customBrain = `---
@@ -681,13 +662,11 @@ Authored story.
   test("preserves independently customized singletons without calling AI", async () => {
     const harness = createHarness();
     let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      onGenerate: () => {
+        generationCalls += 1;
+      },
+    });
     await signalShellReady(harness);
     const customBrain = currentLegacyBrain.replace(
       "role: Knowledge assistant",
@@ -745,14 +724,12 @@ Authored story.
   test("defers all mutation after AI failure and retries later", async () => {
     const harness = createHarness();
     let shouldFail = true;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        generateCharacter: async () => {
-          if (shouldFail) throw new Error("Provider unavailable");
-          return generatedCharacter;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      generateCharacter: async () => {
+        if (shouldFail) throw new Error("Provider unavailable");
+        return generatedCharacter;
+      },
+    });
     await signalShellReady(harness);
 
     await harness.sendMessage(
@@ -796,13 +773,11 @@ Authored story.
   test("does nothing when initial sync fails", async () => {
     const harness = createHarness();
     let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
+    await installTestProfile(harness, {
+      onGenerate: () => {
+        generationCalls += 1;
+      },
+    });
     await signalShellReady(harness);
 
     await harness.sendMessage(

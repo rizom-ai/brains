@@ -60,6 +60,7 @@ type CapabilityBundleDefinitionSchema = z.ZodObject<
     permissions: z.ZodOptional<z.ZodArray<BundlePermissionContributionSchema>>;
     agentInstructions: z.ZodOptional<z.ZodArray<z.ZodString>>;
     evalDisable: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    http: z.ZodOptional<z.ZodBoolean>;
   },
   z.core.$strict
 >;
@@ -72,6 +73,11 @@ const rawCapabilityBundleDefinitionSchema: CapabilityBundleDefinitionSchema =
     permissions: z.array(bundlePermissionContributionSchema).optional(),
     agentInstructions: z.array(z.string().min(1)).optional(),
     evalDisable: z.array(bundleIdSchema).optional(),
+    /**
+     * The runtime hosts HTTP when this bundle is selected, outside eval runs:
+     * the web surface's routes, health and the built site.
+     */
+    http: z.boolean().optional(),
   });
 
 function addDuplicateIssues(

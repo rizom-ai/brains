@@ -9,7 +9,6 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createSilentLogger,
   createMockProgressReporter,
-  createMockMessageSender,
 } from "@brains/test-utils";
 
 type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
@@ -38,27 +37,20 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     mockProgressReporter = createMockProgressReporter();
   });
 
-  function createHandler(overrides: SiteBuildJobHandlerConfigOverrides = {}): {
-    handler: SiteBuildJobHandler;
-    sendMessage: ReturnType<typeof mock>;
-  } {
-    const { sendMessage } = createMockMessageSender();
-    const handler = new SiteBuildJobHandler(
-      createSilentLogger(),
-      messagingFor(sendMessage),
-      {
-        siteBuilder: mockSiteBuilder,
-        layouts: {},
-        defaultSiteConfig: {
-          represents: "anchor",
-          title: "Test",
-          description: "Test",
-        },
-        sharedImagesDir: "./dist/images",
-        ...overrides,
+  function createHandler(
+    overrides: SiteBuildJobHandlerConfigOverrides = {},
+  ): SiteBuildJobHandler {
+    return new SiteBuildJobHandler(createSilentLogger(), messagingFor(), {
+      siteBuilder: mockSiteBuilder,
+      layouts: {},
+      defaultSiteConfig: {
+        represents: "anchor",
+        title: "Test",
+        description: "Test",
       },
-    );
-    return { handler, sendMessage };
+      sharedImagesDir: "./dist/images",
+      ...overrides,
+    });
   }
 
   const buildData = {
@@ -68,7 +60,7 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
   };
 
   test("should use siteUrl for production builds", async () => {
-    const { handler, sendMessage } = createHandler({
+    const handler = createHandler({
       siteUrl: "https://yeehaa.io",
       previewUrl: "https://preview.yeehaa.io",
     });
@@ -83,20 +75,10 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       expect.objectContaining({ siteUrl: "https://yeehaa.io" }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        environment: "production",
-        siteConfig: expect.objectContaining({
-          url: "https://yeehaa.io",
-        }),
-      }),
-      broadcast: true,
-    });
   });
 
   test("should use previewUrl for preview builds", async () => {
-    const { handler, sendMessage } = createHandler({
+    const handler = createHandler({
       siteUrl: "https://yeehaa.io",
       previewUrl: "https://preview.yeehaa.io",
     });
@@ -111,20 +93,10 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       expect.objectContaining({ siteUrl: "https://preview.yeehaa.io" }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        environment: "preview",
-        siteConfig: expect.objectContaining({
-          url: "https://preview.yeehaa.io",
-        }),
-      }),
-      broadcast: true,
-    });
   });
 
   test("should fall back to siteUrl for preview when previewUrl is not set", async () => {
-    const { handler, sendMessage } = createHandler({
+    const handler = createHandler({
       siteUrl: "https://yeehaa.io",
     });
 
@@ -134,19 +106,14 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        siteConfig: expect.objectContaining({
-          url: "https://yeehaa.io",
-        }),
-      }),
-      broadcast: true,
-    });
+    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+      expect.objectContaining({ siteUrl: "https://yeehaa.io" }),
+      expect.anything(),
+    );
   });
 
   test("should use the local runtime URL for local production builds", async () => {
-    const { handler, sendMessage } = createHandler({
+    const handler = createHandler({
       localSiteUrl: "http://localhost:8080",
       preferLocalUrls: true,
     });
@@ -161,19 +128,10 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       expect.objectContaining({ siteUrl: "http://localhost:8080" }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        siteConfig: expect.objectContaining({
-          url: "http://localhost:8080",
-        }),
-      }),
-      broadcast: true,
-    });
   });
 
   test("should not use the local runtime URL in deployed production", async () => {
-    const { handler, sendMessage } = createHandler({
+    const handler = createHandler({
       localSiteUrl: "http://localhost:8080",
       preferLocalUrls: false,
     });
@@ -188,14 +146,5 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       expect.objectContaining({ siteUrl: undefined }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        siteConfig: expect.objectContaining({
-          url: undefined,
-        }),
-      }),
-      broadcast: true,
-    });
   });
 });

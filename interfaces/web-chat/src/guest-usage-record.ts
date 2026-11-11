@@ -240,7 +240,7 @@ export class GuestUsageRecord {
     );
   }
 
-  private readonly state: IRuntimeStateNamespace;
+  private readonly state: Pick<IRuntimeStateNamespace, "scoped">;
   private readonly bounds: GuestUsageBounds;
   private readonly now: () => number;
   /** Counted denials not yet written, by day and reason; flushed on maintenance. */
@@ -252,7 +252,7 @@ export class GuestUsageRecord {
   >();
 
   constructor(
-    state: IRuntimeStateNamespace,
+    state: Pick<IRuntimeStateNamespace, "scoped">,
     bounds: GuestUsageBounds,
     now: () => number,
   ) {

@@ -23,8 +23,9 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import notePackage, { noteSchema } from "@brains/note";
+import { declaredType } from "./helpers/declared-type";
+import blogPackage, { blogPostSchema } from "@brains/blog";
 import { createMockShell } from "@brains/plugins/test";
 import {
   createSilentLogger,
@@ -56,8 +57,14 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     const dbConfig = { url: `file:${directory}/entities.db` };
     await migrateEntities(dbConfig, createSilentLogger());
     const registry = EntityRegistry.createFresh(createSilentLogger());
-    registry.registerEntityType("note", noteSchema, noteAdapter);
-    registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+    {
+      // The declared note, as the canonical brain installs it.
+      const note = declaredType(notePackage, "@brains/note", "note");
+      registry.registerEntityType("note", note.schema, note.adapter);
+    }
+    // The declared post, as the canonical brain installs it.
+    const post = declaredType(blogPackage, "@brains/blog", "blog");
+    registry.registerEntityType("post", post.schema, post.adapter);
     if (enabled) registry.registerGrouping(clients);
     const service = EntityService.createFresh({
       dbConfig,
@@ -146,6 +153,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     if (
       declarations.length &&
       !(await service.getEntityRaw({
+        source: true,
         entityType: "grouping-definitions",
         id: "grouping-definitions",
         visibilityScope: "shared",
@@ -220,6 +228,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         },
       });
       const stored = await service.getEntity({
+        source: true,
         entityType,
         id: "runtime-entry",
       });
@@ -265,7 +274,13 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     ]);
     for (const entityType of ["note", "post"]) {
       expect(
-        (await service.getEntity({ entityType, id: "runtime-entry" }))?.content,
+        (
+          await service.getEntity({
+            source: true,
+            entityType,
+            id: "runtime-entry",
+          })
+        )?.content,
       ).toBe(originals.get(entityType));
     }
 
@@ -294,6 +309,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     );
     for (const entityType of ["note", "post"]) {
       const stored = await service.getEntity({
+        source: true,
         entityType,
         id: "runtime-entry",
       });
@@ -308,6 +324,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         },
       });
       const updated = await service.getEntity({
+        source: true,
         entityType,
         id: "runtime-entry",
       });
@@ -395,6 +412,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       ).toBe(401);
       expect(
         await service.getEntity({
+          source: true,
           entityType: "note",
           id: "session-member",
           visibilityScope: "restricted",
@@ -489,7 +507,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       total: 1,
     });
     expect(
-      await service.getEntity({ entityType: "note", id: "same" }),
+      await service.getEntity({ source: true, entityType: "note", id: "same" }),
     ).not.toBeNull();
   });
   test.each(["note", "post"])(
@@ -519,7 +537,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           })
         ).status,
       ).toBe(201);
-      const original = await service.getEntity({ entityType, id: "old" });
+      const original = await service.getEntity({
+        source: true,
+        entityType,
+        id: "old",
+      });
       if (!original) throw new Error("Missing original");
       const vocabulary = {
         groupings: {
@@ -570,9 +592,9 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           },
         ],
       });
-      expect(await service.getEntity({ entityType, id: "old" })).toEqual(
-        original,
-      );
+      expect(
+        await service.getEntity({ source: true, entityType, id: "old" }),
+      ).toEqual(original);
       await service.reprojectRegisteredGroupings();
       expect((await service.queryGroupingCatalog(query)).values).toEqual([
         { value: "Gamma", count: 1 },
@@ -634,9 +656,9 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       expect(persistError).toMatchObject({
         message: expect.stringContaining("Clients"),
       });
-      expect(await service.getEntity({ entityType, id: "old" })).toEqual(
-        original,
-      );
+      expect(
+        await service.getEntity({ source: true, entityType, id: "old" }),
+      ).toEqual(original);
       expect(
         (
           await request("PUT", "entities", {
@@ -662,6 +684,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         ).status,
       ).toBe(403);
       const beforeCardinality = await service.getEntity({
+        source: true,
         entityType,
         id: "old",
       });
@@ -706,9 +729,9 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           )
         ).status,
       ).toBe(200);
-      expect(await service.getEntity({ entityType, id: "old" })).toEqual(
-        beforeCardinality,
-      );
+      expect(
+        await service.getEntity({ source: true, entityType, id: "old" }),
+      ).toEqual(beforeCardinality);
       // The editors a vocabulary constrains can always read it.
       expect(await (await request("GET", "types")).json()).toMatchObject({
         groupings: [
@@ -819,6 +842,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     const service = await open(directory.dir, true);
     const request = await editor(service);
     const before = await service.getEntityRaw({
+      source: true,
       entityType: "grouping-definitions",
       id: "grouping-definitions",
       visibilityScope: "shared",
@@ -850,6 +874,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     });
     expect(
       await service.getEntityRaw({
+        source: true,
         entityType: "grouping-definitions",
         id: "grouping-definitions",
         visibilityScope: "shared",
@@ -894,6 +919,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(response.status).toBe(400);
     expect(
       await service.getEntity({
+        source: true,
         entityType: "grouping-definitions",
         id: "grouping-definitions",
         visibilityScope: "restricted",
@@ -1034,6 +1060,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     const service = await open(directory.dir, true);
     const request = await editor(service);
     const before = await service.getEntityRaw({
+      source: true,
       entityType: "grouping-definitions",
       id: "grouping-definitions",
       visibilityScope: "shared",
@@ -1093,6 +1120,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     }
     expect(
       await service.getEntity({
+        source: true,
         entityType: "grouping-definitions",
         id: "grouping-definitions",
         visibilityScope: "restricted",
@@ -1165,7 +1193,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         baseContentHash: entity.contentHash,
       });
       expect(saved.status).toBe(200);
-      const stored = await service.getEntity({ entityType, id: "entry" });
+      const stored = await service.getEntity({
+        source: true,
+        entityType,
+        id: "entry",
+      });
       if (!stored) throw new Error("Missing saved entity");
       expect(stored.content).toContain("unclaimed: retained");
       expect(stored.content).toContain("nullable: null");
@@ -1235,7 +1267,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           })
         ).status,
       ).toBe(200);
-      const stored = await service.getEntity({ entityType, id: "entry" });
+      const stored = await service.getEntity({
+        source: true,
+        entityType,
+        id: "entry",
+      });
       if (!stored) throw new Error("Missing disabled entity");
       expect(service.serializeEntity(stored)).toContain("clients:");
       expect(stored.content).not.toContain("ATTACK");
@@ -1401,6 +1437,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       for (const id of ["projected-valid", "projected-stray"]) {
         expect(
           await service.getEntity({
+            source: true,
             entityType,
             id,
             visibilityScope: "shared",
@@ -1441,6 +1478,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         { value: "Gamma", count: 1 },
       ]);
       const before = await service.getEntity({
+        source: true,
         entityType,
         id: "projected-stray",
         visibilityScope: "shared",
@@ -1466,6 +1504,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       });
       expect(
         await service.getEntity({
+          source: true,
           entityType,
           id: "projected-stray",
           visibilityScope: "shared",
@@ -1485,6 +1524,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       });
       expect(
         await service.getEntity({
+          source: true,
           entityType,
           id: "projected-stray",
           visibilityScope: "shared",
@@ -1524,6 +1564,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       },
     });
     const entity = await original.getEntity({
+      source: true,
       entityType: "note",
       id: "imported",
     });
@@ -1617,7 +1658,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(refused).toMatchObject({ imported: 0, failed: 1 });
     expect(JSON.stringify(refused.errors)).toContain("Clients");
     expect(
-      await service.getEntity({ entityType: "note", id: "imported" }),
+      await service.getEntity({
+        source: true,
+        entityType: "note",
+        id: "imported",
+      }),
     ).toBeNull();
     expect(
       (
@@ -1677,7 +1722,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       });
     }
     for (const entityType of ["note", "post"]) {
-      const entity = await original.getEntity({ entityType, id: "shared" });
+      const entity = await original.getEntity({
+        source: true,
+        entityType,
+        id: "shared",
+      });
       if (!entity) throw new Error("Missing export entity");
       await exporter.fileOps.writeEntity(entity);
     }
@@ -1700,12 +1749,17 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       { value: "Acme", count: 2 },
       { value: "Beta", count: 2 },
     ]);
-    const note = await original.getEntity({ entityType: "note", id: "shared" });
+    const note = await original.getEntity({
+      source: true,
+      entityType: "note",
+      id: "shared",
+    });
     if (!note) throw new Error("Missing note");
     await original.updateEntity({
       entity: { ...note, content: note.content.replace("Acme", "Gamma") },
     });
     const updated = await original.getEntity({
+      source: true,
       entityType: "note",
       id: "shared",
     });
@@ -1749,7 +1803,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       { value: "Beta", count: 2 },
     ]);
     const note = await service.getEntity(
-      { entityType: "note", id: "legacy:entry" },
+      { source: true, entityType: "note", id: "legacy:entry" },
       noteSchema,
     );
     if (!note) throw new Error("Missing note");
@@ -1758,7 +1812,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       entity: { ...note, content: note.content.replace("Body", "Edited body") },
     });
     const post = await service.getEntity(
-      { entityType: "post", id: "legacy:entry" },
+      { source: true, entityType: "post", id: "legacy:entry" },
       blogPostSchema,
     );
     if (!post) throw new Error("Missing post");
@@ -1791,7 +1845,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     services.splice(services.indexOf(service), 1);
     service = await open(directory.dir, false);
     const inactive = await service.getEntity(
-      { entityType: "post", id: post.id },
+      { source: true, entityType: "post", id: post.id },
       blogPostSchema,
     );
     if (!inactive) throw new Error("Missing inactive post");
@@ -1801,7 +1855,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         content: inactive.content.replace("Body", "Unrelated body edit"),
       },
     });
-    const saved = await service.getEntity({ entityType: "post", id: post.id });
+    const saved = await service.getEntity({
+      source: true,
+      entityType: "post",
+      id: post.id,
+    });
     if (!saved) throw new Error("Missing saved post");
     expect(service.serializeEntity(saved)).toContain("clients:");
     expect(service.serializeEntity(saved)).toContain("unclaimed: retained");

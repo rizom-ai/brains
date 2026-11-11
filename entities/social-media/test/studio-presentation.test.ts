@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { socialPostFrontmatterSchema } from "../src/schemas/social-post";
+import {
+  socialPostFrontmatterSchema,
+  socialPostMetadataSchema,
+} from "../src/schemas/social-post";
 
 function widget(field: { meta(): unknown }): unknown {
   const meta = field.meta();
@@ -23,5 +26,20 @@ describe("a social post in Studio", () => {
       sourceEntityId: "provenance",
       sourceEntityType: "provenance",
     });
+  });
+
+  it("leaves out the record's own slug, error and the slug a file states", () => {
+    const shape = socialPostMetadataSchema.shape;
+    expect(
+      Object.entries(shape)
+        .filter(([, field]) => widget(field) === "hidden")
+        .map(([name]) => name),
+    ).toEqual(["slug", "error", "statedSlug"]);
+  });
+
+  it("gives the vault no platform or status a file does not state, as the frontmatter schema did", () => {
+    const { platform, status } = socialPostMetadataSchema.shape;
+    expect(platform.safeParse(undefined).success).toBe(false);
+    expect(status.safeParse(undefined).success).toBe(false);
   });
 });

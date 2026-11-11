@@ -15,6 +15,8 @@ export const WEB_ROUTE_ROLES = [
   "ask",
   /** The chat backend's message endpoint; its session and action routes live under it. */
   "chat-api",
+  /** The brain's contact form, its GET and its POST. */
+  "contact-form",
 ] as const;
 
 export type WebRouteRole = (typeof WEB_ROUTE_ROLES)[number];

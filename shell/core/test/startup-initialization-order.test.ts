@@ -82,9 +82,7 @@ describe("Startup Initialization Order", () => {
     it("should initialize identity services after plugins-registered sync and before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
-      const earlyWebserverCallIndex = source.indexOf(
-        "this.startEarlyWebserver()",
-      );
+      const httpHostCallIndex = source.indexOf("this.startHttpHost()");
       const pluginsRegisteredCallIndex = source.indexOf(
         "this.emitPluginsRegistered()",
       );
@@ -97,11 +95,11 @@ describe("Startup Initialization Order", () => {
       expect(source).not.toContain(
         "Promise.all([this.emitPluginsRegistered(), this.prepareReadyState()])",
       );
-      expect(earlyWebserverCallIndex).toBeGreaterThan(-1);
+      expect(httpHostCallIndex).toBeGreaterThan(-1);
       expect(pluginsRegisteredCallIndex).toBeGreaterThan(-1);
       expect(prepareCallIndex).toBeGreaterThan(-1);
       expect(readyCallIndex).toBeGreaterThan(-1);
-      expect(earlyWebserverCallIndex).toBeLessThan(pluginsRegisteredCallIndex);
+      expect(httpHostCallIndex).toBeLessThan(pluginsRegisteredCallIndex);
       expect(pluginsRegisteredCallIndex).toBeLessThan(prepareCallIndex);
       expect(prepareCallIndex).toBeLessThan(readyCallIndex);
     });

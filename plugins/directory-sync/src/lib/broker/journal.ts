@@ -1,5 +1,6 @@
 import { appendFile, mkdir, readFile, rename, writeFile } from "fs/promises";
 import { join } from "path";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import { GIT_OPERATIONS, isMutatingOperation } from "./operations";
 import type { GitOperationName } from "./operations";
@@ -104,7 +105,7 @@ export class BrokerJournal {
     const path = join(runtimeDir, JOURNAL_FILE);
     let inheritedGeneration = true;
     const contents = await readFile(path, "utf-8").catch((error: unknown) => {
-      if (isNoEntry(error)) {
+      if (isNotFoundError(error)) {
         inheritedGeneration = false;
         return "";
       }
@@ -219,13 +220,4 @@ function parseLine(line: string): unknown {
   } catch {
     return undefined;
   }
-}
-
-function isNoEntry(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ENOENT"
-  );
 }
