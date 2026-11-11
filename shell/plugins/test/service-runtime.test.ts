@@ -1120,6 +1120,75 @@ describe("a first-party service's data source, template and widget", () => {
     expect(template?.requiredPermission).toBe("public");
   });
 
+  it("registers a declarative widget, with no renderer of its own, as its class did", async () => {
+    const shell = noted();
+    const registrations: DashboardWidgetRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        },
+      );
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dashboardWidget({
+              definition: defineDashboardWidget({
+                id: "health",
+                title: "Health",
+                group: "publishing",
+                placement: "sidebar",
+                priority: 50,
+                permission: "public",
+                data: mapData,
+                view: ({ data }) => ({
+                  blocks: [
+                    {
+                      type: "stats",
+                      id: "builds",
+                      items: [{ label: "Built", value: data.count }],
+                    },
+                  ],
+                }),
+              }),
+              load: async () => ({ count: 3 }),
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+      sender: "shell",
+    });
+
+    const [registration] = registrations;
+    if (!registration) throw new Error("The widget was not registered");
+    expect(registration).toMatchObject({
+      id: "health",
+      rendererName: "DeclarativeOperatorWidget",
+    });
+    expect(registration.renderer).toBeUndefined();
+    expect(
+      await registration.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).toMatchObject({
+      view: {
+        blocks: [{ type: "stats", items: [{ label: "Built", value: 3 }] }],
+      },
+    });
+  });
+
   it("registers its widget with its own renderer once every plugin has registered", async () => {
     const shell = noted();
     const registrations: DashboardWidgetRegistration[] = [];

@@ -324,9 +324,9 @@ export interface ServiceRuntime {
    */
   template(name: string, template: Template): void;
   /**
-   * A Dashboard widget that draws itself, as the class's built-in widget
-   * did: registered once every plugin has registered, never in a worker, its
-   * `load` reading the corpus at the viewer's scope.
+   * A Dashboard widget as the class's built-in widget was, drawing itself
+   * or its declared view: registered once every plugin has registered, never
+   * in a worker, its `load` reading the corpus at the viewer's scope.
    */
   dashboardWidget<TDefinition extends AnyDashboardWidgetDefinition>(
     widget: ServiceDashboardWidget<TDefinition>,
@@ -385,8 +385,11 @@ export interface ServiceDashboardWidget<
   TDefinition extends AnyDashboardWidgetDefinition,
 > {
   readonly definition: TDefinition;
-  /** The widget's own component and styles, in place of the declarative body. */
-  readonly render: DashboardWidgetRenderer;
+  /**
+   * The widget's own component and styles, in place of the declarative body;
+   * unset, the widget draws its declared view, as a declarative one does.
+   */
+  readonly render?: DashboardWidgetRenderer | undefined;
   load(provider: {
     readonly corpus: ServiceCorpusReads;
     /** What the viewer may read: pass it to every read. */
