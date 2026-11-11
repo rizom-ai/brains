@@ -1075,6 +1075,42 @@ describe("a first-party service's data source, template and widget", () => {
     ).toEqual({ count: 1 });
   });
 
+  it("serves a data source under the id its class gave it, unscoped, when it asks to", async () => {
+    const shell = noted();
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dataSource(
+              {
+                id: "site:navigation",
+                name: "Site Navigation",
+                description: "Navigation items",
+                fetch: async () => ({ count: 2 }),
+              },
+              { asWritten: true },
+            );
+            return [];
+          },
+        },
+      ),
+    );
+
+    expect(shell.getDataSourceRegistry().get("probe:site:navigation")).toBe(
+      undefined,
+    );
+    const source = shell.getDataSourceRegistry().get("site:navigation");
+    if (!source?.fetch) throw new Error("No site:navigation data source");
+    expect(source.name).toBe("Site Navigation");
+    expect(
+      await source.fetch({}, mapData, {
+        entityService: shell.getEntityService(),
+      }),
+    ).toEqual({ count: 2 });
+  });
+
   it("registers a built template under the plugin's id, naming its data source", async () => {
     const shell = noted();
     await install(shell, mapping([]));

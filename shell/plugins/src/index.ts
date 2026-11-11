@@ -1023,6 +1023,7 @@ export {
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,
+  type ServiceDataSourceOptions,
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceClassJobs,

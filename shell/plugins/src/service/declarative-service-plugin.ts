@@ -1171,9 +1171,14 @@ class DeclarativeServicePlugin<
           context.ai.generateObject(prompt, schema, signal),
         judge: (input) => context.judge(input),
       }),
-      dataSource: (declaration): void => {
+      dataSource: (declaration, options = {}): void => {
         context.entities.registerDataSource(
-          firstPartyDataSource(`${this.id}:${declaration.id}`, declaration),
+          firstPartyDataSource(
+            options.asWritten === true
+              ? declaration.id
+              : `${this.id}:${declaration.id}`,
+            declaration,
+          ),
         );
       },
       template: (name, template): void => {

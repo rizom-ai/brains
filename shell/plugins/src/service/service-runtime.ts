@@ -309,9 +309,14 @@ export interface ServiceRuntime {
    * Serve a data source under `<plugin id>:<id>`, as an entity plugin class
    * registered one: `fetch` reads the corpus at the build's scope, through
    * the entity service the build hands the data source, and the runtime
-   * validates what it returns against the caller's schema.
+   * validates what it returns against the caller's schema. With
+   * `asWritten`, under its id as written, as a service class registered one
+   * it named in full (`site:navigation`).
    */
-  dataSource(declaration: ServiceDataSourceDeclaration): void;
+  dataSource(
+    declaration: ServiceDataSourceDeclaration,
+    options?: ServiceDataSourceOptions,
+  ): void;
   /**
    * Register a template built with the internal template builder under
    * `<plugin id>:<name>`, such as a site section that names a data source
@@ -354,6 +359,11 @@ export interface ServiceCorpusReads {
   projectSemanticSpace(
     request: ProjectSemanticSpaceRequest,
   ): Promise<SemanticSpaceProjection>;
+}
+
+export interface ServiceDataSourceOptions {
+  /** Register under the id as written rather than `<plugin id>:<id>`. */
+  readonly asWritten?: boolean | undefined;
 }
 
 export interface ServiceDataSourceDeclaration {
@@ -464,7 +474,10 @@ export interface ServiceRuntimeBinding {
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: ServiceAI;
-  readonly dataSource: (declaration: ServiceDataSourceDeclaration) => void;
+  readonly dataSource: (
+    declaration: ServiceDataSourceDeclaration,
+    options?: ServiceDataSourceOptions,
+  ) => void;
   readonly template: (name: string, template: Template) => void;
   readonly dashboardWidget: <TDefinition extends AnyDashboardWidgetDefinition>(
     widget: ServiceDashboardWidget<TDefinition>,
