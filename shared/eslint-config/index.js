@@ -1,8 +1,12 @@
 /* global module */
 
-/** Shell packages plugins never import; @brains/plugins serves them. */
+/**
+ * Shell packages plugins never import; @brains/plugins serves them. The
+ * runtime's HTTP host serves their routes; no plugin opens a listener.
+ */
 const shellServicePackages = [
   "@brains/core",
+  "@brains/http-host",
   "@brains/job-queue",
   "@brains/identity-service",
   "@brains/entity-service",
@@ -135,26 +139,21 @@ const rawFullScope = {
 };
 
 /**
- * A raw `messaging.send` answers with whichever subscriber replies first and
- * leaves the reply untyped. Entities, plugins and interfaces send events with
- * `broadcast: true` and make every other cross-package call through a bus
- * contract.
+ * A raw send with `broadcast: true` hands every subscriber whatever it was
+ * given; the subscriber's channel refuses a malformed payload only after it
+ * left. Every broadcast goes through its typed channel instead, whose schema
+ * parses the payload before it is sent. Only the message bus, which that
+ * function is built on, sends one raw.
  */
-const busContractMessage =
-  "Use context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send is only for an event sent with broadcast: true.";
+const rawBroadcastSend = {
+  selector:
+    "CallExpression[callee.property.name='send'] > ObjectExpression > Property[key.name='broadcast'][value.value=true]",
+  message:
+    "Broadcast through broadcast(channel, payload) on a typed channel (defineChannel in @brains/contracts): context.messaging.broadcast in a plugin, broadcastChannel from @brains/messaging-service on a message bus. A raw send with broadcast: true checks no payload.",
+};
+
 const messagingObject =
   ":matches([object.name='messaging'], [object.property.name='messaging'])";
-const rawBusSend = [
-  {
-    selector: `MemberExpression[property.name='send']${messagingObject}:not(CallExpression:has(> ObjectExpression:has(> Property[key.name='broadcast'][value.value=true])) > .callee)`,
-    message: busContractMessage,
-  },
-  {
-    selector:
-      "VariableDeclarator:matches([init.name='messaging'], [init.property.name='messaging']) > ObjectPattern > Property[key.name='send']",
-    message: busContractMessage,
-  },
-];
 
 /**
  * A type argument on a messaging subscription casts a payload nobody checked:
@@ -266,9 +265,10 @@ module.exports = {
       },
     },
     {
-      // Entity, plugin and interface production code sends no raw requests
-      // and casts no subscription's payload. Listed last: it restates the
-      // restrictions above for these files.
+      // Production code broadcasts only through a typed channel and casts no
+      // subscription's payload. The message bus itself is exempt: it is what
+      // the typed channels are built on. Listed last: it restates the
+      // `**/src/**` restrictions above for these files.
       files: [
         "**/entities/*/src/**/*.ts",
         "**/entities/*/src/**/*.tsx",
@@ -276,33 +276,14 @@ module.exports = {
         "**/plugins/*/src/**/*.tsx",
         "**/interfaces/*/src/**/*.ts",
         "**/interfaces/*/src/**/*.tsx",
-      ],
-      excludedFiles: [
-        "**/shell/plugins/**",
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/src/test/**",
-      ],
-      rules: {
-        "no-restricted-syntax": [
-          "error",
-          ...restrictedSyntax,
-          rawFullScope,
-          ...rawBusSend,
-          castSubscription,
-        ],
-      },
-    },
-    {
-      // Shared and shell production code that subscribes through a plugin
-      // context's messaging casts no payload either. The message bus itself is
-      // exempt: it is what the typed channels are built on. Restates the
-      // `**/src/**` restrictions above for these files.
-      files: [
         "**/shared/*/src/**/*.ts",
         "**/shared/*/src/**/*.tsx",
         "**/shell/*/src/**/*.ts",
         "**/shell/*/src/**/*.tsx",
+        "**/packages/*/src/**/*.ts",
+        "**/packages/*/src/**/*.tsx",
+        "**/sites/*/src/**/*.ts",
+        "**/sites/*/src/**/*.tsx",
       ],
       excludedFiles: [
         "**/shell/messaging-service/**",
@@ -316,6 +297,7 @@ module.exports = {
           "error",
           ...restrictedSyntax,
           rawFullScope,
+          rawBroadcastSend,
           castSubscription,
         ],
       },

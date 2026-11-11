@@ -149,20 +149,6 @@ function buildEventPayload(input: {
   };
 }
 
-async function emitDiscoveryEvent(
-  context: EntityPluginContext,
-  channel:
-    | typeof atprotoBrainDiscoveredChannel
-    | typeof atprotoBrainCardRefreshedChannel,
-  payload: AtprotoBrainDiscoveryEventPayload,
-): Promise<void> {
-  await context.messaging.send({
-    type: channel.name,
-    payload,
-    broadcast: true,
-  });
-}
-
 export async function upsertAgentFromCard(
   context: EntityPluginContext,
   input: {
@@ -205,16 +191,12 @@ export async function upsertAgentFromCard(
     existing?.metadata.repoDid &&
     existing.metadata.repoDid !== input.repoDid
   ) {
-    await context.messaging.send({
-      type: atprotoBrainCardConflictChannel.name,
-      payload: {
-        domain: agentId,
-        existingRepoDid: existing.metadata.repoDid,
-        candidateRepoDid: input.repoDid,
-        observedAt: now,
-        reason: "A different repo DID claimed an existing agent domain",
-      },
-      broadcast: true,
+    await context.messaging.broadcast(atprotoBrainCardConflictChannel, {
+      domain: agentId,
+      existingRepoDid: existing.metadata.repoDid,
+      candidateRepoDid: input.repoDid,
+      observedAt: now,
+      reason: "A different repo DID claimed an existing agent domain",
     });
     return { agent: existing, created: false, conflict: true };
   }
@@ -560,8 +542,7 @@ export function registerAtprotoBrainCardHandlers(
         cid: parsed.cid,
         record: parsed.record,
       });
-      await emitDiscoveryEvent(
-        context,
+      await context.messaging.broadcast(
         result.created
           ? atprotoBrainDiscoveredChannel
           : atprotoBrainCardRefreshedChannel,

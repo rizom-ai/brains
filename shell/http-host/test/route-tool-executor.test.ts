@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
-import type { RegisteredApiRoute } from "../src";
-import { createInterfacePluginContext } from "../src/interface/context";
-import { createMockShell } from "../src/test/mock-shell";
+import type { RegisteredApiRoute } from "@brains/plugins";
+import { createMockShell } from "@brains/plugins/test";
+import { createRouteToolExecutor } from "../src/route-tool-executor";
 
 function route(tool: string): RegisteredApiRoute {
   return {
@@ -12,19 +12,24 @@ function route(tool: string): RegisteredApiRoute {
   };
 }
 
-describe("context.apiRoutes.executeTool", () => {
-  it("runs the route's tool on its owning plugin as an anonymous external caller", async () => {
+describe("createRouteToolExecutor", () => {
+  it("runs the route's tool on its owning plugin as an anonymous external caller of the host", async () => {
     const shell = createMockShell();
     const received: unknown[] = [];
+    const senders: string[] = [];
     shell
       .getMessageBus()
       .subscribe("plugin:newsletter:tool:execute", async (message) => {
         received.push(message.payload);
+        senders.push(message.source);
         return { success: true, data: { success: true, data: { ok: true } } };
       });
-    const context = createInterfacePluginContext(shell, "webserver");
+    const executeTool = createRouteToolExecutor(
+      shell.getMessageBus(),
+      "webserver",
+    );
 
-    const response = await context.apiRoutes.executeTool(route("subscribe"), {
+    const response = await executeTool(route("subscribe"), {
       email: "reader@example.com",
     });
 
@@ -39,6 +44,7 @@ describe("context.apiRoutes.executeTool", () => {
         },
       },
     ]);
+    expect(senders).toEqual(["webserver"]);
     expect(response).toEqual({
       success: true,
       data: { success: true, data: { ok: true } },
@@ -55,10 +61,10 @@ describe("context.apiRoutes.executeTool", () => {
         return { success: true };
       });
 
-    await createInterfacePluginContext(
-      shell,
-      "webserver",
-    ).apiRoutes.executeTool(route("system_create"), {});
+    await createRouteToolExecutor(shell.getMessageBus(), "webserver")(
+      route("system_create"),
+      {},
+    );
 
     expect(payloads).toEqual([
       expect.objectContaining({ toolName: "system_create" }),

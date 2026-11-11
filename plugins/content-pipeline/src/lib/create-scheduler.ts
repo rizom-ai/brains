@@ -1,5 +1,4 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import type { SchedulerMessagePublisher } from "../types/scheduler";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
@@ -34,8 +33,6 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     logger,
   } = deps;
 
-  const messageBus = createMessageBusAdapter(context);
-
   return ContentScheduler.createFresh({
     queueManager,
     providerRegistry,
@@ -63,7 +60,8 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     ...(config.generationConditions && {
       generationConditions: config.generationConditions,
     }),
-    messageBus,
+    // The scheduler broadcasts events and sends commands, as the plugin.
+    messageBus: context.messaging,
     publishExecutor,
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(
@@ -73,24 +71,4 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
         conditions,
       ),
   });
-}
-
-/**
- * The scheduler publishes events and commands and reads no responses, so the
- * adapter returns the publisher it needs rather than a whole message bus whose
- * other members it would have to stub as no-ops.
- */
-function createMessageBusAdapter(
-  context: ServicePluginContext,
-): SchedulerMessagePublisher {
-  return {
-    send: (request) =>
-      context.messaging.send({
-        type: request.type,
-        payload: request.payload,
-        broadcast: true,
-      }),
-    command: (contract, payload) =>
-      context.messaging.command(contract, payload),
-  };
 }

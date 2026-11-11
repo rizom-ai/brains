@@ -20,7 +20,7 @@
 "@brains/plugins": minor
 "@brains/site-content": patch
 "@brains/social-media": patch
-"@brains/webserver": patch
+"@brains/http-host": patch
 "@brains/web-chat": patch
 ---
 

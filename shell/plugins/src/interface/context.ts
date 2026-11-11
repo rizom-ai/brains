@@ -1,6 +1,5 @@
 import type { WebRouteRole } from "@brains/contracts";
 import { findRouteByRole } from "../types/web-routes";
-import { createExternalActorId, PLUGIN_CHANNELS } from "@brains/contracts";
 import type {
   BasePluginContext,
   IConversationsNamespace,
@@ -31,10 +30,7 @@ import type {
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
 } from "@brains/conversation-service";
-import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
-import type { RegisteredHttpRoute } from "../types/http-routes";
-import { getHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 import type { ToolInfo } from "@brains/mcp-service";
 
 /**
@@ -70,33 +66,11 @@ export interface IToolsNamespace {
   listForPermissionLevel: (level: UserPermissionLevel) => ToolInfo[];
 }
 
-/**
- * API Routes namespace for InterfacePluginContext
- * Provides access to plugin-declared API routes
- */
-export interface IApiRoutesNamespace {
-  /** Get all registered API routes from plugins */
-  getRoutes: () => RegisteredApiRoute[];
-  /**
-   * Run a route's tool on the plugin that declared it, as an anonymous
-   * external caller of this interface. Resolves to the plugin's bus reply.
-   */
-  executeTool: (
-    route: RegisteredApiRoute,
-    args: Record<string, unknown>,
-  ) => Promise<unknown>;
-}
-
 export interface IWebRoutesNamespace {
   /** Get all registered web routes from plugins */
   getRoutes: () => RegisteredWebRoute[];
   /** The route claiming a well-known role, whichever plugin registered it. */
   findByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
-}
-
-export interface IHttpRoutesNamespace {
-  /** Get the finalized normalized HTTP route snapshot. */
-  getRoutes: () => readonly RegisteredHttpRoute[];
 }
 
 export interface IPluginsNamespace {
@@ -197,21 +171,11 @@ export interface InterfacePluginContext
   readonly tools: IToolsNamespace;
 
   // ============================================================================
-  // API Routes (Plugin-declared HTTP endpoints)
+  // Web Routes (Plugin-declared HTTP endpoints)
   // ============================================================================
-
-  /**
-   * API Routes namespace for webserver interfaces
-   * - `apiRoutes.getRoutes()` - Get all registered API routes from plugins
-   * - `apiRoutes.executeTool()` - Run a route's tool on its owning plugin
-   */
-  readonly apiRoutes: IApiRoutesNamespace;
 
   /** Plugin-contributed web routes for the shared HTTP surface */
   readonly webRoutes: IWebRoutesNamespace;
-
-  /** Finalized normalized routes for the shared HTTP server. */
-  readonly httpRoutes: IHttpRoutesNamespace;
 
   /** Plugin registry visibility for interface coordination */
   readonly plugins: IPluginsNamespace;
@@ -310,42 +274,12 @@ export function createInterfacePluginContext(
       },
     },
 
-    // API Routes namespace
-    apiRoutes: {
-      getRoutes: (): RegisteredApiRoute[] => {
-        return shell.getPluginApiRoutes();
-      },
-      executeTool: (route, args): Promise<unknown> =>
-        shell.getMessageBus().send({
-          type: PLUGIN_CHANNELS.toolExecute(route.pluginId),
-          payload: {
-            // Most routes name a local tool; consolidated tools may name an
-            // exact canonical one.
-            toolName: route.definition.tool.includes("_")
-              ? route.definition.tool
-              : `${route.pluginId}_${route.definition.tool}`,
-            args,
-            interfaceType: pluginId,
-            actor: {
-              kind: "external",
-              externalActorId: createExternalActorId(pluginId, "anonymous"),
-            },
-          },
-          sender: pluginId,
-        }),
-    },
-
     webRoutes: {
       getRoutes: (): RegisteredWebRoute[] => {
         return shell.getPluginWebRoutes();
       },
       findByRole: (role): RegisteredWebRoute | undefined =>
         findRouteByRole(shell.getPluginWebRoutes(), role),
-    },
-
-    httpRoutes: {
-      getRoutes: (): readonly RegisteredHttpRoute[] =>
-        getHttpRouteSnapshot(shell),
     },
 
     plugins: {

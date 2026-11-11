@@ -14,12 +14,21 @@ export {
   createShellConfig,
   createStandardConfig,
   getStandardConfig,
+  httpHostConfigSchema,
+  httpSettingsSchema,
   logLevelSchema,
   reasoningEffortSchema,
   shellConfigSchema,
   STANDARD_PATHS,
 } from "./config";
-export type { ShellConfig, StandardConfig, StandardPaths } from "./config";
+export type {
+  HttpHostConfig,
+  HttpHostConfigInput,
+  HttpSettings,
+  ShellConfig,
+  StandardConfig,
+  StandardPaths,
+} from "./config";
 // The AI configuration a shell gives its AI service, for a host that supplies its own.
 export { createAIModelConfig } from "./initialization/service-config";
 export { shellEnvVars } from "./env-schema";

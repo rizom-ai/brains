@@ -6,13 +6,14 @@ import {
   type BusCollection,
   type BusContract,
   type BusResult,
+  type Channel,
   type SdkErrorData,
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type { IMessageBus } from "./types";
-import type { MessageResponse } from "./base-types";
+import type { MessageBusSendRequest, MessageResponse } from "./base-types";
 
 /** An answer outside its contract: the owner's bug, which the asker cannot fix. */
 const outsideContract: SdkErrorData = new SdkError("invalid_response").toJSON();
@@ -118,6 +119,38 @@ export async function commandContract<TRequest extends z.ZodType>(
   await bus.send({
     type: contract.name,
     payload: command,
+    sender,
+    broadcast: true,
+  });
+}
+
+/** What a broadcast needs of a bus: a send whose reply nobody reads. */
+export interface BroadcastBus {
+  send(request: MessageBusSendRequest): Promise<unknown>;
+}
+
+/**
+ * Broadcast an event on its typed channel: every subscriber hears it and
+ * nobody's reply is read. The payload is parsed by the channel's schema before
+ * it leaves, and the parsed payload is what is sent. A payload the channel
+ * refuses is the sender's bug: it throws, naming the channel but not the
+ * payload, and nothing is sent.
+ */
+export async function broadcastChannel<TPayload>(
+  bus: BroadcastBus,
+  channel: Channel<TPayload>,
+  payload: NoInfer<TPayload>,
+  sender: string,
+): Promise<void> {
+  const parsed = channel.schema.safeParse(payload);
+  if (!parsed.success) {
+    throw new Error(
+      `${sender} broadcast a payload ${channel.name} refuses: it does not match the channel's schema`,
+    );
+  }
+  await bus.send({
+    type: channel.name,
+    payload: parsed.data,
     sender,
     broadcast: true,
   });

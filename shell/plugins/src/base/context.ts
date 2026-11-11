@@ -123,6 +123,9 @@ export interface BasePluginContext extends PublicBasePluginContext {
   /** Active resolved theme CSS for site, dashboard, and media rendering. */
   readonly themeCSS: string;
 
+  /** Whether this process serves the brain's HTTP surface. */
+  readonly servesHttp: boolean;
+
   /** Entity display metadata from the active site package, if any */
   readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
 
@@ -158,7 +161,7 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /**
    * Messaging namespace
-   * - `messaging.send()` - Broadcast an event to other plugins
+   * - `messaging.broadcast()` - Broadcast an event on its typed channel
    * - `messaging.request/gather/command/answer()` - Cross-plugin calls through bus contracts
    * - `messaging.subscribe()` - Subscribe to messages on a channel
    */
@@ -312,6 +315,7 @@ export function createBasePluginContext(
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
     preferLocalUrls,
     production,
+    servesHttp: shell.servesHttp(),
     themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
     spaces: shell.getSpaces(),

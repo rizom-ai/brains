@@ -48,7 +48,7 @@ export async function buildBrainCardRecord(
     );
   }
   const appInfo = await context.identity.getAppInfo();
-  const hasWebChannel = context.plugins.has("webserver");
+  const hasWebChannel = context.servesHttp;
   const siteUrl = hasWebChannel
     ? normalizePublicUrl(context.siteUrl ?? profile.website)
     : undefined;

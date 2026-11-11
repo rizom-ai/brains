@@ -5,11 +5,8 @@ import {
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type {
-  IApiRoutesNamespace,
-  PublicHealthInfo,
-  RuntimeReadiness,
-} from "@brains/plugins";
+import type { RouteToolExecutor } from "./route-tool-executor";
+import type { PublicHealthInfo, RuntimeReadiness } from "@brains/plugins";
 import {
   findHandlerRoute,
   type RegisteredHttpRoute,
@@ -46,7 +43,7 @@ export interface ServerManagerOptions {
   /** Resolve finalized routes when the server starts. Invoked exactly once. */
   getRoutes?: () => readonly RegisteredHttpRoute[];
   /** Runs a plugin API route's tool on its owning plugin. */
-  executeTool?: IApiRoutesNamespace["executeTool"];
+  executeTool?: RouteToolExecutor;
   /**
    * Bun.serve idle timeout in seconds. Defaults to {@link WEBSERVER_IDLE_TIMEOUT_SECONDS}.
    */
@@ -239,9 +236,12 @@ export class ServerManager {
       });
     } catch (error) {
       const msg = String(error);
+      // Bun 1.4 says "Failed to start server. Is port N in use?"; earlier
+      // versions named EADDRINUSE.
       if (
         msg.includes("EADDRINUSE") ||
-        msg.includes("address already in use")
+        msg.includes("address already in use") ||
+        /Is port \d+ in use\?/.test(msg)
       ) {
         throw new Error(
           `Port ${this.options.productionPort} is already in use. Another brain may be running — stop it first or configure a different port.`,

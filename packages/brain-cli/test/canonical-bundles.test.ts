@@ -97,7 +97,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "unified-inbox",
     "mcp",
     "email",
-    "webserver",
     "web-chat",
     "chat",
     "a2a",
@@ -141,7 +140,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "unified-inbox",
     "mcp",
     "email",
-    "webserver",
     "web-chat",
     "chat",
     "a2a",
@@ -177,7 +175,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "unified-inbox",
     "mcp",
     "email",
-    "webserver",
     "web-chat",
     "chat",
     "a2a",
@@ -326,7 +323,6 @@ describe("canonical bundle taxonomy", () => {
     expect(resolution.agentInstructions).toEqual([]);
     expect(resolution.evalDisable).toEqual([
       "mcp",
-      "webserver",
       "dashboard",
       "chat",
       "web-chat",
@@ -362,7 +358,6 @@ describe("canonical bundle taxonomy", () => {
     expect(resolution.agentInstructions).toEqual(publishingAgentInstructions);
     expect(resolution.evalDisable).toEqual([
       "mcp",
-      "webserver",
       "dashboard",
       "chat",
       "web-chat",
@@ -385,7 +380,6 @@ describe("canonical bundle taxonomy", () => {
     expect(resolution.agentInstructions).toEqual(teamAgentInstructions);
     expect(resolution.evalDisable).toEqual([
       "mcp",
-      "webserver",
       "dashboard",
       "chat",
       "web-chat",
@@ -397,10 +391,11 @@ describe("canonical bundle taxonomy", () => {
   test("derives effective transport and team permission overrides", () => {
     const headless = resolve(canonicalBrain, {}, targetRecipes.headless);
     expect(pluginConfig(headless, "mcp")?.["transport"]).toBe("stdio");
-    expect(headless.plugins?.some(({ id }) => id === "webserver")).toBe(false);
+    expect(headless.http.enabled).toBe(false);
     expect(permissionLevel(headless, "mcp:http")).toBeUndefined();
 
     const personal = resolve(canonicalBrain, {}, targetRecipes.personal);
+    expect(personal.http.enabled).toBe(true);
     expect(pluginConfig(personal, "mcp")?.["transport"]).toBe("http");
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
     expect(

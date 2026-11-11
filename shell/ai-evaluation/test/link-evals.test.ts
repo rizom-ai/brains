@@ -45,7 +45,7 @@ describe("link evaluation test cases", () => {
           entityType: "link",
           "source.kind": "url",
           "source.url":
-            "https://this-domain-definitely-does-not-exist-12345.com/page",
+            "https://this-domain-definitely-does-not-exist.invalid/page",
         });
       } else {
         expect(expectedTool?.argsContain).toEqual({ entityType: "link" });

@@ -1,7 +1,10 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import {
+  createMockMessageBus,
+  createMockServicePluginContext,
+  type IMessageBus,
+} from "@brains/plugins/test";
 import { describe, it, expect, mock } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { JOB_CHANNELS } from "@brains/contracts";
+import { SYSTEM_CHANNELS, jobProgressChannel } from "@brains/plugins";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import type { DirectorySyncOperationSnapshot } from "../../src/lib/directory-sync-operation-status";
 import { createSilentLogger } from "@brains/test-utils";
@@ -14,17 +17,25 @@ type MockContext = ReturnType<typeof createMockServicePluginContext>;
 /** initialSyncCompleted payloads each context's bus has carried. */
 const completionLog = new WeakMap<MockContext, unknown[]>();
 
+/** The bus each context rides, which the shell sends on. */
+const busLog = new WeakMap<MockContext, IMessageBus>();
+
 function completions(context: MockContext): unknown[] {
   return completionLog.get(context) ?? [];
 }
 
 /**
  * The factory's messaging is real, so setupInitialSync subscribes to the
- * actual bus and the test publishes to drive it. Batches report as still
- * processing until a test publishes their completion.
+ * actual bus and the test sends on it, as the shell does, to drive it.
+ * Batches report as still processing until a test publishes their completion.
  */
 function createMockContext(): MockContext {
-  const context = createMockServicePluginContext({ dataDir: "/tmp/test" });
+  const messageBus = createMockMessageBus();
+  const context = createMockServicePluginContext({
+    dataDir: "/tmp/test",
+    messageBus,
+  });
+  busLog.set(context, messageBus);
   context.jobs.getBatchStatus.mockImplementation(async (batchId: string) => ({
     batchId,
     totalOperations: 1,
@@ -130,11 +141,16 @@ function createOperationStatus(activeBatchId?: string): {
 
 /** The shell collects every subscriber's answer; this test has the one. */
 async function registerPlugins(context: MockContext): Promise<unknown[]> {
-  const response = await context.messaging.send({
+  const messageBus = busLog.get(context);
+  if (!messageBus) throw new Error("context has no bus");
+  const responses = await messageBus.collect({
     type: SYSTEM_CHANNELS.pluginsRegistered,
     payload: {},
+    sender: "shell",
   });
-  return ["data" in response ? response.data : undefined];
+  return responses.map((response) =>
+    "data" in response ? response.data : undefined,
+  );
 }
 
 async function settleBatch(
@@ -143,21 +159,17 @@ async function settleBatch(
   status: "completed" | "failed",
   errors: string[] = [],
 ): Promise<void> {
-  await context.messaging.send({
-    type: JOB_CHANNELS.progress,
-    payload: {
-      id: batchId,
-      type: "batch",
-      status,
-      metadata: { operationType: "file_operations", rootJobId: batchId },
-      batchDetails: {
-        totalOperations: 1,
-        completedOperations: status === "completed" ? 1 : 0,
-        failedOperations: status === "failed" ? 1 : 0,
-        errors,
-      },
+  await context.messaging.broadcast(jobProgressChannel, {
+    id: batchId,
+    type: "batch",
+    status,
+    metadata: { operationType: "file_operations", rootJobId: batchId },
+    batchDetails: {
+      totalOperations: 1,
+      completedOperations: status === "completed" ? 1 : 0,
+      failedOperations: status === "failed" ? 1 : 0,
+      errors,
     },
-    broadcast: true,
   });
 }
 

@@ -241,7 +241,7 @@ describe("extractTopicsBatched", () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
     const context = createEntityPluginContext(mockShell, "topics");
-    const send = spyOn(context.messaging, "send");
+    const send = spyOn(mockShell.getMessageBus(), "send");
 
     spyOn(context.ai, "generate").mockResolvedValue({
       topics: [

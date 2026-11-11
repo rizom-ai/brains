@@ -22,13 +22,7 @@ describe("Agent Card follows the brain's current identity", () => {
     harness = createPluginHarness({
       logger: createSilentLogger("a2a-card-identity"),
     });
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+    harness.getMockShell().serveHttp();
   });
 
   afterEach(async () => {

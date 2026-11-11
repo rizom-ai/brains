@@ -8,14 +8,8 @@ import { createA2APlugin, routeOf } from "./a2a-plugin";
 describe("A2A public agent directory", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
-  function installWebserverPlugin(): void {
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+  function serveHttp(): void {
+    harness.getMockShell().serveHttp();
   }
 
   beforeEach(() => {
@@ -70,7 +64,7 @@ describe("A2A public agent directory", () => {
       visibility: "restricted",
     });
 
-    installWebserverPlugin();
+    serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
@@ -89,7 +83,7 @@ describe("A2A public agent directory", () => {
   });
 
   it("serves an empty directory when no agents are saved", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
@@ -102,7 +96,7 @@ describe("A2A public agent directory", () => {
   });
 
   it("registers the directory as a public GET web route", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 

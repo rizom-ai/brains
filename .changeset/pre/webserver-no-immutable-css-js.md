@@ -1,5 +1,5 @@
 ---
-"@brains/webserver": patch
+"@brains/http-host": patch
 ---
 
 Stop serving js/css with immutable cache headers on production. main.css and

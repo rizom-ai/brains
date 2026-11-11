@@ -23,7 +23,7 @@ describe("unified inbox headless reader", () => {
     await plugin.ready?.();
 
     const shell = harness.getMockShell();
-    expect(shell.hasPlugin("webserver")).toBe(false);
+    expect(shell.servesHttp()).toBe(false);
     expect(shell.hasPlugin("studio")).toBe(false);
     expect(shell.hasPlugin("dashboard")).toBe(false);
 

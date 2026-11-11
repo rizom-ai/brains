@@ -69,7 +69,6 @@ import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import webChatInterface from "@brains/web-chat";
-import { WebserverInterface } from "@brains/webserver";
 import wishlistPackage from "@brains/wishlist";
 import packageJson from "../../package.json" with { type: "json" };
 import {
@@ -344,11 +343,6 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         pluginId: "email",
       },
     ),
-    [
-      "webserver",
-      (config): Plugin => new WebserverInterface(config),
-      (): PluginConfig => ({}),
-    ],
     packageInterface(
       "web-chat",
       "@brains/web-chat",

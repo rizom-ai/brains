@@ -324,7 +324,7 @@ describe("InboxDataSource", () => {
     expect(dashboardData).not.toHaveProperty("managementUrl");
   });
 
-  it("answers the headless tool without webserver, Studio, or Dashboard plugins", async () => {
+  it("answers the headless tool without HTTP, Studio, or Dashboard plugins", async () => {
     const harness = createPluginHarness({
       logContext: "unified-inbox-test",
     });
@@ -347,7 +347,7 @@ describe("InboxDataSource", () => {
     expect(
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
     ).toBe(false);
-    expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
+    expect(harness.getMockShell().servesHttp()).toBe(false);
     expect(harness.getMockShell().hasPlugin("studio")).toBe(false);
     expect(harness.getMockShell().hasPlugin("dashboard")).toBe(false);
     expect(

@@ -1,5 +1,27 @@
 # @brains/atproto
 
+## 0.2.0-alpha.677
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.677
+  - @brains/contracts@0.2.0-alpha.677
+  - @brains/site-composition@0.2.0-alpha.677
+  - @brains/utils@0.2.0-alpha.677
+  - @brains/plugins@0.2.0-alpha.677
+
+## 0.2.0-alpha.676
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.676
+  - @brains/contracts@0.2.0-alpha.676
+  - @brains/site-composition@0.2.0-alpha.676
+  - @brains/utils@0.2.0-alpha.676
+  - @brains/plugins@0.2.0-alpha.676
+
 ## 0.2.0-alpha.675
 
 ### Patch Changes

@@ -22,10 +22,17 @@ import {
   defineJob,
   defineServicePlugin,
   defineTool,
+  defineChannel,
   instantiatePluginPackageDefinition,
+  type Channel,
 } from "../src";
+import type { ServiceMessaging } from "../src/service/service-definition-contract";
 
 const digestInput = z.object({ bookmarkId: z.string() });
+const digestReady: Channel<z.output<typeof digestInput>> = defineChannel(
+  "digest-ready",
+  digestInput,
+);
 const digestOutput = z.object({ bookmarkId: z.string(), words: z.number() });
 
 const digestJob = defineJob({
@@ -552,7 +559,16 @@ describe("declarative service definitions", () => {
     });
   });
 
-  it("delivers a job's published message to every subscriber", async () => {
+  /** Install a service whose job publishes, and run the job once. */
+  async function runAnnouncer(
+    announce: (
+      messaging: ServiceMessaging,
+      input: z.output<typeof digestInput>,
+    ) => Promise<void>,
+  ): Promise<{
+    heard: { listener: string; payload: unknown; source: string }[];
+    run: Promise<unknown>;
+  }> {
     const announceJob = defineJob({
       name: "announce",
       input: digestInput,
@@ -567,7 +583,7 @@ describe("declarative service definitions", () => {
         {
           jobs: ({ messaging }) => [
             announceJob.handle(async ({ input }) => {
-              await messaging.publish({ topic: "digest-ready", data: input });
+              await announce(messaging, input);
               return input;
             }),
           ],
@@ -587,17 +603,21 @@ describe("declarative service definitions", () => {
     };
     shell.getJobQueueService = (): typeof queue => queue;
     await harness.installPlugin(plugin);
-    const heard: string[] = [];
+    const heard: { listener: string; payload: unknown; source: string }[] = [];
     for (const listener of ["first", "second"]) {
-      harness.subscribe("digest-ready", async () => {
-        heard.push(listener);
+      harness.subscribe(digestReady.name, async (message) => {
+        heard.push({
+          listener,
+          payload: message.payload,
+          source: message.source,
+        });
         return { success: true };
       });
     }
 
     const handler = handlers.get("@fixture/announcer:announcer:announce");
     if (!handler) throw new Error("Job handler was not registered");
-    await handler.process(
+    const run = handler.process(
       {
         authority: {
           actor: { kind: "service", serviceId: "test" },
@@ -609,8 +629,41 @@ describe("declarative service definitions", () => {
       createMockProgressReporter(),
       new AbortController().signal,
     );
+    return { heard, run };
+  }
 
-    expect(heard.sort()).toEqual(["first", "second"]);
+  it("delivers a job's published event to every subscriber, as the package", async () => {
+    const { heard, run } = await runAnnouncer((messaging, input) =>
+      messaging.publish(digestReady, input),
+    );
+    await run;
+
+    expect(heard).toEqual([
+      {
+        listener: "first",
+        payload: { bookmarkId: "saved" },
+        source: "@fixture/announcer:announcer",
+      },
+      {
+        listener: "second",
+        payload: { bookmarkId: "saved" },
+        source: "@fixture/announcer:announcer",
+      },
+    ]);
+  });
+
+  it("refuses a published payload its channel refuses, and nobody hears it", async () => {
+    const { heard, run } = await runAnnouncer((messaging) =>
+      messaging.publish(
+        digestReady,
+        // @ts-expect-error a payload outside the channel's type does not type-check
+        { bookmarkId: 7 },
+      ),
+    );
+
+    expect(run).rejects.toThrow(digestReady.name);
+    await run.catch(() => undefined);
+    expect(heard).toEqual([]);
   });
 
   it("rejects invalid retry and deadline declarations", () => {

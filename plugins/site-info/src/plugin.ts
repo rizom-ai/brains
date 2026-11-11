@@ -171,10 +171,10 @@ const siteInfoService = defineServicePlugin(
         entityUpdatedChannel,
         async ({ payload }) => {
           if (payload.entityType !== SITE_INFO) return;
-          await messaging.publish({
-            topic: siteMetadataUpdatedChannel.name,
-            data: await currentSiteInfo(),
-          });
+          await messaging.publish(
+            siteMetadataUpdatedChannel,
+            await currentSiteInfo(),
+          );
         },
         { mode: "observe" },
       );
