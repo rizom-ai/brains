@@ -74,6 +74,7 @@ const convertedServicePackages = [
   "stock-photo",
   "site-builder",
   "site-content",
+  "content-pipeline",
 ];
 
 const classBaseBan = {

@@ -1,7 +1,8 @@
-import type { ServicePluginContext, ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
+import type { PipelineContext } from "../lib/pipeline-context";
 
 export const ensureAssetsInputSchema: z.ZodObject<{
   entityType: z.ZodString;
@@ -51,7 +52,7 @@ export type EnsureAssetsOutput = z.output<typeof ensureAssetsOutputSchema>;
 export type EnsureAssetsOutputData = EnsureAssetsOutput["data"];
 
 export interface EnsurePublishAssetsOptions {
-  context: ServicePluginContext;
+  context: PipelineContext;
   registry: PublishAssetRegistry;
   preflight: PublishAssetPreflight;
   input: EnsureAssetsInput;

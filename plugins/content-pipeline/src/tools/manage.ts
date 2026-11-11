@@ -1,9 +1,4 @@
-import type {
-  Tool,
-  ToolContext,
-  ToolResponse,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { Tool, ToolContext, ToolResponse } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublicationQueueService } from "../publication-queue-service";
@@ -24,6 +19,7 @@ import {
   PublishExecutor,
   type PublishEntityExecutor,
 } from "../publish-executor";
+import type { PipelineContext } from "../lib/pipeline-context";
 
 export const publishingManageInputSchema: z.ZodObject<{
   action: z.ZodEnum<{
@@ -131,7 +127,7 @@ export interface PublishingManageServices {
 }
 
 export function createPublishingManageTool(
-  context: ServicePluginContext,
+  context: PipelineContext,
   services: PublishingManageServices,
 ): Tool<ToolResponse> {
   const queueMutations: QueueMutationService =
@@ -175,7 +171,7 @@ export function createPublishingManageTool(
 }
 
 async function handlePublishingManageAction(input: {
-  context: ServicePluginContext;
+  context: PipelineContext;
   queueManager: QueueManager;
   queueMutations: QueueMutationService;
   publishExecutor: PublishEntityExecutor;

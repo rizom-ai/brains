@@ -1,4 +1,3 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
@@ -8,9 +7,13 @@ import type { PublishEntityExecutor } from "../publish-executor";
 import { BunSchedulerBackend } from "@brains/scheduler";
 import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
+import type { SchedulerMessagePublisher } from "../types/scheduler";
+import type { PipelineContext } from "./pipeline-context";
 
 export interface CreateSchedulerDeps {
-  context: ServicePluginContext;
+  context: PipelineContext;
+  /** Broadcasts events and sends commands, as the package. */
+  messaging: SchedulerMessagePublisher;
   config: ContentPipelineConfig;
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
@@ -25,6 +28,7 @@ export interface CreateSchedulerDeps {
 export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
   const {
     context,
+    messaging,
     config,
     queueManager,
     providerRegistry,
@@ -61,7 +65,7 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
       generationConditions: config.generationConditions,
     }),
     // The scheduler broadcasts events and sends commands, as the plugin.
-    messageBus: context.messaging,
+    messageBus: messaging,
     publishExecutor,
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(

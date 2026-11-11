@@ -1,8 +1,9 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
+import type { PipelineContext } from "../lib/pipeline-context";
 
 type PublishableEntity = BaseEntity<PublishableMetadata>;
 
@@ -27,7 +28,7 @@ export interface PreparedPublishContent {
 }
 
 export async function preparePublishContent(
-  context: ServicePluginContext,
+  context: PipelineContext,
   entity: PublishableEntity,
 ): Promise<PreparedPublishContent> {
   const {
@@ -118,7 +119,7 @@ function parseStringField(value: unknown): string | undefined {
 }
 
 async function resolveSourceAttachmentData(
-  context: ServicePluginContext,
+  context: PipelineContext,
   sourceEntityType: string | undefined,
   sourceEntityId: string | undefined,
 ): Promise<PublishMediaData[] | undefined> {
@@ -136,7 +137,7 @@ async function resolveSourceAttachmentData(
 }
 
 async function fetchPublishImageData(
-  context: ServicePluginContext,
+  context: PipelineContext,
   coverImageId: string,
 ): Promise<PublishImageData | undefined> {
   const image = await context.entityService.getEntity({
@@ -155,7 +156,7 @@ async function fetchPublishImageData(
 }
 
 async function fetchPublishDocumentData(
-  context: ServicePluginContext,
+  context: PipelineContext,
   documents: PublishDocumentReference[],
 ): Promise<PublishMediaData[]> {
   const results = await Promise.all(
@@ -165,7 +166,7 @@ async function fetchPublishDocumentData(
 }
 
 async function fetchPublishDocumentItem(
-  context: ServicePluginContext,
+  context: PipelineContext,
   reference: PublishDocumentReference,
 ): Promise<PublishMediaData | undefined> {
   const entity = await context.entityService.getEntity({

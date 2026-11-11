@@ -3,11 +3,9 @@ import {
   defineEntityCatalog,
   defineWorkspaceAction,
   permissionToVisibilityScope,
-  registerBuiltInStudioWorkspace,
   type OperatorCaller,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ServicePluginContext,
   type ToolContext,
 } from "@brains/plugins";
 import { SdkError } from "@brains/contracts";
@@ -23,6 +21,8 @@ import {
   publicationPipelineSnapshotSchema,
 } from "../pipeline-snapshot";
 import { publishOutputSchema } from "../tools/publish";
+import type { ServiceStudio } from "@brains/sdk/internal/service-runtime";
+import type { PipelineContext } from "./pipeline-context";
 
 type PublishingTargetSchema = z.ZodObject<{
   entityType: z.ZodString;
@@ -158,7 +158,7 @@ function toToolContext(caller: OperatorCaller): ToolContext {
 }
 
 function getWorkspaceEntityTypes(
-  context: ServicePluginContext,
+  context: PipelineContext,
   providerRegistry: ProviderRegistry,
   caller: OperatorCaller,
 ): string[] {
@@ -182,7 +182,7 @@ function getWorkspaceEntityTypes(
 }
 
 async function requirePublicationEntity(
-  context: ServicePluginContext,
+  context: PipelineContext,
   deps: RegisterStudioWorkspaceDeps,
   input: StudioPublishingTarget,
   caller: OperatorCaller,
@@ -207,7 +207,7 @@ async function requirePublicationEntity(
 }
 
 async function mutateQueue(
-  context: ServicePluginContext,
+  context: PipelineContext,
   deps: RegisterStudioWorkspaceDeps,
   action: "queue" | "remove" | "retry" | "reorder",
   input: StudioPublishingTarget & { position?: number | undefined },
@@ -269,7 +269,7 @@ async function mutateQueue(
 }
 
 async function preparePublish(
-  context: ServicePluginContext,
+  context: PipelineContext,
   deps: RegisterStudioWorkspaceDeps,
   input: StudioPublishingTarget,
   caller: OperatorCaller,
@@ -298,7 +298,7 @@ async function preparePublish(
 }
 
 async function publishNow(
-  context: ServicePluginContext,
+  context: PipelineContext,
   deps: RegisterStudioWorkspaceDeps,
   input: StudioPublishingTarget,
   caller: OperatorCaller,
@@ -544,11 +544,12 @@ const publishingWorkspace = defineStudioWorkspace({
 
 /** Register Publishing when Studio is present; absence is intentionally a no-op. */
 export async function registerStudioWorkspace(
-  context: ServicePluginContext,
+  studio: ServiceStudio,
+  context: PipelineContext,
   deps: RegisterStudioWorkspaceDeps,
 ): Promise<string | undefined> {
-  const result = await registerBuiltInStudioWorkspace({
-    context,
+  if (!studio.isAvailable()) return undefined;
+  const registration = studio.source({
     definition: publishingWorkspace,
     bind: (bindingContext) =>
       publishingWorkspace.bind(bindingContext, {
@@ -610,12 +611,12 @@ export async function registerStudioWorkspace(
         ],
       }),
   });
-  return result === false ? undefined : result.workspaceUrl;
+  return studio.register(registration);
 }
 
 /** Map a caller-visible queue slot back to the provider's absolute slot. */
 async function toAbsoluteQueuePosition(
-  context: ServicePluginContext,
+  context: PipelineContext,
   queueManager: QueueManager,
   entityType: string,
   caller: OperatorCaller,

@@ -23,7 +23,7 @@ import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
 import chatInterface, { chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
-import { contentPipelinePlugin } from "@brains/content-pipeline";
+import contentPipelinePackage from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
 import { formPlugin } from "@brains/form";
 import { quizPlugin } from "@brains/quiz";
@@ -283,7 +283,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("portfolio", "@brains/portfolio", portfolioPackage, {
       pluginId: "portfolio",
     }),
-    ["content-pipeline", contentPipelinePlugin, undefined],
+    packageCapability(
+      "content-pipeline",
+      "@brains/content-pipeline",
+      contentPipelinePackage,
+      { pluginId: "content-pipeline" },
+    ),
     packageCapability(
       "social-media",
       "@brains/social-media",

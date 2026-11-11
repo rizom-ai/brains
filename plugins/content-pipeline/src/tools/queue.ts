@@ -1,11 +1,11 @@
 import {
   findEntityByIdentifier,
   permissionToVisibilityScope,
-  type ServicePluginContext,
   type ToolContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
+import type { PipelineContext } from "../lib/pipeline-context";
 
 export type QueueMutationService = Pick<
   QueueManager,
@@ -140,7 +140,7 @@ export type QueueErrorOutput = z.output<typeof queueErrorSchema>;
 export type QueueOutput = z.output<typeof queueOutputSchema>;
 
 export async function handleQueueAction(
-  context: ServicePluginContext,
+  context: PipelineContext,
   queueManager: QueueManager,
   queueMutations: QueueMutationService,
   input: QueueActionInput,
@@ -176,7 +176,7 @@ export async function handleQueueAction(
  * entry whose entity is gone stays removable.
  */
 async function canonicalEntityId(
-  context: ServicePluginContext,
+  context: PipelineContext,
   entityType: string,
   identifier: string,
   toolContext: ToolContext,
@@ -246,7 +246,7 @@ function emptyQueue(): QueueItem[] {
  * Add an entity to the queue
  */
 async function handleAdd(
-  context: ServicePluginContext,
+  context: PipelineContext,
   queueMutations: QueueMutationService,
   target: Extract<QueueTargetInput, { action: "queue-add" }>,
   toolContext: ToolContext,
@@ -277,7 +277,7 @@ async function handleAdd(
  * Remove an entity from the queue
  */
 async function handleRemove(
-  context: ServicePluginContext,
+  context: PipelineContext,
   queueMutations: QueueMutationService,
   target: Extract<QueueTargetInput, { action: "queue-remove" }>,
   toolContext: ToolContext,
@@ -301,7 +301,7 @@ async function handleRemove(
  * Reorder an entity in the queue
  */
 async function handleReorder(
-  context: ServicePluginContext,
+  context: PipelineContext,
   queueMutations: QueueMutationService,
   target: Extract<QueueTargetInput, { action: "queue-reorder" }>,
   toolContext: ToolContext,

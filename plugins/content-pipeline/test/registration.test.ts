@@ -182,16 +182,18 @@ describe("the content-pipeline package's registered surface", () => {
     });
   });
 
-  it("shows its workspace and widget once the brain is ready, and takes the workspace off when it shuts down", async () => {
+  it("shows its widget once every plugin registered and its workspace once the brain is ready, and takes the workspace off when it shuts down", async () => {
     const brain = await installed();
     await ready(brain);
     for (const plugin of brain.plugins) await plugin.shutdown?.();
     installedPlugins.length = 0;
     expect(brain.events).toEqual([
       "plugins registered",
+      // Registered once every plugin has, as a declared widget is, where
+      // the class registered it once the brain was ready.
+      "widget content-pipeline:publication-pipeline",
       "ready",
       "workspace content-pipeline:publishing",
-      "widget content-pipeline:publication-pipeline",
       "unregister content-pipeline:publishing",
     ]);
   });

@@ -1,8 +1,5 @@
-import {
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import {
   getPublicationPipelineSnapshot,
   publicationPipelineSnapshotSchema,
@@ -11,6 +8,7 @@ import {
 import type { ProviderRegistry } from "../provider-registry";
 import type { QueueManager } from "../queue-manager";
 import type { RetryTracker } from "../retry-tracker";
+import type { PipelineContext } from "./pipeline-context";
 
 export type PipelineWidgetData = PublicationPipelineSnapshot;
 
@@ -103,12 +101,17 @@ const publicationPipelineWidget = defineDashboardWidget({
   }),
 });
 
-export async function registerDashboardWidget(
-  context: ServicePluginContext,
+/**
+ * The Publishing tab's pipeline widget, drawn from the canonical snapshot
+ * at the viewer's scope; the runtime registers it once every plugin has,
+ * never in a worker.
+ */
+export function registerDashboardWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+  context: PipelineContext,
   deps: RegisterDashboardWidgetDeps,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
+): void {
+  runtime.dashboardWidget({
     definition: publicationPipelineWidget,
     load: ({ visibilityScope, signal }) => {
       signal.throwIfAborted();

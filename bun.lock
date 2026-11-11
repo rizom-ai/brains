@@ -1058,6 +1058,7 @@
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/scheduler": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {

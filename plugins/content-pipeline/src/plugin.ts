@@ -1,5 +1,10 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { defineServicePlugin } from "@brains/sdk/services";
+import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  serviceRuntime,
+  withTools,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { QueueManager } from "./queue-manager";
 import { createPublishingManageTool } from "./tools";
 import { ProviderRegistry } from "./provider-registry";
@@ -9,19 +14,19 @@ import { PublishExecutor } from "./publish-executor";
 import { PublishAssetRegistry } from "./publish-assets";
 import { PublishAssetPreflight } from "./publish-asset-preflight";
 import type { ContentScheduler } from "./scheduler";
-import type {
-  ContentPipelineConfig,
-  ContentPipelineConfigInput,
+import {
+  contentPipelineConfigSchema,
+  type ContentPipelineConfig,
 } from "./types/config";
-import { contentPipelineConfigSchema } from "./types/config";
 import { subscribeToMessages } from "./lib/message-handlers";
 import { createScheduler } from "./lib/create-scheduler";
 import { registerDashboardWidget } from "./lib/dashboard-widget";
 import { registerStudioWorkspace } from "./lib/studio-workspace";
-import packageJson from "../package.json";
+import type { PipelineContext } from "./lib/pipeline-context";
 
-/** The services the plugin builds during registration, as one unit. */
-interface ContentPipelineRuntime {
+/** The services the package builds when it sets up, as one unit. */
+export interface ContentPipelineServices {
+  readonly context: PipelineContext;
   readonly queueManager: QueueManager;
   readonly publicationQueueService: PublicationQueueService;
   readonly providerRegistry: ProviderRegistry;
@@ -32,163 +37,156 @@ interface ContentPipelineRuntime {
   readonly scheduler: ContentScheduler;
 }
 
-export class ContentPipelinePlugin extends ServicePlugin<
-  ContentPipelineConfig,
-  ContentPipelineConfigInput
-> {
-  private pluginContext?: ServicePluginContext;
-  private runtime: ContentPipelineRuntime | null = null;
-  private studioRegistered = false;
-
-  /**
-   * The services below are constructed together in onRegister. Holding them as
-   * one nullable object means the compiler proves they are present at every
-   * read, instead of eight `!:` declarations each disabling that check
-   * independently.
-   */
-  private requireRuntime(): ContentPipelineRuntime {
-    if (!this.runtime) {
-      throw new Error(
-        "Content pipeline runtime is unavailable before plugin registration",
-      );
-    }
-    return this.runtime;
-  }
-
-  constructor(config: ContentPipelineConfigInput = {}) {
-    super("content-pipeline", packageJson, config, contentPipelineConfigSchema);
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.pluginContext = context;
-
-    const queueManager = QueueManager.createFresh();
-    const publicationQueueService = new PublicationQueueService(
-      context,
-      queueManager,
-    );
-    const providerRegistry = ProviderRegistry.createFresh();
-    const retryTracker = RetryTracker.createFresh();
-    const publishAssetRegistry = PublishAssetRegistry.createFresh();
-    const publishAssetPreflight = new PublishAssetPreflight({
-      context,
-      registry: publishAssetRegistry,
-      retries: this.retries,
-    });
-    const publishExecutor = new PublishExecutor({
-      context,
-      providerRegistry,
-      publishAssetPreflight,
-    });
-
-    const scheduler = createScheduler({
-      context,
-      config: this.config,
-      queueManager,
-      providerRegistry,
-      retryTracker,
-      publishExecutor,
-      logger: this.logger,
-    });
-
-    this.runtime = {
-      queueManager,
-      publicationQueueService,
-      providerRegistry,
-      retryTracker,
-      publishExecutor,
-      publishAssetRegistry,
-      publishAssetPreflight,
-      scheduler,
-    };
-
-    subscribeToMessages(context, {
-      ...this.runtime,
-      logger: this.logger,
-    });
-  }
-
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const runtime = this.requireRuntime();
-    await runtime.publicationQueueService.reconcile(
-      runtime.providerRegistry.getRegisteredTypes(),
-    );
-    const workspaceUrl = await registerStudioWorkspace(context, {
-      providerRegistry: runtime.providerRegistry,
-      queueManager: runtime.queueManager,
-      publicationQueueService: runtime.publicationQueueService,
-      retryTracker: runtime.retryTracker,
-      publishExecutor: runtime.publishExecutor,
-    });
-    this.studioRegistered = workspaceUrl !== undefined;
-    await registerDashboardWidget(context, {
-      providerRegistry: runtime.providerRegistry,
-      queueManager: runtime.queueManager,
-      retryTracker: runtime.retryTracker,
-    });
-    await runtime.scheduler.start();
-
-    this.logger.info("Content pipeline plugin started");
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    if (!this.pluginContext) {
-      throw new Error("Plugin context not initialized");
-    }
-
-    const runtime = this.requireRuntime();
-    return [
-      createPublishingManageTool(this.pluginContext, {
-        queueManager: runtime.queueManager,
-        publicationQueueService: runtime.publicationQueueService,
-        providerRegistry: runtime.providerRegistry,
-        publishExecutor: runtime.publishExecutor,
-      }),
-    ];
-  }
-
-  public getQueueManager(): QueueManager {
-    return this.requireRuntime().queueManager;
-  }
-
-  public getPublicationQueueService(): PublicationQueueService {
-    return this.requireRuntime().publicationQueueService;
-  }
-
-  public getProviderRegistry(): ProviderRegistry {
-    return this.requireRuntime().providerRegistry;
-  }
-
-  public getRetryTracker(): RetryTracker {
-    return this.requireRuntime().retryTracker;
-  }
-
-  public getPublishAssetRegistry(): PublishAssetRegistry {
-    return this.requireRuntime().publishAssetRegistry;
-  }
-
-  public getScheduler(): ContentScheduler {
-    return this.requireRuntime().scheduler;
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    if (this.studioRegistered) {
-      await this.pluginContext?.studio.unregisterWorkspace(
-        "content-pipeline:publishing",
-      );
-      this.studioRegistered = false;
-    }
-    // Shutdown may run after a failed registration; nothing to stop then.
-    await this.runtime?.scheduler.stop();
-  }
+export interface ContentPipelineDeps {
+  /** Told the services once setup has built them. */
+  onSetup?: ((services: ContentPipelineServices) => void) | undefined;
 }
 
-export function contentPipelinePlugin(
-  config: ContentPipelineConfigInput = {},
-): ContentPipelinePlugin {
-  return new ContentPipelinePlugin(config);
+/** What the pipeline reads, writes, checks and queues through, from the runtime. */
+function pipelineContextOf(runtime: ServiceRuntime): PipelineContext {
+  return {
+    logger: runtime.logger,
+    entityService: {
+      getEntity: runtime.entityReads.getEntity,
+      getEntityRaw: runtime.entityReads.getEntityRaw,
+      listEntities: runtime.entityReads.listEntities,
+      updateEntity: runtime.entityWrites.updateEntity,
+    },
+    permissions: runtime.permissions,
+    attachments: runtime.attachments,
+    jobs: runtime.jobs,
+    runtimeState: runtime.classRuntimeState,
+  };
+}
+
+/**
+ * Build the pipeline as the class built it when it registered: its queue,
+ * providers, retries, publish executor, asset preflight and scheduler; the
+ * bus it answers and hears; and, once the brain is ready, its queue
+ * reconciled, its Publishing workspace shown and its scheduler started.
+ */
+function setUpContentPipeline(
+  runtime: ServiceRuntime,
+  config: ContentPipelineConfig,
+  onCleanup: (cleanup: () => void | Promise<void>) => void,
+): ContentPipelineServices {
+  const context = pipelineContextOf(runtime);
+  const logger = runtime.logger;
+  const queueManager = QueueManager.createFresh();
+  const publicationQueueService = new PublicationQueueService(
+    context,
+    queueManager,
+  );
+  const providerRegistry = ProviderRegistry.createFresh();
+  const retryTracker = RetryTracker.createFresh();
+  const publishAssetRegistry = PublishAssetRegistry.createFresh();
+  const publishAssetPreflight = new PublishAssetPreflight({
+    context,
+    registry: publishAssetRegistry,
+    retries: runtime.retries,
+  });
+  const publishExecutor = new PublishExecutor({
+    context,
+    providerRegistry,
+    publishAssetPreflight,
+  });
+  const scheduler = createScheduler({
+    context,
+    // The scheduler broadcasts events and sends commands, as the package.
+    messaging: runtime.messaging,
+    config,
+    queueManager,
+    providerRegistry,
+    retryTracker,
+    publishExecutor,
+    logger,
+  });
+  const services: ContentPipelineServices = {
+    context,
+    queueManager,
+    publicationQueueService,
+    providerRegistry,
+    retryTracker,
+    publishExecutor,
+    publishAssetRegistry,
+    publishAssetPreflight,
+    scheduler,
+  };
+
+  subscribeToMessages(runtime, context, {
+    publicationQueueService,
+    providerRegistry,
+    publishAssetRegistry,
+    publishAssetPreflight,
+    logger,
+  });
+  registerDashboardWidget(runtime, context, {
+    providerRegistry,
+    queueManager,
+    retryTracker,
+  });
+
+  let studioRegistered = false;
+  runtime.ready(async () => {
+    await publicationQueueService.reconcile(
+      providerRegistry.getRegisteredTypes(),
+    );
+    const workspaceUrl = await registerStudioWorkspace(
+      runtime.studio,
+      context,
+      {
+        providerRegistry,
+        queueManager,
+        publicationQueueService,
+        retryTracker,
+        publishExecutor,
+      },
+    );
+    studioRegistered = workspaceUrl !== undefined;
+    await scheduler.start();
+    logger.info("Content pipeline plugin started");
+  });
+  onCleanup(async () => {
+    if (studioRegistered) {
+      await runtime.studio.unregister("content-pipeline:publishing");
+      studioRegistered = false;
+    }
+    await scheduler.stop();
+  });
+  return services;
+}
+
+/**
+ * The publishing pipeline: one queue per publishable type, the providers
+ * entity packages register, scheduled publishing and generation, publish
+ * assets prepared before a record publishes, the publishing_manage tool,
+ * the Studio Publishing workspace and the Dashboard pipeline widget.
+ */
+export function createContentPipelinePackage(
+  deps: ContentPipelineDeps = {},
+): ServicePackageDefinition<typeof contentPipelineConfigSchema> {
+  const service = defineServicePlugin({
+    id: "content-pipeline",
+    config: contentPipelineConfigSchema,
+    setup: (context): ContentPipelineServices => {
+      const services = setUpContentPipeline(
+        serviceRuntime(context),
+        context.config,
+        context.lifecycle.onCleanup,
+      );
+      deps.onSetup?.(services);
+      return services;
+    },
+  });
+  return withTools<typeof contentPipelineConfigSchema, ContentPipelineServices>(
+    service,
+    ({ state }) => [
+      createPublishingManageTool(state.context, {
+        queueManager: state.queueManager,
+        publicationQueueService: state.publicationQueueService,
+        providerRegistry: state.providerRegistry,
+        publishExecutor: state.publishExecutor,
+      }),
+    ],
+  );
 }

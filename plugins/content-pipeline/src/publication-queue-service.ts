@@ -1,10 +1,6 @@
 import { internalFullScope } from "@brains/plugins";
 import { actorRefSchema } from "@brains/contracts";
-import type {
-  BaseEntity,
-  IRuntimeStateStore,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { BaseEntity, IRuntimeStateStore } from "@brains/plugins";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
 import type { QueueEntry, QueueManager } from "./queue-manager";
@@ -12,6 +8,7 @@ import {
   SYSTEM_PUBLISH_AUTH_CONTEXT,
   type PublishAuthContext,
 } from "./types/messages";
+import type { PipelineContext } from "./lib/pipeline-context";
 
 const QUEUE_STATE_NAMESPACE = "content-pipeline.queue.v1";
 const RANK_STEP = 1024;
@@ -73,12 +70,12 @@ export type PublicationQueueRecord = z.output<
  * Entity status owns membership; runtimeState owns rank and enqueue metadata.
  */
 export class PublicationQueueService {
-  private readonly context: ServicePluginContext;
+  private readonly context: PipelineContext;
   private readonly queueManager: QueueManager;
   private readonly store: IRuntimeStateStore<PublicationQueueRecord>;
   private mutationTail: Promise<void> = Promise.resolve();
 
-  constructor(context: ServicePluginContext, queueManager: QueueManager) {
+  constructor(context: PipelineContext, queueManager: QueueManager) {
     this.context = context;
     this.queueManager = queueManager;
     this.store = context.runtimeState.scoped({
