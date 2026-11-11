@@ -51,7 +51,11 @@ import {
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import { emptyPluginState } from "../base/empty-state";
-import { SYSTEM_CHANNELS } from "../system-channels";
+import {
+  SYSTEM_CHANNELS,
+  pluginsRegisteredAnswerSchema,
+  type PluginsRegisteredAnswer,
+} from "../system-channels";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -315,6 +319,7 @@ class DeclarativeServicePlugin<
   private readonly readyHandlers: Array<() => Promise<void>> = [];
   /** What a first-party package runs once every plugin has registered. */
   private readonly registeredHandlers: Array<() => Promise<void>> = [];
+  private initialSyncAnswered = false;
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -707,6 +712,7 @@ class DeclarativeServicePlugin<
     for (const release of this.answered.splice(0).reverse()) release();
     this.readyHandlers.splice(0);
     this.registeredHandlers.splice(0);
+    this.initialSyncAnswered = false;
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
@@ -1036,6 +1042,34 @@ class DeclarativeServicePlugin<
   }
 
   /**
+   * Answer pluginsRegistered with whether startup content is still
+   * importing, as the package, in the main process only and once.
+   */
+  private answerInitialSync(
+    context: ServicePluginContext,
+    handler: () => Promise<PluginsRegisteredAnswer>,
+  ): void {
+    if (this.initialSyncAnswered) {
+      throw new Error(
+        `Service "${this.publicId}" answers its initial sync more than once`,
+      );
+    }
+    this.initialSyncAnswered = true;
+    if (context.executionOnly) return;
+    this.answered.push(
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.pluginsRegistered,
+        async () => ({
+          success: true,
+          data: pluginsRegisteredAnswerSchema.parse(
+            await this.calls.run(this.packageCall(), handler),
+          ),
+        }),
+      ),
+    );
+  }
+
+  /**
    * Answer the contracts the `subscriptions` slot binds. Each answer acts as
    * the package, whoever asked, and is released when the package shuts down.
    */
@@ -1178,6 +1212,9 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      initialSync: (handler): void => {
+        this.answerInitialSync(context, handler);
+      },
       operationalHealth: Object.freeze({
         register: (name: string, provider: OperationalHealthProvider) =>
           context.operationalHealth.register(name, provider),

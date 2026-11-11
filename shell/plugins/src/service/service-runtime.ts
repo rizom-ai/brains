@@ -59,7 +59,10 @@ import type {
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
-import type { SystemChannelName } from "../system-channels";
+import type {
+  PluginsRegisteredAnswer,
+  SystemChannelName,
+} from "../system-channels";
 import type { DashboardWidgetRenderer } from "../contracts/dashboard-widget-contracts";
 import type {
   AnyDashboardWidgetDefinition,
@@ -313,6 +316,14 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * Tell the shell, once every plugin has registered, whether startup
+   * content is still importing, as the class answered `pluginsRegistered`
+   * through `context.messaging`: the shell then waits for
+   * `initialSyncCompleted`. In the main process only, once per package,
+   * released when it shuts down.
+   */
+  initialSync(handler: () => Promise<PluginsRegisteredAnswer>): void;
   /**
    * Report a health check under the plugin id, as the class registered it
    * through `context.operationalHealth`; taken off when the package shuts
@@ -669,6 +680,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly initialSync: ServiceRuntime["initialSync"];
   readonly operationalHealth: Pick<IOperationalHealthNamespace, "register">;
   readonly endpoint: ServiceRuntime["endpoint"];
   readonly hasPlugin: (pluginId: string) => boolean;
@@ -748,6 +760,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    initialSync: binding.initialSync,
     operationalHealth(name, provider): void {
       binding.onRelease(binding.operationalHealth.register(name, provider));
     },
