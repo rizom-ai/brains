@@ -1,4 +1,6 @@
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
+import type { Logger } from "@brains/utils/logger";
+import type { JobHandler } from "@brains/job-queue";
 import type { Tool } from "@brains/mcp-service";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { StaticSiteOutput } from "../internal/http-host";
@@ -71,6 +73,60 @@ export function firstPartyJobHandler<TInput>(
   handler: FirstPartyJobHandler<TInput>,
 ): FirstPartyJobHandler {
   return handler;
+}
+
+/** What a job's data says in a log line when its job names nothing else. */
+const logDataSchema = z.record(z.string(), z.unknown());
+
+/**
+ * The queue's handler for a job its class handled, as its class's handler
+ * ran: the data checked by its schema and logged as the class's handler
+ * base logged it (a warning for refused data, its summary when it parses,
+ * an error when a run fails), each run inside `run`.
+ */
+export function firstPartyJobHandlerOf(
+  job: FirstPartyJobHandler,
+  options: {
+    readonly logger: Logger;
+    readonly run: (process: () => Promise<unknown>) => Promise<unknown>;
+  },
+): JobHandler {
+  const { logger } = options;
+  const summarize = (data: unknown): Record<string, unknown> => {
+    if (job.summarize) return job.summarize(data);
+    const record = logDataSchema.safeParse(data);
+    return record.success ? record.data : {};
+  };
+  return {
+    ...(job.executionTimeoutMs !== undefined && {
+      executionTimeoutMs: job.executionTimeoutMs,
+    }),
+    ...(job.exclusive !== undefined && { exclusive: job.exclusive }),
+    validateAndParse(data: unknown): unknown {
+      const parsed = job.input.safeParse(data);
+      if (!parsed.success) {
+        logger.warn(`Invalid ${job.type} job data`, {
+          data,
+          validationError: parsed.error.issues,
+        });
+        return null;
+      }
+      logger.debug(`${job.type} job data validation successful`, {
+        data: summarize(parsed.data),
+      });
+      return parsed.data;
+    },
+    process: (data, jobId, progress, signal): Promise<unknown> =>
+      options.run(() => job.process({ input: data, jobId, progress, signal })),
+    onError: async (error, data, jobId): Promise<void> => {
+      logger.error(`${job.type} job error handler triggered`, {
+        jobId,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        data: summarize(data),
+      });
+    },
+  };
 }
 
 export const noFirstPartyServiceDeclarations: FirstPartyServiceDeclarations =

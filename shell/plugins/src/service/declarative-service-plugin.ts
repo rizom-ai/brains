@@ -103,13 +103,11 @@ import {
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
 import {
+  firstPartyJobHandlerOf,
   noFirstPartyServiceDeclarations,
-  type FirstPartyJobHandler,
   type FirstPartyServiceDeclarations,
 } from "./first-party-service";
 
-/** What a job's data says in a log line when its job names nothing else. */
-const logDataSchema = z.record(z.string(), z.unknown());
 import type { ServicePluginContext } from "./context";
 import type {
   AnyServiceJobDefinition,
@@ -449,7 +447,14 @@ class DeclarativeServicePlugin<
         );
       }
       names.add(job.type);
-      context.jobs.registerHandler(job.type, this.jobHandlerAsWritten(job));
+      context.jobs.registerHandler(
+        job.type,
+        firstPartyJobHandlerOf(job, {
+          logger: this.logger,
+          // As its class's handler ran: as the package.
+          run: (process) => this.calls.run(this.packageCall(), process),
+        }),
+      );
     }
     this.registerSubscriptions(context);
     this.routes = (
@@ -1617,51 +1622,6 @@ class DeclarativeServicePlugin<
           },
         ],
       }),
-    };
-  }
-
-  /**
-   * A job its class handled, as its class's handler ran: the data checked by
-   * its schema, logged as the handler base logged it, run as the package.
-   */
-  private jobHandlerAsWritten(job: FirstPartyJobHandler): JobHandler {
-    const logger = this.logger;
-    const summarize = (data: unknown): Record<string, unknown> => {
-      if (job.summarize) return job.summarize(data);
-      const record = logDataSchema.safeParse(data);
-      return record.success ? record.data : {};
-    };
-    return {
-      ...(job.executionTimeoutMs !== undefined && {
-        executionTimeoutMs: job.executionTimeoutMs,
-      }),
-      ...(job.exclusive !== undefined && { exclusive: job.exclusive }),
-      validateAndParse(data: unknown): unknown {
-        const parsed = job.input.safeParse(data);
-        if (!parsed.success) {
-          logger.warn(`Invalid ${job.type} job data`, {
-            data,
-            validationError: parsed.error.issues,
-          });
-          return null;
-        }
-        logger.debug(`${job.type} job data validation successful`, {
-          data: summarize(parsed.data),
-        });
-        return parsed.data;
-      },
-      process: (data, jobId, progress, signal): Promise<unknown> =>
-        this.calls.run(this.packageCall(), () =>
-          job.process({ input: data, jobId, progress, signal }),
-        ),
-      onError: async (error, data, jobId): Promise<void> => {
-        logger.error(`${job.type} job error handler triggered`, {
-          jobId,
-          errorMessage: error.message,
-          errorStack: error.stack,
-          data: summarize(data),
-        });
-      },
     };
   }
 

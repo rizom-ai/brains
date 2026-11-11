@@ -5,6 +5,7 @@ import {
   type ProgressNotification,
 } from "@brains/utils/progress";
 import { createMockShell } from "../src/test/mock-shell";
+import { firstPartyJobHandlerFor } from "../src/test/first-party-job-handler";
 import {
   defineJob,
   defineServicePlugin,
@@ -153,5 +154,29 @@ describe("withJobHandlers", () => {
     expect(() => withJobHandlers(forged, () => [])).toThrow(
       'withJobHandlers takes a definition defineServicePlugin returned; "probe" is not one',
     );
+  });
+
+  it("runs in a test as the queue runs it, without its package", async () => {
+    const handler = firstPartyJobHandlerFor(
+      firstPartyJobHandler({
+        type: "select-photo",
+        input: selection,
+        exclusive: true,
+        process: async ({ input, jobId }) => ({ photo: input.photoId, jobId }),
+      }),
+    );
+    const progress = CallbackProgressReporter.from(async () => {});
+    if (!progress) throw new Error("No progress reporter");
+
+    expect(handler.exclusive).toBe(true);
+    expect(handler.validateAndParse({ title: "no id" })).toBeNull();
+    expect(
+      await handler.process(
+        handler.validateAndParse({ photoId: "abc" }),
+        "job-1",
+        progress,
+        new AbortController().signal,
+      ),
+    ).toEqual({ photo: "abc", jobId: "job-1" });
   });
 });
