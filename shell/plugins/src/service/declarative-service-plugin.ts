@@ -1101,6 +1101,9 @@ class DeclarativeServicePlugin<
       messaging: context.messaging,
       deliveryProvider: (channelType) =>
         context.channels.getDeliveryProvider(channelType),
+      instructions: (instructions: string): void => {
+        context.registerInstructions(instructions);
+      },
       asPackage: (run) => this.calls.run(this.packageCall(), run),
       onRelease: (release) => {
         this.answered.push(release);

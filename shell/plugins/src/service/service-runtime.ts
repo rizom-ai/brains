@@ -186,6 +186,12 @@ export interface ServiceRuntime {
    * a command every hearer takes, and every owner of a collect contract.
    */
   readonly messaging: ServiceClassMessaging;
+  /**
+   * Register the package's agent instructions again, under the plugin's
+   * id, as the class did through `context.registerInstructions` when what
+   * they say changed.
+   */
+  instructions(instructions: string): void;
   /** The transport registered for a recipient's channel type, if any. */
   deliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
   /**
@@ -466,6 +472,7 @@ export interface ServiceRuntimeBinding {
   readonly deliveryProvider: (
     channelType: string,
   ) => ChannelDeliveryProvider | undefined;
+  readonly instructions: (instructions: string) => void;
   /** Runs a handler as the package acting as itself. */
   readonly asPackage: <T>(run: () => Promise<T>) => Promise<T>;
   /** Keeps a release to run when the package shuts down. */
@@ -525,6 +532,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
       gather: (contract, payload) => messaging.gather(contract, payload),
     } satisfies ServiceClassMessaging),
     deliveryProvider: binding.deliveryProvider,
+    instructions: binding.instructions,
     entityShapes: binding.entityShapes,
     views: binding.views,
     resolveTemplate: binding.resolveTemplate,
