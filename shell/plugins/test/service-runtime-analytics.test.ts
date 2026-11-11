@@ -70,6 +70,24 @@ describe("a first-party service's analytics reports", () => {
     ).toEqual(["traffic-overview"]);
   });
 
+  it("reads with the read-only entity service a report is handed", async () => {
+    const shell = createMockShell();
+    const { runtime } = await runtimeOn(shell);
+    const service = shell.getEntityService();
+
+    // A report's own reads, as the analytics tool hands it the service.
+    expect(runtime.reportEntityService.getEntityTypes()).toEqual(
+      service.getEntityTypes(),
+    );
+    expect(
+      await runtime.reportEntityService.listEntities({ entityType: "note" }),
+    ).toEqual(await service.listEntities({ entityType: "note" }));
+    // Read-only: it writes nothing.
+    expect(Object.keys(runtime.reportEntityService)).not.toContain(
+      "createEntity",
+    );
+  });
+
   it("registers none in a job worker", async () => {
     const shell = createMockShell();
     const { runtime } = await runtimeOn(shell, true);

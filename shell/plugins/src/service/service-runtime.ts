@@ -49,6 +49,7 @@ import type {
   NearestEntity,
   NearestToEntityRequest,
   PersistValidator,
+  ReadOnlyEntityService,
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
   UpdateEntityRequest,
@@ -315,6 +316,12 @@ export interface ServiceRuntime {
   analyticsReport<TParams extends z.ZodObject>(
     report: AnalyticsReportDefinition<TParams>,
   ): void;
+  /**
+   * The read-only entity service a report reads with, as the class handed
+   * its own reports `context.entityService` when its widget and workspace
+   * ran them: reads alone, at the scope each read names.
+   */
+  readonly reportEntityService: ReadOnlyEntityService;
   /**
    * The follow-ups the Inbox's destinations resolve for an item, as the
    * class read them through `context.inboxFollowUps`.
@@ -643,6 +650,7 @@ export interface ServiceRuntimeBinding {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
   readonly analyticsReport: ServiceRuntime["analyticsReport"];
+  readonly reportEntityService: ReadOnlyEntityService;
   readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
   readonly recurringCheck: (check: RecurringCheckDefinition) => void;
   readonly interaction: (interaction: ServiceInteraction) => void;
@@ -717,6 +725,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
     analyticsReport: binding.analyticsReport,
+    reportEntityService: binding.reportEntityService,
     inboxFollowUps: binding.inboxFollowUps,
     recurringCheck: binding.recurringCheck,
     interaction: binding.interaction,

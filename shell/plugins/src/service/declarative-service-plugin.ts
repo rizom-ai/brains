@@ -25,6 +25,7 @@ import type {
   NearestEntity,
   NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
+  ReadOnlyEntityService,
   SemanticSpaceProjection,
 } from "@brains/entity-service";
 import type { JobHandler } from "@brains/job-queue";
@@ -1179,6 +1180,7 @@ class DeclarativeServicePlugin<
       analyticsReport: (report): void => {
         context.analytics.register(report);
       },
+      reportEntityService: readOnlyEntityServiceOf(context),
       inboxFollowUps: Object.freeze({
         resolve: (
           input: Parameters<typeof context.inboxFollowUps.resolve>[0],
@@ -1856,6 +1858,25 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntityRaw: (request) => entityService.getEntityRaw(request),
     search: (request) => entityService.search(request),
   } satisfies ServiceEntityReads);
+}
+
+/** The read-only projection of the entity service, each read bound on its own. */
+function readOnlyEntityServiceOf(
+  context: ServicePluginContext,
+): ReadOnlyEntityService {
+  const { entityService } = context;
+  return Object.freeze({
+    getEntity: entityService.getEntity.bind(entityService),
+    getEntityRaw: entityService.getEntityRaw.bind(entityService),
+    listEntities: entityService.listEntities.bind(entityService),
+    search: entityService.search.bind(entityService),
+    searchWithDistances: entityService.searchWithDistances.bind(entityService),
+    getEntityTypes: entityService.getEntityTypes.bind(entityService),
+    hasEntityType: entityService.hasEntityType.bind(entityService),
+    countEntities: entityService.countEntities.bind(entityService),
+    getEntityCounts: entityService.getEntityCounts.bind(entityService),
+    getEntityTypeConfig: entityService.getEntityTypeConfig.bind(entityService),
+  } satisfies ReadOnlyEntityService);
 }
 
 /** The entity service's writes a class made, each bound on its own. */
