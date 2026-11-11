@@ -78,7 +78,7 @@ describe("long-note agent eval coverage", () => {
     // Approval checks the executed operation and storage result, not a success phrase.
     expect(
       testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
-    ).toEqual({ success: true, "data.updated": id });
+    ).toEqual({ updated: id });
   });
 
   // 17 KB and a combined title and body edit are mcp-long-note-update's.
@@ -106,7 +106,7 @@ describe("long-note agent eval coverage", () => {
       // normal agent read results, which expose the data directly.
       expect(
         testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
-      ).toEqual({ success: true, "data.updated": id });
+      ).toEqual({ updated: id });
       for (const index of [0, 3]) {
         // An edit needs no fresh read: the update matches its old text
         // against the stored note and refuses a note changed since the

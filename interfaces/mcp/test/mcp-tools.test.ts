@@ -200,7 +200,7 @@ describe("MCP tools", () => {
     expect(conversationIds[0]).not.toBe(conversationIds[1]);
   });
 
-  it("surfaces tool results and read-your-writes handles", async () => {
+  it("replies with the answer and read-your-writes handles, not raw tool results", async () => {
     const toolResults = [
       {
         toolName: "system_create",
@@ -243,7 +243,6 @@ describe("MCP tools", () => {
       data: {
         text: "Created note.",
         conversationId: expect.stringMatching(/^conversation-/),
-        toolResults,
         readYourWrites: [
           {
             toolName: "system_create",

@@ -7,7 +7,8 @@ import { InMemoryTransport } from "@modelcontextprotocol/server";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { IAgentService } from "@brains/ai-service";
 import type { ChatContext, AgentResponse } from "@brains/ai-service";
-import { parseAgentResponse } from "@brains/contracts";
+import { agentTurnCompletedChannel } from "@brains/ai-service";
+import { parseAgentResponse, type ToolResultData } from "@brains/contracts";
 import { isRecord } from "@brains/utils/is-record";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -32,9 +33,16 @@ export interface RemoteMCPConnectionOptions {
   fetch?: FetchLike;
 }
 
+/** The brain's bus, as far as hearing its finished turns goes. */
+export interface TurnEventBus {
+  subscribe(
+    type: string,
+    handler: (message: { payload: unknown }) => { noop: true },
+  ): () => void;
+}
+
 interface ChatSuccessPayload {
   text: string;
-  toolResults?: unknown;
 }
 
 interface ConfirmationPayload {
@@ -62,21 +70,42 @@ const EMPTY_USAGE = {
  * surface other than chat + confirm before the first evaluation starts.
  */
 export class MCPProtocolAgentService implements IAgentService {
+  /**
+   * Whether a turn's tool calls reach this adapter. The protocol replies with
+   * the answer alone; in process, the brain's turn events carry the calls.
+   */
+  public readonly toolCallsObservable: boolean;
   private readonly connections = new Map<string, Promise<ProtocolConnection>>();
   private readonly open: OpenConnection;
+  /** Each finished turn's tool results, by the brain's conversation id. */
+  private readonly turnResults = new Map<string, ToolResultData[]>();
+  private readonly stopHearingTurns: () => void;
 
-  private constructor(open: OpenConnection) {
+  private constructor(open: OpenConnection, turns?: TurnEventBus) {
     this.open = open;
+    this.toolCallsObservable = turns !== undefined;
+    this.stopHearingTurns =
+      turns?.subscribe(agentTurnCompletedChannel.name, (message) => {
+        const turn = agentTurnCompletedChannel.schema.safeParse(
+          message.payload,
+        );
+        if (turn.success)
+          this.turnResults.set(turn.data.conversationId, turn.data.toolResults);
+        return { noop: true };
+      }) ?? ((): void => undefined);
   }
 
   /** Evaluate the booted eval brain's own MCP surface, in process. */
   public static async connect(
     mcpTransport: IMCPTransport,
+    turns: TurnEventBus,
   ): Promise<MCPProtocolAgentService> {
     mcpTransport.setProtocolMode("basic");
     return MCPProtocolAgentService.verified(
-      new MCPProtocolAgentService((permissionLevel, isAnchor) =>
-        openInProcess(mcpTransport, permissionLevel, isAnchor),
+      new MCPProtocolAgentService(
+        (permissionLevel, isAnchor) =>
+          openInProcess(mcpTransport, permissionLevel, isAnchor),
+        turns,
       ),
       PERMISSION_LEVELS,
     );
@@ -162,6 +191,7 @@ export class MCPProtocolAgentService implements IAgentService {
   }
 
   public async close(): Promise<void> {
+    this.stopHearingTurns();
     const connections = await Promise.allSettled(this.connections.values());
     this.connections.clear();
     await Promise.all(
@@ -183,7 +213,26 @@ export class MCPProtocolAgentService implements IAgentService {
     const { client } = await this.getConnection(permissionLevel, isAnchor);
     const result = await client.callTool({ name, arguments: args });
     signal?.throwIfAborted();
-    return protocolPayloadToAgentResponse(parseProtocolPayload(result));
+    const response = protocolPayloadToAgentResponse(
+      parseProtocolPayload(result),
+    );
+    const toolResults = this.takeTurnResults(String(args["conversationId"]));
+    return toolResults ? { ...response, toolResults } : response;
+  }
+
+  /**
+   * The tool results of the turn the brain just finished for this handle. The
+   * brain scopes a protocol conversation to its caller, `mcp:<scope>:<handle>`,
+   * and announces the turn before its reply leaves.
+   */
+  private takeTurnResults(handle: string): ToolResultData[] | undefined {
+    const conversationId = [...this.turnResults.keys()].find((id) =>
+      id.endsWith(`:${handle}`),
+    );
+    if (conversationId === undefined) return undefined;
+    const toolResults = this.turnResults.get(conversationId);
+    this.turnResults.delete(conversationId);
+    return toolResults;
   }
 
   private getConnection(
@@ -320,24 +369,13 @@ function protocolPayloadToAgentResponse(payload: unknown): AgentResponse {
   }
 
   const success = parseChatSuccessPayload(normalizedPayload);
-  return parseAgentResponse({
-    text: success.text,
-    ...(success.toolResults !== undefined
-      ? { toolResults: success.toolResults }
-      : {}),
-    usage: EMPTY_USAGE,
-  });
+  return parseAgentResponse({ text: success.text, usage: EMPTY_USAGE });
 }
 
 function parseChatSuccessPayload(
   payload: Record<string, unknown>,
 ): ChatSuccessPayload {
-  return {
-    text: requireString(payload["text"], "text"),
-    ...(payload["toolResults"] !== undefined
-      ? { toolResults: payload["toolResults"] }
-      : {}),
-  };
+  return { text: requireString(payload["text"], "text") };
 }
 
 function parseConfirmationPayload(

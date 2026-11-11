@@ -81,6 +81,8 @@ export function agentResponseToToolResponse(
     };
   }
 
+  // The raw tool results are the agent's working material (search hits,
+  // entity bodies); the reply carries the answer and handles to what it wrote.
   const readYourWrites = getReadYourWritesHandles(response.toolResults);
 
   return {
@@ -90,7 +92,6 @@ export function agentResponseToToolResponse(
       ...(options.conversationId
         ? { conversationId: options.conversationId }
         : {}),
-      ...(response.toolResults ? { toolResults: response.toolResults } : {}),
       ...(readYourWrites.length > 0 ? { readYourWrites } : {}),
     },
   };
