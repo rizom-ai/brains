@@ -14,6 +14,7 @@ import type {
   IInboxNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
+  IOperationalHealthNamespace,
   IPermissionsNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
@@ -23,6 +24,7 @@ import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
+import type { OperationalHealthProvider } from "../operational-health-registry";
 import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
@@ -310,6 +312,12 @@ export interface ServiceRuntime {
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   /** Whether this process is a job worker, as the class read `executionOnly`. */
   readonly executionOnly: boolean;
+  /**
+   * Report a health check under the plugin id, as the class registered it
+   * through `context.operationalHealth`; taken off when the package shuts
+   * down.
+   */
+  operationalHealth(name: string, provider: OperationalHealthProvider): void;
   /**
    * Advertise a URL of the package under its plugin id, as the class
    * registered one through `context.endpoints`; a worker advertises none.
@@ -659,6 +667,7 @@ export interface ServiceRuntimeBinding {
   readonly inboxSource: (source: InboxSource) => void;
   readonly prompts: Pick<IPromptsNamespace, "resolve">;
   readonly executionOnly: boolean;
+  readonly operationalHealth: Pick<IOperationalHealthNamespace, "register">;
   readonly endpoint: ServiceRuntime["endpoint"];
   readonly hasPlugin: (pluginId: string) => boolean;
   readonly themeCSS: string;
@@ -737,6 +746,9 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     inboxSource: binding.inboxSource,
     prompts: binding.prompts,
     executionOnly: binding.executionOnly,
+    operationalHealth(name, provider): void {
+      binding.onRelease(binding.operationalHealth.register(name, provider));
+    },
     endpoint: binding.endpoint,
     hasPlugin: binding.hasPlugin,
     themeCSS: binding.themeCSS,

@@ -96,4 +96,19 @@ describe("a first-party service's forms-engine reads and registrations", () => {
     });
     expect(workerShell.listEndpoints()).toEqual([]);
   });
+
+  it("reports a health check under its plugin id until it shuts down, as its class did through context.operationalHealth", async () => {
+    const shell = shellWith();
+    const { runtime, plugin } = await runtimeOn(shell);
+    runtime.operationalHealth("intake", async () => ({
+      status: "healthy",
+      message: "Intake is open.",
+    }));
+    expect(await shell.getOperationalHealthRegistry().getChecks()).toEqual([
+      { name: "probe:intake", status: "healthy", message: "Intake is open." },
+    ]);
+
+    await plugin.shutdown?.();
+    expect(await shell.getOperationalHealthRegistry().getChecks()).toEqual([]);
+  });
 });

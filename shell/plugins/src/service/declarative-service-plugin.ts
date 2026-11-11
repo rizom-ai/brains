@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
+import type { OperationalHealthProvider } from "../operational-health-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
@@ -1177,6 +1178,10 @@ class DeclarativeServicePlugin<
           context.prompts.resolve(target, fallback),
       }),
       executionOnly: context.executionOnly,
+      operationalHealth: Object.freeze({
+        register: (name: string, provider: OperationalHealthProvider) =>
+          context.operationalHealth.register(name, provider),
+      }),
       endpoint: (endpoint): void => {
         context.endpoints.register(endpoint);
       },
