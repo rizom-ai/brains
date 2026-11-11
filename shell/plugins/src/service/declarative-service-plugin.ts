@@ -1194,6 +1194,11 @@ class DeclarativeServicePlugin<
           );
         },
       }),
+      attachments: Object.freeze({
+        resolve: (request) => context.attachments.resolve(request),
+        hasProvider: (sourceEntityType: string, attachmentType: string) =>
+          context.attachments.hasProvider(sourceEntityType, attachmentType),
+      }),
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,
       ai: Object.freeze<ServiceAI>({

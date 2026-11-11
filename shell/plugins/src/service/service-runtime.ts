@@ -16,6 +16,7 @@ import type {
   IPermissionsNamespace,
   IProfileKindsNamespace,
 } from "../base/context-types";
+import type { IAttachmentsNamespace } from "./attachment-registry";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
 import type { IViewsNamespace } from "../entity/namespaces";
@@ -338,6 +339,12 @@ export interface ServiceRuntime {
    */
   readonly permissions: ServicePermissions;
   /**
+   * The attachments other packages provide for their records, as the class
+   * read them through `context.attachments`: whether a source type
+   * provides one, and the attachment, resolved by its provider.
+   */
+  readonly attachments: ServiceAttachments;
+  /**
    * Claim a shell system type for this package: it alone keeps the type's
    * records, as the class kept them. A type that is not one of the shell's
    * own, one nobody registered, and one another package claimed are
@@ -485,6 +492,12 @@ export type ServicePermissions = Pick<
   "assertEntityActionAllowed"
 >;
 
+/** The attachment reads a class made, and nothing that registers one. */
+export type ServiceAttachments = Pick<
+  IAttachmentsNamespace,
+  "resolve" | "hasProvider"
+>;
+
 /** The view templates a class read, and nothing that registers one. */
 export type ServiceViews = Pick<IViewsNamespace, "get" | "list">;
 
@@ -565,6 +578,7 @@ export interface ServiceRuntimeBinding {
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
   readonly entityReads: ServiceEntityReads;
   readonly permissions: ServicePermissions;
+  readonly attachments: ServiceAttachments;
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: ServiceAI;
@@ -626,6 +640,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     evalHandler: binding.evalHandler,
     entityReads: binding.entityReads,
     permissions: binding.permissions,
+    attachments: binding.attachments,
     claim: binding.claim,
     profileKinds: binding.profileKinds,
     ai: binding.ai,
