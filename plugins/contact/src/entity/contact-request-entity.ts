@@ -2,6 +2,7 @@ import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
   writesInDocumentOrder,
+  withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
 import { contactRequestAdapter } from "./adapter";
 import { contactFrontmatterSchema, contactMetadataSchema } from "./schema";
@@ -23,32 +24,35 @@ import { contactFrontmatterSchema, contactMetadataSchema } from "./schema";
 export const contactRequestEntity: EntityDefinition<
   "contact-request",
   typeof contactMetadataSchema
-> = writesInDocumentOrder(
-  defineEntity({
-    type: "contact-request",
-    purpose:
-      "A restricted contact request for the owner. Never public knowledge or model input.",
-    metadata: contactMetadataSchema,
-    markdown: storedDocumentCodec({
-      header: contactFrontmatterSchema,
-      deriveMetadata: (header) => ({
-        title: "Contact request" as const,
-        receivedAt: header.receivedAt,
-        status: header.status,
-        notification: header.notification,
+> = withFrontmatterSchema(
+  writesInDocumentOrder(
+    defineEntity({
+      type: "contact-request",
+      purpose:
+        "A restricted contact request for the owner. Never public knowledge or model input.",
+      metadata: contactMetadataSchema,
+      markdown: storedDocumentCodec({
+        header: contactFrontmatterSchema,
+        deriveMetadata: (header) => ({
+          title: "Contact request" as const,
+          receivedAt: header.receivedAt,
+          status: header.status,
+          notification: header.notification,
+        }),
       }),
+      config: {
+        embeddable: false,
+        fullTextSearchable: false,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
+      },
+      validatePersist: ({ content, visibility }) => {
+        if (visibility !== "restricted") {
+          throw new Error("Contact requests must have restricted visibility");
+        }
+        contactRequestAdapter.parseContent(content);
+      },
     }),
-    config: {
-      embeddable: false,
-      fullTextSearchable: false,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    },
-    validatePersist: ({ content, visibility }) => {
-      if (visibility !== "restricted") {
-        throw new Error("Contact requests must have restricted visibility");
-      }
-      contactRequestAdapter.parseContent(content);
-    },
-  }),
+  ),
+  contactFrontmatterSchema,
 );

@@ -1,3 +1,5 @@
+import { socialPostFrontmatterSchema } from "./schemas/social-post";
+import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
 import {
   createTemplate,
@@ -62,55 +64,58 @@ const postDetailSchema = z.object({
 export const socialPost: EntityDefinition<
   "social-post",
   typeof socialPostMetadataSchema
-> = defineEntity({
-  type: "social-post",
-  purpose: "A short post drafted for social media such as LinkedIn or X.",
-  metadata: socialPostMetadataSchema,
-  markdown: socialPostMarkdown,
-  config: {
-    projectionSourceRole: "secondary",
-    publish: { publishStatuses: ["queued", "published", "failed"] },
-  },
-  coverImage: true,
-  stub: socialPostStub,
-  templates: {
-    linkedin: linkedinTemplate,
-    "social-post-list": createTemplate<
-      z.output<typeof postListSchema>,
-      SocialPostListProps
-    >({
-      name: "social-post-list",
-      description: "Social post list page template",
-      schema: postListSchema,
-      dataSourceId: "social-media:posts",
-      requiredPermission: "public",
-      layout: {
-        component: SocialPostListTemplate,
-        renderSchema: postListRenderSchema,
-      },
-    }),
-    "social-post-detail": createTemplate<
-      z.output<typeof postDetailSchema>,
-      SocialPostDetailProps
-    >({
-      name: "social-post-detail",
-      description: "Individual social post template",
-      schema: postDetailSchema,
-      dataSourceId: "social-media:posts",
-      requiredPermission: "public",
-      layout: {
-        component: SocialPostDetailTemplate,
-        renderSchema: postDetailRenderSchema,
-      },
-    }),
-  },
-  generation: socialPostGeneration,
-  // Each published blog post in turn, one not yet shared, as the class's
-  // scheduled generation picked from the five most recent.
-  scheduledGeneration: {
-    from: { entityType: "post", status: "published", limit: 5 },
-    mode: "each",
-  },
-  evals: socialPostEvals(() => socialPost),
-  atproto: socialPostAtproto,
-});
+> = withFrontmatterSchema(
+  defineEntity({
+    type: "social-post",
+    purpose: "A short post drafted for social media such as LinkedIn or X.",
+    metadata: socialPostMetadataSchema,
+    markdown: socialPostMarkdown,
+    config: {
+      projectionSourceRole: "secondary",
+      publish: { publishStatuses: ["queued", "published", "failed"] },
+    },
+    coverImage: true,
+    stub: socialPostStub,
+    templates: {
+      linkedin: linkedinTemplate,
+      "social-post-list": createTemplate<
+        z.output<typeof postListSchema>,
+        SocialPostListProps
+      >({
+        name: "social-post-list",
+        description: "Social post list page template",
+        schema: postListSchema,
+        dataSourceId: "social-media:posts",
+        requiredPermission: "public",
+        layout: {
+          component: SocialPostListTemplate,
+          renderSchema: postListRenderSchema,
+        },
+      }),
+      "social-post-detail": createTemplate<
+        z.output<typeof postDetailSchema>,
+        SocialPostDetailProps
+      >({
+        name: "social-post-detail",
+        description: "Individual social post template",
+        schema: postDetailSchema,
+        dataSourceId: "social-media:posts",
+        requiredPermission: "public",
+        layout: {
+          component: SocialPostDetailTemplate,
+          renderSchema: postDetailRenderSchema,
+        },
+      }),
+    },
+    generation: socialPostGeneration,
+    // Each published blog post in turn, one not yet shared, as the class's
+    // scheduled generation picked from the five most recent.
+    scheduledGeneration: {
+      from: { entityType: "post", status: "published", limit: 5 },
+      mode: "each",
+    },
+    evals: socialPostEvals(() => socialPost),
+    atproto: socialPostAtproto,
+  }),
+  socialPostFrontmatterSchema,
+);

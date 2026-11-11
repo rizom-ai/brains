@@ -107,7 +107,7 @@ export function createMockEntityStore(): MockEntityStore {
         content: preserveSourceFrontmatter(
           source,
           serialized,
-          adapter.frontmatterSchema,
+          adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema,
           [],
           [],
           [...(typeConfigs.get(entity.entityType)?.retiredFields ?? [])],

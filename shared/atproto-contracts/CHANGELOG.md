@@ -1,5 +1,41 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.681
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.681
+  - @brains/utils@0.2.0-alpha.681
+  - @brains/entity-service@0.2.0-alpha.681
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- Updated dependencies [[`212e346`](https://github.com/rizom-ai/brains/commit/212e34652bb525cab2a0f9eb0812f9caa288f413), [`b499285`](https://github.com/rizom-ai/brains/commit/b499285fb57de69674e99ab49617297ea6a0b381), [`b0cc6e4`](https://github.com/rizom-ai/brains/commit/b0cc6e41d1e84468bd3c8536796bc95a2fdea856)]:
+  - @brains/entity-service@0.2.0-alpha.680
+  - @brains/contracts@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/entity-service@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/entity-service@0.2.0-alpha.678
+
 ## 0.2.0-alpha.677
 
 ### Patch Changes

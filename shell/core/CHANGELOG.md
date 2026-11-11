@@ -1,5 +1,99 @@
 # @brains/core
 
+## 0.2.0-alpha.681
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.681
+  - @brains/contracts@0.2.0-alpha.681
+  - @brains/image@0.2.0-alpha.681
+  - @brains/operation-context@0.2.0-alpha.681
+  - @brains/site-composition@0.2.0-alpha.681
+  - @brains/utils@0.2.0-alpha.681
+  - @brains/http-host@0.2.0-alpha.681
+  - @brains/plugins@0.2.0-alpha.681
+  - @brains/recurring-checks@0.2.0-alpha.681
+  - @brains/runtime-state@0.2.0-alpha.681
+  - @brains/scheduler@0.2.0-alpha.681
+  - @brains/templates@0.2.0-alpha.681
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`212e346`](https://github.com/rizom-ai/brains/commit/212e34652bb525cab2a0f9eb0812f9caa288f413) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain.yaml` takes `embeddingModel` to choose the model that builds the semantic index: `openai:text-embedding-3-small` (the default) or `openai:text-embedding-3-large`. The index records the model, dimensions and prompt revision it was built with; at the next start after `embeddingModel` changes, the brain drops the index, re-embeds every entity with the new model, and holds chat until the rebuilt index is ready. Existing indexes are read as `text-embedding-3-small` and are kept. A `provider:` prefix on `model` is now kept, and a text or embedding model of an unknown provider, or an embedding model without a profile, fails config validation instead of falling back to Anthropic. Guest pricing covers `text-embedding-3-large`, and embedding usage is logged under the configured model.
+
+  An embedding that failed for good, for example during a provider outage longer than the job retries, is retried at the next start instead of being skipped until its content changes; restarting the brain after an outage completes its index.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`b0cc6e4`](https://github.com/rizom-ai/brains/commit/b0cc6e41d1e84468bd3c8536796bc95a2fdea856) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `embeddingModel: local:embeddinggemma-2:270m` indexes with Google's EmbeddingGemma 2 from a model runtime next to the brain: any server with the OpenAI-compatible `/v1/embeddings` API at `modelRuntime.url` in `brain.yaml`, such as Ollama (`ollama pull embeddinggemma-2:270m`). Queries and documents are framed with the model's retrieval prompts, documents carry their title, and long documents are chunked within the runtime's default 2,048-token context. A `local:` model without `modelRuntime.url` fails config validation. Bare `llama`, `mistral`, `phi-` and `qwen` model names now resolve to the `local` provider.
+
+  Guest turns price embeddings from the local model runtime at zero.
+
+  `local:nomic-embed-text:v1.5` is also supported, with its `search_query:`/`search_document:` prefixes.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`d288c2e`](https://github.com/rizom-ai/brains/commit/d288c2e8f2f94dd71a9d361c80f7d64fef8eae81) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `model: local:<name>` runs the brain's agent on a text model from the model runtime, over its OpenAI-compatible `/v1/chat/completions` API; a local text model without a model runtime URL fails config validation. Runtime model tags keep their colon (`qwen3:4b`), and evals run `local:` models without an API key.
+
+  Object generation on a local text model sends its JSON schema to the runtime, which constrains the output to it.
+
+  `brain start` no longer requires `AI_API_KEY` when `brain.yaml` names `local:` models for both `model` and `embeddingModel`.
+
+  `reasoningEffort` in `brain.yaml` reaches local text models as the runtime's `reasoning_effort`; `reasoningEffort: none` turns a model's thinking off.
+
+  A local text model thinks while it chooses its tools and answers a tool result without thinking; on a runtime that generates about 20 tokens a second this removes most of a turn's answer time. Its searches return five hits of at most 800 characters each instead of ten of 3,000, so the model reads results in seconds.
+
+  `answerModel` in `brain.yaml` names a `local:` model that writes while `model` chooses the tools: it answers tool results and runs text and object generation, such as background derivations, so a reasoning model makes the calls and a fast one writes. The deploy pulls it with the other local models.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.680
+  - @brains/atproto-contracts@0.2.0-alpha.680
+  - @brains/image@0.2.0-alpha.680
+  - @brains/http-host@0.2.0-alpha.680
+  - @brains/contracts@0.2.0-alpha.680
+  - @brains/operation-context@0.2.0-alpha.680
+  - @brains/site-composition@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+  - @brains/recurring-checks@0.2.0-alpha.680
+  - @brains/runtime-state@0.2.0-alpha.680
+  - @brains/scheduler@0.2.0-alpha.680
+  - @brains/templates@0.2.0-alpha.680
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.679
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/image@0.2.0-alpha.679
+  - @brains/operation-context@0.2.0-alpha.679
+  - @brains/site-composition@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/http-host@0.2.0-alpha.679
+  - @brains/plugins@0.2.0-alpha.679
+  - @brains/recurring-checks@0.2.0-alpha.679
+  - @brains/runtime-state@0.2.0-alpha.679
+  - @brains/scheduler@0.2.0-alpha.679
+  - @brains/templates@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.678
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/image@0.2.0-alpha.678
+  - @brains/operation-context@0.2.0-alpha.678
+  - @brains/site-composition@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/http-host@0.2.0-alpha.678
+  - @brains/plugins@0.2.0-alpha.678
+  - @brains/recurring-checks@0.2.0-alpha.678
+  - @brains/runtime-state@0.2.0-alpha.678
+  - @brains/scheduler@0.2.0-alpha.678
+  - @brains/templates@0.2.0-alpha.678
+
 ## 0.2.0-alpha.677
 
 ### Patch Changes

@@ -11,6 +11,7 @@ import type {
 } from "@brains/plugins";
 import type { IAnalyticsRegistry } from "@brains/plugins";
 import type { PermissionService } from "@brains/templates";
+import type { SearchBudget } from "./search-excerpt";
 
 /**
  * Services required by system tools.
@@ -36,8 +37,8 @@ export interface SystemServices {
   getProfile: () => AnchorProfile;
   getAppInfo: () => Promise<RuntimeAppInfo>;
 
-  /** Search config */
-  searchLimit: number;
+  /** How many search hits, and how long, the model receives */
+  searchBudget: SearchBudget;
 
   /** The system_analytics reports, core's and plugins' */
   analytics: IAnalyticsRegistry;

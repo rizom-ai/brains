@@ -94,6 +94,29 @@ async function saveUpload(harness: Harness, text: string): Promise<string> {
   return record.id;
 }
 
+describe("fields a type takes only on create", () => {
+  it("are the adapter's create fields, beside its editable ones", async () => {
+    const layout = z.object({ layout: z.enum(["wide", "narrow"]).optional() });
+    const { harness } = await install([
+      defineEntity({
+        type: "note",
+        purpose: "A note.",
+        metadata: noteMetadata,
+        create: { fields: layout },
+      }),
+    ]);
+
+    const registry = harness.getEntityRegistry();
+    expect(registry.getAdapter("note").createFieldsSchema).toBe(layout);
+    expect(
+      Object.keys(registry.getCreateFieldsSchema("note")?.shape ?? {}),
+    ).toEqual(["title", "count", "layout"]);
+    expect(
+      Object.keys(registry.getEditableFieldsSchema("note")?.shape ?? {}),
+    ).toEqual(["title", "count"]);
+  });
+});
+
 describe("declared create routing", () => {
   const seen: string[] = [];
   const routed = defineEntity({

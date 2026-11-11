@@ -2,6 +2,7 @@ import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
   writesInDocumentOrder,
+  withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
 import { mailItemAdapter } from "./adapters/mail-item-adapter";
 import {
@@ -34,52 +35,55 @@ const MAIL_ITEM_RETIRED_FIELDS = ["source.senderKey", "source.domain"];
 export const mailItemEntity: EntityDefinition<
   "mail-item",
   typeof mailItemMetadataSchema
-> = writesInDocumentOrder(
-  defineEntity({
-    type: "mail-item",
-    purpose:
-      "A restricted, derived routing summary for an inbound email whose original remains in the mailbox.",
-    metadata: mailItemMetadataSchema,
-    config: {
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-      retiredFields: MAIL_ITEM_RETIRED_FIELDS,
-    },
-    // The header's routing fields and thread position, and nothing else.
-    markdown: storedDocumentCodec({
-      header: mailItemFrontmatterSchema,
-      deriveMetadata: (header) => ({
-        title: header.title,
-        category: header.category,
-        priority: header.priority,
-        status: header.status,
-        needsReply: header.needsReply,
-        receivedAt: header.receivedAt,
-        ...(header.source.threadKey
-          ? { threadKey: header.source.threadKey }
-          : {}),
-        ...(header.source.threadOrdinal !== undefined
-          ? { threadOrdinal: header.source.threadOrdinal }
-          : {}),
+> = withFrontmatterSchema(
+  writesInDocumentOrder(
+    defineEntity({
+      type: "mail-item",
+      purpose:
+        "A restricted, derived routing summary for an inbound email whose original remains in the mailbox.",
+      metadata: mailItemMetadataSchema,
+      config: {
+        projectionSource: false,
+        projectionSourceRole: "excluded",
+        retiredFields: MAIL_ITEM_RETIRED_FIELDS,
+      },
+      // The header's routing fields and thread position, and nothing else.
+      markdown: storedDocumentCodec({
+        header: mailItemFrontmatterSchema,
+        deriveMetadata: (header) => ({
+          title: header.title,
+          category: header.category,
+          priority: header.priority,
+          status: header.status,
+          needsReply: header.needsReply,
+          receivedAt: header.receivedAt,
+          ...(header.source.threadKey
+            ? { threadKey: header.source.threadKey }
+            : {}),
+          ...(header.source.threadOrdinal !== undefined
+            ? { threadOrdinal: header.source.threadOrdinal }
+            : {}),
+        }),
       }),
+      // Restricted, always; and only the system fallback may carry no
+      // category, so a classification the model failed to make cannot pass
+      // for one it did.
+      validatePersist: ({ content, visibility }) => {
+        if (visibility !== "restricted") {
+          throw new Error("Mail items must have restricted visibility");
+        }
+        const { frontmatter } = mailItemAdapter.parseMailItemContent(content);
+        if (
+          frontmatter.category === null &&
+          (frontmatter.title !== "Unclassified email" ||
+            frontmatter.priority !== "high")
+        ) {
+          throw new Error(
+            "Only the system fallback may have an unclassified category",
+          );
+        }
+      },
     }),
-    // Restricted, always; and only the system fallback may carry no
-    // category, so a classification the model failed to make cannot pass
-    // for one it did.
-    validatePersist: ({ content, visibility }) => {
-      if (visibility !== "restricted") {
-        throw new Error("Mail items must have restricted visibility");
-      }
-      const { frontmatter } = mailItemAdapter.parseMailItemContent(content);
-      if (
-        frontmatter.category === null &&
-        (frontmatter.title !== "Unclassified email" ||
-          frontmatter.priority !== "high")
-      ) {
-        throw new Error(
-          "Only the system fallback may have an unclassified category",
-        );
-      }
-    },
-  }),
+  ),
+  mailItemFrontmatterSchema,
 );

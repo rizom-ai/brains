@@ -2,6 +2,7 @@ import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
   writesInDocumentOrder,
+  withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
 import { quizResultAdapter } from "./adapter";
 import {
@@ -26,26 +27,29 @@ import {
 export const quizResultEntity: EntityDefinition<
   "quiz-result",
   typeof quizResultMetadataSchema
-> = writesInDocumentOrder(
-  defineEntity({
-    type: "quiz-result",
-    purpose:
-      "A restricted record of one quiz taken on the brain's site: what was asked and answered, and the results shown. Never public knowledge or model input.",
-    metadata: quizResultMetadataSchema,
-    markdown: storedDocumentCodec({
-      header: quizResultFrontmatterSchema,
-      deriveMetadata: (header) => quizResultAdapter.metadataFor(header),
+> = withFrontmatterSchema(
+  writesInDocumentOrder(
+    defineEntity({
+      type: "quiz-result",
+      purpose:
+        "A restricted record of one quiz taken on the brain's site: what was asked and answered, and the results shown. Never public knowledge or model input.",
+      metadata: quizResultMetadataSchema,
+      markdown: storedDocumentCodec({
+        header: quizResultFrontmatterSchema,
+        deriveMetadata: (header) => quizResultAdapter.metadataFor(header),
+      }),
+      config: {
+        embeddable: false,
+        fullTextSearchable: false,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
+      },
+      validatePersist: ({ content, visibility }) => {
+        if (visibility !== "restricted")
+          throw new Error("Quiz results must have restricted visibility");
+        quizResultAdapter.parseContent(content);
+      },
     }),
-    config: {
-      embeddable: false,
-      fullTextSearchable: false,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    },
-    validatePersist: ({ content, visibility }) => {
-      if (visibility !== "restricted")
-        throw new Error("Quiz results must have restricted visibility");
-      quizResultAdapter.parseContent(content);
-    },
-  }),
+  ),
+  quizResultFrontmatterSchema,
 );

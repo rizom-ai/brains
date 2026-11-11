@@ -1,5 +1,103 @@
 # @brains/app
 
+## 0.2.0-alpha.681
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.681
+  - @brains/sdk@0.2.0-alpha.681
+  - @brains/contracts@0.2.0-alpha.681
+  - @brains/site-composition@0.2.0-alpha.681
+  - @brains/theme-base@0.2.0-alpha.681
+  - @brains/utils@0.2.0-alpha.681
+  - @brains/conversation-service@0.2.0-alpha.681
+  - @brains/core@0.2.0-alpha.681
+  - @brains/entity-service@0.2.0-alpha.681
+  - @brains/job-queue@0.2.0-alpha.681
+  - @brains/mcp-service@0.2.0-alpha.681
+  - @brains/messaging-service@0.2.0-alpha.681
+  - @brains/plugins@0.2.0-alpha.681
+  - @brains/runtime-state@0.2.0-alpha.681
+  - @brains/templates@0.2.0-alpha.681
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`212e346`](https://github.com/rizom-ai/brains/commit/212e34652bb525cab2a0f9eb0812f9caa288f413) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain.yaml` takes `embeddingModel` to choose the model that builds the semantic index: `openai:text-embedding-3-small` (the default) or `openai:text-embedding-3-large`. The index records the model, dimensions and prompt revision it was built with; at the next start after `embeddingModel` changes, the brain drops the index, re-embeds every entity with the new model, and holds chat until the rebuilt index is ready. Existing indexes are read as `text-embedding-3-small` and are kept. A `provider:` prefix on `model` is now kept, and a text or embedding model of an unknown provider, or an embedding model without a profile, fails config validation instead of falling back to Anthropic. Guest pricing covers `text-embedding-3-large`, and embedding usage is logged under the configured model.
+
+  An embedding that failed for good, for example during a provider outage longer than the job retries, is retried at the next start instead of being skipped until its content changes; restarting the brain after an outage completes its index.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`b0cc6e4`](https://github.com/rizom-ai/brains/commit/b0cc6e41d1e84468bd3c8536796bc95a2fdea856) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `embeddingModel: local:embeddinggemma-2:270m` indexes with Google's EmbeddingGemma 2 from a model runtime next to the brain: any server with the OpenAI-compatible `/v1/embeddings` API at `modelRuntime.url` in `brain.yaml`, such as Ollama (`ollama pull embeddinggemma-2:270m`). Queries and documents are framed with the model's retrieval prompts, documents carry their title, and long documents are chunked within the runtime's default 2,048-token context. A `local:` model without `modelRuntime.url` fails config validation. Bare `llama`, `mistral`, `phi-` and `qwen` model names now resolve to the `local` provider.
+
+  Guest turns price embeddings from the local model runtime at zero.
+
+  `local:nomic-embed-text:v1.5` is also supported, with its `search_query:`/`search_document:` prefixes.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`1b68a6a`](https://github.com/rizom-ai/brains/commit/1b68a6aca508ce1b8bbfe2368ef28fc73f20123b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain opts into a local model runtime by naming a `local:` model in `brain.yaml`; every other brain deploys as before. For such a brain, the generated Kamal deploy pulls its local models into `/opt/brain-models` before Kamal starts it, runs a `models` accessory (`ollama/ollama:0.40.11`) beside it, and passes `MODEL_RUNTIME_URL`, which the brain uses when `brain.yaml` sets no `modelRuntime.url`. Fleet users opt in with `embeddingModel` in the registry. Deploy configs generated before the accessory are reconciled on rerun.
+
+  The `models` accessory serves a 32,768-token context, so a local text model receives whole agent prompts.
+
+- Updated dependencies [[`212e346`](https://github.com/rizom-ai/brains/commit/212e34652bb525cab2a0f9eb0812f9caa288f413), [`b499285`](https://github.com/rizom-ai/brains/commit/b499285fb57de69674e99ab49617297ea6a0b381), [`b0cc6e4`](https://github.com/rizom-ai/brains/commit/b0cc6e41d1e84468bd3c8536796bc95a2fdea856), [`d288c2e`](https://github.com/rizom-ai/brains/commit/d288c2e8f2f94dd71a9d361c80f7d64fef8eae81)]:
+  - @brains/entity-service@0.2.0-alpha.680
+  - @brains/core@0.2.0-alpha.680
+  - @brains/plugins@0.2.0-alpha.680
+  - @brains/sdk@0.2.0-alpha.680
+  - @brains/chat-repl@0.2.0-alpha.680
+  - @brains/contracts@0.2.0-alpha.680
+  - @brains/site-composition@0.2.0-alpha.680
+  - @brains/theme-base@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+  - @brains/conversation-service@0.2.0-alpha.680
+  - @brains/job-queue@0.2.0-alpha.680
+  - @brains/mcp-service@0.2.0-alpha.680
+  - @brains/messaging-service@0.2.0-alpha.680
+  - @brains/runtime-state@0.2.0-alpha.680
+  - @brains/templates@0.2.0-alpha.680
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.679
+  - @brains/sdk@0.2.0-alpha.679
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/site-composition@0.2.0-alpha.679
+  - @brains/theme-base@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/conversation-service@0.2.0-alpha.679
+  - @brains/core@0.2.0-alpha.679
+  - @brains/entity-service@0.2.0-alpha.679
+  - @brains/job-queue@0.2.0-alpha.679
+  - @brains/mcp-service@0.2.0-alpha.679
+  - @brains/messaging-service@0.2.0-alpha.679
+  - @brains/plugins@0.2.0-alpha.679
+  - @brains/runtime-state@0.2.0-alpha.679
+  - @brains/templates@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.678
+  - @brains/sdk@0.2.0-alpha.678
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/site-composition@0.2.0-alpha.678
+  - @brains/theme-base@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/conversation-service@0.2.0-alpha.678
+  - @brains/core@0.2.0-alpha.678
+  - @brains/entity-service@0.2.0-alpha.678
+  - @brains/job-queue@0.2.0-alpha.678
+  - @brains/mcp-service@0.2.0-alpha.678
+  - @brains/messaging-service@0.2.0-alpha.678
+  - @brains/plugins@0.2.0-alpha.678
+  - @brains/runtime-state@0.2.0-alpha.678
+  - @brains/templates@0.2.0-alpha.678
+
 ## 0.2.0-alpha.677
 
 ### Patch Changes

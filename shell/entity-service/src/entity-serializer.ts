@@ -121,7 +121,7 @@ export class EntitySerializer {
       this.entityRegistry.getEntityTypeConfig(entity.entityType)
         .binaryStorage === "asset"
         ? undefined
-        : adapter.frontmatterSchema,
+        : (adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema),
       this.entityRegistry.getFrontmatterExtensions(entity.entityType),
       this.entityRegistry
         .getGroupings()

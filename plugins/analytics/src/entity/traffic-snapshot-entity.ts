@@ -2,6 +2,7 @@ import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
   writesInDocumentOrder,
+  withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
 import { trafficSnapshotAdapter } from "./adapter";
 import {
@@ -27,39 +28,42 @@ import {
 export const trafficSnapshotEntity: EntityDefinition<
   "traffic-snapshot",
   typeof trafficSnapshotMetadataSchema
-> = writesInDocumentOrder(
-  defineEntity({
-    type: "traffic-snapshot",
-    purpose:
-      "A week of site traffic captured from Cloudflare Web Analytics: per day pageviews, visits, top paths, referrers and countries. Restricted operational data for the owner.",
-    classification: "system",
-    metadata: trafficSnapshotMetadataSchema,
-    markdown: storedDocumentCodec({
-      header: trafficSnapshotFrontmatterSchema,
-      deriveMetadata: (header) => trafficSnapshotAdapter.metadataFor(header),
-    }),
-    config: {
-      // The capture's record of what Cloudflare counted: written only by
-      // the daily check, never by hand.
-      actionPolicy: {
-        create: "never",
-        update: "never",
-        delete: "never",
-        extract: "never",
-        publish: "never",
+> = withFrontmatterSchema(
+  writesInDocumentOrder(
+    defineEntity({
+      type: "traffic-snapshot",
+      purpose:
+        "A week of site traffic captured from Cloudflare Web Analytics: per day pageviews, visits, top paths, referrers and countries. Restricted operational data for the owner.",
+      classification: "system",
+      metadata: trafficSnapshotMetadataSchema,
+      markdown: storedDocumentCodec({
+        header: trafficSnapshotFrontmatterSchema,
+        deriveMetadata: (header) => trafficSnapshotAdapter.metadataFor(header),
+      }),
+      config: {
+        // The capture's record of what Cloudflare counted: written only by
+        // the daily check, never by hand.
+        actionPolicy: {
+          create: "never",
+          update: "never",
+          delete: "never",
+          extract: "never",
+          publish: "never",
+        },
+        embeddable: false,
+        // The days fix the week; these stored copies are no longer written.
+        retiredFields: ["week", "start", "end"],
+        fullTextSearchable: false,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
       },
-      embeddable: false,
-      // The days fix the week; these stored copies are no longer written.
-      retiredFields: ["week", "start", "end"],
-      fullTextSearchable: false,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    },
-    validatePersist: ({ content, visibility }) => {
-      if (visibility !== "restricted") {
-        throw new Error("Traffic snapshots must have restricted visibility");
-      }
-      trafficSnapshotAdapter.parseContent(content);
-    },
-  }),
+      validatePersist: ({ content, visibility }) => {
+        if (visibility !== "restricted") {
+          throw new Error("Traffic snapshots must have restricted visibility");
+        }
+        trafficSnapshotAdapter.parseContent(content);
+      },
+    }),
+  ),
+  trafficSnapshotFrontmatterSchema,
 );

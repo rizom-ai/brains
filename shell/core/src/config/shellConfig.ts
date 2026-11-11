@@ -1,3 +1,11 @@
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  findEmbeddingProfile,
+  isSupportedTextModel,
+  selectImageProvider,
+  selectTextProvider,
+  unsupportedEmbeddingModelMessage,
+} from "@brains/ai-service";
 import { reasoningEffortSchema } from "@brains/contracts";
 import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
@@ -83,6 +91,11 @@ export const shellConfigSchema: z.ZodObject<{
     apiKey: z.ZodDefault<z.ZodString>;
     imageApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
+    embeddingModel: z.ZodDefault<z.ZodString>;
+    modelRuntimeUrl: z.ZodOptional<z.ZodString>;
+    answerModel: z.ZodOptional<z.ZodString>;
+    visionModel: z.ZodOptional<z.ZodString>;
+    imageModel: z.ZodOptional<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
@@ -127,15 +140,72 @@ export const shellConfigSchema: z.ZodObject<{
   runtimeStateDatabase: dbConfigSchema,
   embeddingDatabase: dbConfigSchema,
 
-  ai: z.object({
-    /** Absent when the AI provider is configured later or not at all. */
-    apiKey: z.string().default(""),
-    imageApiKey: z.string().optional(),
-    model: z.string(),
-    temperature: z.number().min(0).max(2).default(0.7),
-    webSearch: z.boolean().default(true),
-    reasoningEffort: reasoningEffortSchema.optional(),
-  }),
+  ai: z
+    .object({
+      /** Absent when the AI provider is configured later or not at all. */
+      apiKey: z.string().default(""),
+      imageApiKey: z.string().optional(),
+      model: z.string().refine(isSupportedTextModel, {
+        error: (issue) => `Unsupported model "${String(issue.input)}"`,
+      }),
+      /** `provider:model`; changing it rebuilds the semantic index. */
+      embeddingModel: z
+        .string()
+        .refine((model) => findEmbeddingProfile(model) !== undefined, {
+          error: (issue) =>
+            unsupportedEmbeddingModelMessage(String(issue.input)),
+        })
+        .default(DEFAULT_EMBEDDING_MODEL),
+      /** The model runtime serving `local:` models (brain.yaml `modelRuntime.url`). */
+      modelRuntimeUrl: z.string().url().optional(),
+      /** A `local:` model that answers tool results in place of `model`. */
+      answerModel: z.string().optional(),
+      /** A `local:` model that describes images for a model reading only text. */
+      visionModel: z.string().optional(),
+      /** The image model, `provider:model`; `local:` runs on the model runtime. */
+      imageModel: z.string().optional(),
+      temperature: z.number().min(0).max(2).default(0.7),
+      webSearch: z.boolean().default(true),
+      reasoningEffort: reasoningEffortSchema.optional(),
+    })
+    .superRefine((ai, context) => {
+      if (ai.answerModel && selectTextProvider(ai.answerModel) !== "local") {
+        context.addIssue({
+          code: "custom",
+          path: ["answerModel"],
+          message: `answerModel must be a local: model, not ${ai.answerModel}`,
+        });
+      }
+      if (ai.visionModel && selectTextProvider(ai.visionModel) !== "local") {
+        context.addIssue({
+          code: "custom",
+          path: ["visionModel"],
+          message: `visionModel must be a local: model, not ${ai.visionModel}`,
+        });
+      }
+      if (ai.modelRuntimeUrl) return;
+      const localModels = [
+        ...(selectTextProvider(ai.model) === "local" ? [ai.model] : []),
+        ...[ai.answerModel, ai.visionModel].filter(
+          (role): role is string =>
+            role !== undefined && selectTextProvider(role) === "local",
+        ),
+        ...(ai.imageModel &&
+        selectImageProvider(ai.imageModel).provider === "local"
+          ? [ai.imageModel]
+          : []),
+        ...(findEmbeddingProfile(ai.embeddingModel)?.provider === "local"
+          ? [ai.embeddingModel]
+          : []),
+      ];
+      for (const model of localModels) {
+        context.addIssue({
+          code: "custom",
+          path: ["modelRuntimeUrl"],
+          message: `${model} needs modelRuntime.url`,
+        });
+      }
+    }),
 
   embedding: z.object({
     enabled: z.boolean().default(true),

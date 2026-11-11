@@ -1194,6 +1194,12 @@ export interface EntityCreateRouting<
     | undefined;
   readonly fromAttachment?: EntityCreateRoute<TMetadataSchema> | undefined;
   readonly fromContent?: EntityCreateRoute<TMetadataSchema> | undefined;
+  /**
+   * Fields a creator may state that the type does not store, such as where
+   * a deck's slides break. The brain's create tool takes them with the
+   * editable fields; nothing updates them.
+   */
+  readonly fields?: z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**

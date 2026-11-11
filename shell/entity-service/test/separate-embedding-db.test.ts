@@ -34,7 +34,7 @@ describe("Separate embedding database", () => {
 
     // Run embedding DB migrations (creates embeddings table)
     const embClient = createClient({ url: embeddingDbConfig.url });
-    await migrateEmbeddingDatabase(embClient, MOCK_DIMENSIONS);
+    await migrateEmbeddingDatabase(embClient, mockEmbeddingService.identity);
     embClient.close();
     const entityRegistry = EntityRegistry.createFresh(logger);
     entityRegistry.registerEntityType(

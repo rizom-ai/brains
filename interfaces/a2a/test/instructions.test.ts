@@ -20,7 +20,7 @@ describe("A2A instructions", () => {
     expect(description).toContain("bare text with a dot and no slash/protocol");
     expect(description).toContain("no system_list/system_get preflight");
     expect(description).toContain("Do not stop after listing the agent");
-    expect(description).toContain("pass only the hostname docs.rizom.ai");
+    expect(description).toContain("pass only the hostname docs.example");
     expect(description).toContain("ask for the HTTPS agent URL or exact id");
     expect(description).toContain("discovered but not approved");
     expect(description).toContain("never auto-save");

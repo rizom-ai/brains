@@ -20,6 +20,7 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
+  withFrontmatterSchema,
   afterGeneration,
   loggedProvider,
   type AnyEntityReads,

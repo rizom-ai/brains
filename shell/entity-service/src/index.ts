@@ -126,6 +126,8 @@ export {
 // Embedding
 export type {
   IEmbeddingService,
+  EmbeddingIdentity,
+  EmbeddingDocument,
   EmbeddingUsage,
   EmbeddingResult,
   BatchEmbeddingResult,
@@ -297,3 +299,4 @@ export type {
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
 export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";
+export { editableFieldsOf } from "./editable-fields";

@@ -343,6 +343,7 @@ describe("convertToSDKTools", () => {
     const result = await sdkTool.execute(input, {
       toolCallId: "call-1",
       messages: [],
+      context: {},
     });
     const modelOutput = await sdkTool.toModelOutput({
       toolCallId: "call-1",
@@ -403,11 +404,11 @@ describe("convertToSDKTools", () => {
 
     const first = await sdkTool.execute(
       { entityType: "deck", id: "deck-1" },
-      { toolCallId: "call-1", messages: [] },
+      { toolCallId: "call-1", messages: [], context: {} },
     );
     const second = await sdkTool.execute(
       { entityType: "deck", id: "deck-1" },
-      { toolCallId: "call-2", messages: [] },
+      { toolCallId: "call-2", messages: [], context: {} },
     );
 
     expect(first).toEqual({
@@ -442,11 +443,11 @@ describe("convertToSDKTools", () => {
 
     await sdkTool.execute(
       { entityType: "note", title: "A" },
-      { toolCallId: "call-1", messages: [] },
+      { toolCallId: "call-1", messages: [], context: {} },
     );
     await sdkTool.execute(
       { entityType: "note", title: "A" },
-      { toolCallId: "call-2", messages: [] },
+      { toolCallId: "call-2", messages: [], context: {} },
     );
 
     expect(handler).toHaveBeenCalledTimes(2);
@@ -498,15 +499,15 @@ describe("convertToSDKTools", () => {
 
     const first = await getSdkTool.execute(
       { entityType: "note", id: "note-1" },
-      { toolCallId: "call-1", messages: [] },
+      { toolCallId: "call-1", messages: [], context: {} },
     );
     await updateSdkTool.execute(
       { entityType: "note", id: "note-1" },
-      { toolCallId: "call-2", messages: [] },
+      { toolCallId: "call-2", messages: [], context: {} },
     );
     const second = await getSdkTool.execute(
       { entityType: "note", id: "note-1" },
-      { toolCallId: "call-3", messages: [] },
+      { toolCallId: "call-3", messages: [], context: {} },
     );
 
     expect(first).not.toEqual(second);
@@ -550,7 +551,7 @@ describe("convertToSDKTools", () => {
 
     const result = await sdkTool.execute(
       { value: "x" },
-      { toolCallId: "call-1", messages: [] },
+      { toolCallId: "call-1", messages: [], context: {} },
     );
     expect(result).toEqual({
       success: false,
@@ -596,7 +597,10 @@ describe("convertToSDKTools", () => {
     const sdkTool = sdkTools["attributed_tool"];
     if (!sdkTool?.execute) throw new Error("Expected tool to execute");
 
-    await sdkTool.execute({}, { toolCallId: "call-1", messages: [] });
+    await sdkTool.execute(
+      {},
+      { toolCallId: "call-1", messages: [], context: {} },
+    );
 
     expect(handler).toHaveBeenCalledWith(
       {},

@@ -69,6 +69,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  frontmatterSchemaOf,
   builtProvider,
   queuedCreateOf,
   storedCreateOf,
@@ -394,6 +395,7 @@ function markdownStorage(
 ): Pick<
   DeclaredAdapter,
   | "frontmatterSchema"
+  | "writtenFrontmatterSchema"
   | "toMarkdown"
   | "fromMarkdown"
   | "parseFrontMatter"
@@ -401,7 +403,14 @@ function markdownStorage(
   | "metadataFromFrontmatter"
 > {
   return {
-    frontmatterSchema: definition.metadata,
+    // The header its class declared, when it states one; else its metadata.
+    frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
+    // What it writes is still every field its metadata names; a header
+    // field metadata does not name is the file's own, which the serializer
+    // keeps from the document written, as a stored-document class kept it.
+    ...(frontmatterSchemaOf(definition) && {
+      writtenFrontmatterSchema: definition.metadata,
+    }),
     // A whole document handed in, as an import or an editor writes one, had
     // its frontmatter decoded into the metadata already: the type writes the
     // body under its own frontmatter, in its own order, as an entity plugin
@@ -504,6 +513,9 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
+    ...(definition.create?.fields && {
+      createFieldsSchema: definition.create.fields,
+    }),
     ...(definition.displayTitle && {
       displayTitle: (entity): string | undefined =>
         displayTitle(definition, entity),

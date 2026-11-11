@@ -53,6 +53,18 @@ export type DeckFrontmatterSchema = z.ZodObject<{
 }>;
 
 /**
+ * Fields a writer states only when creating a deck: where the slides break
+ * in text without --- separators. The deck stores its slides, not this.
+ */
+export const deckCreateFieldsSchema: z.ZodObject<{
+  slides: z.ZodOptional<
+    z.ZodEnum<{ headings: "headings"; paragraphs: "paragraphs" }>
+  >;
+}> = z.object({
+  slides: z.enum(["headings", "paragraphs"]).optional(),
+});
+
+/**
  * Deck frontmatter schema (stored in content as YAML frontmatter)
  * Contains all presentation data for human editing
  */

@@ -1,5 +1,50 @@
 # @brains/faq
 
+## 0.2.0-alpha.681
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.681
+  - @brains/content-formatters@0.2.0-alpha.681
+  - @brains/contracts@0.2.0-alpha.681
+  - @brains/utils@0.2.0-alpha.681
+  - @brains/plugins@0.2.0-alpha.681
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`24eabe5`](https://github.com/rizom-ai/brains/commit/24eabe558ce1e078afd67b42cc4b79c454fec15f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ capture and reconcile jobs pass the job's abort signal to their model calls, so a job past its execution deadline stops instead of ignoring cancellation. Before, a slow model call held the worker past its grace period, the worker restarted itself, and three such restarts in an hour stopped the brain.
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.680
+  - @rizom/brain-ui@0.2.0-alpha.680
+  - @brains/content-formatters@0.2.0-alpha.680
+  - @brains/contracts@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.679
+  - @brains/content-formatters@0.2.0-alpha.679
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/plugins@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.678
+  - @brains/content-formatters@0.2.0-alpha.678
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/plugins@0.2.0-alpha.678
+
 ## 0.2.0-alpha.677
 
 ### Patch Changes

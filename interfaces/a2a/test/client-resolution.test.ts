@@ -98,6 +98,7 @@ function createEntityServiceFrom(
   return createSharedEntityService({
     entityTypes: ["agent"],
     getEntityImpl: async (request) => entities.get(request.id) ?? null,
+    listEntitiesImpl: async () => [...entities.values()],
   });
 }
 
@@ -146,6 +147,72 @@ describe("agent_call agent resolution", () => {
 
     expect(isError(result)).toBe(false);
     expect(fetchFn).toHaveBeenCalled();
+  });
+
+  it("calls a saved contact by the name the user calls it", async () => {
+    const entities = new Map([
+      [
+        "yeehaa.example",
+        createTestEntity<BaseEntity>("agent", {
+          id: "yeehaa.example",
+          content:
+            "---\nname: Yeehaa\nurl: 'https://yeehaa.example/a2a'\nstatus: approved\n---",
+          metadata: {
+            name: "Yeehaa",
+            url: "https://yeehaa.example/a2a",
+            status: "approved",
+          },
+        }),
+      ],
+    ]);
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "yeehaa", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(false);
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      "https://yeehaa.example/.well-known/agent-card.json",
+    );
+  });
+
+  it("asks which contact when two saved agents share the name", async () => {
+    const saved = (id: string): BaseEntity =>
+      createTestEntity<BaseEntity>("agent", {
+        id,
+        content: `---\nname: Yeehaa\nurl: 'https://${id}/a2a'\nstatus: approved\n---`,
+        metadata: {
+          name: "Yeehaa",
+          url: `https://${id}/a2a`,
+          status: "approved",
+        },
+      });
+    const entities = new Map([
+      ["yeehaa.example", saved("yeehaa.example")],
+      ["yeehaa.test", saved("yeehaa.test")],
+    ]);
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "Yeehaa", message: "hello" },
+      toolContext,
+    );
+
+    assertIsError(result);
+    expect(result.error).toBe(
+      'More than one saved agent is called "Yeehaa": yeehaa.example, yeehaa.test. Give its id.',
+    );
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("should normalize an HTTPS URL for a saved agent to its hostname and contact over HTTPS", async () => {

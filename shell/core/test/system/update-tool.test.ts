@@ -2,7 +2,7 @@ import { expectToolError } from "@brains/mcp-service/test";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemTools } from "../../src/system/tools";
-import { createMockSystemServices } from "./mock-services";
+import { createMockSystemServices, postFrontmatter } from "./mock-services";
 import {
   updateInputSchema,
   updateOperationInputSchema,
@@ -956,6 +956,7 @@ describe("system_update tool", () => {
   });
 
   it("removes optional metadata fields when a field update sets them to null", async () => {
+    services.registerEntityTypes(["post"], { post: postFrontmatter });
     services.addEntities([
       {
         id: "resilience-in-distributed-systems",

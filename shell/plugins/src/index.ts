@@ -979,6 +979,7 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
+  withFrontmatterSchema,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
   type AnyEntityReads,

@@ -54,11 +54,9 @@ describe("a test brain's AI", () => {
   it("computes no embeddings", async () => {
     const embeddings = createNoEmbeddingService();
 
-    expect(await refusal(embeddings.generateEmbedding("text"))).toBe(
-      noProvider,
-    );
-    expect(await refusal(embeddings.generateEmbeddings(["text"]))).toBe(
-      noProvider,
-    );
+    expect(await refusal(embeddings.embedQuery("text"))).toBe(noProvider);
+    expect(
+      await refusal(embeddings.embedDocuments([{ content: "text" }])),
+    ).toBe(noProvider);
   });
 });

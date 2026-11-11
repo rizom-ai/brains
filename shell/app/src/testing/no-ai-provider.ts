@@ -50,9 +50,9 @@ export function createNoAIService(initial: AIConfig): AIService {
 /** A test brain's embeddings, which it never computes: it searches without them. */
 export function createNoEmbeddingService(): EmbeddingService {
   return {
-    // The dimensions the runtime's own provider reports by default.
-    dimensions: 1536,
-    generateEmbedding: refuse,
-    generateEmbeddings: refuse,
+    // It computes no vectors, so its identity matches no stored index.
+    identity: { model: "test:none", dimensions: 1536, promptRevision: 0 },
+    embedQuery: refuse,
+    embedDocuments: refuse,
   };
 }

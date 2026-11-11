@@ -171,14 +171,18 @@ async function install(
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: DIMENSIONS,
-      generateEmbedding: async () => ({
+      identity: {
+        model: "test:mock",
+        dimensions: DIMENSIONS,
+        promptRevision: 0,
+      },
+      embedQuery: async () => ({
         embedding: new Float32Array(DIMENSIONS),
         usage: { tokens: 1 },
       }),
-      generateEmbeddings: async (texts: string[]) => ({
-        embeddings: texts.map(() => new Float32Array(DIMENSIONS)),
-        usage: { tokens: texts.length },
+      embedDocuments: async (documents: { content: string }[]) => ({
+        embeddings: documents.map(() => new Float32Array(DIMENSIONS)),
+        usage: { tokens: documents.length },
       }),
     },
   });

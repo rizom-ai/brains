@@ -1,5 +1,37 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.681
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.681
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`1b68a6a`](https://github.com/rizom-ai/brains/commit/1b68a6aca508ce1b8bbfe2368ef28fc73f20123b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain opts into a local model runtime by naming a `local:` model in `brain.yaml`; every other brain deploys as before. For such a brain, the generated Kamal deploy pulls its local models into `/opt/brain-models` before Kamal starts it, runs a `models` accessory (`ollama/ollama:0.40.11`) beside it, and passes `MODEL_RUNTIME_URL`, which the brain uses when `brain.yaml` sets no `modelRuntime.url`. Fleet users opt in with `embeddingModel` in the registry. Deploy configs generated before the accessory are reconciled on rerun.
+
+  The `models` accessory serves a 32,768-token context, so a local text model receives whole agent prompts.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.680
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.678
+
 ## 0.2.0-alpha.677
 
 ### Patch Changes

@@ -19,7 +19,7 @@ cd my-brain
 brain start
 ```
 
-`AI_API_KEY` is the only required variable. On first start the brain prints a one-time `/setup` link in the terminal; open it to register your passkey.
+`AI_API_KEY` is the only required variable; a brain whose `model` and `embeddingModel` are both `local:` (see the brain.yaml reference) runs without it. On first start the brain prints a one-time `/setup` link in the terminal; open it to register your passkey.
 
 To receive setup links and invitations by email instead, set `SETUP_EMAIL_TO` (the address to send the first setup link to), `SETUP_EMAIL_API_KEY` (a Resend API key), and `SETUP_EMAIL_FROM` (a verified Resend sender). The personal, professional, and team recipes wire these into `brain.yaml`; with them unset, team members are added through Admin → Add a person with a manual invite link.
 

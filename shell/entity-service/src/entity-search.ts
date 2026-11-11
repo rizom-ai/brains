@@ -27,11 +27,11 @@ import {
 /**
  * The one embedding call search makes: it embeds the prepared query.
  *
- * IEmbeddingService also generates in batches and reports its dimensions;
+ * IEmbeddingService also embeds documents and reports its identity;
  * asking for all of it meant a test could not supply one function without
  * asserting it was the whole service.
  */
-export type QueryEmbedder = Pick<IEmbeddingService, "generateEmbedding">;
+export type QueryEmbedder = Pick<IEmbeddingService, "embedQuery">;
 
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
 const MAX_VECTOR_DISTANCE = 0.82;
@@ -173,8 +173,8 @@ export class EntitySearch {
     // Generate embedding for the query
     const vector = (
       await (signal
-        ? this.embeddingService.generateEmbedding(preparedQuery, signal)
-        : this.embeddingService.generateEmbedding(preparedQuery))
+        ? this.embeddingService.embedQuery(preparedQuery, signal)
+        : this.embeddingService.embedQuery(preparedQuery))
     ).embedding;
     signal?.throwIfAborted();
 
@@ -617,7 +617,7 @@ export class EntitySearch {
     }
     const preparedQuery = prepareSearchQuery(query, this.logger);
     const { embedding: queryEmbedding } =
-      await this.embeddingService.generateEmbedding(preparedQuery);
+      await this.embeddingService.embedQuery(preparedQuery);
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;

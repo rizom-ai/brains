@@ -65,6 +65,7 @@ export class FaqReconcileHandler extends BaseJobHandler<
     data: FaqReconcileJobData,
     _jobId: string,
     _progressReporter: ProgressReporter,
+    signal?: AbortSignal,
   ): Promise<FaqReconcileResult> {
     const source = await this.deps.entityService.getEntityWriteSnapshot({
       entityType: "faq",
@@ -79,7 +80,9 @@ export class FaqReconcileHandler extends BaseJobHandler<
       content: faq.content,
       visibility: faq.visibility,
       excludeIds: [faq.id],
+      signal,
     });
+    signal?.throwIfAborted();
     if (!same) return { outcome: "unique" };
     const question = faqAdapter.parseFaqContent(same.content).frontmatter
       .question;
