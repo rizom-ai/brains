@@ -561,6 +561,7 @@ export {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
   BaseEntityAdapter,
+  parseTypedFrontmatter,
   baseEntityParserSchema,
   baseEntitySchema,
   embeddingReadyChannel,

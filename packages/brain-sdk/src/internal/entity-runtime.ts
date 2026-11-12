@@ -59,6 +59,7 @@ export {
   generateMarkdownWithFrontmatter,
   isTextUploadMediaType,
   parseMarkdownWithFrontmatter,
+  parseTypedFrontmatter,
   type BaseEntity,
   type ResolvedRuntimeUpload,
 } from "@brains/plugins";
