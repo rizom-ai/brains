@@ -13,9 +13,9 @@ import {
   CONTACT_ADMISSION,
   CONTACT_FORM,
   CONTACT_SLOTS,
-  ContactRequestPlugin,
   contactRequestTarget,
 } from "../src";
+import { createContactRequestPlugin } from "./contact-plugins";
 
 /** The contact form as the engine runs it. */
 export const contactDefinition: FormDefinition = formDefinitionSchema.parse(
@@ -73,7 +73,7 @@ export async function intakeFixture(
   let enqueueFails = false;
   const queued = new Set<string>();
   const harness = createPluginHarness();
-  await harness.installPlugin(new ContactRequestPlugin());
+  await harness.installPlugin(createContactRequestPlugin());
   const state = harness.getMockShell().getRuntimeState();
   const admission = new FormAdmission(
     state,

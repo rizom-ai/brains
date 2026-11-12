@@ -68,7 +68,11 @@ export type {
 } from "./entity-mutation-receipt";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
-export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
+export {
+  BaseEntityAdapter,
+  FallbackEntityAdapter,
+  parseTypedFrontmatter,
+} from "./adapters";
 export type {
   BaseEntityAdapterConfig,
   BaseEntityFrontmatterSchema,

@@ -1,5 +1,5 @@
 import type { InboundEmail } from "@brains/contracts";
-import type { IEntityAINamespace } from "@brains/plugins";
+import type { ServiceAI } from "@brains/sdk/internal/service-runtime";
 import { sha256Hex } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import {
@@ -61,20 +61,50 @@ export const DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT: string = `Classify the 
 
 Choose the closest routing category for every retained message. Message form does not determine category. Return a discard decision only for spam.`;
 
+/**
+ * Why a classification failed, as a content-free category: the model call
+ * failed, its decision failed the fixed schema, or the classification was
+ * not derived from the mail (it copies the mail's own text). The warning
+ * names it; nothing from the mail or the error travels with it.
+ */
+export type MailClassificationCause =
+  "model-call" | "decision-schema" | "not-derived";
+
+/** A classification failure tagged with its stage; its cause is kept off logs. */
+export class MailClassificationError extends Error {
+  public readonly classificationCause: MailClassificationCause;
+
+  constructor(classificationCause: MailClassificationCause, cause: unknown) {
+    // A fixed message: the failure it wraps may carry mail content.
+    super(`Email classification failed: ${classificationCause}`, { cause });
+    this.name = "MailClassificationError";
+    this.classificationCause = classificationCause;
+  }
+}
+
 export type MailClassifier = (
   email: InboundEmail,
 ) => Promise<MailTriageDecision>;
 
 export function createMailClassifier(
-  ai: Pick<IEntityAINamespace, "generateObject">,
+  ai: Pick<ServiceAI, "generateObject">,
   classificationPrompt: string,
 ): MailClassifier {
   return async (email): Promise<MailTriageDecision> => {
-    const { object } = await ai.generateObject(
-      buildClassificationPrompt(email, classificationPrompt),
-      wireClassificationSchema,
-    );
-    return toDomainDecision(wireClassificationSchema.parse(object));
+    let object: unknown;
+    try {
+      ({ object } = await ai.generateObject(
+        buildClassificationPrompt(email, classificationPrompt),
+        wireClassificationSchema,
+      ));
+    } catch (error) {
+      throw new MailClassificationError("model-call", error);
+    }
+    try {
+      return toDomainDecision(wireClassificationSchema.parse(object));
+    } catch (error) {
+      throw new MailClassificationError("decision-schema", error);
+    }
   };
 }
 

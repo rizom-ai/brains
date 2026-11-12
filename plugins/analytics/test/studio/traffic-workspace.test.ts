@@ -2,18 +2,18 @@ import { describe, expect, it } from "bun:test";
 import {
   baseEntitySchema,
   createMockShell,
-  createServicePluginContext,
   createTestEntityAdapter,
+  type MockShell,
 } from "@brains/plugins/test";
 import type {
-  ServicePluginContext,
   StudioWorkspaceActor,
   StudioWorkspaceRegistration,
 } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { entitySnapshotStore } from "../../src/lib/traffic-capture";
 import { trafficSnapshotAdapter } from "../../src/entity/adapter";
-import { trafficSnapshotSchema } from "../../src/entity/schema";
 import type { TrafficDay } from "../../src/entity/schema";
+import { analyticsRuntime } from "../analytics-plugins";
 import { isoWeekOf } from "../../src/lib/iso-week";
 import { createTrafficReports } from "../../src/reports/traffic-reports";
 import { createTrafficByEntityReport } from "../../src/reports/traffic-by-entity";
@@ -49,18 +49,21 @@ function day(
   };
 }
 
-async function brain(): Promise<ServicePluginContext> {
-  const context = createServicePluginContext(createMockShell(), "analytics");
-  context.entities.register(
-    "traffic-snapshot",
-    trafficSnapshotSchema,
-    trafficSnapshotAdapter,
-  );
-  context.entities.register(
-    "post",
-    baseEntitySchema,
-    createTestEntityAdapter("post"),
-  );
+interface Brain {
+  readonly shell: MockShell;
+  readonly runtime: ServiceRuntime;
+}
+
+async function brain(): Promise<Brain> {
+  const shell = createMockShell();
+  const runtime = await analyticsRuntime(shell);
+  shell
+    .getEntityRegistry()
+    .registerEntityType(
+      "post",
+      baseEntitySchema,
+      createTestEntityAdapter("post"),
+    );
   const days = [
     day(
       "2026-10-09",
@@ -74,7 +77,10 @@ async function brain(): Promise<ServicePluginContext> {
     day("2026-10-11", [["/essays/a", 4]]),
     day("2026-10-01", [["/", 9]], [], true),
   ];
-  const store = entitySnapshotStore(context.entityService);
+  const store = entitySnapshotStore(
+    runtime.reportEntityService,
+    runtime.entityWrites,
+  );
   for (const d of days) {
     const week = isoWeekOf(d.date);
     const frontmatter = {
@@ -94,7 +100,7 @@ async function brain(): Promise<ServicePluginContext> {
       updated: `${TODAY}T00:00:00.000Z`,
     });
   }
-  await context.entityService.createEntity({
+  await shell.getEntityService().createEntity({
     entity: {
       id: "a",
       entityType: "post",
@@ -107,26 +113,29 @@ async function brain(): Promise<ServicePluginContext> {
       },
     },
   });
-  return context;
+  return { shell, runtime };
 }
 
-async function registered(
-  context: ServicePluginContext,
-): Promise<StudioWorkspaceRegistration> {
+async function registered({
+  shell,
+  runtime,
+}: Brain): Promise<StudioWorkspaceRegistration> {
   let registration: StudioWorkspaceRegistration | undefined;
-  context.messaging.subscribe<
-    StudioWorkspaceRegistration,
-    { workspaceUrl: string }
-  >("studio:register-workspace", async (message) => {
-    registration = message.payload;
-    return {
-      success: true,
-      data: { workspaceUrl: "/studio/workspaces/analytics%3Atraffic" },
-    };
-  });
+  shell
+    .getMessageBus()
+    .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+      "studio:register-workspace",
+      async (message) => {
+        registration = message.payload;
+        return {
+          success: true,
+          data: { workspaceUrl: "/studio/workspaces/analytics%3Atraffic" },
+        };
+      },
+    );
   const deps = { today: (): string => TODAY };
   const { overview, series } = createTrafficReports(deps);
-  await registerTrafficWorkspace(context, {
+  await registerTrafficWorkspace(runtime, {
     today: deps.today,
     overview,
     series,

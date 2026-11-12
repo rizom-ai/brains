@@ -1,6 +1,10 @@
-import type { ServicePluginContext } from "@brains/plugins";
-import { createId } from "@brains/plugins";
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import type { DirectorySyncContext, DirectorySyncCore } from "./sync-context";
+import { createId } from "@brains/utils/id";
+import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { RetryScope } from "@brains/utils/retry-backoff";
@@ -16,23 +20,27 @@ const jobDataSchema = z.record(z.string(), z.unknown());
  * those the worker makes (entity:created, entity:updated, entity:deleted).
  */
 export function setupAutoSync(
-  context: ServicePluginContext,
+  context: DirectorySyncContext,
   scheduleDurableExport: () => void,
   logger: Logger,
   entityTypes: DirectorySyncConfig["entityTypes"],
   _operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   for (const event of [
-    ENTITY_CHANNELS.created,
-    ENTITY_CHANNELS.updated,
-    ENTITY_CHANNELS.deleted,
+    entityCreatedChannel,
+    entityUpdatedChannel,
+    entityDeletedChannel,
   ]) {
-    context.messaging.observe(event, async () => {
-      // The event is only a wake-up. The mutation itself is already durable in
-      // Entity Service's export outbox, so losing this delivery loses no work.
-      scheduleDurableExport();
-      return { success: true };
-    });
+    context.runtime.listen(
+      event,
+      () => {
+        // The event is only a wake-up. The mutation itself is already durable
+        // in Entity Service's export outbox, so losing this delivery loses no
+        // work.
+        scheduleDurableExport();
+      },
+      { mode: "observe" },
+    );
   }
 
   logger.debug("Setup durable entity-export wakeups", { entityTypes });
@@ -48,7 +56,7 @@ export function setupAutoSync(
  * resolves undefined, and the run stays open until the retry settles.
  */
 export function setupFileWatcher(
-  context: ServicePluginContext,
+  context: DirectorySyncCore,
   directorySync: Pick<DirectorySync, "setJobQueueCallback">,
   syncPath: string,
   operationStatus: DirectorySyncOperationStatusService | undefined,

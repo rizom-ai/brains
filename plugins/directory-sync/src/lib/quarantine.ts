@@ -1,5 +1,5 @@
 import type { ImportResult } from "../types.js";
-import { isEntityValidationError } from "@brains/plugins";
+import { isEntityValidationError } from "@brains/sdk/internal/entity-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { isNotFoundError } from "@brains/utils/predicates";

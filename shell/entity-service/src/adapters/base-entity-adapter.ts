@@ -32,6 +32,25 @@ function systemTolerant<T>(schema: { parse(data: unknown): T }): {
   };
 }
 
+/**
+ * A type's own frontmatter read from a document: the system visibility
+ * the exported file carries is set aside before the type's schema sees
+ * the header, and a header the schema refuses fails as the type's
+ * validation error. What every adapter's parseFrontMatter reads.
+ */
+export function parseTypedFrontmatter<T>(
+  entityType: string,
+  markdown: string,
+  schema: { parse(data: unknown): T },
+): T {
+  try {
+    return parseMarkdownWithFrontmatter(markdown, systemTolerant(schema))
+      .metadata;
+  } catch (error) {
+    throw new EntityValidationError(entityType, error);
+  }
+}
+
 export type DefaultEntityFrontmatter<TMetadata extends object> = {
   [K in keyof TMetadata]?: TMetadata[K] | undefined;
 };
@@ -160,12 +179,7 @@ export abstract class BaseEntityAdapter<
     markdown: string,
     schema: { parse(data: unknown): T },
   ): T {
-    try {
-      return parseMarkdownWithFrontmatter(markdown, systemTolerant(schema))
-        .metadata;
-    } catch (error) {
-      throw new EntityValidationError(this.entityType, error);
-    }
+    return parseTypedFrontmatter(this.entityType, markdown, schema);
   }
 
   public getBodyTemplate(): string {

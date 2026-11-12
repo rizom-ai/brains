@@ -1,4 +1,4 @@
-import type { ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 
 export interface PublishAuthContext {
   interfaceType?: ToolContext["interfaceType"] | undefined;

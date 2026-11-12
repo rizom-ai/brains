@@ -22,7 +22,7 @@ import { collectionSearch } from "./collection-url-query";
 import type { Dispatch, SetStateAction } from "react";
 import type { QueryClient, UseMutationResult } from "@tanstack/react-query";
 import type { RouterHistory } from "@tanstack/react-router";
-import type { EntityIdPath } from "@brains/plugins";
+import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type {
   StudioApi,
   StudioTypeCapabilities,

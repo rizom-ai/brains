@@ -561,6 +561,7 @@ export {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
   BaseEntityAdapter,
+  parseTypedFrontmatter,
   baseEntityParserSchema,
   baseEntitySchema,
   embeddingReadyChannel,
@@ -978,6 +979,7 @@ export {
   withBodyTemplate,
   withUrlRoute,
   writesInDocumentOrder,
+  storedDocumentCodec,
   withFrontmatterSchema,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
@@ -1007,7 +1009,16 @@ export {
 // service contract does not offer here.
 export { withOwnedDataSources } from "./public/service-definition";
 export {
+  firstPartyJobHandler,
+  withJobHandlers,
+  withStaticSiteOutput,
+  withApiRoutes,
+  type FirstPartyJobCall,
+  type FirstPartyJobHandler,
+} from "./service/first-party-service";
+export {
   firstPartyTool,
+  hasPermission,
   serviceRuntime,
   type ClaimedSystemType,
   type ClassRuntimeState,
@@ -1019,14 +1030,33 @@ export {
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,
+  type ServiceDataSourceOptions,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceClassJobs,
+  type ServiceClassMessaging,
+  type ServicePermissions,
+  type ServiceAttachments,
+  type ServiceAtprotoProjections,
+  type ServiceTemplateOptions,
+  type ServiceViews,
+  type ServiceEntityWrites,
+  type ServiceGitBroker,
+  type ServiceGroupings,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "./service/service-runtime";
+export {
+  classEntityServiceOf,
+  type ServiceClassEntityService,
+} from "./service/class-entity-service";
+export type {
+  ServiceEntityMirror,
+  ServiceEntityMirrorClient,
+} from "./service/entity-mirror";
 // First-party interfaces converted from a class reach what the public
 // interface contract does not offer here.
 export {

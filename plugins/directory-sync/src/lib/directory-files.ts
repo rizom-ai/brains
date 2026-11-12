@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { FileOperations } from "./file-operations";
 
 export async function getDirectoryMarkdownFiles(
@@ -9,7 +9,7 @@ export async function getDirectoryMarkdownFiles(
 
 export async function ensureDirectoryEntityStructure(
   fileOperations: FileOperations,
-  entityService: EntityServiceClient,
+  entityService: ServiceEntityMirrorClient,
   configuredEntityTypes: string[] | undefined,
 ): Promise<void> {
   const entityTypes = configuredEntityTypes ?? entityService.getEntityTypes();

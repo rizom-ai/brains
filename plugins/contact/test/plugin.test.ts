@@ -23,7 +23,12 @@ import {
   siteBuilderRouteRegisterContract,
   siteMetadataContract,
 } from "@brains/site-composition";
-import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
+import { contactRequestSchema } from "../src";
+import {
+  createContactPlugin,
+  createContactPluginPair,
+  type ContactService,
+} from "./contact-plugins";
 import type { ContactPluginConfig } from "../src/config";
 import { admissionPolicy, input, peer } from "./intake-fixture";
 
@@ -59,7 +64,7 @@ async function setup(
   pages: unknown[];
   /** What the owner's email transport answers; switch to fail an alert. */
   transport: { status: "sent" | "failed" | "unavailable" };
-  plugin: ContactPlugin;
+  plugin: ContactService;
   handlers: Map<string, JobHandler>;
 }> {
   const h = createPluginHarness(brain);
@@ -107,7 +112,7 @@ async function setup(
     pages.push(message.payload);
     return { success: true };
   });
-  const [entityPlugin, plugin] = contactPlugin(config);
+  const [entityPlugin, plugin] = createContactPluginPair(config);
   await entityPlugin.register(shell);
   // Forms in the brain's content come with its site.
   shell
@@ -151,7 +156,7 @@ async function setup(
   await plugin.register(shell, { executionOnly });
   return { h, shell, checks, sent, pages, transport, plugin, handlers };
 }
-async function submit(plugin: ContactPlugin): Promise<Response> {
+async function submit(plugin: ContactService): Promise<Response> {
   const get = plugin
     .getWebRoutes()
     .find((route) => route.path === "/contact" && route.method === "GET");
@@ -178,9 +183,9 @@ async function submit(plugin: ContactPlugin): Promise<Response> {
 
 describe("contact runtime", () => {
   it("serves nothing before it registers, and needs no configuration once it has", async () => {
-    expect(new ContactPlugin().getWebRoutes()).toEqual([]);
+    expect(createContactPlugin().getWebRoutes()).toEqual([]);
     const h = createPluginHarness({ domain: "brain.test" });
-    const plugin = new ContactPlugin();
+    const plugin = createContactPlugin();
     await plugin.register(h.getMockShell());
     expect(
       plugin.getWebRoutes().map((route) => `${route.method} ${route.path}`),
@@ -215,7 +220,7 @@ describe("contact runtime", () => {
   it("refuses to register on a brain that has no site URL", async () => {
     const h = createPluginHarness({});
     expect(
-      await new ContactPlugin()
+      await createContactPlugin()
         .register(h.getMockShell())
         .catch((error: unknown) => error),
     ).toEqual(new Error("Contact intake needs the brain's site URL"));

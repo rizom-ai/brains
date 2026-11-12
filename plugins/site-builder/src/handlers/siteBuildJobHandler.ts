@@ -1,5 +1,8 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  firstPartyJobHandler,
+  type FirstPartyJobHandler,
+  type ServiceClassMessaging,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { ISiteBuilder } from "../types/site-builder-types";
@@ -58,31 +61,45 @@ export interface SiteBuildJobHandlerConfig {
 }
 
 /** What a build asks the bus: the site metadata. */
-type SiteBuildMessaging = Pick<ServicePluginContext["messaging"], "request">;
+type SiteBuildMessaging = Pick<ServiceClassMessaging, "request">;
 
 /**
- * Job handler for site building operations
+ * The site build job, queued under site-builder:site-build: one build at a
+ * time, rendering the site for the environment it names and recording the
+ * outcome in the build status.
  */
-export class SiteBuildJobHandler extends BaseJobHandler<
-  "site-build",
-  SiteBuildJobData,
-  SiteBuildJobResult
-> {
-  private messaging: SiteBuildMessaging;
-  private cfg: SiteBuildJobHandlerConfig;
+export function siteBuildJob(
+  logger: Logger,
+  messaging: SiteBuildMessaging,
+  cfg: SiteBuildJobHandlerConfig,
+): FirstPartyJobHandler {
+  return firstPartyJobHandler({
+    type: "site-build",
+    input: siteBuildJobSchema,
+    // One build at a time: two builds' memory peaks would add up.
+    exclusive: true,
+    // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
+    executionTimeoutMs: 30 * 60_000,
+    summarize: (data) => ({
+      environment: data.environment,
+      outputDir: data.outputDir,
+    }),
+    process: ({ input, jobId, progress }) =>
+      new SiteBuild(logger, messaging, cfg).process(input, jobId, progress),
+  });
+}
+
+/** One build of the site, as the job runs it. */
+export class SiteBuild {
+  private readonly logger: Logger;
+  private readonly messaging: SiteBuildMessaging;
+  private readonly cfg: SiteBuildJobHandlerConfig;
   constructor(
     logger: Logger,
     messaging: SiteBuildMessaging,
     cfg: SiteBuildJobHandlerConfig,
   ) {
-    super(logger, {
-      schema: siteBuildJobSchema,
-      jobTypeName: "site-build",
-      // One build at a time: two builds' memory peaks would add up.
-      exclusive: true,
-      // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
-      executionTimeoutMs: 30 * 60_000,
-    });
+    this.logger = logger;
     this.messaging = messaging;
     this.cfg = cfg;
   }
@@ -283,14 +300,5 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         error,
       });
     }
-  }
-
-  protected override summarizeDataForLog(
-    data: SiteBuildJobData,
-  ): Record<string, unknown> {
-    return {
-      environment: data.environment,
-      outputDir: data.outputDir,
-    };
   }
 }

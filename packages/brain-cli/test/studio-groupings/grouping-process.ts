@@ -2,13 +2,12 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import notePackage from "@brains/note";
 import { declaredType } from "../helpers/declared-type";
-import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { registerGroupingDefinitions } from "@brains/studio/test";
+import { installStudioGroupings } from "@brains/studio/test";
 
 const commandSchema = z.object({
   id: z.number(),
@@ -47,7 +46,7 @@ const service = EntityService.createFresh({
 });
 shell.getEntityRegistry = (): EntityRegistry => registry;
 shell.getEntityService = (): EntityService => service;
-registerGroupingDefinitions(createServicePluginContext(shell, "studio"));
+await installStudioGroupings(shell);
 await service.reprojectRegisteredGroupings();
 let paused = false;
 const project = registry.projectStoredMetadata.bind(registry);

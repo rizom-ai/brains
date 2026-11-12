@@ -7,7 +7,7 @@
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/forms": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
@@ -16,6 +16,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/notifications": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

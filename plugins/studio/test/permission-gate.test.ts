@@ -11,7 +11,7 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
 import { z, type ZodType } from "@brains/utils/zod";
-import { studioPlugin, type StudioPlugin } from "../src";
+import { studioPlugin, type StudioPlugin } from "./studio-plugins";
 
 interface SessionMatrix {
   admin: string;

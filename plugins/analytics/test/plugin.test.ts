@@ -1,29 +1,20 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import type { AnalyticsPlugin } from "../src/index";
-import {
-  createAnalyticsPlugin,
-  AnalyticsPlugin as AnalyticsPluginClass,
-} from "../src/index";
+import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import packageJson from "../package.json";
+import { createAnalyticsPlugin } from "./analytics-plugins";
 
-describe("AnalyticsPlugin", () => {
-  let plugin: AnalyticsPlugin;
+const cloudflare = {
+  accountId: "abc123",
+  apiToken: "cf_test_token",
+  siteTag: "site123",
+};
 
-  beforeEach(() => {
-    plugin = createAnalyticsPlugin({
-      cloudflare: {
-        accountId: "abc123",
-        apiToken: "cf_test_token",
-        siteTag: "site123",
-      },
-    });
-  });
-
+describe("the analytics service", () => {
   describe("Plugin Configuration", () => {
     it("should have correct plugin metadata", () => {
+      const plugin = createAnalyticsPlugin({ cloudflare });
       expect(plugin.id).toBe("analytics");
-      expect(plugin.description).toContain("Analytics");
+      expect(plugin.type).toBe("service");
       expect(plugin.version).toBe(packageJson.version);
     });
 
@@ -52,13 +43,7 @@ describe("AnalyticsPlugin", () => {
       const harness = createPluginHarness();
 
       const capabilities = await harness.installPlugin(
-        new AnalyticsPluginClass({
-          cloudflare: {
-            accountId: "abc123",
-            apiToken: "cf_test_token",
-            siteTag: "site123",
-          },
-        }),
+        createAnalyticsPlugin({ cloudflare }),
       );
 
       expect(capabilities.tools).toHaveLength(0);

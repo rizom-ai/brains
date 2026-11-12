@@ -10,6 +10,8 @@ import type {
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
+import { scopeEntityReads } from "@brains/entity-service";
+import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
@@ -19,6 +21,8 @@ import {
   defineDataSource,
   defineEntity,
   defineEntityPackage,
+  baseEntitySchema,
+  entityRuntime,
   instantiatePluginPackageDefinition,
   type AnyDataSourceDeclaration,
   type AnyEntityDefinition,
@@ -424,6 +428,75 @@ describe("declared entity data sources", () => {
         siblings: ["first", "second", "third"],
         total: 3,
       });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("hands a first-party detail view untyped reads at the build's scope", async () => {
+    // A newsletter issue links the posts it was written from by the type its
+    // frontmatter names, which no definition of its package declares.
+    const linked = defineDataSource({
+      id: "bookmarks",
+      name: "Bookmarks",
+      description: "Shows one bookmark and the note it names",
+      entity: bookmark,
+      defaultSort: [{ field: "title", direction: "asc" }],
+      transform: (entity) => ({ title: entity.metadata.title }),
+      list: (items) => ({ titles: items.map(({ title }) => title) }),
+      detail: async (context) => {
+        const note = await entityRuntime(context).anyEntities.getEntity({
+          entityType: "note",
+          id: "linked-note",
+        });
+        return { title: context.item.title, note: note?.content ?? null };
+      },
+    });
+    const { harness } = await install([bookmark], [linked]);
+    try {
+      await seedBookmarks(harness);
+      harness
+        .getEntityRegistry()
+        .registerEntityType(
+          "note",
+          baseEntitySchema,
+          createTestEntityAdapter("note"),
+        );
+      const entities = harness.getEntityService();
+      await entities.createEntity({
+        entity: {
+          id: "linked-note",
+          entityType: "note",
+          content: "A public note",
+          metadata: {},
+        },
+      });
+      const detail = z.object({
+        title: z.string(),
+        note: z.string().nullable(),
+      });
+      const source = registered(harness, "@fixture/reading:bookmarks");
+      expect(
+        await source.fetch?.({ query: { id: "first" } }, detail, {
+          entityService: entities,
+        }),
+      ).toEqual({ title: "First", note: "A public note" });
+      // At the build's scope: a restricted note stays out of a public build.
+      const note = await entities.getEntity({
+        entityType: "note",
+        id: "linked-note",
+      });
+      if (!note) throw new Error("The note was not created");
+      await entities.updateEntity({
+        entity: { ...note, visibility: "restricted" },
+      });
+      expect(
+        await source.fetch?.({ query: { id: "first" } }, detail, {
+          entityService: scopeEntityReads(entities, {
+            visibilityScope: "public",
+          }),
+        }),
+      ).toEqual({ title: "First", note: null });
     } finally {
       await harness.reset();
     }

@@ -2,12 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
 import { FormInboxSource } from "@brains/forms";
+import { contactRequestAdapter, contactRequestTarget } from "../src";
 import {
-  ContactPlugin,
-  ContactRequestPlugin,
-  contactRequestAdapter,
-  contactRequestTarget,
-} from "../src";
+  createContactRequestPlugin,
+  createContactPlugin,
+} from "./contact-plugins";
 
 const receivedAt = "2026-09-21T10:00:00.000Z";
 // Requests once expired; one written then carries the time it would have.
@@ -19,7 +18,7 @@ async function fixture(options: { legacy?: boolean } = {}): Promise<{
   context: ReturnType<typeof createServicePluginContext>;
 }> {
   const harness = createPluginHarness({ domain: "brain.test" });
-  await harness.installPlugin(new ContactRequestPlugin());
+  await harness.installPlugin(createContactRequestPlugin());
   const entityService = harness.getEntityService();
   const content = contactRequestAdapter.createContent(
     {
@@ -52,7 +51,7 @@ async function fixture(options: { legacy?: boolean } = {}): Promise<{
 describe("contact inbox", () => {
   it("registers a pull-based inbox source, with the form's routes and no tools", async () => {
     const { harness } = await fixture();
-    const plugin = new ContactPlugin();
+    const plugin = createContactPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     expect(
@@ -67,7 +66,7 @@ describe("contact inbox", () => {
       "/_forms/contact",
       "/_forms/contact",
     ]);
-    expect(plugin.getApiRoutes()).toEqual([]);
+    expect(plugin.getApiRoutes?.() ?? []).toEqual([]);
   });
 
   it("lists each entity once and keeps personal details in the admin-only plain-text detail", async () => {

@@ -1,4 +1,4 @@
-import type { BatchOperation } from "@brains/plugins";
+import type { BatchOperation } from "@brains/sdk/internal/service-runtime";
 
 export interface BatchOperationResult {
   operations: BatchOperation[];

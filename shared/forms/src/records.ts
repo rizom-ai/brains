@@ -1,17 +1,24 @@
 import { internalFullScope } from "@brains/plugins";
-import type { BaseEntity, ServiceEntityService } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import type { ServiceClassEntityService } from "@brains/sdk/internal/service-runtime";
 import type { FormAlertAnswer } from "./alert";
 import type { FormDefinition } from "./definition";
 import type { FormDeliveryTarget, FormNotificationState } from "./delivery";
 import type { FormTarget } from "./target";
 
+/** What the engine reads and writes a target's records through. */
+export type FormEntityService = Pick<
+  ServiceClassEntityService,
+  "getEntity" | "listEntities" | "createEntity" | "updateEntity"
+>;
+
 /** A target's records as the engine reads and updates them. */
 export class FormRecords<
   E extends BaseEntity = BaseEntity,
 > implements FormDeliveryTarget {
-  private readonly entities: ServiceEntityService;
+  private readonly entities: FormEntityService;
   readonly target: FormTarget<E>;
-  constructor(entities: ServiceEntityService, target: FormTarget<E>) {
+  constructor(entities: FormEntityService, target: FormTarget<E>) {
     this.entities = entities;
     this.target = target;
   }

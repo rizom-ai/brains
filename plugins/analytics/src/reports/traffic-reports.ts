@@ -1,7 +1,7 @@
 import {
   defineAnalyticsReport,
   type AnalyticsReportDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { addDays, datesBetween, isoWeekOf } from "../lib/iso-week";
 import {

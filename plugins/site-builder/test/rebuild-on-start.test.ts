@@ -5,7 +5,10 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { SiteBuilderPlugin } from "../src/plugin";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "./site-builder-plugin";
 
 // A start, an upgrade included, may bring new renderer code that the input
 // fingerprint cannot see; the renderer identity is fresh per process so a
@@ -16,11 +19,11 @@ import { SiteBuilderPlugin } from "../src/plugin";
 // and an environment never built stays untouched.
 describe("the site builder at start", () => {
   let dir: string;
-  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<SiteBuilderTestPlugin>>;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "site-builder-start-"));
-    harness = createPluginHarness<SiteBuilderPlugin>({
+    harness = createPluginHarness<SiteBuilderTestPlugin>({
       dataDir: join(dir, "data"),
     });
   });
@@ -40,7 +43,7 @@ describe("the site builder at start", () => {
     expected: number,
     options: { settle: boolean } = { settle: true },
   ): Promise<string[]> => {
-    const plugin = new SiteBuilderPlugin({
+    const plugin = createSiteBuilderPlugin({
       productionOutputDir: join(dir, "site-production"),
       previewOutputDir: join(dir, "site-preview"),
       autoRebuild: false,

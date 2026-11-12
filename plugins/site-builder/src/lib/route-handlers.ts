@@ -3,7 +3,7 @@ import {
   siteBuilderRoutesContract,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { registerConfigRoutes } from "./route-helpers";
 
@@ -15,13 +15,13 @@ import { registerConfigRoutes } from "./route-helpers";
 // ordinary subscriptions, and its registry has to hear the pages plugins
 // declare.
 export function setupRouteHandlers(
-  context: Pick<ServicePluginContext, "messaging">,
+  context: Pick<ServiceRuntime, "answer">,
   routeRegistry: RouteRegistry,
   logger: Logger,
 ): void {
-  context.messaging.answer(
+  context.answer(
     siteBuilderRouteRegisterContract,
-    async ({ routes, pluginId }) => {
+    async ({ request: { routes, pluginId } }) => {
       try {
         registerConfigRoutes(routes, pluginId, routeRegistry);
       } catch (error) {
@@ -33,9 +33,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for site-content plugin to discover all routes
-  context.messaging.answer(
-    siteBuilderRoutesContract,
-    async () => routeRegistry.list(),
-    { everyProcess: true },
-  );
+  context.answer(siteBuilderRoutesContract, async () => routeRegistry.list(), {
+    everyProcess: true,
+  });
 }

@@ -1,12 +1,11 @@
+import type { DirectorySyncContext, DirectorySyncCore } from "./sync-context";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ServicePluginContext,
-  type ToolContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { basename } from "path";
@@ -392,7 +391,9 @@ const directorySyncWorkspace = defineStudioWorkspace({
 });
 
 export interface DirectorySyncWorkspaceProviderOptions {
-  context: ServicePluginContext;
+  context: DirectorySyncCore & {
+    readonly runtime: Pick<DirectorySyncContext["runtime"], "studio">;
+  };
   config: DirectorySyncConfig;
   getDirectorySync: () => IDirectorySync;
   getGitSync: () => IGitSync | undefined;
@@ -475,8 +476,9 @@ export class DirectorySyncWorkspaceProvider {
   }
 
   async registerStudioWorkspace(): Promise<string | undefined> {
-    const result = await registerBuiltInStudioWorkspace({
-      context: this.options.context,
+    const { studio } = this.options.context.runtime;
+    if (!studio.isAvailable()) return undefined;
+    const registration = studio.source({
       definition: directorySyncWorkspace,
       bind: (context) =>
         directorySyncWorkspace.bind(context, {
@@ -515,13 +517,14 @@ export class DirectorySyncWorkspaceProvider {
           ],
         }),
     });
-    this.registered = result !== false;
-    return result === false ? undefined : result.workspaceUrl;
+    const workspaceUrl = await studio.register(registration);
+    this.registered = workspaceUrl !== undefined;
+    return workspaceUrl;
   }
 
   async unregisterStudioWorkspace(): Promise<void> {
     if (!this.registered) return;
-    await this.options.context.studio.unregisterWorkspace(
+    await this.options.context.runtime.studio.unregister(
       `${this.options.context.pluginId}:sync`,
     );
     this.registered = false;

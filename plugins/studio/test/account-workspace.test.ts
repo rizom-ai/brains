@@ -5,7 +5,7 @@ import {
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 
-import { studioPlugin } from "../src";
+import { studioPlugin } from "./studio-plugins";
 import {
   STUDIO_ACCOUNT_WORKSPACE,
   listBuiltInStudioWorkspaces,

@@ -69,6 +69,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
   queuedCreateOf,
@@ -384,24 +385,46 @@ function documentBody(content: string): string {
     : content;
 }
 
+/**
+ * A stored document read as written (storedDocumentCodec's readAsWritten):
+ * the stored bytes as its content, and metadata derived from its header
+ * when the header parses.
+ */
+function readAsWritten(
+  definition: AnyEntityDefinition,
+  markdown: string,
+): Partial<EntityOf<AnyEntityDefinition>> {
+  const header = readableHeader(markdown);
+  const metadata =
+    header && definition.markdown
+      ? definition.markdown.decode(header).metadata
+      : {};
+  return {
+    ...(definition.singleton === true && { id: definition.type }),
+    content: markdown,
+    metadata: definition.metadata.parse(currentMetadata(definition, metadata)),
+  };
+}
+
+/** A document's header and body; none when its header does not parse. */
+function readableHeader(
+  markdown: string,
+): { content: string; frontmatter: Record<string, unknown> } | undefined {
+  try {
+    const parsed = parseMarkdownWithFrontmatter(markdown, rawFrontmatterSchema);
+    return { content: parsed.content, frontmatter: parsed.metadata };
+  } catch {
+    // A header that does not parse still reads, as written and with no
+    // metadata, so an editor can show the document for repair; a write
+    // refuses it as before.
+    return undefined;
+  }
+}
+
 type DeclaredAdapter = EntityAdapter<
   EntityOf<AnyEntityDefinition>,
   Record<string, unknown>
 >;
-
-/** The fields a type writes: its metadata's and its header's, by name. */
-function writtenFields(
-  metadata: z.ZodObject,
-  header: z.ZodObject | undefined,
-): z.ZodObject {
-  const names = new Set([
-    ...Object.keys(metadata.shape),
-    ...Object.keys(header?.shape ?? {}),
-  ]);
-  return z.object(
-    Object.fromEntries([...names].map((name) => [name, z.unknown()])),
-  );
-}
 
 /** How a text type's record is its markdown: its metadata is its frontmatter. */
 function markdownStorage(
@@ -419,13 +442,11 @@ function markdownStorage(
   return {
     // The header its class declared, when it states one; else its metadata.
     frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
-    // What it writes is still every field its metadata names, and the
-    // header's: the serializer keeps from the source only what neither names.
+    // What it writes is still every field its metadata names; a header
+    // field metadata does not name is the file's own, which the serializer
+    // keeps from the document written, as a stored-document class kept it.
     ...(frontmatterSchemaOf(definition) && {
-      writtenFrontmatterSchema: writtenFields(
-        definition.metadata,
-        frontmatterSchemaOf(definition),
-      ),
+      writtenFrontmatterSchema: definition.metadata,
     }),
     // A whole document handed in, as an import or an editor writes one, had
     // its frontmatter decoded into the metadata already: the type writes the
@@ -439,6 +460,8 @@ function markdownStorage(
       });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
+      if (readsAsWritten(definition.markdown))
+        return readAsWritten(definition, markdown);
       const parsed = parseMarkdownWithFrontmatter(
         markdown,
         rawFrontmatterSchema,

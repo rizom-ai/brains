@@ -2,11 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { EntityRegistry } from "@brains/entity-service";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { TrafficSnapshotPlugin } from "../src/entity/plugin";
+import { createTrafficSnapshotPlugin } from "./analytics-plugins";
 import { trafficSnapshotAdapter } from "../src/entity/adapter";
 import { trafficSnapshotSchema } from "../src/entity/schema";
 
-describe("TrafficSnapshotPlugin", () => {
+describe("the traffic-snapshot type", () => {
   it("registers a restricted, non-indexed, non-projection entity", async () => {
     const harness = createPluginHarness();
     const registry = harness.getEntityRegistry();
@@ -17,7 +17,7 @@ describe("TrafficSnapshotPlugin", () => {
     };
 
     const capabilities = await harness.installPlugin(
-      new TrafficSnapshotPlugin(),
+      createTrafficSnapshotPlugin(),
     );
 
     expect(registry.getEntityTypeConfig("traffic-snapshot")).toMatchObject({
@@ -29,12 +29,13 @@ describe("TrafficSnapshotPlugin", () => {
       retiredFields: ["week", "start", "end"],
     });
     expect(capabilities.tools).toEqual([]);
-    // A brain's registry refuses to retire a field the metadata still needs.
+    // A brain's registry refuses to retire a field the metadata still needs;
+    // the declared type's adapter, as the brain registers it, retires none.
     expect(() =>
       EntityRegistry.createFresh(createSilentLogger()).registerEntityType(
         "traffic-snapshot",
         trafficSnapshotSchema,
-        trafficSnapshotAdapter,
+        registry.getAdapter("traffic-snapshot"),
         registry.getEntityTypeConfig("traffic-snapshot"),
       ),
     ).not.toThrow();

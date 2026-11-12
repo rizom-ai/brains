@@ -6,7 +6,10 @@
  * service hears, and the shapes of what its runtime reads and composes: the
  * runtime state its class stored, the shell's identity records and profile
  * kinds, the Inbox sources and their items, a list tool's output and a
- * Studio workspace it composes. No public entry exports this module.
+ * Studio workspace it composes, and what its class declared beside the
+ * definition, as written (`withTools`, `withJobHandlers`,
+ * `withStaticSiteOutput`, `withApiRoutes`). No public entry exports this
+ * module.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-service-runtime).
  */
@@ -21,18 +24,43 @@ export {
   type ServiceDashboardWidget,
   type ServiceInteraction,
   type ServiceAI,
+  type ServiceClassJobs,
+  type ServiceClassMessaging,
+  type ServicePermissions,
+  type ServiceAttachments,
+  type ServiceAtprotoProjections,
+  type ServiceTemplateOptions,
+  type ServiceViews,
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,
+  type ServiceDataSourceOptions,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceEntityWrites,
+  type ServiceGitBroker,
+  type ServiceGroupings,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
   type ServiceListenOptions,
   type ServiceRuntime,
+  classEntityServiceOf,
+  type ServiceClassEntityService,
+  type ServiceEntityMirror,
+  type ServiceEntityMirrorClient,
 } from "@brains/plugins";
-export { withOwnedDataSources } from "@brains/plugins";
+export {
+  firstPartyJobHandler,
+  withJobHandlers,
+  withOwnedDataSources,
+  withStaticSiteOutput,
+  withApiRoutes,
+  withWebRoutes,
+  withTools,
+  type FirstPartyJobCall,
+  type FirstPartyJobHandler,
+} from "@brains/plugins";
 export { internalFullScope } from "@brains/plugins";
 export type { AuthBackend, ContentVisibility } from "@brains/plugins";
 export {
@@ -80,4 +108,77 @@ export {
   type RuntimeStudioOperatorRegionBlock,
   type RuntimeStudioWorkspaceData,
   type StudioWorkspaceActor,
+} from "@brains/plugins";
+export {
+  assertStudioWorkspaceAdmin,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceRegistrationSchema,
+  studioWorkspaceUnregisterContract,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionSchema,
+  studioOverviewContributionUnregisterContract,
+  type StudioWorkspaceDescriptor,
+  type StudioWorkspaceRegistration,
+  type StudioOverviewContributionRegistration,
+  type StudioOverviewContributionUnregistration,
+} from "@brains/plugins";
+export {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  dashboardDigestLineSchema,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+  safeParseRuntimeDashboardWidgetData,
+  type DashboardDigestLine,
+  type DashboardWidgetProviderContext,
+  type DashboardWidgetRenderer,
+  type RuntimeDashboardOperatorPanelBlock,
+  type RuntimeDashboardOperatorView,
+  type RuntimeDashboardWidgetData,
+  type RuntimeOperatorLaunchIntent,
+  type RuntimeOperatorLinkTarget,
+  type RuntimeStudioOperatorCardBlock,
+  type RuntimeStudioOperatorView,
+  type RuntimeStudioOperatorViewFact,
+  type RuntimeStudioOperatorViewStatus,
+} from "@brains/plugins";
+export {
+  defineAnalyticsReport,
+  type AnalyticsReportContext,
+  type AnalyticsReportDefinition,
+} from "@brains/plugins";
+export {
+  inboxActorSchema,
+  inboxItemListSchema,
+  type ChannelDeliveryProvider,
+  type MessageResponse,
+} from "@brains/plugins";
+export type {
+  AppInfo,
+  EntityCount,
+  InitialSyncOutcome,
+  InteractionInfo,
+  PluginsRegisteredAnswer,
+  RuntimeHealthCheck,
+} from "@brains/plugins";
+export type {
+  ApiRouteDefinition,
+  BatchOperation,
+  EnqueueJobRequest,
+  JobInfo,
+} from "@brains/plugins";
+export {
+  createTool,
+  toolError,
+  toolSuccess,
+  type Tool,
+  type ToolContext,
+  type ToolResponse,
+  type ToolResult,
+} from "@brains/plugins";
+export {
+  PluginConfigValidationError,
+  SerialQueue,
+  SerializedStatusStore,
+  createAdminListTool,
+  hasPermission,
 } from "@brains/plugins";

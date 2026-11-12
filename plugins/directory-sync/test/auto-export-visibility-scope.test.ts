@@ -1,6 +1,9 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import type {
   BaseEntity,
@@ -66,7 +69,7 @@ describe("auto-export visibility scope", () => {
     failClosedOnVisibility(harness.getEntityService());
 
     await harness.installPlugin(
-      new DirectorySyncPlugin({
+      createDirectorySyncPlugin({
         syncPath,
         autoSync: true,
         initialSync: false,

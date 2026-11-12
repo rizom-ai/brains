@@ -5,12 +5,14 @@
   "description": "Quizzes on a Brain's site, their results kept as quiz-result records",
   "dependencies": {
     "@brains/forms": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/notifications": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

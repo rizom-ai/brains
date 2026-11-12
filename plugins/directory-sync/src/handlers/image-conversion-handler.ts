@@ -1,8 +1,8 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { readFile } from "fs/promises";
 import { writeFileAtomic } from "../lib/atomic-write";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { BaseJobHandler } from "@brains/plugins";
+import { reportProgress } from "../lib/report-progress";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { fetchImageAsBase64 } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
@@ -41,23 +41,20 @@ export type ImageFetcher = (url: string) => Promise<string>;
  * 5. Creates image entity
  * 6. Updates file frontmatter (coverImageUrl → coverImageId)
  */
-export class CoverImageConversionJobHandler extends BaseJobHandler<
-  "cover-image-convert",
-  CoverImageConversionJobData,
-  ImageConversionResult
-> {
-  private readonly context: ServicePluginContext;
+export class CoverImageConversionJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof coverImageConversionJobSchema =
+    coverImageConversionJobSchema;
+  private readonly logger: Logger;
+  private readonly context: DirectorySyncCore;
   private readonly fetcher: ImageFetcher;
 
   constructor(
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
-    super(logger, {
-      schema: coverImageConversionJobSchema,
-      jobTypeName: "cover-image-convert",
-    });
+    this.logger = logger;
     this.context = context;
     this.fetcher = fetcher;
   }
@@ -77,7 +74,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
     });
 
     try {
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.INIT,
         message: `Reading file: ${filePath}`,
       });
@@ -118,14 +115,14 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         this.logger.debug("File already has coverImageId, skipping", {
           filePath,
         });
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.COMPLETE,
           message: "Already converted",
         });
         return { success: true, skipped: true };
       }
 
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.FETCH,
         message: "Checking for existing image",
       });
@@ -148,13 +145,13 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           sourceUrl,
           imageId,
         });
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.EXTRACT,
           message: `Reusing existing image: ${imageId}`,
         });
       } else {
         // Step 4: Fetch image from URL
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.PROCESS,
           message: `Fetching image from ${sourceUrl}`,
         });
@@ -170,7 +167,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           return JobResult.failure(error);
         }
 
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.GENERATE,
           message: "Creating image entity",
         });
@@ -209,14 +206,14 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
 
         this.logger.debug("Created image entity", { imageId, sourceUrl });
 
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.EXTRACT,
           message: `Created image: ${imageId}`,
         });
       }
 
       // Step 6: Update frontmatter
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.SAVE,
         message: "Updating file",
       });
@@ -238,7 +235,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         return JobResult.failure(error);
       }
 
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.COMPLETE,
         message: "Conversion complete",
       });
@@ -260,7 +257,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
     }
   }
 
-  protected override summarizeDataForLog(
+  public summarizeDataForLog(
     data: CoverImageConversionJobData,
   ): Record<string, unknown> {
     return {

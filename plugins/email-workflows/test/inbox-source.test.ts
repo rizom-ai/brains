@@ -1,10 +1,10 @@
+import { createMailItemPlugin } from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import { inboxItemListSchema } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
   MailTriageInboxSource,
   MailTriageOperatorService,
   createMailItemProjection,
@@ -116,7 +116,7 @@ async function readStatus(
 describe("mail triage inbox source", () => {
   it("maps only new derived mail items into content-safe inbox projections", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     await persistItem(harness, {
       id: "high",
       title: "Time-sensitive work request",
@@ -270,7 +270,7 @@ describe("mail triage inbox source", () => {
 
   it("enforces admin actions, reuses typed status transitions, and re-lists live state", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     const reviewedId = await persistItem(harness, {
       id: "review-action",
       title: "Review action",
@@ -321,7 +321,7 @@ describe("mail triage inbox source", () => {
 
   it("hides partial thread ordinals until migration is ready", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     await persistItem(harness, {
       id: "migrating-thread",
       title: "Thread still migrating",
@@ -346,7 +346,7 @@ describe("mail triage inbox source", () => {
 
   it("returns an empty state when no new mail items need attention", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     const source = new MailTriageInboxSource(
       new MailTriageOperatorService(
         harness.getServiceContext("email-workflows"),

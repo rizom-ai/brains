@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
 import chatInterface from "@brains/chat";
-import { newsletter } from "@brains/newsletter";
 import {
   instantiatePluginPackageDefinition,
   isPackageDefinitionPlugin,
@@ -92,7 +91,11 @@ function readExpected(name: string): string[] {
 function shellWithIdentityTypes(
   servesHttp = false,
 ): ReturnType<typeof createMockShell> {
-  const shell = createMockShell({ servesHttp });
+  // The site URL a brain's forms serve on, as the app's local runtime gives it.
+  const shell = createMockShell({
+    servesHttp,
+    localSiteUrl: "http://localhost:8080",
+  });
   for (const type of ["anchor-profile", "brain-character"]) {
     shell
       .getEntityRegistry()
@@ -125,6 +128,9 @@ async function resolveTestApp(name: string): Promise<Plugin[]> {
   const resolved = resolve(canonicalBrain, {}, overrides);
   const plugins = resolved.plugins ?? [];
   for (const plugin of plugins) {
+    // Directory sync serves no routes (its registration test pins that), and
+    // registering it reaches the git broker a test app's Git sync names.
+    if (plugin.id === "directory-sync") continue;
     if (isPackageDefinitionPlugin(plugin)) {
       const shell = shellWithIdentityTypes(resolved.http.enabled === true);
       for (const other of plugins) shell.addPlugin(other);
@@ -238,6 +244,15 @@ describe("canonical HTTP route manifests", () => {
   });
 
   test("records configured newsletter provider routes", () => {
+    // The newsletter capability as the canonical brain composes it.
+    const entry = canonicalBrain.capabilities.find(
+      ([id]) => id === "newsletter",
+    );
+    if (!entry) throw new Error("No newsletter capability");
+    const newsletter = (config: Record<string, unknown>): Plugin[] => {
+      const created = entry[1](config);
+      return Array.isArray(created) ? created : [created];
+    };
     expect(
       routeManifest(
         newsletter({

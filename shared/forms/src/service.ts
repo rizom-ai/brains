@@ -1,5 +1,4 @@
 import {
-  ENTITY_CHANNELS,
   notificationsSendContract,
   type WebRouteRole,
 } from "@brains/contracts";
@@ -7,10 +6,18 @@ import type {
   BaseEntity,
   IRuntimeStateStore,
   RuntimeHealthCheck,
-  ServicePluginContext,
   WebRouteDefinition,
   WebRouteTransportContext,
 } from "@brains/plugins";
+import {
+  classEntityServiceOf,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  firstPartyJobHandler,
+  type FirstPartyJobHandler,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
   siteBuilderPagesContract,
   siteBuilderRouteRegisterContract,
@@ -41,7 +48,7 @@ import {
   type FormPolicyOverrides,
 } from "./policy";
 import { FormReceipts } from "./receipts";
-import { FormRecords } from "./records";
+import { FormRecords, type FormEntityService } from "./records";
 import type { FormDraft } from "./render";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
 import type { FormInboxTarget, FormTarget } from "./target";
@@ -68,6 +75,36 @@ export interface FormServiceOptions<E extends BaseEntity> {
   forms: BuiltInForm[];
   overrides?: FormPolicyOverrides | undefined;
 }
+
+/** What the engine runs on: a target package's service runtime, as the
+ * forms engine's service class read its context. */
+export type FormRuntime = Pick<
+  ServiceRuntime,
+  | "pluginId"
+  | "executionOnly"
+  | "logger"
+  | "siteUrl"
+  | "localSiteUrl"
+  | "preferLocalUrls"
+  | "previewUrl"
+  | "themeCSS"
+  | "entityReads"
+  | "entityWrites"
+  | "permissions"
+  | "classRuntimeState"
+  | "identity"
+  | "hasPlugin"
+  | "routeByRole"
+  | "inboxSource"
+  | "template"
+  | "messaging"
+  | "answer"
+  | "listen"
+  | "jobs"
+  | "recurringCheck"
+  | "operationalHealth"
+  | "endpoint"
+>;
 
 function declaresInbox<E extends BaseEntity>(
   target: FormTarget<E>,
@@ -116,7 +153,8 @@ interface RunningForm {
  */
 export class FormService<E extends BaseEntity = BaseEntity> {
   private readonly options: FormServiceOptions<E>;
-  private context: ServicePluginContext | undefined;
+  private runtime: FormRuntime | undefined;
+  private entities: FormEntityService | undefined;
   private pluginId: string | undefined;
   private builtIns: Array<{ form: BuiltInForm; definition: FormDefinition }> =
     [];
@@ -136,7 +174,6 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   private report: FormMaintenanceReport | undefined;
   private readyState = false;
   private siteTheme: "light" | "dark" | undefined;
-  private readonly unregister: Array<() => void> = [];
 
   constructor(options: FormServiceOptions<E>) {
     this.options = options;
@@ -146,24 +183,28 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     return this.options.label;
   }
 
-  async register(
-    context: ServicePluginContext,
-    pluginId: string,
-  ): Promise<void> {
+  async register(runtime: FormRuntime): Promise<void> {
     const target = this.options.target;
-    if (declaresInbox(target) && !context.executionOnly)
-      context.inbox.registerSource(new FormInboxSource(context, target));
+    const { pluginId } = runtime;
+    const entities = classEntityServiceOf(runtime);
+    if (declaresInbox(target) && !runtime.executionOnly)
+      runtime.inboxSource(
+        new FormInboxSource(
+          { entityService: entities, permissions: runtime.permissions },
+          target,
+        ),
+      );
     // The forms serve the brain's own origin: its local site URL while the
     // brain prefers local URLs (a development run), else its domain.
     const origin =
-      (context.preferLocalUrls ? context.localSiteUrl : context.siteUrl) ??
-      context.localSiteUrl ??
-      context.siteUrl;
+      (runtime.preferLocalUrls ? runtime.localSiteUrl : runtime.siteUrl) ??
+      runtime.localSiteUrl ??
+      runtime.siteUrl;
     if (!origin)
       throw new Error(`${this.label} intake needs the brain's site URL`);
     const policy = resolveFormPolicy(this.options.overrides ?? {}, origin);
     this.policy = policy;
-    const records = new FormRecords(context.entityService, target);
+    const records = new FormRecords(entities, target);
     this.records = records;
     const definitions = this.options.forms.map((form) => ({
       form,
@@ -173,15 +214,16 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       const refusal = target.refuse(definition);
       if (refusal) throw new Error(refusal);
     }
-    this.context = context;
+    this.runtime = runtime;
+    this.entities = entities;
     this.pluginId = pluginId;
     this.builtIns = definitions;
     // The site's own pages for the forms: its layout around an empty slot the
     // form fills per request. Declared in every process, as the site builds
     // in a separate worker, which registers plugins but never runs their
     // ready phase.
-    context.templates.register({ page: formPageTemplate });
-    await context.messaging.command(siteBuilderRouteRegisterContract, {
+    runtime.template("page", formPageTemplate);
+    await runtime.messaging.command(siteBuilderRouteRegisterContract, {
       pluginId,
       routes: definitions.flatMap(({ definition }) =>
         formSitePages(definition, pluginId),
@@ -189,81 +231,79 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     });
     // The pages of the forms content defines, for the build that asks: in
     // every process, as the site builds in a separate worker.
-    context.messaging.answer(
+    runtime.answer(
       siteBuilderPagesContract,
       async () =>
-        (await this.contentForms(context))
+        (await this.contentForms(runtime, entities))
           .filter(({ id }) => !this.isBuiltIn(id))
           .flatMap((definition) => formSitePages(definition, pluginId)),
       { everyProcess: true },
     );
-    this.maintenanceStatus = context.runtimeState.scoped({
+    this.maintenanceStatus = runtime.classRuntimeState.scoped({
       namespace: `${pluginId}.maintenance`,
       schema: maintenanceStatusSchema,
     });
     for (const { form, definition } of definitions)
       this.forms.set(
         definition.id,
-        this.run(context, policy, records, form, definition),
+        this.run(runtime, entities, policy, records, form, definition),
       );
-    if (!context.executionOnly)
+    if (!runtime.executionOnly)
       for (const channel of [
-        ENTITY_CHANNELS.created,
-        ENTITY_CHANNELS.updated,
-        ENTITY_CHANNELS.deleted,
+        entityCreatedChannel,
+        entityUpdatedChannel,
+        entityDeletedChannel,
       ])
-        context.messaging.observe(channel, async (message) => {
-          if (formChangeSchema.safeParse(message.payload).success)
-            await this.refresh();
-          return { success: true };
-        });
-    context.jobs.registerHandler("notify", {
-      executionTimeoutMs: 60_000,
-      validateAndParse: (input) => {
-        const parsed = notificationJobSchema.safeParse(input);
-        return parsed.success ? parsed.data : null;
-      },
-      process: async (input, _jobId, _progress, signal) => {
-        const data = notificationJobSchema.safeParse(input);
-        const form = data.success
-          ? await this.formFor(data.data.form)
-          : undefined;
-        if (!data.success || !form)
-          throw new Error(
-            `Invalid ${this.label.toLowerCase()} notification job`,
-          );
-        return form.delivery.deliver(data.data.id, signal);
-      },
-    });
-    if (!context.executionOnly)
-      context.messaging.subscribe(siteMetadataUpdatedChannel, async (site) => {
-        this.siteTheme = site.themeMode;
-        return { success: true };
+        runtime.listen(
+          channel,
+          async ({ payload }) => {
+            if (formChangeSchema.safeParse(payload).success)
+              await this.refresh();
+          },
+          { mode: "observe" },
+        );
+    if (!runtime.executionOnly)
+      runtime.listen(siteMetadataUpdatedChannel, ({ payload }) => {
+        this.siteTheme = payload.themeMode;
       });
     for (const { form, definition } of definitions)
       if (form.endpoint)
-        context.endpoints.register({
+        runtime.endpoint({
           label: form.endpoint.label,
           url: `${policy.http.origin}${definition.path}`,
           priority: form.endpoint.priority,
           visibility: "public",
         });
-    this.unregister.push(
-      context.recurringChecks.register({
-        id: "maintenance",
-        cadence: "daily",
-        deliverAlerts: false,
-        includeInInbox: false,
-        run: async ({ signal }) => {
-          await this.maintain(signal);
-          return {};
-        },
-      }),
-    );
-    if (!context.executionOnly)
-      this.unregister.push(
-        context.operationalHealth.register("intake", () => this.health()),
-      );
+    runtime.recurringCheck({
+      id: "maintenance",
+      cadence: "daily",
+      deliverAlerts: false,
+      includeInInbox: false,
+      run: async ({ signal }) => {
+        await this.maintain(signal);
+        return {};
+      },
+    });
+    if (!runtime.executionOnly)
+      runtime.operationalHealth("intake", () => this.health());
+  }
+
+  /** The owner's alert job: the queue holds a form's id and a record's id,
+   * never submitted content. */
+  notificationJob(): FirstPartyJobHandler {
+    return firstPartyJobHandler({
+      type: "notify",
+      input: notificationJobSchema,
+      executionTimeoutMs: 60_000,
+      process: async ({ input, signal }) => {
+        const form = await this.formFor(input.form);
+        if (!form)
+          throw new Error(
+            `Invalid ${this.label.toLowerCase()} notification job`,
+          );
+        return form.delivery.deliver(input.id, signal);
+      },
+    });
   }
 
   /** A job without a form is the first built-in form's. A form this process
@@ -287,10 +327,11 @@ export class FormService<E extends BaseEntity = BaseEntity> {
    * One its target cannot hold, whose limits do not fit, or that takes a
    * built-in form's path is left out, and said so in the log. */
   private async contentForms(
-    context: ServicePluginContext,
+    runtime: FormRuntime,
+    entityService: FormEntityService,
   ): Promise<FormDefinition[]> {
     const target = this.options.target;
-    const entities = await context.entityService
+    const entities = await entityService
       .listEntities({
         entityType: "form",
         options: {
@@ -334,7 +375,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
       } catch (error) {
         // One broken form must not take the others down: it is left out,
         // and the log says which and why; the owner fixes it in content.
-        context.logger.warn("A form in content is not served", {
+        runtime.logger.warn("A form in content is not served", {
           form: entity.id,
           reason: getErrorMessage(error, "invalid"),
         });
@@ -353,11 +394,12 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   }
 
   private async load(): Promise<void> {
-    const context = this.context;
+    const runtime = this.runtime;
+    const entities = this.entities;
     const policy = this.policy;
     const records = this.records;
-    if (!context || !policy || !records) return;
-    const content = await this.contentForms(context);
+    if (!runtime || !entities || !policy || !records) return;
+    const content = await this.contentForms(runtime, entities);
     const byId = new Map(
       content.map((definition) => [definition.id, definition]),
     );
@@ -370,14 +412,21 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         : definition;
       next.set(
         definition.id,
-        this.run(context, policy, records, form, current),
+        this.run(runtime, entities, policy, records, form, current),
       );
     }
     for (const definition of content) {
       if (this.isBuiltIn(definition.id)) continue;
       next.set(
         definition.id,
-        this.run(context, policy, records, { definition }, definition),
+        this.run(
+          runtime,
+          entities,
+          policy,
+          records,
+          { definition },
+          definition,
+        ),
       );
     }
     const claimed = new Map<string, FormHttpHandlers>();
@@ -399,7 +448,8 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   }
 
   private run(
-    context: ServicePluginContext,
+    runtime: FormRuntime,
+    entities: FormEntityService,
     policy: FormEnginePolicy,
     records: FormRecords<E>,
     form: BuiltInForm,
@@ -417,14 +467,14 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     const copy = form.copy ?? FORM_COPY;
     const delivery = new FormDelivery({
       target: records,
-      state: context.runtimeState,
+      state: runtime.classRuntimeState,
       slots,
       policy: policy.delivery,
       send: (id, idempotencyKey): Promise<FormAlertOutcome> =>
-        this.send(context, records, definition, id, idempotencyKey),
+        this.send(runtime, records, definition, id, idempotencyKey),
     });
     const admission = new FormAdmission(
-      context.runtimeState,
+      runtime.classRuntimeState,
       formAdmissionPolicySchema.parse({
         ...policy.admission,
         ...definition.limits,
@@ -438,7 +488,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     // Jobs for the first built-in form name no form, as before forms did.
     const first = this.builtIns[0]?.definition.id === definition.id;
     const enqueueNotification = async (id: string): Promise<void> => {
-      await context.jobs.enqueue({
+      await runtime.jobs.enqueue({
         type: "notify",
         data: first ? { id } : { form: definition.id, id },
         toolContext: null,
@@ -453,7 +503,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     };
     const receipts = definition.scoring
       ? new FormReceipts(
-          context.runtimeState,
+          runtime.classRuntimeState,
           `forms.${definition.id}.receipts`,
           policy.admission.receiptTtlSeconds,
         )
@@ -468,8 +518,8 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         form: served,
         target: this.options.target,
         admission,
-        entities: context.entityService,
-        state: context.runtimeState,
+        entities,
+        state: runtime.classRuntimeState,
         slots,
         messages: words.fields,
         language,
@@ -481,13 +531,13 @@ export class FormService<E extends BaseEntity = BaseEntity> {
         intake,
         policy.http,
         {
-          themeCSS: context.themeCSS,
+          themeCSS: runtime.themeCSS,
           // The deployment's own preview host is served beside the origin.
           previewOrigin: previewOriginFor(
             policy.http.origin,
-            context.previewUrl,
+            runtime.previewUrl,
           ),
-          owner: (): string => context.identity.getProfile().name,
+          owner: (): string => runtime.identity.getProfile().name,
           defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
           copy: words,
           prefill: form.prefill,
@@ -500,7 +550,7 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     const written = serve(definition, copy);
     return {
       definition,
-      slots: new FormStorageSlots(context.runtimeState, slots, Date.now),
+      slots: new FormStorageSlots(runtime.classRuntimeState, slots, Date.now),
       intake: written.intake,
       delivery,
       http: written.http,
@@ -518,17 +568,17 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   /** The owner's alert: the submission under the form's labels, answered by
    * replying to who sent it. */
   private async send(
-    context: ServicePluginContext,
+    runtime: FormRuntime,
     records: FormRecords<E>,
     form: FormDefinition,
     id: string,
     idempotencyKey: string,
   ): Promise<FormAlertOutcome> {
-    const inbox = this.inboxUrl(context);
+    const inbox = this.inboxUrl(runtime);
     if (!inbox) return { sent: false, failure: "no-inbox" };
     const alert = await records.alert(id, form);
     if (!alert) return { sent: false, failure: "no-record" };
-    const result = await context.messaging.request(notificationsSendContract, {
+    const result = await runtime.messaging.request(notificationsSendContract, {
       title: form.notify.title,
       body: formAlertText({
         answers: alert.answers,
@@ -613,12 +663,13 @@ export class FormService<E extends BaseEntity = BaseEntity> {
     return [...this.forms.values(), ...this.retired.values()];
   }
 
-  async ready(context: ServicePluginContext): Promise<void> {
+  async ready(): Promise<void> {
+    const runtime = this.runtime;
     // A separate worker never serves the forms, so it is never ready to.
-    if (context.executionOnly) return;
-    if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
+    if (!runtime || runtime.executionOnly) return;
+    if (!runtime.hasPlugin("unified-inbox") || !this.inboxUrl(runtime))
       throw new Error(`${this.label} Inbox unavailable`);
-    await this.readSiteTheme(context);
+    await this.readSiteTheme(runtime);
     await this.refresh();
     await this.maintain(this.stop.signal);
     this.stop.signal.throwIfAborted();
@@ -628,17 +679,17 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   /** Where the alerts point: the unified-inbox workspace under Studio's
    * mounted workspaces route, on the forms' origin. Nothing while Studio
    * mounts no such route. */
-  private inboxUrl(context: ServicePluginContext): string | undefined {
+  private inboxUrl(runtime: FormRuntime): string | undefined {
     const origin = this.policy?.http.origin;
-    const workspaces = context.webRoutes.findByRole("studio-workspaces");
+    const workspaces = runtime.routeByRole("studio-workspaces");
     return origin && workspaces
       ? `${origin}${workspaces.fullPath}/unified-inbox%3Ainbox`
       : undefined;
   }
 
   /** A form opens in the site's own theme when a link names none. */
-  private async readSiteTheme(context: ServicePluginContext): Promise<void> {
-    const result = await context.messaging.request(siteMetadataContract, {});
+  private async readSiteTheme(runtime: FormRuntime): Promise<void> {
+    const result = await runtime.messaging.request(siteMetadataContract, {});
     // No site describes a theme; the page keeps its own default.
     if (result.status === "answered") this.siteTheme = result.data.themeMode;
   }
@@ -785,7 +836,6 @@ export class FormService<E extends BaseEntity = BaseEntity> {
   async shutdown(): Promise<void> {
     this.readyState = false;
     this.stop.abort();
-    for (const unregister of this.unregister.splice(0)) unregister();
     await this.maintenance?.catch(() => {
       // The initiating lifecycle/check caller received the sanitized failure;
       // shutdown still drains the owned work after aborting it.

@@ -3,8 +3,11 @@
 Quizzes on a brain's site, on the forms engine (`@brains/forms`). A quiz is a
 form defined in the brain's content that targets `quiz-result`; each one taken
 is a `quiz-result` record. The package is in the canonical catalog for explicit
-addition (`add: [quiz]`) and belongs to no bundle. `quizPlugin()` composes the
-entity and the service. There are no built-in quizzes and no public tools.
+addition (`add: [quiz]`) and belongs to no bundle. The package default-exports
+a declarative service on the forms engine (`createQuizPackage()`), which owns
+the `quiz-result` type; the canonical brain composes it under the plugin id
+`quiz`, after `QUIZ_DEPENDENCIES`. There are no built-in quizzes and no public
+tools.
 
 ## Quiz results
 

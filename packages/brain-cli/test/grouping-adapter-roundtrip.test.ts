@@ -3,7 +3,7 @@ import { createClient } from "@libsql/client";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { computeContentHash } from "@brains/utils/hash";
 import { PermissionService } from "@brains/templates";
-import { studioPlugin } from "@brains/studio";
+import { studioPlugin } from "@brains/studio/test";
 import { DirectorySync, type ImportResult } from "@brains/directory-sync";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { z } from "@brains/utils/zod";

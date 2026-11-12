@@ -4,7 +4,7 @@ AT Protocol integration for Rizom brains.
 
 This package currently covers AT Protocol identity, outbound publishing, and the first discovery slice:
 
-- `ServicePlugin` package skeleton
+- a declarative service the canonical brain composes as the `atproto` capability, under the plugin id `atproto`
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record reads/writes/deletes, and blob upload tests
@@ -14,27 +14,7 @@ This package currently covers AT Protocol identity, outbound publishing, and the
 
 ## Configuration
 
-In the canonical member configuration or an instance plugin override:
-
-```ts
-atprotoPlugin({
-  pdsEndpoint: "https://bsky.social",
-  identifier: "example.com",
-  repoDid: "did:plc:...",
-  // Optional; defaults from the active web channel or PDS repo DID.
-  brainDid: "did:web:example.com",
-  anchorDid: "did:web:example.com:anchor",
-  // Only for the DNS-designated ai.rizom.brain.* authority account.
-  lexiconAuthority: true,
-  // Canary opt-in; disabled by default.
-  jetstream: {
-    enabled: true,
-    queueLimit: 64,
-    concurrency: 2,
-  },
-  appPassword: "${ATPROTO_APP_PASSWORD}",
-});
-```
+The package default-exports the definition; `createAtprotoPackage(deps)` takes a test's PDS client, fetch and Jetstream socket.
 
 In an instance `brain.yaml`, non-secret values belong under the plugin id:
 

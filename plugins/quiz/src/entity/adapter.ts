@@ -1,30 +1,29 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import {
+  generateMarkdownWithFrontmatter,
+  parseTypedFrontmatter,
+} from "@brains/sdk/internal/entity-runtime";
 import {
   quizResultFrontmatterSchema,
-  quizResultSchema,
   type QuizResult,
   type QuizResultFrontmatter,
   type QuizResultMetadata,
 } from "./schema";
 
-export class QuizResultAdapter extends BaseEntityAdapter<
-  QuizResult,
-  QuizResultMetadata,
-  QuizResultFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "quiz-result",
-      purpose:
-        "A restricted record of one quiz taken on the brain's site: what was asked and answered, and the results shown. Never public knowledge or model input.",
-      schema: quizResultSchema,
-      frontmatterSchema: quizResultFrontmatterSchema,
-    });
-  }
-
+/**
+ * How a quiz result's document is written and read: what was asked,
+ * answered and shown in its header, and what results are queried by as
+ * its metadata. What the quiz target and the declared type write and read
+ * with; errors never carry submitted content.
+ */
+export const quizResultAdapter: {
+  createContent(frontmatter: QuizResultFrontmatter): string;
+  parseContent(content: string): { frontmatter: QuizResultFrontmatter };
+  metadataFor(frontmatter: QuizResultFrontmatter): QuizResultMetadata;
+  fromMarkdown(markdown: string): Partial<QuizResult>;
+} = Object.freeze({
   createContent(frontmatter: QuizResultFrontmatter): string {
     try {
-      return this.buildMarkdown(
+      return generateMarkdownWithFrontmatter(
         "",
         quizResultFrontmatterSchema.parse(frontmatter),
       );
@@ -32,12 +31,13 @@ export class QuizResultAdapter extends BaseEntityAdapter<
       // Persistence errors may be logged by callers. Never include submitted content.
       throw new Error("Invalid quiz result");
     }
-  }
+  },
 
   parseContent(content: string): { frontmatter: QuizResultFrontmatter } {
     try {
       return {
-        frontmatter: this.parseFrontMatter(
+        frontmatter: parseTypedFrontmatter(
+          "quiz-result",
           content,
           quizResultFrontmatterSchema,
         ),
@@ -46,7 +46,7 @@ export class QuizResultAdapter extends BaseEntityAdapter<
       // YAML errors can echo source lines containing personal information.
       throw new Error("Invalid quiz result");
     }
-  }
+  },
 
   /** What results are queried by; listed under their quiz's title as it
    * was taken, or, for a result that predates keeping it, the quiz's id. */
@@ -59,17 +59,15 @@ export class QuizResultAdapter extends BaseEntityAdapter<
       notification: frontmatter.notification,
       contact: frontmatter.email !== undefined,
     };
-  }
+  },
 
   fromMarkdown(markdown: string): Partial<QuizResult> {
-    const { frontmatter } = this.parseContent(markdown);
+    const { frontmatter } = quizResultAdapter.parseContent(markdown);
     return {
       entityType: "quiz-result",
       visibility: "restricted",
       content: markdown,
-      metadata: this.metadataFor(frontmatter),
+      metadata: quizResultAdapter.metadataFor(frontmatter),
     };
-  }
-}
-
-export const quizResultAdapter: QuizResultAdapter = new QuizResultAdapter();
+  },
+});

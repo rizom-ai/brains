@@ -1,4 +1,7 @@
-import { entityGroupingSchema, type EntityGrouping } from "@brains/plugins";
+import {
+  entityGroupingSchema,
+  type EntityGrouping,
+} from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
 export const GROUPING_DEFINITIONS_TYPE = "grouping-definitions";

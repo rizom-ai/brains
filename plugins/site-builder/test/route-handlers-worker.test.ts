@@ -4,6 +4,7 @@ import { createServicePluginContext } from "@brains/plugins";
 import { siteBuilderRouteRegisterContract } from "@brains/site-composition";
 import { RouteRegistry } from "@brains/site-engine";
 import { setupRouteHandlers } from "../src/lib/route-handlers";
+import { withRuntimeAnswer } from "./test-helpers";
 
 // The site builds in the worker process, which registers plugins but takes
 // no ordinary subscriptions. The route registry there still has to hear the
@@ -17,7 +18,7 @@ describe("route registration in the worker process", () => {
     });
     const logger = shell.getLogger().child("test");
     const registry = new RouteRegistry(logger);
-    setupRouteHandlers(context, registry, logger);
+    setupRouteHandlers(withRuntimeAnswer(context), registry, logger);
 
     await shell.getMessageBus().send({
       type: siteBuilderRouteRegisterContract.name,

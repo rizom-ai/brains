@@ -54,8 +54,11 @@ export interface ObsidianSyncReport {
 }
 
 export interface ObsidianSyncInput {
-  /** The shape of every registered entity type. */
-  shapes: ServiceEntityShapes;
+  /** The shape of every registered entity type, as the vault reads it. */
+  shapes: Pick<
+    ServiceEntityShapes,
+    "types" | "frontmatterSchema" | "isSingleton" | "bodyTemplate"
+  >;
   dataDir: string;
   config: ObsidianVaultConfig;
   deps: ObsidianVaultDeps;

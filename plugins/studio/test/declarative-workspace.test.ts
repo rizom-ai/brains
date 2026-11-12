@@ -12,7 +12,7 @@ import {
 import { SdkError } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
-import { studioPlugin, type StudioPlugin } from "../src";
+import { studioPlugin, type StudioPlugin } from "./studio-plugins";
 
 const authPlugins: AuthServicePlugin[] = [];
 const servicePlugins: Plugin[] = [];

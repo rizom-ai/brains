@@ -1,4 +1,12 @@
-export { StockPhotoPlugin, stockPhotoPlugin } from "./plugin";
+import { createStockPhotoPackage } from "./plugin";
+
+export {
+  createStockPhotoPackage,
+  stockPhotoConfigSchema,
+  type StockPhotoConfig,
+  type StockPhotoConfigInput,
+  type StockPhotoDeps,
+} from "./plugin";
 export { UnsplashClient } from "./lib/unsplash-client";
 export type {
   StockPhotoProvider,
@@ -8,3 +16,8 @@ export type {
   FetchFn,
   FetchImageFn,
 } from "./lib/types";
+
+/** Stock photos as a brain composes them. */
+const stockPhotoPackage: ReturnType<typeof createStockPhotoPackage> =
+  createStockPhotoPackage();
+export default stockPhotoPackage;

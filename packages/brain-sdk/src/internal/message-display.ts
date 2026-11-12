@@ -1,8 +1,8 @@
 /**
  * Internal, first-party only: how a reply's artifact cards and confirmation
- * results read, for a first-party interface's browser UI. The modules it
- * re-exports import only shared libraries, so a browser bundle takes them
- * without the plugins package's runtime, which
+ * results read and which uploads a composer accepts, for a first-party
+ * browser UI. The modules it re-exports import only shared libraries, so
+ * a browser bundle takes them without the plugins package's runtime, which
  * `@brains/sdk/internal/interface-runtime` carries. No public entry exports
  * this module.
  *
@@ -22,3 +22,8 @@ export {
   formatConfirmationResult,
   type ConfirmationResultDisplay,
 } from "@brains/plugins/message-interface/confirmation-result";
+export {
+  messageTextUploadMaxBytes,
+  messageUploadAccept,
+  messageUploadMaxBytes,
+} from "@brains/plugins/message-interface/upload-policy";

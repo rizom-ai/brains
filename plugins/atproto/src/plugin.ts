@@ -3,15 +3,12 @@ import {
   entityDeletedChannel,
   entityUpdatedChannel,
   internalFullScope,
-  ServicePlugin,
   SYSTEM_CHANNELS,
-} from "@brains/plugins";
-import type {
-  BaseEntity,
-  EntityChangePayload,
-  ServicePluginContext,
-  WebRouteDefinition,
-} from "@brains/plugins";
+  type EntityChangePayload,
+  type ServiceAtprotoProjections,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { Logger } from "@brains/utils/logger";
 import { publishCompletedChannel } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
@@ -32,7 +29,7 @@ import {
   DiscoveryRejectionError,
 } from "./identity-resolver";
 import { PublishingTaskQueue } from "./publishing-tasks";
-import { buildAtprotoWebRoutes } from "./web-routes";
+import type { AtprotoBus, AtprotoContext } from "./atproto-context";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import {
   type DiscoverBrainCardResult,
@@ -67,7 +64,6 @@ import {
   type CreateJetstreamSocket,
   type JetstreamDiscoveryOutcome,
 } from "./jetstream-consumer";
-import packageJson from "../package.json";
 
 const brainCardLexicon = canonicalAtprotoLexicons["ai.rizom.brain.card"];
 
@@ -104,11 +100,17 @@ const MAX_DISCOVERY_REPOS = 50;
 // shell's identity caches hold them.
 const BRAIN_CARD_SKILL_ENTITY_TYPE = "skill";
 
-export class AtprotoPlugin extends ServicePlugin<
-  AtprotoConfig,
-  AtprotoConfigInput
-> {
+/**
+ * The brain on the AT Protocol, as its plugin class was: the brain card
+ * published and kept current, the canonical lexicon schemas when the brain
+ * is their authority, projected entities following every publish and
+ * change, and peers' cards discovered from Jetstream. The package's setup
+ * builds it, hands it the bus and starts it once the brain is ready.
+ */
+export class AtprotoService {
   private readonly deps: AtprotoPluginDeps;
+  private readonly config: AtprotoConfig;
+  private readonly logger: Logger;
   private readonly publishingTasks: PublishingTaskQueue;
   private readonly discoveryFetch: FetchLike;
   private readonly identity: AtprotoIdentityResolver;
@@ -122,9 +124,14 @@ export class AtprotoPlugin extends ServicePlugin<
    */
   private brainCardTriggersArmed = false;
 
-  constructor(config: AtprotoConfigInput = {}, deps: AtprotoPluginDeps = {}) {
-    super("atproto", packageJson, config, atprotoConfigSchema);
+  constructor(
+    config: AtprotoConfigInput = {},
+    deps: AtprotoPluginDeps = {},
+    logger: Logger,
+  ) {
+    this.config = atprotoConfigSchema.parse(config);
     this.deps = deps;
+    this.logger = logger;
     this.discoveryFetch = createSafePublicFetch({
       ...(deps.fetch && { fetchFn: deps.fetch }),
       ...(deps.resolveHostname && { resolveHostname: deps.resolveHostname }),
@@ -145,43 +152,56 @@ export class AtprotoPlugin extends ServicePlugin<
     });
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
+  /**
+   * Hear what keeps the brain's records current, as the class subscribed
+   * and observed when it registered. A disabled brain hears nothing.
+   */
+  listen(bus: AtprotoBus, context: AtprotoContext): void {
     if (!this.config.enabled) return;
 
     // startup-check boots run ready hooks but never broadcast
     // pluginsRegistered; only a full boot may publish to the PDS.
-    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      this.fullBootObserved = true;
-      return { success: true };
-    });
+    bus.listen(
+      SYSTEM_CHANNELS.pluginsRegistered,
+      () => {
+        this.fullBootObserved = true;
+      },
+      { mode: "subscribe" },
+    );
 
     // publish:completed is the publish pipeline's broadcast after a publish
     // succeeds.
-    context.messaging.subscribe(publishCompletedChannel, async (payload) => {
-      void this.publishingTasks.run(entityTaskKey(payload), () =>
-        this.reconcileProjectedEntity(context, payload),
-      );
-      return { success: true };
-    });
+    bus.listen(
+      publishCompletedChannel,
+      ({ payload }) => {
+        void this.publishingTasks.run(entityTaskKey(payload), () =>
+          this.reconcileProjectedEntity(context, payload),
+        );
+      },
+      { mode: "subscribe" },
+    );
 
     // Entity changes arrive from both processes of the runtime; the
     // projection follows every one of them.
-    context.messaging.observe(entityUpdatedChannel, async (payload) => {
-      void this.publishingTasks.run(entityTaskKey(payload), () =>
-        this.reconcileProjectedEntity(context, payload),
-      );
-      return { success: true };
-    });
+    bus.listen(
+      entityUpdatedChannel,
+      ({ payload }) => {
+        void this.publishingTasks.run(entityTaskKey(payload), () =>
+          this.reconcileProjectedEntity(context, payload),
+        );
+      },
+      { mode: "observe" },
+    );
 
-    context.messaging.observe(entityDeletedChannel, async (payload) => {
-      void this.publishingTasks.run(entityTaskKey(payload), () =>
-        this.deleteProjectedEntityFromTrigger(context, payload),
-      );
-      return { success: true };
-    });
+    bus.listen(
+      entityDeletedChannel,
+      ({ payload }) => {
+        void this.publishingTasks.run(entityTaskKey(payload), () =>
+          this.deleteProjectedEntityFromTrigger(context, payload),
+        );
+      },
+      { mode: "observe" },
+    );
 
     // Skills are read from storage when the card is built, so their entity
     // events are safe triggers; every lifecycle change alters the card.
@@ -190,28 +210,34 @@ export class AtprotoPlugin extends ServicePlugin<
       entityUpdatedChannel,
       entityDeletedChannel,
     ]) {
-      context.messaging.observe(channel, async (payload) => {
-        if (
-          this.brainCardTriggersArmed &&
-          payload.entityType === BRAIN_CARD_SKILL_ENTITY_TYPE
-        ) {
-          this.scheduleBrainCardPublish(context);
-        }
-        return { success: true };
-      });
+      bus.listen(
+        channel,
+        ({ payload }) => {
+          if (
+            this.brainCardTriggersArmed &&
+            payload.entityType === BRAIN_CARD_SKILL_ENTITY_TYPE
+          ) {
+            this.scheduleBrainCardPublish(context);
+          }
+        },
+        { mode: "observe" },
+      );
     }
 
-    context.messaging.subscribe(SYSTEM_CHANNELS.identityChanged, async () => {
-      if (this.brainCardTriggersArmed) this.scheduleBrainCardPublish(context);
-      return { success: true };
-    });
+    bus.listen(
+      SYSTEM_CHANNELS.identityChanged,
+      () => {
+        if (this.brainCardTriggersArmed) this.scheduleBrainCardPublish(context);
+      },
+      { mode: "subscribe" },
+    );
   }
 
   /**
    * Queue a card publish unless one is already waiting: a queued publish has
    * not read the brain's state yet, so it already covers this change.
    */
-  private scheduleBrainCardPublish(context: ServicePluginContext): void {
+  private scheduleBrainCardPublish(context: AtprotoContext): void {
     if (this.brainCardPublishPending) return;
     this.brainCardPublishPending = true;
     void this.publishingTasks.run(
@@ -232,9 +258,8 @@ export class AtprotoPlugin extends ServicePlugin<
     );
   }
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
+  /** Once the brain is ready, as the class's onReady ran. */
+  async ready(context: AtprotoContext): Promise<void> {
     if (!this.config.enabled || !this.fullBootObserved) return;
 
     // Scheduled, not awaited: readyPlugins() is on the boot path, and an
@@ -322,18 +347,15 @@ export class AtprotoPlugin extends ServicePlugin<
     }
   }
 
-  protected override async onShutdown(): Promise<void> {
+  /** When the package shuts down, as the class's onShutdown ran. */
+  async shutdown(): Promise<void> {
     await this.jetstreamConsumer?.stop();
     this.jetstreamConsumer = undefined;
     await this.publishingTasks.settle();
   }
 
-  override getWebRoutes(): WebRouteDefinition[] {
-    return buildAtprotoWebRoutes(this.config);
-  }
-
   async publishBrainCard(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     options: PublishBrainCardOptions = {},
   ): Promise<PublishBrainCardResult> {
     const configuredRepo = this.config.repoDid;
@@ -385,14 +407,12 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   /** The entity plugins' projections on the shell the caller's context belongs to. */
-  private projections(
-    context: ServicePluginContext,
-  ): AtprotoProjectionRegistry {
+  private projections(context: AtprotoContext): ServiceAtprotoProjections {
     return this.deps.projectionRegistry ?? context.atprotoProjections;
   }
 
   async publishEntity(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     options: PublishEntityOptions,
   ): Promise<PublishEntityResult> {
     const projection = this.projections(context).get(options.entityType);
@@ -406,7 +426,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   async publishPost(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     options: PublishPostOptions,
   ): Promise<PublishPostResult> {
     const projection = this.projections(context).get("post");
@@ -422,7 +442,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   async discoverBrainCards(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     options: DiscoverBrainCardsOptions,
   ): Promise<DiscoverBrainCardsResult> {
     const repos = [...new Set(options.repos.map((repo) => repo.trim()))].filter(
@@ -566,7 +586,7 @@ export class AtprotoPlugin extends ServicePlugin<
    * the public domain, when the site gives the type a page at all.
    */
   private pageUrlOf(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     entity: BaseEntity,
   ): string | undefined {
     const routes = new EntityUrlGenerator(context.entityDisplay);
@@ -584,7 +604,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   private async publishProjectedEntity<TRecord extends Record<string, unknown>>(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     options: PublishEntityOptions,
     projection: AtprotoProjection<TRecord>,
   ): Promise<PublishEntityResult<TRecord>> {
@@ -680,7 +700,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   private async publishCanonicalLexiconSchemas(
-    context: ServicePluginContext,
+    context: AtprotoContext,
   ): Promise<void> {
     await this.publishingTasks.runTrigger(
       context,
@@ -734,7 +754,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   private async reconcileProjectedEntity(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     payload: EntityTrigger,
   ): Promise<void> {
     const projection = this.projections(context).get(payload.entityType);
@@ -794,7 +814,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   private async deleteProjectedEntityFromTrigger(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     payload: EntityTrigger,
   ): Promise<void> {
     const projection = this.projections(context).get(payload.entityType);
@@ -855,7 +875,7 @@ export class AtprotoPlugin extends ServicePlugin<
   // Full scope: the publish gate names why a non-public entity is refused;
   // an unscoped read sees public entities only and reports it as missing.
   private async findPublishEntity(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     options: PublishEntityOptions,
   ): Promise<BaseEntity | null> {
     if (options.entityId) {
@@ -890,7 +910,7 @@ export class AtprotoPlugin extends ServicePlugin<
   }
 
   private async applyDiscoveryAdmission(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     repoDid: string,
     record: AtprotoBrainCardRecord,
     allowNewCandidate: boolean,
@@ -1028,11 +1048,4 @@ function isProjectionPublishable(
 function parseAtUriRepo(uri: string): string | undefined {
   const match = /^at:\/\/([^/]+)/.exec(uri);
   return match?.[1];
-}
-
-export function atprotoPlugin(
-  config?: AtprotoConfigInput,
-  deps?: AtprotoPluginDeps,
-): AtprotoPlugin {
-  return new AtprotoPlugin(config, deps);
 }

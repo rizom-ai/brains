@@ -141,7 +141,9 @@ export {
   isEndpointRefusal,
   isLoopbackIssuer,
   issuerFromRequest,
+  jsonResponse,
   requireSameOriginJson,
+  requireSameOriginRequest,
   type PublicSkill,
   type WebRouteDefinition,
 } from "@brains/plugins";

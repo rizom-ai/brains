@@ -1,8 +1,8 @@
 import {
   SerialQueue,
-  type BaseEntity,
   type ContentVisibility,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { GitReconciliationCheckpoint, IGitSync } from "../types";

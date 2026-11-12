@@ -1,4 +1,7 @@
-export { BaseEntityAdapter } from "./base-entity-adapter";
+export {
+  BaseEntityAdapter,
+  parseTypedFrontmatter,
+} from "./base-entity-adapter";
 export type {
   BaseEntityAdapterConfig,
   BaseEntityFrontmatterSchema,
