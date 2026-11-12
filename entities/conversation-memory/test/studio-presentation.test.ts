@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { DecisionAdapter } from "../src/adapters/conversation-memory-adapters";
-import { SummaryAdapter } from "../src/adapters/summary-adapter";
+import { decision } from "../src/memory-entities";
+import { summary } from "../src/summary-entity";
 import { decisionMetadataSchema } from "../src/schemas/conversation-memory";
 import { summaryMetadataSchema } from "../src/schemas/summary";
 
@@ -48,14 +48,8 @@ describe("conversation memory in Studio", () => {
 
   it("names a summary by its channel and day", () => {
     expect(
-      new SummaryAdapter().displayTitle({
-        id: "team-poc-sync",
-        entityType: "summary",
+      summary.displayTitle?.({
         content: "# Conversation Summary\n",
-        contentHash: "hash",
-        visibility: "shared",
-        created: "2026-05-06T10:18:00.000Z",
-        updated: "2026-05-06T10:18:00.000Z",
         metadata: {
           channelId: "team-poc",
           channelName: "team-poc",
@@ -73,15 +67,9 @@ describe("conversation memory in Studio", () => {
 
   it("names a decision by its heading", () => {
     expect(
-      new DecisionAdapter().displayTitle({
-        id: "conv-1:decision:1:abc",
-        entityType: "decision",
-        content:
-          "---\nstatus: active\n---\n\n# Launch the hub in November\n\nWe will.\n",
-        contentHash: "hash",
-        visibility: "shared",
-        created: "2026-10-01T00:00:00.000Z",
-        updated: "2026-10-01T00:00:00.000Z",
+      decision.displayTitle?.({
+        // Read as its body, the header in metadata.
+        content: "# Launch the hub in November\n\nWe will.",
         metadata: {
           conversationId: "conv-1",
           channelId: "events",

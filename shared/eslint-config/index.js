@@ -53,6 +53,7 @@ const convertedPackages = [
   "entities/ask-content",
   "entities/blog",
   "entities/book",
+  "entities/conversation-memory",
   "entities/decks",
   "entities/doc",
   "entities/faq",

@@ -1,11 +1,10 @@
 import { channelLabel } from "@brains/action-items";
-import type { ContentVisibility } from "@brains/plugins";
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
+import type {
+  ContentVisibility,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
 import { firstSentence } from "@brains/utils/string-utils";
 import {
@@ -91,7 +90,9 @@ function entityBody(entity: DecisionEntity): string {
 }
 
 export async function buildDecisionsWidgetData(
-  context: EntityPluginContext,
+  context: {
+    readonly entityService: Pick<MemoryEntityService, "listEntities">;
+  },
   visibilityScope: ContentVisibility,
 ): Promise<DecisionsWidgetData> {
   const items = await context.entityService.listEntities(
@@ -127,24 +128,19 @@ export async function buildDecisionsWidgetData(
   };
 }
 
-export function registerDecisionsWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: decisionsWidget,
-        load: ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          return buildDecisionsWidgetData(context, visibilityScope);
-        },
-      });
-      return { success: true };
+export function registerDecisionsWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+  context: {
+    readonly entityService: Pick<MemoryEntityService, "listEntities">;
+  },
+): void {
+  runtime.dashboardWidget({
+    definition: decisionsWidget,
+    load: ({ visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      return buildDecisionsWidgetData(context, visibilityScope);
     },
-  );
+  });
 }
 
 export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

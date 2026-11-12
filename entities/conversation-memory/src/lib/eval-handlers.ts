@@ -6,14 +6,15 @@ import {
   type ActionItemEntity,
 } from "@brains/action-items";
 import { createExternalActorId } from "@brains/contracts";
-import {
-  type BaseEntity,
-  type ContentVisibility,
-  type EntityPluginContext,
-  type SearchResult,
-} from "@brains/plugins";
+import type {
+  ContentVisibility,
+  SearchResult,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { contentVisibilitySchema } from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema } from "@brains/plugins";
+import type { MemoryContext } from "./memory-context";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   decisionSchema,
@@ -74,12 +75,11 @@ const agentContextInputSchema = z.object({
 });
 
 /** Eval handlers for recalling conversation memory into an agent's context. */
-export function registerMemoryEvalHandlers(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-
-  context.eval.registerHandler("retrieveMemory", async (input: unknown) => {
+export function registerMemoryEvalHandlers(
+  runtime: Pick<ServiceRuntime, "evalHandler">,
+  context: MemoryContext,
+): void {
+  runtime.evalHandler("retrieveMemory", async (input: unknown) => {
     const parsed = retrieveMemoryInputSchema.parse(input);
     const retrievalContext = parsed.memory
       ? createSeededRetrievalContext(context, parsed.memory)
@@ -99,7 +99,7 @@ export function registerMemoryEvalHandlers(params: {
     });
   });
 
-  context.eval.registerHandler("buildAgentContext", async (input: unknown) => {
+  runtime.evalHandler("buildAgentContext", async (input: unknown) => {
     const parsed = agentContextInputSchema.parse(input);
     const retrievalContext = parsed.memory
       ? createSeededRetrievalContext(context, parsed.memory)
@@ -113,9 +113,9 @@ type SeededMemory = z.output<typeof seededMemorySchema>;
 type EvalMemoryEntity = SummaryEntity | DecisionEntity | ActionItemEntity;
 
 function createSeededRetrievalContext(
-  context: EntityPluginContext,
+  context: MemoryContext,
   memory: SeededMemory[],
-): EntityPluginContext {
+): MemoryContext {
   const entities = memory.map(toMemoryEntity);
   const searchResults: SearchResult<EvalMemoryEntity>[] = entities.map(
     (entity, index) => ({
@@ -125,7 +125,7 @@ function createSeededRetrievalContext(
     }),
   );
 
-  const seeded: EntityPluginContext = {
+  const seeded: MemoryContext = {
     ...context,
     entityService: {
       ...context.entityService,

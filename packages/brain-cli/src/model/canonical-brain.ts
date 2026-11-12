@@ -27,7 +27,7 @@ import contentPipelinePackage from "@brains/content-pipeline";
 import contactPackage, { CONTACT_DEPENDENCIES } from "@brains/contact";
 import { formPlugin } from "@brains/form";
 import quizPackage, { QUIZ_DEPENDENCIES } from "@brains/quiz";
-import { conversationMemoryPlugin } from "@brains/conversation-memory";
+import conversationMemoryPackage from "@brains/conversation-memory";
 import faqPackage from "@brains/faq";
 import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
@@ -368,7 +368,16 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       }),
     ],
 
-    ["conversation-memory", conversationMemoryPlugin, undefined],
+    packageCapability(
+      "conversation-memory",
+      "@brains/conversation-memory",
+      conversationMemoryPackage,
+      {
+        // Under the id its class had, which registered summary, decision
+        // and action-item inside itself: each type installs as itself.
+        pluginId: "conversation-memory",
+      },
+    ),
     ["action-board", actionBoardPlugin, undefined],
     packageCapability("faq", "@brains/faq", faqPackage, {
       // Under the id its class had, which registered the faq type inside

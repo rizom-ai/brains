@@ -30,6 +30,7 @@ export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
 export {
   actionItemAssigneeHash,
   actionItemBody,
+  actionItemFrontmatter,
   actionItemBodyHash,
   actionItemCapturedAt,
   actionItemSource,

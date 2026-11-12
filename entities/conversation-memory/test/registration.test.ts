@@ -4,6 +4,7 @@ import {
   spaceNoticeActionContract,
 } from "@brains/contracts";
 import {
+  EntityPlugin,
   SYSTEM_CHANNELS,
   conversationMessageAddedChannel,
   dashboardWidgetRegisterContract,
@@ -90,7 +91,7 @@ const RETIRED = [
  * the package through what it registers.
  */
 describe("the conversation-memory package's registered surface", () => {
-  it("is the conversation-memory plugin, with no tools, resources, instructions or routes", async () => {
+  it("is the conversation-memory service beside its types, with no tools, resources, instructions or routes", async () => {
     const { plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -100,7 +101,13 @@ describe("the conversation-memory package's registered surface", () => {
         dependencies ?? [],
       ]),
     ).toEqual([
-      ["conversation-memory", "entity", "@brains/conversation-memory", []],
+      // The class registered its three types inside itself, under
+      // conversation-memory; each now installs as its own plugin, apart from
+      // the service.
+      ["summary", "entity", "@brains/conversation-memory", []],
+      ["decision", "entity", "@brains/conversation-memory", []],
+      ["action-item", "entity", "@brains/conversation-memory", []],
+      ["conversation-memory", "service", "@brains/conversation-memory", []],
     ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
@@ -116,7 +123,25 @@ describe("the conversation-memory package's registered surface", () => {
   });
 
   it("registers summary, decision and action-item with their stored-shape settings", async () => {
-    const { shell } = await installed();
+    const { shell, plugins } = await installed();
+    // Nobody edits a summary by hand, in the brain's action policy.
+    expect(
+      plugins.flatMap((plugin) =>
+        plugin instanceof EntityPlugin && plugin.entityActionPolicy
+          ? [plugin.entityActionPolicy]
+          : [],
+      ),
+    ).toEqual([
+      {
+        summary: {
+          create: "never",
+          update: "never",
+          delete: "never",
+          extract: "never",
+          publish: "never",
+        },
+      },
+    ]);
     const registry = shell.getEntityRegistry();
     expect(registry.getAllEntityTypes()).toEqual([
       "summary",

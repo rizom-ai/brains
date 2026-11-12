@@ -1,11 +1,9 @@
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
+import { composeSummaryBody } from "../../../src/lib/summary-body";
 import { createMockSummaryEntity } from "../../fixtures/summary-entities";
 import { buildRecentConversationMemoryData } from "../../../src/lib/widgets/recent-memory";
 import type { SummaryEntity, SummaryEntry } from "../../../src/schemas/summary";
-
-const adapter = new SummaryAdapter();
 
 function buildSummary(params: {
   id: string;
@@ -13,7 +11,7 @@ function buildSummary(params: {
   channelName?: string;
   entries: SummaryEntry[];
 }): SummaryEntity {
-  const content = adapter.createContentBody(params.entries);
+  const content = composeSummaryBody(params.entries);
   return createMockSummaryEntity({
     id: params.id,
     content,

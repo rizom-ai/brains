@@ -3,12 +3,15 @@ import {
   type WithdrawActionItemDeps,
 } from "@brains/action-items";
 import type { SpaceNoticeAction, SpaceNoticeContent } from "@brains/contracts";
-import type { ContentVisibility, IRuntimeStateStore } from "@brains/plugins";
+import type {
+  ClassRuntimeStateStore,
+  ContentVisibility,
+} from "@brains/sdk/internal/service-runtime";
 import { noticeContent, withNotice } from "./notice";
 import { updateBookmark, type ChannelBookmark } from "./pickup";
 
 export interface ChannelUndoDeps {
-  bookmarks: IRuntimeStateStore<ChannelBookmark>;
+  bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   entityService: WithdrawActionItemDeps["entityService"];
   /** The visibility the pickup gives its cards, and so the reach to find them. */
   visibility: ContentVisibility;

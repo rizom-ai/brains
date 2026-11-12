@@ -1,5 +1,5 @@
-import type { ContentVisibility } from "@brains/plugins";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
 import {
   summarySchema,
@@ -8,12 +8,10 @@ import {
   type SummaryTimeRange,
 } from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
-import { SummaryAdapter } from "../../adapters/summary-adapter";
+import { parseSummaryBody } from "../summary-body";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "recent";
-
-const summaryAdapter = new SummaryAdapter();
 
 export const summaryEntryRowSchema: z.ZodObject<{
   id: z.ZodString;
@@ -59,7 +57,7 @@ interface ExpandedEntry {
 }
 
 function expandSummary(summary: SummaryEntity): ExpandedEntry[] {
-  const { entries } = summaryAdapter.parseBody(summary.content);
+  const { entries } = parseSummaryBody(summary.content);
   return entries.map((entry, index) => ({
     id: `${summary.id}#${index}`,
     summaryId: summary.id,
@@ -89,7 +87,9 @@ function toRow(entry: ExpandedEntry): SummaryEntryRow {
 }
 
 export async function buildRecentConversationMemoryData(
-  context: EntityPluginContext,
+  context: {
+    readonly entityService: Pick<MemoryEntityService, "listEntities">;
+  },
   visibilityScope: ContentVisibility,
 ): Promise<RecentConversationMemoryData> {
   const summaries = await context.entityService.listEntities(
