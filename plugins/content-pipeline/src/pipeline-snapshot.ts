@@ -1,4 +1,5 @@
 import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";
@@ -223,7 +224,12 @@ export async function getPublicationPipelineSnapshot(
         retryCount: retry?.retryCount ?? 0,
       };
     })
-    .sort((left, right) => left.title.localeCompare(right.title));
+    .sort(
+      (left, right) =>
+        left.title.localeCompare(right.title) ||
+        compareIds(left.entityId, right.entityId) ||
+        compareIds(left.entityType, right.entityType),
+    );
 
   summary.needsOperator = summary.draft + summary.failed;
 

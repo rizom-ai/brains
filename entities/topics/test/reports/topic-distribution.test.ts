@@ -169,6 +169,30 @@ describe("topic-distribution report", () => {
     ]);
   });
 
+  it("lists topics with the same support and title in store order, newest first", async () => {
+    const shell = topicShell([
+      makeTopicEntity(
+        "learning-b",
+        "Learning",
+        "public",
+        "2026-02-01T00:00:00.000Z",
+      ),
+      makeTopicEntity(
+        "learning-a",
+        "Learning",
+        "public",
+        "2026-01-01T00:00:00.000Z",
+      ),
+    ]);
+
+    const result = await runReport(options)(shell.getEntityService(), "public");
+
+    expect(getTopicDistribution(result).map((entry) => entry.topic)).toEqual([
+      "learning-b",
+      "learning-a",
+    ]);
+  });
+
   it("counts the sources supporting each topic, most supported first", async () => {
     const first = makeNote("first");
     const second = makeNote("second");

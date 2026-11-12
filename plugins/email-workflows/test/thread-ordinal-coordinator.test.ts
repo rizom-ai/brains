@@ -125,10 +125,7 @@ async function threadedItems(
       entityType: "mail-item",
       options: {
         limit: 100,
-        sortFields: [
-          { field: "receivedAt", direction: "asc" },
-          { field: "id", direction: "asc" },
-        ],
+        sortFields: [{ field: "receivedAt", direction: "asc" }],
         filter: { visibilityScope: "restricted" },
       },
     },

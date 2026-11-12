@@ -10,6 +10,7 @@ import {
   type DecisionEntity,
 } from "../schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../schemas/summary";
+import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
@@ -128,7 +129,8 @@ export class ConversationMemoryRetriever {
         if (leftSameSpace !== rightSameSpace) return leftSameSpace ? -1 : 1;
         if (right.score !== left.score) return right.score - left.score;
         return (
-          Date.parse(right.entity.updated) - Date.parse(left.entity.updated)
+          Date.parse(right.entity.updated) - Date.parse(left.entity.updated) ||
+          compareIds(left.entity.id, right.entity.id)
         );
       })
       .filter((candidate) => {

@@ -133,6 +133,27 @@ describe("createMockEntityService", () => {
     expect(store.types.has("note")).toBe(true);
   });
 
+  it("lists entities that tie on the sort by id, as the real service does", async () => {
+    const { store, service } = serviceWithStore();
+    for (const id of ["note-c", "note-a", "note-b"]) {
+      store.entities.set(id, noteEntity({ id }));
+    }
+
+    const pages = await Promise.all(
+      [0, 2].map((offset) =>
+        service.listEntities({
+          entityType: "note",
+          options: { limit: 2, offset },
+        }),
+      ),
+    );
+
+    expect(pages.map((page) => page.map((entity) => entity.id))).toEqual([
+      ["note-a", "note-b"],
+      ["note-c"],
+    ]);
+  });
+
   it("fills the fields the real service owns", async () => {
     const { store, service } = serviceWithStore();
     const { entityId } = await service.createEntity({

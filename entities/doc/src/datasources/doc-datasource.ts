@@ -9,6 +9,7 @@ import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import type { DocsConfig, DocsHero } from "../config";
 import { doc } from "../doc";
 import { docWithDataSchema, type DocWithData } from "../schemas/doc";
+import { sortDocs } from "../templates/docs-design";
 
 export type { DocWithData };
 
@@ -25,14 +26,6 @@ const docsQuerySchema = z.looseObject({
     })
     .optional(),
 });
-
-function sortDocsForDisplay(docs: DocWithData[]): DocWithData[] {
-  return [...docs].sort((a, b) => {
-    const order = a.metadata.order - b.metadata.order;
-    if (order !== 0) return order;
-    return a.metadata.title.localeCompare(b.metadata.title);
-  });
-}
 
 /**
  * A doc as the templates read it: its record with its frontmatter and its
@@ -74,7 +67,7 @@ export function docDataSource(presentation: DocsConfig): DataSourceDefinition {
     description: "Fetches and transforms doc entities for rendering",
     fetch: async (raw, entities) => {
       const query = docsQuerySchema.parse(raw).query ?? {};
-      const docs = sortDocsForDisplay(
+      const docs = sortDocs(
         (
           await entities.list(doc, {
             limit: DOCS_LIMIT,

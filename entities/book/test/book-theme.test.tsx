@@ -208,6 +208,37 @@ describe("BookThemeDataSource", () => {
   });
 });
 
+describe("BookThemeDataSource with books from the same year", () => {
+  it("strands them by book id, whichever the theme reaches first", async () => {
+    const shell = createMockShell();
+    const entries = [
+      topic,
+      bookOf("zwei", "Das zweite Buch", details(1882, true)),
+      sectionOf("zwei", 1, "Eins"),
+      bookOf("eins", "Das erste Buch", details(1882, true)),
+      sectionOf("eins", 1, "Eins"),
+    ];
+    shell.addEntities(entries);
+    const context: BaseDataSourceContext = {
+      entityService: {
+        ...shell.getEntityService(),
+        nearestToEntity: nearestStore(
+          [near("zwei:00001", 0.2), near("eins:00001", 0.3)],
+          entries,
+        ),
+      },
+    };
+
+    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+      { entityType: "topic", query: { id: "mitleid" } },
+      z.object({ strand: z.array(z.object({ book: z.string() })) }),
+      context,
+    );
+
+    expect(result.strand.map((entry) => entry.book)).toEqual(["eins", "zwei"]);
+  });
+});
+
 describe("BookThemeDataSource with long sections", () => {
   it("counts and offers a section split across entries once", async () => {
     const shell = createMockShell();

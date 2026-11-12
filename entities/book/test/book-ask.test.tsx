@@ -71,6 +71,28 @@ describe("BookAskDataSource", () => {
       ],
     });
   });
+
+  it("lists books of the same year in store order, newest first", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      titleEntry("zwei", "Das zweite Buch", 1882),
+      // Older, so the store lists it second, though its id sorts first.
+      {
+        ...titleEntry("eins", "Das erste Buch", 1882),
+        updated: "2026-10-01T00:00:00.000Z",
+      },
+    ]);
+    const source = new BookAskDataSource(createMockLogger(), {
+      name: (): string => "Friedrich",
+      chatAvailable: async (): Promise<boolean> => true,
+    });
+
+    const result = await source.fetch({}, askSchema, {
+      entityService: shell.getEntityService(),
+    });
+
+    expect(result.books.map((book) => book.book)).toEqual(["zwei", "eins"]);
+  });
 });
 
 const props = {
