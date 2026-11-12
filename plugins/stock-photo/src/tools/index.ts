@@ -1,11 +1,11 @@
 import { z } from "@brains/utils/zod";
-import type {
-  BaseEntity,
-  EnqueueJobRequest,
-  ListEntitiesRequest,
-  Tool,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import {
+  type EnqueueJobRequest,
+  type Tool,
+  type ServiceEntityReads,
+  createTool,
+} from "@brains/sdk/internal/service-runtime";
 import type {
   StockPhotoProvider,
   FetchImageFn,
@@ -22,7 +22,9 @@ export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
   /** Reads and the writes the class made, as the package. */
   entityService: StockPhotoEntityWriter & {
-    listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+    listEntities(
+      request: Parameters<ServiceEntityReads["listEntities"]>[0],
+    ): Promise<BaseEntity[]>;
   };
   fetchImage: FetchImageFn;
   /** Only enqueue by job type is used; asking for the whole job service would be a claim these tools do not make. */
