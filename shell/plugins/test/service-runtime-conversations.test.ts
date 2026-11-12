@@ -7,6 +7,7 @@ import {
   instantiatePluginPackageDefinition,
   serviceRuntime,
   withTools,
+  type Conversation,
   type Message,
   type ServiceRuntime,
 } from "../src";
@@ -14,8 +15,9 @@ import {
 /**
  * A first-party service converted from a class reads the brain's
  * conversations as its class read them through context.conversations: a
- * conversation's messages in the range it names, and how many it has.
- * Nothing that lists, searches or writes conversations.
+ * conversation, the conversations a listing names, a conversation's
+ * messages in the range it names, and how many it has. Nothing that
+ * searches or writes conversations.
  */
 
 const reply: Message = {
@@ -25,6 +27,34 @@ const reply: Message = {
   content: "An answer.",
   timestamp: "2026-01-01T00:00:00.000Z",
   metadata: {},
+};
+
+/** A conversation as the conversation service stores it. */
+const stored = {
+  id: "c-1",
+  sessionId: "s-1",
+  interfaceType: "discord",
+  channelId: "chan-1",
+  personId: null,
+  started: "2026-01-01T00:00:00.000Z",
+  lastActive: "2026-01-01T00:05:00.000Z",
+  created: "2026-01-01T00:00:00.000Z",
+  updated: "2026-01-01T00:05:00.000Z",
+  metadata: JSON.stringify({ channelName: "general" }),
+};
+
+/** The same conversation, as a class read it. */
+const read: Conversation = {
+  id: "c-1",
+  sessionId: "s-1",
+  interfaceType: "discord",
+  channelId: "chan-1",
+  channelName: "general",
+  startedAt: "2026-01-01T00:00:00.000Z",
+  lastActiveAt: "2026-01-01T00:05:00.000Z",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:05:00.000Z",
+  metadata: { channelName: "general" },
 };
 
 async function runtimeOn(
@@ -75,9 +105,39 @@ describe("a first-party service reading conversations as its class did", () => {
       { conversationId: "c-1", options: { range: { start: 1, end: 3 } } },
     ]);
     expect(await runtime.conversations.countMessages("c-1")).toBe(2);
+  });
+
+  it("reads one conversation, and none for an unknown id", async () => {
+    const runtime = await runtimeOn({
+      getConversation: async (conversationId) =>
+        conversationId === "c-1" ? stored : null,
+    });
+
+    expect(await runtime.conversations.get("c-1")).toEqual(read);
+    expect(await runtime.conversations.get("c-unknown")).toBeNull();
+  });
+
+  it("lists the conversations a listing names", async () => {
+    const asked: unknown[] = [];
+    const runtime = await runtimeOn({
+      listConversations: async (options) => {
+        asked.push(options);
+        return [stored];
+      },
+    });
+
+    expect(await runtime.conversations.list({ limit: 50 })).toEqual([read]);
+    expect(asked).toEqual([{ limit: 50 }]);
+  });
+
+  it("offers nothing that searches or writes conversations", async () => {
+    const runtime = await runtimeOn({});
+
     expect(Object.keys(runtime.conversations).sort()).toEqual([
       "countMessages",
+      "get",
       "getMessages",
+      "list",
     ]);
   });
 });

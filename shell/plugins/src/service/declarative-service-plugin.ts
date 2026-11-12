@@ -1352,6 +1352,8 @@ class DeclarativeServicePlugin<
       },
       entityMutations: entityMutationsOf(context),
       conversations: Object.freeze({
+        get: (conversationId) => context.conversations.get(conversationId),
+        list: (options) => context.conversations.list(options),
         getMessages: (conversationId, options) =>
           context.conversations.getMessages(conversationId, options),
         countMessages: (conversationId) =>

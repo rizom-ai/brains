@@ -537,8 +537,9 @@ export interface ServiceRuntime {
   readonly entityMutations: ServiceEntityMutations;
   /**
    * The brain's conversations, as the class read them through
-   * `context.conversations`: a conversation's messages in the range a
-   * read names, and how many it has. Nothing that lists, searches or writes.
+   * `context.conversations`: a conversation, the conversations a listing
+   * names, a conversation's messages in the range a read names, and how
+   * many it has. Nothing that searches or writes.
    */
   readonly conversations: ServiceConversations;
   /**
@@ -773,10 +774,10 @@ export type ServiceEntityMutations = Pick<
   | "releaseProjectionOwnership"
 >;
 
-/** The conversation reads a class made, and nothing that lists or writes. */
+/** The conversation reads a class made, and nothing that searches or writes. */
 export type ServiceConversations = Pick<
   IConversationsNamespace,
-  "getMessages" | "countMessages"
+  "get" | "list" | "getMessages" | "countMessages"
 >;
 
 /** The view templates a class read, and nothing that registers one. */
