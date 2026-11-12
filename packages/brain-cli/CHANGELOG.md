@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.685
+
+### Patch Changes
+
+- [#922](https://github.com/rizom-ai/brains/pull/922) [`4cda4e8`](https://github.com/rizom-ai/brains/commit/4cda4e8faf965db86f81f0cb7f2ac38cfe2d747c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The MCP `chat` and `confirm` tools reply with the brain's answer, its conversation handle and handles to what it wrote, without the turn's raw tool results. A question that searched many notes could return 60–100 KB of search output beside a few paragraphs of answer, which MCP clients such as the Claude app reported as a failed call. A confirmed write now records its result the way any turn does, so its reply names the saved entity and a job it started is followed like any other.
+
+## 0.2.0-alpha.684
+
+### Patch Changes
+
+- [#921](https://github.com/rizom-ai/brains/pull/921) [`4a34334`](https://github.com/rizom-ai/brains/commit/4a34334821c55487e9f4fc2481240c8b741ffaba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio creates a missing singleton of a declared type, such as a deleted style guide, under its type's id again instead of refusing it.
+
 ## 0.2.0-alpha.683
 
 ### Patch Changes

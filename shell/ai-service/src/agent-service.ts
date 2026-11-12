@@ -35,6 +35,7 @@ import {
   canConfirmPendingAction,
 } from "./confirmation-coordinator";
 import { TurnProcessor } from "./turn-processor";
+import { agentTurnCompletedChannel } from "./turn-events";
 import { ActiveTurnSupervisor } from "./active-turn-supervisor";
 import {
   buildAgentInstructions,
@@ -85,6 +86,7 @@ export class AgentService implements IAgentService {
   private agentFactory: AgentConfig["agentFactory"];
   private agentInstructions: AgentConfig["agentInstructions"];
   private indexReadiness: AgentConfig["indexReadiness"];
+  private readonly turnEvents: AgentConfig["turnEvents"];
   private readonly conversationService: AgentConversationStore;
 
   private readonly activeTurns = new ActiveTurnSupervisor();
@@ -160,6 +162,7 @@ export class AgentService implements IAgentService {
     this.agentFactory = config.agentFactory;
     this.agentInstructions = config.agentInstructions;
     this.indexReadiness = config.indexReadiness;
+    this.turnEvents = config.turnEvents;
     this.turns = new TurnProcessor({
       logger: this.logger,
       conversationService,
@@ -345,7 +348,7 @@ export class AgentService implements IAgentService {
         userPermissionLevel,
       });
 
-    return this.conversationActors.enqueue(
+    const response = await this.conversationActors.enqueue(
       conversationId,
       async (operationSignal) => {
         operationSignal.throwIfAborted();
@@ -470,6 +473,7 @@ export class AgentService implements IAgentService {
       },
       signal,
     );
+    return this.announceTurn(conversationId, response);
   }
 
   /**
@@ -492,7 +496,7 @@ export class AgentService implements IAgentService {
     }
     // Route through the serialized queue so confirmations cannot race an
     // in-flight chat() operation on the same conversation actor.
-    return this.conversationActors.enqueue(
+    const response = await this.conversationActors.enqueue(
       conversationId,
       (operationSignal) =>
         this.confirmations.run(
@@ -504,6 +508,19 @@ export class AgentService implements IAgentService {
         ),
       signal,
     );
+    return this.announceTurn(conversationId, response);
+  }
+
+  /** Tell in-process observers what a finished turn did, then hand it back. */
+  private async announceTurn(
+    conversationId: string,
+    response: AgentResponse,
+  ): Promise<AgentResponse> {
+    await this.turnEvents?.emit(agentTurnCompletedChannel, {
+      conversationId,
+      toolResults: response.toolResults ?? [],
+    });
+    return response;
   }
 
   public shutdown(): Promise<void> {

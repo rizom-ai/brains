@@ -8,6 +8,7 @@ import {
   type SourceCitation,
 } from "@brains/contracts";
 import type { EntityLinks } from "./entity-citation";
+import type { ToolEventEmitter } from "./tool-events";
 export type {
   ActionsCard,
   AgentResponse,
@@ -228,6 +229,8 @@ export interface AgentConfig {
   generationUsage?: GenerationUsageMeter;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
+  /** Where each finished turn is announced; without it, none is. */
+  turnEvents?: ToolEventEmitter;
 }
 
 /** A published FAQ's answer to a question asked before, with what it drew on. */

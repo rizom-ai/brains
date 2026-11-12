@@ -136,17 +136,8 @@ plugins:
         { timeoutMs: 20_000, intervalMs: 100 },
       );
       expect(responseData["text"]).toBe(VERBATIM_NOTE_BODY);
-      expect(responseData["toolResults"]).toEqual([
-        expect.objectContaining({
-          toolName: "system_get",
-          args: { entityType: "note", id: "headless-proof" },
-          data: {
-            entity: expect.objectContaining({
-              content: VERBATIM_NOTE_BODY,
-            }),
-          },
-        }),
-      ]);
+      // The reply is the answer; the turn's raw tool results stay in the brain.
+      expect(responseData).not.toHaveProperty("toolResults");
     } finally {
       if (connected) await client.close();
       else await transport.close();
@@ -247,9 +238,13 @@ plugins:
         }),
       );
       expect(confirmed["text"]).toContain("Completed");
-      expect(JSON.stringify(confirmed["toolResults"])).toContain(
-        "mcp-basic-evidence-note",
-      );
+      expect(confirmed).not.toHaveProperty("toolResults");
+      expect(confirmed["readYourWrites"]).toEqual([
+        expect.objectContaining({
+          toolName: "system_create",
+          entityId: "mcp-basic-evidence-note",
+        }),
+      ]);
 
       const retrieved = successData(
         await client.callTool({

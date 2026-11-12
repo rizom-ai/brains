@@ -25,9 +25,10 @@ describe("buildConfirmedActionResult", () => {
     });
 
     expect(result.resultText).toBe('Completed: Update "My Note"');
+    // Recorded as any turn's tool result is: what the tool returned as data.
     expect(result.toolResult).toEqual({
       toolName: "system_update",
-      data: { success: true, data: { entityId: "my-note", status: "updated" } },
+      data: { entityId: "my-note", status: "updated" },
       args: z.record(z.string(), z.unknown()).parse(pending.args),
     });
     expect(result.entityMemoryRefs).toEqual([
@@ -81,6 +82,11 @@ describe("buildConfirmedActionResult", () => {
     });
 
     expect(result.resultText).toBe('Failed: Update "My Note"\n\nboom');
+    expect(result.toolResult).toEqual({
+      toolName: "system_update",
+      error: { message: "boom" },
+      args: z.record(z.string(), z.unknown()).parse(pending.args),
+    });
     expect(result.entityMemoryRefs).toEqual([]);
     expect(result.cards[0]).toMatchObject({
       state: "output-error",
@@ -105,7 +111,7 @@ describe("buildConfirmedActionResult", () => {
 
     expect(result.toolResult).toEqual({
       toolName: "system_update",
-      data: { success: true, data: { status: "done" } },
+      data: { status: "done" },
     });
     expect(result.cards[0]).not.toHaveProperty("input");
   });

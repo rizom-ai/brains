@@ -980,9 +980,8 @@ turns:
       expectedTools:
         - toolName: system_create
           resultContains:
-            success: true
-            data.entityId: mcp-verbatim-create
-            data.status: created
+            entityId: mcp-verbatim-create
+            status: created
   - userMessage: Read note 'mcp-verbatim-create' from storage again. Do not change anything. Briefly report its title.
     successCriteria:
       expectedTools:

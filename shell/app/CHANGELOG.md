@@ -1,5 +1,47 @@
 # @brains/app
 
+## 0.2.0-alpha.685
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.685
+  - @brains/sdk@0.2.0-alpha.685
+  - @brains/contracts@0.2.0-alpha.685
+  - @brains/site-composition@0.2.0-alpha.685
+  - @brains/theme-base@0.2.0-alpha.685
+  - @brains/utils@0.2.0-alpha.685
+  - @brains/conversation-service@0.2.0-alpha.685
+  - @brains/core@0.2.0-alpha.685
+  - @brains/entity-service@0.2.0-alpha.685
+  - @brains/job-queue@0.2.0-alpha.685
+  - @brains/mcp-service@0.2.0-alpha.685
+  - @brains/messaging-service@0.2.0-alpha.685
+  - @brains/plugins@0.2.0-alpha.685
+  - @brains/runtime-state@0.2.0-alpha.685
+  - @brains/templates@0.2.0-alpha.685
+
+## 0.2.0-alpha.684
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.684
+  - @brains/sdk@0.2.0-alpha.684
+  - @brains/contracts@0.2.0-alpha.684
+  - @brains/site-composition@0.2.0-alpha.684
+  - @brains/theme-base@0.2.0-alpha.684
+  - @brains/utils@0.2.0-alpha.684
+  - @brains/conversation-service@0.2.0-alpha.684
+  - @brains/core@0.2.0-alpha.684
+  - @brains/entity-service@0.2.0-alpha.684
+  - @brains/job-queue@0.2.0-alpha.684
+  - @brains/mcp-service@0.2.0-alpha.684
+  - @brains/messaging-service@0.2.0-alpha.684
+  - @brains/plugins@0.2.0-alpha.684
+  - @brains/runtime-state@0.2.0-alpha.684
+  - @brains/templates@0.2.0-alpha.684
+
 ## 0.2.0-alpha.683
 
 ### Patch Changes

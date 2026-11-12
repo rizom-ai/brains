@@ -1,5 +1,29 @@
 # @brains/topics
 
+## 0.2.0-alpha.685
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.685
+  - @brains/atproto-contracts@0.2.0-alpha.685
+  - @brains/content-formatters@0.2.0-alpha.685
+  - @brains/contracts@0.2.0-alpha.685
+  - @brains/utils@0.2.0-alpha.685
+  - @brains/plugins@0.2.0-alpha.685
+
+## 0.2.0-alpha.684
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.684
+  - @brains/atproto-contracts@0.2.0-alpha.684
+  - @brains/content-formatters@0.2.0-alpha.684
+  - @brains/contracts@0.2.0-alpha.684
+  - @brains/utils@0.2.0-alpha.684
+  - @brains/plugins@0.2.0-alpha.684
+
 ## 0.2.0-alpha.683
 
 ### Patch Changes
