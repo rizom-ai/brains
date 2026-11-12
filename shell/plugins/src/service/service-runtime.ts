@@ -42,6 +42,7 @@ import type {
 } from "../entity/projection-rule";
 import type { AnyEntityDataSourceDefinition } from "../entity/entity-definition-contract";
 import type { IEntityAINamespace } from "../entity/ai-types";
+import type { OperatorCaller } from "../operator/operator-context-contract";
 import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
@@ -730,6 +731,11 @@ export interface ServiceDashboardWidget<
     readonly corpus: ServiceCorpusReads;
     /** What the viewer may read: pass it to every read. */
     readonly visibilityScope: ContentVisibility;
+    /**
+     * Who is viewing, as the class's widget was handed it: what the widget
+     * offers them (an admin's invite) follows; none without a caller.
+     */
+    readonly caller: OperatorCaller | null;
     readonly signal: AbortSignal;
   }): z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
 }

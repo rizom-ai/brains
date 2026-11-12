@@ -1444,10 +1444,11 @@ class DeclarativeServicePlugin<
                 context,
                 definition: widget.definition,
                 render: widget.render,
-                load: ({ visibilityScope, signal }) =>
+                load: ({ caller, visibilityScope, signal }) =>
                   widget.load({
                     corpus: corpusReadsOf(context.entityService),
                     visibilityScope,
+                    caller,
                     signal,
                   }),
                 runtimeSignal: this.operatorAbortController.signal,
