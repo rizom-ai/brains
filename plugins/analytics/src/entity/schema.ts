@@ -1,4 +1,4 @@
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
 const isoDate: z.ZodString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);

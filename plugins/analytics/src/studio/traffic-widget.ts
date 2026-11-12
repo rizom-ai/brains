@@ -1,4 +1,4 @@
-import { defineDashboardWidget } from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import { changeCaption } from "../lib/change-caption";
 import { shortDate } from "../lib/short-date";

@@ -1,15 +1,17 @@
 import {
   defineEntityCatalog,
   defineStudioWorkspace,
-  permissionToVisibilityScope,
-  type AnalyticsReportContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
+import type {
+  AnalyticsReportContext,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { shortDate } from "../lib/short-date";
 import { addDays } from "../lib/iso-week";
 import { readStoredDays } from "../lib/traffic-days";
 import type { TrafficReports } from "../reports/traffic-reports";
-import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { createTrafficByEntityReport } from "../reports/traffic-by-entity";
 import { changeCaption } from "../lib/change-caption";
 

@@ -29,12 +29,13 @@ describe("the traffic-snapshot type", () => {
       retiredFields: ["week", "start", "end"],
     });
     expect(capabilities.tools).toEqual([]);
-    // A brain's registry refuses to retire a field the metadata still needs.
+    // A brain's registry refuses to retire a field the metadata still needs;
+    // the declared type's adapter, as the brain registers it, retires none.
     expect(() =>
       EntityRegistry.createFresh(createSilentLogger()).registerEntityType(
         "traffic-snapshot",
         trafficSnapshotSchema,
-        trafficSnapshotAdapter,
+        registry.getAdapter("traffic-snapshot"),
         registry.getEntityTypeConfig("traffic-snapshot"),
       ),
     ).not.toThrow();

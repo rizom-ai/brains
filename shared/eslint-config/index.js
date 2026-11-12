@@ -71,6 +71,7 @@ const convertedPackages = [
   "interfaces/mcp",
   "interfaces/web-chat",
   "plugins/admin",
+  "plugins/analytics",
   "plugins/atproto",
   "plugins/atproto-registry",
   "plugins/content-pipeline",

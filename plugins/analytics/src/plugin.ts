@@ -1,6 +1,8 @@
 import { siteHeadScriptsContract } from "@brains/contracts";
-import { defineServicePlugin } from "@brains/sdk/services";
-import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import { serviceRuntime } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { analyticsConfigSchema } from "./config";

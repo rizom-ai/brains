@@ -1,7 +1,7 @@
 import {
   defineAnalyticsReport,
   type AnalyticsReportDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import {
   EntityUrlGenerator,
   type EntityDisplayEntry,

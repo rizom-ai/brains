@@ -1,7 +1,7 @@
-import { internalFullScope } from "@brains/plugins";
-import type {
-  ServiceEntityWrites,
-  ServiceRuntime,
+import {
+  internalFullScope,
+  type ServiceEntityWrites,
+  type ServiceRuntime,
 } from "@brains/sdk/internal/service-runtime";
 import { computeContentHash } from "@brains/utils/hash";
 import { trafficSnapshotAdapter } from "../entity/adapter";
