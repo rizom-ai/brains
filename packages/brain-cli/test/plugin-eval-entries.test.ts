@@ -50,8 +50,12 @@ describe("plugin eval entries", () => {
 
       const config = await loadPluginEvalConfig(evalConfig);
 
+      // A service's owned type installs apart, under the id eval.yaml
+      // names for it; the test cases address the service.
       expect(addressedPluginIds(join(repositoryRoot, dirname(path)))).toEqual(
-        (config.plugins ?? []).map((plugin) => plugin.id),
+        (config.plugins ?? [])
+          .map((plugin) => plugin.id)
+          .filter((id) => id !== evalConfig.ownedTypePluginId),
       );
     },
   );
