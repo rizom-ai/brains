@@ -3,6 +3,8 @@
  *
  * Pure functions — no SDK imports, no side effects.
  */
+import { isProviderId } from "./providers";
+
 export interface ResolvedModelProvider {
   provider: string;
   modelId: string;
@@ -57,20 +59,12 @@ export function resolveTextProvider(model: string): ResolvedModelProvider {
   );
 }
 
-/** Text providers the brain has a client for. */
-const TEXT_PROVIDERS: ReadonlySet<string> = new Set([
-  "anthropic",
-  "openai",
-  "google",
-  "local",
-]);
-
 /**
  * Whether a text model resolves to a provider the brain can call. An unknown
  * provider is a config error, never a silent fallback to Anthropic.
  */
 export function isSupportedTextModel(model: string): boolean {
-  return TEXT_PROVIDERS.has(resolveTextProvider(model).provider);
+  return isProviderId(resolveTextProvider(model).provider);
 }
 
 /**

@@ -18,7 +18,7 @@ export function formatBootError(error: unknown): string {
 
   // Missing API key (shouldn't reach here due to preflight, but just in case)
   if (msg.includes("API_KEY") || msg.includes("api key")) {
-    return `API key error: ${msg}\n\nSet AI_API_KEY in your .env file.`;
+    return `API key error: ${msg}\n\nSet the provider key it names in your .env file.`;
   }
 
   // Plugin config errors

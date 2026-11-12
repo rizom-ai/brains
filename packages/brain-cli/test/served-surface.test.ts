@@ -393,7 +393,7 @@ async function bootAndRecord(surface: SurfaceCase): Promise<SurfaceRecord[]> {
         ...process.env,
         ...refusedNetwork,
         NODE_ENV: "production",
-        AI_API_KEY: "placeholder-served-surface",
+        OPENAI_API_KEY: "placeholder-served-surface",
         XDG_DATA_HOME: join(instanceDir, "xdg-data"),
       },
       stdout: "ignore",

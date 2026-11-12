@@ -18,7 +18,7 @@ export async function generateImageResult(
   const signal = options?.signal;
   signal?.throwIfAborted();
   const { provider, modelId } = selectImageProvider(imageModel);
-  const model = getImageModel(clients, provider, modelId);
+  const model = getImageModel(clients, imageModel);
 
   logger.debug("Generating image", {
     prompt: prompt.slice(0, 100),

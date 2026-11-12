@@ -46,7 +46,7 @@ describe("App", () => {
           name: "test-app",
           version: "2.0.0",
           database: "/tmp/test.db",
-          aiApiKey: "test-key",
+          aiProviderKeys: { openai: "test-key" },
           logLevel: "debug",
         },
         mockShell,
@@ -239,24 +239,30 @@ describe("buildShellConfig", () => {
     });
   });
 
-  it("injects the startup-check API key placeholder when no key is configured", () => {
+  it("injects a startup-check key placeholder for every provider without a key", () => {
     const shellConfig = buildShellConfig(toAppConfig({}), {
       mode: "startup-check",
     });
 
-    expect(shellConfig.ai?.apiKey).toBe(STARTUP_CHECK_API_KEY);
+    expect(shellConfig.ai?.providerKeys).toEqual({
+      anthropic: STARTUP_CHECK_API_KEY,
+      openai: STARTUP_CHECK_API_KEY,
+      google: STARTUP_CHECK_API_KEY,
+    });
   });
 
   it("leaves ai unset outside startup-check when nothing configures it", () => {
     expect(buildShellConfig(toAppConfig({})).ai).toBeUndefined();
   });
 
-  it("prefers the configured key over the startup-check placeholder", () => {
-    const shellConfig = buildShellConfig(toAppConfig({ aiApiKey: "real" }), {
-      mode: "startup-check",
-    });
+  it("prefers a configured key over the startup-check placeholder", () => {
+    const shellConfig = buildShellConfig(
+      toAppConfig({ aiProviderKeys: { openai: "real" } }),
+      { mode: "startup-check" },
+    );
 
-    expect(shellConfig.ai?.apiKey).toBe("real");
+    expect(shellConfig.ai?.providerKeys?.openai).toBe("real");
+    expect(shellConfig.ai?.providerKeys?.anthropic).toBe(STARTUP_CHECK_API_KEY);
   });
 
   it("derives site URLs from the deployment and prefers local ones outside production", () => {

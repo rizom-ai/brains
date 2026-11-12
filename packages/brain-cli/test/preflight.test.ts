@@ -1,47 +1,79 @@
 import { describe, it, expect } from "bun:test";
-import { checkApiKey, checkBunVersion } from "../src/lib/preflight";
+import { checkBunVersion, checkModelKeys } from "../src/lib/preflight";
 
-describe("checkApiKey", () => {
-  it("should pass when AI_API_KEY is set", () => {
-    const result = checkApiKey({ AI_API_KEY: "sk-test" });
+describe("checkModelKeys", () => {
+  it("passes when each model's provider has its key", () => {
+    const result = checkModelKeys(
+      { OPENAI_API_KEY: "sk-proj-test" },
+      { model: "gpt-6-luna" },
+    );
+    expect(result).toEqual({ ok: true, warnings: [] });
+  });
+
+  it("names each missing provider variable", () => {
+    const result = checkModelKeys(
+      { ANTHROPIC_API_KEY: "sk-ant-test" },
+      { model: "claude-sonnet-5" },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain(
+      "openai:text-embedding-3-small needs OPENAI_API_KEY",
+    );
+    expect(result.message).toContain("OPENAI_API_KEY=your-api-key-here");
+    expect(result.message).not.toContain("ANTHROPIC_API_KEY=");
+  });
+
+  it("ignores the single legacy key", () => {
+    const result = checkModelKeys(
+      { AI_API_KEY: "sk-proj-test" },
+      { model: "gpt-6-luna" },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("gpt-6-luna needs OPENAI_API_KEY");
+  });
+
+  it("needs no embedding key when embeddings are disabled", () => {
+    const result = checkModelKeys(
+      { ANTHROPIC_API_KEY: "sk-ant-test" },
+      { model: "claude-sonnet-5", embeddingEnabled: false },
+    );
     expect(result.ok).toBe(true);
   });
 
-  it("should fail when AI_API_KEY is missing", () => {
-    const result = checkApiKey({});
-    expect(result.ok).toBe(false);
-    expect(result.message).toContain("AI_API_KEY");
-  });
-
-  it("should fail when AI_API_KEY is empty string", () => {
-    const result = checkApiKey({ AI_API_KEY: "" });
-    expect(result.ok).toBe(false);
-  });
-
-  it("should fail when AI_API_KEY is whitespace", () => {
-    const result = checkApiKey({ AI_API_KEY: "  " });
-    expect(result.ok).toBe(false);
-  });
-});
-
-describe("checkApiKey for a brain on the model runtime", () => {
-  const local = {
-    model: "local:qwen3:8b",
-    embeddingModel: "local:embeddinggemma-2:270m",
-  };
-
-  it("needs no key when its text and embedding models are both local", () => {
-    expect(checkApiKey({}, local).ok).toBe(true);
-  });
-
-  it("still needs the key when either model comes from a cloud provider", () => {
-    expect(checkApiKey({}, { ...local, model: "gpt-6-luna" }).ok).toBe(false);
-    expect(checkApiKey({}, { ...local, embeddingModel: undefined }).ok).toBe(
-      false,
+  it("needs no key when every model runs on the model runtime", () => {
+    const result = checkModelKeys(
+      {},
+      {
+        model: "local:qwen3:8b",
+        embeddingModel: "local:embeddinggemma-2:270m",
+        modelRuntimeUrl: "http://models:11434",
+      },
     );
-    expect(checkApiKey({}, { embeddingModel: local.embeddingModel }).ok).toBe(
-      false,
+    expect(result.ok).toBe(true);
+  });
+
+  it("never blocks boot on the image model", () => {
+    const result = checkModelKeys(
+      { OPENAI_API_KEY: "sk-proj-test" },
+      { model: "gpt-6-luna", imageModel: "gemini-3-pro-image-preview" },
     );
+    expect(result).toEqual({
+      ok: true,
+      warnings: [
+        "Image generation is off: gemini-3-pro-image-preview needs GOOGLE_GENERATIVE_AI_API_KEY",
+      ],
+    });
+  });
+
+  it("warns when a key looks like another provider's", () => {
+    const result = checkModelKeys(
+      { OPENAI_API_KEY: "sk-ant-api03-test" },
+      { model: "gpt-6-luna" },
+    );
+    expect(result).toEqual({
+      ok: true,
+      warnings: ["OPENAI_API_KEY looks like an Anthropic key."],
+    });
   });
 });
 

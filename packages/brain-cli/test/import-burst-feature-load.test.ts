@@ -370,7 +370,7 @@ describe("directory import burst with locally mocked AI features", () => {
           embeddingDatabase: { url: embeddingDatabaseUrl },
           dataDir,
           ai: {
-            apiKey: MOCK_LOAD_API_KEY,
+            providerKeys: { openai: MOCK_LOAD_API_KEY },
             model: MOCK_LOAD_MODEL,
           },
           embedding: { enabled: true },

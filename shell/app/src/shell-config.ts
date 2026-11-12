@@ -1,4 +1,4 @@
-import type { Shell } from "@brains/core";
+import { KEY_PROVIDER_IDS, type ProviderKeys, type Shell } from "@brains/core";
 import { CLI_OPERATOR_PRINCIPAL } from "./cli-operator";
 import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
 import { isProductionRuntime, preferLocalUrlsForRuntime } from "./runtime-env";
@@ -13,11 +13,18 @@ export type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 export type InitializeOptions = Parameters<Shell["initialize"]>[0];
 
 /**
- * Sentinel API key injected when `--startup-check` runs without a real key
- * configured. Lets the AI client construct without paging the operator for
+ * Sentinel API key injected for each provider without a real key when
+ * `--startup-check` runs. Lets the AI client construct without paging the operator for
  * credentials; the smoke path exits before any real request is issued.
  */
 export const STARTUP_CHECK_API_KEY = "startup-check";
+
+/** The startup-check placeholder for every provider that takes a key. */
+function startupCheckProviderKeys(): ProviderKeys {
+  return Object.fromEntries(
+    KEY_PROVIDER_IDS.map((provider) => [provider, STARTUP_CHECK_API_KEY]),
+  );
+}
 
 /**
  * The plain AppConfig an App runs with, from what a caller passed in.
@@ -113,8 +120,7 @@ function applyAIConfig(
 ): void {
   const isStartupCheck = options?.mode === "startup-check";
   if (
-    !config.aiApiKey &&
-    !config.aiImageKey &&
+    !config.aiProviderKeys &&
     !config.aiModel &&
     !config.aiEmbeddingModel &&
     !config.aiModelRuntimeUrl &&
@@ -129,12 +135,11 @@ function applyAIConfig(
 
   shellConfig.ai = {
     ...shellConfig.ai,
-    ...(isStartupCheck &&
-      !shellConfig.ai?.apiKey && { apiKey: STARTUP_CHECK_API_KEY }),
-    ...(config.aiApiKey && { apiKey: config.aiApiKey }),
-    ...(config.aiImageKey && {
-      imageApiKey: config.aiImageKey,
-    }),
+    providerKeys: {
+      ...(isStartupCheck && startupCheckProviderKeys()),
+      ...shellConfig.ai?.providerKeys,
+      ...config.aiProviderKeys,
+    },
     ...(config.aiModel && { model: config.aiModel }),
     ...(config.aiEmbeddingModel && {
       embeddingModel: config.aiEmbeddingModel,

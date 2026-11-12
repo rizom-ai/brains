@@ -237,8 +237,8 @@ export class AIService implements IAIService {
     this.config = withAIModelDefaults({ ...this.config, ...config });
     const modelChanged = this.config.model !== previousModel;
     const keyFieldsChanged =
-      config.apiKey !== undefined ||
-      config.imageApiKey !== undefined ||
+      config.providerKeys !== undefined ||
+      config.modelRuntimeUrl !== undefined ||
       modelChanged;
     if (keyFieldsChanged) {
       this.providers = createProviderClients(this.config);

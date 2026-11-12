@@ -36,7 +36,9 @@ env:
     MODEL_RUNTIME_URL: http://__SERVICE_NAME__-models:11434
     # <% end %>
   secret:
-    - AI_API_KEY
+    - OPENAI_API_KEY
+    - ANTHROPIC_API_KEY
+    - GOOGLE_GENERATIVE_AI_API_KEY
     - GIT_SYNC_TOKEN
     - DISCORD_BOT_TOKEN
     - DISCORD_PUBLIC_KEY

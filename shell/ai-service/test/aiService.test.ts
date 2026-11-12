@@ -26,6 +26,9 @@ import * as openaiSdk from "@ai-sdk/openai";
 const VALID_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const DEFAULT_TEXT_MODEL = "claude-haiku-4-5";
+const ANTHROPIC_KEYS = { anthropic: "sk-ant-test" };
+const OPENAI_KEYS = { openai: "sk-proj-test" };
+const GOOGLE_KEYS = { google: "AIzatest" };
 
 function usage(inputTokens: number, outputTokens: number): LanguageModelUsage {
   return {
@@ -113,7 +116,7 @@ describe("AIService", () => {
   it("reports auxiliary generation through the host meter and scopes provider retries and cancellation", async () => {
     const meter = GenerationUsageMeter.createFresh();
     const service = AIService.createFresh(
-      { model: "gpt-5.6-luna", apiKey: "local-test-only" },
+      { model: "gpt-5.6-luna", providerKeys: { openai: "local-test-only" } },
       logger,
       meter,
     );
@@ -170,7 +173,7 @@ describe("AIService", () => {
   it("retains an unreported auxiliary attempt as unknown cost", async () => {
     const meter = GenerationUsageMeter.createFresh();
     const service = AIService.createFresh(
-      { model: "gpt-5.6-luna", apiKey: "local-test-only" },
+      { model: "gpt-5.6-luna", providerKeys: { openai: "local-test-only" } },
       logger,
       meter,
     );
@@ -233,7 +236,7 @@ describe("AIService", () => {
       const customConfig = {
         model: "claude-3-opus-20240229",
         temperature: 0.5,
-        apiKey: "test-key",
+        providerKeys: { anthropic: "test-key" },
       };
 
       const service = AIService.createFresh(customConfig, logger);
@@ -245,7 +248,7 @@ describe("AIService", () => {
 
     it("should update configuration", () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
 
@@ -261,12 +264,12 @@ describe("AIService", () => {
 
     it("should rebuild providers when configuration changes", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
 
       service.updateConfig({
-        apiKey: "sk-openai",
+        providerKeys: { openai: "sk-openai" },
         model: "openai:gpt-4o-mini",
       });
 
@@ -283,7 +286,7 @@ describe("AIService", () => {
   describe("Text Generation", () => {
     it("should generate text successfully", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const systemPrompt = "You are a helpful assistant";
@@ -309,7 +312,7 @@ describe("AIService", () => {
 
     it("should pass cancellation to the text provider", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const signal = new AbortController().signal;
@@ -323,7 +326,7 @@ describe("AIService", () => {
 
     it("should preserve the abort reason", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const controller = new AbortController();
@@ -346,7 +349,7 @@ describe("AIService", () => {
       const childMock = spyOn(testLogger, "child").mockReturnValue(childLogger);
 
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         testLogger,
       );
       await service.generateText("System", "User");
@@ -367,7 +370,7 @@ describe("AIService", () => {
 
     it("should use Anthropic provider when model is claude", async () => {
       const service = AIService.createFresh(
-        { apiKey: "test-key", model: "claude-haiku-4-5" },
+        { providerKeys: { anthropic: "test-key" }, model: "claude-haiku-4-5" },
         logger,
       );
 
@@ -380,7 +383,7 @@ describe("AIService", () => {
 
     it("should handle generation errors", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const error = new Error("Generation failed");
@@ -394,7 +397,11 @@ describe("AIService", () => {
 
     it("should respect a custom temperature", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL, temperature: 0.3 },
+        {
+          model: DEFAULT_TEXT_MODEL,
+          providerKeys: ANTHROPIC_KEYS,
+          temperature: 0.3,
+        },
         logger,
       );
 
@@ -407,7 +414,7 @@ describe("AIService", () => {
 
     it("should use the default temperature when none is specified", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
 
@@ -422,7 +429,11 @@ describe("AIService", () => {
     // search is a provider option. Passing them configures nothing.
     it("passes no setting the AI SDK does not read", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL, webSearch: true },
+        {
+          model: DEFAULT_TEXT_MODEL,
+          providerKeys: ANTHROPIC_KEYS,
+          webSearch: true,
+        },
         logger,
       );
 
@@ -438,7 +449,7 @@ describe("AIService", () => {
 
     it("should strip explicit provider prefix before passing model to SDK", async () => {
       const service = AIService.createFresh(
-        { apiKey: "sk-test", model: "openai:gpt-4o-mini" },
+        { providerKeys: OPENAI_KEYS, model: "openai:gpt-4o-mini" },
         logger,
       );
 
@@ -453,7 +464,7 @@ describe("AIService", () => {
 
     it("should omit temperature for OpenAI reasoning models", async () => {
       const service = AIService.createFresh(
-        { model: "gpt-6-luna", temperature: 0.3 },
+        { model: "gpt-6-luna", temperature: 0.3, providerKeys: OPENAI_KEYS },
         logger,
       );
 
@@ -466,7 +477,11 @@ describe("AIService", () => {
 
     it("should pass configured reasoning effort to OpenAI", async () => {
       const service = AIService.createFresh(
-        { model: "gpt-5.6-luna", reasoningEffort: "low" },
+        {
+          model: "gpt-5.6-luna",
+          reasoningEffort: "low",
+          providerKeys: OPENAI_KEYS,
+        },
         logger,
       );
 
@@ -489,7 +504,7 @@ describe("AIService", () => {
   describe("Judgment", () => {
     it("should generate a schema-constrained verdict from instruction and material", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const schema = z.object({ met: z.boolean(), reason: z.string() });
@@ -533,7 +548,7 @@ describe("AIService", () => {
 
     it("should pass cancellation to the object provider", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const schema = z.object({ met: z.boolean() });
@@ -575,7 +590,7 @@ describe("AIService", () => {
 
     it("should generate structured object successfully", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const systemPrompt = "Generate structured data";
@@ -609,7 +624,7 @@ describe("AIService", () => {
 
     it("should handle object generation errors", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const error = new Error("Object generation failed");
@@ -623,7 +638,7 @@ describe("AIService", () => {
 
     it("distinguishes invalid structured output from transient provider failures", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const invalid = new ai.NoObjectGeneratedError({
@@ -663,7 +678,7 @@ describe("AIService", () => {
 
     it("preserves cancellation rather than classifying it as invalid output", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const controller = new AbortController();
@@ -683,6 +698,7 @@ describe("AIService", () => {
         {
           model: "claude-3-opus-20240229",
           temperature: 0.2,
+          providerKeys: ANTHROPIC_KEYS,
         },
         logger,
       );
@@ -698,6 +714,7 @@ describe("AIService", () => {
       const service = AIService.createFresh(
         {
           model: "gpt-6-luna",
+          providerKeys: OPENAI_KEYS,
           temperature: 0.2,
         },
         logger,
@@ -712,7 +729,11 @@ describe("AIService", () => {
 
     it("should preserve OpenAI reasoning options for object generation", async () => {
       const service = AIService.createFresh(
-        { model: "gpt-5.6-luna", reasoningEffort: "low" },
+        {
+          model: "gpt-5.6-luna",
+          reasoningEffort: "low",
+          providerKeys: OPENAI_KEYS,
+        },
         logger,
       );
 
@@ -736,7 +757,7 @@ describe("AIService", () => {
   describe("Edge Cases", () => {
     it("should handle empty prompts", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
 
@@ -753,7 +774,7 @@ describe("AIService", () => {
 
     it("should handle very long prompts", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const longPrompt = "x".repeat(10000);
@@ -765,7 +786,7 @@ describe("AIService", () => {
 
     it("should preserve original error messages", async () => {
       const service = AIService.createFresh(
-        { model: DEFAULT_TEXT_MODEL },
+        { model: DEFAULT_TEXT_MODEL, providerKeys: ANTHROPIC_KEYS },
         logger,
       );
       const customError = new Error("Custom API error");
@@ -785,23 +806,40 @@ describe("AIService", () => {
         expect(service.canGenerateImages()).toBe(false);
       });
 
-      it("should return true when apiKey is set (OpenAI)", () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
-        expect(service.canGenerateImages()).toBe(true);
-      });
-
-      it("should return true when imageApiKey is set", () => {
+      it("should return true when an OpenAI key is set", () => {
         const service = AIService.createFresh(
-          { imageApiKey: "sk-img" },
+          { providerKeys: OPENAI_KEYS },
           logger,
         );
         expect(service.canGenerateImages()).toBe(true);
+      });
+
+      it("should return true when the image model's provider has a key", () => {
+        const service = AIService.createFresh(
+          {
+            providerKeys: GOOGLE_KEYS,
+            imageModel: "gemini-3-pro-image-preview",
+          },
+          logger,
+        );
+        expect(service.canGenerateImages()).toBe(true);
+      });
+
+      it("should return false when only another provider has a key", () => {
+        const service = AIService.createFresh(
+          { providerKeys: ANTHROPIC_KEYS },
+          logger,
+        );
+        expect(service.canGenerateImages()).toBe(false);
       });
     });
 
     describe("generateImage with OpenAI", () => {
       it("should generate image with default options", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         const result = await service.generateImage("A sunset");
 
@@ -812,7 +850,10 @@ describe("AIService", () => {
       });
 
       it("should pass cancellation to the image provider", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
         const signal = new AbortController().signal;
 
         await service.generateImage("A sunset", { signal });
@@ -823,7 +864,10 @@ describe("AIService", () => {
       });
 
       it("should map aspectRatio to DALL-E size for OpenAI provider", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         await service.generateImage("A sunset", { aspectRatio: "1:1" });
 
@@ -835,7 +879,10 @@ describe("AIService", () => {
       });
 
       it("should map 16:9 to 1536x1024", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         await service.generateImage("A sunset", { aspectRatio: "16:9" });
 
@@ -847,7 +894,10 @@ describe("AIService", () => {
       });
 
       it("should map 9:16 to 1024x1536", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         await service.generateImage("A sunset", { aspectRatio: "9:16" });
 
@@ -859,7 +909,10 @@ describe("AIService", () => {
       });
 
       it("should default to 16:9 (1536x1024) when no aspectRatio given", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         await service.generateImage("A sunset");
 
@@ -874,7 +927,10 @@ describe("AIService", () => {
     describe("generateImage with Google", () => {
       it("should use Google provider when imageModel is a gemini model", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
+          {
+            providerKeys: GOOGLE_KEYS,
+            imageModel: "gemini-3-pro-image-preview",
+          },
           logger,
         );
 
@@ -890,7 +946,10 @@ describe("AIService", () => {
 
       it("should pass aspectRatio directly to Google provider", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
+          {
+            providerKeys: GOOGLE_KEYS,
+            imageModel: "gemini-3-pro-image-preview",
+          },
           logger,
         );
 
@@ -905,7 +964,10 @@ describe("AIService", () => {
 
       it("should not pass size to Google provider", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
+          {
+            providerKeys: GOOGLE_KEYS,
+            imageModel: "gemini-3-pro-image-preview",
+          },
           logger,
         );
 
@@ -920,8 +982,7 @@ describe("AIService", () => {
       it("should use imageModel to select provider", async () => {
         const service = AIService.createFresh(
           {
-            apiKey: "sk-test",
-
+            providerKeys: GOOGLE_KEYS,
             imageModel: "gemini-3-pro-image-preview",
           },
           logger,
@@ -936,8 +997,11 @@ describe("AIService", () => {
         );
       });
 
-      it("should auto-detect OpenAI when only apiKey is set", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+      it("should default to OpenAI when no imageModel is set", async () => {
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         await service.generateImage("A sunset");
 
@@ -950,7 +1014,10 @@ describe("AIService", () => {
 
       it("should use Google when imageModel is gemini", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
+          {
+            providerKeys: GOOGLE_KEYS,
+            imageModel: "gemini-3-pro-image-preview",
+          },
           logger,
         );
 
@@ -963,12 +1030,13 @@ describe("AIService", () => {
         );
       });
 
-      it("uses the image key over the text key when both are set", async () => {
-        // This previously constructed the service with apiKey alone, making it
-        // byte-identical to the auto-detect case above and leaving the
-        // imageApiKey ?? apiKey fallback untested.
+      it("builds the image provider from its own key", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-text", imageApiKey: "sk-image" },
+          {
+            model: DEFAULT_TEXT_MODEL,
+            imageModel: "gemini-3-pro-image-preview",
+            providerKeys: { anthropic: "sk-ant-text", google: "AIza-image" },
+          },
           logger,
         );
 
@@ -976,16 +1044,16 @@ describe("AIService", () => {
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            model: providerModel("openai", "gpt-image-1.5"),
+            model: providerModel("google", "gemini-3-pro-image-preview"),
           }),
         );
-        expect(createOpenAISpy).toHaveBeenCalledWith({ apiKey: "sk-image" });
+        expect(createOpenAISpy).not.toHaveBeenCalled();
       });
 
       it("should pass imageModel to Google provider", async () => {
         const service = AIService.createFresh(
           {
-            apiKey: "sk-test",
+            providerKeys: GOOGLE_KEYS,
             imageModel: "gemini-3-pro-image-preview",
           },
           logger,
@@ -1006,12 +1074,15 @@ describe("AIService", () => {
         const service = AIService.createFresh({}, logger);
 
         void expect(service.generateImage("A sunset")).rejects.toThrow(
-          "Image generation not available",
+          "gpt-image-1.5 needs OPENAI_API_KEY",
         );
       });
 
       it("should handle generation API errors", () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = AIService.createFresh(
+          { providerKeys: OPENAI_KEYS },
+          logger,
+        );
 
         generateImageSpy.mockRejectedValueOnce(
           new Error("Rate limit exceeded"),

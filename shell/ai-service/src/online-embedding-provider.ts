@@ -1,4 +1,3 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import { embedMany, type EmbeddingModel } from "ai";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -14,10 +13,12 @@ import {
   resolveEmbeddingProfile,
   type EmbeddingProfile,
 } from "./embedding-profiles";
-import { createLocalRuntimeClient } from "./provider-clients";
+import { createProviderClients, getEmbeddingModel } from "./provider-clients";
+import type { ProviderKeys } from "./providers";
 
 export interface OnlineEmbeddingConfig {
-  apiKey: string;
+  /** Each provider's key; the profile's provider must have one. */
+  providerKeys?: ProviderKeys | undefined;
   /** The embedding model to index with; text-embedding-3-small by default. */
   profile?: EmbeddingProfile;
   /** The model runtime's base URL, for `local` models. */
@@ -282,20 +283,10 @@ function embeddingModelFor(
   profile: EmbeddingProfile,
   config: OnlineEmbeddingConfig,
 ): EmbeddingModel {
-  if (profile.provider === "local") {
-    if (!config.runtimeUrl) {
-      throw new Error(`${profile.model} needs modelRuntime.url`);
-    }
-    return createLocalRuntimeClient(
-      config.runtimeUrl,
-      config.fetch,
-    ).embeddingModel(profile.modelId);
-  }
-  if (!config.apiKey) {
-    throw new Error(`API key is required for ${profile.model}`);
-  }
-  return createOpenAI({
-    apiKey: config.apiKey,
-    ...(config.fetch ? { fetch: config.fetch } : {}),
-  }).embedding(profile.modelId);
+  const clients = createProviderClients({
+    providerKeys: config.providerKeys,
+    modelRuntimeUrl: config.runtimeUrl,
+    fetch: config.fetch,
+  });
+  return getEmbeddingModel(clients, profile.model);
 }

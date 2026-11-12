@@ -98,7 +98,11 @@ function createTestConfig(dir: string): ShellConfigInput {
     runtimeStateDatabase: { url: `file:${dir}/runtime-state.db` },
     ai: {
       model: "claude-haiku-4-5",
-      apiKey: "test-key",
+      providerKeys: {
+        anthropic: "test-key",
+        openai: "test-key",
+        google: "test-key",
+      },
     },
     logging: { level: "error" },
   };

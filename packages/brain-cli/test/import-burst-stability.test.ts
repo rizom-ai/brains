@@ -1262,7 +1262,7 @@ plugins:
         detached: true,
         env: {
           ...process.env,
-          AI_API_KEY: "import-burst-soak-key",
+          OPENAI_API_KEY: "import-burst-soak-key",
           NO_COLOR: "1",
         },
         stdout: "pipe",

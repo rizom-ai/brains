@@ -187,7 +187,7 @@ it.skipIf(!runRegistryEvidence)(
         {
           env: {
             ...process.env,
-            AI_API_KEY: "registry-startup-check",
+            OPENAI_API_KEY: "registry-startup-check",
             BRAIN_SKIP_LOCAL_REEXEC: "1",
           },
           timeoutMs: 120_000,

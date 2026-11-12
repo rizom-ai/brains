@@ -34,6 +34,10 @@ import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
 import { reinitializeAuthAccess } from "./commands/auth-reinitialize-access";
 import { BRAIN_RECIPE_NAMES, isBrainRecipeName } from "./lib/brain-recipes";
 import type { CommandResult } from "./lib/command-result";
+import { KEY_PROVIDER_IDS, keyEnvVar, PROVIDERS } from "@brains/ai-service";
+import type { KeyProviderId } from "@brains/ai-service";
+import { checkModelKeys } from "./lib/preflight";
+import { CANONICAL_CHAT_MODEL } from "./model/canonical-model";
 
 export type { CommandResult } from "./lib/command-result";
 
@@ -91,10 +95,16 @@ const initCommand: BrainCommand = defineCommand({
       description:
         "Secret backend (default: none — env vars resolved by varlock)",
     },
-    "ai-api-key": {
+    ...providerKeyFlagDefinitions(),
+    model: {
       type: "string",
-      placeholder: "<key>",
-      description: "AI API key written to .env (skips the prompt)",
+      placeholder: "<model>",
+      description: `Chat model written to brain.yaml (default: ${CANONICAL_CHAT_MODEL})`,
+    },
+    "image-model": {
+      type: "string",
+      placeholder: "<model>",
+      description: "Image model written to brain.yaml (default: gpt-image-1.5)",
     },
     deploy: {
       type: "boolean",
@@ -120,6 +130,27 @@ const initCommand: BrainCommand = defineCommand({
       };
     }
 
+    const model = getStringFlag(flags, "model");
+    const imageModel = getStringFlag(flags, "image-model");
+    const apiKeys = Object.fromEntries(
+      KEY_PROVIDER_IDS.flatMap((provider) => {
+        const key = getStringFlag(flags, providerKeyFlag(provider));
+        return key ? [[keyEnvVar(provider), key]] : [];
+      }),
+    );
+    // Keys given as flags must cover the models the brain runs, or init would
+    // write a brain that cannot start.
+    if (Object.keys(apiKeys).length > 0) {
+      const keyCheck = checkModelKeys(apiKeys, {
+        model: model ?? CANONICAL_CHAT_MODEL,
+        imageModel,
+      });
+      for (const warning of keyCheck.warnings) console.warn(warning);
+      if (!keyCheck.ok) {
+        return { success: false, message: keyCheck.message ?? "" };
+      }
+    }
+
     const dir = join(cwd, target);
     mkdirSync(dir, { recursive: true });
 
@@ -141,7 +172,9 @@ const initCommand: BrainCommand = defineCommand({
       backend: getStringFlag(flags, "backend"),
       deploy: getBooleanFlag(flags, "deploy"),
       regen: getBooleanFlag(flags, "regen"),
-      apiKey: getStringFlag(flags, "ai-api-key"),
+      apiKeys: Object.keys(apiKeys).length > 0 ? apiKeys : undefined,
+      model,
+      imageModel,
     };
 
     // Prompt for missing values when running interactively. Tests and CI
@@ -476,6 +509,24 @@ export async function runCommand(
 
   // Local mode — boot brain, invoke tool
   return operate(dir, parsed.command, parsed.args, parsed.flags);
+}
+
+function providerKeyFlag(provider: KeyProviderId): string {
+  return `${provider}-api-key`;
+}
+
+/** One `--<provider>-api-key` init flag per key provider. */
+function providerKeyFlagDefinitions(): FlagDefinitions {
+  return Object.fromEntries(
+    KEY_PROVIDER_IDS.map((provider) => [
+      providerKeyFlag(provider),
+      {
+        type: "string",
+        placeholder: "<key>",
+        description: `${PROVIDERS[provider].label} key written to .env as ${keyEnvVar(provider)} (skips the prompt)`,
+      },
+    ]),
+  );
 }
 
 async function runHelp(cwd?: string): Promise<CommandResult> {
