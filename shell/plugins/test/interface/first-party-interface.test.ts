@@ -624,6 +624,29 @@ describe("interfaceRuntime on the bus and in runtime state", () => {
     });
   });
 
+  it("sends a command to whoever hears it, and to nobody without failing", async () => {
+    const rebuild = defineBusContract({
+      channel: "site:rebuild",
+      delivery: "command",
+      request: z.object({ reason: z.string().min(1) }),
+      response: z.void(),
+    });
+    const shell = createMockShell();
+    const { runtime } = await installed(shell);
+    await runtime.command(rebuild, { reason: "nobody hears it" });
+
+    const heard: unknown[] = [];
+    shell.getMessageBus().subscribe(rebuild.name, (message) => {
+      heard.push({ payload: message.payload, sender: message.source });
+      return { success: true };
+    });
+    await runtime.command(rebuild, { reason: "switched" });
+    expect(heard).toEqual([
+      { payload: { reason: "switched" }, sender: "terminal" },
+    ]);
+    expect(runtime.command(rebuild, { reason: "" })).rejects.toThrow();
+  });
+
   it("keeps runtime state under the namespace its class named", async () => {
     const shell = createMockShell();
     await shell

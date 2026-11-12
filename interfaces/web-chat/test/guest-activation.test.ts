@@ -16,6 +16,7 @@ import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
   askBoxAvailabilitySchema,
+  siteBuildRequestContract,
   type AskBoxAvailability,
 } from "@brains/contracts";
 import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
@@ -45,6 +46,8 @@ interface Fixture {
   calls(): number;
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
+  /** The Ask box record as each site build request found it. */
+  buildRequests: (AskBoxAvailability | null)[];
   /** Runtime state shared by every process of one deployment, across restarts. */
   state: IRuntimeStateNamespace;
   /** The owner opens guest chat in Studio with this monthly budget. */
@@ -61,6 +64,8 @@ async function fixture(
     disabled?: boolean;
     guest?: "local-test";
     studio?: boolean;
+    /** Whether the brain has a site builder to hear build requests. */
+    siteBuilder?: boolean;
     /** The deployment's state from an earlier run, as after a restart. */
     state?: IRuntimeStateNamespace;
   } = {},
@@ -105,6 +110,24 @@ async function fixture(
         return { success: true, data: { workspaceUrl: "/studio" } };
       },
     );
+  const askBox = (): Promise<AskBoxAvailability | null> =>
+    harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({
+        namespace: ASK_BOX_STATE_NAMESPACE,
+        schema: askBoxAvailabilitySchema,
+      })
+      .get(ASK_BOX_STATE_KEY);
+  const buildRequests: (AskBoxAvailability | null)[] = [];
+  if (options.siteBuilder !== false)
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe(siteBuildRequestContract.name, async () => {
+        buildRequests.push(await askBox());
+        return { success: true };
+      });
   await harness.installPlugin(plugin);
   if (options.studio) {
     spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
@@ -180,15 +203,8 @@ async function fixture(
         .parse(await studio({ actionId: "switch-on", input, mode: "prepare" }));
       await studio({ actionId: "switch-on", input, confirmationToken: token });
     },
-    askBox: (): Promise<AskBoxAvailability | null> =>
-      harness
-        .getMockShell()
-        .getRuntimeState()
-        .scoped({
-          namespace: ASK_BOX_STATE_NAMESPACE,
-          schema: askBoxAvailabilitySchema,
-        })
-        .get(ASK_BOX_STATE_KEY),
+    askBox,
+    buildRequests,
     previewPaths: plugin
       .getWebRoutes()
       .filter((r) => r.preview === true)
@@ -207,6 +223,26 @@ describe("Ask box availability for site builds in any process", () => {
 
   it("records the box served on the site and its preview once activated, and not after deactivation", async () => {
     const f = await fixture();
+    await f.budget(10);
+    expect(await f.askBox()).toEqual({ public: true, preview: true });
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("asks for a site build after each switch, once the box record follows it", async () => {
+    const f = await fixture();
+    expect(f.buildRequests).toEqual([]);
+    await f.budget(10);
+    expect(f.buildRequests).toEqual([{ public: true, preview: true }]);
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(f.buildRequests).toEqual([
+      { public: true, preview: true },
+      { public: false, preview: false },
+    ]);
+  });
+
+  it("switches and records the box in a brain without a site builder", async () => {
+    const f = await fixture("admin", "rizom.ai", { siteBuilder: false });
     await f.budget(10);
     expect(await f.askBox()).toEqual({ public: true, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);

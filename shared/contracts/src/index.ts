@@ -305,6 +305,7 @@ export { siteHeadScriptsContract } from "./site-head-scripts";
 export {
   SITE_BUILD_MANIFEST_FILE,
   SITE_BUILD_MANIFEST_PATH,
+  siteBuildRequestContract,
   siteBuildStagingContract,
   type SiteBuildStagingPayload,
 } from "./site-build";

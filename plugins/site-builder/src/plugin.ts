@@ -1,6 +1,9 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
-import { siteHeadScriptsContract } from "@brains/contracts";
+import {
+  siteBuildRequestContract,
+  siteHeadScriptsContract,
+} from "@brains/contracts";
 import {
   defineServicePlugin,
   type ServicePackageDefinition,
@@ -70,10 +73,11 @@ export interface SiteBuilderDeps {
 /**
  * A start, an upgrade included, may bring new renderer code that the input
  * fingerprint cannot see; the renderer identity is fresh per process, so a
- * requested build renders again. Every environment that already has an
- * output is built again; one never built stays untouched.
+ * requested build renders again. A package whose state a page renders from
+ * asks for the same after that state changes. Every environment that
+ * already has an output is built again; one never built stays untouched.
  */
-async function rebuildOutputsAfterStart(
+async function rebuildBuiltOutputs(
   config: SiteBuilderConfig,
   rebuilds: RebuildManager,
 ): Promise<void> {
@@ -215,7 +219,15 @@ async function setUpSiteBuilder(
   // Rebuilt once startup content has settled, so a queued startup import
   // is in the site before it renders.
   runtime.listen(SYSTEM_CHANNELS.startupContentSettled, async () => {
-    await rebuildOutputsAfterStart(config, rebuilds);
+    await rebuildBuiltOutputs(config, rebuilds);
+  });
+
+  // Builds follow entity changes on their own; a package whose other state
+  // a page renders from asks for one when that state changes. Answered in
+  // the web process, which schedules builds.
+  runtime.answer(siteBuildRequestContract, async ({ request }) => {
+    logger.info(`Site build requested: ${request.reason}`);
+    await rebuildBuiltOutputs(config, rebuilds);
   });
 
   const description = siteDescription(runtime, config);

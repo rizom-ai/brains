@@ -13,6 +13,26 @@ export const SITE_BUILD_MANIFEST_FILE = ".site-build-manifest.json";
 /** The manifest's URL path, reserved by the route registry and webserver. */
 export const SITE_BUILD_MANIFEST_PATH: `/${typeof SITE_BUILD_MANIFEST_FILE}` = `/${SITE_BUILD_MANIFEST_FILE}`;
 
+type SiteBuildRequestSchema = z.ZodObject<{ reason: z.ZodString }>;
+
+/**
+ * Ask the site builder to build every environment it has built again, with
+ * why, for the build log. Builds follow entity changes on their own; a plugin
+ * sends this when a page renders from other state of its own that changed,
+ * such as whether the homepage offers the Ask box. It has no answer, and a
+ * brain without a site builder ignores it.
+ */
+export const siteBuildRequestContract: BusContract<
+  SiteBuildRequestSchema,
+  z.ZodVoid,
+  "command"
+> = defineBusContract({
+  channel: "site:build:requested",
+  request: z.object({ reason: z.string().min(1) }),
+  response: z.void(),
+  delivery: "command",
+});
+
 type EntityUrlGenerator = (entityType: string, slug: string) => string;
 type StagingFailureReporter = (detail: string) => void;
 

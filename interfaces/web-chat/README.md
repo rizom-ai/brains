@@ -35,7 +35,9 @@ On the authenticated site origin, `GET /api/chat/guest/access` reports the
 switch, budget and this month's charges without invoking a model. `POST` accepts
 only `{"enabled":true}` or `{"enabled":false}`, requires an Admin browser session
 and a same-origin JSON request, and cannot override the origins, limits or
-accounting. Switching on reuses the budget last set in Studio.
+accounting. Switching on reuses the budget last set in Studio. Either switch, in
+Studio or here, asks the site builder to build every built site again, so the
+homepage Ask box appears or goes with it.
 
 Each answer is charged what it measurably cost, or a fixed cap when that cannot
 be measured; the budget starts over on the 1st (UTC). Background generation and

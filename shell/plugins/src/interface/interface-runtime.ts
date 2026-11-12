@@ -127,6 +127,15 @@ export interface InterfaceRuntime {
       readonly sender: string;
     }) => SchemaValue<TResponse> | Promise<SchemaValue<TResponse>>,
   ): void;
+  /**
+   * Send a command to every package that hears it, as the interface;
+   * nobody answers, and none hearing it is no failure. A command the
+   * contract refuses throws.
+   */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    request: z.input<TRequest>,
+  ): Promise<void>;
   /** Ask a contract's owner, as the class asked through its messaging. */
   request<TRequest extends z.ZodType, TResponse extends z.ZodType>(
     contract: BusContract<TRequest, TResponse, "request">,
@@ -292,7 +301,7 @@ export interface InterfaceRuntimeBinding {
   readonly messages: InterfaceMessages | undefined;
   readonly messaging: Pick<
     IMessagingNamespace,
-    "answer" | "request" | "gather" | "subscribe"
+    "answer" | "request" | "command" | "gather" | "subscribe"
   >;
   readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
   /** Keeps a release to run when the interface shuts down. */
@@ -419,6 +428,8 @@ function bindInterfaceRuntime(
         ),
       );
     },
+    command: (contract, request) =>
+      binding.messaging.command(contract, request),
     request: (contract, request) =>
       binding.messaging.request(contract, request),
     classRuntimeState: Object.freeze({

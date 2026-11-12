@@ -8,6 +8,7 @@ import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
   askBoxAvailabilitySchema,
+  siteBuildRequestContract,
   type AskBoxAvailability,
   type AuthPrincipal,
   type AgentResponse,
@@ -321,6 +322,10 @@ class WebChatHost {
   private async recordAfterActivation(): Promise<void> {
     try {
       await this.recordAskBoxAvailability();
+      // The site renders the box from that record when it builds.
+      await this.runtime.command(siteBuildRequestContract, {
+        reason: "guest chat was switched",
+      });
     } catch (error) {
       // The activation itself succeeded; the next start rewrites the record,
       // and the atlas keeps the box out of sight until its boot is live.
