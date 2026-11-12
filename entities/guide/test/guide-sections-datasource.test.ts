@@ -8,12 +8,17 @@ import {
 } from "../src";
 import { guideMarkdown } from "./fixtures";
 
-function doc(slug: string, section: string, order: number): BaseEntity {
+function doc(
+  slug: string,
+  section: string,
+  order: number,
+  title = `Doc ${slug}`,
+): BaseEntity {
   return {
     id: slug,
     entityType: "doc",
     content: `---
-title: Doc ${slug}
+title: ${title}
 section: ${section}
 order: ${order}
 slug: ${slug}
@@ -25,7 +30,7 @@ slug: ${slug}
     created: "2026-11-02T00:00:00.000Z",
     updated: "2026-11-02T00:00:00.000Z",
     visibility: "public",
-    metadata: { title: `Doc ${slug}`, section, order, slug },
+    metadata: { title, section, order, slug },
   };
 }
 
@@ -91,6 +96,25 @@ describe("GuideSectionsDataSource", () => {
     ]);
     expect(sections[0]?.docs.map((item) => item.slug)).toEqual([
       "feature-overview",
+      "content-management",
+    ]);
+  });
+
+  it("lists docs with the same order and title by id", async () => {
+    shell.addEntities([
+      doc("tied-b", "Use a brain", 15, "Tied"),
+      // Older, so the store lists it second.
+      {
+        ...doc("tied-a", "Use a brain", 15, "Tied"),
+        updated: "2026-11-01T00:00:00.000Z",
+      },
+    ]);
+    const { sections } = await fetchSections();
+
+    expect(sections[0]?.docs.map((item) => item.slug)).toEqual([
+      "feature-overview",
+      "tied-a",
+      "tied-b",
       "content-management",
     ]);
   });

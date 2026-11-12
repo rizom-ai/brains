@@ -507,7 +507,6 @@ export class EntityQueries {
         ...this.buildOrderByClauses(
           sortFields ?? [{ field: "id", direction: "asc" }],
         ),
-        asc(entities.id),
       )
       .limit(limit)
       .offset(offset);
@@ -589,15 +588,23 @@ export class EntityQueries {
   }
 
   /**
-   * Build ORDER BY clauses from sortFields.
+   * Build ORDER BY clauses from sortFields, ending on the entity id.
    * Supports system fields (id, created, updated) and metadata fields via json_extract.
+   * Entities that tie on the requested sort list by id, ascending, so the
+   * order and every page under a limit never follow the order rows were written.
    */
   private buildOrderByClauses(sortFields?: ListOptions["sortFields"]): SQL[] {
     // Default: sort by updated desc
-    if (!sortFields || sortFields.length === 0) {
-      return [desc(entities.updated)];
-    }
+    const requested =
+      !sortFields || sortFields.length === 0
+        ? [desc(entities.updated)]
+        : this.buildSortFieldClauses(sortFields);
+    return [...requested, asc(entities.id)];
+  }
 
+  private buildSortFieldClauses(
+    sortFields: NonNullable<ListOptions["sortFields"]>,
+  ): SQL[] {
     return sortFields.flatMap(({ field, direction, nullsFirst, nullsLast }) => {
       const orderFn = direction === "desc" ? desc : asc;
 

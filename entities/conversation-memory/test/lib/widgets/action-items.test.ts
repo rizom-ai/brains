@@ -105,6 +105,22 @@ describe("buildActionItemsWidgetData", () => {
     expect(data.blockedCount).toBe(1);
   });
 
+  it("lists items captured at the same moment by id", async () => {
+    const items = ["item-c", "item-a", "item-b"].map((id) =>
+      createActionItem({ id, title: id }),
+    );
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
+
+    const data = await buildActionItemsWidgetData(context, "restricted");
+    expect(data.items.map((item) => item.id)).toEqual([
+      "item-a",
+      "item-b",
+      "item-c",
+    ]);
+  });
+
   it("caps the list at six", async () => {
     const items = Array.from({ length: 8 }, (_, index) =>
       createActionItem({ id: `open-${index}`, title: `Open ${index}` }),

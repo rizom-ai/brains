@@ -132,10 +132,7 @@ export class MailThreadOrdinalCoordinator {
           options: {
             limit: Math.min(this.pageSize, total - offset),
             offset,
-            sortFields: [
-              { field: "receivedAt", direction: "asc" },
-              { field: "id", direction: "asc" },
-            ],
+            sortFields: [{ field: "receivedAt", direction: "asc" }],
             filter: {
               visibilityScope: internalFullScope("mail thread ordinal reindex"),
             },

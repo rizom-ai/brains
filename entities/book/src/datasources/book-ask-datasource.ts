@@ -4,6 +4,7 @@ import type {
   DataSourceSchema,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
+import { compareIds } from "@brains/utils/sort";
 import { bookSchema } from "../schemas/book";
 import { parseBookData } from "./book-datasource";
 
@@ -61,7 +62,11 @@ export class BookAskDataSource implements DataSource {
         title: book.metadata.title,
         year: book.frontmatter.year,
       }))
-      .sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
+      .sort(
+        (a, b) =>
+          (a.year ?? Infinity) - (b.year ?? Infinity) ||
+          compareIds(a.book, b.book),
+      );
     this.logger.debug("Ask page", { books: books.length, askBox });
 
     return outputSchema.parse({ name: this.sources.name(), askBox, books });

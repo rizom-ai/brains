@@ -1,12 +1,17 @@
+import { compareIds } from "@brains/utils/sort";
 import type { GuideWithData } from "../schemas/guide";
 import type { GuideRecipe } from "../schemas/guide-frontmatter";
 
-/** Guides by order, then title: the order the index and every card list use. */
+/**
+ * Guides by order, then title, then id: the order the index and every card
+ * list use.
+ */
 export function sortGuides(guides: GuideWithData[]): GuideWithData[] {
   return [...guides].sort(
     (a, b) =>
       a.metadata.order - b.metadata.order ||
-      a.metadata.title.localeCompare(b.metadata.title),
+      a.metadata.title.localeCompare(b.metadata.title) ||
+      compareIds(a.id, b.id),
   );
 }
 

@@ -12,7 +12,10 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 - Entity CRUD with immediate persistence
 - Async embedding job enqueueing through `@brains/job-queue`
 - Vector + FTS5 keyword search
-- Metadata filtering, published filtering, pagination, and multi-field sorting
+- Metadata filtering, published filtering, pagination, and multi-field sorting;
+  ties on the requested sort list by entity id, so pages never overlap or skip
+- Search results and nearest-neighbor reads with equal scores or distances list
+  by id, then type
 - Markdown/frontmatter serialization helpers
 - Optional structural event bus for entity lifecycle notifications
 - Separate entity and embedding databases

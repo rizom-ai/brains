@@ -82,6 +82,22 @@ describe("buildDecisionsWidgetData", () => {
     expect(first?.meta).toEqual(["#design", "May 9"]);
   });
 
+  it("lists decisions that end at the same moment by id", async () => {
+    const items = ["decision-c", "decision-a", "decision-b"].map((id) =>
+      createDecision({ id, title: id }),
+    );
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
+
+    const data = await buildDecisionsWidgetData(context, "restricted");
+    expect(data.items.map((item) => item.id)).toEqual([
+      "decision-a",
+      "decision-b",
+      "decision-c",
+    ]);
+  });
+
   it("formats multi-day time ranges with an en-dash", async () => {
     const items = [
       createDecision({

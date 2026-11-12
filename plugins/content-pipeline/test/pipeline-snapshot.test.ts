@@ -45,6 +45,7 @@ async function addEntity(
     error?: string;
     scheduledFor?: string;
     visibility?: "public" | "shared" | "restricted";
+    updated?: string;
   },
 ): Promise<void> {
   await context.entityService.createEntity({
@@ -53,6 +54,7 @@ async function addEntity(
       entityType: input.entityType,
       content: input.title,
       ...(input.visibility ? { visibility: input.visibility } : {}),
+      ...(input.updated ? { updated: input.updated } : {}),
       metadata: {
         status: input.status,
         title: input.title,
@@ -192,6 +194,44 @@ describe("publication pipeline snapshot", () => {
         error: "Provider rejected sender",
         retryCount: 1,
       },
+    ]);
+  });
+
+  it("lists failures with the same title by id", async () => {
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
+    registerType(context, "social-post");
+    // Newest first is c, b, a: the store's order must not decide the tie.
+    for (const [id, updated] of [
+      ["failed-c", "2026-07-03T00:00:00.000Z"],
+      ["failed-a", "2026-07-01T00:00:00.000Z"],
+      ["failed-b", "2026-07-02T00:00:00.000Z"],
+    ] as const) {
+      await addEntity(context, {
+        entityType: "social-post",
+        id,
+        status: "failed",
+        title: "Same title",
+        updated,
+      });
+    }
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote-post" }),
+    });
+
+    const snapshot = await getPublicationPipelineSnapshot(
+      context,
+      providers,
+      QueueManager.createFresh(),
+      RetryTracker.createFresh(),
+    );
+
+    expect(snapshot.failures.map((failure) => failure.entityId)).toEqual([
+      "failed-a",
+      "failed-b",
+      "failed-c",
     ]);
   });
 

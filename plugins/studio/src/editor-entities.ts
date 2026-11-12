@@ -298,7 +298,6 @@ export async function handleGetEntities(
               : "updated",
             direction: query.data.sort.endsWith("asc") ? "asc" : "desc",
           },
-          { field: "id", direction: "asc" },
         ],
         filter,
       },
@@ -355,7 +354,6 @@ export async function handleGetEntityHierarchy(
         field: sort.startsWith("created") ? "created" : "updated",
         direction: sort.endsWith("asc") ? "asc" : "desc",
       },
-      { field: "id", direction: "asc" },
     ],
     signal: request.signal,
   };

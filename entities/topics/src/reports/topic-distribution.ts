@@ -5,6 +5,7 @@ import {
   type BaseEntity,
   type ContentVisibility,
 } from "@brains/plugins";
+import { compareIds } from "@brains/utils/sort";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { topicEntitySchema } from "../schemas/topic";
@@ -146,7 +147,8 @@ export function createTopicDistributionReport(
           .sort(
             (left, right) =>
               right.sources - left.sources ||
-              left.title.localeCompare(right.title),
+              left.title.localeCompare(right.title) ||
+              compareIds(left.topic, right.topic),
           );
         return {
           topics: distribution,

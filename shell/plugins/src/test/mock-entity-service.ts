@@ -14,6 +14,7 @@ import {
   type UpsertEntityRequest,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
+import { compareIds } from "@brains/utils/sort";
 import type { MockEntityStore } from "./mock-entity-store";
 import { createMockReceiptMethods } from "./mock-entity-receipts";
 
@@ -89,7 +90,8 @@ export function createMockEntityService(
 
   // Mirrors the real query layer's ORDER BY: system fields come from the
   // entity, everything else from metadata; NULLs sort smallest (SQLite),
-  // and nullsFirst / nullsLast force them ahead / behind regardless of direction.
+  // nullsFirst / nullsLast force them ahead / behind regardless of direction,
+  // and entities that tie on every field list by id.
   function sortFieldValue(entity: BaseEntity, field: string): unknown {
     if (field === "id" || field === "created" || field === "updated") {
       return entity[field];
@@ -128,7 +130,7 @@ export function createMockEntityService(
               : 0;
       if (cmp !== 0) return direction === "desc" ? -cmp : cmp;
     }
-    return 0;
+    return compareIds(left.id, right.id);
   }
 
   function filterEntitiesFake(request: ListEntitiesRequest): BaseEntity[] {

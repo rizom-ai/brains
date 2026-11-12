@@ -5,6 +5,7 @@ import type {
   DataSourceSchema,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
+import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import { bookSchema, type BookWithData } from "../schemas/book";
 import {
@@ -156,7 +157,11 @@ export class BookThemeDataSource implements DataSource {
           sections: count,
         };
       })
-      .sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
+      .sort(
+        (a, b) =>
+          (a.year ?? Infinity) - (b.year ?? Infinity) ||
+          compareIds(a.book, b.book),
+      );
   }
 
   /** Each book, by its slug. */
