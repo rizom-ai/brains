@@ -1,20 +1,17 @@
 import {
-  requireSameOriginJson,
-  SitePageResponse,
-  type AgentResponse,
-  type DaemonHealth,
-  type JobProgressEvent,
-  type MessageArtifactEntity,
-  type MessageInterfaceOutput,
-  type WebRouteDefinition,
-  type ToolStatusUpdate,
+  defineInterface,
   type UserPermissionLevel,
-  type ChatAttachment,
-  coerceConversationMetadata,
-} from "@brains/plugins";
-import type { AuthPrincipal } from "@brains/contracts";
-import type { PluginPackageDefinition } from "@brains/sdk";
-import { defineInterface } from "@brains/sdk/interfaces";
+} from "@brains/sdk/interfaces";
+import {
+  agentActionContract,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+  type AskBoxAvailability,
+  type AuthPrincipal,
+  type AgentResponse,
+} from "@brains/contracts";
 import {
   interfaceRuntime,
   withDaemon,
@@ -25,24 +22,27 @@ import {
   type MessageTransport,
   type MessageTransportEdit,
   type MessageTransportSend,
+  requireSameOriginJson,
+  SitePageResponse,
+  type DaemonHealth,
+  type JobProgressEvent,
+  type MessageArtifactEntity,
+  type MessageInterfaceOutput,
+  type WebRouteDefinition,
+  type ToolStatusUpdate,
+  type ChatAttachment,
+  coerceConversationMetadata,
+  type ClassRuntimeStateStore,
 } from "@brains/sdk/internal/interface-runtime";
+import type { PluginPackageDefinition } from "@brains/sdk";
 import { join } from "path";
 import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
-import {
-  ASK_BOX_SCRIPT_PATH,
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
-  askBoxAvailabilitySchema,
-  type AskBoxAvailability,
-} from "@brains/contracts";
-import type { IRuntimeStateStore } from "@brains/plugins";
 import {
   ASK_BOX_BOOT_PATH,
   ASK_BOX_LOADER_SCRIPT,
   ASK_BOX_VERSION_PATH,
   askBoxBootScript,
 } from "./ask-box-boot";
-import { agentActionContract } from "@brains/contracts";
 import {
   chatActionRequestSchema,
   chatContextHandoffRequestSchema,
@@ -158,7 +158,7 @@ class WebChatHost {
   private guestHttp: GuestHttpHandlers | undefined;
   private guestControl: GuestAccessControl | undefined;
   private askBoxAvailability:
-    IRuntimeStateStore<AskBoxAvailability> | undefined;
+    ClassRuntimeStateStore<AskBoxAvailability> | undefined;
   private readonly runtimeGuestActivationAllowed: boolean;
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;

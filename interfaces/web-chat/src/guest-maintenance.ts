@@ -1,7 +1,7 @@
 import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ClassRuntimeState,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/interface-runtime";
 import { attempt, retry } from "./cas-retry";
 import { GuestVisitorStore } from "./guest-access";
 import {
@@ -24,14 +24,11 @@ interface LedgerSweep {
  */
 export class GuestStateMaintenance {
   private readonly visitors: GuestVisitorStore;
-  private readonly ledgers: IRuntimeStateStore<GuestAdmissionState>;
+  private readonly ledgers: ClassRuntimeStateStore<GuestAdmissionState>;
   private visitorCursor: string | undefined;
   private readonly now: () => number;
 
-  constructor(
-    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
-    now: () => number = Date.now,
-  ) {
+  constructor(runtimeState: ClassRuntimeState, now: () => number = Date.now) {
     this.now = now;
     this.visitors = new GuestVisitorStore(
       runtimeState,

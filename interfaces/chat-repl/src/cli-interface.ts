@@ -1,12 +1,12 @@
 import type { PluginPackageDefinition } from "@brains/sdk";
-import type { DaemonHealth } from "@brains/plugins";
-import { defineInterface } from "@brains/sdk/interfaces";
 import {
   interfaceRuntime,
   withDaemon,
   withMessageTransport,
   type FirstPartySlotContext,
+  type DaemonHealth,
 } from "@brains/sdk/internal/interface-runtime";
+import { defineInterface } from "@brains/sdk/interfaces";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
 import { cliConfigSchema, type CLIConfig } from "./config";
 import {

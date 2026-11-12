@@ -1,13 +1,13 @@
 import {
-  internalFullScope,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type {
-  BaseEntity,
-  ProfileCategory,
-  IEntityAINamespace,
-} from "@brains/plugins";
-import type { ServiceEntityReads } from "@brains/sdk/internal/service-runtime";
+  type BaseEntity,
+} from "@brains/sdk/internal/entity-runtime";
+import {
+  type ServiceAI,
+  type ServiceEntityReads,
+  internalFullScope,
+  type ProfileCategory,
+} from "@brains/sdk/internal/service-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
@@ -346,7 +346,7 @@ ${JSON.stringify(brief, null, 2)}`;
 }
 
 export async function generateStarterCharacter(
-  ai: Pick<IEntityAINamespace, "generateObject">,
+  ai: Pick<ServiceAI, "generateObject">,
   brief: StarterCharacterBrief,
 ): Promise<GeneratedStarterCharacter> {
   const result = await ai.generateObject(

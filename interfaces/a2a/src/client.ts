@@ -1,15 +1,13 @@
 import { z } from "@brains/utils/zod";
-import type {
-  ContentVisibility,
-  Tool,
-  ToolResponse,
-  UserPermissionLevel,
-} from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
+  type ContentVisibility,
+  type Tool,
+  type ToolResponse,
   fetchVerifiedAgentCard,
   isEndpointRefusal,
   permissionToVisibilityScope,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
 import { getErrorMessage } from "@brains/utils/error";
 import { SourceCitationSchema, type SourceCitation } from "@brains/contracts";

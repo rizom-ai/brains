@@ -1,6 +1,7 @@
-import { type UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
-import type { AgentNamespace, AgentResponse } from "@brains/plugins";
+import type { AgentResponse } from "@brains/contracts";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import type { Artifact, Task } from "@a2a-js/sdk";
 import {
   SOURCES_ARTIFACT_NAME,
@@ -122,7 +123,7 @@ export type JsonRpcRequestInput = z.input<typeof jsonrpcRequestSchema>;
 export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
   turnSupervisor: A2ATurnSupervisor;
-  agentService: Pick<AgentNamespace, "chat">;
+  agentService: Pick<InterfaceRuntime["agent"], "chat">;
   callerPermissionLevel: UserPermissionLevel;
   /** Whether the verified caller is configured as the brain's Anchor identity. */
   callerIsAnchor?: boolean;

@@ -1,4 +1,4 @@
-import { type ToolResponse } from "@brains/plugins";
+import type { ToolResponse } from "@brains/sdk/internal/interface-runtime";
 import type { AgentResponse, ToolResultData } from "@brains/contracts";
 import { isRecord } from "@brains/utils/is-record";
 

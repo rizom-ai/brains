@@ -1,17 +1,15 @@
 import type { AuthAdminUserSummary } from "@brains/contracts";
-import type {
-  OperatorCaller,
-  StudioWorkspaceRegistration,
-} from "@brains/plugins";
+import type { OperatorCaller } from "@brains/sdk/services";
 import type {
   AuthBackend,
   ServiceRuntime,
+  ServiceStudio,
 } from "@brains/sdk/internal/service-runtime";
 
-export type AdminWorkspaceRegistration = Omit<
-  StudioWorkspaceRegistration,
-  "pluginId"
->;
+/** A workspace as the service's Studio registers it. */
+export type AdminWorkspaceRegistration = Parameters<
+  ServiceStudio["register"]
+>[0];
 
 export interface AdminWorkspaceSource {
   readonly registration: AdminWorkspaceRegistration;

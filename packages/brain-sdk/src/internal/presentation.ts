@@ -1,8 +1,9 @@
 /**
  * Internal, first-party only: what a first-party entity definition builds
  * its rendered templates with — `createTemplate`, which types a layout's
- * component by the template's schema and checks its props, and the record
- * schemas a template's data names. No public entry exports this module; a
+ * component by the template's schema and checks its props, the record
+ * schemas a template's data names, and the fields a detail view's schema
+ * adds for the entity it shows and the links it renders. No public entry exports this module; a
  * public definition's templates are plain declarations.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
@@ -15,3 +16,9 @@ export {
   type Template,
 } from "@brains/plugins";
 export { paginationInfoSchema } from "@brains/plugins";
+export {
+  entityViewFields,
+  renderedLinkFields,
+  viewLinkFields,
+  type EntityViewFields,
+} from "@brains/plugins";

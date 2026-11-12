@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 
 /**
  * Project status

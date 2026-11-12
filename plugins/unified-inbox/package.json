@@ -4,7 +4,6 @@
   "version": "0.2.0-alpha.686",
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
-    "@brains/plugins": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
@@ -13,6 +12,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/mcp-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@modelcontextprotocol/client": "^2.3.1",

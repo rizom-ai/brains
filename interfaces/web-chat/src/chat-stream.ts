@@ -1,17 +1,16 @@
-import { createExternalActorId } from "@brains/contracts";
+import { createExternalActorId, type AgentResponse } from "@brains/contracts";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
   buildResponsePlan,
   collectDeniedArtifactCardIds,
   redactUploadRefs,
-  type AgentNamespace,
-  type AgentResponse,
+  type InterfaceRuntime,
   type ChatAttachment,
   type ChatContext,
   type MessageArtifactEntity,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { ApprovalResponse } from "./chat-input";
 import { stripInternalEntityMemoryNote } from "./display-content";
 import {
@@ -27,7 +26,7 @@ export interface ActiveStream {
 interface StreamDeps {
   activeStreams: Map<string, ActiveStream>;
   /** The two calls this stream makes, not the whole agent namespace. */
-  agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
+  agent: Pick<InterfaceRuntime["agent"], "chat" | "confirmPendingAction">;
   startProcessingInput(conversationId: string): void;
   endProcessingInput(): void;
   handleAgentResponseToolStatuses(

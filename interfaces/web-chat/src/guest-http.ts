@@ -20,10 +20,10 @@ import {
 } from "@brains/contracts/chat";
 import { askedBeforeSchema } from "@brains/contracts";
 import type {
-  IRuntimeStateNamespace,
+  InterfaceRuntime,
+  ClassRuntimeState,
   WebRouteDefinition,
-} from "@brains/plugins";
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import { deferred } from "@brains/utils/deferred";
 import {
@@ -88,7 +88,7 @@ export interface GuestHttpOptions {
   requireAuthorization?: boolean;
 }
 type Services = Pick<InterfaceRuntime, "agent" | "conversations"> & {
-  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly runtimeState: ClassRuntimeState;
 };
 class GuestHttpError extends Error {
   readonly status: number;

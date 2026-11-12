@@ -4,13 +4,13 @@
   "version": "0.2.0-alpha.686",
   "description": "Site info — the site's metadata, title, description and CTA, and the service that answers for it",
   "dependencies": {
-    "@brains/plugins": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

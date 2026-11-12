@@ -1,6 +1,9 @@
 import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { AuthAuditEvent } from "@brains/contracts";
-import { defineStudioWorkspace, type OperatorViewBlock } from "@brains/plugins";
+import {
+  defineStudioWorkspace,
+  type OperatorViewBlock,
+} from "@brains/sdk/services";
 import { queryInteger } from "@brains/utils/query";
 import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
