@@ -1,4 +1,4 @@
-import { defineDashboardWidget } from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
 import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import {
   getPublicationPipelineSnapshot,

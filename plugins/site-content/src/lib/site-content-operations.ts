@@ -1,6 +1,6 @@
 import { formatVoiceGuidance, styleGuideFromRecord } from "@brains/contracts";
-import type { ToolContext } from "@brains/plugins";
 import type {
+  ToolContext,
   ServiceClassMessaging,
   ServiceEntityReads,
   ServiceRuntime,

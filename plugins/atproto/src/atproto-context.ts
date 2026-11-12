@@ -2,18 +2,17 @@ import type {
   BaseEntity,
   EntitySchema,
   GetEntityRequest,
-  IProfileKindsNamespace,
-  IRuntimeStateNamespace,
-} from "@brains/plugins";
-import type { AtprotoProjectionContext } from "@brains/atproto-contracts";
+} from "@brains/sdk/internal/entity-runtime";
 import type {
+  ClassRuntimeState,
+  ServiceRuntime,
   ServiceAtprotoProjections,
   ServiceClassMessaging,
   ServiceEntityReads,
   ServiceEntityWrites,
   ServiceIdentity,
-  ServiceRuntime,
 } from "@brains/sdk/internal/service-runtime";
+import type { AtprotoProjectionContext } from "@brains/atproto-contracts";
 import type { Logger } from "@brains/utils/logger";
 
 /**
@@ -30,13 +29,13 @@ export interface AtprotoContext {
     Pick<ServiceEntityReads, "listEntities">;
   readonly messaging: Pick<ServiceClassMessaging, "broadcast">;
   readonly identity: ServiceIdentity;
-  readonly profileKinds: Pick<IProfileKindsNamespace, "getResolved">;
+  readonly profileKinds: Pick<ServiceRuntime["profileKinds"], "getResolved">;
   readonly servesHttp: boolean;
   readonly siteUrl: string | undefined;
   readonly entityDisplay: ServiceRuntime["entityDisplay"];
   readonly publicSkills: ServiceRuntime["publicSkills"];
   readonly atprotoProjections: ServiceAtprotoProjections;
-  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly runtimeState: ClassRuntimeState;
 }
 
 /** The bus atproto hears, as its class subscribed and observed. */

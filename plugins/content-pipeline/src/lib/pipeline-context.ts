@@ -1,5 +1,5 @@
-import type { IRuntimeStateNamespace } from "@brains/plugins";
 import type {
+  ClassRuntimeState,
   ServiceAttachments,
   ServiceClassJobs,
   ServiceEntityReads,
@@ -25,5 +25,5 @@ export interface PipelineContext {
   readonly permissions: ServicePermissions;
   readonly attachments: ServiceAttachments;
   readonly jobs: Pick<ServiceClassJobs, "enqueue" | "getActiveJobs">;
-  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly runtimeState: ClassRuntimeState;
 }

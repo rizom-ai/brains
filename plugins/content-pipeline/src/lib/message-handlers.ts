@@ -14,9 +14,10 @@ import { getErrorMessage } from "@brains/utils/error";
 import {
   entityCreatedChannel,
   entityUpdatedChannel,
-  type BaseEntity,
   type EntityChangePayload,
-} from "@brains/plugins";
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { PublicationQueueService } from "../publication-queue-service";
 import {
@@ -26,7 +27,6 @@ import {
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishAssetRegistry } from "../publish-assets";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
-import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { PipelineContext } from "./pipeline-context";
 
 /** How the package answers and hears the bus, as its class did. */

@@ -1,4 +1,4 @@
-import type { ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";

@@ -2,12 +2,15 @@ import {
   defineStudioWorkspace,
   defineEntityCatalog,
   defineWorkspaceAction,
-  permissionToVisibilityScope,
   type OperatorCaller,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ToolContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
+import type {
+  ToolContext,
+  ServiceStudio,
+} from "@brains/sdk/internal/service-runtime";
 import { SdkError } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
@@ -21,7 +24,6 @@ import {
   publicationPipelineSnapshotSchema,
 } from "../pipeline-snapshot";
 import { publishOutputSchema } from "../tools/publish";
-import type { ServiceStudio } from "@brains/sdk/internal/service-runtime";
 import type { PipelineContext } from "./pipeline-context";
 
 type PublishingTargetSchema = z.ZodObject<{

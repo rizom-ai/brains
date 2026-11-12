@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { isRecord } from "@brains/utils/is-record";
 import type { RetryScope } from "@brains/utils/retry-backoff";

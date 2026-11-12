@@ -6,7 +6,6 @@
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"
@@ -14,6 +13,7 @@
   "devDependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

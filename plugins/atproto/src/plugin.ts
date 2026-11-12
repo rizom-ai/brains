@@ -4,8 +4,10 @@ import {
   entityUpdatedChannel,
   internalFullScope,
   SYSTEM_CHANNELS,
+  type EntityChangePayload,
+  type ServiceAtprotoProjections,
 } from "@brains/sdk/internal/service-runtime";
-import type { BaseEntity, EntityChangePayload } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { publishCompletedChannel } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
@@ -28,7 +30,6 @@ import {
 } from "./identity-resolver";
 import { PublishingTaskQueue } from "./publishing-tasks";
 import type { AtprotoBus, AtprotoContext } from "./atproto-context";
-import type { ServiceAtprotoProjections } from "@brains/sdk/internal/service-runtime";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import {
   type DiscoverBrainCardResult,

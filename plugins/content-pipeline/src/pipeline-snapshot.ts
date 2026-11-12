@@ -1,4 +1,4 @@
-import type { ContentVisibility } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";

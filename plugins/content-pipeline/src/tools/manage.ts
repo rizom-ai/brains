@@ -1,4 +1,8 @@
-import type { Tool, ToolContext, ToolResponse } from "@brains/plugins";
+import type {
+  Tool,
+  ToolContext,
+  ToolResponse,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublicationQueueService } from "../publication-queue-service";

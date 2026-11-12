@@ -1,8 +1,6 @@
-import {
-  findEntityByIdentifier,
-  permissionToVisibilityScope,
-  type ToolContext,
-} from "@brains/plugins";
+import { findEntityByIdentifier } from "@brains/sdk/internal/entity-runtime";
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 import type { PipelineContext } from "../lib/pipeline-context";

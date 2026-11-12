@@ -1,6 +1,9 @@
-import { internalFullScope } from "@brains/plugins";
+import {
+  internalFullScope,
+  type ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
 import { actorRefSchema } from "@brains/contracts";
-import type { BaseEntity, IRuntimeStateStore } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
 import type { QueueEntry, QueueManager } from "./queue-manager";
@@ -72,7 +75,7 @@ export type PublicationQueueRecord = z.output<
 export class PublicationQueueService {
   private readonly context: PipelineContext;
   private readonly queueManager: QueueManager;
-  private readonly store: IRuntimeStateStore<PublicationQueueRecord>;
+  private readonly store: ClassRuntimeStateStore<PublicationQueueRecord>;
   private mutationTail: Promise<void> = Promise.resolve();
 
   constructor(context: PipelineContext, queueManager: QueueManager) {

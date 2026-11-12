@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";

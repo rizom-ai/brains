@@ -1,5 +1,5 @@
-import { internalFullScope } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { PublishResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ProviderRegistry } from "./provider-registry";

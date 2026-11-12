@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { PublishResult } from "@brains/contracts";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import type { PipelineContext } from "./lib/pipeline-context";

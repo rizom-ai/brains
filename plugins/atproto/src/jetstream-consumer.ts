@@ -1,4 +1,4 @@
-import type { IRuntimeStateStore } from "@brains/plugins";
+import type { ClassRuntimeStateStore } from "@brains/sdk/internal/service-runtime";
 import type { AtprotoContext } from "./atproto-context";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -172,7 +172,7 @@ export class JetstreamConsumer {
   private readonly createSocket: CreateJetstreamSocket;
   private readonly now: () => number;
   private readonly random: () => number;
-  private readonly store: IRuntimeStateStore<JetstreamState>;
+  private readonly store: ClassRuntimeStateStore<JetstreamState>;
   private readonly queue: QueuedCandidate[] = [];
   private readonly queuedByDid = new Map<string, QueuedCandidate>();
   private readonly terminal = new Map<number, TerminalSequence>();

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import type { BaseEntity, ToolContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { PublishEntityExecutor } from "../publish-executor";
