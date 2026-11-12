@@ -979,6 +979,7 @@ export {
   withBodyTemplate,
   withFolderTitles,
   withDisplayTitle,
+  withPublishedStatuses,
   type RecordDisplayTitle,
   withUrlRoute,
   writesInDocumentOrder,

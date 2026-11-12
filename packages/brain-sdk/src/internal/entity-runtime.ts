@@ -21,6 +21,7 @@ export {
   withBodyTemplate,
   withFolderTitles,
   withDisplayTitle,
+  withPublishedStatuses,
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,

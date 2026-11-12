@@ -1138,6 +1138,44 @@ export function readsAsWritten(codec: object | undefined): boolean {
   return codec !== undefined && readAsWrittenCodecs.has(codec);
 }
 
+const publishedStatusesKey = Symbol("rizom.published-statuses");
+
+/**
+ * A first-party definition whose class's adapter declared the statuses a
+ * published-only read (a production site build) publishes: exactly those,
+ * so a record without one of them is not published, under a key no public
+ * type names (an agent directory publishes approved agents only). The
+ * statuses are independent of the publish-action policy, `config.publish`.
+ * An empty list is refused.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withPublishedStatuses<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  statuses: readonly string[],
+): TDefinition {
+  if (statuses.length === 0) {
+    throw new Error(
+      `Entity "${definition.type}" must publish at least one status`,
+    );
+  }
+  return Object.freeze({
+    ...definition,
+    [publishedStatusesKey]: Object.freeze([...statuses]),
+  });
+}
+
+/** The statuses a definition publishes, when it states them. */
+export function publishedStatusesOf(
+  definition: object,
+): readonly string[] | undefined {
+  const statuses: unknown = Reflect.get(definition, publishedStatusesKey);
+  return Array.isArray(statuses) &&
+    statuses.every((status) => typeof status === "string")
+    ? statuses
+    : undefined;
+}
+
 const frontmatterSchemaKey = Symbol("rizom.frontmatter-schema");
 
 /**

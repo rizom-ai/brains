@@ -66,6 +66,7 @@ import {
   entityAnswersOf,
   bodyTemplateOf,
   folderTitlesOf,
+  publishedStatusesOf,
   recordDisplayTitleOf,
   ordinaryCreateOf,
   restatedMetadataOf,
@@ -541,6 +542,14 @@ function binaryStorage(
   };
 }
 
+/** The statuses a published-only read publishes, left off when undeclared. */
+function publishedStatusesAdapter(
+  definition: AnyEntityDefinition,
+): Pick<DeclaredAdapter, "publishedStatuses"> {
+  const statuses = publishedStatusesOf(definition);
+  return statuses ? { publishedStatuses: [...statuses] } : {};
+}
+
 /** A type's folder titles, left off when it names none. */
 function folderTitlesAdapter(
   definition: AnyEntityDefinition,
@@ -581,6 +590,7 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     // reads the same as a type written before the flag existed.
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
+    ...publishedStatusesAdapter(definition),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
     ...(definition.create?.fields && {
       createFieldsSchema: definition.create.fields,
