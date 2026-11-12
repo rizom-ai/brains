@@ -81,7 +81,11 @@ import type {
   SemanticSpaceProjection,
   UpdateEntityRequest,
 } from "@brains/entity-service";
-import type { Template } from "@brains/templates";
+import {
+  PermissionService,
+  type Template,
+  type UserPermissionLevel,
+} from "@brains/templates";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type {
   PluginsRegisteredAnswer,
@@ -1123,6 +1127,18 @@ export function serviceRuntime(context: object): ServiceRuntime {
  * character and its anchor's profile, which the shell registers before any
  * plugin and no plugin owns.
  */
+/**
+ * Whether a caller's level reaches the level a surface needs, as a
+ * converted service's class read PermissionService.hasPermission: the
+ * shell's one rule, as a function, so no service holds the class.
+ */
+export function hasPermission(
+  grantedLevel: UserPermissionLevel,
+  requiredLevel: UserPermissionLevel,
+): boolean {
+  return PermissionService.hasPermission(grantedLevel, requiredLevel);
+}
+
 export const claimableSystemTypes: ReadonlySet<string> = new Set([
   "anchor-profile",
   "brain-character",

@@ -174,3 +174,10 @@ export {
   type ToolResponse,
   type ToolResult,
 } from "@brains/plugins";
+export {
+  PluginConfigValidationError,
+  SerialQueue,
+  SerializedStatusStore,
+  createAdminListTool,
+  hasPermission,
+} from "@brains/plugins";

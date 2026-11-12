@@ -1017,6 +1017,7 @@ export {
 } from "./service/first-party-service";
 export {
   firstPartyTool,
+  hasPermission,
   serviceRuntime,
   type ClaimedSystemType,
   type ClassRuntimeState,
