@@ -62,7 +62,11 @@ import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
 import type { StaticSiteOutput } from "./internal/http-host";
-import type { ProjectionRule } from "./entity/projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
@@ -325,6 +329,16 @@ export interface IShell {
     handlerId: string,
     handler: EvalHandler,
   ): void;
+
+  /**
+   * A registered projection rule's select and derive, run against the brain
+   * as it stands with no wave, memo or write: what the rule would write, as
+   * an eval measures it. An unknown rule id is refused.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
 
   // The system_analytics reports, core's and plugins'
   getAnalyticsRegistry(): IAnalyticsRegistry;

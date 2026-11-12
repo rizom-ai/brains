@@ -21,6 +21,8 @@ import type {
   ProjectionExecutionContext,
   ProjectionInputContext,
   ProjectionJsonObject,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
 } from "@brains/plugins";
 import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 
@@ -216,33 +218,10 @@ export class Shell implements IShell {
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
             }),
-          createProjectionInputContext: (): ProjectionInputContext => ({
-            entities: this.services.entityService,
-            resolvePrompt: (reference, fallback): Promise<string> =>
-              resolvePrompt(this.services.entityService, reference, fallback),
-            appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
-            identityInput: (): ProjectionJsonObject => {
-              const identity = this.getIdentity();
-              const profile = this.getProfile();
-              return ProjectionJsonObjectSchema.parse({
-                brainName: identity.name,
-                role: identity.role,
-                purpose: identity.purpose,
-                values: identity.values,
-                profileName: profile.name,
-                ...(profile.description !== undefined
-                  ? { profileDescription: profile.description }
-                  : {}),
-                ...(profile.organization !== undefined
-                  ? { profileOrganization: profile.organization }
-                  : {}),
-              });
-            },
-          }),
-          createProjectionExecutionContext: (): ProjectionExecutionContext => ({
-            ai: createAINamespace(this),
-            logger: this.services.logger.child("ProjectionRuntime"),
-          }),
+          createProjectionInputContext: (): ProjectionInputContext =>
+            this.createProjectionInputContext(),
+          createProjectionExecutionContext: (): ProjectionExecutionContext =>
+            this.createProjectionExecutionContext(),
           ...(dependencies?.projectionRuntime && {
             projectionRuntime: dependencies.projectionRuntime,
           }),
@@ -266,6 +245,70 @@ export class Shell implements IShell {
   }
 
   // Lifecycle
+
+  /** What a projection rule selects its input with: the brain's reads, prompts and identity. */
+  private createProjectionInputContext(): ProjectionInputContext {
+    return {
+      entities: this.services.entityService,
+      resolvePrompt: (reference, fallback): Promise<string> =>
+        resolvePrompt(this.services.entityService, reference, fallback),
+      appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
+      identityInput: (): ProjectionJsonObject => {
+        const identity = this.getIdentity();
+        const profile = this.getProfile();
+        return ProjectionJsonObjectSchema.parse({
+          brainName: identity.name,
+          role: identity.role,
+          purpose: identity.purpose,
+          values: identity.values,
+          profileName: profile.name,
+          ...(profile.description !== undefined
+            ? { profileDescription: profile.description }
+            : {}),
+          ...(profile.organization !== undefined
+            ? { profileOrganization: profile.organization }
+            : {}),
+        });
+      },
+    };
+  }
+
+  /** What a projection rule derives with: the brain's AI and a logger. */
+  private createProjectionExecutionContext(): ProjectionExecutionContext {
+    return {
+      ai: createAINamespace(this),
+      logger: this.services.logger.child("ProjectionRuntime"),
+    };
+  }
+
+  /**
+   * Run a registered projection rule's select and derive against the
+   * brain as it stands, and hand back what it would write: no wave, no
+   * memo and no write, as an eval measures the rule production runs. An
+   * unknown rule id is refused.
+   */
+  public async runProjectionRule(
+    ruleId: string,
+    options: { readonly inputs?: readonly ProjectionWaveInput[] } = {},
+    signal: AbortSignal = new AbortController().signal,
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    const rule = this.services.pluginManager
+      .getProjectionRulesSnapshot()
+      .find(({ id }) => id === ruleId);
+    if (!rule) throw new Error(`Unknown projection rule "${ruleId}"`);
+    const input = await rule.selectInput(
+      { waveId: "eval", inputs: options.inputs ?? [] },
+      this.createProjectionInputContext(),
+      signal,
+    );
+    const derived = await rule.derive(
+      input,
+      this.createProjectionExecutionContext(),
+      signal,
+    );
+    // A rule that abstains writes nothing.
+    return Array.isArray(derived) ? derived : [];
+  }
 
   public getAnalyticsRegistry(): IAnalyticsRegistry {
     return this.analyticsRegistry;

@@ -36,6 +36,10 @@ import type {
 } from "../base/context-types";
 import type { IAttachmentsNamespace } from "./attachment-registry";
 import type { RetryScope } from "@brains/utils/retry-backoff";
+import type {
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "../entity/projection-rule";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
@@ -531,6 +535,16 @@ export interface ServiceRuntime {
    */
   evalHandler(handlerId: string, handler: EvalHandler): void;
   /**
+   * One of the package's own types' projection rules, run as production
+   * runs it, with no wave, memo or write: what it would write, as an eval
+   * measures the rule. A rule none of the package's types declares is
+   * refused.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
+  /**
    * The entity service's conditional and once-only writes, as the class
    * made them through `context.entityService`: the snapshot a guarded write
    * reads, a mutation's receipt, a mutation applied once under its receipt,
@@ -952,6 +966,7 @@ export interface ServiceRuntimeBinding {
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: ClassRuntimeState;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
+  readonly runProjectionRule: ServiceRuntime["runProjectionRule"];
   readonly entityMutations: ServiceEntityMutations;
   readonly conversations: ServiceConversations;
   readonly entityReads: ServiceEntityReads;
@@ -1045,6 +1060,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
+    runProjectionRule: binding.runProjectionRule,
     entityMutations: binding.entityMutations,
     conversations: binding.conversations,
     entityReads: binding.entityReads,

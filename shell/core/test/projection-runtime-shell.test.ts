@@ -341,4 +341,55 @@ describe("Shell projection runtime lifecycle", () => {
     await waitForProjectedContent(web, null);
     expect(await projectedContent(web)).toBeNull();
   }, 30_000);
+
+  it("runs a registered rule's select and derive on demand, writing nothing", async () => {
+    const config = createTestShellConfig(testDir.dir, {
+      plugins: [new ProjectionTargetPlugin()],
+      embedding: { enabled: false },
+    });
+    const shell = Shell.createFresh(config, {
+      logger: createSilentLogger(),
+      embeddingService,
+    });
+    shells.push(shell);
+    await shell.initialize();
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "source-note",
+        entityType: "note",
+        content: "Projection source",
+        metadata: {},
+      },
+    });
+
+    // What the rule would write, as an eval measures it.
+    expect(
+      await shell.runProjectionRule("projection-target-rule", {
+        inputs: [
+          {
+            sourceType: "note",
+            sourceId: "source-note",
+            revision: "eval",
+            operation: "upsert",
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        operation: "upsert",
+        entity: {
+          id: "source-note",
+          entityType: "projection-target",
+          content: "Projection source",
+          metadata: { sourceId: "source-note" },
+          visibility: "public",
+        },
+      },
+    ]);
+    // Nothing is written: the run is select and derive only.
+    expect(await projectedContent(shell)).toBeNull();
+    expect(shell.runProjectionRule("no-such-rule")).rejects.toThrow(
+      'Unknown projection rule "no-such-rule"',
+    );
+  });
 });

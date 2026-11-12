@@ -383,6 +383,19 @@ class DeclarativeServicePlugin<
     this.dependencies = [...dependencies];
   }
 
+  /** The ids of the projection rules the package's own types declare. */
+  private ownProjectionRuleIds(): ReadonlySet<string> {
+    return new Set(
+      this.definition.entities.flatMap(({ projectionRules }) =>
+        (typeof projectionRules === "function"
+          ? // Only the ids are read; a rule's template names are not used.
+            projectionRules({ template: (localName) => localName })
+          : (projectionRules ?? [])
+        ).map(({ id }) => id),
+      ),
+    );
+  }
+
   public override register(
     shell: IShell,
     registrationContext?: PluginRegistrationContext,
@@ -1334,6 +1347,13 @@ class DeclarativeServicePlugin<
         deriveConsoleSurfaces(context.webRoutes.getRoutes(), options),
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);
+      },
+      runProjectionRule: async (ruleId, options) => {
+        const shell = this.scopedShell;
+        if (!shell || !this.ownProjectionRuleIds().has(ruleId)) {
+          throw new Error(`Unknown projection rule "${ruleId}" for ${this.id}`);
+        }
+        return shell.runProjectionRule(ruleId, options);
       },
       classRuntimeState: Object.freeze({
         scoped: context.runtimeState.scoped.bind(context.runtimeState),
