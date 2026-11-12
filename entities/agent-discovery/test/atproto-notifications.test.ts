@@ -1,3 +1,4 @@
+import { agentToolsPlugins } from "./agent-discovery-plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
@@ -5,8 +6,6 @@ import {
   ATPROTO_BRAIN_DISCOVERED,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
-
-import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 
 const discoveredPayload: AtprotoBrainDiscoveryEventPayload = {
   agentId: "peer.example.com",
@@ -39,8 +38,8 @@ async function installWithCapturedCheck(notifyOnNewAgents: boolean): Promise<{
       return (): void => {};
     },
   });
-  const plugin = new AgentToolsPlugin(undefined, { notifyOnNewAgents });
-  await plugin.register(shell);
+  for (const plugin of agentToolsPlugins({}, { notifyOnNewAgents }))
+    await plugin.register(shell);
   if (!captured) throw new Error("Expected recurring check registration");
   return { shell, check: captured };
 }

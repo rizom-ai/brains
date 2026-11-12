@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { AgentAdapter, SkillAdapter } from "@brains/agent-discovery";
+import {
+  createAgentContent,
+  createSkillContent,
+} from "@brains/agent-discovery";
 import { ProjectionJsonObjectSchema } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockProgressReporter } from "@brains/test-utils";
@@ -11,8 +14,6 @@ import {
   SwotDerivationHandler,
 } from "../src/handlers/swot-derivation-handler";
 
-const agentAdapter = new AgentAdapter();
-const skillAdapter = new SkillAdapter();
 const swotAdapter = new SwotAdapter();
 
 function hasParser<T>(schema: unknown): schema is { parse(value: unknown): T } {
@@ -165,7 +166,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -249,7 +250,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -312,7 +313,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -393,7 +394,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Turn source material into grounded findings.",
           tags: ["research", "synthesis"],
@@ -412,7 +413,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "agent-1",
         entityType: "agent",
-        content: agentAdapter.createAgentContent({
+        content: createAgentContent({
           name: "Signal Forge",
           brainName: "signal-forge",
           url: "https://signal-forge.example.com",
@@ -517,7 +518,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -643,7 +644,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -726,7 +727,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -760,7 +761,7 @@ describe("SwotDerivationHandler", () => {
     await harness.getEntityService().updateEntity({
       entity: {
         ...skill,
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Updated research skill",
           tags: ["research"],
@@ -830,7 +831,7 @@ describe("SwotDerivationHandler", () => {
       entity: {
         id: "skill-1",
         entityType: "skill",
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Research skill",
           tags: ["research"],
@@ -860,7 +861,7 @@ describe("SwotDerivationHandler", () => {
     await harness.getEntityService().updateEntity({
       entity: {
         ...sourceSkill,
-        content: skillAdapter.createSkillContent({
+        content: createSkillContent({
           name: "Research",
           description: "Changed research skill",
           tags: ["research"],

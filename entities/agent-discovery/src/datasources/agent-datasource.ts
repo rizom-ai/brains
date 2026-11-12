@@ -1,28 +1,22 @@
-import {
-  BaseEntityDataSource,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  BaseQuery,
-  EntityDataSourceConfig,
-  NavigationResult,
-  PaginationInfo,
-} from "@brains/plugins";
+import { parseAgentContent } from "../lib/agent-content";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,
   agentWithDataSchema,
+  type agentMetadataSchema,
 } from "../schemas/agent";
-import type { Logger } from "@brains/utils/logger";
+import {
+  defineDataSource,
+  type EntityDataSourceDefinition,
+  type EntityDefinition,
+} from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
-import { AgentAdapter } from "../adapters/agent-adapter";
-import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 import { agentViewSchema, type AgentSchemaData } from "../templates/agent-view";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
+import { type PaginationInfo } from "@brains/sdk/internal/presentation";
 
-const agentAdapter: AgentAdapter = new AgentAdapter();
+type AgentDefinition = EntityDefinition<"agent", typeof agentMetadataSchema>;
 
 interface AgentDetailData {
   agent: AgentWithData;
@@ -42,36 +36,6 @@ const agentStatusQuerySchema: AgentStatusQuerySchema = z.enum([
   "archived",
 ]);
 
-type AgentQuerySchema = z.ZodObject<{
-  id: z.ZodOptional<z.ZodString>;
-  limit: z.ZodOptional<z.ZodNumber>;
-  page: z.ZodOptional<z.ZodNumber>;
-  pageSize: z.ZodOptional<z.ZodNumber>;
-  baseUrl: z.ZodOptional<z.ZodString>;
-  status: z.ZodOptional<AgentStatusQuerySchema>;
-}>;
-
-const agentQuerySchema: AgentQuerySchema = z.looseObject({
-  id: z.string().optional(),
-  limit: z.number().optional(),
-  page: z.number().optional(),
-  pageSize: z.number().optional(),
-  baseUrl: z.string().optional(),
-  status: agentStatusQuerySchema.optional(),
-});
-
-type AgentInputSchema = z.ZodObject<{
-  entityType: z.ZodOptional<z.ZodString>;
-  query: z.ZodOptional<AgentQuerySchema>;
-}>;
-
-const agentInputSchema: AgentInputSchema = z.looseObject({
-  entityType: z.string().optional(),
-  query: agentQuerySchema.optional(),
-});
-
-type AgentQuery = z.output<typeof agentQuerySchema>;
-
 interface AgentListData {
   agents: AgentSchemaData[];
   pagination: PaginationInfo | null;
@@ -89,7 +53,7 @@ function parseAgentData(entity: AgentEntity): AgentWithData {
     agentFrontmatterSchema,
   );
 
-  const sections = agentAdapter.parseAgentContent(entity.content);
+  const sections = parseAgentContent(entity.content);
 
   return agentWithDataSchema.parse({
     ...entity,
@@ -101,97 +65,41 @@ function parseAgentData(entity: AgentEntity): AgentWithData {
 }
 
 /**
- * DataSource for agent directory entities.
- * Handles list views (all agents, sorted by discovery date) and
- * detail views with prev/next navigation.
+ * The agent directory's pages: a page of agents, newest discovered first,
+ * filtered by status when the page names one, and one agent by its slug
+ * with its neighbors, as the agent-discovery class served them under
+ * agent-discovery:entities.
  */
-export class AgentDataSource extends BaseEntityDataSource<
-  AgentEntity,
-  AgentWithData,
-  AgentListData
-> {
-  readonly id: typeof AGENT_DATASOURCE_ID = AGENT_DATASOURCE_ID;
-  readonly name: string = "Agent Directory DataSource";
-  readonly description: string =
-    "Fetches and transforms agent entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<AgentEntity> = {
-    entityType: AGENT_ENTITY_TYPE,
-    entitySchema: agentEntitySchema,
-    defaultSort: [
-      { field: "discoveredAt" as const, direction: "desc" as const },
-    ],
+export function agentDataSource(
+  agent: AgentDefinition,
+): EntityDataSourceDefinition<AgentDefinition, AgentWithData, AgentListData> {
+  return defineDataSource({
+    id: "entities",
+    name: "Agent Directory DataSource",
+    description: "Fetches and transforms agent entities for rendering",
+    entity: agent,
+    defaultSort: [{ field: "discoveredAt", direction: "desc" }],
     defaultLimit: 50,
-    lookupField: "slug" as const,
+    lookupField: "slug",
     enableNavigation: true,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-  }
-
-  protected transformEntity(entity: AgentEntity): AgentWithData {
-    return parseAgentData(entity);
-  }
-
-  protected override buildDetailResult(
-    item: AgentWithData,
-    navigation: NavigationResult<AgentWithData> | null,
-  ): AgentDetailData {
-    return {
+    filter: (query) => {
+      const status = agentStatusQuerySchema.safeParse(query["status"]);
+      return status.success ? { metadata: { status: status.data } } : undefined;
+    },
+    transform: (entity) => parseAgentData(agentEntitySchema.parse(entity)),
+    list: (items, pagination, query): AgentListData => {
+      const status = agentStatusQuerySchema.safeParse(query["status"]);
+      return {
+        agents: items.map((item) => agentViewSchema.parse(item)),
+        pagination,
+        baseUrl: query.baseUrl ?? null,
+        selectedStatus: status.success ? status.data : "all",
+      };
+    },
+    detail: ({ item, navigation }): AgentDetailData => ({
       agent: item,
       prevAgent: navigation?.prev ?? null,
       nextAgent: navigation?.next ?? null,
-    };
-  }
-
-  protected override parseQuery(query: unknown): {
-    entityType: string;
-    query: AgentQuery;
-  } {
-    const parsed = agentInputSchema.parse(query);
-    return {
-      entityType: parsed.entityType ?? this.config.entityType,
-      query: parsed.query ?? {},
-    };
-  }
-
-  protected buildListResult(
-    items: AgentWithData[],
-    pagination: PaginationInfo | null,
-    query: BaseQuery,
-  ): AgentListData {
-    const status = agentStatusQuerySchema.safeParse(query["status"]);
-
-    return {
-      agents: items.map((item) => agentViewSchema.parse(item)),
-      pagination,
-      baseUrl: query.baseUrl ?? null,
-      selectedStatus: status.success ? status.data : "all",
-    };
-  }
-
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { query: parsedQuery } = this.parseQuery(query);
-
-    if (parsedQuery.id) {
-      return super.fetch(query, outputSchema, context);
-    }
-
-    const { items, pagination } = await this.fetchList(
-      parsedQuery,
-      context.entityService,
-      parsedQuery.status
-        ? { filter: { metadata: { status: parsedQuery.status } } }
-        : undefined,
-    );
-
-    return outputSchema.parse(
-      this.buildListResult(items, pagination, parsedQuery),
-    );
-  }
+    }),
+  });
 }

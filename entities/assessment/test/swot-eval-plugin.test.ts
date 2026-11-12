@@ -3,9 +3,8 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  AgentAdapter,
-  SkillAdapter,
   agentEntitySchema,
+  parseAgentEntity,
   skillEntitySchema,
 } from "@brains/agent-discovery";
 import { SwotEvalPlugin, swotEvalPlugin } from "@brains/assessment/eval";
@@ -108,10 +107,9 @@ describe("SwotEvalPlugin", () => {
     await harness.installPlugin(swotEvalPlugin());
 
     const registry = harness.getEntityRegistry();
-    expect(registry.getAdapter("agent")).toBeInstanceOf(AgentAdapter);
-    expect(registry.getAdapter("agent").schema).toBe(agentEntitySchema);
-    expect(registry.getAdapter("skill")).toBeInstanceOf(SkillAdapter);
-    expect(registry.getAdapter("skill").schema).toBe(skillEntitySchema);
+    // agent-discovery's declared types, as its packages install them.
+    expect(registry.getAdapter("agent").entityType).toBe("agent");
+    expect(registry.getAdapter("skill").entityType).toBe("skill");
     expect(harness.getEntityService().getEntityTypes()).toContain("swot");
   });
 
@@ -140,9 +138,8 @@ describe("SwotEvalPlugin", () => {
       { entityType: "agent" },
       agentEntitySchema,
     );
-    const agentAdapter = new AgentAdapter();
     expect(
-      agents.map((agent) => agentAdapter.parseEntity(agent).frontmatter.url),
+      agents.map((agent) => parseAgentEntity(agent).frontmatter.url),
     ).toEqual(
       expect.arrayContaining(basicTestCase.input.agents.map(({ url }) => url)),
     );

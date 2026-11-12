@@ -1,0 +1,1419 @@
+{
+  "source": "main f61f73989e, AgentDataSource on the entity store",
+  "files": {
+    "alpha.example": {
+      "markdown": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n\n",
+      "visibility": "public"
+    },
+    "bravo.example": {
+      "markdown": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n\n",
+      "visibility": "public"
+    },
+    "charlie.example": {
+      "markdown": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n\n",
+      "visibility": "public"
+    },
+    "delta.example": {
+      "markdown": "---\nname: Delta\nkind: person\nbrainName: Delta\nurl: 'https://delta.example/a2a'\nstatus: archived\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nDelta about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n\n",
+      "visibility": "public"
+    },
+    "echo.example": {
+      "markdown": "---\nname: Echo\nkind: person\nbrainName: Echo\nurl: 'https://echo.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-05-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nEcho about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n\n",
+      "visibility": "restricted"
+    }
+  },
+  "public:listPublic": {
+    "agents": [
+      {
+        "id": "delta.example",
+        "entityType": "agent",
+        "content": "---\nname: Delta\nkind: person\nbrainName: Delta\nurl: 'https://delta.example/a2a'\nstatus: archived\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nDelta about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.203Z",
+        "updated": "2026-11-12T17:38:48.203Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Delta",
+          "url": "https://delta.example/a2a",
+          "status": "archived",
+          "discoveredAt": "2026-04-01T00:00:00.000Z",
+          "slug": "delta-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "985100a5885e0544e636cc175149cfe749dbe9182e7a70d45ca60bc05d3b5840",
+        "frontmatter": {
+          "name": "Delta",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Delta",
+          "url": "https://delta.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "archived",
+          "discoveredAt": "2026-04-01T00:00:00.000Z"
+        },
+        "about": "Delta about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "charlie.example",
+        "entityType": "agent",
+        "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.199Z",
+        "updated": "2026-11-12T17:38:48.199Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z",
+          "slug": "charlie-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+        "frontmatter": {
+          "name": "Charlie",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z"
+        },
+        "about": "Charlie about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "bravo.example",
+        "entityType": "agent",
+        "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.195Z",
+        "updated": "2026-11-12T17:38:48.195Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z",
+          "slug": "bravo-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+        "frontmatter": {
+          "name": "Bravo",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z"
+        },
+        "about": "Bravo about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "alpha.example",
+        "entityType": "agent",
+        "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.185Z",
+        "updated": "2026-11-12T17:38:48.185Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z",
+          "slug": "alpha-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+        "frontmatter": {
+          "name": "Alpha",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z"
+        },
+        "about": "Alpha about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      }
+    ],
+    "pagination": null,
+    "baseUrl": null,
+    "selectedStatus": "all"
+  },
+  "public:listApproved": {
+    "agents": [
+      {
+        "id": "charlie.example",
+        "entityType": "agent",
+        "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.199Z",
+        "updated": "2026-11-12T17:38:48.199Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z",
+          "slug": "charlie-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+        "frontmatter": {
+          "name": "Charlie",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z"
+        },
+        "about": "Charlie about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "alpha.example",
+        "entityType": "agent",
+        "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.185Z",
+        "updated": "2026-11-12T17:38:48.185Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z",
+          "slug": "alpha-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+        "frontmatter": {
+          "name": "Alpha",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z"
+        },
+        "about": "Alpha about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      }
+    ],
+    "pagination": null,
+    "baseUrl": null,
+    "selectedStatus": "approved"
+  },
+  "public:listPaged": {
+    "agents": [
+      {
+        "id": "bravo.example",
+        "entityType": "agent",
+        "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.195Z",
+        "updated": "2026-11-12T17:38:48.195Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z",
+          "slug": "bravo-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+        "frontmatter": {
+          "name": "Bravo",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z"
+        },
+        "about": "Bravo about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "alpha.example",
+        "entityType": "agent",
+        "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.185Z",
+        "updated": "2026-11-12T17:38:48.185Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z",
+          "slug": "alpha-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+        "frontmatter": {
+          "name": "Alpha",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z"
+        },
+        "about": "Alpha about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      }
+    ],
+    "pagination": {
+      "currentPage": 2,
+      "totalPages": 2,
+      "totalItems": 4,
+      "pageSize": 2,
+      "hasNextPage": false,
+      "hasPrevPage": true
+    },
+    "baseUrl": "/agents",
+    "selectedStatus": "all"
+  },
+  "public:detailMiddle": {
+    "agent": {
+      "id": "bravo.example",
+      "entityType": "agent",
+      "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.195Z",
+      "updated": "2026-11-12T17:38:48.195Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z",
+        "slug": "bravo-example"
+      },
+      "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+      "frontmatter": {
+        "name": "Bravo",
+        "kind": "person",
+        "brainName": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z"
+      },
+      "about": "Bravo about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "prevAgent": {
+      "id": "charlie.example",
+      "entityType": "agent",
+      "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.199Z",
+      "updated": "2026-11-12T17:38:48.199Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z",
+        "slug": "charlie-example"
+      },
+      "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+      "frontmatter": {
+        "name": "Charlie",
+        "kind": "person",
+        "brainName": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z"
+      },
+      "about": "Charlie about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "nextAgent": {
+      "id": "alpha.example",
+      "entityType": "agent",
+      "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.185Z",
+      "updated": "2026-11-12T17:38:48.185Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z",
+        "slug": "alpha-example"
+      },
+      "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+      "frontmatter": {
+        "name": "Alpha",
+        "kind": "person",
+        "brainName": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z"
+      },
+      "about": "Alpha about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "public:detailFirst": {
+    "agent": {
+      "id": "delta.example",
+      "entityType": "agent",
+      "content": "---\nname: Delta\nkind: person\nbrainName: Delta\nurl: 'https://delta.example/a2a'\nstatus: archived\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nDelta about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.203Z",
+      "updated": "2026-11-12T17:38:48.203Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Delta",
+        "url": "https://delta.example/a2a",
+        "status": "archived",
+        "discoveredAt": "2026-04-01T00:00:00.000Z",
+        "slug": "delta-example"
+      },
+      "contentHash": "985100a5885e0544e636cc175149cfe749dbe9182e7a70d45ca60bc05d3b5840",
+      "frontmatter": {
+        "name": "Delta",
+        "kind": "person",
+        "brainName": "Delta",
+        "url": "https://delta.example/a2a",
+        "status": "archived",
+        "discoveredAt": "2026-04-01T00:00:00.000Z"
+      },
+      "about": "Delta about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "prevAgent": null,
+    "nextAgent": {
+      "id": "charlie.example",
+      "entityType": "agent",
+      "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.199Z",
+      "updated": "2026-11-12T17:38:48.199Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z",
+        "slug": "charlie-example"
+      },
+      "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+      "frontmatter": {
+        "name": "Charlie",
+        "kind": "person",
+        "brainName": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z"
+      },
+      "about": "Charlie about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "public:detailLast": {
+    "agent": {
+      "id": "alpha.example",
+      "entityType": "agent",
+      "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.185Z",
+      "updated": "2026-11-12T17:38:48.185Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z",
+        "slug": "alpha-example"
+      },
+      "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+      "frontmatter": {
+        "name": "Alpha",
+        "kind": "person",
+        "brainName": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z"
+      },
+      "about": "Alpha about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "prevAgent": {
+      "id": "bravo.example",
+      "entityType": "agent",
+      "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.195Z",
+      "updated": "2026-11-12T17:38:48.195Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z",
+        "slug": "bravo-example"
+      },
+      "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+      "frontmatter": {
+        "name": "Bravo",
+        "kind": "person",
+        "brainName": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z"
+      },
+      "about": "Bravo about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "nextAgent": null
+  },
+  "restricted:listPublic": {
+    "agents": [
+      {
+        "id": "echo.example",
+        "entityType": "agent",
+        "content": "---\nname: Echo\nkind: person\nbrainName: Echo\nurl: 'https://echo.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-05-01T00:00:00.000Z'\nvisibility: restricted\n---\n# Agent\n\n## About\nEcho about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.206Z",
+        "updated": "2026-11-12T17:38:48.206Z",
+        "visibility": "restricted",
+        "metadata": {
+          "name": "Echo",
+          "url": "https://echo.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-05-01T00:00:00.000Z",
+          "slug": "echo-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "c0a9751e05abeaa54978c47119b1de9c3424dc7e86b271dabed88604b862821d",
+        "frontmatter": {
+          "name": "Echo",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Echo",
+          "url": "https://echo.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-05-01T00:00:00.000Z"
+        },
+        "about": "Echo about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "delta.example",
+        "entityType": "agent",
+        "content": "---\nname: Delta\nkind: person\nbrainName: Delta\nurl: 'https://delta.example/a2a'\nstatus: archived\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nDelta about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.203Z",
+        "updated": "2026-11-12T17:38:48.203Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Delta",
+          "url": "https://delta.example/a2a",
+          "status": "archived",
+          "discoveredAt": "2026-04-01T00:00:00.000Z",
+          "slug": "delta-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "985100a5885e0544e636cc175149cfe749dbe9182e7a70d45ca60bc05d3b5840",
+        "frontmatter": {
+          "name": "Delta",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Delta",
+          "url": "https://delta.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "archived",
+          "discoveredAt": "2026-04-01T00:00:00.000Z"
+        },
+        "about": "Delta about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "charlie.example",
+        "entityType": "agent",
+        "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.199Z",
+        "updated": "2026-11-12T17:38:48.199Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z",
+          "slug": "charlie-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+        "frontmatter": {
+          "name": "Charlie",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z"
+        },
+        "about": "Charlie about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "bravo.example",
+        "entityType": "agent",
+        "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.195Z",
+        "updated": "2026-11-12T17:38:48.195Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z",
+          "slug": "bravo-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+        "frontmatter": {
+          "name": "Bravo",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z"
+        },
+        "about": "Bravo about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "alpha.example",
+        "entityType": "agent",
+        "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.185Z",
+        "updated": "2026-11-12T17:38:48.185Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z",
+          "slug": "alpha-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+        "frontmatter": {
+          "name": "Alpha",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z"
+        },
+        "about": "Alpha about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      }
+    ],
+    "pagination": null,
+    "baseUrl": null,
+    "selectedStatus": "all"
+  },
+  "restricted:listApproved": {
+    "agents": [
+      {
+        "id": "echo.example",
+        "entityType": "agent",
+        "content": "---\nname: Echo\nkind: person\nbrainName: Echo\nurl: 'https://echo.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-05-01T00:00:00.000Z'\nvisibility: restricted\n---\n# Agent\n\n## About\nEcho about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.206Z",
+        "updated": "2026-11-12T17:38:48.206Z",
+        "visibility": "restricted",
+        "metadata": {
+          "name": "Echo",
+          "url": "https://echo.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-05-01T00:00:00.000Z",
+          "slug": "echo-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "c0a9751e05abeaa54978c47119b1de9c3424dc7e86b271dabed88604b862821d",
+        "frontmatter": {
+          "name": "Echo",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Echo",
+          "url": "https://echo.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-05-01T00:00:00.000Z"
+        },
+        "about": "Echo about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "charlie.example",
+        "entityType": "agent",
+        "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.199Z",
+        "updated": "2026-11-12T17:38:48.199Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z",
+          "slug": "charlie-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+        "frontmatter": {
+          "name": "Charlie",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z"
+        },
+        "about": "Charlie about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "alpha.example",
+        "entityType": "agent",
+        "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.185Z",
+        "updated": "2026-11-12T17:38:48.185Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z",
+          "slug": "alpha-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+        "frontmatter": {
+          "name": "Alpha",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Alpha",
+          "url": "https://alpha.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-01-01T00:00:00.000Z"
+        },
+        "about": "Alpha about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      }
+    ],
+    "pagination": null,
+    "baseUrl": null,
+    "selectedStatus": "approved"
+  },
+  "restricted:listPaged": {
+    "agents": [
+      {
+        "id": "charlie.example",
+        "entityType": "agent",
+        "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.199Z",
+        "updated": "2026-11-12T17:38:48.199Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z",
+          "slug": "charlie-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+        "frontmatter": {
+          "name": "Charlie",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Charlie",
+          "url": "https://charlie.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "approved",
+          "discoveredAt": "2026-03-01T00:00:00.000Z"
+        },
+        "about": "Charlie about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      },
+      {
+        "id": "bravo.example",
+        "entityType": "agent",
+        "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+        "created": "2026-11-12T17:38:48.195Z",
+        "updated": "2026-11-12T17:38:48.195Z",
+        "visibility": "public",
+        "metadata": {
+          "name": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z",
+          "slug": "bravo-example",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null
+        },
+        "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+        "frontmatter": {
+          "name": "Bravo",
+          "kind": "person",
+          "organization": null,
+          "brainName": "Bravo",
+          "url": "https://bravo.example/a2a",
+          "repoDid": null,
+          "brainDid": null,
+          "cardUri": null,
+          "cardCid": null,
+          "introducedBy": null,
+          "hops": null,
+          "status": "discovered",
+          "discoveredAt": "2026-02-01T00:00:00.000Z"
+        },
+        "about": "Bravo about.",
+        "skills": [
+          {
+            "name": "Mapping",
+            "description": "Maps",
+            "tags": ["maps"]
+          }
+        ],
+        "notes": "",
+        "url": null,
+        "typeLabel": null
+      }
+    ],
+    "pagination": {
+      "currentPage": 2,
+      "totalPages": 3,
+      "totalItems": 5,
+      "pageSize": 2,
+      "hasNextPage": true,
+      "hasPrevPage": true
+    },
+    "baseUrl": "/agents",
+    "selectedStatus": "all"
+  },
+  "restricted:detailMiddle": {
+    "agent": {
+      "id": "bravo.example",
+      "entityType": "agent",
+      "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.195Z",
+      "updated": "2026-11-12T17:38:48.195Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z",
+        "slug": "bravo-example"
+      },
+      "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+      "frontmatter": {
+        "name": "Bravo",
+        "kind": "person",
+        "brainName": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z"
+      },
+      "about": "Bravo about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "prevAgent": {
+      "id": "charlie.example",
+      "entityType": "agent",
+      "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.199Z",
+      "updated": "2026-11-12T17:38:48.199Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z",
+        "slug": "charlie-example"
+      },
+      "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+      "frontmatter": {
+        "name": "Charlie",
+        "kind": "person",
+        "brainName": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z"
+      },
+      "about": "Charlie about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "nextAgent": {
+      "id": "alpha.example",
+      "entityType": "agent",
+      "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.185Z",
+      "updated": "2026-11-12T17:38:48.185Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z",
+        "slug": "alpha-example"
+      },
+      "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+      "frontmatter": {
+        "name": "Alpha",
+        "kind": "person",
+        "brainName": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z"
+      },
+      "about": "Alpha about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "restricted:detailFirst": {
+    "agent": {
+      "id": "delta.example",
+      "entityType": "agent",
+      "content": "---\nname: Delta\nkind: person\nbrainName: Delta\nurl: 'https://delta.example/a2a'\nstatus: archived\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nDelta about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.203Z",
+      "updated": "2026-11-12T17:38:48.203Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Delta",
+        "url": "https://delta.example/a2a",
+        "status": "archived",
+        "discoveredAt": "2026-04-01T00:00:00.000Z",
+        "slug": "delta-example"
+      },
+      "contentHash": "985100a5885e0544e636cc175149cfe749dbe9182e7a70d45ca60bc05d3b5840",
+      "frontmatter": {
+        "name": "Delta",
+        "kind": "person",
+        "brainName": "Delta",
+        "url": "https://delta.example/a2a",
+        "status": "archived",
+        "discoveredAt": "2026-04-01T00:00:00.000Z"
+      },
+      "about": "Delta about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "prevAgent": {
+      "id": "echo.example",
+      "entityType": "agent",
+      "content": "---\nname: Echo\nkind: person\nbrainName: Echo\nurl: 'https://echo.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-05-01T00:00:00.000Z'\nvisibility: restricted\n---\n# Agent\n\n## About\nEcho about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.206Z",
+      "updated": "2026-11-12T17:38:48.206Z",
+      "visibility": "restricted",
+      "metadata": {
+        "name": "Echo",
+        "url": "https://echo.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-05-01T00:00:00.000Z",
+        "slug": "echo-example"
+      },
+      "contentHash": "c0a9751e05abeaa54978c47119b1de9c3424dc7e86b271dabed88604b862821d",
+      "frontmatter": {
+        "name": "Echo",
+        "kind": "person",
+        "brainName": "Echo",
+        "url": "https://echo.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-05-01T00:00:00.000Z"
+      },
+      "about": "Echo about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "nextAgent": {
+      "id": "charlie.example",
+      "entityType": "agent",
+      "content": "---\nname: Charlie\nkind: person\nbrainName: Charlie\nurl: 'https://charlie.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nCharlie about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.199Z",
+      "updated": "2026-11-12T17:38:48.199Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z",
+        "slug": "charlie-example"
+      },
+      "contentHash": "3ec718bb02e7a37ee6a63a689ff8a627fd9c9520f3b97781a15ca8d437c320c2",
+      "frontmatter": {
+        "name": "Charlie",
+        "kind": "person",
+        "brainName": "Charlie",
+        "url": "https://charlie.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-01T00:00:00.000Z"
+      },
+      "about": "Charlie about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "restricted:detailLast": {
+    "agent": {
+      "id": "alpha.example",
+      "entityType": "agent",
+      "content": "---\nname: Alpha\nkind: person\nbrainName: Alpha\nurl: 'https://alpha.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nAlpha about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.185Z",
+      "updated": "2026-11-12T17:38:48.185Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z",
+        "slug": "alpha-example"
+      },
+      "contentHash": "265f6fe77e00d93bf9bc9c336745fcb6078f48b1852f0495dd53665b8be2dd4b",
+      "frontmatter": {
+        "name": "Alpha",
+        "kind": "person",
+        "brainName": "Alpha",
+        "url": "https://alpha.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-01-01T00:00:00.000Z"
+      },
+      "about": "Alpha about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "prevAgent": {
+      "id": "bravo.example",
+      "entityType": "agent",
+      "content": "---\nname: Bravo\nkind: person\nbrainName: Bravo\nurl: 'https://bravo.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-02-01T00:00:00.000Z'\n---\n# Agent\n\n## About\nBravo about.\n\n## Skills\n\n- Mapping: Maps [maps]\n\n## Notes\n",
+      "created": "2026-11-12T17:38:48.195Z",
+      "updated": "2026-11-12T17:38:48.195Z",
+      "visibility": "public",
+      "metadata": {
+        "name": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z",
+        "slug": "bravo-example"
+      },
+      "contentHash": "9d3b97413248b78bdd05879bc38b3e0a5cc1fba3ca3e2974dfc7e05fb7c8a1e5",
+      "frontmatter": {
+        "name": "Bravo",
+        "kind": "person",
+        "brainName": "Bravo",
+        "url": "https://bravo.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-02-01T00:00:00.000Z"
+      },
+      "about": "Bravo about.",
+      "skills": [
+        {
+          "name": "Mapping",
+          "description": "Maps",
+          "tags": ["maps"]
+        }
+      ],
+      "notes": ""
+    },
+    "nextAgent": null
+  }
+}

@@ -1881,6 +1881,131 @@
         }
       },
       "required": ["capturedAt", "status"]
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["person", "team", "organization"]
+        },
+        "organization": {
+          "type": "string"
+        },
+        "brainName": {
+          "type": "string",
+          "description": "Name of the brain instance"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Brain endpoint URL"
+        },
+        "repoDid": {
+          "description": "ATProto repo DID",
+          "studioWidget": "provenance",
+          "type": "string"
+        },
+        "brainDid": {
+          "description": "ATProto brain DID",
+          "studioWidget": "provenance",
+          "type": "string"
+        },
+        "cardUri": {
+          "description": "ATProto brain card URI",
+          "studioWidget": "provenance",
+          "type": "string"
+        },
+        "cardCid": {
+          "description": "ATProto brain card CID",
+          "studioWidget": "provenance",
+          "type": "string"
+        },
+        "cardLastError": {
+          "description": "Last ATProto brain card refresh error",
+          "studioWidget": "hidden",
+          "type": "string"
+        },
+        "cardFailureCount": {
+          "description": "Consecutive ATProto brain card refresh failures",
+          "studioWidget": "hidden",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cardUnavailableAt": {
+          "description": "When the remote ATProto brain card became unavailable",
+          "studioWidget": "hidden",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "cardStaleAfter": {
+          "description": "When a never-approved unavailable card may be archived",
+          "studioWidget": "hidden",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["discovered", "approved", "archived"],
+          "description": "Discovered for review, approved for calling, or archived"
+        },
+        "discoveredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "description": "When this agent was first discovered",
+          "studioWidget": "provenance"
+        },
+        "introducedBy": {
+          "description": "Agent ids of the peers whose directories reported this agent",
+          "studioWidget": "provenance",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hops": {
+          "description": "Discovery order: 2 = sighted through a first-order peer",
+          "studioWidget": "provenance",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["name", "kind", "brainName", "url", "status", "discoveredAt"]
+    },
+    "skill": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["name", "description", "tags", "examples"]
     }
   },
   "obsidian": {

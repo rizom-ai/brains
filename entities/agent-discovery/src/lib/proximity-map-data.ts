@@ -1,11 +1,4 @@
-import type { ContentVisibility } from "@brains/plugins";
-import type {
-  EntitySchema,
-  ISemanticNamespace,
-  ListEntitiesRequest,
-  SemanticSpacePoint,
-} from "@brains/plugins";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import { parseAgentEntity } from "./agent-content";
 import {
   agentEntitySchema,
   type AgentEntity,
@@ -25,6 +18,13 @@ import {
   type ProximityMapSighting,
 } from "./proximity-map-schema";
 import { normalizeTags } from "./tag-vocabulary";
+import {
+  type ContentVisibility,
+  type ListEntitiesRequest,
+  type SemanticSpacePoint,
+} from "@brains/sdk/internal/service-runtime";
+import { type EntitySchema } from "@brains/sdk/internal/entity-runtime";
+import type { AgentContext } from "./agent-context";
 
 const BRAIN_CHARACTER_REFERENCE = {
   entityId: "brain-character",
@@ -54,10 +54,8 @@ export interface ProximityMapDataContext {
       schema: EntitySchema<AgentEntity>,
     ): Promise<AgentEntity[]>;
   };
-  semantic: ISemanticNamespace;
+  semantic: AgentContext["semantic"];
 }
-
-const agentAdapter = new AgentAdapter();
 
 /** A sighting is a second-order agent: discovered through a peer's
  * directory, carrying introducer provenance, not yet approved. */
@@ -95,7 +93,7 @@ export async function buildProximityMapData(
   const parsed = agents
     .slice()
     .sort((left, right) => left.id.localeCompare(right.id))
-    .map((agent) => ({ agent, ...agentAdapter.parseEntity(agent) }));
+    .map((agent) => ({ agent, ...parseAgentEntity(agent) }));
   const firstOrder = parsed.filter((entry) => !isSighting(entry.frontmatter));
   const sighted = parsed.filter((entry) => isSighting(entry.frontmatter));
 

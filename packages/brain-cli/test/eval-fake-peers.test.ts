@@ -2,10 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createA2AInterface } from "@brains/a2a";
-import {
-  AgentDiscoveryPlugin,
-  AgentToolsPlugin,
-} from "@brains/agent-discovery";
+import { createAgentDiscoveryPackages } from "@brains/agent-discovery";
 import {
   createFakePeerFetch,
   isSafeSeedAgentUrl,
@@ -95,9 +92,23 @@ describe("the agent network against the eval's fake peers", () => {
       readSeedPeers(join(EVAL_CONTENT, "core")),
       unreachable,
     );
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    // The agent directory as the brain composes it, reaching peers through
+    // the fake network.
+    const packages = createAgentDiscoveryPackages({ fetch });
+    const metadata = { name: "@brains/agent-discovery", version: "0.0.0-test" };
+    for (const plugin of instantiatePluginPackageDefinition(
+      packages.agentDiscovery,
+      {},
+      metadata,
+      { pluginId: "agent-discovery", ownedTypePluginId: "agent-entity" },
+    ))
+      await harness.installPlugin(plugin);
     const installed = [
-      await harness.installPlugin(new AgentToolsPlugin(fetch)),
+      ...(await Promise.all(
+        instantiatePluginPackageDefinition(packages.agentTools, {}, metadata, {
+          pluginId: "agent",
+        }).map((plugin) => harness.installPlugin(plugin)),
+      )),
       await harness.installPlugin(createA2APlugin(fetch)),
     ];
     await harness.finalizeRegistration();

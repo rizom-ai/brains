@@ -205,8 +205,11 @@ describe("canonical brain core", () => {
       // The knowledge map comes with topics.
       "knowledge-map",
       "directory-sync",
+      // The agent and skill types install apart from their services.
+      "agent-entity",
       "agent-discovery",
       "agent",
+      "skill-entity",
       "skill",
       "unified-inbox",
       "mcp",

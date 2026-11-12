@@ -1,27 +1,52 @@
-import { describe, it, expect } from "bun:test";
 import {
-  AgentAdapter,
-  type CreateAgentContentInput,
-} from "../src/adapters/agent-adapter";
+  agentFromMarkdown,
+  createAgentContent,
+  parseAgentContent,
+  parseAgentEntity,
+  rewriteAgentContent,
+} from "../src/lib/agent-content";
+import { describe, it, expect } from "bun:test";
+import { EntityPlugin } from "@brains/plugins";
+import { createMockShell } from "@brains/plugins/test";
+import type { CreateAgentContentInput } from "../src/lib/agent-content";
 import type { AgentEntity } from "../src/schemas/agent";
+import { agentDiscoveryPlugins } from "./agent-discovery-plugins";
 
-const adapter = new AgentAdapter();
+/** The agent type's adapter, as the installed package registers it. */
+async function agentTypeAdapter(): Promise<
+  ReturnType<
+    ReturnType<
+      ReturnType<typeof createMockShell>["getEntityRegistry"]
+    >["getAdapter"]
+  >
+> {
+  const shell = createMockShell();
+  for (const plugin of agentDiscoveryPlugins()) await plugin.register(shell);
+  return shell.getEntityRegistry().getAdapter("agent");
+}
 
-describe("AgentAdapter", () => {
+describe("the agent type's content", () => {
   it("should have correct entity type", () => {
-    expect(adapter.entityType).toBe("agent");
+    const [type] = agentDiscoveryPlugins();
+    expect(type instanceof EntityPlugin && type.entityType).toBe("agent");
   });
 
-  it("declares approval as the publish gate for publishedOnly builds", () => {
+  it("declares approval as the publish gate for publishedOnly builds", async () => {
     // Production site builds filter to published entities; for agents,
     // approval is what makes one public-directory content — discovered and
     // archived agents must stay out of static routes.
-    expect(adapter.publishedStatuses).toEqual(["approved"]);
+    const shell = createMockShell();
+    for (const plugin of agentDiscoveryPlugins()) await plugin.register(shell);
+    expect(
+      shell.getEntityRegistry().getEntityTypeConfig("agent").publish,
+    ).toEqual({
+      publishStatuses: ["approved"],
+    });
   });
 
   describe("createAgentContent", () => {
     it("should build markdown with frontmatter and body sections", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Yeehaa",
         kind: "person",
         organization: "Rizom",
@@ -66,7 +91,7 @@ describe("AgentAdapter", () => {
     });
 
     it("should handle empty skills", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Unknown",
         kind: "person",
         brainName: "Unknown Brain",
@@ -84,7 +109,7 @@ describe("AgentAdapter", () => {
     });
 
     it("should persist remote card freshness fields", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Peer",
         kind: "person",
         brainName: "Peer Brain",
@@ -99,14 +124,14 @@ describe("AgentAdapter", () => {
         notes: "Local note.",
       });
 
-      const partial = adapter.fromMarkdown(content);
+      const partial = agentFromMarkdown(content);
 
       expect(content).toContain("cardLastError: temporary failure");
-      expect(partial.metadata?.cardLastError).toBe("temporary failure");
+      expect(partial.metadata.cardLastError).toBe("temporary failure");
     });
 
     it("should handle optional fields being absent", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Minimal",
         kind: "person",
         brainName: "Minimal Brain",
@@ -156,8 +181,8 @@ describe("AgentAdapter", () => {
       notes: "Local note.",
     });
 
-    function parse(content: string): ReturnType<AgentAdapter["parseEntity"]> {
-      return adapter.parseEntity({
+    function parse(content: string): ReturnType<typeof parseAgentEntity> {
+      return parseAgentEntity({
         id: "peer.example.com",
         entityType: "agent",
         content,
@@ -175,27 +200,27 @@ describe("AgentAdapter", () => {
     }
 
     it("reproduces the content it was parsed from when given no patch", () => {
-      const content = adapter.createAgentContent(fullInput());
+      const content = createAgentContent(fullInput());
 
-      expect(adapter.rewriteAgentContent(parse(content))).toBe(content);
+      expect(rewriteAgentContent(parse(content))).toBe(content);
     });
 
     it("changes only the fields its patch names", () => {
-      const content = adapter.createAgentContent(fullInput());
+      const content = createAgentContent(fullInput());
 
-      const rewritten = adapter.rewriteAgentContent(parse(content), {
+      const rewritten = rewriteAgentContent(parse(content), {
         status: "archived",
       });
 
       expect(rewritten).toBe(
-        adapter.createAgentContent({ ...fullInput(), status: "archived" }),
+        createAgentContent({ ...fullInput(), status: "archived" }),
       );
     });
 
     it("drops a field its patch sets to undefined or an empty value", () => {
-      const content = adapter.createAgentContent(fullInput());
+      const content = createAgentContent(fullInput());
 
-      const rewritten = adapter.rewriteAgentContent(parse(content), {
+      const rewritten = rewriteAgentContent(parse(content), {
         cardUnavailableAt: undefined,
         cardLastError: "",
         introducedBy: [],
@@ -212,9 +237,9 @@ describe("AgentAdapter", () => {
     });
 
     it("keeps a zero failure count from its patch", () => {
-      const content = adapter.createAgentContent(fullInput());
+      const content = createAgentContent(fullInput());
 
-      const rewritten = adapter.rewriteAgentContent(parse(content), {
+      const rewritten = rewriteAgentContent(parse(content), {
         cardFailureCount: 0,
       });
 
@@ -245,7 +270,7 @@ Founder of Rizom.
 
 Great collaborator.`;
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.about).toContain("Founder of Rizom");
       expect(parsed.skills).toHaveLength(2);
       expect(parsed.skills[0]).toMatchObject({
@@ -270,7 +295,7 @@ status: discovered
 discoveredAt: "2026-03-31T00:00:00.000Z"
 ---`;
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.about).toBe("");
       expect(parsed.skills).toEqual([]);
       expect(parsed.notes).toBe("");
@@ -293,9 +318,7 @@ discoveredAt: "2026-03-31T00:00:00.000Z"
       ["About", [skills, notes]],
       ["Skills", [about, notes]],
     ])("keeps the sections it has when %s is missing", (_missing, sections) => {
-      const parsed = adapter.parseAgentContent(
-        [frontmatter, ...sections].join("\n\n"),
-      );
+      const parsed = parseAgentContent([frontmatter, ...sections].join("\n\n"));
       const has = (section: string): boolean => sections.includes(section);
 
       expect(parsed.about).toBe(has(about) ? "Field researcher." : "");
@@ -333,7 +356,7 @@ Test agent.
 ## Notes
 `;
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.skills).toHaveLength(1);
       expect(parsed.skills[0]).toMatchObject({
         name: "Image Generation",
@@ -343,12 +366,10 @@ Test agent.
     });
   });
 
-  describe("extractMetadata", () => {
-    it("should return name and status", () => {
-      const entity: AgentEntity = {
-        id: "yeehaa.io",
-        entityType: "agent",
-        content: adapter.createAgentContent({
+  describe("metadata", () => {
+    it("should return name, status and slug from the header", () => {
+      const { metadata } = agentFromMarkdown(
+        createAgentContent({
           name: "Yeehaa",
           kind: "person",
           brainName: "Yeehaa's Brain",
@@ -359,20 +380,7 @@ Test agent.
           skills: [],
           notes: "",
         }),
-        contentHash: "abc",
-        created: "2026-03-31T00:00:00.000Z",
-        updated: "2026-03-31T00:00:00.000Z",
-        visibility: "public",
-        metadata: {
-          name: "Yeehaa",
-          url: "https://yeehaa.io",
-          status: "discovered" as const,
-          discoveredAt: "2026-03-31T00:00:00.000Z",
-          slug: "yeehaa-io",
-        },
-      };
-
-      const metadata = adapter.extractMetadata(entity);
+      );
       expect(metadata.name).toBe("Yeehaa");
       expect(metadata.status).toBe("discovered");
       expect(metadata.slug).toBe("yeehaa-io");
@@ -400,13 +408,13 @@ Test agent.
     it.each(["professional", "collective", "guild"])(
       "refuses kind %s like any other invalid file",
       (kind) => {
-        expect(() => adapter.fromMarkdown(saved(kind))).toThrow();
+        expect(() => agentFromMarkdown(saved(kind))).toThrow();
       },
     );
 
     it("refuses it when parsing a stored entity", () => {
       expect(() =>
-        adapter.parseEntity({
+        parseAgentEntity({
           id: "karim-rizom-ai",
           entityType: "agent",
           content: saved("professional"),
@@ -428,7 +436,7 @@ Test agent.
 
   describe("fromMarkdown", () => {
     it("should derive slug from name", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Yeehaa",
         kind: "person",
         brainName: "Yeehaa's Brain",
@@ -440,16 +448,16 @@ Test agent.
         notes: "",
       });
 
-      const partial = adapter.fromMarkdown(content);
-      expect(partial.metadata?.slug).toBe("yeehaa-io");
-      expect(partial.metadata?.name).toBe("Yeehaa");
-      expect(partial.metadata?.status).toBe("discovered");
+      const partial = agentFromMarkdown(content);
+      expect(partial.metadata.slug).toBe("yeehaa-io");
+      expect(partial.metadata.name).toBe("Yeehaa");
+      expect(partial.metadata.status).toBe("discovered");
     });
   });
 
   describe("roundtrip", () => {
     it("should preserve data through create → parse", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Ranger",
         kind: "organization",
         organization: "Rizom",
@@ -468,7 +476,7 @@ Test agent.
         notes: "Central hub for the network.",
       });
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.about).toContain("Discovery and registry agent");
       expect(parsed.skills).toHaveLength(1);
       expect(parsed.skills[0]).toMatchObject({ name: "Agent Discovery" });
@@ -477,11 +485,11 @@ Test agent.
   });
 
   describe("toMarkdown", () => {
-    it("rebuilds frontmatter from metadata so approval stays in sync on disk", () => {
+    it("rebuilds frontmatter from metadata so approval stays in sync on disk", async () => {
       // Simulate the state after `system_update({ fields: { status: "approved" } })`:
       // DB metadata says approved, but entity.content still carries the stale
       // `status: discovered` frontmatter.
-      const staleContent = adapter.createAgentContent({
+      const staleContent = createAgentContent({
         name: "Phoney",
         kind: "person",
         brainName: "mylittlephoney.com",
@@ -510,14 +518,14 @@ Test agent.
         },
       };
 
-      const output = adapter.toMarkdown(entity);
+      const output = (await agentTypeAdapter()).toMarkdown(entity);
 
       expect(output).toContain("status: approved");
       expect(output).not.toContain("status: discovered");
     });
 
-    it("preserves frontmatter fields that live only on disk (not in metadata)", () => {
-      const staleContent = adapter.createAgentContent({
+    it("preserves frontmatter fields that live only on disk (not in metadata)", async () => {
+      const staleContent = createAgentContent({
         name: "Yeehaa",
         kind: "team",
         organization: "Rizom",
@@ -554,7 +562,7 @@ Test agent.
         },
       };
 
-      const output = adapter.toMarkdown(entity);
+      const output = (await agentTypeAdapter()).toMarkdown(entity);
 
       // Metadata-tracked fields reflect DB truth
       expect(output).toContain("status: approved");

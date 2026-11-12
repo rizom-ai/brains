@@ -14,7 +14,13 @@ import {
 } from "@brains/plugins";
 import a2aInterface from "@brains/a2a";
 import adminPackage from "@brains/admin";
-import { agentDiscovery } from "@brains/agent-discovery";
+import {
+  agentDiscoveryCompositeConfigSchema,
+  agentDiscoveryPackage,
+  agentToolsPackage,
+  derivedSkillPackage,
+  skillPackage,
+} from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
 import { assessment } from "@brains/assessment";
 import atprotoPackage from "@brains/atproto";
@@ -268,7 +274,42 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       atprotoRegistryPackage,
       { pluginId: "atproto-registry" },
     ),
-    ["agents", agentDiscovery, undefined],
+    // The agent directory, as its three classes were: the agent type's
+    // agent-discovery, the agent tools service and the skill type, each
+    // under its class's id, its type installed apart. Skill derivation on
+    // or off picks the skill type with or without its rule.
+    [
+      "agents",
+      (config): Plugin[] => {
+        const { enableSkillDerivation, notifyOnNewAgents } =
+          agentDiscoveryCompositeConfigSchema.parse(config);
+        const metadata = {
+          name: "@brains/agent-discovery",
+          version: packageJson.version,
+        };
+        return [
+          ...instantiatePluginPackageDefinition(
+            agentDiscoveryPackage,
+            {},
+            metadata,
+            { pluginId: "agent-discovery", ownedTypePluginId: "agent-entity" },
+          ),
+          ...instantiatePluginPackageDefinition(
+            agentToolsPackage,
+            { notifyOnNewAgents },
+            metadata,
+            { pluginId: "agent" },
+          ),
+          ...instantiatePluginPackageDefinition(
+            enableSkillDerivation ? derivedSkillPackage : skillPackage,
+            {},
+            metadata,
+            { pluginId: "skill", ownedTypePluginId: "skill-entity" },
+          ),
+        ];
+      },
+      undefined,
+    ],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
     packageCapability(

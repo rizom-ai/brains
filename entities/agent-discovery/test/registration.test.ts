@@ -98,7 +98,7 @@ function check(shell: MockShell, id: string): unknown {
  * atproto plugin's card events reach the directory through these channels.
  */
 describe("the agents capability's registered surface", () => {
-  it("is the agent-discovery and skill types beside the agent service, with the agent tools", async () => {
+  it("is the agent-discovery and skill services beside their types and the agent service, with the agent tools", async () => {
     const { plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -108,9 +108,14 @@ describe("the agents capability's registered surface", () => {
         dependencies ?? [],
       ]),
     ).toEqual([
-      ["agent-discovery", "entity", "@brains/agent-discovery", []],
+      // The agent-discovery and skill classes registered their types inside
+      // themselves; each type now installs as its own plugin, apart from its
+      // service, which keeps the class's id.
+      ["agent-entity", "entity", "@brains/agent-discovery", []],
+      ["agent-discovery", "service", "@brains/agent-discovery", []],
       ["agent", "service", "@brains/agent-discovery", []],
-      ["skill", "entity", "@brains/agent-discovery", []],
+      ["skill-entity", "entity", "@brains/agent-discovery", []],
+      ["skill", "service", "@brains/agent-discovery", []],
     ]);
     expect(
       capabilities.flatMap(({ tools }) =>

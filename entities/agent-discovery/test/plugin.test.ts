@@ -1,3 +1,8 @@
+import {
+  agentDiscoveryPlugins,
+  agentToolsPlugins,
+  installAll,
+} from "./agent-discovery-plugins";
 import { afterEach, describe, it, expect } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -29,8 +34,6 @@ import type {
   Plugin,
   ToolResponse,
 } from "@brains/plugins";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
-import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import { PLUGIN_CHANNELS } from "@brains/contracts";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
@@ -279,10 +282,9 @@ const testBrainCardPayload = {
 
 describe("AgentDiscoveryPlugin", () => {
   it("should not auto-create agents from a2a call completion events", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
 
     await harness.sendMessage(
       "a2a:call:completed",
@@ -302,7 +304,7 @@ describe("AgentDiscoveryPlugin", () => {
   // Brains no longer copy what other brains publish: the pieces a brain kept
   // before are deleted, with their files, when it starts.
   it("deletes the network pieces a brain kept before", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const harness = createPluginHarness<Plugin>({});
     await harness.getEntityService().createEntity({
       entity: {
         id: "plc-peer--post--a",
@@ -312,7 +314,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
 
     expect(
       await harness.getEntityService().listEntities({
@@ -325,10 +327,9 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("does not register system_create URL interception for agent contacts", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
 
     expect(
       harness.getEntityRegistry().getCreateInterceptor("agent"),
@@ -350,7 +351,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
 
     expect(registered).toMatchObject({
       id: "agent-card-refresh",
@@ -391,8 +392,12 @@ describe("AgentDiscoveryPlugin", () => {
       record: updatedRecord,
     });
 
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(fetchMock.fetch, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: fetchMock.fetch,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
@@ -445,9 +450,12 @@ describe("AgentDiscoveryPlugin", () => {
     ).toBe("bafy-updated-card");
     expect(agent?.content).toContain("Updated remote purpose.");
     expect(agent?.content).toContain("Local trust note.");
-    expect(fetchMock.calls).toContain(
+    // Exactly the card's DID document and its record, through the fetch
+    // the package was given: nothing else is asked of the network.
+    expect(fetchMock.calls).toEqual([
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
-    );
+      expect.stringMatching(/^https:\/\/pds\.example\.com\/xrpc\//),
+    ]);
     await harness.reset();
   });
 
@@ -484,8 +492,12 @@ describe("AgentDiscoveryPlugin", () => {
     };
     original.updated = "2026-03-31T00:00:00.000Z";
 
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(fetchMock.fetch, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: fetchMock.fetch,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.getEntityService().createEntity({ entity: original });
 
@@ -540,8 +552,12 @@ describe("AgentDiscoveryPlugin", () => {
       cardCid: "bafy-last-good-card",
     };
 
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(fetchMock, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: fetchMock,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.getEntityService().createEntity({ entity: original });
 
@@ -633,8 +649,12 @@ describe("AgentDiscoveryPlugin", () => {
     // so stub the resolver too: without it this reaches the real DNS resolver
     // for plc.directory. The private PDS endpoint is an IP literal and is
     // rejected without resolution, which is what this test asserts.
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(hostileFetch, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: hostileFetch,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.getEntityService().createEntity({ entity: original });
     await run?.({ signal: new AbortController().signal });
@@ -686,8 +706,12 @@ describe("AgentDiscoveryPlugin", () => {
       cardCid: testBrainCardPayload.cid,
     };
 
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(fetchMock, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: fetchMock,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.getEntityService().createEntity({ entity: original });
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -726,7 +750,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentToolsPlugins());
 
     expect(registered).toMatchObject({
       id: "directory-scan",
@@ -741,8 +765,8 @@ describe("AgentDiscoveryPlugin", () => {
       "connect-followup.example": createAgentCard("connect-followup.example"),
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
 
     const tool = harness
       .getCapabilities()
@@ -815,8 +839,8 @@ describe("AgentDiscoveryPlugin", () => {
       "connect-mcp.example": createAgentCard("connect-mcp.example"),
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
 
     const confirmation = await overTheToolBus(harness, "agent_connect", {
       source: { kind: "url", url: "connect-mcp.example" },
@@ -841,8 +865,8 @@ describe("AgentDiscoveryPlugin", () => {
   it("registers agent_set_trust_level as the explicit inbound trust tool", async () => {
     const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
 
     const tool = harness
       .getCapabilities()
@@ -871,8 +895,8 @@ describe("AgentDiscoveryPlugin", () => {
     const fetchMock = createMockJwksFetch({ "trust.example": remoteJwks });
 
     await harness.installPlugin(authPlugin);
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         id: "trust.example",
@@ -942,8 +966,8 @@ describe("AgentDiscoveryPlugin", () => {
     });
 
     await harness.installPlugin(authPlugin);
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         id: "trust.example",
@@ -994,8 +1018,8 @@ describe("AgentDiscoveryPlugin", () => {
     });
 
     await harness.installPlugin(authPlugin);
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         id: "trust-mcp.example",
@@ -1039,8 +1063,8 @@ describe("AgentDiscoveryPlugin", () => {
     const harness = createPluginHarness<Plugin>({});
     const fetchMock = createMockAgentCardFetch({});
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
 
     const confirmation = await harness.executeTool("agent_connect", {
       source: { kind: "url", url: "missing.example" },
@@ -1073,8 +1097,8 @@ describe("AgentDiscoveryPlugin", () => {
       "a.example": createAgentCard("b.example"),
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
     const claimed = createTestAgent({
       id: "b.example",
       name: "B",
@@ -1125,8 +1149,8 @@ describe("AgentDiscoveryPlugin", () => {
       "plain.example": createAgentCard("plain.example"),
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
 
     const result = await harness.executeTool("agent_connect", {
       source: { kind: "url", url: "http://plain.example" },
@@ -1153,8 +1177,8 @@ describe("AgentDiscoveryPlugin", () => {
       return card.fetch(url, init);
     };
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(recordingFetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: recordingFetch }));
     const confirmation = await harness.executeTool("agent_connect", {
       source: { kind: "url", url: "bounded.example" },
     });
@@ -1175,8 +1199,8 @@ describe("AgentDiscoveryPlugin", () => {
   it("rejects confirmed agent_connect args that do not match pending approval", async () => {
     const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
 
     const confirmation = await harness.executeTool("agent_connect", {
       source: { kind: "url", url: "connect-original.example" },
@@ -1203,8 +1227,8 @@ describe("AgentDiscoveryPlugin", () => {
       "yeehaa.io": createAgentCard("yeehaa.io"),
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
     await harness
       .getEntityService()
       .createEntity({ entity: makeAgentEntity("discovered") });
@@ -1243,8 +1267,8 @@ describe("AgentDiscoveryPlugin", () => {
       "yeehaa.io": createAgentCard("yeehaa.io"),
     });
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin(fetchMock.fetch));
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
     await harness
       .getEntityService()
       .createEntity({ entity: makeAgentEntity("approved") });
@@ -1277,8 +1301,7 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("creates a discovered agent from an ATProto brain card event", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
     const events: unknown[] = [];
 
     harness.subscribe(ATPROTO_BRAIN_DISCOVERED, async (message) => {
@@ -1286,7 +1309,7 @@ describe("AgentDiscoveryPlugin", () => {
       return { success: true };
     });
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.sendMessage(
       ATPROTO_BRAIN_CARD_DISCOVERED,
       testBrainCardPayload,
@@ -1321,10 +1344,9 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("refreshes remote card fields without overwriting local relationship notes", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         id: "peer.example.com",
@@ -1366,8 +1388,7 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("enriches an approved agent from an ATProto brain card without downgrading it", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
     const events: unknown[] = [];
 
     harness.subscribe(ATPROTO_BRAIN_CARD_REFRESHED, async (message) => {
@@ -1375,7 +1396,7 @@ describe("AgentDiscoveryPlugin", () => {
       return { success: true };
     });
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         id: "peer.example.com",
@@ -1434,13 +1455,13 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("fails closed when a different repo DID claims an existing agent domain", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const harness = createPluginHarness<Plugin>({});
     const conflicts: unknown[] = [];
     harness.subscribe(ATPROTO_BRAIN_CARD_CONFLICT, async (message) => {
       conflicts.push(message.payload);
       return { success: true };
     });
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.sendMessage(
       ATPROTO_BRAIN_CARD_DISCOVERED,
       testBrainCardPayload,
@@ -1507,7 +1528,7 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("skips a brain card for an agent saved above public, announcing nothing", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const harness = createPluginHarness<Plugin>({});
     const announced: string[] = [];
     for (const channel of [
       ATPROTO_BRAIN_DISCOVERED,
@@ -1519,7 +1540,7 @@ describe("AgentDiscoveryPlugin", () => {
         return { success: true };
       });
     }
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.getEntityService().createEntity({
       entity: {
         ...createTestAgent({
@@ -1563,8 +1584,8 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("marks a deleted remote card unavailable without revoking approval", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    const harness = createPluginHarness<Plugin>({});
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.sendMessage(
       ATPROTO_BRAIN_CARD_DISCOVERED,
       testBrainCardPayload,
@@ -1622,8 +1643,8 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("keeps the stale deadline when a later unavailable event carries none", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    const harness = createPluginHarness<Plugin>({});
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.sendMessage(
       ATPROTO_BRAIN_CARD_DISCOVERED,
       testBrainCardPayload,
@@ -1675,8 +1696,12 @@ describe("AgentDiscoveryPlugin", () => {
     });
     const unavailableFetch: FetchLike = async () =>
       new Response("unavailable", { status: 503 });
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(unavailableFetch, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: unavailableFetch,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.sendMessage(
       ATPROTO_BRAIN_CARD_DISCOVERED,
@@ -1737,8 +1762,12 @@ describe("AgentDiscoveryPlugin", () => {
       cardFailureCount: 2,
       cardStaleAfter: "2026-07-01T00:00:00.000Z",
     };
-    await harness.installPlugin(
-      new AgentDiscoveryPlugin(unavailableFetch, resolvePublicHostname),
+    await installAll(
+      harness,
+      agentDiscoveryPlugins({
+        fetch: unavailableFetch,
+        resolveHostname: resolvePublicHostname,
+      }),
     );
     await harness.getEntityService().createEntity({ entity: stored });
 
@@ -1764,8 +1793,8 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("retires agent frontmatter fields nothing reads", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    const harness = createPluginHarness<Plugin>({});
+    await installAll(harness, agentDiscoveryPlugins());
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("agent").retiredFields,
@@ -1780,10 +1809,9 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("registers agent directory and proximity-map datasources", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
 
     expect(Array.from(harness.getDataSources().keys()).sort()).toEqual([
       "agent-discovery:entities",
@@ -1794,10 +1822,9 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("registers site templates under the scoped names routes reference", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
 
-    await harness.installPlugin(plugin);
+    await installAll(harness, agentDiscoveryPlugins());
 
     // Site routes address templates as `${pluginId}:${key}` — these names are
     // the public contract (sites/rizom-ai routes reference them verbatim).
@@ -1812,8 +1839,7 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("should register dashboard widgets on plugins-registered", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
-    const plugin = new AgentDiscoveryPlugin();
+    const harness = createPluginHarness<Plugin>({});
     const registrations: Array<{
       id: string;
       group: string;
@@ -1835,8 +1861,14 @@ describe("AgentDiscoveryPlugin", () => {
       },
     );
 
-    await harness.installPlugin(plugin);
-    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
+    await installAll(harness, agentDiscoveryPlugins());
+    // Every hearer, as the shell collects pluginsRegistered.
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.pluginsRegistered,
+      {},
+      "shell",
+      true,
+    );
 
     // The network roster stays declarative; only the proximity map brings
     // its own renderer.
@@ -1859,7 +1891,7 @@ describe("AgentDiscoveryPlugin", () => {
   });
 
   it("provides a valid Agent Network view for every normalized skill tag", async () => {
-    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const harness = createPluginHarness<Plugin>({});
     let networkWidget: DashboardWidgetRegistration | undefined;
 
     harness.subscribe<DashboardWidgetRegistration>(
@@ -1871,7 +1903,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     );
 
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
     await harness.getEntityService().createEntity({
       entity: createTestAgent({
         skills: [
@@ -1883,7 +1915,13 @@ describe("AgentDiscoveryPlugin", () => {
         ],
       }),
     });
-    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
+    // Every hearer, as the shell collects pluginsRegistered.
+    await harness.sendMessage(
+      SYSTEM_CHANNELS.pluginsRegistered,
+      {},
+      "shell",
+      true,
+    );
 
     if (!networkWidget) throw new Error("Agent Network widget not registered");
     const data = await networkWidget.dataProvider({

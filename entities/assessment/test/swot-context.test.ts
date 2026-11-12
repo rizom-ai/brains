@@ -1,14 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
-  AgentAdapter,
-  SkillAdapter,
+  createAgentContent,
+  createSkillContent,
   type AgentEntity,
   type SkillEntity,
 } from "@brains/agent-discovery";
 import { buildSwotContextFromEntities } from "../src";
-
-const agentAdapter = new AgentAdapter();
-const skillAdapter = new SkillAdapter();
 
 function makeSkill(input: {
   id: string;
@@ -17,7 +14,7 @@ function makeSkill(input: {
   tags: string[];
   examples?: string[];
 }): SkillEntity {
-  const content = skillAdapter.createSkillContent({
+  const content = createSkillContent({
     name: input.name,
     description: input.description,
     tags: input.tags,
@@ -51,7 +48,7 @@ function makeAgent(input: {
   return {
     id: input.id,
     entityType: "agent",
-    content: agentAdapter.createAgentContent({
+    content: createAgentContent({
       name: input.brainName,
       brainName: input.brainName,
       url: `https://${input.id}`,

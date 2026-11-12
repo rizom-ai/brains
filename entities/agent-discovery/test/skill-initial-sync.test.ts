@@ -1,12 +1,24 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SkillPlugin } from "../src/plugins/skill-plugin";
+import type { PluginCapabilities } from "@brains/plugins";
 import { SKILL_ENTITY_TYPE } from "../src/lib/constants";
+import { skillPlugins } from "./agent-discovery-plugins";
+
+/** The skill package's plugins installed in order, and the rules they declare. */
+async function rulesOf(
+  harness: ReturnType<typeof createPluginHarness>,
+  derived?: boolean,
+): Promise<PluginCapabilities["projectionRules"]> {
+  const capabilities: PluginCapabilities[] = [];
+  for (const plugin of skillPlugins(derived === undefined ? {} : { derived }))
+    capabilities.push(await harness.installPlugin(plugin));
+  return capabilities.flatMap(({ projectionRules }) => projectionRules ?? []);
+}
 
 describe("Skill projection registration", () => {
   it("registers skill as a projection output", async () => {
-    const harness = createPluginHarness<SkillPlugin>({});
-    await harness.installPlugin(new SkillPlugin());
+    const harness = createPluginHarness({});
+    await rulesOf(harness);
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig(SKILL_ENTITY_TYPE)
@@ -15,16 +27,11 @@ describe("Skill projection registration", () => {
   });
 
   it("does not register the AI-backed rule when derivation is disabled", async () => {
-    const harness = createPluginHarness<SkillPlugin>({});
-    const capabilities = await harness.installPlugin(
-      new SkillPlugin({ enableSkillDerivation: false }),
-    );
-
-    expect(capabilities.projectionRules).toBeUndefined();
+    expect(await rulesOf(createPluginHarness({}), false)).toEqual([]);
   });
 
   it("registers one scheduler-owned rule and no event-owned job", async () => {
-    const harness = createPluginHarness<SkillPlugin>({});
+    const harness = createPluginHarness({});
     const enqueue = mock(async () => "job-1");
     const registerHandler = mock(() => {});
     const jobQueue = harness.getMockShell().getJobQueueService();
@@ -34,16 +41,15 @@ describe("Skill projection registration", () => {
       registerHandler,
     });
 
-    const capabilities = await harness.installPlugin(new SkillPlugin());
+    const rules = await rulesOf(harness);
     await harness.sendMessage(
       "sync:initial:completed",
       { success: true },
       "directory-sync",
     );
 
-    expect("projections" in capabilities).toBe(false);
-    expect(capabilities.projectionRules).toHaveLength(1);
-    expect(capabilities.projectionRules?.[0]).toMatchObject({
+    expect(rules).toHaveLength(1);
+    expect(rules?.[0]).toMatchObject({
       id: "skill-derivation",
       version: "2",
       sources: [

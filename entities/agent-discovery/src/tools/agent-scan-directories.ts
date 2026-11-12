@@ -1,27 +1,28 @@
 import {
-  DEFAULT_AGENT_CARD_TIMEOUT_MS,
-  fetchVerifiedAgentCard,
-  internalFullScope,
-  type Tool,
-  type ToolResponse,
-} from "@brains/plugins";
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-} from "@brains/plugins";
+  agentFromMarkdown,
+  parseAgentEntity,
+  rewriteAgentContent,
+} from "../lib/agent-content";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
-import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import { extractDomain } from "../lib/extract-domain";
 import { agentEntitySchema } from "../schemas/agent";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  fetchVerifiedAgentCard,
+  internalFullScope,
+  type Tool,
+  type ToolResponse,
+} from "@brains/sdk/internal/service-runtime";
+import type { AgentContext } from "../lib/agent-context";
 
 const agentScanDirectoriesInputSchema = z.object({});
 
 export type AgentScanContext = Pick<
-  EntityPluginContext | ServicePluginContext,
+  AgentContext,
   "entityService" | "permissions" | "domain"
 >;
 
@@ -40,8 +41,6 @@ export interface AgentScanDirectoriesResult {
 const remoteDirectorySchema = z.object({
   agents: z.array(z.object({ name: z.string(), url: z.string() })),
 });
-
-const agentAdapter = new AgentAdapter();
 
 /** A peer whose directory takes longer than an Agent Card would is unreachable. */
 async function fetchAgentDirectory(
@@ -131,7 +130,7 @@ export async function scanAgentDirectories(
         alreadyKnown += 1;
         continue;
       }
-      const parsed = agentAdapter.parseEntity(existing);
+      const parsed = parseAgentEntity(existing);
       const { frontmatter } = parsed;
       const prior = frontmatter.introducedBy ?? [];
       // Only sightings accumulate introducers. Agents known first-hand
@@ -150,7 +149,7 @@ export async function scanAgentDirectories(
       await context.entityService.updateEntity({
         entity: {
           ...existing,
-          content: agentAdapter.rewriteAgentContent(parsed, {
+          content: rewriteAgentContent(parsed, {
             introducedBy: merged,
           }),
           updated: now,
@@ -175,7 +174,7 @@ export async function scanAgentDirectories(
       status: "discovered",
       provenance: { introducedBy: [...introducers], hops: 2 },
     });
-    const parsedContent = agentAdapter.fromMarkdown(built.content);
+    const parsedContent = agentFromMarkdown(built.content);
     await context.entityService.createEntity({
       entity: {
         id: domain,

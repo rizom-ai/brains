@@ -1,57 +1,15 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import { SKILL_ENTITY_TYPE } from "./constants";
-import { deriveSkills } from "./skill-deriver";
+import type { AgentContext } from "./agent-context";
+import { SKILL_DERIVATION_PROJECTION_ID, SKILL_ENTITY_TYPE } from "./constants";
 
 const deriveInputSchema = z.object({
   topicTitles: z.array(z.string()),
 });
 
-type DeriveInput = z.output<typeof deriveInputSchema>;
-
-export function registerSkillEvalHandlers(
-  context: EntityPluginContext,
-  logger: Logger,
-): void {
-  context.eval.registerHandler("deriveSkills", async (input: unknown) => {
-    const parsed: DeriveInput = deriveInputSchema.parse(input);
-
-    await clearEvalEntities(context, "topic");
-    await clearEvalEntities(context, SKILL_ENTITY_TYPE);
-
-    // Create mock topic entities so deriveSkills can read them.
-    for (const title of parsed.topicTitles) {
-      const id = title.toLowerCase().replace(/\s+/g, "-");
-      const content = `---\ntitle: ${title}\nkeywords: []\n---\n${title}`;
-      try {
-        await context.entityService.createEntity({
-          entity: {
-            id,
-            entityType: "topic",
-            content,
-            metadata: {},
-          },
-        });
-      } catch {
-        // Topic may already exist.
-      }
-    }
-
-    const result = await deriveSkills(context, logger, { replaceAll: true });
-    const skills = await context.entityService.listEntities({
-      entityType: SKILL_ENTITY_TYPE,
-    });
-
-    return {
-      ...result,
-      skills: skills.map((s) => s.metadata),
-    };
-  });
-}
-
+/** Every record of a type, removed, so an eval case starts from its own. */
 async function clearEvalEntities(
-  context: EntityPluginContext,
+  context: Pick<AgentContext, "entityService">,
   entityType: string,
 ): Promise<void> {
   const entities = await context.entityService.listEntities({ entityType });
@@ -60,4 +18,49 @@ async function clearEvalEntities(
       context.entityService.deleteEntity({ entityType, id: entity.id }),
     ),
   );
+}
+
+/**
+ * `skill:deriveSkills`: seed a case's topics and measure the production
+ * skill-derivation rule against them, as production runs it: what it would
+ * create, update and delete, and the skills it would write.
+ */
+export function registerSkillEvalHandlers(
+  runtime: Pick<ServiceRuntime, "evalHandler" | "runProjectionRule">,
+  context: Pick<AgentContext, "entityService">,
+): void {
+  runtime.evalHandler("deriveSkills", async (input: unknown) => {
+    const parsed = deriveInputSchema.parse(input);
+
+    await clearEvalEntities(context, "topic");
+    await clearEvalEntities(context, SKILL_ENTITY_TYPE);
+
+    // The topics the rule reads, as a case names them.
+    for (const title of parsed.topicTitles) {
+      const id = title.toLowerCase().replace(/\s+/g, "-");
+      const content = `---\ntitle: ${title}\nkeywords: []\n---\n${title}`;
+      try {
+        await context.entityService.createEntity({
+          entity: { id, entityType: "topic", content, metadata: {} },
+        });
+      } catch {
+        // A topic two titles name alike is created once.
+      }
+    }
+
+    const intents = await runtime.runProjectionRule(
+      SKILL_DERIVATION_PROJECTION_ID,
+    );
+    const upserts = intents.flatMap((intent) =>
+      intent.operation === "upsert" ? [intent.entity] : [],
+    );
+    return {
+      // The case's brain holds no skills, so every skill the rule writes
+      // is one it creates.
+      created: upserts.length,
+      updated: 0,
+      deleted: intents.filter(({ operation }) => operation === "delete").length,
+      skills: upserts.map((skill) => skill.metadata),
+    };
+  });
 }
