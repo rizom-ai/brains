@@ -167,13 +167,49 @@ describe("declared inbox", () => {
     }
   });
 
-  it("reads at the actor's visibility when it acts", async () => {
-    const harness = await install([suggestion]);
+  it("refuses an operator below admin before the type reads anything", async () => {
+    const reached: string[] = [];
+    const harness = await install([
+      defineEntity({
+        type: "suggestion",
+        purpose: "Records which hooks an operator reached.",
+        metadata: suggestionMetadata,
+        inbox: {
+          sourceId: "suggestions",
+          displayName: "Suggestions",
+          list: async () => [],
+          resolveDetail: async (itemId) => {
+            reached.push(`detail:${itemId}`);
+            return { kind: "plain", text: "", truncated: false };
+          },
+          act: async (itemId, actionId) => {
+            reached.push(`${actionId}:${itemId}`);
+          },
+        },
+      }),
+    ]);
     try {
-      const outcome = await source(harness)
-        .act("kinder", "accept", { permissionLevel: "public" })
-        .catch((error: unknown) => error);
-      expect(String(outcome)).toContain("Suggestion not found");
+      const inbox = source(harness);
+      const { resolveDetail } = inbox;
+      if (!resolveDetail) throw new Error("The detail hook was not bound");
+      const refusals = await Promise.all(
+        [trusted, { permissionLevel: "public" } as const].flatMap((actor) => [
+          resolveDetail("kinder", actor, new AbortController().signal).catch(
+            (error: unknown) => error,
+          ),
+          inbox.act("kinder", "accept", actor).catch((error: unknown) => error),
+        ]),
+      );
+      expect(refusals).toEqual(
+        Array.from(
+          { length: 4 },
+          () => new Error("Suggestions requires admin permission"),
+        ),
+      );
+      expect(reached).toEqual([]);
+
+      await inbox.act("kinder", "accept", admin);
+      expect(reached).toEqual(["accept:kinder"]);
     } finally {
       await harness.reset();
     }

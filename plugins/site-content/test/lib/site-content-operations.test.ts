@@ -1,3 +1,4 @@
+import { siteContentDepsOf } from "../site-content-deps";
 import {
   createMockServicePluginContext,
   type MockServicePluginContext,
@@ -94,7 +95,7 @@ describe("SiteContentOperations", () => {
 
   beforeEach(() => {
     context = contextWithRoutes(testRoutes);
-    operations = new SiteContentOperations(context);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
     mockSuccessfulGeneration(context);
   });
 
@@ -131,6 +132,8 @@ describe("SiteContentOperations", () => {
         { jobId: "batch-123-2", routeId: "about", sectionId: "main" },
         { jobId: "batch-123-3", routeId: "dashboard", sectionId: "main" },
       ],
+      // A run that queues work plans none of its own.
+      planned: [],
       totalSections: 4,
       queuedSections: 4,
       batchId: "batch-123",
@@ -240,6 +243,17 @@ describe("SiteContentOperations", () => {
     });
   });
 
+  test("names the sections a dry run would generate", async () => {
+    const result = await operations.generate({ dryRun: true });
+
+    expect(result.planned).toEqual([
+      { routeId: "landing", sectionId: "hero" },
+      { routeId: "landing", sectionId: "features" },
+      { routeId: "about", sectionId: "main" },
+      { routeId: "dashboard", sectionId: "main" },
+    ]);
+  });
+
   test("returns no invented batch reference when nothing is eligible", async () => {
     context.content.generate.mockResolvedValueOnce({
       items: [],
@@ -251,6 +265,7 @@ describe("SiteContentOperations", () => {
 
     expect(await operations.generate({})).toEqual({
       jobs: [],
+      planned: [],
       totalSections: 0,
       queuedSections: 0,
       batchId: "",
@@ -275,7 +290,7 @@ describe("SiteContentOperations", () => {
         pluginId: "site-builder",
       },
     ]);
-    operations = new SiteContentOperations(context);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
     mockSuccessfulGeneration(context);
 
     await operations.generate({});
@@ -295,7 +310,7 @@ describe("SiteContentOperations", () => {
 
   test("throws when site-builder route discovery is unavailable", async () => {
     context = createMockServicePluginContext();
-    operations = new SiteContentOperations(context);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
 
     expect(operations.generate({})).rejects.toThrow(
       "Failed to fetch routes from site-builder",

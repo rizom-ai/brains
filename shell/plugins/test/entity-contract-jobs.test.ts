@@ -220,14 +220,18 @@ async function install(): Promise<{
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: DIMENSIONS,
-      generateEmbedding: async () => ({
+      identity: {
+        model: "test:mock",
+        dimensions: DIMENSIONS,
+        promptRevision: 0,
+      },
+      embedQuery: async () => ({
         embedding: new Float32Array(DIMENSIONS),
         usage: { tokens: 1 },
       }),
-      generateEmbeddings: async (texts: string[]) => ({
-        embeddings: texts.map(() => new Float32Array(DIMENSIONS)),
-        usage: { tokens: texts.length },
+      embedDocuments: async (documents: { content: string }[]) => ({
+        embeddings: documents.map(() => new Float32Array(DIMENSIONS)),
+        usage: { tokens: documents.length },
       }),
     },
   });
@@ -361,6 +365,75 @@ describe("a contract job", () => {
     expect(plugin.register(createMockShell())).rejects.toThrow(
       /answers "renders:render" but is declared as "renders:other"/,
     );
+  });
+
+  // The link plugin class registered its capture handler under its own
+  // generation job too; jobs queued under that name still run.
+  const captureInput = z.object({ url: z.string() });
+  const legacyGeneration = defineJobContract({
+    type: "capturer:generation",
+    input: captureInput,
+  });
+  function capturer(
+    extra: Partial<Parameters<typeof defineEntity>[0]> = {},
+  ): ReturnType<typeof defineEntity> {
+    return defineEntity({
+      type: "capturer",
+      purpose: "Captures under its generation job name.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        generation: contractJob(legacyGeneration, {
+          handle: async ({ input }) => ({ captured: input.url }),
+        }),
+      },
+      ...extra,
+    });
+  }
+
+  it("may take the type's generation job name when the type declares no generation", async () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "capturer", entities: [capturer()] }),
+      {},
+      { name: "@fixture/capturer", version: "0.1.0" },
+      { pluginId: "capturer" },
+    );
+    if (!plugin) throw new Error("No plugin");
+    const shell = createMockShell();
+    await plugin.register(shell);
+    const job = handler(shell, "capturer:generation");
+    expect(
+      await job.process(
+        job.validateAndParse({ url: "https://example.com" }),
+        "job-1",
+        createMockProgressReporter(),
+        new AbortController().signal,
+      ),
+    ).toEqual({ captured: "https://example.com" });
+  });
+
+  it("is refused under the generation job name when the type declares a generation", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        defineEntityPackage({
+          id: "capturer",
+          entities: [
+            capturer({
+              generation: {
+                input: z.object({}),
+                generate: async () => ({
+                  success: true,
+                  content: "",
+                  metadata: { title: "x" },
+                }),
+              },
+            }),
+          ],
+        }),
+        {},
+        { name: "@fixture/capturer", version: "0.1.0" },
+        { pluginId: "capturer" },
+      ),
+    ).toThrow(/generation/);
   });
 
   it("runs as the package: reads other types public, with its capabilities", async () => {

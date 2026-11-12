@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
-import { ChatInterface } from "@brains/chat";
-import { newsletter } from "@brains/newsletter";
+import chatInterface from "@brains/chat";
 import {
+  instantiatePluginPackageDefinition,
   isPackageDefinitionPlugin,
   type ApiRouteDefinition,
   type Plugin,
@@ -16,6 +16,7 @@ import {
   createTestEntityAdapter,
 } from "@brains/plugins/test";
 import { canonicalBrain } from "../src/model/canonical-brain";
+import { refuseNetwork } from "./helpers/refuse-network";
 
 interface WebRoutePlugin extends Plugin {
   getWebRoutes(): WebRouteDefinition[];
@@ -87,8 +88,14 @@ function readExpected(name: string): string[] {
 }
 
 /** A mock shell with the identity types the shell registers before any plugin. */
-function shellWithIdentityTypes(): ReturnType<typeof createMockShell> {
-  const shell = createMockShell();
+function shellWithIdentityTypes(
+  servesHttp = false,
+): ReturnType<typeof createMockShell> {
+  // The site URL a brain's forms serve on, as the app's local runtime gives it.
+  const shell = createMockShell({
+    servesHttp,
+    localSiteUrl: "http://localhost:8080",
+  });
   for (const type of ["anchor-profile", "brain-character"]) {
     shell
       .getEntityRegistry()
@@ -103,9 +110,10 @@ function shellWithIdentityTypes(): ReturnType<typeof createMockShell> {
 
 /**
  * A test app's plugins, with the routes the shell collects from them: a
- * declared service builds its routes when it registers, so it is registered
- * on a mock shell first, as the shell registers every plugin before it
- * collects routes.
+ * declared service or interface builds its routes when it registers, so it
+ * is registered on a mock shell first, among the app's other plugins and
+ * serving HTTP where the app does, as the shell registers every plugin
+ * before it collects routes.
  */
 async function resolveTestApp(name: string): Promise<Plugin[]> {
   const source = readFileSync(
@@ -117,10 +125,16 @@ async function resolveTestApp(name: string): Promise<Plugin[]> {
     site: _site,
     ...overrides
   } = parseInstanceOverrides(source);
-  const plugins = resolve(canonicalBrain, {}, overrides).plugins ?? [];
+  const resolved = resolve(canonicalBrain, {}, overrides);
+  const plugins = resolved.plugins ?? [];
   for (const plugin of plugins) {
-    if (plugin.type === "service" && isPackageDefinitionPlugin(plugin)) {
-      await plugin.register(shellWithIdentityTypes());
+    // Directory sync serves no routes (its registration test pins that), and
+    // registering it reaches the git broker a test app's Git sync names.
+    if (plugin.id === "directory-sync") continue;
+    if (isPackageDefinitionPlugin(plugin)) {
+      const shell = shellWithIdentityTypes(resolved.http.enabled === true);
+      for (const other of plugins) shell.addPlugin(other);
+      await plugin.register(shell);
     }
   }
   return plugins;
@@ -136,6 +150,7 @@ const compositionCases: Array<[string, Plugin[]]> = [
 ];
 
 describe("canonical HTTP route manifests", () => {
+  refuseNetwork();
   test("normalizes only content-addressed CSS and JavaScript routes", () => {
     expect(
       normalizeRoutePath(
@@ -208,21 +223,36 @@ describe("canonical HTTP route manifests", () => {
     }
   });
 
-  test("records configured Chat SDK handler routes", () => {
-    const chat = new ChatInterface({
-      adapters: {
-        discord: {
-          applicationId: "fixture-application",
-          botToken: "fixture-token",
-          publicKey: "fixture-public-key",
+  test("records configured Chat SDK handler routes", async () => {
+    const chat = instantiatePluginPackageDefinition(
+      chatInterface,
+      {
+        adapters: {
+          discord: {
+            applicationId: "fixture-application",
+            botToken: "fixture-token",
+            publicKey: "fixture-public-key",
+          },
         },
       },
-    });
+      { name: "@brains/chat", version: "0.0.0-test" },
+      { pluginId: "chat" },
+    );
+    for (const plugin of chat) await plugin.register(shellWithIdentityTypes());
 
-    expect(routeManifest([chat])).toEqual(readExpected("chat-sdk"));
+    expect(routeManifest(chat)).toEqual(readExpected("chat-sdk"));
   });
 
   test("records configured newsletter provider routes", () => {
+    // The newsletter capability as the canonical brain composes it.
+    const entry = canonicalBrain.capabilities.find(
+      ([id]) => id === "newsletter",
+    );
+    if (!entry) throw new Error("No newsletter capability");
+    const newsletter = (config: Record<string, unknown>): Plugin[] => {
+      const created = entry[1](config);
+      return Array.isArray(created) ? created : [created];
+    };
     expect(
       routeManifest(
         newsletter({

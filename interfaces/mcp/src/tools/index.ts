@@ -1,12 +1,20 @@
-import { type ToolResponse } from "@brains/plugins";
+import type {
+  ToolResponse,
+  InterfaceRuntime,
+  ChatContext,
+  Tool,
+} from "@brains/sdk/internal/interface-runtime";
 import { createHash, randomUUID } from "node:crypto";
 import { actorRefKey } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import type {
-  Tool,
-  InterfacePluginContext,
-  ChatContext,
-} from "@brains/plugins";
+
+/** What the tools ask: the brain's agent, a turn and the answer to an approval. */
+export interface MCPToolHost {
+  readonly agent: Pick<
+    InterfaceRuntime["agent"],
+    "chat" | "confirmPendingAction"
+  >;
+}
 import { agentResponseToToolResponse } from "./agent-response-adapter";
 
 const chatInputSchema = z.object({
@@ -88,7 +96,7 @@ function getChatContext(
  */
 export function createMCPTools(
   _pluginId: string,
-  getContext: () => InterfacePluginContext | undefined,
+  getContext: () => MCPToolHost | undefined,
 ): Tool[] {
   return [
     {

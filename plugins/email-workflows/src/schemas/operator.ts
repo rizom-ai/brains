@@ -1,7 +1,7 @@
 import {
   createListToolOutputSchema,
   type ListToolOutputSchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import {
   mailCategorySchema,

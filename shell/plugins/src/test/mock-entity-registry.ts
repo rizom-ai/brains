@@ -1,4 +1,5 @@
 import {
+  editableFieldsOf,
   type BaseEntity,
   type CreateCheck,
   type CreateInterceptor,
@@ -129,6 +130,19 @@ export function createMockEntityRegistry(
     // double never records merged in.
     getEffectiveFrontmatterSchema: (type: string) =>
       store.adapters.get(type)?.frontmatterSchema,
+    getEditableFieldsSchema: (type: string) => {
+      const schema = store.adapters.get(type)?.frontmatterSchema;
+      return schema && editableFieldsOf(schema);
+    },
+    getCreateFieldsSchema: (type: string) => {
+      const adapter = store.adapters.get(type);
+      const editable =
+        adapter?.frontmatterSchema &&
+        editableFieldsOf(adapter.frontmatterSchema);
+      const createOnly = adapter?.createFieldsSchema;
+      if (!createOnly) return editable;
+      return editable ? editable.extend(createOnly.shape) : createOnly;
+    },
     getFrontmatterExtensions: () => [],
     getGroupings: () => [],
     registerGroupingSource: (): never => {

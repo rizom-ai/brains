@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { fetchStyleGuide } from "@brains/contracts";
+import { internalFullScope } from "@brains/plugins";
 import styleGuidePackage, {
   createStyleGuideContent,
 } from "@brains/style-guide";
@@ -107,5 +108,31 @@ describe("the declared style guide on the entity store", () => {
     expect((await stored("style-guide", "style-guide"))?.content).toBe(
       classWritten,
     );
+  });
+
+  test("plans an import over a guide the class wrote only once it is reconciled", async () => {
+    const { service, settleStartupContent, rewrite } = await store();
+    await settleStartupContent();
+    await rewrite(
+      "style-guide",
+      "style-guide",
+      createStyleGuideContent({ name: "House" }, "Write plainly."),
+      "{}",
+    );
+    // What directory sync's initial import reads before queueing a file.
+    const snapshot = (): ReturnType<typeof service.getEntityWriteSnapshot> =>
+      service.getEntityWriteSnapshot({
+        entityType: "style-guide",
+        id: "style-guide",
+        visibilityScope: internalFullScope("plan a directory import"),
+      });
+
+    // Startup reconciles before it queues the import: a class-written row
+    // fails the plan, and with it the whole initial sync.
+    expect(snapshot()).rejects.toThrow(
+      "Cannot deserialize entity write snapshot",
+    );
+    await service.reconcileDeclaredMetadata();
+    expect((await snapshot())?.entity.metadata).toEqual({ name: "House" });
   });
 });

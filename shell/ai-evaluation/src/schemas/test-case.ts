@@ -39,6 +39,7 @@ export type TestCaseType = z.output<typeof testCaseTypeSchema>;
 type ExpectedToolCallSchema = z.ZodObject<{
   toolName: z.ZodString;
   argsContain: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  argsMatch: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
   argsAbsent: z.ZodOptional<z.ZodArray<z.ZodString>>;
   argsNotBeforeToday: z.ZodOptional<z.ZodArray<z.ZodString>>;
   resultContains: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -53,6 +54,12 @@ type ExpectedToolCallSchema = z.ZodObject<{
 export const expectedToolCallSchema: ExpectedToolCallSchema = z.object({
   toolName: z.string(),
   argsContain: z.record(z.string(), z.unknown()).optional(),
+  argsMatch: z
+    .record(z.string(), z.string())
+    .optional()
+    .describe(
+      "Dotted argument paths whose string value must match a regular expression in some matching call, for a value with more than one right spelling, such as a date written with or without its time.",
+    ),
   argsAbsent: z
     .array(z.string())
     .optional()

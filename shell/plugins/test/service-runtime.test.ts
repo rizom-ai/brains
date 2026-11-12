@@ -96,6 +96,45 @@ function emptyHeard(): Heard {
 }
 
 describe("a first-party service's runtime", () => {
+  it("answers a contract every owner answers, beside the others", async () => {
+    const gathered = defineBusContract({
+      channel: "probe:context",
+      request: z.object({ topic: z.string() }),
+      response: z.object({ items: z.array(z.string()) }),
+      delivery: "collect",
+    });
+    const shell = createMockShell();
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).answer(gathered, ({ request }) => ({
+              items: [`probe on ${request.topic}`],
+            }));
+            return [];
+          },
+        },
+      ),
+    );
+    createServicePluginContext(shell, "memory").messaging.answer(
+      gathered,
+      async ({ topic }) => ({ items: [`memory on ${topic}`] }),
+    );
+
+    const asked = await createServicePluginContext(
+      shell,
+      "agent",
+    ).messaging.gather(gathered, { topic: "tides" });
+    expect(asked.status).toBe("answered");
+    expect(
+      asked.status === "answered"
+        ? asked.answers.flatMap(({ items }) => items).sort()
+        : [],
+    ).toEqual(["memory on tides", "probe on tides"]);
+  });
+
   it("answers a first-party contract under its own channel, as the package", async () => {
     const shell = createMockShell();
     const heard = emptyHeard();
@@ -175,6 +214,45 @@ describe("a first-party service's runtime", () => {
     expect(unheard.events).toEqual([]);
   });
 
+  it("hears who sent what it hears, by channel and by name", async () => {
+    const shell = createMockShell();
+    const senders: { channel: string; sender: string }[] = [];
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.listen(settled, ({ sender }) => {
+              senders.push({ channel: "typed", sender });
+            });
+            runtime.listen(SYSTEM_CHANNELS.shellReady, ({ sender }) => {
+              senders.push({ channel: "named", sender });
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    const bus = shell.getMessageBus();
+    await bus.send({
+      type: settled.name,
+      payload: { round: 1 },
+      sender: "conversation-service",
+    });
+    await bus.send({
+      type: SYSTEM_CHANNELS.shellReady,
+      payload: {},
+      sender: "spoofer",
+    });
+
+    expect(senders).toEqual([
+      { channel: "typed", sender: "conversation-service" },
+      { channel: "named", sender: "spoofer" },
+    ]);
+  });
+
   it("hears a channel in a worker too when it listens in every process", async () => {
     const worker = createMockShell();
     const heard = emptyHeard();
@@ -203,7 +281,7 @@ describe("a first-party service's runtime", () => {
     expect(unheard.events).toEqual([]);
   });
 
-  it("hears a channel by name, its payload as sent", async () => {
+  it("hears a system channel by name, its payload as sent", async () => {
     const shell = createMockShell();
     const heard: unknown[] = [];
     await install(
@@ -212,16 +290,19 @@ describe("a first-party service's runtime", () => {
         { id: "probe", config: z.object({}) },
         {
           subscriptions: (context) => {
-            serviceRuntime(context).listen("probe:named", ({ payload }) => {
+            const runtime = serviceRuntime(context);
+            runtime.listen(SYSTEM_CHANNELS.shellReady, ({ payload }) => {
               heard.push(payload);
             });
+            // @ts-expect-error by name, only a system channel is heard; any other goes through its typed channel
+            runtime.listen("probe:named", () => undefined);
             return [];
           },
         },
       ),
     );
     await shell.getMessageBus().send({
-      type: "probe:named",
+      type: SYSTEM_CHANNELS.shellReady,
       payload: { any: "thing" },
       sender: "shell",
     });
@@ -576,14 +657,37 @@ describe("a first-party service's read-only view of the entity service", () => {
     ).toBeNull();
   });
 
+  it("reads a record raw, at the scope it names, as an identifier lookup does", async () => {
+    const view = await reads(seeded());
+
+    expect(
+      (
+        await view.getEntityRaw({
+          entityType: "note",
+          id: "private-note",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+    ).toBe("Private");
+    expect(
+      await view.getEntityRaw({ entityType: "note", id: "private-note" }),
+    ).toBeNull();
+  });
+
   it("offers no writes", async () => {
     const view = await reads(seeded());
 
     expect(Object.keys(view).sort()).toEqual([
+      "countEntities",
+      "deserializeEntity",
       "getEntity",
       "getEntityCounts",
+      "getEntityRaw",
+      "getEntityTypeConfig",
       "getEntityTypes",
       "listEntities",
+      "queryEntityHierarchy",
+      "search",
     ]);
   });
 });
@@ -993,6 +1097,42 @@ describe("a first-party service's data source, template and widget", () => {
     ).toEqual({ count: 1 });
   });
 
+  it("serves a data source under the id its class gave it, unscoped, when it asks to", async () => {
+    const shell = noted();
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dataSource(
+              {
+                id: "site:navigation",
+                name: "Site Navigation",
+                description: "Navigation items",
+                fetch: async () => ({ count: 2 }),
+              },
+              { asWritten: true },
+            );
+            return [];
+          },
+        },
+      ),
+    );
+
+    expect(shell.getDataSourceRegistry().get("probe:site:navigation")).toBe(
+      undefined,
+    );
+    const source = shell.getDataSourceRegistry().get("site:navigation");
+    if (!source?.fetch) throw new Error("No site:navigation data source");
+    expect(source.name).toBe("Site Navigation");
+    expect(
+      await source.fetch({}, mapData, {
+        entityService: shell.getEntityService(),
+      }),
+    ).toEqual({ count: 2 });
+  });
+
   it("registers a built template under the plugin's id, naming its data source", async () => {
     const shell = noted();
     await install(shell, mapping([]));
@@ -1000,6 +1140,75 @@ describe("a first-party service's data source, template and widget", () => {
     const template = shell.getTemplates().get("probe:map");
     expect(template?.dataSourceId).toBe("probe:map");
     expect(template?.requiredPermission).toBe("public");
+  });
+
+  it("registers a declarative widget, with no renderer of its own, as its class did", async () => {
+    const shell = noted();
+    const registrations: DashboardWidgetRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        },
+      );
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dashboardWidget({
+              definition: defineDashboardWidget({
+                id: "health",
+                title: "Health",
+                group: "publishing",
+                placement: "sidebar",
+                priority: 50,
+                permission: "public",
+                data: mapData,
+                view: ({ data }) => ({
+                  blocks: [
+                    {
+                      type: "stats",
+                      id: "builds",
+                      items: [{ label: "Built", value: data.count }],
+                    },
+                  ],
+                }),
+              }),
+              load: async () => ({ count: 3 }),
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+      sender: "shell",
+    });
+
+    const [registration] = registrations;
+    if (!registration) throw new Error("The widget was not registered");
+    expect(registration).toMatchObject({
+      id: "health",
+      rendererName: "DeclarativeOperatorWidget",
+    });
+    expect(registration.renderer).toBeUndefined();
+    expect(
+      await registration.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).toMatchObject({
+      view: {
+        blocks: [{ type: "stats", items: [{ label: "Built", value: 3 }] }],
+      },
+    });
   });
 
   it("registers its widget with its own renderer once every plugin has registered", async () => {

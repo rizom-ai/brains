@@ -1,17 +1,24 @@
 import {
-  ServicePlugin,
-  type Plugin,
-  type ServicePluginContext,
-  type Tool,
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  serviceRuntime,
+  type ServiceRuntime,
   normalizeSameOriginPath,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
-import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
+} from "@brains/sdk/internal/service-runtime";
+import { inboxWidget, loadInboxWidget } from "./dashboard-widget";
 import { InboxDataSource } from "./inbox-datasource";
 import { registerUnifiedInboxDigest } from "./digest";
-import { createInboxListTool } from "./inbox-tool";
-import { registerUnifiedInboxStudioWorkspace } from "./operator-studio";
+import { inboxListTool } from "./inbox-tool";
+import {
+  inboxWorkspace,
+  loadInboxWorkspace,
+  prepareInboxAction,
+  runInboxAction,
+  runInboxActionFor,
+} from "./operator-studio";
 import { InboxOperatorService } from "./operator-service";
 
 const unifiedInboxConfigSchema: z.ZodObject<
@@ -19,83 +26,101 @@ const unifiedInboxConfigSchema: z.ZodObject<
   z.core.$strict
 > = z.strictObject({});
 
-type UnifiedInboxConfig = z.output<typeof unifiedInboxConfigSchema>;
-/** Brains pass raw config records; the strict schema rejects any key at parse time. */
-type UnifiedInboxConfigInput = Record<string, unknown>;
+/** The projection and the operator every surface reads through, built once. */
+interface InboxServices {
+  readonly dataSource: InboxDataSource;
+  readonly operator: InboxOperatorService;
+}
 
-export class UnifiedInboxPlugin extends ServicePlugin<
-  UnifiedInboxConfig,
-  UnifiedInboxConfigInput
-> {
-  private dataSource: InboxDataSource | undefined;
-  private operator: InboxOperatorService | undefined;
-  private pluginContext: ServicePluginContext | undefined;
-  private studioWorkspaceUrl: string | undefined;
-  private studioRegistered = false;
-
-  constructor() {
-    super("unified-inbox", packageJson, {}, unifiedInboxConfigSchema);
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.pluginContext = context;
-    this.dataSource = new InboxDataSource(context.inbox);
-    this.operator = new InboxOperatorService(
-      context.inbox,
-      this.dataSource,
-      context.inboxFollowUps,
-    );
-    registerUnifiedInboxDigest(context, this.dataSource, {
-      workspaceUrl: () => this.studioWorkspaceUrl,
-    });
-  }
-
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const operator = this.getOperator();
-    this.studioWorkspaceUrl = normalizeSameOriginPath(
-      await registerUnifiedInboxStudioWorkspace(context, operator),
-    );
-    this.studioRegistered = this.studioWorkspaceUrl !== undefined;
-    if (this.studioWorkspaceUrl) {
-      context.interactions.register({
-        id: "unified-inbox",
-        label: "Inbox",
-        description: "Review source-owned items that need operator attention.",
-        href: this.studioWorkspaceUrl,
-        kind: "admin",
-        priority: 20,
-        visibility: "admin",
+/**
+ * The unified inbox: the one place the attention every source registers is
+ * read together. It owns no items. A list tool, a Dashboard widget and a
+ * Studio workspace read the same live projection, a daily digest points at
+ * the workspace, and the Inbox's way in opens it once Studio serves it.
+ */
+const unifiedInboxPackage: ServicePackageDefinition<
+  typeof unifiedInboxConfigSchema
+> = defineServicePlugin(
+  {
+    id: "unified-inbox",
+    config: unifiedInboxConfigSchema,
+    // One projection for the package, so a page that reads the badge, the
+    // workspace and the widget at once fans out to its sources once.
+    setup: () => {
+      let services: InboxServices | undefined;
+      return {
+        services: (runtime: ServiceRuntime): InboxServices => {
+          if (services) return services;
+          const dataSource = new InboxDataSource(runtime.inbox);
+          services = {
+            dataSource,
+            operator: new InboxOperatorService(
+              runtime.inbox,
+              dataSource,
+              runtime.inboxFollowUps,
+            ),
+          };
+          return services;
+        },
+      };
+    },
+  },
+  {
+    subscriptions: (context) => {
+      const runtime = serviceRuntime(context);
+      const { dataSource } = context.state.services(runtime);
+      // In every process, as the class registered it.
+      registerUnifiedInboxDigest(runtime, dataSource, {
+        workspaceUrl: () => runtime.workspaceUrl(inboxWorkspace),
       });
-    }
-    await registerUnifiedInboxDashboardWidget(context, operator);
-  }
+      // Only when Studio serves the workspace: a way in that leads nowhere
+      // is worse than none.
+      runtime.ready(() => {
+        const href = normalizeSameOriginPath(
+          runtime.workspaceUrl(inboxWorkspace),
+        );
+        if (!href) return;
+        runtime.interaction({
+          id: "unified-inbox",
+          label: "Inbox",
+          description:
+            "Review source-owned items that need operator attention.",
+          href,
+          kind: "admin",
+          priority: 20,
+          visibility: "admin",
+        });
+      });
+      return [];
+    },
+    tools: (context) => {
+      const runtime = serviceRuntime(context);
+      return [inboxListTool(context.state.services(runtime).operator, runtime)];
+    },
+    dashboardWidgets: (context) => {
+      const { operator } = context.state.services(serviceRuntime(context));
+      return [
+        inboxWidget.bind(context, ({ signal }) =>
+          loadInboxWidget(operator, signal),
+        ),
+      ];
+    },
+    studioWorkspaces: (context) => {
+      const { operator } = context.state.services(serviceRuntime(context));
+      return [
+        inboxWorkspace.bind(context, {
+          load: (call) => loadInboxWorkspace(operator, call),
+          actions: [
+            runInboxAction.bind(
+              context,
+              (call) => runInboxActionFor(operator, call),
+              (call) => prepareInboxAction(operator, call),
+            ),
+          ],
+        }),
+      ];
+    },
+  },
+);
 
-  protected override async onShutdown(): Promise<void> {
-    if (this.studioRegistered) {
-      await this.pluginContext?.studio.unregisterWorkspace(
-        "unified-inbox:inbox",
-      );
-      this.studioRegistered = false;
-    }
-    this.studioWorkspaceUrl = undefined;
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [createInboxListTool(this.getOperator())];
-  }
-
-  private getOperator(): InboxOperatorService {
-    if (!this.operator) {
-      throw new Error("Unified inbox operator is not initialized");
-    }
-    return this.operator;
-  }
-}
-
-export function unifiedInboxPlugin(): Plugin {
-  return new UnifiedInboxPlugin();
-}
+export default unifiedInboxPackage;

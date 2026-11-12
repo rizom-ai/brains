@@ -26,7 +26,11 @@ import {
 
 import { afterEach, describe, expect, it } from "bun:test";
 import { isRecord } from "@brains/utils/is-record";
-import { studioPlugin, type StudioPlugin } from "../src";
+import {
+  studioPlugin,
+  type StudioPlugin,
+  studioContextOn,
+} from "./studio-plugins";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -43,7 +47,7 @@ const JOB_METADATA: JobProgressEvent["metadata"] = {
 it("combines an empty attention/activity state without hiding standing runtime information", async () => {
   const registry = new StudioOverviewRegistry();
   const workspace = createStudioOverviewWorkspace({
-    context: createServicePluginContext(createMockShell(), "studio"),
+    context: await studioContextOn(createMockShell()),
     registry,
   });
   const actor: StudioWorkspaceActor = {
@@ -190,7 +194,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -216,7 +220,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -242,7 +246,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
       now: (): number => now,
     });
@@ -349,7 +353,7 @@ describe("Overview composition", () => {
       }),
     );
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -385,7 +389,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
       now: (): number => now,
     });
@@ -426,7 +430,7 @@ describe("Overview composition", () => {
       }),
     );
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 

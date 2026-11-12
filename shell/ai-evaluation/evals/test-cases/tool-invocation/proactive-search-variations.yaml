@@ -9,7 +9,7 @@ tags:
   - tool-invocation
   - search
   - proactive-behavior
-  - preset-core
+  - recipe-professional
 
 turns:
   - userMessage: "What have I written about sustainability?"
@@ -49,4 +49,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 15
-  maxTokens: 100000
+  maxTokens: 152000

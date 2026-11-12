@@ -1,4 +1,4 @@
-import { generateText, generateObject, NoObjectGeneratedError } from "ai";
+import { generateText, NoObjectGeneratedError, Output } from "ai";
 import { AIOutputValidationError } from "./errors";
 import type { GenerationUsageMeter } from "./generation-usage-meter";
 import type { LanguageModel } from "ai";
@@ -40,6 +40,8 @@ export class AIService implements IAIService {
   private providers: ProviderClients;
   private capabilities: TextModelCapabilities;
   private cachedModel: LanguageModel | null = null;
+  private cachedAnswerModel: LanguageModel | null = null;
+  private cachedVisionModel: LanguageModel | null = null;
 
   public static createFresh(
     config: AIModelConfig,
@@ -65,11 +67,36 @@ export class AIService implements IAIService {
    * Get the language model instance for the configured provider.
    */
   public getModel(): LanguageModel {
+    // Without an answer model, a local model answers tool results itself.
     this.cachedModel ??= getLanguageModel(
       this.providers,
       this.requireTextModel(),
+      {
+        describeImagesWith: this.getVisionModel(),
+        answersWithoutThinking: !this.config.answerModel,
+      },
     );
     return this.cachedModel;
+  }
+
+  /** The model that answers tool results, when one is configured. */
+  public getAnswerModel(): LanguageModel | undefined {
+    const answerModel = this.config.answerModel;
+    if (!answerModel) return undefined;
+    this.cachedAnswerModel ??= getLanguageModel(this.providers, answerModel, {
+      describeImagesWith: this.getVisionModel(),
+    });
+    return this.cachedAnswerModel;
+  }
+
+  /** The model that describes images, when one is configured. */
+  private getVisionModel(): LanguageModel | undefined {
+    const visionModel = this.config.visionModel;
+    if (!visionModel) return undefined;
+    this.cachedVisionModel ??= getLanguageModel(this.providers, visionModel, {
+      readsImages: true,
+    });
+    return this.cachedVisionModel;
   }
 
   /**
@@ -84,7 +111,7 @@ export class AIService implements IAIService {
     usage: TokenUsage;
   }> {
     signal?.throwIfAborted();
-    const measurement = this.usage?.begin(this.config.model);
+    const measurement = this.usage?.begin(this.writingModelId());
     if (measurement)
       signal = signal
         ? AbortSignal.any([signal, measurement.signal])
@@ -95,8 +122,8 @@ export class AIService implements IAIService {
 
     try {
       const result = await generateText({
-        model: this.getModel(),
-        system: systemPrompt,
+        model: this.getWritingModel(),
+        instructions: systemPrompt,
         prompt: userPrompt,
         ...(measurement ? { maxRetries: 0 } : {}),
         ...(signal ? { abortSignal: signal } : {}),
@@ -133,7 +160,7 @@ export class AIService implements IAIService {
     usage: TokenUsage;
   }> {
     signal?.throwIfAborted();
-    const measurement = this.usage?.begin(this.config.model);
+    const measurement = this.usage?.begin(this.writingModelId());
     if (measurement)
       signal = signal
         ? AbortSignal.any([signal, measurement.signal])
@@ -148,11 +175,11 @@ export class AIService implements IAIService {
         this.capabilities.provider,
         this.capabilities.supportsTemperature,
       );
-      const result = await generateObject({
-        model: this.getModel(),
-        system: systemPrompt,
+      const result = await generateText({
+        model: this.getWritingModel(),
+        instructions: systemPrompt,
         prompt: userPrompt,
-        schema,
+        output: Output.object({ schema }),
         ...(measurement ? { maxRetries: 0 } : {}),
         ...(signal ? { abortSignal: signal } : {}),
         ...generationOptions,
@@ -167,7 +194,7 @@ export class AIService implements IAIService {
 
       this.logUsage("object_generation", usage);
 
-      return { object: result.object, usage };
+      return { object: result.output, usage };
     } catch (error) {
       signal?.throwIfAborted();
       this.logger.error("Failed to generate object", error);
@@ -210,12 +237,26 @@ export class AIService implements IAIService {
     this.config = withAIModelDefaults({ ...this.config, ...config });
     const modelChanged = this.config.model !== previousModel;
     const keyFieldsChanged =
-      config.apiKey !== undefined ||
-      config.imageApiKey !== undefined ||
+      config.providerKeys !== undefined ||
+      config.modelRuntimeUrl !== undefined ||
       modelChanged;
     if (keyFieldsChanged) {
       this.providers = createProviderClients(this.config);
       this.cachedModel = null;
+    }
+    // A local model is built with the answer and vision models it relies on.
+    if (config.answerModel !== undefined || config.visionModel !== undefined) {
+      this.cachedModel = null;
+    }
+    if (
+      keyFieldsChanged ||
+      config.answerModel !== undefined ||
+      config.visionModel !== undefined
+    ) {
+      this.cachedAnswerModel = null;
+    }
+    if (keyFieldsChanged || config.visionModel !== undefined) {
+      this.cachedVisionModel = null;
     }
     if (modelChanged) {
       this.capabilities = resolveTextModelCapabilities(this.config.model);
@@ -236,7 +277,7 @@ export class AIService implements IAIService {
    * Check if image generation is available
    */
   public canGenerateImages(): boolean {
-    return canGenerateImages(this.providers);
+    return canGenerateImages(this.providers, this.config.imageModel);
   }
 
   /**
@@ -255,11 +296,23 @@ export class AIService implements IAIService {
     );
   }
 
+  /**
+   * Text and object generation choose no tools, so the answer model writes
+   * them when one is set; the configured model keeps the agent's tool choice.
+   */
+  private getWritingModel(): LanguageModel {
+    return this.getAnswerModel() ?? this.getModel();
+  }
+
+  private writingModelId(): string | undefined {
+    return this.config.answerModel ?? this.config.model;
+  }
+
   private logUsage(operation: string, usage: TokenUsage): void {
     this.logger.info("ai:usage", {
       operation,
       provider: this.capabilities.provider,
-      model: this.config.model,
+      model: this.writingModelId(),
       inputTokens: usage.promptTokens,
       outputTokens: usage.completionTokens,
     });

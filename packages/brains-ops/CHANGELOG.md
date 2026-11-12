@@ -1,5 +1,105 @@
 # @brains/ops
 
+## 0.2.0-alpha.688
+
+No changes in this release.
+
+## 0.2.0-alpha.687
+
+No changes in this release.
+
+## 0.2.0-alpha.686
+
+No changes in this release.
+
+## 0.2.0-alpha.685
+
+No changes in this release.
+
+## 0.2.0-alpha.684
+
+No changes in this release.
+
+## 0.2.0-alpha.683
+
+No changes in this release.
+
+## 0.2.0-alpha.682
+
+No changes in this release.
+
+## 0.2.0-alpha.681
+
+No changes in this release.
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`1b68a6a`](https://github.com/rizom-ai/brains/commit/1b68a6aca508ce1b8bbfe2368ef28fc73f20123b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain opts into a local model runtime by naming a `local:` model in `brain.yaml`; every other brain deploys as before. For such a brain, the generated Kamal deploy pulls its local models into `/opt/brain-models` before Kamal starts it, runs a `models` accessory (`ollama/ollama:0.40.11`) beside it, and passes `MODEL_RUNTIME_URL`, which the brain uses when `brain.yaml` sets no `modelRuntime.url`. Fleet users opt in with `embeddingModel` in the registry. Deploy configs generated before the accessory are reconciled on rerun.
+
+  The `models` accessory serves a 32,768-token context, so a local text model receives whole agent prompts.
+
+## 0.2.0-alpha.679
+
+No changes in this release.
+
+## 0.2.0-alpha.678
+
+No changes in this release.
+
+## 0.2.0-alpha.677
+
+No changes in this release.
+
+## 0.2.0-alpha.676
+
+No changes in this release.
+
+## 0.2.0-alpha.675
+
+No changes in this release.
+
+## 0.2.0-alpha.674
+
+No changes in this release.
+
+## 0.2.0-alpha.673
+
+No changes in this release.
+
+## 0.2.0-alpha.672
+
+No changes in this release.
+
+## 0.2.0-alpha.671
+
+No changes in this release.
+
+## 0.2.0-alpha.670
+
+No changes in this release.
+
+## 0.2.0-alpha.669
+
+No changes in this release.
+
+## 0.2.0-alpha.668
+
+No changes in this release.
+
+## 0.2.0-alpha.667
+
+No changes in this release.
+
+## 0.2.0-alpha.666
+
+No changes in this release.
+
+## 0.2.0-alpha.665
+
+No changes in this release.
+
 ## 0.2.0-alpha.664
 
 No changes in this release.

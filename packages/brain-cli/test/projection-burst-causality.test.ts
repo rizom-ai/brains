@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import type { AIGenerationSchema } from "@brains/ai-service";
 import { MigrationManager, resolve } from "@brains/app";
 import { Shell } from "@brains/core";
-import { DirectorySyncPlugin } from "@brains/directory-sync";
+import type { DirectorySync } from "@brains/directory-sync";
+import { withObservedDirectorySync } from "./helpers/observed-directory-sync";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
 import { deferred } from "@brains/utils/deferred";
@@ -34,9 +35,6 @@ const EXTRACTION_JOB_TYPE = "topics:extract";
 const CLAIM_GRACE_MS = 1_000;
 const WAIT_OPTIONS = { timeoutMs: SETTLE_BUDGET_MS, intervalMs: 25 };
 
-type DirectorySync = NonNullable<
-  ReturnType<DirectorySyncPlugin["getDirectorySync"]>
->;
 type JobQueue = ReturnType<Shell["getJobQueueService"]>;
 type EntityService = ReturnType<Shell["getEntityService"]>;
 
@@ -178,6 +176,11 @@ describe("projection burst causal evidence", () => {
       delayMs: 0,
       dimensions: 1536,
     });
+    const directorySyncOverrides = {
+      autoSync: false,
+      seedContent: false,
+      initialSync: true,
+    };
     const resolved = resolve(
       canonicalBrain,
       {},
@@ -197,17 +200,12 @@ describe("projection burst causal evidence", () => {
           "dashboard",
           "admin",
           "mcp",
-          "webserver",
           "web-chat",
           "chat",
           "a2a",
         ],
         plugins: {
-          "directory-sync": {
-            autoSync: false,
-            seedContent: false,
-            initialSync: true,
-          },
+          "directory-sync": directorySyncOverrides,
           topics: {
             enableAutoExtraction: true,
             maxEntitiesPerBatch: 4,
@@ -215,12 +213,17 @@ describe("projection burst causal evidence", () => {
         },
       },
     );
+    const observed = withObservedDirectorySync(resolved.plugins ?? [], {
+      // The canonical brain's seed path, under the test's overrides.
+      seedContentPath: "./seed-content",
+      ...directorySyncOverrides,
+    });
 
     const runningShell = Shell.createFresh(
       {
         name: resolved.name,
         version: resolved.version,
-        plugins: resolved.plugins ?? [],
+        plugins: observed.plugins,
         permissions: resolved.permissions ?? {},
         spaces: resolved.spaces ?? [],
         database: { url: databaseUrl },
@@ -229,7 +232,10 @@ describe("projection burst causal evidence", () => {
         runtimeStateDatabase: { url: runtimeStateDatabaseUrl },
         embeddingDatabase: { url: embeddingDatabaseUrl },
         dataDir,
-        ai: { apiKey: MOCK_LOAD_API_KEY, model: MOCK_LOAD_MODEL },
+        ai: {
+          providerKeys: { openai: MOCK_LOAD_API_KEY },
+          model: MOCK_LOAD_MODEL,
+        },
         embedding: { enabled: true },
         logging: { level: "error", context: "projection-causality" },
         ...(resolved.identity ? { identity: resolved.identity } : {}),
@@ -265,14 +271,7 @@ describe("projection burst causal evidence", () => {
       }
     };
 
-    const directoryPlugin = runningShell
-      .getPluginManager()
-      .getPlugin("directory-sync");
-    if (!(directoryPlugin instanceof DirectorySyncPlugin)) {
-      throw new Error("Directory sync plugin was not registered");
-    }
-    const directorySync = directoryPlugin.getDirectorySync();
-    if (!directorySync) throw new Error("Directory sync was not initialized");
+    const directorySync = observed.directorySync();
 
     // Settle any startup ingress before collecting phase evidence.
     await waitUntil(

@@ -12,6 +12,9 @@ export {
   SectionDefinitionSchema,
   siteBuilderRouteRegisterContract,
   siteBuilderRoutesContract,
+  siteBuilderPagesContract,
+  siteBuilderPagesRequestSchema,
+  siteBuilderPagesResponseSchema,
   siteBuilderRoutesRequestSchema,
   siteBuilderRoutesResponseSchema,
 } from "./routes";

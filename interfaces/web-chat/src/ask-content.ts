@@ -1,5 +1,5 @@
 import { askContentFromRecord, type AskContent } from "@brains/contracts";
-import type { InterfacePluginContext } from "@brains/plugins";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 
 export function publicAskContent(
   entity: {
@@ -19,7 +19,7 @@ export function publicAskContent(
 
 /** Optional public copy: absence, private content and invalid authoring fail closed. */
 export async function loadAskContent(
-  entities: InterfacePluginContext["entityService"],
+  entities: InterfaceRuntime["entityReads"],
 ): Promise<AskContent | undefined> {
   try {
     const entity = await entities.getEntity({

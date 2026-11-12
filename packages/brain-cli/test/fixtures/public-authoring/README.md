@@ -222,7 +222,7 @@ and never reads repository secret files:
 RIZOM_PUBLIC_API_LIVE_EVIDENCE=1 \
 RIZOM_PUBLIC_API_BRAIN_VERSION=<final-alpha> \
 RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
-AI_API_KEY=<provider-secret> \
+OPENAI_API_KEY=<provider-secret> \
 bun test packages/brain-cli/test/public-authoring-live-packed.test.ts
 ```
 

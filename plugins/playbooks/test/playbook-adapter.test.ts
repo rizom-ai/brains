@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { expectBodyRoundTrip } from "@brains/test-utils";
 import { getKind, unwrapField } from "@brains/utils/zod-introspect";
+import { parseMarkdown } from "@brains/utils/markdown";
 import {
-  playbookAdapter,
+  createPlaybookContent,
+  parsePlaybookContent,
+  playbookEntity,
   playbookBodyFormatter,
   playbookBodySchema,
   playbookFrontmatterSchema,
@@ -101,7 +104,7 @@ Done when:
 Say: You're set up.
 `;
 
-    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+    const { body: parsed } = parsePlaybookContent(markdown);
 
     expect(parsed.initialState).toBe("welcome");
     expect(parsed.finalStates).toEqual(["done"]);
@@ -204,7 +207,7 @@ Done when:
 Say: Done.
 `;
 
-    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+    const { body: parsed } = parsePlaybookContent(markdown);
 
     expect(parsed.states[0]).toMatchObject({
       id: "identity",
@@ -221,7 +224,7 @@ Say: Done.
   it("parses an authored step that a reply can prove", () => {
     const markdown =
       "---\ntitle: Reply Proof Playbook\nstatus: active\naudience: admin\ncompletionMode: agent-confirmed\n---\n\n# Playbook\n\n## Purpose\n\nTeach by doing.\n\n## Steps\n\n### Transform\n\nSay: Pick a format.\n\nTo do:\n- Transform the note in chat.\n\nProven by: reply\n\nDone when:\n- The note has been transformed in chat.\n\n### Done\n\nSay: Done.\n";
-    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+    const { body: parsed } = parsePlaybookContent(markdown);
     expect(parsed.states[0]).toMatchObject({
       id: "transform",
       provenBy: ["reply"],
@@ -234,7 +237,7 @@ Say: Done.
   it("rejects an unknown proof source", () => {
     const markdown =
       "---\ntitle: Reply Proof Playbook\nstatus: active\naudience: admin\ncompletionMode: agent-confirmed\n---\n\n# Playbook\n\n## Purpose\n\nTeach by doing.\n\n## Steps\n\n### Transform\n\nSay: Pick a format.\n\nTo do:\n- Transform the note in chat.\n\nProven by: claim\n\nDone when:\n- The note has been transformed in chat.\n\n### Done\n\nSay: Done.\n";
-    expect(() => playbookAdapter.parsePlaybookContent(markdown)).toThrow(
+    expect(() => parsePlaybookContent(markdown)).toThrow(
       "Playbook step 'Transform' has an unknown Proven by source: claim.",
     );
   });
@@ -278,13 +281,13 @@ Say: Hello.
 Say: Done.
 `;
 
-    expect(() => playbookAdapter.parsePlaybookContent(markdown)).toThrow(
+    expect(() => parsePlaybookContent(markdown)).toThrow(
       "Playbook step 'Intro' must declare Done when, Choices, or Skip.",
     );
   });
 
   it("parses playbook markdown into metadata and structured body", () => {
-    const markdown = playbookAdapter.createPlaybookContent(
+    const markdown = createPlaybookContent(
       {
         title: "Rover Onboarding",
         status: "active",
@@ -295,8 +298,15 @@ Say: Done.
       body,
     );
 
-    const entity = playbookAdapter.fromMarkdown(markdown);
-    const parsed = playbookAdapter.parsePlaybookContent(markdown);
+    // The playbook type reads a file through its markdown codec.
+    const document = parseMarkdown(markdown);
+    const decoded = playbookEntity.markdown?.decode({
+      content: document.content,
+      frontmatter: document.frontmatter,
+    });
+    if (!decoded) throw new Error("The playbook type decodes no markdown");
+    const entity = { entityType: playbookEntity.type, ...decoded };
+    const parsed = parsePlaybookContent(markdown);
 
     expect(entity.entityType).toBe("playbook");
     expect(entity.metadata).toEqual({
@@ -388,7 +398,7 @@ Say: Done.
     const complete = body.states.find((state) => state.id === "complete");
     if (!welcome || !complete) throw new Error("Test fixture is incomplete.");
 
-    const invalidMarkdown = playbookAdapter.createPlaybookContent(
+    const invalidMarkdown = createPlaybookContent(
       {
         title: "Broken",
         status: "active",
@@ -407,7 +417,7 @@ Say: Done.
       },
     );
 
-    expect(() => playbookAdapter.parsePlaybookContent(invalidMarkdown)).toThrow(
+    expect(() => parsePlaybookContent(invalidMarkdown)).toThrow(
       "targets an undefined state",
     );
   });

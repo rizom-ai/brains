@@ -1,3 +1,7 @@
+import {
+  openaiSelectorFor,
+  renameProviderKeyFields,
+} from "./provider-key-migration";
 import { toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import { isMap, isNode, isScalar, parseDocument, type Pair } from "yaml";
@@ -108,7 +112,7 @@ export function migrateLegacyPilotConfig(input: unknown): PilotConfig {
     githubOrg: legacy.githubOrg,
     contentRepoPrefix: legacy.contentRepoPrefix,
     domainSuffix: legacy.domainSuffix,
-    aiApiKey: legacy.aiApiKey,
+    openaiApiKey: openaiSelectorFor(legacy.aiApiKey),
     gitSyncToken: legacy.gitSyncToken,
     contentRepoAdminToken: legacy.contentRepoAdminToken,
     agePublicKey: legacy.agePublicKey,
@@ -134,7 +138,7 @@ export function migrateLegacyCohortConfig(input: unknown): CohortConfig {
         }
       : {}),
     ...(legacy.aiApiKeyOverride
-      ? { aiApiKeyOverride: legacy.aiApiKeyOverride }
+      ? { openaiApiKeyOverride: legacy.aiApiKeyOverride }
       : {}),
     ...(legacy.gitSyncTokenOverride
       ? { gitSyncTokenOverride: legacy.gitSyncTokenOverride }
@@ -240,6 +244,7 @@ export function migrateLegacyPilotYaml(input: string): string {
   else document.delete("add");
   if (migrated.remove) document.set("remove", migrated.remove);
   else document.delete("remove");
+  renameProviderKeyFields(document);
 
   pilotSchema.parse(document.toJS());
   return document.toString({ lineWidth: 0 });
@@ -268,6 +273,7 @@ export function migrateLegacyCohortYaml(input: string): string {
   } else {
     document.delete("removeOverride");
   }
+  renameProviderKeyFields(document);
 
   cohortSchema.parse(document.toJS());
   return document.toString({ lineWidth: 0 });

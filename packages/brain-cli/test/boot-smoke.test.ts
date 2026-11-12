@@ -87,7 +87,6 @@ describe("built binary boot smoke", () => {
   it("boots the canonical model and serves HTTP", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-boot-smoke-"));
     const productionPort = freePort();
-    const apiPort = freePort();
     writeFileSync(
       join(instanceDir, "brain.yaml"),
       [
@@ -102,13 +101,10 @@ describe("built binary boot smoke", () => {
         // runtime bundles, retaining the cross-bundle path under test.
         "add:",
         "  - wishlist",
+        `port: ${productionPort}`,
         "plugins:",
         "  onboarding:",
         "    enabled: false",
-        "  webserver:",
-        "    enablePreview: false",
-        `    productionPort: ${productionPort}`,
-        `    apiPort: ${apiPort}`,
         "",
       ].join("\n"),
     );
@@ -120,7 +116,7 @@ describe("built binary boot smoke", () => {
         env: {
           ...process.env,
           NODE_ENV: "production",
-          AI_API_KEY: "placeholder-boot-smoke",
+          OPENAI_API_KEY: "placeholder-boot-smoke",
         },
         stdout: "pipe",
         stderr: "pipe",
@@ -150,7 +146,6 @@ describe("built binary boot smoke", () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-init-cwd-"));
     const launchDir = mkdtempSync(join(tmpdir(), "brain-launch-dir-"));
     const productionPort = freePort();
-    const apiPort = freePort();
     writeFileSync(
       join(instanceDir, "brain.yaml"),
       [
@@ -161,13 +156,10 @@ describe("built binary boot smoke", () => {
         "bundles:",
         "  - core",
         "  - web",
+        `port: ${productionPort}`,
         "plugins:",
         "  onboarding:",
         "    enabled: false",
-        "  webserver:",
-        "    enablePreview: false",
-        `    productionPort: ${productionPort}`,
-        `    apiPort: ${apiPort}`,
         "",
       ].join("\n"),
     );
@@ -180,7 +172,7 @@ describe("built binary boot smoke", () => {
           ...process.env,
           INIT_CWD: instanceDir,
           NODE_ENV: "production",
-          AI_API_KEY: "placeholder-boot-smoke",
+          OPENAI_API_KEY: "placeholder-boot-smoke",
         },
         stdout: "pipe",
         stderr: "pipe",
@@ -204,7 +196,6 @@ describe("built binary boot smoke", () => {
   it("refuses to boot in production with a static MCP token", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-static-token-"));
     const productionPort = freePort();
-    const apiPort = freePort();
     try {
       writeFileSync(
         join(instanceDir, "brain.yaml"),
@@ -216,13 +207,10 @@ describe("built binary boot smoke", () => {
           "bundles:",
           "  - core",
           "  - web",
+          `port: ${productionPort}`,
           "plugins:",
           "  onboarding:",
           "    enabled: false",
-          "  webserver:",
-          "    enablePreview: false",
-          `    productionPort: ${productionPort}`,
-          `    apiPort: ${apiPort}`,
           "",
         ].join("\n"),
       );
@@ -239,7 +227,7 @@ describe("built binary boot smoke", () => {
           env: {
             ...process.env,
             NODE_ENV: "production",
-            AI_API_KEY: "placeholder-boot-smoke",
+            OPENAI_API_KEY: "placeholder-boot-smoke",
             MCP_AUTH_TOKEN: "static-boot-smoke-token",
             XDG_DATA_HOME: join(instanceDir, "xdg-data"),
           },
@@ -257,7 +245,7 @@ describe("built binary boot smoke", () => {
     }
   }, 240_000);
 
-  it("passes startup checks without a webserver", async () => {
+  it("passes startup checks without serving HTTP", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-headless-smoke-"));
     try {
       writeFileSync(
@@ -287,7 +275,7 @@ describe("built binary boot smoke", () => {
           cwd: instanceDir,
           env: {
             ...process.env,
-            AI_API_KEY: "placeholder-boot-smoke",
+            OPENAI_API_KEY: "placeholder-boot-smoke",
             XDG_DATA_HOME: join(instanceDir, "xdg-data"),
           },
         },
@@ -297,7 +285,9 @@ describe("built binary boot smoke", () => {
       expect(startup.exitCode, output).toBe(0);
       expect(output).toContain("A2A interface registered in tool-only mode");
       expect(output).not.toContain("Production server listening");
-      expect(output).not.toContain("MCP HTTP transport requires the webserver");
+      expect(output).not.toContain(
+        "MCP HTTP transport requires the brain to serve HTTP",
+      );
     } finally {
       rmSync(instanceDir, { recursive: true, force: true });
     }

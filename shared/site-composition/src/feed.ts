@@ -1,3 +1,4 @@
+import { escapeXml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -50,15 +51,6 @@ export interface FeedChannel {
   readonly copyright?: string | undefined;
 }
 
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/gu, "&amp;")
-    .replace(/</gu, "&lt;")
-    .replace(/>/gu, "&gt;")
-    .replace(/"/gu, "&quot;")
-    .replace(/'/gu, "&apos;");
-}
-
 /** A CDATA section cannot contain its own terminator, so split it. */
 function cdata(text: string): string {
   return `<![CDATA[${text.replaceAll("]]>", "]]]]><![CDATA[>")}]]>`;
@@ -87,7 +79,8 @@ function itemXml(item: ValidFeedItem, url: string): string {
 /**
  * Render an RSS 2.0 document. Items are emitted newest first, and the
  * channel's lastBuildDate follows the newest item so a reader can tell
- * whether anything changed without parsing the body.
+ * whether anything changed without parsing the body. The document ends at
+ * its closing tag.
  */
 export function renderRssFeed(
   items: readonly ValidFeedItem[],
@@ -116,6 +109,5 @@ export function renderRssFeed(
     <atom:link href="${escapeXml(channel.selfLink)}" rel="self" type="application/rss+xml"/>${copyright}
 ${ordered.map((item) => itemXml(item, itemUrl(item))).join("\n")}
   </channel>
-</rss>
-`;
+</rss>`;
 }

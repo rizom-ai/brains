@@ -3,7 +3,7 @@
 "@brains/email": patch
 "@brains/directory-sync": patch
 "@brains/mcp": patch
-"@brains/webserver": patch
+"@brains/http-host": patch
 "@brains/unified-inbox": patch
 "@brains/content-formatters": patch
 "@brains/document": patch

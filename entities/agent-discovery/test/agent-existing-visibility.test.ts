@@ -55,11 +55,11 @@ async function realEntityService(): Promise<EntityService> {
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: 1536,
-      generateEmbedding: async (): Promise<never> => {
+      identity: { model: "test:none", dimensions: 1536, promptRevision: 0 },
+      embedQuery: async (): Promise<never> => {
         throw new Error("Unexpected embedding");
       },
-      generateEmbeddings: async (): Promise<never> => {
+      embedDocuments: async (): Promise<never> => {
         throw new Error("Unexpected embedding");
       },
     },
@@ -343,7 +343,7 @@ describe("ATProto brain cards for agents already saved above public", () => {
 
     expect(result).toMatchObject({ created: false, skipped: true });
     expect(await readFull(service, "hidden.example")).toEqual(before);
-    expect(context.messaging.send).not.toHaveBeenCalled();
+    expect(context.messaging.broadcast).not.toHaveBeenCalled();
     expect(
       await context.runtimeState
         .scoped({

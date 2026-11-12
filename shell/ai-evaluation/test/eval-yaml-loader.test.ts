@@ -138,15 +138,16 @@ describe("loadPluginEvalConfig", () => {
     ]);
   });
 
-  it("constructs a named plugin class", async () => {
+  it("constructs a named plugin class with eval.yaml's config", async () => {
     const config = await loadPluginEvalConfig({
-      plugin: "@brains/link",
-      export: "LinkPlugin",
+      plugin: namedExportsModule,
+      export: "FixturePluginClass",
+      config: { suffix: "configured" },
     });
 
     const plugin = config.plugins?.[0];
-    expect(plugin?.id).toBe("link");
-    expect(plugin?.packageName).toBe("@brains/link");
+    expect(plugin?.id).toBe("class-configured");
+    expect(plugin?.packageName).toBe("@brains/eval-loader-fixture");
     expect(plugin?.type).toBe("entity");
   });
 
@@ -195,7 +196,12 @@ describe("loadPluginEvalConfig", () => {
 
   it("refuses a named export that does not provide a plugin", () => {
     expect(
-      loadPluginEvalConfig({ plugin: "@brains/link", export: "LinkAdapter" }),
-    ).rejects.toThrow(`@brains/link export "LinkAdapter" is not a plugin`);
+      loadPluginEvalConfig({
+        plugin: namedExportsModule,
+        export: "fixtureAdapter",
+      }),
+    ).rejects.toThrow(
+      `${namedExportsModule} export "fixtureAdapter" is not a plugin`,
+    );
   });
 });

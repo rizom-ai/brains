@@ -1,5 +1,8 @@
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { internalFullScope } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import {
+  type ContentVisibility,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
 import type { CleanupResult } from "../types";
 import { EntityPlacementError } from "./entity-placement-error";
 import {

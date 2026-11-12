@@ -131,7 +131,23 @@ Select an optional semantic profile kind from the composed catalog. The standard
 
 ### `domain`, `port`, `database`
 
-Override deployment domain, production port, or database URL.
+Override deployment domain, production port, or database URL. `port` is the port the brain's HTTP host listens on (default `8080`); the preview site shares it.
+
+### `http`
+
+How the runtime serves HTTP. Every field is optional.
+
+```yaml
+http:
+  enabled: true # default: whether the selected bundles include web
+  preview: true # default: whether a site builder runs
+  hostname: 127.0.0.1 # bind address; default: all interfaces
+  productionDistDir: ./dist/site-production # only for a site no site builder writes
+  previewDistDir: ./dist/site-preview
+  sharedImagesDir: ./dist/images
+```
+
+A site builder's own output directories are the ones served; an `http` directory that names another one is refused at start. `plugins.webserver` and `add`/`remove: [webserver]` are retired and refused.
 
 ### `model`
 
@@ -140,6 +156,77 @@ Select the AI text model. This field is unrelated to the retired built-in brain 
 ```yaml
 model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
+```
+
+An explicit `provider:` prefix selects the provider; a bare name is matched to one. Supported providers are `anthropic`, `openai`, `google` and `local` (the model runtime, below); any other prefix fails config validation.
+
+### `embeddingModel`
+
+Select the model that builds the semantic index. Defaults to `openai:text-embedding-3-small`; `openai:text-embedding-3-large` and `local:embeddinggemma-2:270m` are also supported, and any other model fails config validation.
+
+```yaml
+embeddingModel: openai:text-embedding-3-large
+```
+
+A `local:` model is served by the model runtime at `modelRuntime.url`: any server that implements the OpenAI-compatible `/v1/embeddings` API, such as Ollama. A `local:` model without `modelRuntime.url` fails config validation.
+
+```yaml
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+A deployed brain needs no `modelRuntime.url`: when `brain.yaml` names a `local:` model, the generated Kamal deploy pulls it into `/opt/brain-models` on the server, runs a `models` accessory beside the brain and gives the brain its address. A brain without a `local:` model deploys without the accessory.
+
+To run EmbeddingGemma 2 on a development machine:
+
+```sh
+ollama pull embeddinggemma-2:270m
+ollama serve
+```
+
+A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without a provider key.
+
+```sh
+ollama pull qwen3:14b
+OLLAMA_CONTEXT_LENGTH=32768 ollama serve
+```
+
+Vectors from different models cannot be compared, so changing `embeddingModel` drops the index at the next start and re-embeds every entity. Chat waits for the index to be ready; switching back is the same config change and rebuilds again.
+
+### `answerModel`
+
+A `local:` model that writes while `model` chooses the tools: it answers tool results and runs every generation that chooses no tools, such as background derivations and content drafts. A reasoning model makes the calls and a fast model writes; on a local runtime this cuts most of a turn's time and keeps background work from holding the runtime. It must be a `local:` model, and the deploy pulls it with the others.
+
+```yaml
+model: local:qwen3:30b-a3b
+answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+```
+
+Without `answerModel`, a local `model` answers tool results with its reasoning switched off.
+
+### `visionModel`
+
+A `local:` model that describes uploaded images for a local `model` that reads only text. The vision model describes each image once, and the description reaches `model` in place of the image; without `visionModel`, an image reaches a local `model` as its name and type only. It must be a `local:` model, and the deploy pulls it with the others.
+
+```yaml
+model: local:qwen3:30b-a3b
+visionModel: local:qwen3-vl:8b
+modelRuntime:
+  url: http://localhost:11434
+```
+
+### `imageModel`
+
+The model that generates images, as `provider:model`: `openai:` and `google:` models use the provider's key, and a `local:` model runs on the model runtime's OpenAI-compatible images API, which needs `modelRuntime.url`. Without `imageModel`, images are generated with OpenAI's default image model. The deploy does not pull a `local:` image model: the runtime's image backend loads its own model.
+
+```yaml
+imageModel: local:z-image-turbo
+modelRuntime:
+  url: http://localhost:11434
 ```
 
 ### `embedding`
@@ -244,7 +331,7 @@ plugins:
     botToken: ${DISCORD_BOT_TOKEN}
 ```
 
-Common variables include `AI_API_KEY`, `AI_IMAGE_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
+Common variables include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
 
 ## Recipes
 

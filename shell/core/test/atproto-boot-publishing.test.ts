@@ -8,21 +8,25 @@ import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { AtprotoPlugin } from "@brains/atproto";
+import { createAtprotoPackage } from "@brains/atproto";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { type AtprotoPdsClientLike } from "@brains/atproto-contracts";
 
 const mockEmbeddingService = {
-  dimensions: 1536,
-  generateEmbedding: async (): Promise<{
+  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+  embedQuery: async (): Promise<{
     embedding: Float32Array;
     usage: { tokens: number };
   }> => ({
     embedding: new Float32Array(1536).fill(0.1),
     usage: { tokens: 10 },
   }),
-  generateEmbeddings: async (
-    texts: string[],
+  embedDocuments: async (
+    texts: { content: string }[],
   ): Promise<{
     embeddings: Float32Array[];
     usage: { tokens: number };
@@ -73,17 +77,22 @@ function createPdsClientMocks(): {
   return { client: () => client, putRecord };
 }
 
+/** The atproto package as the canonical brain installs it, on a fake PDS. */
 function createConfiguredAtprotoPlugin(
   createPdsClient: () => AtprotoPdsClientLike,
-): AtprotoPlugin {
-  return new AtprotoPlugin(
+): Plugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    createAtprotoPackage({ createPdsClient }),
     {
       identifier: "brain.example.com",
       appPassword: "secret",
       repoDid: "did:plc:repo",
     },
-    { createPdsClient },
+    { name: "@brains/atproto", version: "0.0.0-test" },
+    { pluginId: "atproto" },
   );
+  if (!plugin) throw new Error("The atproto package created no plugin");
+  return plugin;
 }
 
 // The unit tests in plugins/atproto arm the full-boot gate by broadcasting
@@ -126,7 +135,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
     });
     await shell.initialize();
     // Boot publishing is scheduled, not awaited; shutdown drains the tasks.
-    await plugin.shutdown();
+    await plugin.shutdown?.();
 
     const cardCalls = putRecord.mock.calls.filter(
       (call) =>
@@ -150,7 +159,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
       profileKindRegistry: createTestProfileKindRegistry(),
     });
     await shell.initialize({ mode: "startup-check" });
-    await plugin.shutdown();
+    await plugin.shutdown?.();
 
     expect(putRecord).not.toHaveBeenCalled();
   });

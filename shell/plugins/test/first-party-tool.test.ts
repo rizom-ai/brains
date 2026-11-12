@@ -54,6 +54,39 @@ describe("a first-party tool", () => {
     await harness.reset();
   });
 
+  it("keeps a bare name its class gave it, unprefixed", async () => {
+    const manage = firstPartyTool(
+      {
+        name: "playbook_manage",
+        description: "Manage runs.",
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        execute: () => ({ ok: true }),
+      },
+      { bareName: true },
+    );
+    const service = defineServicePlugin(
+      { id: "playbooks", config: z.object({}) },
+      { tools: () => [manage, lexiconCount] },
+    );
+    const plugins = instantiatePluginPackageDefinition(
+      service,
+      {},
+      { name: "@brains/playbooks", version: "0.1.0" },
+      { pluginId: "playbooks" },
+    );
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    for (const plugin of plugins) await harness.installPlugin(plugin);
+
+    expect(
+      harness
+        .getCapabilities()
+        .tools.map(({ name }) => name)
+        .sort(),
+    ).toEqual(["playbook_manage", "playbooks_check_contracts"]);
+    await harness.reset();
+  });
+
   it("is still refused by the public defineTool", () => {
     expect(() =>
       defineTool({

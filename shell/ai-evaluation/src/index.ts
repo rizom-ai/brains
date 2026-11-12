@@ -29,7 +29,11 @@ export type { RemoteAgentServiceConfig } from "./remote-agent-service";
 // Loaders
 export { YAMLLoader } from "./loaders";
 export type { YAMLLoaderOptions } from "./loaders/yaml-loader";
-export { resolveEvalSelection, resolveEvalConfig } from "./eval-config-loader";
+export {
+  resolveEvalSelection,
+  resolveEvalConfig,
+  shellTestCasesDirectory,
+} from "./eval-config-loader";
 export { loadPluginEvalConfig, parseEvalYaml } from "./eval-yaml-loader";
 export type { EvalYamlConfig, EvalYamlConfigInput } from "./eval-yaml-loader";
 export type {
@@ -48,3 +52,17 @@ export type { RunEvaluationsOptions } from "./run-evaluation-types";
 
 // Environment
 export { loadEvalEnv } from "./load-eval-env";
+export {
+  createFakePeerFetch,
+  isSafeSeedAgentUrl,
+  readSeedPeers,
+  type FakePeer,
+} from "./fake-a2a-peers";
+export {
+  EVAL_LINK_READER_HOST,
+  EVAL_PAGES_DIRECTORY,
+  createEvalNetworkFetch,
+  evalPagePath,
+  evalProviderHosts,
+} from "./eval-network";
+export { serveSeedPeers } from "./eval-environment";

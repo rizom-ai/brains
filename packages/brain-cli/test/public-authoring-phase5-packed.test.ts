@@ -44,7 +44,7 @@ let transportUrls:
 function runtimeEnv(): Record<string, string | undefined> {
   return {
     ...process.env,
-    AI_API_KEY: "packed-hermetic-runtime",
+    OPENAI_API_KEY: "packed-hermetic-runtime",
     BRAIN_SKIP_LOCAL_REEXEC: "1",
     ...(transportUrls
       ? {
@@ -314,10 +314,7 @@ describe("public authoring Phase 5 packed interface contracts", () => {
       const runtimePort = await availablePort();
       const brainConfigPath = join(consumerDirectory, "brain.yaml");
       const brainConfig = await readFile(brainConfigPath, "utf8");
-      await writeFile(
-        brainConfigPath,
-        `${brainConfig}plugins:\n  webserver:\n    productionPort: ${runtimePort}\n`,
-      );
+      await writeFile(brainConfigPath, `${brainConfig}port: ${runtimePort}\n`);
       await invokeTool(
         consumerDirectory,
         "system_create",

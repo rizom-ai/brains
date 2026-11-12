@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 
 /**
  * Supported social media platforms
@@ -108,50 +108,29 @@ export type SocialPostFrontmatter = z.output<
 >;
 
 /**
- * Lenient frontmatter schema for direct creation. A user "save this post"
- * request may omit platform/status, so make them optional here and let the
- * adapter fall back (platform is a single-value enum; an unspecified post is a
- * draft). Storage and read paths keep the strict schema above, so derived
- * metadata types are unaffected.
+ * A social post's metadata: its frontmatter, the slug resolved from its
+ * platform and title, and the error a failed publish
+ * recorded, which the file never states. A slug a hand-written file states
+ * is kept in the file and never read. None of the three is authored, so
+ * Studio and the vault leave them out.
  */
-export const socialPostCreateFrontmatterSchema: ReturnType<
+type SocialPostMetadataSchema = ReturnType<
   typeof socialPostFrontmatterSchema.extend<{
-    platform: z.ZodOptional<typeof platformSchema>;
-    status: z.ZodOptional<typeof socialPostStatusSchema>;
+    slug: z.ZodString;
+    error: z.ZodOptional<z.ZodString>;
+    statedSlug: z.ZodOptional<z.ZodString>;
   }>
-> = socialPostFrontmatterSchema.extend({
-  platform: platformSchema.optional(),
-  status: socialPostStatusSchema.optional(),
-});
-
-/**
- * Social post metadata schema - derived from frontmatter
- * Only includes fields needed for fast DB queries/filtering
- * Using .pick() ensures metadata stays in sync with frontmatter
- */
-type SocialPostMetadataSchema = z.ZodObject<{
-  title: z.ZodString;
-  platform: typeof platformSchema;
-  status: typeof socialPostStatusSchema;
-  publishedAt: z.ZodOptional<z.ZodString>;
-  platformPostId: z.ZodOptional<z.ZodString>;
-  slug: z.ZodString;
-  error: z.ZodOptional<z.ZodString>;
-}>;
+>;
 
 export const socialPostMetadataSchema: SocialPostMetadataSchema =
-  socialPostFrontmatterSchema
-    .pick({
-      title: true,
-      platform: true,
-      status: true,
-      publishedAt: true,
-      platformPostId: true,
-    })
-    .extend({
-      slug: z.string().describe("URL-friendly identifier: {platform}-{title}"),
-      error: z.string().optional(),
-    });
+  socialPostFrontmatterSchema.extend({
+    slug: z
+      .string()
+      .describe("URL-friendly identifier: {platform}-{title}")
+      .meta({ studioWidget: "hidden" }),
+    error: z.string().optional().meta({ studioWidget: "hidden" }),
+    statedSlug: z.string().optional().meta({ studioWidget: "hidden" }),
+  });
 
 export type SocialPostMetadata = z.output<typeof socialPostMetadataSchema>;
 

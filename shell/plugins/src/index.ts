@@ -167,12 +167,18 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
+  identityChangedSchema,
   initialSyncCompletedChannel,
   initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
+  shellReadyChannel,
+  startupContentSettledChannel,
+  type IdentityChanged,
   type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
   type SystemChannelName,
+  type SystemTimestamp,
 } from "./system-channels";
 export { defineChannel, type Channel } from "@brains/contracts";
 export {
@@ -233,10 +239,6 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
-export {
-  createScheduledMaintenanceDaemon,
-  type ScheduledMaintenanceOptions,
-} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -250,7 +252,6 @@ export type {
   IPermissionsNamespace,
   IDaemonsNamespace,
   IToolsNamespace,
-  IApiRoutesNamespace,
   IWebRoutesNamespace,
   IPluginsNamespace,
   IInterfaceConversationsNamespace,
@@ -348,6 +349,7 @@ export {
   type EntityAtprotoRecordInput,
   type EntityDefinition,
   type EntityDefinitionConfig,
+  type EntityFeedBuild,
   type EntityFeedDeclaration,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
@@ -559,6 +561,7 @@ export {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
   BaseEntityAdapter,
+  parseTypedFrontmatter,
   baseEntityParserSchema,
   baseEntitySchema,
   embeddingReadyChannel,
@@ -718,6 +721,7 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export { toPublicAppInfo } from "./base/public-app-info";
 export {
   publicDaemonHealthSchema,
   publicHealthInfoSchema,
@@ -763,9 +767,6 @@ export {
   type BaseMessage,
   type MessageContext,
   type MessageResponse,
-  type MessageSendOptions,
-  type MessageSendRequest,
-  type MessageSender,
   type MessageWithPayload,
 } from "./contracts/messaging";
 export type {
@@ -897,6 +898,9 @@ export {
   resolveMessageArtifactAccess,
   sanitizeUploadFilename,
   urlCaptureConfigSchema,
+  captureUrlViaAgent,
+  extractCaptureableUrls,
+  type LinkCaptureHost,
   validateMessageUpload,
   validateTextUpload,
   type ArtifactCardState,
@@ -967,34 +971,114 @@ export {
 // the public contexts never name it.
 export {
   contractJob,
+  answering,
+  entityAnswer,
   entityRuntime,
+  uniqueTitleContext,
+  restatingMetadata,
+  withBodyTemplate,
+  withUrlRoute,
+  writesInDocumentOrder,
+  storedDocumentCodec,
+  withFrontmatterSchema,
+  type EntityAnswerContext,
+  type EntityAnswerDeclaration,
   type AnyEntityReads,
   type EntityRuntime,
   type EntityRuntimeAttachments,
+  type EntityRuntimeIdentity,
   type EntityRuntimeImages,
   type OrdinaryCreateDocument,
   type OrdinaryCreateOptions,
   type QueuedCreate,
+  type EntityCreateCaller,
+  type EvalGenerationOptions,
+  type EvalGenerationProgress,
+  type EvalGenerationResult,
+  type QueuedAttribution,
+  type QueuedPlaceholder,
   type StoredCreate,
+  afterGeneration,
+  loggedProvider,
+  type GenerationOutcome,
+  type GenerationOutcomeContext,
+  type GenerationStep,
+  type RestateMetadata,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public
 // service contract does not offer here.
 export { withOwnedDataSources } from "./public/service-definition";
 export {
+  firstPartyJobHandler,
+  withJobHandlers,
+  withStaticSiteOutput,
+  withApiRoutes,
+  type FirstPartyJobCall,
+  type FirstPartyJobHandler,
+} from "./service/first-party-service";
+export {
   firstPartyTool,
+  hasPermission,
   serviceRuntime,
   type ClaimedSystemType,
+  type ClassRuntimeState,
+  type ClassRuntimeStateStore,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
+  type ServiceInteraction,
+  type ServiceAI,
+  type ServiceStudio,
+  type ServiceToolCall,
   type ServiceDataSourceDeclaration,
+  type ServiceDataSourceOptions,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceClassJobs,
+  type ServiceClassMessaging,
+  type ServicePermissions,
+  type ServiceAttachments,
+  type ServiceAtprotoProjections,
+  type ServiceTemplateOptions,
+  type ServiceViews,
+  type ServiceEntityWrites,
+  type ServiceGitBroker,
+  type ServiceGroupings,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "./service/service-runtime";
+export {
+  classEntityServiceOf,
+  type ServiceClassEntityService,
+} from "./service/class-entity-service";
+export type {
+  ServiceEntityMirror,
+  ServiceEntityMirrorClient,
+} from "./service/entity-mirror";
+// First-party interfaces converted from a class reach what the public
+// interface contract does not offer here.
+export {
+  interfaceRuntime,
+  type InterfaceMessages,
+  type InterfaceRuntime,
+} from "./interface/interface-runtime";
+export {
+  withChannels,
+  withDaemon,
+  withMessageTransport,
+  withProtocolPlugin,
+  withTools,
+  withWebRoutes,
+  type FirstPartyChannel,
+  type FirstPartyChannelsContext,
+  type FirstPartyDaemon,
+  type FirstPartySlotContext,
+  type MessageTransport,
+  type MessageTransportEdit,
+  type MessageTransportSend,
+} from "./interface/first-party-interface";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";

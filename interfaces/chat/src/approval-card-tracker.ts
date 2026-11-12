@@ -1,8 +1,8 @@
+import type { PendingConfirmation } from "@brains/contracts";
 import {
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
-  type PendingConfirmation,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { SentMessage } from "chat";
 import type { ChatCardBuilder } from "./chat-cards";
 import type { ChatThread } from "./types";
@@ -19,7 +19,7 @@ interface ApprovalCardTrackerDeps {
 /**
  * Tracks the approval-request card posted for each pending confirmation so a
  * later confirm/cancel can edit it in place to its resolved state. Keyed by
- * conversation + approval id. Extracted from ChatInterface; adapter-specific
+ * conversation + approval id. Extracted from the chat interface; adapter-specific
  * component cleanup is injected.
  */
 export class ApprovalCardTracker {

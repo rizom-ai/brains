@@ -65,7 +65,7 @@ async function exitCodeOf(run: Promise<void>): Promise<number | null> {
 const testConfig = defineConfig({
   name: "test-app",
   version: "2.1.0",
-  aiApiKey: "test-key",
+  aiProviderKeys: { openai: "test-key" },
   plugins: [],
 });
 
@@ -213,6 +213,30 @@ describe("handleCLI", () => {
       serviceId: "brain-cli",
     });
     expect(io.logged).toEqual(["ok"]);
+  });
+
+  it("runs a one-shot tool without the brain's interfaces or HTTP host", async () => {
+    const handler = mock(async (): Promise<ToolResponse> => ({
+      success: true,
+      message: "ok",
+    }));
+    const config = defineConfig({
+      ...testConfig,
+      http: { enabled: true, preview: true },
+    });
+    const app = App.create(
+      config,
+      createMockShell([{ name: "probe", handler }]),
+    );
+    spyOn(app, "initialize").mockResolvedValue(undefined);
+    const create = mock((_config: Parameters<typeof App.create>[0]) => app);
+    const io = fakeIo(["--tool", "probe"], { create });
+
+    expect(await exitCodeOf(handleCLI(config, undefined, io))).toBe(0);
+
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      http: { enabled: false, preview: true },
+    });
   });
 
   it("invokes --cli-command through the same register-only boot", async () => {

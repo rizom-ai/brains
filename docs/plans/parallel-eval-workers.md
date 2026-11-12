@@ -26,14 +26,14 @@ Main process                         Subprocesses
 parse brain.eval.yaml               ┌─────────────────┐
 prepare env per model                │ bun eval-worker  │
 spawn subprocesses ─────────────────▶│   model=gpt-4o   │
-                                     │   AI_API_KEY=... │
+                                     │   provider keys  │
                                      │   DB=/tmp/eval-a │
                                      └────────┬────────┘
                                               │
                                      ┌────────┴────────┐
                                      │ bun eval-worker  │
                                      │   model=claude   │
-                                     │   AI_API_KEY=... │
+                                     │   provider keys  │
                                      │   DB=/tmp/eval-b │
                                      └────────┬────────┘
                                               │
@@ -52,7 +52,7 @@ New file: `shell/ai-evaluation/src/eval-subprocess.ts`
 Receives config via environment variables and CLI args:
 
 - `EVAL_MODEL` — model string (e.g. `"gpt-4o-mini"`)
-- `AI_API_KEY` — resolved provider key for this model
+- the provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, …) — inherited from the parent environment; each model reads its own provider's
 - `EVAL_DB_BASE` — pre-prepared temp DB path prefix
 - `EVAL_BRAIN_YAML` — path to the brain.eval.yaml file
 - `EVAL_JUDGE_MODEL` — model string for the LLM judge
@@ -74,7 +74,6 @@ const results = await Promise.all(
       const proc = spawn("bun", ["eval-subprocess.ts"], {
         env: {
           ...process.env,
-          AI_API_KEY: providerKey,
           EVAL_MODEL: model,
           EVAL_DB_BASE: evalDbBase,
           EVAL_BRAIN_YAML: resolvePath(process.cwd(), "brain.eval.yaml"),

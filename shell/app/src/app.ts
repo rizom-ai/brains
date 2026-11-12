@@ -2,6 +2,7 @@ import { Shell } from "@brains/core";
 import type { AppConfig, AppConfigInput } from "./types";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
+import { createCliInterface } from "./cli-interface";
 import {
   buildShellConfig,
   toAppConfig,
@@ -80,9 +81,9 @@ export class App {
     if (!this.hasCLI) return;
 
     const pluginManager = this.getShell().getPluginManager();
-    const { CLIInterface } = await import("@brains/chat-repl");
-    const plugin = new CLIInterface(this.config.cliConfig);
-    pluginManager.registerPlugin(plugin);
+    for (const plugin of await createCliInterface(this.config.cliConfig)) {
+      pluginManager.registerPlugin(plugin);
+    }
   }
 
   public async initialize(

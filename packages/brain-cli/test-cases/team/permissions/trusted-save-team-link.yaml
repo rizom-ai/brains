@@ -1,0 +1,39 @@
+id: team-permission-trusted-save-team-link
+name: Trusted teammate can save Team Brain links
+description: >-
+  Verifies that a trusted Team Brain teammate can capture a link, which the
+  team bundle grants and other brains keep Admin-only.
+type: tool_invocation
+setup:
+  permissionLevel: trusted
+tags:
+  - recipe-team
+  - team
+  - permissions
+  - trusted
+  - link
+  - entity-action-policy
+
+turns:
+  - userMessage: >-
+      As a shared Team Brain teammate, save this link for the team knowledge
+      base: https://www.w3.org/TR/webauthn-3/
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      resultRefused: false
+      argsContain:
+        entityType: link
+        source.kind: url
+        source.url: "https://www.w3.org/TR/webauthn-3/"
+  responseNotContains:
+    - "permission denied"
+    - "requires Admin"
+    - "cannot save"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 22000

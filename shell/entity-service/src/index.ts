@@ -68,7 +68,11 @@ export type {
 } from "./entity-mutation-receipt";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
-export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
+export {
+  BaseEntityAdapter,
+  FallbackEntityAdapter,
+  parseTypedFrontmatter,
+} from "./adapters";
 export type {
   BaseEntityAdapterConfig,
   BaseEntityFrontmatterSchema,
@@ -126,6 +130,8 @@ export {
 // Embedding
 export type {
   IEmbeddingService,
+  EmbeddingIdentity,
+  EmbeddingDocument,
   EmbeddingUsage,
   EmbeddingResult,
   BatchEmbeddingResult,
@@ -297,3 +303,4 @@ export type {
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
 export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";
+export { editableFieldsOf } from "./editable-fields";

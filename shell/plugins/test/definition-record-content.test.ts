@@ -208,11 +208,11 @@ async function realShell(
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: 1536,
-      generateEmbedding: async () => {
+      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+      embedQuery: async () => {
         throw new Error("Unexpected embedding");
       },
-      generateEmbeddings: async () => {
+      embedDocuments: async () => {
         throw new Error("Unexpected embedding");
       },
     },
@@ -280,11 +280,11 @@ async function storage(): Promise<Storage> {
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: 1536,
-      generateEmbedding: async () => {
+      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+      embedQuery: async () => {
         throw new Error("Unexpected embedding");
       },
-      generateEmbeddings: async () => {
+      embedDocuments: async () => {
         throw new Error("Unexpected embedding");
       },
     },

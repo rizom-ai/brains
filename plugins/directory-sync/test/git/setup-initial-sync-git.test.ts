@@ -1,7 +1,13 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import {
+  createMockMessageBus,
+  createMockServicePluginContext,
+  createMockShell,
+  type IMessageBus,
+} from "@brains/plugins/test";
+import type { DirectorySyncContext } from "../../src/lib/sync-context";
+import { syncContextOn } from "../sync-runtime";
 import { describe, it, expect, mock } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { JOB_CHANNELS } from "@brains/contracts";
+import { SYSTEM_CHANNELS, jobProgressChannel } from "@brains/plugins";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import type { DirectorySyncOperationSnapshot } from "../../src/lib/directory-sync-operation-status";
 import { createSilentLogger } from "@brains/test-utils";
@@ -9,10 +15,14 @@ import type { BatchResult, DirectorySyncConfig } from "../../src/types";
 import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
-type MockContext = ReturnType<typeof createMockServicePluginContext>;
+type MockContext = ReturnType<typeof createMockServicePluginContext> &
+  Pick<DirectorySyncContext, "runtime">;
 
 /** initialSyncCompleted payloads each context's bus has carried. */
 const completionLog = new WeakMap<MockContext, unknown[]>();
+
+/** The bus each context rides, which the shell sends on. */
+const busLog = new WeakMap<MockContext, IMessageBus>();
 
 function completions(context: MockContext): unknown[] {
   return completionLog.get(context) ?? [];
@@ -20,11 +30,20 @@ function completions(context: MockContext): unknown[] {
 
 /**
  * The factory's messaging is real, so setupInitialSync subscribes to the
- * actual bus and the test publishes to drive it. Batches report as still
- * processing until a test publishes their completion.
+ * actual bus and the test sends on it, as the shell does, to drive it.
+ * Batches report as still processing until a test publishes their completion.
  */
-function createMockContext(): MockContext {
-  const context = createMockServicePluginContext({ dataDir: "/tmp/test" });
+async function createMockContext(): Promise<MockContext> {
+  const messageBus = createMockMessageBus();
+  // Its runtime rides the same bus, as the package's does in a brain.
+  const context = await syncContextOn(
+    createMockShell({ dataDir: "/tmp/test", messageBus }),
+    createMockServicePluginContext({
+      dataDir: "/tmp/test",
+      messageBus,
+    }),
+  );
+  busLog.set(context, messageBus);
   context.jobs.getBatchStatus.mockImplementation(async (batchId: string) => ({
     batchId,
     totalOperations: 1,
@@ -130,11 +149,16 @@ function createOperationStatus(activeBatchId?: string): {
 
 /** The shell collects every subscriber's answer; this test has the one. */
 async function registerPlugins(context: MockContext): Promise<unknown[]> {
-  const response = await context.messaging.send({
+  const messageBus = busLog.get(context);
+  if (!messageBus) throw new Error("context has no bus");
+  const responses = await messageBus.collect({
     type: SYSTEM_CHANNELS.pluginsRegistered,
     payload: {},
+    sender: "shell",
   });
-  return ["data" in response ? response.data : undefined];
+  return responses.map((response) =>
+    "data" in response ? response.data : undefined,
+  );
 }
 
 async function settleBatch(
@@ -143,27 +167,23 @@ async function settleBatch(
   status: "completed" | "failed",
   errors: string[] = [],
 ): Promise<void> {
-  await context.messaging.send({
-    type: JOB_CHANNELS.progress,
-    payload: {
-      id: batchId,
-      type: "batch",
-      status,
-      metadata: { operationType: "file_operations", rootJobId: batchId },
-      batchDetails: {
-        totalOperations: 1,
-        completedOperations: status === "completed" ? 1 : 0,
-        failedOperations: status === "failed" ? 1 : 0,
-        errors,
-      },
+  await context.messaging.broadcast(jobProgressChannel, {
+    id: batchId,
+    type: "batch",
+    status,
+    metadata: { operationType: "file_operations", rootJobId: batchId },
+    batchDetails: {
+      totalOperations: 1,
+      completedOperations: status === "completed" ? 1 : 0,
+      failedOperations: status === "failed" ? 1 : 0,
+      errors,
     },
-    broadcast: true,
   });
 }
 
 describe("setupInitialSync", () => {
   it("queues the pulled content as an import batch instead of importing it", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const ds = createMockDirectorySync();
     const reconciliation = createReconciliation(batchResult("initial-batch"));
 
@@ -187,7 +207,7 @@ describe("setupInitialSync", () => {
   });
 
   it("sends initialSyncCompleted when its batch completes", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
 
     setupInitialSync({
       context,
@@ -207,7 +227,7 @@ describe("setupInitialSync", () => {
   });
 
   it("reports the batch's errors when its batch fails", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
 
     setupInitialSync({
       context,
@@ -226,7 +246,7 @@ describe("setupInitialSync", () => {
   });
 
   it("completes when its batch settled before it was followed", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     context.jobs.getBatchStatus.mockImplementation(async (batchId: string) => ({
       batchId,
       totalOperations: 1,
@@ -251,7 +271,7 @@ describe("setupInitialSync", () => {
   });
 
   it("completes at once when nothing needs importing", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
 
     setupInitialSync({
       context,
@@ -269,7 +289,7 @@ describe("setupInitialSync", () => {
   });
 
   it("follows the batch an earlier boot left unfinished", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const operationStatus = createOperationStatus("earlier-batch");
 
     setupInitialSync({
@@ -293,7 +313,7 @@ describe("setupInitialSync", () => {
   });
 
   it("records the startup run and attaches its batch", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const operationStatus = createOperationStatus();
 
     setupInitialSync({
@@ -317,7 +337,7 @@ describe("setupInitialSync", () => {
   it("settles its startup run with the outcome of its batch", async () => {
     // Left to lazy reconciliation, the run stayed active, and the next boot
     // (which cannot see the previous process's batch) recorded it as failed.
-    const context = createMockContext();
+    const context = await createMockContext();
     const operationStatus = createOperationStatus();
 
     setupInitialSync({
@@ -341,7 +361,7 @@ describe("setupInitialSync", () => {
   });
 
   it("fails its startup run with the errors of its batch", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const operationStatus = createOperationStatus();
 
     setupInitialSync({
@@ -365,7 +385,7 @@ describe("setupInitialSync", () => {
   });
 
   it("queues the sync directory when Git is not configured", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const ds = createMockDirectorySync({
       queueSyncBatch: mock(async () => batchResult("initial-batch")),
     });
@@ -385,7 +405,7 @@ describe("setupInitialSync", () => {
   });
 
   it("tracks Git output and records interrupted-pull recovery", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const onGitProgress = mock(() => {});
     const onGitRecoverySucceeded = mock(async () => {});
     const onGitRecoveryFailed = mock(async () => {});
@@ -414,7 +434,7 @@ describe("setupInitialSync", () => {
   });
 
   it("keeps defaults waiting and completes with success:false when the pull fails", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const onGitRecoveryFailed = mock(async () => {});
     const requireFullScan = mock(async () => {});
 
@@ -451,7 +471,7 @@ describe("setupInitialSync", () => {
   it("requires the next sync to rescan everything when its batch fails", async () => {
     // The checkpoint advanced when the batch was queued. A failed import
     // would otherwise leave its files out until something changes them.
-    const context = createMockContext();
+    const context = await createMockContext();
     const reconciliation = createReconciliation(batchResult("initial-batch"));
 
     setupInitialSync({
@@ -472,7 +492,7 @@ describe("setupInitialSync", () => {
   });
 
   it("leaves the next sync incremental when its batch completes", async () => {
-    const context = createMockContext();
+    const context = await createMockContext();
     const reconciliation = createReconciliation(batchResult("initial-batch"));
 
     setupInitialSync({

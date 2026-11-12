@@ -19,7 +19,7 @@ import {
   siteBuildRequestContract,
   type AskBoxAvailability,
 } from "@brains/contracts";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
 import {
   guestIssuanceNamespace,
   guestIssuanceStateSchema,
@@ -30,7 +30,7 @@ import {
   type GuestAdmissionState,
 } from "../src/guest-admission-state";
 
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness<WebChatPlugin>[] = [];
 afterEach(async () => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -64,13 +64,13 @@ async function fixture(
     disabled?: boolean;
     guest?: "local-test";
     studio?: boolean;
+    /** Whether the brain has a site builder to hear build requests. */
+    siteBuilder?: boolean;
     /** The deployment's state from an earlier run, as after a restart. */
     state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
-  const harness = createPluginHarness<WebChatInterface>(
-    domain ? { domain } : {},
-  );
+  const harness = createPluginHarness<WebChatPlugin>(domain ? { domain } : {});
   harnesses.push(harness);
   if (options.state)
     spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
@@ -88,7 +88,7 @@ async function fixture(
     },
     invalidateAgent: (): void => {},
   });
-  const plugin = new WebChatInterface(
+  const plugin = createWebChatPlugin(
     options.disabled
       ? { guest: false }
       : options.guest
@@ -120,13 +120,14 @@ async function fixture(
       })
       .get(ASK_BOX_STATE_KEY);
   const buildRequests: (AskBoxAvailability | null)[] = [];
-  harness
-    .getMockShell()
-    .getMessageBus()
-    .subscribe(siteBuildRequestContract.name, async () => {
-      buildRequests.push(await askBox());
-      return { success: true };
-    });
+  if (options.siteBuilder !== false)
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe(siteBuildRequestContract.name, async () => {
+        buildRequests.push(await askBox());
+        return { success: true };
+      });
   await harness.installPlugin(plugin);
   if (options.studio) {
     spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
@@ -238,6 +239,14 @@ describe("Ask box availability for site builds in any process", () => {
       { public: true, preview: true },
       { public: false, preview: false },
     ]);
+  });
+
+  it("switches and records the box in a brain without a site builder", async () => {
+    const f = await fixture("admin", "rizom.ai", { siteBuilder: false });
+    await f.budget(10);
+    expect(await f.askBox()).toEqual({ public: true, preview: true });
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
   });
 
   it("keeps the box served across a restart that begins before the guest profile is ready", async () => {

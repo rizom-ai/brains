@@ -35,6 +35,7 @@ export async function isSameQuestion(
   ai: Pick<EntityPluginContext["ai"], "generateObject">,
   incoming: string,
   stored: string,
+  signal?: AbortSignal,
 ): Promise<boolean> {
   const { object } = await ai.generateObject(
     [
@@ -49,6 +50,7 @@ export async function isSameQuestion(
       stored,
     ].join("\n"),
     sameQuestionVerdictSchema,
+    signal,
   );
   return object.same;
 }
@@ -74,6 +76,8 @@ export function findSameFaq(
     content: string;
     visibility: ContentVisibility;
     excludeIds?: string[];
+    /** Cancels the same-question checks, as a job past its deadline. */
+    signal?: AbortSignal | undefined;
   },
 ): Promise<FaqEntity | undefined> {
   return findNearestEntity(
@@ -89,7 +93,12 @@ export function findSameFaq(
       visibility: request.visibility,
       ...(request.excludeIds ? { excludeIds: request.excludeIds } : {}),
       confirm: (candidate) =>
-        isSameQuestion(deps.ai, request.content, candidate.content),
+        isSameQuestion(
+          deps.ai,
+          request.content,
+          candidate.content,
+          request.signal,
+        ),
     },
   );
 }

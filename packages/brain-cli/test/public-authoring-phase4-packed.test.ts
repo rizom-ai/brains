@@ -36,7 +36,7 @@ const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 const remoteToken = "packed-phase4-static-operator-token-0001";
 const runtimeEnv = {
   ...process.env,
-  AI_API_KEY: "packed-hermetic-runtime",
+  OPENAI_API_KEY: "packed-hermetic-runtime",
   MCP_AUTH_TOKEN: remoteToken,
   BRAIN_SKIP_LOCAL_REEXEC: "1",
 };
@@ -52,8 +52,8 @@ async function stopRuntime(runtime: StartedCommand): Promise<string> {
   return combinedOutput(await runtime.completed);
 }
 
-const publishedBuildMarker =
-  "Emitting site:build:completed event for preview environment";
+// Logged once per build that goes on to publish, as its staging is finished.
+const publishedBuildMarker = "Generated staged SEO files with";
 const unchangedBuildMarker =
   "Skipping site publication because inputs are unchanged";
 

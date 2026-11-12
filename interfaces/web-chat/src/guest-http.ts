@@ -20,9 +20,10 @@ import {
 } from "@brains/contracts/chat";
 import { askedBeforeSchema } from "@brains/contracts";
 import type {
-  InterfacePluginContext,
+  InterfaceRuntime,
+  ClassRuntimeState,
   WebRouteDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import { deferred } from "@brains/utils/deferred";
 import {
@@ -86,10 +87,9 @@ export interface GuestHttpOptions {
   /** Runtime-owned activation gate; never browser or deployment configuration. */
   requireAuthorization?: boolean;
 }
-type Services = Pick<
-  InterfacePluginContext,
-  "agent" | "conversations" | "runtimeState"
->;
+type Services = Pick<InterfaceRuntime, "agent" | "conversations"> & {
+  readonly runtimeState: ClassRuntimeState;
+};
 class GuestHttpError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {

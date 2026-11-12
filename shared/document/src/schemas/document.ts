@@ -33,21 +33,41 @@ type DocumentMetadataSchema = z.ZodObject<{
   dedupKey: z.ZodOptional<z.ZodString>;
 }>;
 
+// A person titles a document; the rest records the file.
 export const documentMetadataSchema: DocumentMetadataSchema = z.object({
   title: z.string().optional(),
-  mimeType: documentMimeTypeSchema,
-  filename: z.string().min(1),
-  pageCount: z.number().int().min(0).optional(),
-  status: documentIngestionStatusSchema.optional(),
-  processingJobId: z.string().optional(),
-  processingError: z.string().optional(),
-  sourceEntityType: z.string().min(1).optional(),
-  sourceEntityId: z.string().min(1).optional(),
-  sourceUploadId: z.string().optional(),
-  sourceFilename: z.string().optional(),
-  sourceMediaType: z.string().optional(),
-  attachmentType: z.string().min(1).optional(),
-  dedupKey: z.string().min(1).optional(),
+  mimeType: documentMimeTypeSchema.meta({ studioWidget: "provenance" }),
+  filename: z.string().min(1).meta({ studioWidget: "provenance" }),
+  pageCount: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  status: documentIngestionStatusSchema
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  processingJobId: z.string().optional().meta({ studioWidget: "hidden" }),
+  processingError: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceEntityType: z
+    .string()
+    .min(1)
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  sourceEntityId: z
+    .string()
+    .min(1)
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  sourceUploadId: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceFilename: z.string().optional().meta({ studioWidget: "provenance" }),
+  sourceMediaType: z.string().optional().meta({ studioWidget: "provenance" }),
+  attachmentType: z
+    .string()
+    .min(1)
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  dedupKey: z.string().min(1).optional().meta({ studioWidget: "hidden" }),
 });
 
 export type DocumentMetadata = z.output<typeof documentMetadataSchema>;

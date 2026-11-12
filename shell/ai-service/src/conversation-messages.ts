@@ -1,4 +1,5 @@
 import type { AgentContextItem } from "@brains/contracts";
+import { framedFileText } from "./file-text";
 import type { Message } from "@brains/conversation-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { ModelMessage, UserContent } from "ai";
@@ -389,7 +390,7 @@ export function buildMessageWithAttachments(
 function formatTextAttachment(
   attachment: Extract<ChatAttachment, { kind: "text" }>,
 ): string {
-  return `User uploaded a file "${attachment.filename}":\n\n${attachment.content}`;
+  return framedFileText("a file", attachment.filename, attachment.content);
 }
 
 function isPdfAttachment(attachment: ChatAttachment): boolean {
@@ -455,9 +456,8 @@ function formatUploadRefs(
   const attachmentRefs = attachments
     .map(chatAttachmentToRef)
     .filter(isUploadRef);
-  const lines = dedupeUploadRefs([...uploadRefs, ...attachmentRefs]).map(
-    formatUploadRefLine,
-  );
+  const refs = dedupeUploadRefs([...uploadRefs, ...attachmentRefs]);
+  const lines = refs.map(formatUploadRefLine);
   const priorResponseCandidate = priorResponseRef
     ? [
         "Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation):",
@@ -469,14 +469,44 @@ function formatUploadRefs(
   const guidance =
     'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with its upload id as source.id and transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. To keep several uploads at once, call system_create once with source.kind uploads listing every attached file. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
 
+  const keepAllCandidate = formatKeepAllCandidate(attachments);
+  // With no answer of its own to save, "save it" means the newest upload.
+  const newestCandidate =
+    priorResponseRef === undefined && keepAllCandidate.length === 0
+      ? formatNewestUploadCandidate(refs[0])
+      : "";
   return [
     guidance,
     priorResponseCandidate,
-    ...formatKeepAllCandidate(attachments),
+    newestCandidate,
+    ...keepAllCandidate,
     ...lines,
   ]
     .filter((line) => line.length > 0)
     .join("\n");
+}
+
+/** The save that keeps an upload as itself, for the types that hold one. */
+function formatNewestUploadCandidate(
+  ref: ConversationUploadRef | undefined,
+): string {
+  if (!ref || ref.savedAs) return "";
+  const mediaType = ref.mediaType.toLowerCase();
+  const save = mediaType.startsWith("image/")
+    ? { saved: "an image", entityType: "image", transform: "preserve" }
+    : mediaType === "application/pdf"
+      ? { saved: "a document", entityType: "document", transform: "preserve" }
+      : mediaType.startsWith("text/")
+        ? { saved: "a note", entityType: "note", transform: "extract-markdown" }
+        : undefined;
+  if (!save) return "";
+  const asSaved = `Available system_create candidate for saving the newest upload, ${ref.filename}, as ${save.saved} when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${save.entityType}", source: { kind: "upload", id: "${ref.source.id}", transform: "${save.transform}" } }`;
+  // A PDF also becomes a note of its text, as a single PDF note import does.
+  if (mediaType !== "application/pdf") return asSaved;
+  return [
+    asSaved,
+    `Available system_create candidate for saving the newest upload, ${ref.filename}, as a note of its text when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "${ref.source.id}", transform: "extract-markdown" } }`,
+  ].join("\n");
 }
 
 function formatUploadRefLine(ref: ConversationUploadRef): string {

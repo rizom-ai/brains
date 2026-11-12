@@ -1,8 +1,4 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+import type { ServiceDataSourceDeclaration } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { NavigationSlots } from "@brains/site-composition";
@@ -17,63 +13,47 @@ const navigationQuerySchema = z.object({
 type NavigationQuery = z.output<typeof navigationQuerySchema>;
 
 /**
- * DataSource that provides navigation data from the RouteRegistry
- * Supports querying specific navigation slots
+ * The navigation data source, `site:navigation`: the navigation items of
+ * one slot of the route registry, which site menus and footers read. The
+ * runtime validates the answer against the caller's schema.
  */
-export class NavigationDataSource implements DataSource {
-  private readonly routeRegistry: RouteRegistry;
-  private readonly logger: Logger;
-  public readonly id = "site:navigation";
-  public readonly name = "Site Navigation DataSource";
-  public readonly description = "Provides navigation items for site menus";
+export function navigationDataSource(
+  routeRegistry: RouteRegistry,
+  logger: Logger,
+): ServiceDataSourceDeclaration {
+  logger.debug("NavigationDataSource initialized");
+  return {
+    id: "site:navigation",
+    name: "Site Navigation DataSource",
+    description: "Provides navigation items for site menus",
+    fetch: async (query): Promise<unknown> => {
+      // Parse and validate query parameters
+      const params: NavigationQuery = navigationQuerySchema.parse(query ?? {});
 
-  constructor(routeRegistry: RouteRegistry, logger: Logger) {
-    this.routeRegistry = routeRegistry;
-    this.logger = logger;
-    this.logger.debug("NavigationDataSource initialized");
-  }
+      logger.debug("NavigationDataSource fetch called", { params });
 
-  /**
-   * Fetch navigation data based on query parameters
-   * @param query - Query parameters for filtering navigation items
-   * @param outputSchema - Schema for validating output format
-   * @param context - Optional context (environment, etc.)
-   */
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    _context?: BaseDataSourceContext,
-  ): Promise<T> {
-    // Parse and validate query parameters
-    const params: NavigationQuery = navigationQuerySchema.parse(query ?? {});
+      // Get navigation items for the specified slot
+      const items = routeRegistry.getNavigationItems(params.slot);
 
-    this.logger.debug("NavigationDataSource fetch called", { params });
+      // Apply limit if specified
+      const limitedItems = params.limit ? items.slice(0, params.limit) : items;
 
-    // Get navigation items for the specified slot
-    const items = this.routeRegistry.getNavigationItems(params.slot);
+      // Return navigation items array
+      const navigationItems = limitedItems.map((item) => ({
+        label: item.label,
+        href: item.href,
+      }));
 
-    // Apply limit if specified
-    const limitedItems = params.limit ? items.slice(0, params.limit) : items;
+      logger.debug("NavigationDataSource returning", {
+        slot: params.slot,
+        itemCount: limitedItems.length,
+        items: navigationItems,
+      });
 
-    // Return navigation items array
-    const navigationItems = limitedItems.map((item) => ({
-      label: item.label,
-      href: item.href,
-    }));
-
-    this.logger.debug("NavigationDataSource returning", {
-      slot: params.slot,
-      itemCount: limitedItems.length,
-      items: navigationItems,
-    });
-
-    // The output schema will determine the final shape
-    // For footer template, it expects { navigation: [...], copyright?: string }
-    // We only provide the navigation part
-    const result = {
-      navigation: navigationItems,
-    };
-
-    return outputSchema.parse(result);
-  }
+      // The output schema will determine the final shape
+      // For footer template, it expects { navigation: [...], copyright?: string }
+      // We only provide the navigation part
+      return { navigation: navigationItems };
+    },
+  };
 }

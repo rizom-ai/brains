@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createSilentLogger } from "@brains/test-utils";
 import {
   CallbackProgressReporter,
   type ProgressNotification,
   type ProgressReporter,
 } from "@brains/utils/progress";
 import type { StockPhotoEntityWriter } from "../src/lib/set-cover-image";
-import { SelectPhotoJobHandler } from "../src/handlers/select-photo-handler";
-import type { SelectPhotoJobData } from "../src/handlers/select-photo-handler";
+import { z } from "@brains/utils/zod";
+import {
+  selectPhotoJob,
+  type SelectPhotoHandlerDeps,
+  type SelectPhotoJobData,
+} from "../src/handlers/select-photo-handler";
 import type { StockPhotoProvider } from "../src/lib/types";
 
 const TINY_PNG_BASE64 =
@@ -64,7 +67,36 @@ function createProgressReporter(): ProgressReporter {
   return reporter;
 }
 
-describe("SelectPhotoJobHandler", () => {
+const resultSchema = z.object({
+  imageEntityId: z.string(),
+  alreadyExisted: z.literal(false),
+  coverSet: z.boolean().optional(),
+  warning: z.string().optional(),
+});
+
+/** The select-photo job, run as the queue runs it, its result read back. */
+function createHandler(deps: SelectPhotoHandlerDeps): {
+  process(
+    data: SelectPhotoJobData,
+    jobId: string,
+    progress: ProgressReporter,
+  ): Promise<z.output<typeof resultSchema>>;
+} {
+  const job = selectPhotoJob(deps);
+  return {
+    process: async (data, jobId, progress) =>
+      resultSchema.parse(
+        await job.process({
+          input: data,
+          jobId,
+          progress,
+          signal: new AbortController().signal,
+        }),
+      ),
+  };
+}
+
+describe("the select-photo job", () => {
   let progressReporter: ProgressReporter;
 
   beforeEach(() => {
@@ -95,7 +127,7 @@ describe("SelectPhotoJobHandler", () => {
       },
     });
 
-    const handler = new SelectPhotoJobHandler(createSilentLogger(), {
+    const handler = createHandler({
       provider: createProvider(),
       entityService,
       fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
@@ -121,7 +153,7 @@ describe("SelectPhotoJobHandler", () => {
       },
     });
 
-    const handler = new SelectPhotoJobHandler(createSilentLogger(), {
+    const handler = createHandler({
       provider: createProvider(),
       entityService,
       fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
@@ -139,7 +171,7 @@ describe("SelectPhotoJobHandler", () => {
   });
 
   it("omits cover fields when no target entity is requested", async () => {
-    const handler = new SelectPhotoJobHandler(createSilentLogger(), {
+    const handler = createHandler({
       provider: createProvider(),
       entityService: createEntityService(),
       fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,

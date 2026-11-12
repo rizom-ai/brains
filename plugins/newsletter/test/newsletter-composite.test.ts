@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { newsletter, newsletterCompositeConfigSchema } from "../src";
+import { newsletterCompositeConfigSchema } from "../src";
+import { createNewsletterPlugins as newsletter } from "./newsletter-plugins";
 
 describe("newsletter composite", () => {
   test("returns only the entity plugin without a configured provider", () => {

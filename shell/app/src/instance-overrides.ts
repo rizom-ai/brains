@@ -7,6 +7,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { brainAnchorConfigKindSchema } from "./brain-definition";
 import { logLevelSchema, reasoningEffortSchema } from "./types";
+import { httpSettingsSchema } from "@brains/core";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -74,12 +75,20 @@ type InstanceOverridesSchema = z.ZodObject<
     logLevel: z.ZodOptional<typeof logLevelSchema>;
     logFile: z.ZodOptional<z.ZodString>;
     port: z.ZodOptional<z.ZodNumber>;
+    http: z.ZodOptional<typeof httpSettingsSchema>;
     domain: z.ZodOptional<z.ZodString>;
     database: z.ZodOptional<z.ZodString>;
     embedding: z.ZodOptional<
       z.ZodObject<{ enabled: z.ZodOptional<z.ZodBoolean> }, z.core.$strict>
     >;
     model: z.ZodOptional<z.ZodString>;
+    embeddingModel: z.ZodOptional<z.ZodString>;
+    answerModel: z.ZodOptional<z.ZodString>;
+    visionModel: z.ZodOptional<z.ZodString>;
+    imageModel: z.ZodOptional<z.ZodString>;
+    modelRuntime: z.ZodOptional<
+      z.ZodObject<{ url: z.ZodString }, z.core.$strict>
+    >;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
     bundles: z.ZodOptional<z.ZodArray<z.ZodString>>;
     mode: z.ZodOptional<typeof overrideModeSchema>;
@@ -164,6 +173,9 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
   /** Production server port */
   port: z.number().optional(),
 
+  /** How the runtime's HTTP listener serves; preview shares `port`. */
+  http: httpSettingsSchema.optional(),
+
   /** Production domain */
   domain: z.string().optional(),
 
@@ -179,6 +191,21 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
 
   /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
   model: z.string().optional(),
+
+  /** Embedding model, e.g. "openai:text-embedding-3-large". Changing it rebuilds the semantic index. */
+  embeddingModel: z.string().optional(),
+
+  /** A `local:` model that answers tool results while `model` chooses tools. */
+  answerModel: z.string().optional(),
+
+  /** A `local:` model that describes images for a model reading only text. */
+  visionModel: z.string().optional(),
+
+  /** The image model, `provider:model`; `local:` runs on the model runtime. */
+  imageModel: z.string().optional(),
+
+  /** The model runtime serving `local:` models: an OpenAI-compatible API. */
+  modelRuntime: z.strictObject({ url: z.string() }).optional(),
 
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */
   reasoningEffort: reasoningEffortSchema.optional(),

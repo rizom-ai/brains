@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 
 /**
  * Blog post status
@@ -51,42 +51,34 @@ export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
 
 export type BlogPostFrontmatter = z.output<typeof blogPostFrontmatterSchema>;
 
-/**
- * Blog post metadata schema - derived from frontmatter
- * Only includes fields needed for fast DB queries/filtering
- * Using .pick() ensures metadata stays in sync with frontmatter
- */
-type BlogPostMetadataSchema = z.ZodObject<{
-  title: z.ZodString;
-  status: typeof blogPostStatusSchema;
-  publishedAt: z.ZodOptional<z.ZodString>;
-  seriesName: z.ZodOptional<z.ZodString>;
-  seriesIndex: z.ZodOptional<z.ZodNumber>;
-  slug: z.ZodString;
-  error: z.ZodOptional<z.ZodString>;
-}>;
+type BlogPostMetadataSchema = z.ZodObject<
+  Omit<BlogPostFrontmatterSchema["shape"], "slug"> & {
+    slug: z.ZodString;
+    error: z.ZodOptional<z.ZodString>;
+    authoredSlug: z.ZodOptional<z.ZodBoolean>;
+  }
+>;
 
+/**
+ * A post's metadata: its frontmatter, decoded, with the slug resolved from
+ * the title when the file states none, and the error a failed generation
+ * recorded. Bookkeeping Studio and the vault leave out: the error, and
+ * whether the file states its slug, so a stated slug stays where the file
+ * states it and a resolved one is written after the other fields, as the
+ * blog post adapter wrote them.
+ */
 export const blogPostMetadataSchema: BlogPostMetadataSchema =
-  blogPostFrontmatterSchema
-    .pick({
-      title: true,
-      status: true,
-      publishedAt: true,
-      seriesName: true,
-      seriesIndex: true,
-    })
-    .extend({
-      // slug is required in metadata (auto-generated from title if not in frontmatter)
-      slug: z.string(),
-      error: z.string().optional(),
-    });
+  blogPostFrontmatterSchema.extend({
+    slug: z.string(),
+    error: z.string().optional().meta({ studioWidget: "hidden" }),
+    authoredSlug: z.boolean().optional().meta({ studioWidget: "hidden" }),
+  });
 
 export type BlogPostMetadata = z.output<typeof blogPostMetadataSchema>;
 
 /**
- * Blog post entity schema (extends BaseEntity)
- * Content field contains markdown with frontmatter + blog post body
- * Metadata field duplicates key fields from frontmatter for fast queries
+ * Blog post entity schema: a declared post reads back as its body, its
+ * frontmatter its metadata.
  */
 export const blogPostSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{

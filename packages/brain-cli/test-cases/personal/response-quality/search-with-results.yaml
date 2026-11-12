@@ -22,9 +22,14 @@ successCriteria:
     - "I don't have access"
     - "no results"
     - "nothing found"
+    # It searches on its own rather than offering to.
+    - "would you like me to search"
+    - "Would you like me to search"
+    - "shall I search"
+    - "want me to search"
   minHelpfulnessScore: 4
   minAccuracyScore: 4
 
 efficiency:
   maxToolCalls: 8
-  maxTokens: 36000
+  maxTokens: 51000

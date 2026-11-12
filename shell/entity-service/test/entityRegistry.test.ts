@@ -9,7 +9,7 @@ import type {
 } from "../src/types";
 import { z } from "@brains/utils/zod";
 import { EntityRegistry } from "../src/entityRegistry";
-import { baseEntitySchema } from "../src/types";
+import { baseEntitySchema, type EntityAdapter } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
@@ -549,6 +549,146 @@ This note has frontmatter metadata.`;
           { containedIn: "section" },
         ),
       ).toThrow("one level");
+    });
+  });
+
+  describe("editable fields", () => {
+    const frontmatterSchema = z.object({
+      title: z.string(),
+      status: z.enum(["draft", "published"]),
+      cardCid: z.string().optional().meta({ studioWidget: "provenance" }),
+      syncHash: z.string().optional().meta({ studioWidget: "hidden" }),
+    });
+
+    class ProfileAdapter extends BaseEntityAdapter<Note> {
+      constructor() {
+        super({
+          entityType: "profile",
+          purpose: "Test profile entity for unit tests.",
+          schema: noteSchema,
+          frontmatterSchema,
+        });
+      }
+
+      public override toMarkdown(entity: Note): string {
+        return entity.content;
+      }
+
+      public fromMarkdown(markdown: string): Partial<Note> {
+        return { content: markdown };
+      }
+    }
+
+    function profileRegistry(): EntityRegistry {
+      const fresh = EntityRegistry.createFresh(logger);
+      fresh.registerEntityType("profile", noteSchema, new ProfileAdapter());
+      return fresh;
+    }
+
+    test("are its frontmatter fields but the brain's own, typed as declared", () => {
+      const editable = profileRegistry().getEditableFieldsSchema("profile");
+
+      expect(Object.keys(editable?.shape ?? {})).toEqual(["title", "status"]);
+      expect(editable?.shape["status"]).toBe(frontmatterSchema.shape.status);
+    });
+
+    test("include the fields an extension adds", () => {
+      const registry = profileRegistry();
+      registry.extendFrontmatterSchema(
+        "profile",
+        z.object({ tagline: z.string().optional() }),
+      );
+
+      expect(
+        Object.keys(registry.getEditableFieldsSchema("profile")?.shape ?? {}),
+      ).toEqual(["title", "status", "tagline"]);
+    });
+
+    test("are, for a type without frontmatter, its metadata fields but the brain's own", () => {
+      const fresh = EntityRegistry.createFresh(logger);
+      const fileSchema = noteSchema.extend({
+        metadata: z.object({
+          title: z.string().optional(),
+          dedupKey: z.string().optional().meta({ studioWidget: "hidden" }),
+        }),
+      });
+      // A stored file's adapter: its record is its content, no frontmatter.
+      const fileAdapter: EntityAdapter<Note> = {
+        entityType: "file",
+        purpose: "Test file entity for unit tests.",
+        schema: fileSchema,
+        toMarkdown: (entity) => entity.content,
+        fromMarkdown: (content) => ({ content }),
+        extractMetadata: (entity) => entity.metadata,
+        parseFrontMatter: (_content, schema) => schema.parse({}),
+        generateFrontMatter: () => "",
+        getBodyTemplate: () => "",
+      };
+      fresh.registerEntityType("file", fileSchema, fileAdapter);
+
+      expect(
+        Object.keys(fresh.getEditableFieldsSchema("file")?.shape ?? {}),
+      ).toEqual(["title"]);
+    });
+
+    test("are none for a type it does not know", () => {
+      expect(registry.getEditableFieldsSchema("unregistered")).toBeUndefined();
+    });
+  });
+
+  describe("create fields", () => {
+    const frontmatterSchema = z.object({
+      title: z.string(),
+      cardCid: z.string().optional().meta({ studioWidget: "provenance" }),
+    });
+    /** Where a deck's slides break: stated on create, never stored. */
+    const createFieldsSchema = z.object({
+      slides: z.enum(["headings", "paragraphs"]).optional(),
+    });
+
+    class DeckAdapter extends BaseEntityAdapter<Note> {
+      constructor() {
+        super({
+          entityType: "deck",
+          purpose: "Test deck entity for unit tests.",
+          schema: noteSchema,
+          frontmatterSchema,
+          createFieldsSchema,
+        });
+      }
+
+      public override toMarkdown(entity: Note): string {
+        return entity.content;
+      }
+
+      public fromMarkdown(markdown: string): Partial<Note> {
+        return { content: markdown };
+      }
+    }
+
+    function deckRegistry(): EntityRegistry {
+      const fresh = EntityRegistry.createFresh(logger);
+      fresh.registerEntityType("deck", noteSchema, new DeckAdapter());
+      return fresh;
+    }
+
+    test("are its editable fields and those it takes only on create", () => {
+      const create = deckRegistry().getCreateFieldsSchema("deck");
+
+      expect(Object.keys(create?.shape ?? {})).toEqual(["title", "slides"]);
+      expect(create?.shape["slides"]).toBe(createFieldsSchema.shape.slides);
+    });
+
+    test("taken only on create are not editable", () => {
+      expect(
+        Object.keys(
+          deckRegistry().getEditableFieldsSchema("deck")?.shape ?? {},
+        ),
+      ).toEqual(["title"]);
+    });
+
+    test("are none for a type it does not know", () => {
+      expect(registry.getCreateFieldsSchema("unregistered")).toBeUndefined();
     });
   });
 

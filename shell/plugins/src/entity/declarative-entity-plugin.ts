@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
+  authenticatedUserId,
   agentContextContract,
   generateExecuteContract,
   generateReportFailureContract,
@@ -52,6 +53,8 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import { getErrorMessage } from "@brains/utils/error";
+import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
@@ -60,15 +63,29 @@ import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import {
   contractJobOf,
+  entityAnswersOf,
+  bodyTemplateOf,
   ordinaryCreateOf,
+  restatedMetadataOf,
+  urlRouteOf,
+  writesInDocumentOrderOf,
+  readsAsWritten,
+  frontmatterSchemaOf,
+  builtProvider,
   queuedCreateOf,
   storedCreateOf,
   withEntityRuntime,
   type AnyEntityBinding,
   type EntityRuntimeBinding,
   type QueuedCreate,
+  type EntityCreateCaller,
+  type EvalGenerationOptions,
+  type EvalGenerationResult,
+  type QueuedAttribution,
+  type QueuedPlaceholder,
   type StoredCreate,
 } from "./entity-runtime";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { createUploadSaveHandler } from "./upload-save";
 import { sharedUploadScope } from "../service/upload-registry";
 import {
@@ -85,7 +102,9 @@ import {
   contractJobHandler,
   entityJobHandler,
   type EntityJobWrites,
+  type EntityRunAuthority,
   generationSource,
+  packageEntityWrites,
 } from "./declarative-jobs";
 import type { JobHandler, JobOptions } from "@brains/job-queue";
 import { createPendingEntity } from "./pending-ingestion";
@@ -159,12 +178,13 @@ const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 /**
  * Which route a create request takes, by how the caller expressed it: an
- * upload or attachment reference first, then content, then a prompt. A
- * conversation message arrives as content.
+ * upload or attachment reference first, then content, then a prompt, then
+ * a URL alone. A conversation message arrives as content.
  */
 function selectCreateRoute(
   routing: EntityCreateRouting,
   input: CreateInput,
+  urlRoute?: EntityCreateRoute,
 ): EntityCreateRoute | undefined {
   switch (input.from?.kind) {
     case "entity-attachment":
@@ -173,7 +193,9 @@ function selectCreateRoute(
       return routing.fromUpload;
     default:
       if (input.content) return routing.fromContent;
-      return input.prompt ? routing.fromPrompt : undefined;
+      if (input.prompt) return routing.fromPrompt;
+      // A first-party type may decide a create from a URL alone.
+      return input.url ? urlRoute : undefined;
   }
 }
 
@@ -184,6 +206,28 @@ function deepFrozen<T>(value: T): T {
     Object.freeze(value);
   }
   return value;
+}
+
+/** Whether a queued create's job is attributed to the caller. */
+function isAttributed(queued: QueuedCreate): boolean {
+  const { attributed } = queued.job;
+  return attributed !== undefined && attributed !== false;
+}
+
+/** Who asked for a create, as a first-party route sees them. */
+function createCaller(
+  executionContext: CreateExecutionContext,
+): EntityCreateCaller {
+  const userId = authenticatedUserId(executionContext);
+  return Object.freeze({
+    interfaceType: executionContext.interfaceType,
+    actor: executionContext.actor,
+    ...definedFields({
+      userId,
+      channelId: executionContext.channelId,
+      channelName: executionContext.channelName,
+    }),
+  });
 }
 
 /** Who a create is attributed to in the store. */
@@ -204,11 +248,16 @@ function eventContextOf(executionContext: CreateExecutionContext): {
 function attributionJobOptions(
   source: string,
   executionContext: CreateExecutionContext,
+  attribution: QueuedAttribution = {},
 ): JobOptions {
   return {
     source,
     metadata: {
-      operationType: "content_operations",
+      operationType: attribution.operationType ?? "content_operations",
+      ...(attribution.channel === true &&
+        executionContext.channelId !== undefined && {
+          channelId: executionContext.channelId,
+        }),
       interfaceType: executionContext.interfaceType,
       requestedByActor: executionContext.actor,
       ...(executionContext.actor.kind === "user"
@@ -328,6 +377,50 @@ function encodeEntityMarkdown(
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
+/** A document's body; content with no frontmatter is a body already. */
+function documentBody(content: string): string {
+  const document = readMarkdownFrontmatter(content);
+  return isPlainRecord(document.data) && Object.keys(document.data).length > 0
+    ? document.content
+    : content;
+}
+
+/**
+ * A stored document read as written (storedDocumentCodec's readAsWritten):
+ * the stored bytes as its content, and metadata derived from its header
+ * when the header parses.
+ */
+function readAsWritten(
+  definition: AnyEntityDefinition,
+  markdown: string,
+): Partial<EntityOf<AnyEntityDefinition>> {
+  const header = readableHeader(markdown);
+  const metadata =
+    header && definition.markdown
+      ? definition.markdown.decode(header).metadata
+      : {};
+  return {
+    ...(definition.singleton === true && { id: definition.type }),
+    content: markdown,
+    metadata: definition.metadata.parse(currentMetadata(definition, metadata)),
+  };
+}
+
+/** A document's header and body; none when its header does not parse. */
+function readableHeader(
+  markdown: string,
+): { content: string; frontmatter: Record<string, unknown> } | undefined {
+  try {
+    const parsed = parseMarkdownWithFrontmatter(markdown, rawFrontmatterSchema);
+    return { content: parsed.content, frontmatter: parsed.metadata };
+  } catch {
+    // A header that does not parse still reads, as written and with no
+    // metadata, so an editor can show the document for repair; a write
+    // refuses it as before.
+    return undefined;
+  }
+}
+
 type DeclaredAdapter = EntityAdapter<
   EntityOf<AnyEntityDefinition>,
   Record<string, unknown>
@@ -339,6 +432,7 @@ function markdownStorage(
 ): Pick<
   DeclaredAdapter,
   | "frontmatterSchema"
+  | "writtenFrontmatterSchema"
   | "toMarkdown"
   | "fromMarkdown"
   | "parseFrontMatter"
@@ -346,11 +440,28 @@ function markdownStorage(
   | "metadataFromFrontmatter"
 > {
   return {
-    frontmatterSchema: definition.metadata,
+    // The header its class declared, when it states one; else its metadata.
+    frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
+    // What it writes is still every field its metadata names; a header
+    // field metadata does not name is the file's own, which the serializer
+    // keeps from the document written, as a stored-document class kept it.
+    ...(frontmatterSchemaOf(definition) && {
+      writtenFrontmatterSchema: definition.metadata,
+    }),
+    // A whole document handed in, as an import or an editor writes one, had
+    // its frontmatter decoded into the metadata already: the type writes the
+    // body under its own frontmatter, in its own order, as an entity plugin
+    // class's adapter did, and the serializer keeps after it the frontmatter
+    // the type does not write.
     toMarkdown(entity): string {
-      return encodeEntityMarkdown(definition, entity);
+      return encodeEntityMarkdown(definition, {
+        ...entity,
+        content: documentBody(entity.content),
+      });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
+      if (readsAsWritten(definition.markdown))
+        return readAsWritten(definition, markdown);
       const parsed = parseMarkdownWithFrontmatter(
         markdown,
         rawFrontmatterSchema,
@@ -362,6 +473,10 @@ function markdownStorage(
           })
         : { content: parsed.content, metadata: parsed.metadata };
       return {
+        // A singleton's document is its one record, whose id is the type,
+        // as a class adapter read it; a writer that names none, such as
+        // Studio creating a missing one, creates it there.
+        ...(definition.singleton === true && { id: definition.type }),
         content: decoded.content,
         metadata: definition.metadata.parse(
           currentMetadata(definition, decoded.metadata),
@@ -419,8 +534,12 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     ...(definition.config?.binaryStorage === undefined
       ? markdownStorage(definition)
       : binaryStorage(definition)),
-    extractMetadata: (entity) => entity.metadata,
-    getBodyTemplate: () => "",
+    // A first-party type that restates its metadata stores it as the
+    // document it wrote states it.
+    extractMetadata: (entity) =>
+      restatedMetadataOf(definition)?.(entity.metadata) ?? entity.metadata,
+    getBodyTemplate: () => bodyTemplateOf(definition),
+    ...(writesInDocumentOrderOf(definition) && { writesInDocumentOrder: true }),
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.
     ...(stub && {
@@ -437,6 +556,9 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
+    ...(definition.create?.fields && {
+      createFieldsSchema: definition.create.fields,
+    }),
     ...(definition.displayTitle && {
       displayTitle: (entity): string | undefined =>
         displayTitle(definition, entity),
@@ -706,6 +828,20 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.create = definition.create;
     this.attachments = definition.attachments;
     this.jobs = definition.jobs ?? {};
+    // A create route names the type's own generation "generation"; a job
+    // of that name would shadow it. A type without a generation may answer
+    // that job name with a contract job, as an entity plugin class that ran
+    // another handler under its generation job did.
+    const namedGeneration = this.jobs["generation"];
+    if (
+      namedGeneration !== undefined &&
+      (definition.generation !== undefined ||
+        contractJobOf(namedGeneration) === undefined)
+    ) {
+      throw new Error(
+        `${definition.type} declares a job named "generation", the name a create route gives its own generation`,
+      );
+    }
     this.generation = definition.generation;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
@@ -783,6 +919,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     declaration: NonNullable<AnyEntityDefinition["generation"]>,
     jobTypeName: string,
     reportsToPipeline = false,
+    readsLegacyRawData = false,
   ): DeclarativeGenerationHandler {
     return new DeclarativeGenerationHandler(this.logger, context, declaration, {
       entityType: this.entityType,
@@ -791,6 +928,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ownsType: (entityType) => this.ownsType(entityType),
       retries: this.retries,
       reportsToPipeline,
+      readsLegacyRawData,
+      pluginId: this.id,
+      runtime: (authority) =>
+        this.runBinding(context, authority, "a generation"),
     });
   }
 
@@ -914,6 +1055,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           this.generation,
           `${this.entityType}:generation`,
           this.definition.scheduledGeneration !== undefined,
+          true,
         )
       : null;
   }
@@ -1007,7 +1149,14 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         }
         context.jobs.registerHandler(
           name,
-          contractJobHandler(declaration, context, ownsType, writes, this.id),
+          contractJobHandler(
+            declaration,
+            context,
+            ownsType,
+            writes,
+            this.id,
+            (localName) => this.templateName(localName),
+          ),
         );
         return;
       }
@@ -1015,7 +1164,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         name,
         "generate" in declaration
           ? this.generationHandler(context, declaration, name)
-          : entityJobHandler(declaration, context, ownsType, writes),
+          : entityJobHandler(
+              declaration,
+              context,
+              ownsType,
+              writes,
+              (authority) => this.runBinding(context, authority, "a job"),
+            ),
       );
     });
 
@@ -1046,7 +1201,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     }
 
     const create = this.create;
-    if (create) this.registerCreateRouting(context, create);
+    const urlRoute = urlRouteOf(this.definition);
+    if (create || urlRoute) {
+      this.registerCreateRouting(context, create ?? {}, urlRoute);
+    }
 
     // Evals run with no caller, so as the package, with fixtures scoped to
     // this type.
@@ -1063,8 +1221,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               fixtures: createEvalFixtures(context, this.entityType),
             },
             // An eval runs with no caller, so its searches read as the
-            // package.
-            this.runtimeBinding(context, this.asPackage(context), "an eval"),
+            // package, and so does a generation it runs.
+            {
+              ...this.runtimeBinding(
+                context,
+                this.asPackage(context),
+                "an eval",
+              ),
+              runGeneration: (input, options) =>
+                this.runGenerationForEval(context, input, options),
+            },
           ),
         ),
       );
@@ -1077,6 +1243,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const feed = this.feed;
     const atproto = this.definition.atproto;
     const publish = this.definition.publish;
+    // Built once, with the plugin's logger, when it is built with one.
+    const publishProvider =
+      publish && builtProvider(publish.provider, this.logger);
     const publishAssets = this.definition.publishAssets ?? [];
     // Registered through the plugin's scoped analytics, which removes them
     // when the plugin goes.
@@ -1115,6 +1284,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ? mediaAttachmentContext(context)
       : undefined;
     this.releases = [
+      // First-party answers, under the channels their contracts already
+      // have, as the package acting as itself.
+      ...entityAnswersOf(this.definition).map((declared) =>
+        context.messaging.answer(
+          declared.contract,
+          async (request, { sender }) =>
+            declared.handle({
+              request,
+              sender,
+              entities: await packageEntityWrites(
+                context,
+                this.id,
+                (entityType) => this.ownsType(entityType),
+                {
+                  declaring: this.definition,
+                  requiredLevel: (entityType, action) =>
+                    this.requiredLevel(entityType, action),
+                },
+              ),
+            }),
+          declared.everyProcess === true ? { everyProcess: true } : {},
+        ),
+      ),
       ...(agentContext
         ? [
             // Reads are scoped to the asker, so a provider cannot surface
@@ -1229,7 +1421,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                 if (publish) {
                   await context.messaging.command(publishRegisterContract, {
                     entityType: this.entityType,
-                    provider: publish.provider,
+                    provider: publishProvider ?? publish.provider,
                     config: {
                       executionMode: "provider",
                       ...definedFields({
@@ -1316,8 +1508,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
   /**
    * The declared Inbox in the shape the Inbox reads. Listing reads as the
-   * package; opening and acting read as the actor, and acting writes only
-   * through edits the actor is allowed.
+   * package; opening and acting are refused below admin, read as the actor,
+   * and acting writes only through edits the actor is allowed.
    */
   private inboxSource(
     context: EntityPluginContext,
@@ -1334,6 +1526,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         records: this.records(context, scope),
         entities: createEntityReader(context.entityService, scope),
       };
+    };
+    // An Inbox item is the operator's to open and act on, whichever surface
+    // reaches it, so the source itself refuses anyone below admin.
+    const requireAdmin = (actor: InboxActor): void => {
+      if (actor.permissionLevel !== "admin") {
+        throw new Error(`${declared.displayName} requires admin permission`);
+      }
     };
     const resolveDetail = declared.resolveDetail?.bind(declared);
     return {
@@ -1356,18 +1555,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           itemId: string,
           actor: InboxActor,
           signal: AbortSignal,
-        ): Promise<InboxItemDetail> =>
-          resolveDetail(itemId, Object.freeze({ ...asActor(actor), signal })),
+        ): Promise<InboxItemDetail> => {
+          requireAdmin(actor);
+          return resolveDetail(
+            itemId,
+            Object.freeze({ ...asActor(actor), signal }),
+          );
+        },
       }),
-      act: (itemId: string, actionId: string, actor: InboxActor) =>
-        declared.act(
+      act: async (
+        itemId: string,
+        actionId: string,
+        actor: InboxActor,
+      ): Promise<void> => {
+        requireAdmin(actor);
+        return declared.act(
           itemId,
           actionId,
           Object.freeze({
             ...asActor(actor),
             edits: this.inboxEdits(context, actor),
           }),
-        ),
+        );
+      },
     };
   }
 
@@ -1519,9 +1729,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private registerCreateRouting(
     context: EntityPluginContext,
     routing: EntityCreateRouting,
+    urlRoute: EntityCreateRoute | undefined,
   ): void {
     const interceptCreate: CreateInterceptor = (input, executionContext) =>
-      this.routeCreate(context, routing, input, executionContext);
+      this.routeCreate(context, routing, urlRoute, input, executionContext);
     context.entities.registerCreateInterceptor(
       this.entityType,
       interceptCreate,
@@ -1531,7 +1742,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     context.entities.registerCreateCheck(
       this.entityType,
       async (input, executionContext): Promise<CreateCheckResult> => {
-        const route = selectCreateRoute(routing, input);
+        const route = selectCreateRoute(routing, input, urlRoute);
         if (!route) return { kind: "ready" };
         if ("reject" in route) return { kind: "error", error: route.reject };
         return route.check
@@ -1558,10 +1769,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private async routeCreate(
     context: EntityPluginContext,
     routing: EntityCreateRouting,
+    urlRoute: EntityCreateRoute | undefined,
     input: CreateInput,
     executionContext: CreateExecutionContext,
   ): Promise<CreateInterceptionResult> {
-    const route = selectCreateRoute(routing, input);
+    const route = selectCreateRoute(routing, input, urlRoute);
     if (!route) return { kind: "continue", input };
     if ("reject" in route) {
       return { kind: "handled", result: createFailure(route.reject) };
@@ -1649,12 +1861,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         entities,
         uploads: reader,
       },
-      this.runtimeBinding(context, entities, "a create route", {
-        // Targets and sources are read public, as the entity plugin
-        // classes' create interceptors read them.
-        service: context.entityService,
-        scope: () => "public",
-      }),
+      {
+        ...this.runtimeBinding(context, entities, "a create route", {
+          // Targets and sources are read public, as the entity plugin
+          // classes' create interceptors read them.
+          service: context.entityService,
+          scope: () => "public",
+        }),
+        caller: createCaller(executionContext),
+      },
     );
   }
 
@@ -1679,7 +1894,68 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         context.entityService.searchWithDistances(request),
       generateObject: (prompt, schema) =>
         context.ai.generateObject(prompt, schema),
+      generate: createGenerationAI(context, (localName) =>
+        this.templateName(localName),
+      ).generate,
+      logger: context.logger,
+      identity: Object.freeze({
+        getProfile: () => context.identity.getProfile(),
+      }),
     };
+  }
+
+  /**
+   * Run this type's generation in process for an eval, queued as the
+   * package, as an entity plugin class's eval ran its generation handler.
+   */
+  private async runGenerationForEval(
+    context: EntityPluginContext,
+    input: unknown,
+    options: EvalGenerationOptions = {},
+  ): Promise<EvalGenerationResult> {
+    const generation = this.generation;
+    if (!generation) {
+      throw new Error(`Entity "${this.entityType}" declares no generation`);
+    }
+    const handler = this.generationHandler(
+      context,
+      generation,
+      `${this.entityType}:generation`,
+      this.definition.scheduledGeneration !== undefined,
+    );
+    const data = handler.validateAndParse(
+      await admitPackageJob(context.jobAuthority, undefined, input),
+    );
+    if (data === null) {
+      return { success: false, error: "Invalid generation input" };
+    }
+    const onProgress = options.onProgress;
+    const reporter = onProgress
+      ? CallbackProgressReporter.from(async ({ progress, message }) => {
+          await onProgress({ progress, ...definedFields({ message }) });
+        })
+      : undefined;
+    const result = await handler.process(
+      data,
+      `eval-${Date.now()}`,
+      reporter ?? CallbackProgressReporter.noop(),
+    );
+    return { ...result };
+  }
+
+  /**
+   * The internal runtime a declared job or generation reaches: reads at the
+   * run's authority, untyped ones at the scope the run reads each type at.
+   */
+  private runBinding(
+    context: EntityPluginContext,
+    authority: EntityRunAuthority,
+    where: string,
+  ): EntityRuntimeBinding {
+    return this.runtimeBinding(context, authority.entities, where, {
+      service: context.entityService,
+      scope: (entityType) => authority.scope(entityType),
+    });
   }
 
   private callerScope(
@@ -1807,7 +2083,12 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     executionContext: CreateExecutionContext,
   ): Promise<CreateResult> {
     const { job: name, input: jobInput = {} } = allocation.delegate;
-    const job = Object.hasOwn(this.jobs, name) ? this.jobs[name] : undefined;
+    // "generation" names the type's own generation, queued as
+    // `{type}:generation`, as an entity plugin's interceptor queued it.
+    const ownGeneration = name === "generation" ? this.generation : undefined;
+    const job =
+      ownGeneration ??
+      (Object.hasOwn(this.jobs, name) ? this.jobs[name] : undefined);
     if (!job) {
       return createFailure(
         `${this.entityType} declares no job named "${name}"`,
@@ -1845,22 +2126,35 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     if ("error" in allocated) return createFailure(allocated.error);
     const entityId = allocated.entityId;
     try {
-      const jobId = await context.jobs.enqueue({
-        type: name,
-        // The input as written, and beside it the entity a generation fills
-        // and the entries the request named it from.
-        data: {
-          ...queued,
-          ...(entityId !== undefined && { entityId }),
-          ...("generate" in job &&
-            definedFields({ source: generationSource(input) })),
-        },
-        toolContext: {
-          interfaceType: executionContext.interfaceType,
-          actor: executionContext.actor,
-          ...definedFields({ channelId: executionContext.channelId }),
-        },
-      });
+      const data = {
+        ...queued,
+        ...(entityId !== undefined && { entityId }),
+        ...("generate" in job &&
+          definedFields({ source: generationSource(input) })),
+      };
+      const jobId = ownGeneration
+        ? // Content work for the caller who asked, routed back to their
+          // conversation, as the classes queued their generations.
+          await context.jobs.enqueue({
+            type: `${this.entityType}:generation`,
+            data,
+            toolContext: executionContext,
+            options: {
+              source: this.id,
+              metadata: { operationType: "content_operations" },
+            },
+          })
+        : await context.jobs.enqueue({
+            type: name,
+            // The input as written, and beside it the entity a generation
+            // fills and the entries the request named it from.
+            data,
+            toolContext: {
+              interfaceType: executionContext.interfaceType,
+              actor: executionContext.actor,
+              ...definedFields({ channelId: executionContext.channelId }),
+            },
+          });
       const attachment =
         "attachment" in allocation ? allocation.attachment : undefined;
       return {
@@ -1954,8 +2248,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     _input: CreateInput,
     executionContext: CreateExecutionContext,
   ): Promise<CreateResult> {
-    const attributed = queued.job.attributed === true;
+    const attributed = isAttributed(queued);
     const placeholder = queued.placeholder;
+    if (placeholder?.deduplicate === true) {
+      return this.applyDeduplicatedQueuedCreate(
+        context,
+        queued,
+        placeholder,
+        executionContext,
+      );
+    }
     if (placeholder) {
       const metadata = this.definition.metadata.safeParse(placeholder.metadata);
       if (!metadata.success) return createFailure(this.invalid(metadata.error));
@@ -1982,25 +2284,109 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         pending.existingEntity !== undefined &&
         pending.existingEntity.visibility !== placeholder.visibility
       ) {
-        throw new Error(
+        // Answered, as an entity plugin's interceptor answered it.
+        return createFailure(
           `Existing ${this.entityType} visibility "${pending.existingEntity.visibility}" does not match requested visibility "${placeholder.visibility}".`,
         );
       }
     }
+    return this.queueFill(context, queued, executionContext, queued.entityId);
+  }
+
+  /**
+   * A queued create whose placeholder lands beside a record that has its id,
+   * as an entity plugin's interceptor wrote one with `deduplicateId`: the
+   * job is queued for, and the answer names, the id written, and the job's
+   * input may be built from the placeholder as stored.
+   */
+  private async applyDeduplicatedQueuedCreate(
+    context: EntityPluginContext,
+    queued: QueuedCreate,
+    placeholder: NonNullable<QueuedCreate["placeholder"]>,
+    executionContext: CreateExecutionContext,
+  ): Promise<CreateResult> {
+    const metadata = this.definition.metadata.safeParse(placeholder.metadata);
+    if (!metadata.success) return createFailure(this.invalid(metadata.error));
+    const now = new Date().toISOString();
+    const created = await context.entityService.createEntity({
+      entity: {
+        id: queued.entityId,
+        entityType: this.entityType,
+        content: placeholder.content,
+        metadata: metadata.data,
+        ...(placeholder.visibility !== undefined && {
+          visibility: placeholder.visibility,
+        }),
+        created: now,
+        updated: now,
+      },
+      options: {
+        deduplicateId: true,
+        ...(isAttributed(queued) && {
+          eventContext: eventContextOf(executionContext),
+        }),
+      },
+    });
+    return this.queueFill(context, queued, executionContext, created.entityId);
+  }
+
+  /** The record a queued create's job fills, as it is stored now. */
+  private async writtenPlaceholder(
+    context: EntityPluginContext,
+    entityId: string,
+  ): Promise<QueuedPlaceholder> {
+    const written = await context.entityService.getEntity({
+      entityType: this.entityType,
+      id: entityId,
+      visibilityScope: internalFullScope(
+        "read back the placeholder a queued create wrote; only its hash is handed on",
+      ),
+    });
+    if (!written) {
+      throw new Error(
+        `The ${this.entityType} placeholder "${entityId}" could not be read back`,
+      );
+    }
+    return { entityId: written.id, contentHash: written.contentHash };
+  }
+
+  /** Queue a queued create's job and answer generating. */
+  private async queueFill(
+    context: EntityPluginContext,
+    queued: QueuedCreate,
+    executionContext: CreateExecutionContext,
+    entityId: string,
+  ): Promise<CreateResult> {
+    const { data } = queued.job;
+    // Input built from the placeholder reads it back as it was stored.
     const jobId = await context.jobs.enqueue(
       queued.job.contract,
-      queued.job.data,
-      ...(attributed
-        ? [{ options: attributionJobOptions(this.id, executionContext) }]
+      typeof data === "function"
+        ? data(await this.writtenPlaceholder(context, entityId))
+        : data,
+      ...(isAttributed(queued)
+        ? [
+            {
+              options: attributionJobOptions(
+                this.id,
+                executionContext,
+                typeof queued.job.attributed === "object"
+                  ? queued.job.attributed
+                  : undefined,
+              ),
+            },
+          ]
         : []),
     );
     return {
       success: true,
       data: {
-        entityId: queued.entityId,
+        entityId,
         status: "generating",
         jobId,
-        attachment: createResultAttachmentSchema.parse(queued.attachment),
+        ...(queued.attachment !== undefined && {
+          attachment: createResultAttachmentSchema.parse(queued.attachment),
+        }),
       },
     };
   }
@@ -2125,27 +2511,34 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         publishedOnly: payload.environment === "production",
       },
     });
+    const build = Object.freeze({ environment: payload.environment });
     const items = stored.flatMap((entity) => {
-      const item = feed.toItem(parseDefinitionEntity(this.definition, entity));
+      const item = feed.toItem(
+        parseDefinitionEntity(this.definition, entity),
+        build,
+      );
       return item ? [feedItemSchema.parse(item)] : [];
     });
     if (items.length === 0) return;
 
-    const siteUrl = (payload.siteConfig.url ?? "https://example.com").replace(
-      /\/+$/u,
-      "",
-    );
+    // The channel links the site as configured and the feed hangs off it;
+    // item links join the site and the route with one slash. This is the
+    // feed the blog plugin class wrote, byte for byte.
+    const siteUrl = payload.siteConfig.url ?? "https://example.com";
+    const siteRoot = siteUrl.replace(/\/+$/u, "");
     const xml = renderRssFeed(
       items,
       {
-        title: payload.siteConfig.title ?? "Feed",
-        description: payload.siteConfig.description ?? "Latest updates",
-        link: `${siteUrl}/${feed.routePrefix.replace(/^\/+/u, "")}`,
+        title: payload.siteConfig.title ?? feed.title ?? "Feed",
+        description:
+          payload.siteConfig.description ??
+          feed.description ??
+          "Latest updates",
+        link: siteUrl,
         selfLink: `${siteUrl}/${feed.path}`,
-        copyright: payload.siteConfig.copyright,
       },
       (item) =>
-        `${siteUrl}/${payload
+        `${siteRoot}/${payload
           .generateEntityUrl(this.entityType, item.slug)
           .replace(/^\/+/u, "")}`,
     );

@@ -1,4 +1,4 @@
-import type { EntityIdPath } from "@brains/plugins";
+import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type { EntityDetail, FieldDescriptor, ValidationIssue } from "./api";
 import type { EditorDocument } from "./editor-document";
 

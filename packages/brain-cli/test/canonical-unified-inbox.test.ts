@@ -99,7 +99,7 @@ describe("canonical unified inbox test app", () => {
     expect(
       environment.split("\n").filter((line) => /^[A-Z][A-Z0-9_]*=/.test(line)),
     ).toEqual([
-      "AI_API_KEY=",
+      "OPENAI_API_KEY=",
       "IMAP_USER=",
       "IMAP_PASSWORD=",
       "SETUP_EMAIL_API_KEY=",

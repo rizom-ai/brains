@@ -1,3 +1,4 @@
+import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
 import { docFromText } from "./lib/create-from-text";
@@ -17,39 +18,45 @@ const DOC_INSTRUCTIONS = [
  * docs sync once wrote and nothing reads, is retired.
  */
 export const doc: EntityDefinition<"doc", typeof docMetadataSchema> =
-  defineEntity({
-    type: "doc",
-    purpose: "A structured documentation page.",
-    metadata: docMetadataSchema,
-    markdown: {
-      decode: ({ content, frontmatter }) => {
-        const parsed = docFrontmatterSchema.parse(frontmatter);
-        return {
-          content,
-          metadata: {
-            title: parsed.title,
-            section: parsed.section,
-            order: parsed.order,
-            description: parsed.description,
-            slug: parsed.slug ?? slugify(parsed.title),
-            ...(parsed.slug !== null && { authoredSlug: true }),
-          },
-        };
-      },
-      encode: ({ content, metadata }) => ({
-        content,
-        frontmatter: {
-          title: metadata.title,
-          section: metadata.section,
-          order: metadata.order,
-          description: metadata.description,
-          ...(metadata.authoredSlug === true && { slug: metadata.slug }),
+  withFrontmatterSchema(
+    defineEntity({
+      type: "doc",
+      purpose: "A structured documentation page.",
+      metadata: docMetadataSchema,
+      markdown: {
+        decode: ({ content, frontmatter }) => {
+          const parsed = docFrontmatterSchema.parse(frontmatter);
+          return {
+            content,
+            metadata: {
+              title: parsed.title,
+              section: parsed.section,
+              order: parsed.order,
+              description: parsed.description,
+              slug: parsed.slug ?? slugify(parsed.title),
+              ...(parsed.slug !== null && { authoredSlug: true }),
+            },
+          };
         },
-      }),
-    },
-    config: { projectionSourceRole: "primary", retiredFields: ["sourcePath"] },
-    instructions: DOC_INSTRUCTIONS,
-    templates: getTemplates(),
-    // The route reads the type it is declared on, once it is defined.
-    create: { fromContent: docFromText(() => doc) },
-  });
+        encode: ({ content, metadata }) => ({
+          content,
+          frontmatter: {
+            title: metadata.title,
+            section: metadata.section,
+            order: metadata.order,
+            description: metadata.description,
+            ...(metadata.authoredSlug === true && { slug: metadata.slug }),
+          },
+        }),
+      },
+      config: {
+        projectionSourceRole: "primary",
+        retiredFields: ["sourcePath"],
+      },
+      instructions: DOC_INSTRUCTIONS,
+      templates: getTemplates(),
+      // The route reads the type it is declared on, once it is defined.
+      create: { fromContent: docFromText(() => doc) },
+    }),
+    docFrontmatterSchema,
+  );

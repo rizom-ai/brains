@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseJsonObject } from "./json";
+import { isJsonObject, parseJsonObject } from "./json";
 
 const BACKUP_FILENAME = "package.json.publish-backup";
 
@@ -143,7 +143,7 @@ async function createPublishManifestText(
     "optionalDependencies",
   ]) {
     const deps = manifest[field];
-    if (!isRecord(deps)) {
+    if (!isJsonObject(deps)) {
       continue;
     }
     for (const [name, range] of Object.entries(deps)) {
@@ -155,13 +155,6 @@ async function createPublishManifestText(
   }
 
   return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-// Kept local: @brains/build-tools declares no runtime dependencies, and
-// pulling in @brains/utils for a three-line guard would give this build-time
-// package a dependency tree it deliberately does not have.
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function resolveWorkspaceRange(

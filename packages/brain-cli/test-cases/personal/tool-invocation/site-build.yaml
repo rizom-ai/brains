@@ -9,7 +9,7 @@ tags:
   - site-builder
   - tool-invocation
   - anti-hallucination
-  - requires-built-site-runtime
+  - recipe-professional
 
 turns:
   - userMessage: "Build my website"
@@ -29,4 +29,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 30000
+  maxTokens: 49000

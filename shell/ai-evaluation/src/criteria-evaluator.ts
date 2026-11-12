@@ -195,6 +195,16 @@ function evaluateExpectedTools(
       );
     }
 
+    if (expected.argsMatch) {
+      results.push(
+        ...evaluateArgsMatch(
+          expected.toolName,
+          expected.argsMatch,
+          matchingCalls,
+        ),
+      );
+    }
+
     if (expected.argsAbsent) {
       results.push(
         ...evaluateArgsAbsent(
@@ -402,6 +412,31 @@ function evaluateArgsContain(
   }
 
   return results;
+}
+
+function evaluateArgsMatch(
+  toolName: string,
+  argsMatch: Record<string, string>,
+  matchingCalls: ToolCallRecord[],
+): CriteriaEvaluationResult[] {
+  return Object.entries(argsMatch).flatMap(([key, pattern]) => {
+    const expression = new RegExp(pattern);
+    const anyCallMatches = matchingCalls.some((toolCall) => {
+      const value = toolCall.args && resolveDottedPath(toolCall.args, key);
+      return typeof value === "string" && expression.test(value);
+    });
+    return anyCallMatches
+      ? []
+      : [
+          {
+            criterion: "toolArgsMatch",
+            expected: `${toolName}.${key} matches /${pattern}/`,
+            actual: `${JSON.stringify(collectActualValues(matchingCalls, key))} (across ${matchingCalls.length} calls)`,
+            message: `Tool arg mismatch for ${toolName}.${key}`,
+            passed: false,
+          },
+        ];
+  });
 }
 
 function evaluateResultContains(

@@ -6,6 +6,7 @@ import {
   reasoningEffortSchema,
   shellConfigSchema,
 } from "../src/config";
+import { createAIModelConfig } from "../src/initialization/service-config";
 
 describe("shell config schema", () => {
   it("exposes the log level and reasoning effort enums it validates with", () => {
@@ -21,7 +22,7 @@ describe("shell config schema", () => {
 describe("shell config", () => {
   it("preserves shared conversation spaces", () => {
     const config = createShellConfig({
-      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
       spaces: ["discord:project-*"],
     });
 
@@ -31,7 +32,7 @@ describe("shell config", () => {
   it("preserves configured reasoning effort", () => {
     const config = createShellConfig({
       ai: {
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         model: "gpt-5.6-luna",
         reasoningEffort: "low",
       },
@@ -43,12 +44,12 @@ describe("shell config", () => {
   it("uses bounded parallel job execution by default and accepts an override", () => {
     expect(
       createShellConfig({
-        ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+        ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
       }).jobQueue.workerConcurrency,
     ).toBe(4);
     expect(
       createShellConfig({
-        ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+        ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
         jobQueue: { workerConcurrency: 2 },
       }).jobQueue.workerConcurrency,
     ).toBe(2);
@@ -56,7 +57,7 @@ describe("shell config", () => {
 
   it("fills every default from the schema", () => {
     const config = createShellConfig({
-      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
     });
 
     expect(config.name).toBe("brain-app");
@@ -75,18 +76,195 @@ describe("shell config", () => {
       context: "shell",
     });
     expect(config.ai).toEqual({
-      apiKey: "test-key",
+      providerKeys: { openai: "test-key" },
       model: "gpt-4o-mini",
+      embeddingModel: "openai:text-embedding-3-small",
       temperature: 0.7,
       webSearch: true,
     });
     expect(config.embedding).toEqual({ enabled: true });
   });
 
+  it("keeps a configured embedding model", () => {
+    const config = createShellConfig({
+      ai: {
+        providerKeys: { openai: "test-key" },
+        model: "gpt-4o-mini",
+        embeddingModel: "openai:text-embedding-3-large",
+      },
+    });
+
+    expect(config.ai.embeddingModel).toBe("openai:text-embedding-3-large");
+  });
+
+  it("rejects an embedding model without a profile", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-4o-mini",
+          embeddingModel: "openai:text-embedding-ada-002",
+        },
+      }),
+    ).toThrow(/Unsupported embedding model .*openai:text-embedding-ada-002/);
+  });
+
+  it("serves a local embedding model from the model runtime", () => {
+    const config = createShellConfig({
+      ai: {
+        providerKeys: { openai: "test-key" },
+        model: "gpt-4o-mini",
+        embeddingModel: "local:embeddinggemma-2:270m",
+        modelRuntimeUrl: "http://models:11434",
+      },
+    });
+
+    expect(config.ai.modelRuntimeUrl).toBe("http://models:11434");
+  });
+
+  it("rejects a local embedding model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-4o-mini",
+          embeddingModel: "local:embeddinggemma-2:270m",
+        },
+      }),
+    ).toThrow(/local:embeddinggemma-2:270m needs modelRuntime\.url/);
+  });
+
+  it("rejects a local text model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: { providerKeys: { openai: "test-key" }, model: "local:qwen3:4b" },
+      }),
+    ).toThrow(/local:qwen3:4b needs modelRuntime\.url/);
+    expect(
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "local:qwen3:4b",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.model,
+    ).toBe("local:qwen3:4b");
+  });
+
+  it("takes a local answer model from the model runtime", () => {
+    expect(
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "local:qwen3:30b-a3b",
+          answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.answerModel,
+    ).toBe("local:qwen3:30b-a3b-instruct-2507-q4_K_M");
+  });
+
+  it("rejects an answer model that is not local", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-6-luna",
+          answerModel: "openai:gpt-5.4-mini",
+        },
+      }),
+    ).toThrow(/answerModel must be a local: model/);
+  });
+
+  it("rejects a local answer model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-6-luna",
+          answerModel: "local:qwen3:30b-a3b-instruct-2507-q4_K_M",
+        },
+      }),
+    ).toThrow(/qwen3:30b-a3b-instruct-2507-q4_K_M needs modelRuntime\.url/);
+  });
+
+  it("takes a local vision model", () => {
+    expect(
+      createShellConfig({
+        ai: {
+          model: "local:qwen3:30b-a3b",
+          visionModel: "local:qwen3-vl:8b",
+          embeddingModel: "local:embeddinggemma-2:270m",
+          modelRuntimeUrl: "http://models:11434",
+        },
+      }).ai.visionModel,
+    ).toBe("local:qwen3-vl:8b");
+  });
+
+  it("rejects a vision model that is not local", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-6-luna",
+          visionModel: "openai:gpt-5.4-mini",
+        },
+      }),
+    ).toThrow(/visionModel must be a local: model/);
+  });
+
+  it("rejects a local vision model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-6-luna",
+          visionModel: "local:qwen3-vl:8b",
+        },
+      }),
+    ).toThrow(/qwen3-vl:8b needs modelRuntime\.url/);
+  });
+
+  it("takes an image model and hands it to the AI service", () => {
+    const config = createShellConfig({
+      ai: {
+        model: "local:qwen3:30b-a3b",
+        imageModel: "local:z-image-turbo",
+        embeddingModel: "local:embeddinggemma-2:270m",
+        modelRuntimeUrl: "http://models:11434",
+      },
+    });
+
+    expect(createAIModelConfig(config).imageModel).toBe("local:z-image-turbo");
+  });
+
+  it("rejects a local image model without the model runtime's URL", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "gpt-6-luna",
+          imageModel: "local:z-image-turbo",
+        },
+      }),
+    ).toThrow(/z-image-turbo needs modelRuntime\.url/);
+  });
+
+  it("rejects a text model of an unknown provider", () => {
+    expect(() =>
+      createShellConfig({
+        ai: {
+          providerKeys: { openai: "test-key" },
+          model: "groq:llama-3.1-70b",
+        },
+      }),
+    ).toThrow(/Unsupported model .*groq:llama-3\.1-70b/);
+  });
+
   it("uses the standard database paths unless a database is overridden", () => {
     const standard = getStandardConfig();
     const config = createShellConfig({
-      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
       conversationDatabase: { url: "file:elsewhere.db" },
     });
 
@@ -97,19 +275,21 @@ describe("shell config", () => {
     expect(config.conversationDatabase).toEqual({ url: "file:elsewhere.db" });
   });
 
-  it("defaults the AI key to an empty string when only a model is configured", () => {
+  it("defaults to no provider keys when only a model is configured", () => {
     const config = createShellConfig({ ai: { model: "gpt-4o-mini" } });
 
-    expect(config.ai.apiKey).toBe("");
+    expect(config.ai.providerKeys).toEqual({});
   });
 
   it("rejects a configuration without a model", () => {
-    expect(() => createShellConfig({ ai: { apiKey: "test-key" } })).toThrow();
+    expect(() =>
+      createShellConfig({ ai: { providerKeys: { openai: "test-key" } } }),
+    ).toThrow();
   });
 
   it("omits optional fields that were not provided", () => {
     const config = createShellConfig({
-      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
     });
 
     const absent = [
@@ -127,7 +307,7 @@ describe("shell config", () => {
     expect(Object.keys(config).filter((key) => absent.includes(key))).toEqual(
       [],
     );
-    expect(Object.keys(config.ai)).not.toContain("imageApiKey");
+    expect(Object.keys(config.ai)).not.toContain("imageModel");
     expect(Object.keys(config.ai)).not.toContain("reasoningEffort");
     expect(Object.keys(config.logging)).not.toContain("file");
   });
@@ -135,9 +315,9 @@ describe("shell config", () => {
   it("keeps optional fields that were provided", () => {
     const config = createShellConfig({
       ai: {
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         model: "gpt-4o-mini",
-        imageApiKey: "image-key",
+        imageModel: "gemini-3-pro-image-preview",
       },
       logging: { level: "debug", file: "/var/log/brain.log" },
       siteBaseUrl: "https://example.test",
@@ -149,7 +329,7 @@ describe("shell config", () => {
       entityDisplay: { note: { label: "Note" } },
     });
 
-    expect(config.ai.imageApiKey).toBe("image-key");
+    expect(config.ai.imageModel).toBe("gemini-3-pro-image-preview");
     expect(config.logging).toEqual({
       level: "debug",
       format: "text",
@@ -179,7 +359,7 @@ describe("shell config", () => {
       topic: { label: "Topic", navigation: { slot: "secondary" as const } },
     };
     const config = createShellConfig({
-      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
       entityDisplay,
     });
 
@@ -196,7 +376,7 @@ describe("shell config", () => {
     };
     const agentInstructions = ["be brief"];
     const config = createShellConfig({
-      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      ai: { providerKeys: { openai: "test-key" }, model: "gpt-4o-mini" },
       permissions,
       identity,
       agentInstructions,

@@ -9,7 +9,7 @@ tags:
   - quality
   - accuracy
   - hallucination
-  - preset-core
+  - recipe-professional
 
 turns:
   - userMessage: "Tell me about my blog post on quantum computing"
@@ -39,4 +39,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 30000
+  maxTokens: 74000

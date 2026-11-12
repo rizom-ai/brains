@@ -1,45 +1,44 @@
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import {
   atprotoProvenance,
-  defineAtprotoProjection,
+  canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
+import type { AtprotoBrainProjectRecord } from "@brains/atproto-contracts";
 import type {
-  AtprotoBrainProjectRecord,
-  AtprotoProjection,
-  AtprotoProjectionBuildInput,
-} from "@brains/atproto-contracts";
-import { projectFrontmatterSchema, projectSchema } from "./schemas/project";
+  EntityAtprotoProjection,
+  EntityAtprotoRecordInput,
+  EntityDefinition,
+  EntityOf,
+} from "@brains/sdk/entities";
+import type { projectMetadataSchema } from "./schemas/project";
 
+type ProjectRecord = EntityOf<
+  EntityDefinition<"project", typeof projectMetadataSchema>
+>;
+
+/** A project as its ai.rizom.brain.project record: its fields and its body. */
 export async function buildProjectAtprotoRecord({
   entity,
   config,
   pageUrl,
-}: AtprotoProjectionBuildInput): Promise<AtprotoBrainProjectRecord> {
-  const project = projectSchema.parse(entity);
-  const parsed = parseMarkdownWithFrontmatter(
-    project.content,
-    projectFrontmatterSchema,
-  );
-  const frontmatter = parsed.metadata;
-
+}: EntityAtprotoRecordInput<ProjectRecord>): Promise<AtprotoBrainProjectRecord> {
+  const { metadata } = entity;
   return {
     $type: "ai.rizom.brain.project",
-    title: frontmatter.title,
-    ...(frontmatter.slug && { slug: frontmatter.slug }),
-    description: frontmatter.description,
-    body: parsed.content,
+    title: metadata.title,
+    slug: metadata.slug,
+    description: metadata.description,
+    body: entity.content,
     format: "text/markdown",
-    year: frontmatter.year,
-    ...(frontmatter.url && { url: frontmatter.url }),
-    ...(frontmatter.publishedAt && { publishedAt: frontmatter.publishedAt }),
-    ...atprotoProvenance({ config, pageUrl }, project),
+    year: metadata.year,
+    ...(metadata.url && { url: metadata.url }),
+    ...(metadata.publishedAt && { publishedAt: metadata.publishedAt }),
+    ...atprotoProvenance({ config, pageUrl }, entity),
   };
 }
 
-export function createProjectAtprotoProjection(): AtprotoProjection<AtprotoBrainProjectRecord> {
-  return defineAtprotoProjection({
-    entityType: "project",
-    collection: "ai.rizom.brain.project",
-    buildRecord: buildProjectAtprotoRecord,
-  });
-}
+/** Project records go out unvalidated, under the canonical project lexicon. */
+export const projectAtproto: EntityAtprotoProjection<ProjectRecord> = {
+  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.project"],
+  validate: false,
+  buildRecord: buildProjectAtprotoRecord,
+};

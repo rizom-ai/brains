@@ -1,9 +1,14 @@
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { serviceRuntime } from "@brains/sdk/internal/service-runtime";
 import { registerAdministrationWorkspace } from "./administration-workspace";
-import { registerInvitationsOverview } from "./invitations-overview";
+import {
+  invitationsOverviewWidget,
+  loadInvitationsOverview,
+} from "./invitations-overview";
 
 const adminConfigSchema: z.ZodObject<
   Record<never, never>,
@@ -11,27 +16,36 @@ const adminConfigSchema: z.ZodObject<
 > = z.strictObject({});
 
 export type AdminConfig = z.output<typeof adminConfigSchema>;
-/** Brains pass raw config records; the strict schema rejects any key at parse time. */
-export type AdminConfigInput = Record<string, unknown>;
+export type AdminConfigInput = z.input<typeof adminConfigSchema>;
 
-/** Headless source owner for the administration workspaces hosted by Studio. */
-export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
-  constructor(config: AdminConfigInput = {}) {
-    super("admin", packageJson, config, adminConfigSchema);
-  }
+/**
+ * Admin: the headless source owner for the administration workspaces Studio
+ * hosts. It composes one Administration workspace from its People,
+ * Invitations, Peers and Audit tabs once every plugin has registered, and
+ * shows admins the invitations that need attention on the Dashboard, both
+ * read from the brain's auth backend.
+ */
+const adminPackage: ServicePackageDefinition<typeof adminConfigSchema> =
+  defineServicePlugin(
+    { id: "admin", config: adminConfigSchema },
+    {
+      subscriptions: (context) => {
+        const runtime = serviceRuntime(context);
+        // Where the class registered it: once every plugin has registered.
+        runtime.registered(async () => {
+          await registerAdministrationWorkspace(runtime);
+        });
+        return [];
+      },
+      dashboardWidgets: (context) => {
+        const runtime = serviceRuntime(context);
+        return [
+          invitationsOverviewWidget.bind(context, ({ signal }) =>
+            loadInvitationsOverview(runtime, signal),
+          ),
+        ];
+      },
+    },
+  );
 
-  protected override async onRegistrationComplete(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await registerAdministrationWorkspace(context);
-    await registerInvitationsOverview(context);
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return [];
-  }
-}
-
-export function adminPlugin(config: AdminConfigInput = {}): AdminPlugin {
-  return new AdminPlugin(config);
-}
+export default adminPackage;

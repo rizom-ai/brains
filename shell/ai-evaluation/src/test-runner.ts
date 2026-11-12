@@ -5,6 +5,7 @@ import type {
 } from "@brains/ai-service";
 import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
+import { createExternalActorId } from "@brains/contracts";
 import { randomUUID } from "crypto";
 
 import type {
@@ -27,12 +28,43 @@ import {
   evaluateQualityThresholds,
   type ResponseSource,
 } from "./criteria-evaluator";
+import { getErrorMessage } from "@brains/utils/error";
 import { isRecord } from "@brains/utils/is-record";
 import { definedFields } from "@brains/utils/strip-undefined";
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
 type ToolApprovalCard = Extract<AgentResponseCard, { kind: "tool-approval" }>;
+
+/** An agent service that says whether a turn's tool calls reach it. */
+function toolCallsUnobservable(agentService: IAgentService): boolean {
+  return (
+    "toolCallsObservable" in agentService &&
+    agentService.toolCallsObservable === false
+  );
+}
+
+const TOOL_CRITERIA = [
+  "expectedTools",
+  "expectedAnyTool",
+  "toolCountRange",
+] as const;
+
+/** The criteria of a case that are scored from its tool calls. */
+function toolCriteriaOf(testCase: AgentTestCase): string[] {
+  const criteria = [
+    testCase.successCriteria,
+    ...testCase.turns.map((turn) => turn.successCriteria ?? {}),
+  ];
+  return [
+    ...TOOL_CRITERIA.filter((name) =>
+      criteria.some((criterion) => criterion[name] !== undefined),
+    ),
+    ...(testCase.efficiency?.maxToolCalls !== undefined
+      ? ["maxToolCalls"]
+      : []),
+  ];
+}
 
 /** The sources a reply shows beside its answer, from its sources cards. */
 function responseSources(response: AgentResponse): ResponseSource[] {
@@ -119,12 +151,54 @@ export class TestRunner implements ITestRunner {
   }
 
   /**
-   * Run a single test case (agent-based test cases only)
+   * Run a single test case (agent-based test cases only). An agent call that
+   * throws, such as a turn the protocol under evaluation refuses, fails this
+   * case alone: the rest of the run goes on.
    */
   async runTest(
     testCase: AgentTestCase,
     options: TestRunnerOptions = {},
   ): Promise<EvaluationResult> {
+    try {
+      return await this.runTestTurns(testCase, options);
+    } catch (error) {
+      const actual = getErrorMessage(error);
+      return {
+        testCaseId: testCase.id,
+        testCaseName: testCase.name,
+        passed: false,
+        timestamp: new Date().toISOString(),
+        turnResults: [],
+        totalMetrics: MetricCollector.createFresh().getTotalMetrics(),
+        qualityScores: undefined,
+        failures: [
+          {
+            criterion: "agentCall",
+            expected: "the agent answers every turn",
+            actual,
+            message: `The agent call failed: ${actual}`,
+          },
+        ],
+        efficiencyPassed: true,
+        efficiencyFailures: undefined,
+      };
+    }
+  }
+
+  private async runTestTurns(
+    testCase: AgentTestCase,
+    options: TestRunnerOptions,
+  ): Promise<EvaluationResult> {
+    // A case scored from tool calls the service cannot see would fail for
+    // the wrong reason, so it is refused before it runs.
+    const toolCriteria = toolCallsUnobservable(this.agentService)
+      ? toolCriteriaOf(testCase)
+      : [];
+    if (toolCriteria.length > 0) {
+      throw new Error(
+        `This agent service cannot observe tool calls, which this case checks: ${toolCriteria.join(", ")}`,
+      );
+    }
     const conversationId = randomUUID();
     const collector = MetricCollector.createFresh();
     const turnResults: TurnResult[] = [];
@@ -401,13 +475,26 @@ export class TestRunner implements ITestRunner {
   private buildChatContext(testCase: AgentTestCase): ChatContext {
     const userPermissionLevel: UserPermissionLevel =
       testCase.setup?.permissionLevel ?? "admin";
+    const interfaceType = testCase.setup?.interfaceType ?? "evaluation";
 
     return {
       userPermissionLevel,
       ...(testCase.setup?.isAnchor !== undefined
         ? { isAnchor: testCase.setup.isAnchor }
         : {}),
-      interfaceType: testCase.setup?.interfaceType ?? "evaluation",
+      interfaceType,
+      // A turn has a speaker, as on every interface. Without one, its tool
+      // calls are the brain's own agent's, and work they queue runs at the
+      // agent's grant, not the case's permission level. A turn that names
+      // its own actor replaces this one.
+      actor: {
+        identity: {
+          kind: "external",
+          externalActorId: createExternalActorId("evaluation", "operator"),
+        },
+        interfaceType,
+        role: "user",
+      },
       ...(testCase.setup?.channelId
         ? { channelId: testCase.setup.channelId }
         : {}),

@@ -1,3 +1,4 @@
+import { createMailItemPlugin } from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import {
   emailSourceReadContract,
@@ -5,7 +6,6 @@ import {
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
-  MailItemPlugin,
   MailTriageInboxSource,
   MailTriageOperatorService,
   createMailItemProjection,
@@ -23,7 +23,7 @@ interface SourceReadFixture {
 
 async function createFixture(): Promise<SourceReadFixture> {
   const harness = createPluginHarness();
-  await harness.installPlugin(new MailItemPlugin());
+  await harness.installPlugin(createMailItemPlugin());
   const projection = createMailItemProjection(
     {
       messageId: "<private-message-id@example.com>",

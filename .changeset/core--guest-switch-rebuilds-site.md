@@ -1,5 +1,6 @@
 ---
 "@brains/contracts": patch
+"@brains/plugins": patch
 "@brains/site-builder-plugin": patch
 "@brains/web-chat": patch
 "@rizom/brain": patch

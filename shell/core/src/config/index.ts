@@ -7,6 +7,12 @@ export {
   getStandardConfig,
 } from "./shellConfig";
 export { createStandardConfig } from "./standardConfig";
+export { httpHostConfigSchema, httpSettingsSchema } from "./http-config";
+export type {
+  HttpHostConfig,
+  HttpHostConfigInput,
+  HttpSettings,
+} from "./http-config";
 export type {
   ShellConfig,
   ShellConfigInput,

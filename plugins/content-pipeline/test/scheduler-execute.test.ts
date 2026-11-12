@@ -108,15 +108,13 @@ describe("ContentScheduler - provider execution", () => {
         url: "https://example.com/post/123",
       });
 
-      expect(messageBus.send).toHaveBeenCalledWith({
+      expect(messageBus.sentMessages).toContainEqual({
         type: PUBLISH_CHANNELS.completed,
         payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           result: { id: "platform-123", url: "https://example.com/post/123" },
         }),
-        sender: "publish-service",
-        broadcast: true,
       });
     });
 
@@ -137,15 +135,13 @@ describe("ContentScheduler - provider execution", () => {
 
       scheduler.failPublish("social-post", "post-1", "Network error");
 
-      expect(messageBus.send).toHaveBeenCalledWith({
+      expect(messageBus.sentMessages).toContainEqual({
         type: PUBLISH_CHANNELS.failed,
         payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: "Network error",
         }),
-        sender: "publish-service",
-        broadcast: true,
       });
     });
 

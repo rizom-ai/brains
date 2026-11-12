@@ -15,15 +15,12 @@ import type {
 } from "@brains/runtime-state";
 import { SerializedStatusStore } from "../../src/service/serialized-status-store";
 
-interface Counter {
-  total: number;
-  notes: string[];
-}
-
-const counterSchema: z.ZodType<Counter> = z.object({
+const counterSchema = z.object({
   total: z.number().int().nonnegative(),
   notes: z.array(z.string()).max(3),
 });
+
+type Counter = z.output<typeof counterSchema>;
 
 const NAMESPACE = "test.counter";
 

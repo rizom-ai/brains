@@ -7,6 +7,7 @@ import {
   createMockProgressReporter,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
+import { queuedJob } from "../queued-job";
 
 describe("DirectoryExportJobHandler", () => {
   let handler: DirectoryExportJobHandler;
@@ -58,7 +59,7 @@ describe("DirectoryExportJobHandler", () => {
   describe("validateAndParse", () => {
     it("should validate empty object (all fields optional)", () => {
       const result = expectDefined(
-        handler.validateAndParse({}),
+        queuedJob("directory-export", handler).validateAndParse({}),
         "validateAndParse result",
       );
       // batchSize is optional, defaults applied in process()
@@ -67,7 +68,9 @@ describe("DirectoryExportJobHandler", () => {
 
     it("should validate with entityTypes array", () => {
       const data = { entityTypes: ["note", "topic"] };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-export", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.entityTypes).toEqual(["note", "topic"]);
@@ -75,19 +78,25 @@ describe("DirectoryExportJobHandler", () => {
 
     it("should validate with custom batchSize", () => {
       const data = { batchSize: 25 };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-export", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.batchSize).toBe(25);
     });
 
     it("should return null for invalid batchSize", () => {
-      const result = handler.validateAndParse({ batchSize: 0 });
+      const result = queuedJob("directory-export", handler).validateAndParse({
+        batchSize: 0,
+      });
       expect(result).toBeNull();
     });
 
     it("should return null for invalid entityTypes type", () => {
-      const result = handler.validateAndParse({ entityTypes: "not-an-array" });
+      const result = queuedJob("directory-export", handler).validateAndParse({
+        entityTypes: "not-an-array",
+      });
       expect(result).toBeNull();
     });
   });

@@ -16,10 +16,8 @@ import { collectionSearch } from "./collection-url-query";
 import type { Dispatch, SetStateAction } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import type { RouterHistory } from "@tanstack/react-router";
-import type {
-  EntityGrouping,
-  RuntimeStudioWorkspaceData,
-} from "@brains/plugins";
+import type { EntityGrouping } from "@brains/sdk/internal/entity-runtime";
+import type { RuntimeStudioWorkspaceData } from "@brains/sdk/internal/service-runtime";
 import type { StudioPathTarget } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioWorkspaceQuery } from "./queries";

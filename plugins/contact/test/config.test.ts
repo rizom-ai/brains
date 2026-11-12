@@ -22,19 +22,18 @@ describe("contact intake configuration", () => {
         ...CONTACT_INTAKE_DEFAULTS.http,
       },
       admission: CONTACT_INTAKE_DEFAULTS.admission,
-      storage: CONTACT_INTAKE_DEFAULTS.storage,
       delivery: CONTACT_INTAKE_DEFAULTS.delivery,
     });
   });
 
   it("keeps the rest of a policy when one value is overridden", () => {
     const policy = resolveIntakePolicy(
-      { intake: { storage: { retentionSeconds: 7 * 86400 } } },
+      { intake: { delivery: { maxAttempts: 5 } } },
       "https://brain.test",
     );
-    expect(policy.storage).toEqual({
-      ...CONTACT_INTAKE_DEFAULTS.storage,
-      retentionSeconds: 7 * 86400,
+    expect(policy.delivery).toEqual({
+      ...CONTACT_INTAKE_DEFAULTS.delivery,
+      maxAttempts: 5,
     });
     expect(policy.admission).toEqual(CONTACT_INTAKE_DEFAULTS.admission);
   });
@@ -42,7 +41,7 @@ describe("contact intake configuration", () => {
   it("holds an override to the policy's bounds", () => {
     expect(() =>
       resolveIntakePolicy(
-        { intake: { storage: { retentionSeconds: 60 } } },
+        { intake: { delivery: { retryWindowSeconds: 10 } } },
         "https://brain.test",
       ),
     ).toThrow();
@@ -60,6 +59,8 @@ describe("contact intake configuration", () => {
         inboxUrl: "https://brain.test/studio/workspaces/unified-inbox%3Ainbox",
       },
       { preview: true },
+      // Requests are kept until the owner deletes them: nothing to configure.
+      { storage: { retentionSeconds: 86400 } },
     ])
       expect(() => contactPluginConfigSchema.parse({ intake })).toThrow();
   });

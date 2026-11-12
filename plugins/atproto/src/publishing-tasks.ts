@@ -1,8 +1,8 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { AtprotoContext } from "./atproto-context";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { AtprotoPublishFailedPayload } from "./publish-contracts";
-import { ATPROTO_PUBLISH_FAILED } from "./publish-contracts";
+import { atprotoPublishFailedChannel } from "./publish-contracts";
 
 /**
  * Serializes ambient publishing work per entity and drains it on shutdown.
@@ -53,7 +53,7 @@ export class PublishingTaskQueue {
    * A brain without publishing credentials silently does nothing.
    */
   async runTrigger(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     details: Omit<AtprotoPublishFailedPayload, "error">,
     operation: () => Promise<unknown>,
   ): Promise<void> {
@@ -67,7 +67,7 @@ export class PublishingTaskQueue {
   }
 
   async reportFailure(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     details: Omit<AtprotoPublishFailedPayload, "error">,
     error: unknown,
   ): Promise<void> {
@@ -78,10 +78,9 @@ export class PublishingTaskQueue {
     });
 
     try {
-      await context.messaging.send({
-        type: ATPROTO_PUBLISH_FAILED,
-        payload: { ...details, error: errorMessage },
-        broadcast: true,
+      await context.messaging.broadcast(atprotoPublishFailedChannel, {
+        ...details,
+        error: errorMessage,
       });
     } catch (reportError) {
       this.logger.error("Failed to report AT Protocol publishing failure", {

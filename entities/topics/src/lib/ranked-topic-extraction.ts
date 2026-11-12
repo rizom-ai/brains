@@ -11,7 +11,6 @@ import {
   TopicExtractionRun,
   topicExtractionDeps,
 } from "./topic-extraction-run";
-import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
 
 const EXECUTION_TIMEOUT_MS = 180_000;
 const LEASE_DURATION_MS = EXECUTION_TIMEOUT_MS + 60_000;
@@ -129,13 +128,6 @@ export function createRankedTopicJobHandler(
         const remaining = run.remaining();
         if (remaining > 0 || run.selectionPending())
           await enqueueTopicExtraction(context);
-        if (run.changed > 0) {
-          await context.messaging.send({
-            type: TOPICS_BATCH_COMPLETED_EVENT,
-            payload: { changed: run.changed },
-            broadcast: true,
-          });
-        }
         return { calls: run.calls, remaining };
       } finally {
         await releaseExtractionLease(leases, lease);

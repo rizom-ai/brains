@@ -4,6 +4,7 @@ import {
   EmbeddingUsageMeter,
   GenerationUsageMeter,
   OnlineEmbeddingProvider,
+  resolveEmbeddingProfile,
 } from "@brains/ai-service";
 import {
   ContentService as ContentServiceClass,
@@ -37,7 +38,6 @@ import {
   OperationalHealthRegistry,
   PluginManager,
   RuntimeUploadRegistry,
-  createScheduledMaintenanceDaemon,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
 import {
@@ -45,6 +45,7 @@ import {
   createRuntimeStateServiceLayer,
 } from "@brains/runtime-state/effect";
 import { BunSchedulerBackend } from "@brains/scheduler";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import {
   PermissionService,
   RenderService,
@@ -106,7 +107,9 @@ export function createShellServices(options: {
   const embeddingService =
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
-      apiKey: config.ai.apiKey,
+      providerKeys: config.ai.providerKeys,
+      profile: resolveEmbeddingProfile(config.ai.embeddingModel),
+      runtimeUrl: config.ai.modelRuntimeUrl,
       logger,
       usage: embeddingUsage,
     });

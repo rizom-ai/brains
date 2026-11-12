@@ -1,6 +1,7 @@
 import {
   defineDataSource,
   defineEntity,
+  defineEntityJob,
   defineEntityPackage,
   defineProjection,
   z,
@@ -62,10 +63,13 @@ const readingLibraryConfig = z.object({
   digestRefusal: z
     .string()
     .default("Reading digests are derived from saved pages."),
+  // A token for the reader's archive, which a provider and a job read.
+  archiveToken: z.string().default(""),
 });
 
 // What reads the settings is bound once per instantiation, with the parsed
-// config: a data source, and an entity's create route.
+// config: a data source, an entity's create route, and the publish provider
+// and job that reach the reader's archive with its token.
 function configureReadingLibrary({
   config,
 }: {
@@ -86,6 +90,26 @@ function configureReadingLibrary({
       }),
     ],
     entities: [
+      {
+        entity: bookmark,
+        publish: {
+          provider: {
+            name: "reading-archive",
+            publish: async (): Promise<{ id: string }> => ({
+              id: config.archiveToken ? "archived" : "kept-local",
+            }),
+          },
+        },
+        jobs: {
+          archive: defineEntityJob({
+            input: z.object({ url: z.url() }),
+            handle: async ({ input }) => ({
+              url: input.url,
+              signed: config.archiveToken.length > 0,
+            }),
+          }),
+        },
+      },
       {
         entity: readingDigest,
         create: {

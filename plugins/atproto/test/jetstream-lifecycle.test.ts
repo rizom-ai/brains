@@ -1,8 +1,8 @@
+import { createAtprotoPlugin } from "./atproto-plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 
-import { AtprotoPlugin } from "../src/plugin";
 import type {
   JetstreamSocket,
   JetstreamSocketMessageEvent,
@@ -38,7 +38,7 @@ async function armFullBoot(
 describe("ATProto Jetstream lifecycle", () => {
   it("does not open a socket when Jetstream is disabled", async () => {
     const sockets: LifecycleSocket[] = [];
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {},
       {
         createJetstreamSocket: (): LifecycleSocket => {
@@ -60,7 +60,7 @@ describe("ATProto Jetstream lifecycle", () => {
   it("opens one opted-in socket only on a full boot and closes it on shutdown", async () => {
     const sockets: LifecycleSocket[] = [];
     const urls: string[] = [];
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { jetstream: { enabled: true } },
       {
         createJetstreamSocket: (url): LifecycleSocket => {

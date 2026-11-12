@@ -1,5 +1,3 @@
-import type { ServicePluginContext } from "@brains/plugins";
-import type { SchedulerMessagePublisher } from "../types/scheduler";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
@@ -9,9 +7,13 @@ import type { PublishEntityExecutor } from "../publish-executor";
 import { BunSchedulerBackend } from "@brains/scheduler";
 import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
+import type { SchedulerMessagePublisher } from "../types/scheduler";
+import type { PipelineContext } from "./pipeline-context";
 
 export interface CreateSchedulerDeps {
-  context: ServicePluginContext;
+  context: PipelineContext;
+  /** Broadcasts events and sends commands, as the package. */
+  messaging: SchedulerMessagePublisher;
   config: ContentPipelineConfig;
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
@@ -26,6 +28,7 @@ export interface CreateSchedulerDeps {
 export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
   const {
     context,
+    messaging,
     config,
     queueManager,
     providerRegistry,
@@ -33,8 +36,6 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     publishExecutor,
     logger,
   } = deps;
-
-  const messageBus = createMessageBusAdapter(context);
 
   return ContentScheduler.createFresh({
     queueManager,
@@ -63,7 +64,8 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     ...(config.generationConditions && {
       generationConditions: config.generationConditions,
     }),
-    messageBus,
+    // The scheduler broadcasts events and sends commands, as the plugin.
+    messageBus: messaging,
     publishExecutor,
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(
@@ -73,24 +75,4 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
         conditions,
       ),
   });
-}
-
-/**
- * The scheduler publishes events and commands and reads no responses, so the
- * adapter returns the publisher it needs rather than a whole message bus whose
- * other members it would have to stub as no-ops.
- */
-function createMessageBusAdapter(
-  context: ServicePluginContext,
-): SchedulerMessagePublisher {
-  return {
-    send: (request) =>
-      context.messaging.send({
-        type: request.type,
-        payload: request.payload,
-        broadcast: true,
-      }),
-    command: (contract, payload) =>
-      context.messaging.command(contract, payload),
-  };
 }

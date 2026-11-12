@@ -61,7 +61,7 @@ The framework's threat model assumes:
 - The brain operator is trusted
 - The operator's chosen AI provider is trusted (the brain sends content to it)
 - Content stored in the brain is trusted (the operator controls what enters)
-- Network access to the brain's interfaces (MCP, A2A, webserver) is controlled by the operator (firewall, auth tokens, anchors)
+- Network access to the brain's interfaces (MCP, A2A) and its HTTP host is controlled by the operator (firewall, auth tokens, anchors)
 
 Things that violate these assumptions are bugs, not vulnerabilities (e.g., "an authenticated MCP client can call tools" is intended).
 

@@ -5,7 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - a2a
   - tool-invocation
@@ -13,7 +13,7 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "Save yeehaa.io as an agent in my directory"
+  - userMessage: "Save yeehaa.example as an agent in my directory"
 
 successCriteria:
   expectedTools:

@@ -27,7 +27,11 @@ function createTestConfig(dir: string): ShellConfigInput {
     embeddingDatabase: { url: `file:${dir}/embeddings.db` },
     ai: {
       model: "claude-haiku-4-5",
-      apiKey: "test-key",
+      providerKeys: {
+        anthropic: "test-key",
+        openai: "test-key",
+        google: "test-key",
+      },
     },
   };
 }
@@ -53,7 +57,14 @@ describe("Shell service construction", () => {
         const shell = Shell.createFresh(
           {
             ...createTestConfig(testDir.dir),
-            ai: { model, apiKey: "test-key" },
+            ai: {
+              model,
+              providerKeys: {
+                anthropic: "test-key",
+                openai: "test-key",
+                google: "test-key",
+              },
+            },
             embedding: { enabled: embeddings },
           },
           { logger: createSilentLogger() },
@@ -224,12 +235,12 @@ describe("Shell service construction", () => {
     const dependencies: ShellDependencies = {
       logger: createSilentLogger("test"),
       embeddingService: {
-        dimensions: 1536,
-        generateEmbedding: async () => ({
+        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+        embedQuery: async () => ({
           embedding: new Float32Array(1536).fill(0.1),
           usage: { tokens: 1 },
         }),
-        generateEmbeddings: async (texts: string[]) => ({
+        embedDocuments: async (texts: { content: string }[]) => ({
           embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
           usage: { tokens: texts.length },
         }),

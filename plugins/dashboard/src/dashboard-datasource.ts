@@ -1,13 +1,10 @@
 import type {
-  BaseDataSourceContext,
   DashboardWidgetProviderContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+  DashboardDigestLine,
+} from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
-import type { DashboardDigestLine } from "@brains/plugins";
 import type {
   DashboardWidgetRegistry,
   StoredRegisteredWidget,
@@ -19,9 +16,10 @@ import { type DashboardData, type WidgetData } from "./widget-schema";
  * Dashboard DataSource
  *
  * Aggregates data from all registered widgets for site-builder rendering.
- * Each widget's dataProvider is called and the results are collected.
+ * Each widget's dataProvider is called and the results are collected. It
+ * is never registered as a data source: Dashboard reads it itself.
  */
-export class DashboardDataSource implements DataSource {
+export class DashboardDataSource {
   readonly id = "dashboard:dashboard";
   readonly name = "Dashboard DataSource";
   readonly description = "Aggregates dashboard widgets from all plugins";
@@ -134,8 +132,8 @@ export class DashboardDataSource implements DataSource {
 
   async fetch<T>(
     _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    _context: BaseDataSourceContext,
+    outputSchema: { parse(data: unknown): T },
+    _context?: unknown,
   ): Promise<T> {
     // The caller already hands us the schema for T; parsing through it is what
     // makes the return type true, where the previous assertion just claimed it.

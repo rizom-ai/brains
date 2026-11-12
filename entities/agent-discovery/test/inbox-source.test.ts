@@ -151,4 +151,66 @@ describe("agent sightings Inbox source", () => {
     expect(await source.list()).toEqual([]);
     await harness.reset();
   });
+
+  it("does not overwrite a card refresh that lands while a sighting is connected", async () => {
+    const harness = createPluginHarness<Plugin>();
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    const context = harness.getServiceContext("agent-discovery");
+    await context.entityService.createEntity({
+      entity: createTestAgent({
+        id: "vale.example",
+        status: "discovered",
+        introducedBy: ["kai.brain"],
+        hops: 2,
+        about: "Before the refresh.",
+      }),
+    });
+    const update = context.entityService.updateEntity.bind(
+      context.entityService,
+    );
+    context.entityService.updateEntity = async (
+      request,
+    ): ReturnType<typeof update> => {
+      const current = await context.entityService.getEntity(
+        { entityType: "agent", id: "vale.example" },
+        agentEntitySchema,
+      );
+      if (!current) throw new Error("Missing agent");
+      await update({
+        entity: {
+          ...current,
+          content: agentAdapter.rewriteAgentContent(
+            agentAdapter.parseEntity(current),
+            { about: "After the refresh." },
+          ),
+        },
+      });
+      return update(request);
+    };
+    const source = new AgentSightingsInboxSource(context);
+
+    const outcome = await source
+      .act("vale.example", "connect", { permissionLevel: "admin" })
+      .then(
+        () => "connected",
+        (error: unknown) => {
+          expect(error).toEqual(
+            new Error("Agent sighting changed; reload it and try again"),
+          );
+          return "conflict";
+        },
+      );
+
+    expect(outcome).toBe("conflict");
+    const current = await context.entityService.getEntity(
+      { entityType: "agent", id: "vale.example" },
+      agentEntitySchema,
+    );
+    if (!current) throw new Error("Missing agent");
+    expect(agentAdapter.parseEntity(current).frontmatter.status).toBe(
+      "discovered",
+    );
+    expect(current.content).toContain("After the refresh.");
+    await harness.reset();
+  });
 });

@@ -6,7 +6,7 @@ import type {
   RegisteredWebRoute,
   ResolvedInboxFollowUp,
 } from "@brains/plugins";
-import { studioPlugin } from "../src";
+import { studioPlugin } from "./studio-plugins";
 import { STUDIO_CHAT_ROUTE_PATH } from "../src/chat-workspace";
 import { createStudioChatHandoffState } from "../src/chat-handoff-contract";
 

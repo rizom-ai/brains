@@ -5,14 +5,14 @@ type: tool_invocation
 setup:
   interfaceType: evaluation
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - tool-invocation
   - permissions
   - bundle-core
 
 turns:
-  - userMessage: "Add yeehaa.io to my agent directory"
+  - userMessage: "Add yeehaa.example to my agent directory"
 
 successCriteria: {}
 
@@ -29,7 +29,7 @@ permissions:
         shouldBeCalled: true
         argsContain:
           source.kind: "url"
-          source.url: "yeehaa.io"
+          source.url: "yeehaa.example"
     responseCriteria:
       - "Does not claim that anything was created."
   admin:
@@ -38,7 +38,7 @@ permissions:
         shouldBeCalled: true
         argsContain:
           source.kind: "url"
-          source.url: "yeehaa.io"
+          source.url: "yeehaa.example"
     responseNotContains:
       - "I cannot"
       - "I don't have access"

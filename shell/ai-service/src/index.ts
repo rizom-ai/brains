@@ -8,11 +8,32 @@
 export { AIService } from "./aiService";
 export { AIOutputValidationError } from "./errors";
 export {
+  isSupportedTextModel,
   resolveTextProvider,
   selectTextProvider,
   selectImageProvider,
 } from "./provider-selection";
 export type { ResolvedModelProvider } from "./provider-selection";
+export {
+  isKeyProviderId,
+  isProviderId,
+  KEY_PROVIDER_IDS,
+  keyEnvVar,
+  keyMismatchWarning,
+  PROVIDERS,
+  providerKeysSchema,
+  readProviderKeys,
+} from "./providers";
+export type { KeyProviderId, ProviderId, ProviderKeys } from "./providers";
+export { checkModels, createProviderClients } from "./provider-clients";
+export type { ModelProblem, ModelSelection } from "./provider-clients";
+export {
+  DEFAULT_EMBEDDING_MODEL,
+  findEmbeddingProfile,
+  resolveEmbeddingProfile,
+  unsupportedEmbeddingModelMessage,
+} from "./embedding-profiles";
+export type { EmbeddingProfile } from "./embedding-profiles";
 
 // Re-export from ai SDK
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
@@ -20,6 +41,7 @@ export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 
 // Online embedding provider
 export { OnlineEmbeddingProvider } from "./online-embedding-provider";
+export { toStrictModelSchema } from "./strict-model-schema";
 export { EmbeddingUsageMeter } from "./embedding-usage-meter";
 export { GenerationUsageMeter } from "./generation-usage-meter";
 export type { OnlineEmbeddingConfig } from "./online-embedding-provider";
@@ -60,6 +82,11 @@ export {
   toolInvocationEventSchema,
   toolInvokingChannel,
 } from "./tool-events";
+export {
+  agentTurnCompletedChannel,
+  agentTurnCompletedEventSchema,
+  type AgentTurnCompletedEvent,
+} from "./turn-events";
 
 export type {
   AgentConfig,

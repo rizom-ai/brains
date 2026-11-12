@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { guestExecutionLimitsSchema } from "@brains/contracts/chat";
 import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ClassRuntimeState,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/interface-runtime";
 import { attempt, retry } from "./cas-retry";
 import { canAccessGuestConversation, type GuestVisitor } from "./guest-access";
 import type { WebChatConversation } from "./conversation-access";
@@ -80,7 +80,7 @@ interface Transition<T> {
  * by its daily budget.
  */
 export class GuestAdmission {
-  private readonly store: IRuntimeStateStore<GuestAdmissionState>;
+  private readonly store: ClassRuntimeStateStore<GuestAdmissionState>;
   private readonly policy: EnabledGuestPolicy;
   private readonly key: string;
   private readonly policyFingerprint: string;
@@ -91,7 +91,7 @@ export class GuestAdmission {
   private readonly requireAuthorization: boolean;
 
   constructor(
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: ClassRuntimeState,
     policy: EnabledGuestPolicy,
     options: {
       now?: () => number;

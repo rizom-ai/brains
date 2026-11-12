@@ -1,9 +1,8 @@
 import {
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
   type DashboardOperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactNode } from "react";
 import { sitePublicationStatusSchema } from "./site-publication-status";
@@ -441,12 +440,15 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
   );
 }
 
-export async function registerSiteHealthWidget(
-  context: ServicePluginContext,
+/**
+ * The site health widget, registered once every plugin has, never in a
+ * worker; it draws its declared view from the site's snapshot.
+ */
+export function registerSiteHealthWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
   provider: SiteWorkspaceProvider,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
+): void {
+  runtime.dashboardWidget({
     definition: siteHealthWidget,
     load: async ({ signal }): Promise<SiteHealthWidgetData> => {
       signal.throwIfAborted();

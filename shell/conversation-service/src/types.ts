@@ -90,9 +90,6 @@ export const conversationGuestMessageAddedChannel: Channel<
   conversationGuestMessageAddedPayloadSchema,
 );
 
-/** Bus channel emitted when a new conversation is started. */
-export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
-
 /**
  * Metadata for a conversation
  */

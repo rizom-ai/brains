@@ -6,7 +6,10 @@ import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { BrokerConnection } from "../src/lib/broker/client";
 import { startGitBrokerHost } from "../src/lib/broker/host";
 import { gitBrokerSocketPath } from "../src/lib/broker/server";
@@ -206,7 +209,7 @@ describe("interrupted pull recovery at startup", () => {
       gitBrokerCheckout: checkout,
     });
     await seedInterruptedPull(harness);
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath: checkout,
       autoSync: false,
       initialSync: false,
@@ -240,7 +243,7 @@ describe("interrupted pull recovery at startup", () => {
       gitBrokerCheckout: fixture.checkout,
     });
     await seedInterruptedPull(harness);
-    const plugin = new DirectorySyncPlugin(fixture.config);
+    const plugin = createDirectorySyncPlugin(fixture.config);
     cleanups.push(() => plugin.shutdown());
 
     await harness.installPlugin(plugin);
@@ -263,7 +266,7 @@ describe("interrupted pull recovery at startup", () => {
     });
     await seedInterruptedPull(harness);
     await corruptReconciliationCheckpoint(harness);
-    const plugin = new DirectorySyncPlugin(fixture.config);
+    const plugin = createDirectorySyncPlugin(fixture.config);
     cleanups.push(() => plugin.shutdown());
 
     expect(harness.installPlugin(plugin)).rejects.toThrow();
@@ -286,7 +289,7 @@ describe("interrupted pull recovery at startup", () => {
     });
     await seedInterruptedPull(harness);
     await corruptReconciliationCheckpoint(harness);
-    const plugin = new DirectorySyncPlugin(fixture.config);
+    const plugin = createDirectorySyncPlugin(fixture.config);
     cleanups.push(() => plugin.shutdown());
 
     expect(harness.installPlugin(plugin)).rejects.toThrow("checkpoint");
@@ -309,7 +312,7 @@ describe("interrupted pull recovery at startup", () => {
       gitBrokerCheckout: fixture.checkout,
     });
     await seedInterruptedPull(harness);
-    const plugin = new DirectorySyncPlugin(fixture.config);
+    const plugin = createDirectorySyncPlugin(fixture.config);
     cleanups.push(() => plugin.shutdown());
 
     expect(harness.installPlugin(plugin)).rejects.toThrow("ENOTDIR");
@@ -328,7 +331,7 @@ describe("interrupted pull recovery at startup", () => {
       gitBrokerCheckout: fixture.checkout,
     });
     await seedInterruptedPull(harness);
-    const plugin = new DirectorySyncPlugin(fixture.config);
+    const plugin = createDirectorySyncPlugin(fixture.config);
     cleanups.push(() => plugin.shutdown());
 
     await harness.installPlugin(plugin);
@@ -354,7 +357,7 @@ describe("interrupted pull recovery at startup", () => {
       gitBrokerCheckout: fixture.checkout,
     });
     await seedInterruptedPull(harness);
-    const plugin = new DirectorySyncPlugin(fixture.config);
+    const plugin = createDirectorySyncPlugin(fixture.config);
     cleanups.push(() => plugin.shutdown());
 
     await harness.installPlugin(plugin);
@@ -367,7 +370,7 @@ describe("interrupted pull recovery at startup", () => {
     const path = tempDir("test-interrupted-pull-worker-");
     const harness = createHarness({ dataDir: path });
     await seedInterruptedPull(harness);
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath: path,
       autoSync: false,
       initialSync: false,

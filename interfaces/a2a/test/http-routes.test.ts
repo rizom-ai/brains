@@ -9,20 +9,15 @@ import { keyFingerprint, signRequest } from "@brains/http-signatures";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { PermissionService } from "@brains/templates";
-import { A2AInterface } from "../src/a2a-interface";
+import type { Plugin } from "@brains/plugins";
+import { createA2APlugin, routeOf } from "./a2a-plugin";
 
 describe("A2A HTTP routes", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   const tempDirs: string[] = [];
 
-  function installWebserverPlugin(): void {
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+  function serveHttp(): void {
+    harness.getMockShell().serveHttp();
   }
 
   beforeEach(() => {
@@ -83,19 +78,8 @@ describe("A2A HTTP routes", () => {
     });
   }
 
-  function a2aPostRoute(
-    plugin: A2AInterface,
-  ): ReturnType<A2AInterface["getWebRoutes"]>[number] {
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) => candidate.path === "/a2a" && candidate.method === "POST",
-      );
-    expect(route).toBeDefined();
-    if (!route) {
-      throw new Error("Expected A2A POST route");
-    }
-    return route;
+  function a2aPostRoute(plugin: Plugin): ReturnType<typeof routeOf> {
+    return routeOf(plugin, "POST", "/a2a");
   }
 
   it("rejects legacy bearer-token trust config", () => {
@@ -104,19 +88,20 @@ describe("A2A HTTP routes", () => {
       trustedTokens: { token: "remote.example" },
     };
 
-    expect(() => new A2AInterface(legacyConfig)).toThrow(/trustedTokens/);
+    expect(() =>
+      // @ts-expect-error a removed key, refused as brain.yaml may still carry it
+      createA2APlugin(legacyConfig),
+    ).toThrow(/trustedTokens legacy config is no longer supported/);
   });
 
   it("returns a helpful 405 for GET /a2a", async () => {
-    installWebserverPlugin();
-    const plugin = new A2AInterface({ port: 0 });
+    serveHttp();
+    const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) => candidate.path === "/a2a" && candidate.method === "GET",
-      );
+    const route = (plugin.getWebRoutes?.() ?? []).find(
+      (candidate) => candidate.path === "/a2a" && candidate.method === "GET",
+    );
 
     expect(route).toBeDefined();
     if (!route) {
@@ -141,17 +126,17 @@ describe("A2A HTTP routes", () => {
     });
   });
 
-  it("registers without webserver in tool-only mode", async () => {
-    const plugin = new A2AInterface({ port: 0 });
+  it("registers without HTTP in tool-only mode", async () => {
+    const plugin = createA2APlugin({ port: 0 });
 
     const capabilities = await harness.installPlugin(plugin);
 
     expect(capabilities.tools.map((tool) => tool.name)).toContain("agent_call");
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(plugin.getWebRoutes?.() ?? []).toEqual([]);
   });
 
   it("aborts active turns when the A2A daemon stops", async () => {
-    installWebserverPlugin();
+    serveHttp();
     let receivedSignal: AbortSignal | undefined;
     let markStarted: (() => void) | undefined;
     const started = new Promise<void>((resolve) => {
@@ -177,7 +162,7 @@ describe("A2A HTTP routes", () => {
     };
     harness.getMockShell().setAgentService(agentService);
 
-    const plugin = new A2AInterface({ port: 0 });
+    const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
     const daemons = harness.getMockShell().getDaemonRegistry();
     await daemons.startPlugin("a2a");
@@ -209,11 +194,11 @@ describe("A2A HTTP routes", () => {
   });
 
   it("exposes shared-host routes for agent card and a2a", async () => {
-    installWebserverPlugin();
-    const plugin = new A2AInterface({ port: 0 });
+    serveHttp();
+    const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
-    const routes = plugin.getWebRoutes();
+    const routes = plugin.getWebRoutes?.() ?? [];
     expect(routes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -270,7 +255,7 @@ describe("A2A HTTP routes", () => {
       );
     };
 
-    const plugin = new A2AInterface({ port: 0 }, { fetch: fetchFn });
+    const plugin = createA2APlugin({ port: 0 }, { fetch: fetchFn });
     const capabilities = await harness.installPlugin(plugin);
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "agent_call",
@@ -332,7 +317,7 @@ describe("A2A HTTP routes", () => {
       );
     };
 
-    const plugin = new A2AInterface({ port: 0 }, { fetch: fetchFn });
+    const plugin = createA2APlugin({ port: 0 }, { fetch: fetchFn });
     const capabilities = await harness.installPlugin(plugin);
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "agent_call",
@@ -354,7 +339,7 @@ describe("A2A HTTP routes", () => {
   });
 
   it("verifies reverse-proxied signed requests against the external URL", async () => {
-    installWebserverPlugin();
+    serveHttp();
     await harness.installPlugin(
       authServicePlugin({
         storageDir: await tempStorageDir(),
@@ -402,7 +387,7 @@ describe("A2A HTTP routes", () => {
       grantedLevel: "trusted",
     });
 
-    const plugin = new A2AInterface(
+    const plugin = createA2APlugin(
       { port: 0 },
       { fetch: async (): Promise<Response> => Response.json(remoteJwks) },
     );
@@ -440,13 +425,13 @@ describe("A2A HTTP routes", () => {
   });
 
   it("rejects signed inbound requests with a bad digest", async () => {
-    installWebserverPlugin();
+    serveHttp();
     const remoteAuth = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "https://remote.example",
     });
     const remoteJwks = await remoteAuth.getJwks();
-    const plugin = new A2AInterface(
+    const plugin = createA2APlugin(
       { port: 0 },
       { fetch: async (): Promise<Response> => Response.json(remoteJwks) },
     );
@@ -473,17 +458,15 @@ describe("A2A HTTP routes", () => {
   });
 
   it("adds cors headers to the agent card route", async () => {
-    installWebserverPlugin();
-    const plugin = new A2AInterface({ port: 0 });
+    serveHttp();
+    const plugin = createA2APlugin({ port: 0 });
     await harness.installPlugin(plugin);
 
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === "/.well-known/agent-card.json" &&
-          candidate.method === "GET",
-      );
+    const route = (plugin.getWebRoutes?.() ?? []).find(
+      (candidate) =>
+        candidate.path === "/.well-known/agent-card.json" &&
+        candidate.method === "GET",
+    );
 
     expect(route).toBeDefined();
     if (!route) {

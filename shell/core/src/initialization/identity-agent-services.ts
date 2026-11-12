@@ -3,6 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
+  createMessageBusEmitter,
   openAiGuestPricing,
   type ChatAttachment,
   type EmbeddingUsageMeter,
@@ -33,11 +34,13 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
   sharedUploadScope,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRegistry,
 } from "@brains/plugins";
 import {
+  broadcastChannel,
   collectContract,
   type IMessageBus,
   type MessageBus,
@@ -123,12 +126,12 @@ export function subscribeToIdentityRefresh(
     entityType,
     async () => {
       await refreshCache();
-      await messageBus.send({
-        type: SYSTEM_CHANNELS.identityChanged,
-        payload: { entityType },
-        sender: "shell",
-        broadcast: true,
-      });
+      await broadcastChannel(
+        messageBus,
+        identityChangedChannel,
+        { entityType },
+        "shell",
+      );
     },
     logger,
   );
@@ -259,6 +262,7 @@ export function initializeIdentityAndAgentServices(
     // otherwise their cost is unknown and charged the answer cap.
     guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
+    answerModel: aiService.getAnswerModel?.(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,
@@ -285,6 +289,7 @@ export function initializeIdentityAndAgentServices(
     logger,
     {
       agentFactory,
+      turnEvents: createMessageBusEmitter(messageBus),
       canonicalIdentityResolver: canonicalIdentityService,
       // A turn's sources link to the pages the site shows them on.
       entityLinks,

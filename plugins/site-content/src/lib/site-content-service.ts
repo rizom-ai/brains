@@ -1,26 +1,25 @@
-import type { ServicePluginContext, ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import {
   GenerateOptionsSchema,
   type GenerateOptions,
+  type GenerateResult,
 } from "../schemas/generate-options";
-import { SiteContentOperations } from "./site-content-operations";
+import {
+  SiteContentOperations,
+  type SiteContentOperationsDeps,
+} from "./site-content-operations";
 
 export class SiteContentService {
   private readonly operations: SiteContentOperations;
 
-  constructor(pluginContext: ServicePluginContext) {
-    this.operations = new SiteContentOperations(pluginContext);
+  constructor(deps: SiteContentOperationsDeps) {
+    this.operations = new SiteContentOperations(deps);
   }
 
   async generateContent(
     options: GenerateOptions,
     toolContext?: ToolContext,
-  ): Promise<{
-    jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
-    totalSections: number;
-    queuedSections: number;
-    batchId: string;
-  }> {
+  ): Promise<GenerateResult> {
     toolContext?.signal?.throwIfAborted();
     return this.operations.generate(
       GenerateOptionsSchema.parse(options),

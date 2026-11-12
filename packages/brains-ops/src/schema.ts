@@ -85,7 +85,7 @@ export const pilotSchema: z.ZodObject<
     githubOrg: z.ZodString;
     contentRepoPrefix: z.ZodString;
     domainSuffix: z.ZodString;
-    aiApiKey: z.ZodString;
+    openaiApiKey: z.ZodString;
     gitSyncToken: z.ZodString;
     contentRepoAdminToken: z.ZodString;
     agePublicKey: z.ZodString;
@@ -101,7 +101,7 @@ export const pilotSchema: z.ZodObject<
     githubOrg: z.string().min(1),
     contentRepoPrefix: z.string().min(1),
     domainSuffix: z.string().min(1),
-    aiApiKey: secretNameSchema,
+    openaiApiKey: secretNameSchema,
     gitSyncToken: secretNameSchema,
     contentRepoAdminToken: secretNameSchema,
     agePublicKey: agePublicKeySchema,
@@ -125,7 +125,7 @@ export const cohortSchema: z.ZodObject<
     bundlesOverride: z.ZodOptional<typeof canonicalBundlesSchema>;
     addOverride: z.ZodOptional<typeof memberIdsSchema>;
     removeOverride: z.ZodOptional<typeof memberIdsSchema>;
-    aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+    openaiApiKeyOverride: z.ZodOptional<z.ZodString>;
     gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
   },
   z.core.$strict
@@ -136,7 +136,7 @@ export const cohortSchema: z.ZodObject<
     bundlesOverride: canonicalBundlesSchema.optional(),
     addOverride: memberIdsSchema.optional(),
     removeOverride: memberIdsSchema.optional(),
-    aiApiKeyOverride: secretNameSchema.optional(),
+    openaiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
   })
   .superRefine((value, context) => {
@@ -322,7 +322,7 @@ export const userSchema: z.ZodObject<{
     enabled: z.ZodBoolean;
     anchorUserId: z.ZodOptional<z.ZodString>;
   }>;
-  aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+  openaiApiKeyOverride: z.ZodOptional<z.ZodString>;
   gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
   domainOverride: z.ZodOptional<z.ZodString>;
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
@@ -332,6 +332,7 @@ export const userSchema: z.ZodObject<{
   plugins: z.ZodOptional<typeof userPluginsSchema>;
   spaces: z.ZodOptional<z.ZodArray<z.ZodString>>;
   embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
+  embeddingModel: z.ZodOptional<z.ZodString>;
   topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
   skillDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
   swotDerivationEnabled: z.ZodOptional<z.ZodBoolean>;
@@ -348,7 +349,7 @@ export const userSchema: z.ZodObject<{
     enabled: z.boolean(),
     anchorUserId: z.string().min(1).optional(),
   }),
-  aiApiKeyOverride: secretNameSchema.optional(),
+  openaiApiKeyOverride: secretNameSchema.optional(),
   gitSyncTokenOverride: secretNameSchema.optional(),
   domainOverride: z.string().min(1).optional(),
   cloudflareZoneId: z.string().min(1).optional(),
@@ -359,6 +360,8 @@ export const userSchema: z.ZodObject<{
   /** Shared conversation spaces, e.g. "discord:<channel id>": their members are trusted. */
   spaces: z.array(z.string().min(1)).optional(),
   embeddingEnabled: z.boolean().optional(),
+  /** Opts the brain into an embedding model, e.g. a `local:` one served beside it. */
+  embeddingModel: z.string().optional(),
   topicExtractionEnabled: z.boolean().optional(),
   skillDerivationEnabled: z.boolean().optional(),
   swotDerivationEnabled: z.boolean().optional(),

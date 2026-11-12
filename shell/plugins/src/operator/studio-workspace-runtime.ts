@@ -818,6 +818,15 @@ interface BuiltInStudioWorkspaceInput<
   readonly runtimeSignal?: AbortSignal | undefined;
 }
 
+/**
+ * A first-party workspace a service builds through its runtime: the
+ * definition and its binding, without the plugin context the runtime
+ * supplies.
+ */
+export type BuiltInStudioWorkspaceSource<
+  TDefinition extends AnyStudioWorkspaceDefinition,
+> = Omit<BuiltInStudioWorkspaceInput<TDefinition>, "context" | "runtimeSignal">;
+
 /** Bind a first-party definition without exposing its executor to providers. */
 export function createBuiltInStudioWorkspaceRegistration<
   TDefinition extends AnyStudioWorkspaceDefinition,
@@ -866,4 +875,47 @@ export async function registerBuiltInStudioWorkspace<
   return input.context.studio.registerWorkspace(
     createBuiltInStudioWorkspaceRegistration(input),
   );
+}
+
+/**
+ * The Studio a first-party package composes workspaces for, as its class
+ * registered them: a declared workspace built under the plugin's id as a
+ * source, and a composed one registered once, never from a worker.
+ */
+export interface FirstPartyStudio {
+  /** Whether a Studio hosts workspaces in this process: never in a worker. */
+  isAvailable(): boolean;
+  source<TDefinition extends AnyStudioWorkspaceDefinition>(
+    input: BuiltInStudioWorkspaceSource<TDefinition>,
+  ): Omit<StudioWorkspaceRegistration, "pluginId">;
+  /** The URL Studio serves it at, or none without a Studio or in a worker. */
+  register(
+    registration: Omit<StudioWorkspaceRegistration, "pluginId">,
+  ): Promise<string | undefined>;
+  /**
+   * Take a workspace this plugin registered off Studio, as a class did when
+   * it shut down: whether Studio took it off, false without a Studio.
+   */
+  unregister(workspaceId: string): Promise<boolean>;
+}
+
+/** The Studio a plugin context reaches, for a first-party runtime. */
+export function firstPartyStudioOf(
+  context: BasePluginContext,
+): FirstPartyStudio {
+  return Object.freeze<FirstPartyStudio>({
+    isAvailable: (): boolean =>
+      !context.executionOnly && context.studio.isAvailable(),
+    source: (input) =>
+      createBuiltInStudioWorkspaceRegistration({ ...input, context }),
+    register: async (registration): Promise<string | undefined> => {
+      if (context.executionOnly || !context.studio.isAvailable()) {
+        return undefined;
+      }
+      const result = await context.studio.registerWorkspace(registration);
+      return result === false ? undefined : result.workspaceUrl;
+    },
+    unregister: (workspaceId): Promise<boolean> =>
+      context.studio.unregisterWorkspace(workspaceId),
+  });
 }

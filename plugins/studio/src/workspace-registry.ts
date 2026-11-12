@@ -4,8 +4,8 @@ import {
   type StudioWorkspaceActor,
   type StudioWorkspaceDescriptor,
   type StudioWorkspaceRegistration,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 
 export interface StoredStudioWorkspace extends Omit<
   StudioWorkspaceDescriptor,

@@ -1,14 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createProjectAtprotoProjection } from "../src/atproto-projection";
-import { PortfolioPlugin } from "../src/plugin";
-import type { Project } from "../src/schemas/project";
+import { buildProjectAtprotoRecord } from "../src/atproto-projection";
+import { portfolioPlugin } from "./portfolio-plugin";
 
-const project: Project = {
+// A project as a declared type reads it: its metadata and its body.
+const project: Parameters<typeof buildProjectAtprotoRecord>[0]["entity"] = {
   id: "project-1",
   entityType: "project",
-  content:
-    "---\ntitle: Network Atlas\nslug: network-atlas\nstatus: published\npublishedAt: 2026-05-28T10:00:00.000Z\ndescription: A public case study.\nyear: 2026\nurl: https://example.com/network-atlas\n---\n## Context\n\nA project body.",
+  content: "## Context\n\nA project body.",
   created: "2026-05-28T09:00:00.000Z",
   updated: "2026-05-28T11:00:00.000Z",
   visibility: "public",
@@ -16,23 +15,39 @@ const project: Project = {
   metadata: {
     title: "Network Atlas",
     slug: "network-atlas",
+    authoredSlug: true,
     status: "published",
     publishedAt: "2026-05-28T10:00:00.000Z",
+    description: "A public case study.",
     year: 2026,
+    url: "https://example.com/network-atlas",
   },
 };
 
+function recordInput(
+  overrides: Partial<Parameters<typeof buildProjectAtprotoRecord>[0]> = {},
+): Parameters<typeof buildProjectAtprotoRecord>[0] {
+  return {
+    entity: project,
+    config: {},
+    dryRun: false,
+    entities: {
+      get: async () => null,
+      list: async () => [],
+      count: async () => 0,
+    },
+    uploadBlob: async (): Promise<never> => {
+      throw new Error("not used");
+    },
+    ...overrides,
+  };
+}
+
 describe("project ATProto projection", () => {
   it("maps projects to ai.rizom.brain.project records", async () => {
-    const projection = createProjectAtprotoProjection();
-
-    const record = await projection.buildRecord({
-      entity: project,
-      context: createPluginHarness().getServiceContext("portfolio"),
-      config: {
-        brainDid: "did:web:brain.example.com",
-      },
-    });
+    const record = await buildProjectAtprotoRecord(
+      recordInput({ config: { brainDid: "did:web:brain.example.com" } }),
+    );
 
     expect(record).toEqual({
       $type: "ai.rizom.brain.project",
@@ -53,30 +68,21 @@ describe("project ATProto projection", () => {
   });
 
   it("names its page when the site gives the project one, and nothing otherwise", async () => {
-    const projection = createProjectAtprotoProjection();
-    const context = createPluginHarness().getServiceContext("portfolio");
-    const placed = await projection.buildRecord({
-      entity: project,
-      context,
-      config: {},
-      pageUrl: "https://brain.example.com/projects/project-1",
-    });
+    const placed = await buildProjectAtprotoRecord(
+      recordInput({ pageUrl: "https://brain.example.com/projects/project-1" }),
+    );
     expect(placed.canonicalUrl).toBe(
       "https://brain.example.com/projects/project-1",
     );
-    const unplaced = await projection.buildRecord({
-      entity: project,
-      context,
-      config: {},
-    });
+    const unplaced = await buildProjectAtprotoRecord(recordInput());
     expect(unplaced.canonicalUrl).toBeUndefined();
   });
 
-  it("registers the project projection when the portfolio plugin registers", async () => {
+  it("registers the project projection when the portfolio registers", async () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-project-atproto",
     });
-    await harness.installPlugin(new PortfolioPlugin({}));
+    await harness.installPlugin(portfolioPlugin());
 
     const projection = harness
       .getMockShell()

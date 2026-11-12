@@ -1,16 +1,16 @@
 import {
+  type InterfaceRuntime,
   formatContentDispositionHeader,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   resolveMessageArtifactAccess,
-  type InterfacePluginContext,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 
 type PermissionLevelResolver = (
   request: Request,
 ) => Promise<UserPermissionLevel>;
-type EntityService = InterfacePluginContext["entityService"];
+type EntityService = InterfaceRuntime["entityReads"];
 type ArtifactEntityType = "document" | "image";
 
 interface AttachmentHandlerDeps {

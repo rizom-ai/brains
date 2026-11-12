@@ -1,4 +1,4 @@
-import type { IRuntimeStateStore } from "@brains/plugins";
+import type { ClassRuntimeStateStore } from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { InboundEmailSelection } from "./inbound-email";
 
@@ -29,13 +29,13 @@ export const emailSourceLocatorSchema: z.ZodObject<
 export type EmailSourceLocator = z.output<typeof emailSourceLocatorSchema>;
 
 export class EmailSourceLocatorStore {
-  private readonly store: IRuntimeStateStore<EmailSourceLocator>;
+  private readonly store: ClassRuntimeStateStore<EmailSourceLocator>;
   private readonly now: () => Date;
   private readonly maxLocators: number;
   private readonly retentionMs: number;
 
   constructor(
-    store: IRuntimeStateStore<EmailSourceLocator>,
+    store: ClassRuntimeStateStore<EmailSourceLocator>,
     options: {
       now?: (() => Date) | undefined;
       maxLocators?: number | undefined;

@@ -1,7 +1,7 @@
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import {
   profileImportFieldNames,

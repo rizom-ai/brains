@@ -1,15 +1,12 @@
 import {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
-  PermissionService,
   entityCreatedChannel,
   entityDeletedChannel,
   entityUpdatedChannel,
-  jobProgressChannel,
   safeParseRuntimeDashboardWidgetData,
   studioOverviewContributionSchema,
   type DashboardDigestLine,
   type EntityChangePayload,
-  type JobProgressEvent,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
   type RuntimeOperatorLinkTarget,
@@ -18,21 +15,32 @@ import {
   type RuntimeStudioOperatorView,
   type RuntimeStudioOperatorViewFact,
   type RuntimeStudioWorkspaceData,
-  type ServicePluginContext,
   type StudioOverviewContributionRegistration,
   type StudioOverviewContributionUnregistration,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+  hasPermission,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import {
+  jobProgressChannel,
+  type JobProgressEvent,
+} from "@brains/sdk/internal/interface-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import type { z } from "@brains/utils/zod";
-import { displayTitleFrom, truncateText } from "@brains/utils/string-utils";
+import {
+  capitalize,
+  displayTitleFrom,
+  formatLabel,
+  truncateText,
+} from "@brains/utils/string-utils";
 import { entityDisplayTitle } from "./editor-entities";
 import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import {
   STUDIO_OVERVIEW_REFRESH_MS,
   STUDIO_OVERVIEW_WORKSPACE_ID,
 } from "./overview-constants";
+import type { StudioContext } from "./studio-context";
 
 export {
   STUDIO_OVERVIEW_REFRESH_MS,
@@ -119,15 +127,7 @@ function jobName(jobType: string): string {
     .split(/[-_:.\s]+/)
     .filter(Boolean)
     .join(" ");
-  return `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
-}
-
-function titleCase(value: string): string {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
+  return capitalize(words);
 }
 
 function directLaunchTarget(
@@ -188,7 +188,7 @@ function attentionItem(
         ? "This source is temporarily unavailable."
         : `${loaded.attention} ${loaded.attention === 1 ? "item needs" : "items need"} attention.`),
     metadata: [
-      titleCase(loaded.contribution.group),
+      formatLabel(loaded.contribution.group),
       loaded.failed
         ? "source unavailable"
         : `${loaded.attention} ${loaded.attention === 1 ? "item" : "items"}`,
@@ -319,12 +319,12 @@ export interface BrainFacts {
 }
 
 async function brainFacts(
-  context: ServicePluginContext,
+  context: StudioContext,
   actor: StudioWorkspaceActor,
 ): Promise<BrainFacts> {
   const [appInfoResult, readinessResult, countsResult] =
     await Promise.allSettled([
-      context.appInfo(),
+      context.identity.getAppInfo(),
       context.readiness(),
       context.entityService.getEntityCounts(actor.visibilityScope),
     ]);
@@ -339,15 +339,12 @@ async function brainFacts(
   const failed = queue?.totals.failed ?? 0;
   const visibleInteractions =
     appInfo?.interactions.filter((interaction) =>
-      PermissionService.hasPermission(
-        actor.userPermissionLevel,
-        interaction.visibility,
-      ),
+      hasPermission(actor.userPermissionLevel, interaction.visibility),
     ).length ?? 0;
   let channels = 0;
   let inboxSources = 0;
   try {
-    channels = context.channels.listDescriptors().length;
+    channels = context.channelDescriptors().length;
   } catch {
     // Registration can still be finalizing in tests or a warming runtime.
   }
@@ -709,7 +706,7 @@ function overviewView(
 }
 
 export function createStudioOverviewWorkspace(input: {
-  context: ServicePluginContext;
+  context: StudioContext;
   registry: StudioOverviewRegistry;
   /** The clock the timeline window ends at; tests and fixtures pin it. */
   now?: () => number;
@@ -748,7 +745,7 @@ export function createStudioOverviewWorkspace(input: {
 
 /** The title of an entry as stored, when an event did not carry it. */
 async function storedTitle(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   entityId: string,
 ): Promise<string | undefined> {
@@ -761,7 +758,8 @@ async function storedTitle(
 }
 
 export function registerStudioOverviewActivity(
-  context: ServicePluginContext,
+  context: StudioContext,
+  listen: ServiceRuntime["listen"],
   registry: StudioOverviewRegistry,
   getEntityDisplay: () =>
     Partial<Record<string, EntityDisplayLabel>> | undefined = () => undefined,
@@ -780,20 +778,29 @@ export function registerStudioOverviewActivity(
   });
   // Observed: the feed shows changes from either process, such as the
   // worker syncing content from git.
-  context.messaging.observe(entityCreatedChannel, async (change) => {
-    await registry.recordEntity("created", change, describe);
-    return { success: true };
-  });
-  context.messaging.observe(entityUpdatedChannel, async (change) => {
-    await registry.recordEntity("updated", change, describe);
-    return { success: true };
-  });
-  context.messaging.observe(entityDeletedChannel, async (change) => {
-    await registry.recordEntity("deleted", change, describe);
-    return { success: true };
-  });
-  context.messaging.subscribe(jobProgressChannel, (event) => {
-    registry.recordJob(event);
-    return { success: true };
+  const observed = { mode: "observe" } as const;
+  listen(
+    entityCreatedChannel,
+    async ({ payload }) => {
+      await registry.recordEntity("created", payload, describe);
+    },
+    observed,
+  );
+  listen(
+    entityUpdatedChannel,
+    async ({ payload }) => {
+      await registry.recordEntity("updated", payload, describe);
+    },
+    observed,
+  );
+  listen(
+    entityDeletedChannel,
+    async ({ payload }) => {
+      await registry.recordEntity("deleted", payload, describe);
+    },
+    observed,
+  );
+  listen(jobProgressChannel, ({ payload }) => {
+    registry.recordJob(payload);
   });
 }

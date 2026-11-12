@@ -16,7 +16,7 @@ const baseUser: ResolvedUser = {
   discordEnabled: false,
   dnsStatus: "unknown",
   domain: "rizom.ai",
-  effectiveAiApiKey: "AI_API_KEY",
+  effectiveOpenaiApiKey: "OPENAI_API_KEY",
   effectiveGitSyncToken: "GIT_SYNC_TOKEN",
   handle: "rizom-ai",
   mcpStatus: "unknown",
@@ -125,6 +125,24 @@ describe("createDefaultUserRunner", () => {
     const result = await runner({ ...baseUser, profileKind: "organization" });
 
     expect(fromYaml(result.brainYaml ?? "")).not.toHaveProperty("anchor");
+  });
+
+  it("renders the embedding model a user opts into", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const local = await runner({
+      ...baseUser,
+      embeddingModel: "local:embeddinggemma-2:270m",
+    });
+    const standard = await runner(baseUser);
+
+    expect(fromYaml(local.brainYaml ?? "")).toHaveProperty(
+      "embeddingModel",
+      "local:embeddinggemma-2:270m",
+    );
+    expect(fromYaml(standard.brainYaml ?? "")).not.toHaveProperty(
+      "embeddingModel",
+    );
   });
 
   it("renders a hermetic directory-sync performance posture", async () => {

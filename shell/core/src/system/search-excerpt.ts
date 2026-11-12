@@ -1,9 +1,44 @@
+import { selectTextProvider } from "@brains/ai-service";
+
 /**
  * The most of an entity's text a search result carries. A longer entity's
  * result carries the sections that match the query instead, so a search over
  * long documents costs the agent what it asked about, not every page whole.
  */
 export const MAX_SEARCH_CONTENT_CHARS = 3_000;
+
+/** How much of the index one search hands the model. */
+export interface SearchBudget {
+  /** Hits when the model names no limit. */
+  limit: number;
+  /** Most hits, whatever limit the model names; absent leaves its limit. */
+  maxLimit?: number | undefined;
+  /** Longest body a hit carries whole; a longer one becomes its matching sections. */
+  excerptChars: number;
+}
+
+export const DEFAULT_SEARCH_BUDGET: SearchBudget = {
+  limit: 10,
+  excerptChars: MAX_SEARCH_CONTENT_CHARS,
+};
+
+/**
+ * A local text model reads results at a few hundred tokens a second: ten
+ * 3,000-character hits cost it half a minute before it answers. Five hits of
+ * 800 characters each keep the answer grounded; system_get reads the rest.
+ */
+export const LOCAL_MODEL_SEARCH_BUDGET: SearchBudget = {
+  limit: 5,
+  maxLimit: 5,
+  excerptChars: 800,
+};
+
+/** The search budget for the brain's text model. */
+export function searchBudgetFor(model: string | undefined): SearchBudget {
+  return model !== undefined && selectTextProvider(model) === "local"
+    ? LOCAL_MODEL_SEARCH_BUDGET
+    : DEFAULT_SEARCH_BUDGET;
+}
 
 const GAP = "\n\n…\n\n";
 const STOP_WORDS = new Set([

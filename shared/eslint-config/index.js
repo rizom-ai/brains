@@ -1,8 +1,12 @@
 /* global module */
 
-/** Shell packages plugins never import; @brains/plugins serves them. */
+/**
+ * Shell packages plugins never import; @brains/plugins serves them. The
+ * runtime's HTTP host serves their routes; no plugin opens a listener.
+ */
 const shellServicePackages = [
   "@brains/core",
+  "@brains/http-host",
   "@brains/job-queue",
   "@brains/identity-service",
   "@brains/entity-service",
@@ -23,20 +27,77 @@ const contextServedPackages = [
 const shellImportMessage =
   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.";
 
-function shellImportBan(packages) {
+function shellImportBan(packages, message = shellImportMessage) {
   return [
     "error",
     {
-      paths: packages.map((name) => ({ name, message: shellImportMessage })),
+      paths: packages.map((name) => ({ name, message })),
       patterns: [
         {
           group: packages.map((name) => `${name}/*`),
-          message: shellImportMessage,
+          message,
         },
       ],
     },
   ];
 }
+
+/**
+ * Packages converted to declarative definitions, each added by its
+ * conversion. A converted package imports nothing from @brains/plugins: it
+ * declares what it is with @brains/sdk and reaches what the public contract
+ * does not offer through @brains/sdk/internal/*, while the runtime alone
+ * carries the class API until it is removed.
+ */
+const convertedPackages = [
+  "entities/ask-content",
+  "entities/blog",
+  "entities/decks",
+  "entities/doc",
+  "entities/document",
+  "entities/image",
+  "entities/link",
+  "entities/note",
+  "entities/portfolio",
+  "entities/prompt",
+  "entities/series",
+  "entities/social-media",
+  "entities/style-guide",
+  "entities/wishlist",
+  "interfaces/a2a",
+  "interfaces/chat",
+  "interfaces/chat-repl",
+  "interfaces/email",
+  "interfaces/mcp",
+  "interfaces/web-chat",
+  "plugins/admin",
+  "plugins/analytics",
+  "plugins/atproto",
+  "plugins/atproto-registry",
+  "plugins/contact",
+  "plugins/content-pipeline",
+  "plugins/dashboard",
+  "plugins/directory-sync",
+  "plugins/email-workflows",
+  "plugins/knowledge-map",
+  "plugins/newsletter",
+  "plugins/notifications",
+  "plugins/obsidian-vault",
+  "plugins/onboarding",
+  "plugins/playbooks",
+  "plugins/profile",
+  "plugins/quiz",
+  "plugins/site-builder",
+  "plugins/site-content",
+  "plugins/site-info",
+  "plugins/stock-photo",
+  "plugins/studio",
+  "plugins/unified-inbox",
+];
+
+const convertedImportMessage =
+  "A converted package is a declarative definition: declare it with @brains/sdk and reach first-party runtime capabilities through @brains/sdk/internal/*, never @brains/plugins or a shell package.";
+
 /** Syntax banned everywhere; see each entry for why. */
 const restrictedSyntax = [
   {
@@ -96,30 +157,25 @@ const restrictedSyntax = [
 const rawFullScope = {
   selector: 'Property[key.name="visibilityScope"][value.value="restricted"]',
   message:
-    "Use internalFullScope(reason) from @brains/plugins for a deliberate full-scope read, or pass the caller's scope.",
+    "Use internalFullScope(reason) from @brains/plugins (@brains/sdk/internal/service-runtime in a converted package) for a deliberate full-scope read, or pass the caller's scope.",
 };
 
 /**
- * A raw `messaging.send` answers with whichever subscriber replies first and
- * leaves the reply untyped. Entities, plugins and interfaces send events with
- * `broadcast: true` and make every other cross-package call through a bus
- * contract.
+ * A raw send with `broadcast: true` hands every subscriber whatever it was
+ * given; the subscriber's channel refuses a malformed payload only after it
+ * left. Every broadcast goes through its typed channel instead, whose schema
+ * parses the payload before it is sent. Only the message bus, which that
+ * function is built on, sends one raw.
  */
-const busContractMessage =
-  "Use context.messaging.request/command/gather with a bus contract (defineBusContract in @brains/contracts); a raw messaging.send is only for an event sent with broadcast: true.";
+const rawBroadcastSend = {
+  selector:
+    "CallExpression[callee.property.name='send'] > ObjectExpression > Property[key.name='broadcast'][value.value=true]",
+  message:
+    "Broadcast through broadcast(channel, payload) on a typed channel (defineChannel in @brains/contracts): context.messaging.broadcast in a plugin, broadcastChannel from @brains/messaging-service on a message bus. A raw send with broadcast: true checks no payload.",
+};
+
 const messagingObject =
   ":matches([object.name='messaging'], [object.property.name='messaging'])";
-const rawBusSend = [
-  {
-    selector: `MemberExpression[property.name='send']${messagingObject}:not(CallExpression:has(> ObjectExpression:has(> Property[key.name='broadcast'][value.value=true])) > .callee)`,
-    message: busContractMessage,
-  },
-  {
-    selector:
-      "VariableDeclarator:matches([init.name='messaging'], [init.property.name='messaging']) > ObjectPattern > Property[key.name='send']",
-    message: busContractMessage,
-  },
-];
 
 /**
  * A type argument on a messaging subscription casts a payload nobody checked:
@@ -130,7 +186,7 @@ const rawBusSend = [
 const castSubscription = {
   selector: `CallExpression[typeArguments] > MemberExpression.callee[property.name=/^(subscribe|observe|subscribeExecution)$/]${messagingObject}`,
   message:
-    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins) instead of type arguments, which cast a payload nobody validated.",
+    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins, or @brains/sdk/internal/service-runtime in a converted package) instead of type arguments, which cast a payload nobody validated.",
 };
 
 module.exports = {
@@ -204,6 +260,29 @@ module.exports = {
       },
     },
     {
+      // A converted package's production code, its browser UI included,
+      // imports nothing from @brains/plugins either. Restates the import
+      // restrictions above for these files; its tests may still build what
+      // they need through the plugins package.
+      files: convertedPackages.flatMap((path) => [
+        `**/${path}/src/**/*.ts`,
+        `**/${path}/src/**/*.tsx`,
+        `**/${path}/ui-react/src/**/*.ts`,
+        `**/${path}/ui-react/src/**/*.tsx`,
+      ]),
+      excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
+      rules: {
+        "no-restricted-imports": shellImportBan(
+          [
+            "@brains/plugins",
+            ...shellServicePackages,
+            ...contextServedPackages,
+          ],
+          convertedImportMessage,
+        ),
+      },
+    },
+    {
       files: ["**/src/**/*.ts", "**/src/**/*.tsx"],
       excludedFiles: [
         "**/*.test.ts",
@@ -216,9 +295,10 @@ module.exports = {
       },
     },
     {
-      // Entity, plugin and interface production code sends no raw requests
-      // and casts no subscription's payload. Listed last: it restates the
-      // restrictions above for these files.
+      // Production code broadcasts only through a typed channel and casts no
+      // subscription's payload. The message bus itself is exempt: it is what
+      // the typed channels are built on. Listed last: it restates the
+      // `**/src/**` restrictions above for these files.
       files: [
         "**/entities/*/src/**/*.ts",
         "**/entities/*/src/**/*.tsx",
@@ -226,33 +306,14 @@ module.exports = {
         "**/plugins/*/src/**/*.tsx",
         "**/interfaces/*/src/**/*.ts",
         "**/interfaces/*/src/**/*.tsx",
-      ],
-      excludedFiles: [
-        "**/shell/plugins/**",
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/src/test/**",
-      ],
-      rules: {
-        "no-restricted-syntax": [
-          "error",
-          ...restrictedSyntax,
-          rawFullScope,
-          ...rawBusSend,
-          castSubscription,
-        ],
-      },
-    },
-    {
-      // Shared and shell production code that subscribes through a plugin
-      // context's messaging casts no payload either. The message bus itself is
-      // exempt: it is what the typed channels are built on. Restates the
-      // `**/src/**` restrictions above for these files.
-      files: [
         "**/shared/*/src/**/*.ts",
         "**/shared/*/src/**/*.tsx",
         "**/shell/*/src/**/*.ts",
         "**/shell/*/src/**/*.tsx",
+        "**/packages/*/src/**/*.ts",
+        "**/packages/*/src/**/*.tsx",
+        "**/sites/*/src/**/*.ts",
+        "**/sites/*/src/**/*.tsx",
       ],
       excludedFiles: [
         "**/shell/messaging-service/**",
@@ -266,6 +327,7 @@ module.exports = {
           "error",
           ...restrictedSyntax,
           rawFullScope,
+          rawBroadcastSend,
           castSubscription,
         ],
       },

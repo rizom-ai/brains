@@ -60,6 +60,7 @@ function harness(): Harness {
   const shellAi = createMockAIService();
   const runtimeUploads: IRuntimeUploadsNamespace = {
     scoped: () => unused("runtimeUploads.scoped"),
+    retire: () => unused("runtimeUploads.retire"),
   };
   const indexReadiness: IndexReadinessGate = {
     awaitIndexReady: () => unused("awaitIndexReady"),
@@ -78,6 +79,7 @@ function harness(): Harness {
       },
     }),
     getMCPService: () => unused("getMCPService"),
+    getMessageBus: () => unused("getMessageBus"),
     getAgentService: () => shellAgent,
     getRuntimeUploadRegistry: () => runtimeUploads,
     getEntityService: () => indexReadiness,
@@ -97,6 +99,10 @@ function harness(): Harness {
     },
     connectMcpAgent: async () => {
       events.push("mcp-connect");
+      return mcpAgent;
+    },
+    connectRemoteMcpAgent: async (remote) => {
+      events.push(`remote-mcp-connect ${remote.url} ${remote.token}`);
       return mcpAgent;
     },
   };
@@ -248,6 +254,27 @@ describe("runEvalSession", () => {
       "verbose",
       "parallel",
       "maxParallel",
+    ]);
+  });
+
+  it("evaluates a remote brain through its basic MCP endpoint", async () => {
+    const h = harness();
+    const seen: RunEvaluationsOptions[] = [];
+    const options = await sessionOptions({
+      mcpBasic: true,
+      remoteUrl: "http://localhost:8080",
+      authToken: "dev-token",
+    });
+
+    await runEvalSession(options, recordRun(h.events, seen), h.deps);
+
+    expect(seen[0]?.agentService).toBe(h.mcpAgent);
+    expect(h.events).toEqual([
+      "boot",
+      "remote-mcp-connect http://localhost:8080 dev-token",
+      "run",
+      "mcp-close",
+      "shutdown",
     ]);
   });
 

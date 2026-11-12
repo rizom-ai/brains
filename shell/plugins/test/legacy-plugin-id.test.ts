@@ -8,8 +8,11 @@ import {
   defineEntity,
   defineEntityJob,
   defineEntityPackage,
+  defineDaemon,
   defineInterface,
   defineJob,
+  defineMessageInterface,
+  defineMessageInterfacePackage,
   defineServicePlugin,
   defineTool,
   instantiatePluginPackageDefinition,
@@ -174,20 +177,6 @@ describe("an entity package instantiated under a legacy plugin id", () => {
     ).toThrow(/one plugin/);
   });
 
-  it("is refused for an interface package, naming the definition", () => {
-    const listener = defineInterface({
-      id: "listener",
-      config: z.object({}),
-    });
-    expect(() =>
-      instantiatePluginPackageDefinition(listener, {}, metadata, {
-        pluginId: "listener",
-      }),
-    ).toThrow(
-      'Plugin definition "listener" is not an entity or service package; only those keep a legacy plugin id',
-    );
-  });
-
   it("is refused when it is not a plugin identifier", () => {
     expect(() =>
       instantiatePluginPackageDefinition(registry, {}, serviceMetadata, {
@@ -288,6 +277,59 @@ describe("a service's legacy plugin id beside the type it owns", () => {
   });
 });
 
+describe("a service keeping the id its owned type has", () => {
+  const owning = defineServicePlugin({
+    id: "registry",
+    config: z.object({}),
+    entities: [registryEntry],
+  });
+
+  it("installs its type under the plugin id the composer names for it", () => {
+    const plugins = instantiatePluginPackageDefinition(
+      owning,
+      {},
+      serviceMetadata,
+      {
+        pluginId: "registry-entry",
+        ownedTypePluginId: "registry-entry-entity",
+      },
+    );
+    expect(plugins.map(({ id, type }) => [id, type])).toEqual([
+      ["registry-entry-entity", "entity"],
+      ["registry-entry", "service"],
+    ]);
+  });
+
+  it("is refused without a legacy plugin id, or when it is the service's own", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        ownedTypePluginId: "registry-entry-entity",
+      }),
+    ).toThrow(
+      'Service "registry" names a plugin id for its owned type only beside a legacy plugin id',
+    );
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        pluginId: "registry-entry",
+        ownedTypePluginId: "registry-entry",
+      }),
+    ).toThrow(
+      'Service "registry" cannot install its owned type under its own plugin id "registry-entry"',
+    );
+  });
+
+  it("is refused for a package that is not a service", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(docs, {}, metadata, {
+        pluginId: "docs",
+        ownedTypePluginId: "docs-entity",
+      }),
+    ).toThrow(
+      'Plugin definition "docs" is not a service package; only a service names a plugin id for the type it owns',
+    );
+  });
+});
+
 describe("a first-party service's plugin dependencies", () => {
   it("are the ones the composer names, as its class declared them", () => {
     const [plugin] = instantiatePluginPackageDefinition(
@@ -318,5 +360,119 @@ describe("a first-party service's plugin dependencies", () => {
     ).toThrow(
       'Plugin definition "docs" is not a service package; only a service keeps the dependencies its class declared',
     );
+  });
+});
+
+describe("an interface package instantiated under a legacy plugin id", () => {
+  const listener = defineInterface(
+    { id: "listener", config: z.object({}) },
+    {
+      daemons: () => [
+        defineDaemon({
+          id: "events",
+          run: async ({ signal, health }) => {
+            health.ready();
+            await new Promise<void>((resolve) => {
+              signal.addEventListener("abort", () => resolve(), {
+                once: true,
+              });
+            });
+          },
+        }),
+      ],
+    },
+  );
+  const inbox = defineMessageInterface(
+    {
+      id: "inbox",
+      config: z.object({}),
+      channel: {
+        type: "inbox",
+        displayName: "Inbox",
+        subjectLabel: "Address",
+        recipient: z.string(),
+      },
+    },
+    { deliver: () => undefined },
+  );
+  const interfaceMetadata = { name: "@brains/listener", version: "0.1.0" };
+
+  it("registers a generic interface and its daemons under that id", async () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      listener,
+      {},
+      interfaceMetadata,
+      { pluginId: "listener" },
+    );
+    if (!plugin) throw new Error("No plugin was created");
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    await harness.installPlugin(plugin);
+
+    expect([plugin.id, plugin.packageName]).toEqual([
+      "listener",
+      "@brains/listener",
+    ]);
+    expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([
+      "listener:events",
+    ]);
+  });
+
+  it("registers a message interface under that id", () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      inbox,
+      {},
+      interfaceMetadata,
+      { pluginId: "inbox" },
+    );
+    expect(plugin?.id).toBe("inbox");
+  });
+
+  it("scopes an interface by the package without one", () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      listener,
+      {},
+      interfaceMetadata,
+    );
+    expect(plugin?.id).toBe("@brains/listener:listener");
+  });
+
+  it("is refused for a package of several message interfaces", () => {
+    const mailboxes = defineMessageInterfacePackage({
+      id: "mailboxes",
+      config: z.object({}),
+      interfaces: () => [],
+    });
+    expect(() =>
+      instantiatePluginPackageDefinition(mailboxes, {}, interfaceMetadata, {
+        pluginId: "mailboxes",
+      }),
+    ).toThrow(
+      'Message interface package "mailboxes" keeps no legacy plugin id; each of its interfaces is its own plugin',
+    );
+  });
+});
+
+describe("a refused config under a legacy plugin id", () => {
+  it("names the plugin by the id its class had, as the class's refusal did", () => {
+    const strict = defineInterface({
+      id: "listener",
+      config: z.object({ port: z.number() }),
+    });
+
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        strict,
+        { port: "x" },
+        { name: "@brains/listener", version: "0.1.0" },
+        { pluginId: "listener" },
+      ),
+    ).toThrow("Invalid plugin config for listener at port");
+    expect(() =>
+      instantiatePluginPackageDefinition(
+        strict,
+        { port: "x" },
+        { name: "@brains/listener", version: "0.1.0" },
+      ),
+    ).toThrow("Invalid plugin config for @brains/listener:listener at port");
   });
 });

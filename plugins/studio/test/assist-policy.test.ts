@@ -7,16 +7,13 @@ import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import type { ZodType } from "@brains/utils/zod";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({
   title: z.string(),
@@ -86,7 +83,7 @@ async function setup(updatePermission: "trusted" | "admin"): Promise<{
       visibility: "restricted",
     },
   });
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   return {
     shell,
     routes: createEditorRoutes({

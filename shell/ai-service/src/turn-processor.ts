@@ -761,7 +761,7 @@ export class TurnProcessor {
         });
     const fallbackText = buildAsyncGenerationFallback(
       pendingConfirmation.toolName,
-      outcome.toolResult.data,
+      result,
     );
     const responseText = response?.text.trim()
       ? `${outcome.resultText}\n\n${response.text}`

@@ -1,6 +1,5 @@
 import type {
   MessageHandler,
-  MessageSender,
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
@@ -57,11 +56,22 @@ type EntityChannel = (typeof ENTITY_CHANNELS)[keyof typeof ENTITY_CHANNELS];
 
 export interface IMessagingNamespace {
   /**
-   * Send an event with `broadcast: true`: every subscriber hears it and its
-   * reply data comes back unchecked. A request or command to another plugin
-   * goes through `request`, `gather` or `command` and a bus contract.
+   * Broadcast an event on its typed channel (`defineChannel`), as this
+   * plugin: every subscriber hears it and no reply is read. The payload is
+   * parsed by the channel's schema and the parsed payload is sent; one the
+   * channel refuses is the caller's bug and throws, and nothing is sent.
+   *
+   * @example
+   * ```typescript
+   * await context.messaging.broadcast(initialSyncCompletedChannel, {
+   *   success: true,
+   * });
+   * ```
    */
-  send: MessageSender;
+  broadcast<TPayload>(
+    channel: Channel<TPayload>,
+    payload: NoInfer<TPayload>,
+  ): Promise<void>;
 
   /**
    * Ask a contract's owner and get its validated answer, or `unavailable`

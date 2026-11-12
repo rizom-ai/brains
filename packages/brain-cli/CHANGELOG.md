@@ -1,5 +1,522 @@
 # @rizom/brain
 
+## 0.2.0-alpha.688
+
+### Patch Changes
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f1a8598`](https://github.com/rizom-ai/brains/commit/f1a8598e56bf95a831e7a8c6f5e84a135ad563e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atproto is a declarative service: the same brain card, canonical lexicon and projected-entity publishing, Jetstream discovery and did:web documents as before, composed under the plugin id `atproto`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a463037`](https://github.com/rizom-ai/brains/commit/a463037af6357b5b5522eac6de45c474608c5543) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Content-pipeline is a declarative service: the same publishing_manage tool, publish and generation contracts, scheduler, Publishing workspace and pipeline widget as before, composed under the plugin id `content-pipeline`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f967904`](https://github.com/rizom-ai/brains/commit/f96790476738f514f8a55b7377846f613ac1ced3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics is a declarative service with its traffic-snapshot type, keeping the plugin ids, reports, beacon, daily capture, stored bytes and Studio surface its classes had. The Dashboard widget now registers once every plugin has, as a first-party service's widget does, rather than once the brain is ready. Traffic snapshots are a deliberate exception to metadata being the frontmatter: a read hands back the whole stored document and metadata indexes only the week's title and totals, so the per-day numbers never enter metadata.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`1f6c9ce`](https://github.com/rizom-ai/brains/commit/1f6c9ce49b07ccb75b1f5d32641fed9e579681fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Dashboard is a declarative service: its page, widgets, console jump palette and assets are served as before.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7399cd6`](https://github.com/rizom-ai/brains/commit/7399cd68e52860b788018594271a086a2f4866e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync is a declarative service, keeping the plugin id, tool, jobs, status template, health checks, Studio workspace, startup import, durable export, Git broker connection and replay, and the files it writes that its class had. It reaches the brain's records through the entity mirror and registers its Git and serving work once its own jobs are registered, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`5bf68b0`](https://github.com/rizom-ai/brains/commit/5bf68b0534db51f8b78f6b1755a4b23bfbe21ef3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact and quiz are declarative services on the forms engine, keeping the plugin ids, dependencies, routes, pages, alert job, maintenance, Inbox sources, health and stored bytes their classes had. Contact requests and quiz results are a deliberate exception to metadata being the frontmatter, as mail items and traffic snapshots are: a read hands back the whole stored document, and metadata indexes only the title, times, status and alert state (and, for a quiz result, its quiz and whether the taker left an email), so names, email addresses, messages, answers and results never enter metadata.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`56b6f72`](https://github.com/rizom-ai/brains/commit/56b6f72f4d70be89e35fb3d266dcd9e2f81ee256) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio is a declarative service: its editor, workspaces, Inbox follow-ups and jump destinations are served as before, and its grouping definitions type installs as its own plugin, grouping-definitions, when the brain registers its plugins rather than once they have all registered.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`281a9a0`](https://github.com/rizom-ai/brains/commit/281a9a0d73211d99d8809fa16485ce98b1aeaab2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The "Inbound email classification failed" warning names its cause: the model call failed, the decision failed its schema, or the classification was not derived from the mail. No mail content travels with it.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`aaf33cf`](https://github.com/rizom-ai/brains/commit/aaf33cf3b2256e59b1da6b23481adb8b957fc065) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Email-workflows is a declarative service: the same triage, Inbox source, triage list tool and inbound contract as before, composed under the plugin id `email-workflows` with its `mail-item` type. As a deliberate exception to the declared-type pattern, a mail item's metadata indexes only its routing fields and thread position, never its source locator, sender label, organization or requested actions, and a read hands back the whole document as before. The reply-draft type is declared but, as on main, installed in no brain.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`bd9d6c7`](https://github.com/rizom-ai/brains/commit/bd9d6c78f07f76a504d123a933c8b5e030589095) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity data source's detail view reads records of other types at the build's scope, as a fetching source does.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`93f0a1f`](https://github.com/rizom-ai/brains/commit/93f0a1fe68937787813e937f036cb97af02a8498) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers a Dashboard widget that draws its declared view, as well as one that draws itself, once every plugin has registered.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`d3354c1`](https://github.com/rizom-ai/brains/commit/d3354c10250f492dbefc7f6f076115ff591953cd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service serves the tool-backed API routes its class served, from its config.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`97d817a`](https://github.com/rizom-ai/brains/commit/97d817aa41b596d088cf8b22f8d53f69b37004d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class queues a job as its class queued it: scoped and sourced to its plugin, attributed to the call the request names or to nobody.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`339f494`](https://github.com/rizom-ai/brains/commit/339f4944bbdb6de52bcbfbfaaabf31051e805596) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class writes another package's types as its class wrote them, with the attribution its request names and no more.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`77eafa2`](https://github.com/rizom-ai/brains/commit/77eafa2b8ea8fc0db27992402c6d29695e820878) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class runs the jobs its class handled under the types its class registered, on the data its class queued, as the package, so jobs queued before an upgrade or by another package keep running.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`5b16f29`](https://github.com/rizom-ai/brains/commit/5b16f29f0191a6bd83904565c40ee2bcc865e8ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party site builder converted from a class declares where it writes the site the runtime's HTTP host serves, from its parsed config, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`bba2d19`](https://github.com/rizom-ai/brains/commit/bba2d1903931452965d51a0209984f6c117d1b1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers the tools its class built as written, with their names, visibility, side effects and success messages, beside the tools its definition declares, each run as its caller.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`578c977`](https://github.com/rizom-ai/brains/commit/578c9770dd85ac3f891036c66ec2f58e118b0be4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service serves the HTTP routes its class served, as written.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`c00807c`](https://github.com/rizom-ai/brains/commit/c00807cbf0a8041b028328948752def068bcd6df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class takes a Studio workspace it registered off Studio when it shuts down, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`e1abb98`](https://github.com/rizom-ai/brains/commit/e1abb98cd2209349f113780afad30fc22c463eac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The test entity service keeps the frontmatter a document carries beyond its type's own, as the real entity service does.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f6d78cb`](https://github.com/rizom-ai/brains/commit/f6d78cbf96722b21578e1c9b2db4a54d98d0a92c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The newsletter is a declared entity beside declared Buttondown and Resend services: the same issues, templates, data source, generation, subscriber tools, signup route and slot, publishing and auto-send as before, composed under newsletter, buttondown and resend. Scheduled issues now run through the declared scheduled generation, as social posts do, in place of the class's own generate:execute answer: the ten most recent published posts in one batch, read at the newsletter's own grant and queued as the newsletter.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7241d48`](https://github.com/rizom-ai/brains/commit/7241d48e242c6c48b472c86435058b3ad951591f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service that keeps the plugin id its owned type has installs the type under a plugin id the composer names for it, so a class that registered its type inside itself converts without its service changing id.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`b8e0dd4`](https://github.com/rizom-ai/brains/commit/b8e0dd4dbd45d627143f52eab65d69da4e72bfc7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site section's saved content is read as stored, so a declared type's frontmatter reaches the section's formatter as it did from a class type.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`142da38`](https://github.com/rizom-ai/brains/commit/142da38e25d454bc799a9a8af58b578bf6c65db1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - First-party services that read their records parsed by a schema, as their classes did, share one entity service built on their runtime.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f724a95`](https://github.com/rizom-ai/brains/commit/f724a9510f69b5e669006ed2426baf67afb74d33) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class serves a data source under the id its class gave it in full, such as site-builder's `site:navigation`, as well as under its plugin's id.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6ccb563`](https://github.com/rizom-ai/brains/commit/6ccb563114cb72956403ba6675b3d541f1c6cbcf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the active jobs and a record as stored, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`b7b54ac`](https://github.com/rizom-ai/brains/commit/b7b54acc3dfbac84f6741d200a0ae8314f2ffc60) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service registers a report the analytics tool answers, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`b31b3c3`](https://github.com/rizom-ai/brains/commit/b31b3c3aae2fb58f33b6d39a1136dd41ae27a94f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service lists the people work can be assigned to, as Studio's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f49beb0`](https://github.com/rizom-ai/brains/commit/f49beb0c12d26d1464703046928d9a3244368740) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the AT Protocol projections entity packages registered, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`e1604df`](https://github.com/rizom-ai/brains/commit/e1604dfcd67ed9c4fb25855c293a0358dda3cde5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the attachments other packages provide as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a4327c1`](https://github.com/rizom-ai/brains/commit/a4327c1910430cc85aa165684c048682643178d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service queues a batch of jobs and reads its status, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`bd6a170`](https://github.com/rizom-ai/brains/commit/bd6a170606be844c89e98aac77418b0dd740d607) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service broadcasts an event on its typed channel as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0575f9f`](https://github.com/rizom-ai/brains/commit/0575f9f9da5e6d62853ba2d9bdbf51ed53197a26) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service lists the brain's channel descriptors, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`ddc2338`](https://github.com/rizom-ai/brains/commit/ddc23386daa910e9b1c85392a6645533742ad611) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service derives the console surface strip for a caller from the registered web routes, as Dashboard's class did, without reaching the route table.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`01b1a18`](https://github.com/rizom-ai/brains/commit/01b1a182788e9a66e39aad8cfebd86fdbe50cacc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service registers the section templates its config defines under each one's namespace and generates content as its class asked, with the tool call's caller or its own grant.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`751b4ba`](https://github.com/rizom-ai/brains/commit/751b4ba2af55aaa7968619ddd610a3cd4bf23cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service queues another package's job through its contract as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`89a1788`](https://github.com/rizom-ai/brains/commit/89a178832013147a7ff78c438dcaa2259d4e5fc3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service deletes a record as its class did through the entity service.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`9d078dc`](https://github.com/rizom-ai/brains/commit/9d078dc9f37b56b16e002b4e864ffa0af589201e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service names a record as its type's adapter names it, as Studio's class did, without reaching the adapter.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`01763ae`](https://github.com/rizom-ai/brains/commit/01763aec732b016e279d0a65b304098ece9aec77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads a type's hierarchy and config and parses a document, as Studio's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`9a41d59`](https://github.com/rizom-ai/brains/commit/9a41d59cb6b9d652eae828495f4aa4ebf9ebbb1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service advertises its URLs in the brain's endpoints, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`3c36b7d`](https://github.com/rizom-ai/brains/commit/3c36b7d4c5ea8b455659aaef8a9d9a0af0d661dc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service checks the entity action policy for a caller as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`c3b596c`](https://github.com/rizom-ai/brains/commit/c3b596c8038a88fc229df1b5f754ed8dad79f4e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class reads the site's entity display, which names each type's page, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`8741e00`](https://github.com/rizom-ai/brains/commit/8741e007521984f09d59cc9727bff35a85640b3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service mirrors the brain's records to files across every type, with the export ledger and the bulk coordination, as directory-sync's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`8164c05`](https://github.com/rizom-ai/brains/commit/8164c05977169ca377418d9ae7ec9aba5b7b601c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads what a type's adapter says of its records, as Studio's class did, without reaching the adapter.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6710dd6`](https://github.com/rizom-ai/brains/commit/6710dd6fbe54649fccdf4b4a33de121b8de9c7bc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service finds the brain's git broker and its checkout, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`9d855a1`](https://github.com/rizom-ai/brains/commit/9d855a1571e9f425d250dfa47f83be700f4d06fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio keeps grouping fields valid on the types that contribute groupings, as its class did; no other type can be guarded this way.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7ee8fd8`](https://github.com/rizom-ai/brains/commit/7ee8fd8096b70d4fc3990a11aa3ff787d48863e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio, as a first-party service, reaches the brain's groupings as its class did; no other package can.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`85a8711`](https://github.com/rizom-ai/brains/commit/85a87116901521bd9dd42aa1ec1442821de6fff3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads whether another plugin is installed, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`64e9385`](https://github.com/rizom-ai/brains/commit/64e938548ca553f8af89ada6105e99059ed29a7f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service offers its Inbox follow-ups under its plugin id, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`030c45b`](https://github.com/rizom-ai/brains/commit/030c45b8f0094e370a1e4ccf1fcedc4c15e21647) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service tells the shell whether its startup import is still pending once every plugin has registered, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`adb9f08`](https://github.com/rizom-ai/brains/commit/adb9f086006bdc0117a260f18352af5181d68efe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers its agent instructions again when what they say changes, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0329b35`](https://github.com/rizom-ai/brains/commit/0329b35d3bee97784965fcd95c9fbf3589d2cc77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class reads a job's status and the recent jobs of its types, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6bffd3e`](https://github.com/rizom-ai/brains/commit/6bffd3e0b558ed240fc1b67dbf71bf78e9bdc4c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service stops hearing a channel when it asks, as its class unsubscribed.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`908c123`](https://github.com/rizom-ai/brains/commit/908c12372046007808a58efbb007bc15e787575b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service offers an Inbox source, resolves an editable prompt, counts records and knows whether it runs in a job worker, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`ca2b279`](https://github.com/rizom-ai/brains/commit/ca2b2795d03b29c6572cb35bbcc94027731f5de0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class asks the bus as its class did, from setup too: requests, commands and gathered answers, as the package.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`32fa179`](https://github.com/rizom-ai/brains/commit/32fa179bf17ede1a61aff418644125718f6aafb6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reports its operational health under its plugin id, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a88c79a`](https://github.com/rizom-ai/brains/commit/a88c79ace67822d81499e48993d2f9a890bc16e2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the plugin id it installed under, as its class read its own id.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`8ee1d3c`](https://github.com/rizom-ai/brains/commit/8ee1d3cdee84db677375f34eaea86b571be2919f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the brain's readiness, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0e4d8f5`](https://github.com/rizom-ai/brains/commit/0e4d8f5c831dcc16ccf18e1cdabd3c08b4c1485e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service's recurring checks are taken off when it shuts down, as contact's and quiz's maintenance checks were; analytics' traffic capture and the unified Inbox's daily digest, whose classes left theirs registered, now release theirs too.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`dc80453`](https://github.com/rizom-ai/brains/commit/dc80453f4eb764db9cb0375047826a28001ee44a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service finishes its registration after its own job handlers are registered, as its class's onRegister did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a4aefc5`](https://github.com/rizom-ai/brains/commit/a4aefc520ce2228ef5433b3c6da5a4dad9717637) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service hands its own analytics reports the read-only entity service, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`d5b8a3c`](https://github.com/rizom-ai/brains/commit/d5b8a3c53944b8aef2f2a209c2a6dc837e312c1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service retries work a refusal must not lose as its class did, stopping when it shuts down.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a949f7e`](https://github.com/rizom-ai/brains/commit/a949f7e253af1bc45c6bb1cbd07203193b795759) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the app's metadata, whether it serves HTTP, and the brain's public skills, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6623053`](https://github.com/rizom-ai/brains/commit/662305324f06b29a58fc1a25ed6399f9ec6077e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reaches its internal runtime from its setup and its jobs and routes slots, so a service converted from a class builds what its class built at registration where its class built it.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`75980e2`](https://github.com/rizom-ai/brains/commit/75980e2ea03ceb582262dd7eec6ed3cbcf00b40d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service saves uploads to the shared store and finds their promotion handler, as Studio's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a7e2f1f`](https://github.com/rizom-ai/brains/commit/a7e2f1ffc2563d5590a75c87b66d029fda678cc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party site builder converted from a class reads the site's preview URL, its local URL and whether links prefer it, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`210c6e7`](https://github.com/rizom-ai/brains/commit/210c6e780a1f7146df046fb9e771a414cc155ee5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the brain's theme stylesheet for the pages it serves, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7985951`](https://github.com/rizom-ai/brains/commit/7985951eb4516f3fb7ad489d5eacfa6b4680fb39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service writes a record whether or not it is stored yet, as its class did through the entity service's upsert.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7e8a80e`](https://github.com/rizom-ai/brains/commit/7e8a80e728011fe76e5772a2e600afe4ec206660) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party site builder converted from a class reads the brain's view templates and resolves a section's content through a template as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`243963f`](https://github.com/rizom-ai/brains/commit/243963fd87eab99c6078c638fdc61fccd99f907c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder is a declarative service: the same tool, build job, resources, navigation data source, templates, route contracts, Studio workspace, Dashboard widget and served directories as before, composed under the plugin id `site-builder`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`d0d2a0c`](https://github.com/rizom-ai/brains/commit/d0d2a0cc1c98d149edb3e841759fc81219b26877) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site-content is a declarative service: its type installs as its own plugin, and it stores, reads and generates site sections as before.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`2b7d25d`](https://github.com/rizom-ai/brains/commit/2b7d25d8ed4a3bbffa1dd968467600d9873bb26c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stock photos are a declarative service: the same tools, job and writes as before, composed under the plugin id `stock-photo`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`3abbf16`](https://github.com/rizom-ai/brains/commit/3abbf1641c9fe369ebcfd5dc0fd83f571fc12870) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party declared type can keep its stored document as its read and derive its metadata from part of its header, as an entity plugin class did; mail items use it.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0e14ba7`](https://github.com/rizom-ai/brains/commit/0e14ba775b3f324c7308ba88e3170107d1f542ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party stored-document type can read its document as written, byte for byte, and still read a document whose header does not parse, as an entity plugin class's adapter did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0909d53`](https://github.com/rizom-ai/brains/commit/0909d53bc09cfd931d301000fdd36cc3990f0d58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The traffic-by-entity report orders pieces with the same pageviews by type, then id, so its order and its limit no longer depend on when the store wrote them.
+
+## 0.2.0-alpha.687
+
+### Patch Changes
+
+- [#925](https://github.com/rizom-ai/brains/pull/925) [`46f36c5`](https://github.com/rizom-ai/brains/commit/46f36c5d40114a2a3bc308e63c2b37de8176a6cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain upgraded past the release that made declared types read their frontmatter as metadata no longer fails its first sync from git. Startup brought stored rows up to their types only after directory sync had begun planning its import, so a row the old entity class wrote, such as the style guide, could not be read and the whole initial sync failed; ready-state defaults were then skipped until the next start. Stored rows are now reconciled before the import is queued.
+
+## 0.2.0-alpha.686
+
+### Patch Changes
+
+- [#923](https://github.com/rizom-ai/brains/pull/923) [`8332410`](https://github.com/rizom-ai/brains/commit/8332410945fa20a7b634d649196233a85c11478e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity Inbox refuses to open or act on an item for an operator below admin, before the type's own detail or action runs.
+
+## 0.2.0-alpha.685
+
+### Patch Changes
+
+- [#922](https://github.com/rizom-ai/brains/pull/922) [`4cda4e8`](https://github.com/rizom-ai/brains/commit/4cda4e8faf965db86f81f0cb7f2ac38cfe2d747c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The MCP `chat` and `confirm` tools reply with the brain's answer, its conversation handle and handles to what it wrote, without the turn's raw tool results. A question that searched many notes could return 60–100 KB of search output beside a few paragraphs of answer, which MCP clients such as the Claude app reported as a failed call. A confirmed write now records its result the way any turn does, so its reply names the saved entity and a job it started is followed like any other.
+
+## 0.2.0-alpha.684
+
+### Patch Changes
+
+- [#921](https://github.com/rizom-ai/brains/pull/921) [`4a34334`](https://github.com/rizom-ai/brains/commit/4a34334821c55487e9f4fc2481240c8b741ffaba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio creates a missing singleton of a declared type, such as a deleted style guide, under its type's id again instead of refusing it.
+
+## 0.2.0-alpha.683
+
+### Patch Changes
+
+- [#920](https://github.com/rizom-ai/brains/pull/920) [`0018a6e`](https://github.com/rizom-ai/brains/commit/0018a6e18c9c76410a053373b63781d32f0c3802) Thanks [@yeehaa123](https://github.com/yeehaa123)! - After an upload with no answer of the brain's own to save, "save it" saves the newest upload as itself: the upload refs name that save as a call candidate, as they name the prior response and the save of several attached files.
+
+## 0.2.0-alpha.682
+
+### Patch Changes
+
+- [#919](https://github.com/rizom-ai/brains/pull/919) [`1238960`](https://github.com/rizom-ai/brains/commit/1238960bf6003140d4bcf8661cb5dba3468ffbbe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Posts, decks, docs, notes, projects, prompts, social posts, wishes and playbooks report the frontmatter their entity plugin classes declared again, so Studio's editor fields and the Obsidian vault's templates and fileClasses show those headers as before their conversion: no generation error or stated slug fields, and a playbook's status, audience and completion mode optional with their defaults.
+
+- [#919](https://github.com/rizom-ai/brains/pull/919) [`8e63733`](https://github.com/rizom-ai/brains/commit/8e637337bdf382bb4d1b9352c0e9c2281194692a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party declared type can state its file header as its frontmatter schema when its metadata holds more, as its entity plugin class declared it.
+
+## 0.2.0-alpha.681
+
+### Minor Changes
+
+- [#864](https://github.com/rizom-ai/brains/pull/864) [`5553517`](https://github.com/rizom-ai/brains/commit/5553517d73c6736750f9c51e5664f5f6055691ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain.yaml` takes `imageModel`, the model that generates images as `provider:model`. An `openai:` or `google:` model uses the provider's key; a `local:` model runs on the model runtime's OpenAI-compatible images API at `modelRuntime.url`, with no image provider key. A brain can generate images when its image model's provider is available, rather than whenever an OpenAI or Google key is set.
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`212e346`](https://github.com/rizom-ai/brains/commit/212e34652bb525cab2a0f9eb0812f9caa288f413) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain.yaml` takes `embeddingModel` to choose the model that builds the semantic index: `openai:text-embedding-3-small` (the default) or `openai:text-embedding-3-large`. The index records the model, dimensions and prompt revision it was built with; at the next start after `embeddingModel` changes, the brain drops the index, re-embeds every entity with the new model, and holds chat until the rebuilt index is ready. Existing indexes are read as `text-embedding-3-small` and are kept. A `provider:` prefix on `model` is now kept, and a text or embedding model of an unknown provider, or an embedding model without a profile, fails config validation instead of falling back to Anthropic. Guest pricing covers `text-embedding-3-large`, and embedding usage is logged under the configured model.
+
+  An embedding that failed for good, for example during a provider outage longer than the job retries, is retried at the next start instead of being skipped until its content changes; restarting the brain after an outage completes its index.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`b499285`](https://github.com/rizom-ai/brains/commit/b499285fb57de69674e99ab49617297ea6a0b381) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Embedding jobs are claimed ahead of default-priority jobs, so slow derivations such as FAQ or topic passes no longer hold the search index, and with it chat, behind them.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`24eabe5`](https://github.com/rizom-ai/brains/commit/24eabe558ce1e078afd67b42cc4b79c454fec15f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ capture and reconcile jobs pass the job's abort signal to their model calls, so a job past its execution deadline stops instead of ignoring cancellation. Before, a slow model call held the worker past its grace period, the worker restarted itself, and three such restarts in an hour stopped the brain.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`b0cc6e4`](https://github.com/rizom-ai/brains/commit/b0cc6e41d1e84468bd3c8536796bc95a2fdea856) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `embeddingModel: local:embeddinggemma-2:270m` indexes with Google's EmbeddingGemma 2 from a model runtime next to the brain: any server with the OpenAI-compatible `/v1/embeddings` API at `modelRuntime.url` in `brain.yaml`, such as Ollama (`ollama pull embeddinggemma-2:270m`). Queries and documents are framed with the model's retrieval prompts, documents carry their title, and long documents are chunked within the runtime's default 2,048-token context. A `local:` model without `modelRuntime.url` fails config validation. Bare `llama`, `mistral`, `phi-` and `qwen` model names now resolve to the `local` provider.
+
+  Guest turns price embeddings from the local model runtime at zero.
+
+  `local:nomic-embed-text:v1.5` is also supported, with its `search_query:`/`search_document:` prefixes.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`d288c2e`](https://github.com/rizom-ai/brains/commit/d288c2e8f2f94dd71a9d361c80f7d64fef8eae81) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `model: local:<name>` runs the brain's agent on a text model from the model runtime, over its OpenAI-compatible `/v1/chat/completions` API; a local text model without a model runtime URL fails config validation. Runtime model tags keep their colon (`qwen3:4b`), and evals run `local:` models without an API key.
+
+  Object generation on a local text model sends its JSON schema to the runtime, which constrains the output to it.
+
+  `brain start` no longer requires `AI_API_KEY` when `brain.yaml` names `local:` models for both `model` and `embeddingModel`.
+
+  `reasoningEffort` in `brain.yaml` reaches local text models as the runtime's `reasoning_effort`; `reasoningEffort: none` turns a model's thinking off.
+
+  A local text model thinks while it chooses its tools and answers a tool result without thinking; on a runtime that generates about 20 tokens a second this removes most of a turn's answer time. Its searches return five hits of at most 800 characters each instead of ten of 3,000, so the model reads results in seconds.
+
+  `answerModel` in `brain.yaml` names a `local:` model that writes while `model` chooses the tools: it answers tool results and runs text and object generation, such as background derivations, so a reasoning model makes the calls and a fast one writes. The deploy pulls it with the other local models.
+
+- [#786](https://github.com/rizom-ai/brains/pull/786) [`1b68a6a`](https://github.com/rizom-ai/brains/commit/1b68a6aca508ce1b8bbfe2368ef28fc73f20123b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain opts into a local model runtime by naming a `local:` model in `brain.yaml`; every other brain deploys as before. For such a brain, the generated Kamal deploy pulls its local models into `/opt/brain-models` before Kamal starts it, runs a `models` accessory (`ollama/ollama:0.40.11`) beside it, and passes `MODEL_RUNTIME_URL`, which the brain uses when `brain.yaml` sets no `modelRuntime.url`. Fleet users opt in with `embeddingModel` in the registry. Deploy configs generated before the accessory are reconciled on rerun.
+
+  The `models` accessory serves a 32,768-token context, so a local text model receives whole agent prompts.
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- [#890](https://github.com/rizom-ai/brains/pull/890) [`49fb143`](https://github.com/rizom-ai/brains/commit/49fb143c3ee53c1b89d9b22d0680bccd937ebed7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_create` and `system_update` set only the fields a person may edit: every frontmatter field but those a schema marks as the brain's own record (`studioWidget: "provenance"` or `"hidden"`), the same marks by which Studio shows a field read-only or leaves it off its form. A field the brain keeps for itself, such as an agent's card id or a file's processing state, is refused with the fields that can be set. For an OpenAI model, both tools are now strict: the model writes field changes as a list of `{ name, value }`, each typed as the entity types declare the field, and `null` removes a field on update.
+
+  An entity type can also declare fields it takes only on create, such as where a deck's slides break: `system_create` accepts them with the editable fields, and `system_update` does not.
+
+- [#890](https://github.com/rizom-ai/brains/pull/890) [`e1ec0d2`](https://github.com/rizom-ai/brains/commit/e1ec0d28f3fdecfbea3acb6c3c695017cf5b669d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An OpenAI model is held to each tool's input schema in strict mode, so a call cannot leave out a required field or carry one the tool lacks. The brain derives the strict form from the tool's own schema: every object closed, every field listed, and a field the caller may leave out accepting `null`, which the brain drops before the tool's schema validates the call. A tool that takes a map of any keys, such as an entity's frontmatter fields, is sent as before.
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- [#916](https://github.com/rizom-ai/brains/pull/916) [`101ca06`](https://github.com/rizom-ai/brains/commit/101ca06a42e5b81cdfbb46d0ffbdd4ec3cef76d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking a saved contact something by the name you call them ("ask Yeehaa about …") reaches that saved contact. `agent_call` resolves a saved contact by its name, and asks which one when two share it. Its description no longer gives real brains' domains as example ids, which the model had copied into live calls to those brains.
+
+- [#889](https://github.com/rizom-ai/brains/pull/889) [`f0b45c9`](https://github.com/rizom-ai/brains/commit/f0b45c9db5be96f5b580c684f77e111386b4f3d6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain runs on AI SDK 7 with the 4.x OpenAI, Anthropic and Google providers. Structured output uses `generateText` with an `output` setting in place of the deprecated `generateObject`, and system prompts are passed as `instructions`.
+
+## 0.2.0-alpha.677
+
+### Patch Changes
+
+- [#899](https://github.com/rizom-ai/brains/pull/899) [`f4fd3b6`](https://github.com/rizom-ai/brains/commit/f4fd3b6fb8333a2f2e61cf71a4309c5db1928650) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The runtime hosts HTTP itself. The webserver interface is gone: the shell starts the one HTTP listener before initial sync, where a brain served HTTP before (a brain whose bundles include `web`, or a brain definition with an interface; never an eval run, a worker or a one-shot CLI command), and stops it before the plugins whose routes it serves. Every route, health endpoint, static and preview page, cache header and port a brain serves stays the same, and the host keeps the `webserver` name it had: its daemon is still `webserver:webserver`, and the Site and Preview endpoints and tool-backed API routes still name `webserver`. `/health/operate` lists that daemon right after the shell's own daemons rather than among the interfaces.
+
+  brain.yaml configures the host with top-level `port`, as before, and a new `http` section: `enabled` (default: whether the selected bundles include `web`), `preview` (default: whether a site builder runs), `hostname`, and `productionDistDir`, `previewDistDir` and `sharedImagesDir` for a site no site builder writes. Preview shares the production port, chosen by the request's host. A site builder's own output directories are now the ones served, so a brain that moves them no longer needs matching webserver directories; an `http` directory that names another one is refused at start.
+
+  `plugins.webserver`, and `webserver` in `add` or `remove`, are refused with where their settings went: `productionPort` is `port`, `enablePreview` is `http.preview`, the directories and `hostname` are under `http`, and `add: [webserver]` is `http.enabled: true`. `previewPort` and `apiPort` bound nothing and have no replacement. A brain definition's `deployment.ports.production` is now the port the brain listens on, as it was already the port its local links named.
+
+  A brain started on a port another process holds names the port again and says another brain may be running there. The hint had stopped appearing when Bun began reporting a taken port as "Failed to start server. Is port N in use?".
+
+## 0.2.0-alpha.676
+
+### Patch Changes
+
+- [#910](https://github.com/rizom-ai/brains/pull/910) [`85bfc36`](https://github.com/rizom-ai/brains/commit/85bfc36f1df35fc782fccda691e373078ed86c7f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declared packages publish to a typed channel: `messaging.publish(channel, payload)`, with the channel declared once by `defineChannel(name, schema)`, which `@rizom/brain/services` and `@rizom/brain/entities` now export with its `Channel` type. The payload is typed by the channel, so a wrong one is a type error, and it is parsed by the channel's schema before it is sent; one the channel refuses throws and nobody hears it. The `publish({ topic, data })` form is removed.
+
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- [#907](https://github.com/rizom-ai/brains/pull/907) [`595e3e9`](https://github.com/rizom-ai/brains/commit/595e3e9abc8603550fd0ef6aab4849d1f428e1a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An action item can be moved or noted from chat by the title people call it, not only by its id. When two visible cards share the title, the tool asks which one instead of guessing.
+
+- [#902](https://github.com/rizom-ai/brains/pull/902) [`e9519d8`](https://github.com/rizom-ai/brains/commit/e9519d8dea9865db0992c54118d82db95dc13487) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A post or social post generated from the terminal chat is saved again. The terminal now names its operator as the speaker of each turn. Without one, the turn ran as the brain's own agent, and since posts and social posts became declarative, their queued generation was refused at that agent's public level.
+
+- [#904](https://github.com/rizom-ai/brains/pull/904) [`ba8a3ab`](https://github.com/rizom-ai/brains/commit/ba8a3abb3452faad1205271c0081c9e66721c842) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a social post's text works again, through both edits and a full replacement. Since social posts became declarative, every edit was refused as an "invalid content replacement": the check asked the file to state a slug the brain derives from its platform and title. A declared type's replacement is now checked as its file will be stored, and an edit of its body keeps the stored metadata.
+
+- [#906](https://github.com/rizom-ai/brains/pull/906) [`64ab1df`](https://github.com/rizom-ai/brains/commit/64ab1df53f579a8f97d29e6ce2d2c53393d62874) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asking which parts of the site would get new content now plans it with a dry run, and the plan names each section it would generate. Before, a dry run reported only a count, and the model listed the stored site content instead.
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- [#901](https://github.com/rizom-ai/brains/pull/901) [`cc76890`](https://github.com/rizom-ai/brains/commit/cc768909f4bca365f6d913d54ecd70acd7a16681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - EPUB exports now escape apostrophes and the book's language as XML, so a title or language holding a quote can no longer break the package's markup.
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- [#897](https://github.com/rizom-ai/brains/pull/897) [`8b80bb2`](https://github.com/rizom-ai/brains/commit/8b80bb2dba3f3e00cf51f4e50faf356ff4f27a7c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connecting or dismissing an agent sighting in the Inbox no longer overwrites a card refresh that lands at the same moment; the action fails and asks to reload instead.
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`980d848`](https://github.com/rizom-ai/brains/commit/980d848018657b5b2899d287b7ce609537e0db69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A2A is a declarative interface. It serves the same Agent Card, agent directory and JSON-RPC endpoint, registers `agent_call`, answers network asks and Studio calls, verifies and signs peer requests, and keeps the same public-ask allowance. A brain.yaml that still sets the removed `trustedTokens` or `outboundTokens` is refused with the same instruction, now reported as an invalid `a2a` config.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`7628605`](https://github.com/rizom-ai/brains/commit/762860543289a760e5aaf83298f0c1b4e2f5d53f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat (Discord and Slack) is a declarative interface. It routes messages, approvals, cards, job progress and tool statuses as before, and keeps uploads in the runtime's shared upload store. The per-platform upload stores it kept before July 2026 are retired: chat deletes `data/discord-chat/uploads` and `data/slack-chat/uploads` at startup, and their old URLs, `/api/webhooks/chat/discord/uploads` and `/api/webhooks/chat/slack/uploads`, now answer 404.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`8edffc1`](https://github.com/rizom-ai/brains/commit/8edffc1484b5de1bdfa381a495d1bac3adbb1b08) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The terminal chat (`--cli`) is a declarative interface. It registers under the plugin id `cli` with its daemon `cli:cli`, answers in the same `cli` conversation as the local administrator, numbers and confirms approvals as before, and shows job progress and completions apart from replies.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`da7b0fe`](https://github.com/rizom-ai/brains/commit/da7b0fe7c875953d22a3ca544eb260bd73163b49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Email is a declarative interface. It registers the same email channel, sends through Resend when it is configured (in background jobs too), listens on the IMAP mailbox as `email:email`, answers source reads for Admins, and keeps reading the IMAP cursor and source locators it stored before.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`056e266`](https://github.com/rizom-ai/brains/commit/056e266a2615cab356efee2ed2dfd4763795127c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can register the channels and senders its class registered, in the worker as well, answer the first-party contracts its class answered, ask other packages' contracts, keep the runtime state its class stored, and leave out a daemon its config does not call for.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`2c3f156`](https://github.com/rizom-ai/brains/commit/2c3f15690e6a2d5324a3579a996fce8d649f23f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party chat interface converted to a declarative definition writes the runtime's shared upload store, can retire an upload directory nothing reads any more, gathers answers, reads the brain's spaces and site URLs, records shared-space conversations, and renders, edits and routes job progress and tool statuses as its class did. The runtime's upload registry can delete a retired namespace's uploads directory and nothing beside it.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`426cbdd`](https://github.com/rizom-ai/brains/commit/426cbdd040a18111351b0fe95ba61893bfa7aa92) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can run work once the brain is ready, read the brain's character, anchor profile, profile kind, public skills and public tools, and read entities at the scope each call names, as its class did.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`f6ff867`](https://github.com/rizom-ai/brains/commit/f6ff867ed1d0dae359ee05c40fcde303ef0a2ec7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can serve the HTTP routes its class served as written, register the tools its class registered under their names, build the protocol-only registration the eval harness uses, and read the brain's deployment, plugins, auth backend, MCP service and permission levels, advertise its endpoint and way in, and hear a typed channel.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`d3dea47`](https://github.com/rizom-ai/brains/commit/d3dea47c620f133db2f958221364b831b7ced54f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can keep the plugin id its class had, as converted entity and service packages already do, so its daemons and the names derived from its id stay the same. A package of several message interfaces keeps none.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`4c2d7db`](https://github.com/rizom-ai/brains/commit/4c2d7db4b4d73e98181de75c0e2597457ec4e5d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition reaches the brain's agent, its conversations and its anchor check through an internal runtime, keeps the daemon its class registered, and can run the message coordination its class inherited, sending job progress and completions through a transport it declares. The public interface contract is unchanged.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`d2486c4`](https://github.com/rizom-ai/brains/commit/d2486c4f6ccb6ade6f197a760975aa0ace90d11c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party interface converted to a declarative definition can read whether guest turns can run, the brain's app info, theme and preview URL, the route a role names, an Inbox source and a job's status, read, list, rename and delete conversations, report an operational health check, and compose a Studio workspace as its class did. Services and interfaces share one first-party Studio binding.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`c4eb83d`](https://github.com/rizom-ai/brains/commit/c4eb83d74bc412241ae32b03cae56d9f6a8bb1ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain definition's interface entry builds its plugins with a factory, as a capability entry does, so an interface declared as a package definition composes beside the remaining interface classes. The internal `InterfaceConstructor` type is gone.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`73b6653`](https://github.com/rizom-ai/brains/commit/73b6653a7d35b56ee64fb2bcd8578f0f5b6b1546) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain.yaml config that a first-party package converted to a declarative definition refuses is reported under the plugin id its class had, the key the brain.yaml names (`Invalid plugin config for email at imap.port`), as before the conversion, instead of under its package-scoped name. This also corrects the wording for the packages converted earlier in this release line (the schema-only entities, small services, publishing entities and auth-dependent services), which reported their package-scoped name.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`439c65c`](https://github.com/rizom-ai/brains/commit/439c65c8e58112d1f0a14c5164a9600e7ae734f8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - MCP is a declarative interface. It registers the same chat and confirm tools, serves `/status` and `/mcp` on the shared host over HTTP or the process's own stdio, advertises the same endpoint and way in, resolves caller permissions as before, and builds the same protocol-only registration for `--mcp-basic` evals.
+
+- [#895](https://github.com/rizom-ai/brains/pull/895) [`c180a5b`](https://github.com/rizom-ai/brains/commit/c180a5b0cef2c8a8fc7ab77af889fabaa536a569) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A quiz result keeps its quiz's title, so after a directory-sync import or restore it is still listed under that title instead of the quiz's id.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`2d06950`](https://github.com/rizom-ai/brains/commit/2d06950c78f2af990cd1fdba7465901e6570f3f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Scheduled maintenance lives in the scheduler package. The guest-retention and web-chat guest-maintenance cycles run, report health and stop exactly as before.
+
+- [#896](https://github.com/rizom-ai/brains/pull/896) [`10f27e8`](https://github.com/rizom-ai/brains/commit/10f27e82120ee5a69f903214c5dac568c85e1816) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Confirming `agent_connect` or `agent_set_trust_level` over MCP works: the confirm call no longer answers "No pending … confirmation found". A tool called over the plugin tool bus, as MCP calls it, is now the instance the plugin registered, so a confirmation it handed out is still pending when its confirm call arrives; before, each call built the plugin's tools afresh.
+
+- [#887](https://github.com/rizom-ai/brains/pull/887) [`4364e83`](https://github.com/rizom-ai/brains/commit/4364e8343764d3756625aeee92e81ea4f05ec0bf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web chat is a declarative interface. The Ask page, chat API, guest chat, uploads, streamed replies, job progress and tool statuses, the guest monitor in Studio and the guest-maintenance cycle work as before.
+
+  Web chat's `guest` setting stays unset when a brain leaves it out: unset still means guest chat is off with the owner's switch available, as before, and is now told apart from `false` in the parsed config rather than from the raw input. The canonical route manifests now list web chat's six guest API routes, which a running brain already served once web chat registered.
+
+## 0.2.0-alpha.671
+
+### Patch Changes
+
+- [#891](https://github.com/rizom-ai/brains/pull/891) [`c4dd7d8`](https://github.com/rizom-ai/brains/commit/c4dd7d8142917fda15b3174a5c5ef98afe42e411) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Starting a playbook or moving one to its next step lists only the other runs of that conversation, as `status` already did. Before, it listed every playbook run in the brain, including other people's conversations.
+
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- [#886](https://github.com/rizom-ai/brains/pull/886) [`6c32238`](https://github.com/rizom-ai/brains/commit/6c322386ff6612a5103b842cb59a2fb269a475af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A question asked in one language now finds writing saved in another. Matches across languages score lower, so a Dutch question about English posts could clear the relevance threshold only on a loosely related topic and report that nothing was written. Search now also runs with the question translated into the language the saved content is in.
+
+- [#857](https://github.com/rizom-ai/brains/pull/857) [`b48235b`](https://github.com/rizom-ai/brains/commit/b48235b1589bfcfe46398086b35a678ae0ac7863) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Public forms on a brain's site now run on one engine, and their submissions become the brain's own records. The contact form runs on it unchanged in its paths, copy and `?topic=` prefill, with two changes: contact requests are kept until the owner deletes them (the one-day expiry, the record and byte caps and the daily deletion are gone, and the form says a note is kept until it has been dealt with), and the owner's alert carries the request, each field under its label, with Reply-To the sender. Requests stored before keep working. The notifications contract and the email transport gain an optional `replyTo`.
+
+  A brain with a site can define forms in its content: a `form` entity, in the site bundle, holds a definition with steps of text, email, long-text, single-choice and multiple-choice fields, optional scored dimensions, its own limits and alert switch, and translations served at `/<lang>/<path>`. The package whose records a form produces serves it: contact for `contact-request`, and the new `quiz` capability (`add: [quiz]`) for `quiz-result`, a restricted record of each quiz taken that keeps the answers and results as the taker saw them, filed under its quiz, and an Inbox to-do only when the taker left an email. A multi-step form works without JavaScript and shows one step at a time with it; a scored form's thanks page shows its results through an opaque receipt.
+
+  Web routes may match by claim, per request, after exact and prefix routes; the site builder asks plugins for the pages they add to each build; and the site atlas finds the contact form by a new `contact-form` route role.
+
+## 0.2.0-alpha.669
+
+### Patch Changes
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`c945bbe`](https://github.com/rizom-ai/brains/commit/c945bbe7d5b3295bab4739ce0fe9d89f1b6d560d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Admin is a declarative service. It composes the same Administration workspace, with its People, Invitations, Peers and Audit tabs, aliases and badge, once every plugin has registered, and shows the same expiring-invitations widget, both read from the brain's auth backend. The canonical brain composes it under its class plugin id, `admin`.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`627e737`](https://github.com/rizom-ai/brains/commit/627e7374b002c79b611294026cd81e12a1b10bb1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service's tool can keep the bare name its class registered it under, such as `playbook_manage` or `inbox_list`, rather than one prefixed with the service's id, so agents, evals and the brain's own turn handling keep calling it by that name. The public `defineTool` still prefixes every tool.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`0e9c371`](https://github.com/rizom-ai/brains/commit/0e9c37109a1f724e8d9d2d25f991984e3f9adfb7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Playbooks are a declarative service that owns the playbook type. The `playbooks` capability installs both plugins it always had, `playbook` and `playbooks`; the separate `playbook` capability is folded into it, and a brain.yaml that still adds or removes `playbook` is warned about and otherwise ignored. A playbook is stored, updated and exported byte for byte as before, including the defaults it states for an unstated status, audience and completion mode, and onboarding's bundled playbooks seed as before. Stored runs, `playbook_manage`, the agent's context and actions, lifecycle starters and the `playbooks:goalCheck` eval are unchanged; a failed `playbook_manage` call keeps its message and now also carries its code.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`8410307`](https://github.com/rizom-ai/brains/commit/84103072596c3110bdea2b0ae9f68151385bc1b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the auth backend the brain bound through its internal runtime, when it asks, as its class read `context.auth.get()`; a brain without auth-service has none.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`a38fce9`](https://github.com/rizom-ai/brains/commit/a38fce9f7caf84cb066ea69a89ac339e9f942b03) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class keeps reading and writing the runtime state its class stored, under the namespace the class named, through its internal runtime, so the playbook runs stored before the conversion are the ones it reads after.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`b9e7e0e`](https://github.com/rizom-ai/brains/commit/b9e7e0e995136f085ac83777e353a890c3092a25) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers the eval handlers its class registered, under its plugin id, through its internal runtime, so the plugin evals that name them, such as `playbooks:goalCheck`, keep running them. A worker registers none.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`748d9ae`](https://github.com/rizom-ai/brains/commit/748d9aefc48b905359f04fcb02ff68c135452c94) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reaches its internal runtime from its tools, Dashboard widgets and Studio workspaces as well as from its subscriptions, so a service converted from a class can read what its class read while building what it serves.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`5ff8718`](https://github.com/rizom-ai/brains/commit/5ff8718130828bb97f269dc368e94e6b0336b68a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service answers a first-party contract that every owner answers and the asker gathers, such as `agent:context:request`, through its internal runtime, beside the other packages that answer it, as its class did.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`7ab4195`](https://github.com/rizom-ai/brains/commit/7ab419520b7e819e74560c558e68f790eef562c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the Inbox through its internal runtime, as its class did: the sources other plugins registered and the follow-ups their destinations resolve for an item, without registering any.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`0d3a9d1`](https://github.com/rizom-ai/brains/commit/0d3a9d164bdafb297697f9562d536cd30a298d71) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service asks the brain's judge for a bounded verdict and searches the brain at the scope each call names through its internal runtime, as its class did, so a playbook's goal check keeps judging a run against the whole brain.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`712c6f0`](https://github.com/rizom-ai/brains/commit/712c6f0d1eb6bc03ca1151393d8a03c5b74639f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service's listener is handed the sender the bus stamped on what it hears, as its class's subscriber was, so a playbook run records a reply as evidence only when the conversation service announced it.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`944a2e9`](https://github.com/rizom-ai/brains/commit/944a2e987f3d8809eff501e1c118f0bf4371ec1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service points people at what it serves through its internal runtime, as its class did: a recurring check under the plugin's id in every process, a way into the brain that a worker never offers, the URL Studio serves one of its workspaces at, the brain's site URL, and the route another plugin mounts for a well-known role.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`e7f818a`](https://github.com/rizom-ai/brains/commit/e7f818ae8ccedac4e1c77a6303512061a57f2ddb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service composes one Studio workspace from several declared ones through its internal runtime, as its class did: each is built under the plugin's id as a source the composed workspace loads, and the composed workspace registers with Studio once every plugin has registered, never in a worker and not without a Studio.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`1fa9643`](https://github.com/rizom-ai/brains/commit/1fa96431533689aaece338f942227f408cbb4eb9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service's tool reads the running call's conversation and its caller's permission level through its internal runtime, as its class's handler read them from the call, so a playbook run stays with the conversation that started it and the Inbox tool still refuses a caller below admin before reading any source.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`3f2d69c`](https://github.com/rizom-ai/brains/commit/3f2d69c7fb0fd60c37929e4a86459d975375526b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The unified inbox is a declarative service. It registers the same `inbox_list` tool, Inbox workspace, Dashboard widget, daily digest and Inbox way in, under its class plugin id, `unified-inbox`. A failed `inbox_list` call keeps its message and now also carries its code (`permission_denied`, `invalid_input` or `handler_failed`). The workspace and widget now register once every plugin has registered rather than once the brain is ready; the way in still appears once the brain is ready, pointing at the workspace's URL.
+
+- [#882](https://github.com/rizom-ai/brains/pull/882) [`bef2b69`](https://github.com/rizom-ai/brains/commit/bef2b6998b003700d0009d29b03878b004dbd010) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain.yaml `add` or `remove` entry that names no capability or interface of the brain is still ignored, so a brain that names a retired capability keeps booting, but the brain now logs a warning naming the entry and the capabilities and interfaces it knows, so a typo or a capability a release folded away no longer goes unnoticed.
+
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`2f28b39`](https://github.com/rizom-ai/brains/commit/2f28b39069b19d4f4402dd0a89f8ee8654e371b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party generation can carry a step that runs after it. Once the record is written, the step is given the id written and the title it was written with; when the generation fails, it is given the reason. Either way it gets the generation's input, the package's jobs and its retry scope, as an entity plugin class's generation handler queued its follow-up work.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`a693fbb`](https://github.com/rizom-ai/brains/commit/a693fbb93fabb45ec81c9eac2d0999c7d58f5da5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The blog is a declarative entity package, composed under its plugin id `blog`. Its templates, `blog:entities` and `blog:rss` data sources, `post:generation` job, evals, printable and social-card attachments, publish and social-card registrations and AT Protocol records are unchanged. A post reads back as its body, with its frontmatter as its metadata, and is stored, imported, exported and published byte for byte as before.
+
+  - **Feed:** `feed.xml` is now written through the declared feed and is byte-identical to before. If the feed cannot be written, the build reports "post feed generation failed" instead of "RSS feed generation failed".
+  - **From the writer's text:** a post written from the writer's text still gets its placeholder and is filled by `post:generation`, queued for the caller who asked. The job now carries the caller's authority; a job queued in the old shape still runs.
+  - **Generation reads:** a generation counts a post's place in its series, and reads the entries it is written from, at the scope the run reads at.
+  - **Newsletter email:** a newsletter sent when a post is published carries the post's body under its title. Before, subscribers also received the post's frontmatter, rendered as a rule and a heading.
+  - **Newsletter from posts:** a newsletter generated from posts summarizes each post from its excerpt, which a post's metadata now carries. Before, it took the first 500 characters of the stored document.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`9f41c3f`](https://github.com/rizom-ai/brains/commit/9f41c3f3a74c0d090d136a8284b8d065499cd437) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `blog:entities` no longer answers a `latest` query or a `metadata.seriesName` query: nothing sends either. It still serves paged post lists, and a post by its slug with its neighbors and the other posts in its series. The series page reads its posts through the series package.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`d21b5aa`](https://github.com/rizom-ai/brains/commit/d21b5aafa167f4629e981854d3d576bdbfb63cdb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity package's `configure` can now bind an entity's `publish` provider, `projectionRules`, `jobs` and `generation` from the package's config, as it binds `create` and `evals`. For example, a provider or a job can read an API token. A binding that names a slot `configure` does not bind is refused when the package is instantiated; before, it was silently ignored.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`a93eeae`](https://github.com/rizom-ai/brains/commit/a93eeae4702f2abb9ae0250d395665211f9fe5af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The content pipeline reads a published record's cover image, attachments, source and asset fields whichever way the record was read: from the frontmatter of a stored document, or from the metadata of a declared type, which reads back as its body. Before this, a declared record went out without its cover image, and its social card was rendered again on every publish even when it had one.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`7f230f0`](https://github.com/rizom-ai/brains/commit/7f230f0e28431bfdae7f126155dcdb73831375d6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party contract job can generate through the templates its type declares, as other declared jobs and the entity plugin classes' job handlers do. Before, it was refused.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`0c876b3`](https://github.com/rizom-ai/brains/commit/0c876b32a848645daa50b3f23df544e427e5b327) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type that declares no generation can answer its generation job name with a contract job, so jobs queued under that name by its entity plugin class still run. A plain job of that name, or a contract job beside a declared generation, is still refused.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`3addfc4`](https://github.com/rizom-ai/brains/commit/3addfc40845d60c09761ab9e43c74e66654580ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create route and its check can read who asked: the interface, the signed-in user and the channel, when there is one. The entity plugin classes' interceptors read the same from their execution context.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`c330741`](https://github.com/rizom-ai/brains/commit/c330741bdd21d031febdaad4cb254ddb8a2abbf7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The decks are a declarative entity package, composed under their plugin id `decks`, with the same templates, data source, `deck:generation` job, attachments, publish registration and AT Protocol records. A deck reads back as its slides, its frontmatter its metadata, and is stored, imported and exported byte for byte as before. Two readers move with it: a site reading a deck takes its frontmatter from its metadata, and a social post written from a deck or a post now names the source's title on its own line above the source's body, in place of the source's raw frontmatter.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`dd2e00b`](https://github.com/rizom-ai/brains/commit/dd2e00b5b76879bf1427377fca4066d684cdec14) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A deck imported without a slug is written, on its next update, with the slug in the place a stated slug goes, as the deck adapter wrote it. Before this, the declared deck kept the resolved slug last.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`1be03d9`](https://github.com/rizom-ai/brains/commit/1be03d98da0a4c52babdd42a8afe256a00ae51b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity type handed a whole document, as an import or an editor hands one, writes its frontmatter in the type's own order, as an entity plugin class's adapter did, and keeps the frontmatter the type does not write after it, instead of keeping the document's order.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`677bf53`](https://github.com/rizom-ai/brains/commit/677bf53efbc089731165177bafb2c054ead10099) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity's generation can ask to land under the next free id when the record it generates already has its id, as the entity plugin classes' generations did. It is internal to the brain's own packages; the public entity contract does not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`177b330`](https://github.com/rizom-ai/brains/commit/177b330e7c635c6e2f0caabac4c9f3c1303f4480) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity type's create route can delegate to the type's own generation by naming `generation`: the runtime queues it as the type's `{type}:generation` job for the caller who asked, filling the placeholder an allocation writes or, with nothing allocated, writing a new record. A type can no longer declare a job named `generation`.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`2dea52c`](https://github.com/rizom-ai/brains/commit/2dea52ca20146dbe00af33b9141ec69fdb7d5c9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync exports each entity as the entity store holds it, so a declared entity type's file keeps the frontmatter the type does not write, as it was imported.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`1578e54`](https://github.com/rizom-ai/brains/commit/1578e54443e2a04d6018cd344930f07898082497) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync imports a file whole, as an import through the entity service does, so a declared entity type keeps the frontmatter it does not write, such as a seed's `checksum`, in the stored record and the exported file.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`57a64d7`](https://github.com/rizom-ai/brains/commit/57a64d7ea89906aa1f7cedefad99b7c1b927cd49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type that keeps each file's own frontmatter order also keeps the record dates and ids a hand-written file states, where the file states them, as an entity plugin class's adapter kept them, so directory sync no longer rewrites such a file to drop its `created` and `updated` lines.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`179ae99`](https://github.com/rizom-ai/brains/commit/179ae990feed4878f9e45cbb7e1750c1550fae76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type can give its body a template, which the Obsidian vault uses as the scaffold for a new record, as an entity plugin class's body formatter gave one.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`a3b27ed`](https://github.com/rizom-ai/brains/commit/a3b27ed3b381e1d4e5e39c59b7e7571c06590e85) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type can answer a first-party bus contract under the channel it already has, as its entity plugin class answered it, reading and writing its own type as the package. It is internal to the brain's own packages; the public entity contract does not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`6fc2abc`](https://github.com/rizom-ai/brains/commit/6fc2abc31d0d557e301662480a4a939f840f94b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type whose stored document states more than its metadata did, such as a slug resolved from the title, now stores its metadata as that document states it. Later writes then read what the file says, as the entity plugin classes did.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`0765c12`](https://github.com/rizom-ai/brains/commit/0765c12b985549df3ed817373414225b0311530e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity definition's own declared jobs and generations reach the internal entity runtime too: the package's logger, the anchor's profile, one structured AI answer, nearest records, the package's own types, and read-only reads of every type at the run's scope, its requester's or the package's when the package queued it. Create routes and evals reach the logger and the profile as well. The public entity contract and entries do not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`6c34672`](https://github.com/rizom-ai/brains/commit/6c34672681e163bcd723b6e021a40dae5afb4607) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity definition's create routes, create checks, declared jobs, generations and evals can generate through a template their type declares, named locally and in the brain's voice when asked, as the entity plugin classes generated from their interceptors and job handlers. It is internal to the brain's own packages; the public entity contract does not change.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`cbf6598`](https://github.com/rizom-ai/brains/commit/cbf659825f575f276aeccdccfd7473dd9a3e9343) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type's eval can run the type's own generation in process, as the package, writing its record to the store and answering the job's result and progress, as an entity plugin class's eval ran its generation handler. The social media `create` eval keeps checking that a generated post is persisted.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`3be0acb`](https://github.com/rizom-ai/brains/commit/3be0acbfd3259d5234f54035c486c0c96dd70a74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared type's feed now writes the feed the blog has always written, byte for byte:
+
+  - The channel links the site URL as configured, and the feed's self link is that URL, a slash and the path.
+  - The document ends at its closing tag.
+  - No copyright line is written.
+  - When the site config gives no title or description, the channel takes the type's own (`title`, `description`), else "Feed" and "Latest updates".
+  - `toItem` is told which build it serves (`{ environment }`), so a production feed can leave out what is not ready, such as a published post without a date.
+
+  `routePrefix` is gone from `EntityFeedDeclaration`; a declaration that still passes it no longer typechecks.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`d27ac3a`](https://github.com/rizom-ai/brains/commit/d27ac3a8318fa72f86441de1935eb751eaa4afb9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A declared entity's generation still runs a job queued in its entity plugin class's raw input shape, such as one pending or retrying at an upgrade, as the package; queued data that names a requester is still held to its envelope.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`bfefbe5`](https://github.com/rizom-ai/brains/commit/bfefbe56024945fe2890425c0f3744f07b72eb35) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The links are a declarative entity package, composed under their plugin id `link`. Their templates, `link:entities` data source, `link:capture` and `link:generation` jobs, eval and AT Protocol records are unchanged. A link reads back as its summary, with its frontmatter as its metadata, and is stored, imported and exported byte for byte as before; a hand-written link file keeps its own frontmatter order.
+
+  - **Capture:** a link is captured from the URL a request names, its URL alone included: a pending link first, then `link:capture`, attributed to the caller as data processing in their channel. The job's metadata now also records the interface it was requested from (`requestedByInterface`).
+  - **Full documents:** a full link document given as content that validates is saved as written, under its URL's slug. The link plugin class meant to save it that way, but on the brain's store its save never validated and fell back to a capture of the document's URL. A document that does not validate is still captured from its URL, as before, and so is one whose id is taken.
+  - **Visibility mismatch:** a link that exists at another visibility than asked is answered with a failed create, as before.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`4418d19`](https://github.com/rizom-ai/brains/commit/4418d1953667e56c263de25410108acd096b5101) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type's publish provider can be built with the plugin's logger when it is handed to the publish pipeline, as an entity plugin class built its client with a child of its own logger, so a provider bound from the package's config logs where the plugin logs.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`c40ded5`](https://github.com/rizom-ai/brains/commit/c40ded58f4623ce2d97ff5440c18f1eded791c47) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The notes are a declarative entity package, composed under their plugin id `note`, with the same `note:generation` and `note:upload-import` jobs, `note:generation` template, `note:capture` answer, eval and AT Protocol records. A note reads back as its body, its frontmatter its metadata, and is stored, imported and exported byte for byte as before: a plain note stays plain, a stated title stays stated. A note's metadata may leave out its title, which it takes from the body, so Studio creates a note without one, as before.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`dd4d5fc`](https://github.com/rizom-ai/brains/commit/dd4d5fc23d3b5e9e49f625dedc6a7c6f784fe4df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Obsidian vault's fileClasses, templates and bases leave out the fields a type marks `studioWidget: "hidden"`: internal bookkeeping no one authors, which Studio's form already leaves out. These fields no longer appear in the vault:
+
+  - action-item: `conversationId`, `channelId`, `projectedBodyHash`, `projectedAssigneeHash`, `projectedDueDate`
+  - agent: `cardLastError`, `cardFailureCount`, `cardUnavailableAt`, `cardStaleAfter`
+  - decision: `conversationId`, `channelId`
+  - prompt: `slug`, `defaultHash`
+  - summary: `channelId`, `sourceHash`
+  - doc: `authoredSlug`
+  - wish: `slug`
+  - book: `continuations`
+  - email-reply-draft: `revision`, `providerDeliveryId`
+
+  The declared deck's `error` and `authoredSlug` stay out of it, as the deck plugin class's vault output had them.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`5822541`](https://github.com/rizom-ai/brains/commit/582254128982c274cd34a28c8309ac14881196d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The portfolio is a declarative entity package, composed under its plugin id `portfolio`, with the same templates, data source, `project:generation` job, eval, printable and social-card attachments, publish registration and AT Protocol records. A project reads back as its case study, its frontmatter its metadata, and is stored, imported and exported byte for byte as before; the vault still scaffolds a new project with its four sections. A prompt that names the year the project began still queues `project:generation` for the caller who asked. The job now carries the caller's authority, and a job queued in the old shape still runs.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`8a58048`](https://github.com/rizom-ai/brains/commit/8a58048244fef93eb289cd8519a576a5ad47fa20) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create route that queues its job for the caller can attribute it as data processing in the caller's channel, so the job's progress reaches the conversation that asked, as the link plugin class queued its capture.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`4508802`](https://github.com/rizom-ai/brains/commit/4508802c3e2c30940722996f4f5cb38a5be25a56) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create route's queued create can write its placeholder under the next free id, build its job's input from the placeholder as stored, and answer without a link, as an entity plugin's upload import did. It is internal to the brain's own packages; a queued create that asks for none of these behaves as before.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`b6fab58`](https://github.com/rizom-ai/brains/commit/b6fab584ee2049ff5bc3894cf2b44d798bd0729d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party create that queues a job for a record which already exists at another visibility now answers with a failed create naming both visibilities, as the entity plugin classes' interceptors did. Before, it threw. `system_create` already returned the same failure, but any other caller of the create got the thrown error.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`e909c5b`](https://github.com/rizom-ai/brains/commit/e909c5bd157820e41e11da01c407aa8a1eefafda) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Social posts are a declarative entity package, composed under their plugin id `social-media`. Their templates, `social-media:posts` data source, `social-post:generation` job, evals, LinkedIn publishing, the rule that drafts posts from queued blog posts and their AT Protocol records are unchanged. A post reads back as its text, with its frontmatter as its metadata, and is stored, imported and exported byte for byte as before.
+
+  - **Metadata:** a post's metadata now carries every frontmatter field, `coverImageId`, `documents`, `sourceEntityId` and `sourceEntityType` included, beside its slug and a failed publish's error.
+  - **Scheduled generation:** a scheduled social post skips a published blog post a social post was already written from. The plugin class looked for that in metadata that never carried the source, so every scheduled run could write another post from the same blog post. The run is queued as the `social-media` plugin rather than as `social-media-auto-generate`. Nothing to write from is reported as "No published post available to write a social-post from", where the class reported "No published posts available for social post generation" or "All recent posts already have social posts generated".
+  - **Drafts from blog posts:** the rule that drafts a LinkedIn post for a queued blog post writes it from the post's title and text (`Title:` line), as a declared blog post reads back as its body.
+  - **Progress:** a generation that queues its graphic no longer reports "Queueing image generation" as a step.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`98933b4`](https://github.com/rizom-ai/brains/commit/98933b4cbefb07b29cfe12f552a147b1005ae62f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity's generation can check that its title is free, and ask for another when it is taken, through the internal runtime it is handed, as the entity plugin classes' generations did. It is internal to the brain's own packages. The check now reads the taken title at the generation's own scope, its requester's or the package's, where the classes read at public scope: a title held by a record the requester can see but the public cannot is renamed, rather than its id deduplicated beside the hidden record.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`f1a30a2`](https://github.com/rizom-ai/brains/commit/f1a30a2dfcaf6efc53fb71e806cc4f60cca07cb6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type can decide a create from a URL alone, which is how `system_create` hands on a `source: { kind: "url" }` request. A URL that comes with content or a prompt still goes the way content or a prompt goes.
+
+- [#880](https://github.com/rizom-ai/brains/pull/880) [`f9a6d32`](https://github.com/rizom-ai/brains/commit/f9a6d325869b010e530afd310028e0855dc8c914) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type whose files people write by hand can keep each file's own frontmatter order. Written values land where the file has them, a nested value it writes unchanged keeps the file's key order, and a field the file lacks follows the rest, so directory sync leaves a file it only read as it was.
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- [#813](https://github.com/rizom-ai/brains/pull/813) [`d726625`](https://github.com/rizom-ai/brains/commit/d72662546b43ab95f286ca2a408bc85ab677e309) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain whose plugin set changed while a projection wave was still running now starts. Before, the next boot failed with `Projection wave "…" graph fingerprint does not match the finalized graph` and the web process exited before it was ready. The unfinished wave is now superseded: its inputs go back to the pending queue and a fresh wave plans them against the new plugin set. Jobs the old wave had queued for a removed plugin's rules finish as superseded instead of failing through their retries, including a job that a worker on the new plugin set picks up before any sweep has superseded the wave: that job supersedes the wave itself. In a brain with separate web and worker processes, the projection sweep no longer logs `Cannot claim projection wave while "…" is running` when the other process claimed the next wave first; it leaves that wave to the process that claimed it.
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- [#862](https://github.com/rizom-ai/brains/pull/862) [`5babad2`](https://github.com/rizom-ai/brains/commit/5babad2a69d023f8661f491af27447b43efd455a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A request to read, show or verify an entity reads it from storage in that turn: `system_get` says so, as `system_search` says to search afresh, since stored content can change outside the conversation.
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- [#881](https://github.com/rizom-ai/brains/pull/881) [`1ccda3f`](https://github.com/rizom-ai/brains/commit/1ccda3fbcfeb28c3d4973faf2facf5748fa82362) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_update` now reads a grouping or other frontmatter-extension field on a declared type, such as a doc or a wish, from the type's stored document. The confirmation shows the stored value, and the update keeps every other field the document carries. Before, the confirmation showed the stored value as absent and the update dropped the document's other grouping fields.
+
 ## 0.2.0-alpha.664
 
 ### Patch Changes

@@ -96,7 +96,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        OPENAI_API_KEY: "placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
         CANONICAL_HEADLESS_AI_SCENARIO: "read",
       },
@@ -136,17 +136,8 @@ plugins:
         { timeoutMs: 20_000, intervalMs: 100 },
       );
       expect(responseData["text"]).toBe(VERBATIM_NOTE_BODY);
-      expect(responseData["toolResults"]).toEqual([
-        expect.objectContaining({
-          toolName: "system_get",
-          args: { entityType: "note", id: "headless-proof" },
-          data: {
-            entity: expect.objectContaining({
-              content: VERBATIM_NOTE_BODY,
-            }),
-          },
-        }),
-      ]);
+      // The reply is the answer; the turn's raw tool results stay in the brain.
+      expect(responseData).not.toHaveProperty("toolResults");
     } finally {
       if (connected) await client.close();
       else await transport.close();
@@ -182,7 +173,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        OPENAI_API_KEY: "placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
         CANONICAL_HEADLESS_AI_SCENARIO: "write-confirm-read",
       },
@@ -247,9 +238,13 @@ plugins:
         }),
       );
       expect(confirmed["text"]).toContain("Completed");
-      expect(JSON.stringify(confirmed["toolResults"])).toContain(
-        "mcp-basic-evidence-note",
-      );
+      expect(confirmed).not.toHaveProperty("toolResults");
+      expect(confirmed["readYourWrites"]).toEqual([
+        expect.objectContaining({
+          toolName: "system_create",
+          entityId: "mcp-basic-evidence-note",
+        }),
+      ]);
 
       const retrieved = successData(
         await client.callTool({
@@ -312,7 +307,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        OPENAI_API_KEY: "placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
       },
       stderr: "pipe",
@@ -397,7 +392,7 @@ plugins:
       ).toBe(true);
       expect(stderr).not.toContain("Production server listening");
       expect(stderr).not.toContain(
-        "MCP HTTP transport requires the webserver interface",
+        "MCP HTTP transport requires the brain to serve HTTP",
       );
     } finally {
       if (connected) await client.close();

@@ -10,6 +10,7 @@ import type {
   SyncHandlerSource,
 } from "../src/lib/message-handlers";
 import { createPluginHarness } from "@brains/plugins/test";
+import { syncContextOn } from "./sync-runtime";
 import type { DirectorySyncStatus, GitSyncStatus } from "../src/types";
 
 /**
@@ -34,12 +35,15 @@ function fakeDirectorySync(
   return { getStatus: async () => status };
 }
 
-function setup(options: {
+async function setup(options: {
   directorySync: SyncHandlerSource;
   gitSync?: GitStatusSource;
-}): ReturnType<typeof createPluginHarness> {
+}): Promise<ReturnType<typeof createPluginHarness>> {
   const harness = createPluginHarness({ dataDir: "/tmp/test-sync-status" });
-  const context = harness.getServiceContext("directory-sync");
+  const context = await syncContextOn(
+    harness.getMockShell(),
+    harness.getServiceContext("directory-sync"),
+  );
 
   registerMessageHandlers(
     context,
@@ -78,7 +82,7 @@ describe("sync:path:request placement preview", () => {
   ])(
     "returns a pure verdict for %s/%s without registered types",
     async (entityType, entityId, owner, writable) => {
-      const harness = setup({ directorySync: fakeDirectorySync() });
+      const harness = await setup({ directorySync: fakeDirectorySync() });
       try {
         expect(
           directorySyncPathContract.response.parse(
@@ -96,7 +100,7 @@ describe("sync:path:request placement preview", () => {
     },
   );
   it("identifies the new filename segment without confusing it with the extension", async () => {
-    const harness = setup({ directorySync: fakeDirectorySync() });
+    const harness = await setup({ directorySync: fakeDirectorySync() });
     try {
       const result = directorySyncPathContract.response.parse(
         await harness.sendMessage(directorySyncPathContract.name, {
@@ -136,7 +140,7 @@ describe("sync:path:request placement preview", () => {
   ])(
     "previews %s/%s through directory-sync's existing placement rules",
     async (entityType, entityId, metadata, relativePath) => {
-      const harness = setup({ directorySync: fakeDirectorySync() });
+      const harness = await setup({ directorySync: fakeDirectorySync() });
       try {
         const result = directorySyncPathContract.response.parse(
           await harness.sendMessage(directorySyncPathContract.name, {
@@ -166,7 +170,7 @@ describe("sync:status:request message handler", () => {
       remote: "origin/main",
       files: [{ path: "post/hello.md", status: "M" }],
     };
-    const harness = setup({
+    const harness = await setup({
       directorySync: fakeDirectorySync({
         lastSync: new Date("2026-07-09T10:00:00.000Z"),
         watching: true,
@@ -196,7 +200,7 @@ describe("sync:status:request message handler", () => {
   });
 
   it("reports git: null when git sync is not enabled", async () => {
-    const harness = setup({ directorySync: fakeDirectorySync() });
+    const harness = await setup({ directorySync: fakeDirectorySync() });
 
     const result = directorySyncStatusContract.response.parse(
       await harness.sendMessage(directorySyncStatusContract.name, {}),
@@ -210,7 +214,7 @@ describe("sync:status:request message handler", () => {
   });
 
   it("degrades git to null when the git status query fails", async () => {
-    const harness = setup({
+    const harness = await setup({
       directorySync: fakeDirectorySync(),
       gitSync: {
         getStatus: async () => {
@@ -238,7 +242,7 @@ describe("sync:status:request message handler", () => {
       branch: "main",
       files: [],
     };
-    const harness = setup({
+    const harness = await setup({
       directorySync: fakeDirectorySync(),
       gitSync: { getStatus: async () => gitStatus },
     });

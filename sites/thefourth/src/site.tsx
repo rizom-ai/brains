@@ -8,6 +8,7 @@ import { actFour, actFourContent } from "./home/act-four";
 import { actThree, actThreeContent } from "./home/act-three";
 import { cover, coverContent } from "./home/cover";
 import { spellScript } from "./home/spell-script";
+import { formsCSS } from "./forms";
 import { chineseCSS, chineseFontScript } from "./languages";
 import { TheFourthLayout } from "./layout";
 import { keyholeScript, motionCSS, sparkScript } from "./motion";
@@ -73,6 +74,7 @@ export const theFourthSite: SiteDefinition = defineSite({
     actFourCSS +
     finaleCSS +
     motionCSS +
+    formsCSS +
     chineseCSS,
   headScripts: [chineseFontScript, spellScript, sparkScript, keyholeScript],
 });

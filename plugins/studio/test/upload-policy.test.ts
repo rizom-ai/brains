@@ -10,12 +10,12 @@ import type {
   CreateExecutionContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const trustedPrincipal: AuthPrincipal = {
   userId: "usr_uploader",
@@ -43,7 +43,7 @@ async function setup(): Promise<{
     },
   });
   shell.getPermissionService = (): PermissionService => permissions;
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   const auditEvents: AppendAuthAuditEventInput[] = [];
   const routes = createEditorRoutes({
     routePath: "/studio",

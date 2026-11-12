@@ -1,7 +1,7 @@
 import {
   GROUPING_MAX_PAGE_LIMIT,
   type EntityGroupingUsage,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { ApiError, type GroupingPage, type StudioApi } from "./api";
 import {

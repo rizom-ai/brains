@@ -22,7 +22,6 @@ import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import {
   hasActiveCapability,
-  hasActiveInterface,
   isActive,
   resolveBrainSelection,
   type PluginOverrides,
@@ -60,42 +59,19 @@ export { isScopedPackageRef };
 function applyPluginDefaults(
   pluginOverrides: PluginOverrides,
   options: {
-    webserverEnabled: boolean;
-    siteBuilderEnabled: boolean;
-    port: number | undefined;
+    httpEnabled: boolean;
     site: SitePackage | undefined;
     theme: string | undefined;
     anchor: NonNullable<BrainDefinition["anchor"]>;
     accountSettingsEncryptionKey: string | undefined;
   },
 ): void {
-  const {
-    webserverEnabled,
-    siteBuilderEnabled,
-    port,
-    site,
-    theme,
-    anchor,
-    accountSettingsEncryptionKey,
-  } = options;
-
-  if (webserverEnabled) {
-    const webserverExplicit = pluginOverrides["webserver"] ?? {};
-    const webserverDefaults: Record<string, unknown> = {
-      enablePreview: siteBuilderEnabled,
-      // brain.yaml's top-level port is the production server port.
-      ...(port !== undefined && { productionPort: port }),
-    };
-
-    pluginOverrides["webserver"] = deepMerge(
-      webserverDefaults,
-      webserverExplicit,
-    );
-  }
+  const { httpEnabled, site, theme, anchor, accountSettingsEncryptionKey } =
+    options;
 
   const mcpExplicit = pluginOverrides["mcp"] ?? {};
   pluginOverrides["mcp"] = deepMerge(
-    { transport: webserverEnabled ? "http" : "stdio" },
+    { transport: httpEnabled ? "http" : "stdio" },
     mcpExplicit,
   );
 
@@ -133,6 +109,23 @@ function applyPluginDefaults(
       dashboardExplicit,
     );
   }
+}
+
+/**
+ * Whether the runtime hosts HTTP for this brain: where its definition says
+ * so, or where a selected bundle does outside an eval run.
+ */
+function hostsHttp(
+  definition: BrainDefinition,
+  selection: ResolvedBrainSelection,
+  overrides: Omit<InstanceOverrides, "brain"> | undefined,
+): boolean {
+  if (definition.http === true) return true;
+  if (overrides?.mode === "eval") return false;
+  const active = new Set(selection.activeBundles);
+  return selection.bundleDefinitions.some(
+    (bundle) => bundle.http === true && active.has(bundle.id),
+  );
 }
 
 function instantiateCapabilities(
@@ -184,7 +177,7 @@ function instantiateInterfaces(
 ): Plugin[] {
   const interfaces: Plugin[] = [];
 
-  for (const [id, ctor, envMapper] of definition.interfaces) {
+  for (const [id, factory, envMapper] of definition.interfaces) {
     if (!isActive(selection.activeIds, id)) continue;
 
     const baseConfig = envMapper(env);
@@ -197,7 +190,7 @@ function instantiateInterfaces(
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(withBundle, override) : withBundle;
     try {
-      interfaces.push(new ctor(merged));
+      interfaces.push(...ensureArray(factory(merged)));
     } catch (error) {
       // Unset required values mean the brain does not configure this plugin;
       // an unknown or mistyped key is a broken brain.yaml and stops the start.
@@ -229,8 +222,6 @@ function buildIdentity(
 function buildDeployment(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
-  /** The port the webserver will actually listen on, once overrides apply. */
-  servedPort?: number,
 ): DeploymentConfigInput {
   const deployment: DeploymentConfigInput = {
     ...(definition.deployment ?? {}),
@@ -239,11 +230,11 @@ function buildDeployment(
   if (overrides?.domain) {
     deployment.domain = overrides.domain;
   }
-  const port = overrides?.port ?? servedPort;
-  if (port) {
+  // brain.yaml's top-level port is the port the HTTP host listens on.
+  if (overrides?.port) {
     deployment.ports = {
       ...(deployment.ports ?? {}),
-      production: port,
+      production: overrides.port,
     };
   }
 
@@ -348,6 +339,34 @@ function assertBundleContract(
   );
 }
 
+/**
+ * Name, in the log, each brain.yaml `add` or `remove` entry that names no
+ * capability or interface of this brain: the resolver ignores it, so a typo
+ * or a capability a release folded away would otherwise go unnoticed. It is
+ * not refused, so a deployed brain that names a retired capability still
+ * boots.
+ */
+function warnUnknownSelections(
+  definition: BrainDefinition,
+  overrides: Omit<InstanceOverrides, "brain"> | undefined,
+  logger: Logger | undefined,
+): void {
+  if (!logger) return;
+  const known = [
+    ...definition.capabilities.map(([id]) => id),
+    ...definition.interfaces.map(([id]) => id),
+  ];
+  const catalog = new Set(known);
+  for (const list of ["add", "remove"] as const) {
+    for (const member of overrides?.[list] ?? []) {
+      if (catalog.has(member)) continue;
+      logger.warn(
+        `brain.yaml ${list} names "${member}", which is not a capability or interface of this brain; it is ignored. Known: ${[...new Set(known)].sort().join(", ")}`,
+      );
+    }
+  }
+}
+
 function resolveRuntimeDefinition(
   definition: BrainDefinition,
   env: BrainEnvironment,
@@ -356,6 +375,7 @@ function resolveRuntimeDefinition(
 ): AppConfig {
   assertBundleContract(definition, overrides);
   const selection = resolveBrainSelection(definition, overrides);
+  warnUnknownSelections(definition, overrides, logger);
   const activeIds = selection.activeIds;
   const bundlePermissions = resolveBundlePermissionConfig(
     selection.bundleDefinitions,
@@ -369,11 +389,8 @@ function resolveRuntimeDefinition(
     overrides?.reasoningEffort ?? definition.reasoningEffort;
   const effectiveAnchor = overrides?.anchor ?? definition.anchor ?? "person";
   const effectiveProfileKind = overrides?.kind ?? definition.kind;
-  const webserverEnabled = hasActiveInterface(
-    definition,
-    activeIds,
-    "webserver",
-  );
+  const httpEnabled =
+    overrides?.http?.enabled ?? hostsHttp(definition, selection, overrides);
   const siteBuilderEnabled = hasActiveCapability(
     definition,
     activeIds,
@@ -387,9 +404,7 @@ function resolveRuntimeDefinition(
   const theme = resolveTheme(definition, overrides, site);
 
   applyPluginDefaults(pluginOverrides, {
-    webserverEnabled,
-    siteBuilderEnabled,
-    port: overrides?.port,
+    httpEnabled,
     site,
     theme,
     anchor: effectiveAnchor,
@@ -423,12 +438,7 @@ function resolveRuntimeDefinition(
   );
 
   const identity = buildIdentity(definition);
-  const servedPort = pluginOverrides["webserver"]?.["productionPort"];
-  const deployment = buildDeployment(
-    definition,
-    overrides,
-    typeof servedPort === "number" ? servedPort : undefined,
-  );
+  const deployment = buildDeployment(definition, overrides);
   const agentInstructions = [
     ...(definition.agentInstructions ?? []),
     ...selection.resolution.agentInstructions,
@@ -443,6 +453,15 @@ function resolveRuntimeDefinition(
     // AI config from environment + brain/instance model
     ...resolveAIConfig(env, {
       ...(effectiveModel && { model: effectiveModel }),
+      ...(overrides?.embeddingModel && {
+        embeddingModel: overrides.embeddingModel,
+      }),
+      ...(overrides?.modelRuntime && {
+        modelRuntimeUrl: overrides.modelRuntime.url,
+      }),
+      ...(overrides?.answerModel && { answerModel: overrides.answerModel }),
+      ...(overrides?.visionModel && { visionModel: overrides.visionModel }),
+      ...(overrides?.imageModel && { imageModel: overrides.imageModel }),
       ...(effectiveReasoningEffort && {
         reasoningEffort: effectiveReasoningEffort,
       }),
@@ -460,6 +479,11 @@ function resolveRuntimeDefinition(
     ),
     ...(overrides?.spaces ? { spaces: overrides.spaces } : {}),
     deployment,
+    http: {
+      ...overrides?.http,
+      enabled: httpEnabled,
+      preview: overrides?.http?.preview ?? siteBuilderEnabled,
+    },
     ...buildRuntimeOverrides(env, overrides),
   };
 

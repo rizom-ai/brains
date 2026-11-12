@@ -1,13 +1,13 @@
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { createServicePluginContext } from "@brains/plugins";
+import notePackage from "@brains/note";
+import { declaredType } from "../helpers/declared-type";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { registerGroupingDefinitions } from "@brains/studio/test";
+import { installStudioGroupings } from "@brains/studio/test";
 
 const commandSchema = z.object({
   id: z.number(),
@@ -21,7 +21,11 @@ const logger = createSilentLogger();
 const dbConfig = { url: `file:${dir}/entities.db` };
 await migrateEntities(dbConfig, logger);
 const registry = EntityRegistry.createFresh(logger);
-registry.registerEntityType("note", noteSchema, noteAdapter);
+{
+  // The declared note, as the canonical brain installs it.
+  const note = declaredType(notePackage, "@brains/note", "note");
+  registry.registerEntityType("note", note.schema, note.adapter);
+}
 const shell = createMockShell();
 const service = EntityService.createFresh({
   dbConfig,
@@ -31,18 +35,18 @@ const service = EntityService.createFresh({
   jobQueueService: shell.getJobQueueService(),
   embeddingsEnabled: false,
   embeddingService: {
-    dimensions: 1536,
-    generateEmbedding: async () => {
+    identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+    embedQuery: async () => {
       throw new Error("Unexpected embedding");
     },
-    generateEmbeddings: async () => {
+    embedDocuments: async () => {
       throw new Error("Unexpected embedding");
     },
   },
 });
 shell.getEntityRegistry = (): EntityRegistry => registry;
 shell.getEntityService = (): EntityService => service;
-registerGroupingDefinitions(createServicePluginContext(shell, "studio"));
+await installStudioGroupings(shell);
 await service.reprojectRegisteredGroupings();
 let paused = false;
 const project = registry.projectStoredMetadata.bind(registry);
@@ -96,6 +100,7 @@ async function execute(
     "",
   );
   const existing = await service.getEntityRaw({
+    source: true,
     entityType,
     id,
     visibilityScope: "shared",

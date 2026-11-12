@@ -1,5 +1,101 @@
 # @brains/typescript-config
 
+## 0.2.0-alpha.688
+
+No changes in this release.
+
+## 0.2.0-alpha.687
+
+No changes in this release.
+
+## 0.2.0-alpha.686
+
+No changes in this release.
+
+## 0.2.0-alpha.685
+
+No changes in this release.
+
+## 0.2.0-alpha.684
+
+No changes in this release.
+
+## 0.2.0-alpha.683
+
+No changes in this release.
+
+## 0.2.0-alpha.682
+
+No changes in this release.
+
+## 0.2.0-alpha.681
+
+No changes in this release.
+
+## 0.2.0-alpha.680
+
+No changes in this release.
+
+## 0.2.0-alpha.679
+
+No changes in this release.
+
+## 0.2.0-alpha.678
+
+No changes in this release.
+
+## 0.2.0-alpha.677
+
+No changes in this release.
+
+## 0.2.0-alpha.676
+
+No changes in this release.
+
+## 0.2.0-alpha.675
+
+No changes in this release.
+
+## 0.2.0-alpha.674
+
+No changes in this release.
+
+## 0.2.0-alpha.673
+
+No changes in this release.
+
+## 0.2.0-alpha.672
+
+No changes in this release.
+
+## 0.2.0-alpha.671
+
+No changes in this release.
+
+## 0.2.0-alpha.670
+
+No changes in this release.
+
+## 0.2.0-alpha.669
+
+No changes in this release.
+
+## 0.2.0-alpha.668
+
+No changes in this release.
+
+## 0.2.0-alpha.667
+
+No changes in this release.
+
+## 0.2.0-alpha.666
+
+No changes in this release.
+
+## 0.2.0-alpha.665
+
+No changes in this release.
+
 ## 0.2.0-alpha.664
 
 No changes in this release.

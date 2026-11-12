@@ -1,3 +1,4 @@
+import { createMailItemPlugin } from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import type {
@@ -9,7 +10,6 @@ import type {
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
   MailThreadOrdinalCoordinator,
   createMailItemProjection,
   mailItemAdapter,
@@ -150,7 +150,7 @@ async function setup(): Promise<{
   coordinator: MailThreadOrdinalCoordinator;
 }> {
   const harness = createPluginHarness();
-  await harness.installPlugin(new MailItemPlugin());
+  await harness.installPlugin(createMailItemPlugin());
   const entityService = harness.getEntityService();
   const listEntities = entityService.listEntities.bind(entityService);
   // The in-memory fake cannot sort by metadata fields, so emulate the

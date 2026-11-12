@@ -70,7 +70,7 @@ export async function judgeGuestQuestion(input: {
   try {
     const result = await generateText({
       model: input.model,
-      system: instruction,
+      instructions: instruction,
       prompt: `## Material\n${JSON.stringify(material, null, 2)}`,
       output: Output.object({ schema: verdictSchema }),
       ...(input.signal ? { abortSignal: input.signal } : {}),

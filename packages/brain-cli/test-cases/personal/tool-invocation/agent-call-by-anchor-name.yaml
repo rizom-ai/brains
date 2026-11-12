@@ -18,14 +18,14 @@ successCriteria:
     - toolName: agent_call
       shouldBeCalled: true
       argsContain:
-        agent: "yeehaa.io"
+        agent: "yeehaa.example"
     - toolName: agent_connect
       shouldBeCalled: false
   responseNotContains:
-    - "brain-labs.io"
+    - "brain-labs.example"
     - "wishlist"
     - "wish"
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 53000
+  maxTokens: 49000

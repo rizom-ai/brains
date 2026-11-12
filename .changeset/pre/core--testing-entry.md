@@ -2,7 +2,7 @@
 "@brains/app": patch
 "@brains/core": patch
 "@brains/plugins": patch
-"@brains/webserver": patch
+"@brains/http-host": patch
 "@rizom/brain": patch
 ---
 

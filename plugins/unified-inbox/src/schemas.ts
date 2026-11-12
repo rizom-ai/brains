@@ -1,3 +1,4 @@
+import type { InboxItem } from "@brains/sdk/entities";
 import {
   createListToolOutputSchema,
   inboxContactSchema,
@@ -11,10 +12,9 @@ import {
   inboxUrgencySchema,
   resolvedInboxFollowUpSchema,
   type InboxFacets,
-  type InboxItem,
   type InboxSource,
   type ListToolOutputSchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 

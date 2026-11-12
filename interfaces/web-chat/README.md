@@ -52,7 +52,7 @@ can lose its locators; this is not automatic credential or locator recovery.
 ## Public page composition
 
 The installed site owns `/ask` chrome. After guest admission, Web Chat returns a
-`SitePageResponse`: Webserver can serve the generated page at the same path from
+`SitePageResponse`: the HTTP host can serve the generated page at the same path from
 that host's active site output, retaining the handler's cache policy. Denials,
 redirects and ordinary authenticated responses never delegate to site output.
 Apps without a generated Ask page retain a headerless standalone fallback.

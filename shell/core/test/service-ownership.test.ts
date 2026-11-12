@@ -77,12 +77,12 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
 const logger = createSilentLogger("service-ownership");
 
 const embeddingService: IEmbeddingService = {
-  dimensions: 1536,
-  generateEmbedding: async () => ({
+  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+  embedQuery: async () => ({
     embedding: new Float32Array(1536).fill(0.1),
     usage: { tokens: 1 },
   }),
-  generateEmbeddings: async (texts) => ({
+  embedDocuments: async (texts) => ({
     embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
     usage: { tokens: texts.length },
   }),
@@ -98,7 +98,11 @@ function createTestConfig(dir: string): ShellConfigInput {
     runtimeStateDatabase: { url: `file:${dir}/runtime-state.db` },
     ai: {
       model: "claude-haiku-4-5",
-      apiKey: "test-key",
+      providerKeys: {
+        anthropic: "test-key",
+        openai: "test-key",
+        google: "test-key",
+      },
     },
     logging: { level: "error" },
   };

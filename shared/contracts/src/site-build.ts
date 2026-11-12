@@ -19,7 +19,7 @@ type SiteBuildRequestSchema = z.ZodObject<{ reason: z.ZodString }>;
  * Ask the site builder to build every environment it has built again, with
  * why, for the build log. Builds follow entity changes on their own; a plugin
  * sends this when a page renders from other state of its own that changed,
- * such as whether the homepage offers the Ask box. Nobody answers, and a
+ * such as whether the homepage offers the Ask box. It has no answer, and a
  * brain without a site builder ignores it.
  */
 export const siteBuildRequestContract: BusContract<
@@ -32,21 +32,6 @@ export const siteBuildRequestContract: BusContract<
   response: z.void(),
   delivery: "command",
 });
-
-/** Payload for the SITE_CHANNELS.buildCompleted broadcast. */
-export interface SiteBuildCompletedPayload {
-  outputDir: string;
-  environment: "preview" | "production";
-  routesBuilt: number;
-  siteConfig: {
-    title?: string | undefined;
-    description?: string | undefined;
-    url?: string | undefined;
-    copyright?: string | undefined;
-    themeMode?: "light" | "dark" | undefined;
-  };
-  generateEntityUrl: (entityType: string, slug: string) => string;
-}
 
 type EntityUrlGenerator = (entityType: string, slug: string) => string;
 type StagingFailureReporter = (detail: string) => void;

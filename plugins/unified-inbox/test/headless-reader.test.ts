@@ -4,7 +4,7 @@ import { MCPService } from "@brains/mcp-service";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 
-import { UnifiedInboxPlugin } from "../src";
+import { createUnifiedInboxPlugin } from "./unified-inbox-plugin";
 
 const textToolResponseSchema = z.object({
   content: z
@@ -14,16 +14,16 @@ const textToolResponseSchema = z.object({
 
 describe("unified inbox headless reader", () => {
   it("answers over the MCP protocol without browser plugins or sources", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       logContext: "unified-inbox-headless-test",
     });
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     const shell = harness.getMockShell();
-    expect(shell.hasPlugin("webserver")).toBe(false);
+    expect(shell.servesHttp()).toBe(false);
     expect(shell.hasPlugin("studio")).toBe(false);
     expect(shell.hasPlugin("dashboard")).toBe(false);
 

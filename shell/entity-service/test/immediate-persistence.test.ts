@@ -10,16 +10,14 @@ import {
 } from "./helpers/setup-entity-service";
 import { internalFullScope } from "../src/internal-scope";
 import type { EntityEventBus, EntityMutationEventContext } from "../src/types";
-
-interface CapturedEntityPayload extends Record<string, unknown> {
-  entityId?: unknown;
-  entity?: unknown;
-  previousMetadata?: Record<string, unknown>;
-}
+import {
+  entityChangePayloadSchema,
+  type EntityChangePayload,
+} from "../src/entity-event-channels";
 
 interface CapturedEntityEvent {
   type: string;
-  payload: CapturedEntityPayload;
+  payload: EntityChangePayload;
 }
 
 function createCapturingEventBus(): {
@@ -31,7 +29,10 @@ function createCapturingEventBus(): {
     events,
     eventBus: {
       send: async (request): Promise<{ success: true }> => {
-        events.push({ type: request.type, payload: request.payload });
+        events.push({
+          type: request.type,
+          payload: entityChangePayloadSchema.parse(request.payload),
+        });
         return { success: true };
       },
     },

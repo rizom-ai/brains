@@ -10,6 +10,8 @@ import type {
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
+import { scopeEntityReads } from "@brains/entity-service";
+import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
@@ -19,6 +21,8 @@ import {
   defineDataSource,
   defineEntity,
   defineEntityPackage,
+  baseEntitySchema,
+  entityRuntime,
   instantiatePluginPackageDefinition,
   type AnyDataSourceDeclaration,
   type AnyEntityDefinition,
@@ -429,6 +433,75 @@ describe("declared entity data sources", () => {
     }
   });
 
+  it("hands a first-party detail view untyped reads at the build's scope", async () => {
+    // A newsletter issue links the posts it was written from by the type its
+    // frontmatter names, which no definition of its package declares.
+    const linked = defineDataSource({
+      id: "bookmarks",
+      name: "Bookmarks",
+      description: "Shows one bookmark and the note it names",
+      entity: bookmark,
+      defaultSort: [{ field: "title", direction: "asc" }],
+      transform: (entity) => ({ title: entity.metadata.title }),
+      list: (items) => ({ titles: items.map(({ title }) => title) }),
+      detail: async (context) => {
+        const note = await entityRuntime(context).anyEntities.getEntity({
+          entityType: "note",
+          id: "linked-note",
+        });
+        return { title: context.item.title, note: note?.content ?? null };
+      },
+    });
+    const { harness } = await install([bookmark], [linked]);
+    try {
+      await seedBookmarks(harness);
+      harness
+        .getEntityRegistry()
+        .registerEntityType(
+          "note",
+          baseEntitySchema,
+          createTestEntityAdapter("note"),
+        );
+      const entities = harness.getEntityService();
+      await entities.createEntity({
+        entity: {
+          id: "linked-note",
+          entityType: "note",
+          content: "A public note",
+          metadata: {},
+        },
+      });
+      const detail = z.object({
+        title: z.string(),
+        note: z.string().nullable(),
+      });
+      const source = registered(harness, "@fixture/reading:bookmarks");
+      expect(
+        await source.fetch?.({ query: { id: "first" } }, detail, {
+          entityService: entities,
+        }),
+      ).toEqual({ title: "First", note: "A public note" });
+      // At the build's scope: a restricted note stays out of a public build.
+      const note = await entities.getEntity({
+        entityType: "note",
+        id: "linked-note",
+      });
+      if (!note) throw new Error("The note was not created");
+      await entities.updateEntity({
+        entity: { ...note, visibility: "restricted" },
+      });
+      expect(
+        await source.fetch?.({ query: { id: "first" } }, detail, {
+          entityService: scopeEntityReads(entities, {
+            visibilityScope: "public",
+          }),
+        }),
+      ).toEqual({ title: "First", note: null });
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("refuses a detail query when it declares no detail view", async () => {
     const { harness } = await install(
       [bookmark],
@@ -494,9 +567,11 @@ describe("declared feeds", () => {
     metadata: bookmarkMetadata,
     feed: {
       path: "reading/bookmarks.xml",
-      routePrefix: "bookmarks",
-      toItem: (entity) =>
-        entity.metadata.title === "Skip"
+      title: "Bookmarks",
+      description: "Saved pages",
+      toItem: (entity, { environment }) =>
+        entity.metadata.title === "Skip" ||
+        (environment === "production" && entity.metadata.title === "Third")
           ? null
           : {
               title: entity.metadata.title,
@@ -512,6 +587,11 @@ describe("declared feeds", () => {
   function stage(
     harness: Harness,
     environment: "preview" | "production",
+    siteConfig: Record<string, string> = {
+      title: "Reader",
+      url: "https://reader.example/",
+      copyright: "(c) Reader",
+    },
   ): Promise<unknown> {
     return harness.sendMessage(
       siteBuildStagingContract.name,
@@ -519,7 +599,7 @@ describe("declared feeds", () => {
         outputDir,
         environment,
         routesBuilt: 1,
-        siteConfig: { title: "Reader", url: "https://reader.example/" },
+        siteConfig,
         generateEntityUrl: (entityType: string, slug: string): string =>
           `/${entityType}s/${slug}`,
         reportFailure: (detail: string): void => {
@@ -551,14 +631,20 @@ describe("declared feeds", () => {
       );
       expect(failures).toEqual([]);
       expect(xml).toContain("<title>Reader</title>");
-      expect(xml).toContain("<link>https://reader.example/bookmarks</link>");
+      // The channel links the site as configured, and the feed hangs off it,
+      // as the blog plugin class wrote its feed.
+      expect(xml).toContain("<link>https://reader.example/</link>");
       expect(xml).toContain(
-        '<atom:link href="https://reader.example/reading/bookmarks.xml"',
+        '<atom:link href="https://reader.example//reading/bookmarks.xml"',
       );
       expect(xml).toContain(
         "<link>https://reader.example/bookmarks/first</link>",
       );
       expect(xml).not.toContain("/bookmarks/second<");
+      // A production build leaves out what the type says is not ready.
+      expect(xml).not.toContain("/bookmarks/third<");
+      expect(xml).not.toContain("<copyright>");
+      expect(xml.endsWith("</rss>")).toBe(true);
     } finally {
       await harness.reset();
     }
@@ -574,6 +660,27 @@ describe("declared feeds", () => {
         "utf8",
       );
       expect(xml).toContain("/bookmarks/second<");
+      expect(xml).toContain("/bookmarks/third<");
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("titles the channel from the type when the site gives no title", async () => {
+    const { harness } = await install([bookmark]);
+    try {
+      await seedBookmarks(harness);
+      await stage(harness, "production", { url: "https://reader.example" });
+      const xml = await readFile(
+        join(outputDir, "reading/bookmarks.xml"),
+        "utf8",
+      );
+      expect(xml).toContain("<title>Bookmarks</title>");
+      expect(xml).toContain("<description>Saved pages</description>");
+      expect(xml).toContain("<link>https://reader.example</link>");
+      expect(xml).toContain(
+        '<atom:link href="https://reader.example/reading/bookmarks.xml"',
+      );
     } finally {
       await harness.reset();
     }
@@ -607,7 +714,6 @@ describe("declared feeds", () => {
       metadata: bookmarkMetadata,
       feed: {
         path: "bookmarks.xml",
-        routePrefix: "bookmarks",
         toItem: (entity) => ({
           title: "",
           slug: entity.metadata.slug,
@@ -661,7 +767,6 @@ describe("declared feeds", () => {
               metadata: bookmarkMetadata,
               feed: {
                 path,
-                routePrefix: "bookmarks",
                 toItem: () => null,
               },
             }),

@@ -1,6 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { internalFullScope } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import {
+  type ContentVisibility,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { ExportResult } from "../types";
 
@@ -19,6 +22,7 @@ export interface ExportPipelineDeps {
       options?: {
         limit?: number;
         filter?: { visibilityScope?: ContentVisibility };
+        source?: true;
       };
     }): Promise<BaseEntity[]>;
     deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
@@ -52,6 +56,9 @@ export async function exportEntities(
       entityType: entityType,
       options: {
         limit: 1000,
+        // As stored: a declared type reads back its body alone, and the file
+        // is its stored document, frontmatter it does not write included.
+        source: true,
         filter: {
           visibilityScope: internalFullScope(
             "directory sync exports entities across all visibility tiers",

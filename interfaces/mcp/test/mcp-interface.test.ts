@@ -1,7 +1,8 @@
 import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { McpServer } from "@modelcontextprotocol/server";
-import { MCPInterface } from "../src/mcp-interface";
+import { createMcpPlugin } from "./mcp-plugin";
+import type { Plugin, WebRouteDefinition } from "@brains/plugins";
 import { FatalPluginConfigurationError } from "@brains/plugins";
 import {
   createMockAuthBackend,
@@ -9,6 +10,12 @@ import {
 } from "@brains/plugins/test";
 import type { IMCPService } from "@brains/mcp-service";
 import { createSilentLogger } from "@brains/test-utils";
+
+function routesOf(plugin: Plugin): WebRouteDefinition[] {
+  return "getWebRoutes" in plugin && typeof plugin.getWebRoutes === "function"
+    ? plugin.getWebRoutes()
+    : [];
+}
 
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -41,14 +48,8 @@ describe("MCPInterface", () => {
     return calls;
   }
 
-  function installWebserverPlugin(): void {
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+  function serveHttp(): void {
+    harness.getMockShell().serveHttp();
   }
 
   beforeEach(() => {
@@ -63,18 +64,18 @@ describe("MCPInterface", () => {
 
   describe("initialization", () => {
     it("should create instance with default config", () => {
-      const plugin = new MCPInterface();
+      const plugin = createMcpPlugin();
       expect(plugin.id).toBe("mcp");
       expect(plugin.packageName).toBe("@brains/mcp");
     });
 
     it("should create instance with stdio transport", () => {
-      const plugin = new MCPInterface({ transport: "stdio" });
+      const plugin = createMcpPlugin({ transport: "stdio" });
       expect(plugin.id).toBe("mcp");
     });
 
     it("should create instance with http transport", () => {
-      const plugin = new MCPInterface({
+      const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 3001,
       });
@@ -87,7 +88,7 @@ describe("MCPInterface", () => {
       "registers the same protocol without hosting %s",
       async (transport) => {
         const calls = installMockHttpTransport();
-        const hosted = new MCPInterface({ transport });
+        const hosted = createMcpPlugin({ transport });
         const protocol = hosted.createProtocolPlugin();
         const capabilities = await harness.installPlugin(protocol);
 
@@ -96,38 +97,43 @@ describe("MCPInterface", () => {
           "confirm",
         ]);
         expect(protocol.id).toBe("mcp");
-        expect(protocol.getWebRoutes()).toEqual([]);
+        expect(routesOf(protocol)).toEqual([]);
         expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([]);
         expect(harness.getMockShell().listEndpoints()).toEqual([]);
         expect(harness.getMockShell().listInteractions()).toEqual([]);
         expect(calls.protocolModes).toEqual(["basic"]);
         expect(calls.permissionLevels).toEqual([]);
         // Protocol-only registration does not change the original host config.
-        expect(hosted.getWebRoutes()).toHaveLength(
-          transport === "http" ? 5 : 0,
-        );
+        const hostHarness = createPluginHarness({
+          logger: createSilentLogger("mcp-test"),
+        });
+        hostHarness.getMockShell().serveHttp();
+        await hostHarness.installPlugin(hosted);
+        expect(routesOf(hosted)).toHaveLength(transport === "http" ? 5 : 0);
       },
     );
 
     it("preserves protocol mode without carrying HTTP authentication or routes", async () => {
       const calls = installMockHttpTransport();
-      const protocol = new MCPInterface({
+      const protocol = createMcpPlugin({
         transport: "http",
         mode: "debug",
         authToken: "host-only-secret",
       }).createProtocolPlugin();
       await harness.installPlugin(protocol);
       expect(calls.protocolModes).toEqual(["debug"]);
-      expect(protocol.getWebRoutes()).toEqual([]);
+      expect(routesOf(protocol)).toEqual([]);
       expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([]);
     });
   });
 
   describe("shared web routes", () => {
-    it("should expose shared-host routes for HTTP transport", () => {
-      const plugin = new MCPInterface({ transport: "http", httpPort: 3001 });
+    it("should expose shared-host routes for HTTP transport", async () => {
+      serveHttp();
+      const plugin = createMcpPlugin({ transport: "http", httpPort: 3001 });
+      await harness.installPlugin(plugin);
 
-      const routes = plugin.getWebRoutes();
+      const routes = routesOf(plugin);
       expect(routes).toHaveLength(5);
       expect(routes).toEqual(
         expect.arrayContaining([
@@ -140,16 +146,17 @@ describe("MCPInterface", () => {
       );
     });
 
-    it("should expose no shared-host routes for stdio transport", () => {
-      const plugin = new MCPInterface({ transport: "stdio" });
-      expect(plugin.getWebRoutes()).toEqual([]);
+    it("should expose no shared-host routes for stdio transport", async () => {
+      const plugin = createMcpPlugin({ transport: "stdio" });
+      await harness.installPlugin(plugin);
+      expect(routesOf(plugin)).toEqual([]);
     });
 
     it("should proxy shared-host status route to the MCP HTTP transport", async () => {
       installMockHttpTransport();
-      installWebserverPlugin();
+      serveHttp();
 
-      const plugin = new MCPInterface({
+      const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 3001,
         authToken: "test-token",
@@ -157,9 +164,9 @@ describe("MCPInterface", () => {
       await harness.installPlugin(plugin);
       await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
 
-      const route = plugin
-        .getWebRoutes()
-        .find((candidate) => candidate.path === "/status");
+      const route = routesOf(plugin).find(
+        (candidate) => candidate.path === "/status",
+      );
 
       expect(route).toBeDefined();
       if (!route) {
@@ -175,7 +182,7 @@ describe("MCPInterface", () => {
 
   describe("registration", () => {
     it("should register with stdio transport and admin permissions", async () => {
-      const plugin = new MCPInterface({ transport: "stdio" });
+      const plugin = createMcpPlugin({ transport: "stdio" });
 
       const capabilities = await harness.installPlugin(plugin);
 
@@ -190,8 +197,8 @@ describe("MCPInterface", () => {
     });
 
     it("should register with http transport and admin permissions", async () => {
-      installWebserverPlugin();
-      const plugin = new MCPInterface({ transport: "http" });
+      serveHttp();
+      const plugin = createMcpPlugin({ transport: "http" });
 
       const capabilities = await harness.installPlugin(plugin);
 
@@ -209,7 +216,7 @@ describe("MCPInterface", () => {
     // Routes for each transport are covered under "shared web routes"; these
     // cover the endpoint the transport advertises, which stdio has none of.
     it("advertises no MCP endpoint on stdio transport", async () => {
-      const plugin = new MCPInterface({ transport: "stdio" });
+      const plugin = createMcpPlugin({ transport: "stdio" });
 
       await harness.installPlugin(plugin);
 
@@ -222,8 +229,8 @@ describe("MCPInterface", () => {
     });
 
     it("advertises the /mcp endpoint on http transport", async () => {
-      installWebserverPlugin();
-      const plugin = new MCPInterface({ transport: "http" });
+      serveHttp();
+      const plugin = createMcpPlugin({ transport: "http" });
 
       await harness.installPlugin(plugin);
 
@@ -238,7 +245,7 @@ describe("MCPInterface", () => {
 
   describe("daemon management", () => {
     it("should create daemon for lifecycle management", async () => {
-      const plugin = new MCPInterface({ transport: "stdio" });
+      const plugin = createMcpPlugin({ transport: "stdio" });
 
       await harness.installPlugin(plugin);
 
@@ -248,8 +255,8 @@ describe("MCPInterface", () => {
 
     it("should pass the configured protocol mode to the MCP transport", async () => {
       const calls = installMockHttpTransport();
-      installWebserverPlugin();
-      const plugin = new MCPInterface({
+      serveHttp();
+      const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 3001,
         authToken: "test-token",
@@ -265,8 +272,8 @@ describe("MCPInterface", () => {
 
     it("should reject debug mode for unauthenticated HTTP transport", async () => {
       installMockHttpTransport();
-      installWebserverPlugin();
-      const plugin = new MCPInterface({
+      serveHttp();
+      const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 3001,
         mode: "debug",
@@ -302,13 +309,13 @@ describe("MCPInterface", () => {
           logger: createSilentLogger("mcp-test"),
           production: true,
         });
-        installWebserverPlugin();
+        serveHttp();
         return harness;
       }
 
       it("is refused by a production brain with a boot-fatal error", async () => {
         const productionHarness = createProductionHarness();
-        const plugin = new MCPInterface({
+        const plugin = createMcpPlugin({
           transport: "http",
           authToken: "static-token",
         });
@@ -331,7 +338,7 @@ describe("MCPInterface", () => {
           .getMockShell()
           .getAuthRegistry()
           .bindBackend(createMockAuthBackend());
-        const plugin = new MCPInterface({ transport: "http" });
+        const plugin = createMcpPlugin({ transport: "http" });
 
         const capabilities = await productionHarness.installPlugin(plugin);
 
@@ -342,8 +349,8 @@ describe("MCPInterface", () => {
       });
 
       it("keeps working outside production", async () => {
-        installWebserverPlugin();
-        const plugin = new MCPInterface({
+        serveHttp();
+        const plugin = createMcpPlugin({
           transport: "http",
           authToken: "static-token",
         });
@@ -357,15 +364,15 @@ describe("MCPInterface", () => {
       });
     });
 
-    it("should require webserver for http transport", async () => {
-      const plugin = new MCPInterface({
+    it("should require the brain to serve HTTP for http transport", async () => {
+      const plugin = createMcpPlugin({
         transport: "http",
         httpPort: 0,
         authToken: "test-token",
       });
 
       return expect(harness.installPlugin(plugin)).rejects.toThrow(
-        "MCP HTTP transport requires the webserver interface",
+        "MCP HTTP transport requires the brain to serve HTTP (http.enabled)",
       );
     });
   });

@@ -1,362 +1,78 @@
-# @brains/site-builder
+# @brains/site-builder-plugin
 
-Static site generation plugin for Brain applications.
+The brain's static site: the routes it serves, the templates that fill them,
+and the builds that write them out to the directories the runtime's HTTP host
+serves.
 
-## Overview
+## Composition
 
-This plugin generates static websites from Brain entities, enabling you to publish your knowledge base as a browsable website. It supports themes, custom templates, and various output formats.
+Site-builder is a declarative service. The canonical brain composes it as the
+`site-builder` capability, under the plugin id `site-builder`; a brain
+configures it in `brain.yaml` under `plugins.site-builder`, and a site package
+supplies its layouts, routes and templates. The package default-exports the
+definition; `createSiteBuilderPackage({ onSetup })` hands a test the pipeline
+it builds.
+
+## What it registers
+
+- **Tool:** `site-builder_build-site` (admin, CLI `build`) requests a
+  debounced build of the preview or production site.
+- **Job:** `site-builder:site-build`, one build at a time with a 30-minute
+  deadline. It renders every route with the brain's layouts and templates,
+  records the outcome in its build status, and writes the output the HTTP
+  host serves.
+- **Resources:** `brain://site` (the site's metadata, domain and URLs),
+  `site://routes` and `site://templates`.
+- **Data source:** `site:navigation`, the navigation items of one slot, which
+  site menus and footers read.
+- **Templates:** the templates the brain's config names, under
+  `site-builder:<name>`.
+- **Contracts:** it answers the route contracts other packages declare their
+  pages over and list them with, in every process, and gathers each
+  package's head scripts, pages and layout slots when a build runs.
+- **Static site output:** the production, preview and shared images
+  directories it writes, which the runtime's HTTP host serves.
+
+## Builds
+
+A build is requested by the tool, the Studio workspace, and, with
+`autoRebuild`, when a projection wave changes any type but notes. Once
+startup content settles, every environment that already has output is built
+again, since a start may bring new renderer code. Preview includes public
+drafts; production includes published public content only.
 
 ## Operator surfaces
 
-When the optional Studio is installed, site-builder registers a **Site** workspace with separate Preview and Live status, bounded recent results, route inventory, **Build preview**, and confirmed **Update live site** actions. The Studio remains independent when site-builder is absent.
+When Studio is installed, site-builder registers a **Site** workspace once
+the brain is ready, with separate Preview and Live status, bounded recent
+results, the route inventory, **Build preview**, and a confirmed **Update
+live site** action, and takes it off Studio when it shuts down.
 
-When Dashboard is installed, site-builder adds a read-only site-health rail to the **Publishing** tab beside the primary publication pipeline. It reports preview/live health and links to the Studio workspace when available; build controls remain in Studio, tools, and chat.
+When the Dashboard is installed, site-builder adds a read-only site-health
+widget to the **Publishing** tab. It reports preview and live health; build
+controls stay in Studio, the tool and chat.
 
-Build status is a site-builder-owned projection stored in runtime state. Preview includes public drafts, while production includes published public content only.
-
-## Features
-
-- Static site generation from entities
-- Multiple theme support
-- Custom templates (Handlebars)
-- Markdown to HTML conversion
-- Syntax highlighting
-- RSS/Atom feeds
-- Sitemap generation
-- Search index creation
-- Asset optimization
-
-## Installation
-
-```bash
-bun add @brains/site-builder
-```
-
-## Usage
-
-```typescript
-import { SiteBuilderPlugin } from "@brains/site-builder";
-
-const plugin = new SiteBuilderPlugin({
-  outputDir: "./dist",
-  baseUrl: "https://yourbrain.com",
-  theme: "default",
-  entities: {
-    types: ["note", "article"],
-    published: true,
-  },
-});
-
-// Register with shell
-await shell.registerPlugin(plugin);
-
-// Build site
-await shell.execute("site:build");
-```
+Build status is a site-builder-owned projection stored in runtime state.
 
 ## Configuration
 
-```typescript
-interface SiteBuilderConfig {
-  outputDir: string; // Output directory
-  baseUrl: string; // Site base URL
-  theme?: string; // Theme name
-  title?: string; // Site title
-  description?: string; // Site description
-  entities?: EntityFilter; // Entities to include
-  templates?: string; // Custom templates dir
-  assets?: string; // Assets directory
-  buildOptions?: BuildOptions;
-}
-
-interface EntityFilter {
-  types?: string[]; // Entity types to include
-  tags?: string[]; // Required tags
-  published?: boolean; // Only published entities
-  dateRange?: {
-    from?: Date;
-    to?: Date;
-  };
-}
-```
-
-## Themes
-
-### Built-in Themes
-
-```typescript
-// Minimal theme
-const plugin = new SiteBuilderPlugin({
-  theme: "minimal",
-});
-
-// Blog theme
-const plugin = new SiteBuilderPlugin({
-  theme: "blog",
-});
-
-// Documentation theme
-const plugin = new SiteBuilderPlugin({
-  theme: "docs",
-});
-```
-
-### Custom Theme
-
-Create custom themes:
-
-```
-themes/my-theme/
-├── templates/
-│   ├── layouts/
-│   │   └── default.hbs
-│   ├── partials/
-│   │   ├── header.hbs
-│   │   └── footer.hbs
-│   ├── index.hbs
-│   ├── entity.hbs
-│   └── archive.hbs
-├── assets/
-│   ├── css/
-│   ├── js/
-│   └── images/
-└── theme.json
-```
-
-## Templates
-
-### Handlebars Templates
-
-```handlebars
-{{!-- layouts/default.hbs --}}
-<!DOCTYPE html>
-<html>
-<head>
-  <title>{{title}} - {{site.title}}</title>
-  <link rel="stylesheet" href="/assets/style.css">
-</head>
-<body>
-  {{> header}}
-  <main>
-    {{{content}}}
-  </main>
-  {{> footer}}
-</body>
-</html>
-```
-
-### Template Variables
-
-Available in templates:
-
-```handlebars
-{{site.title}}
-{{! Site title }}
-{{site.description}}
-{{! Site description }}
-{{site.baseUrl}}
-{{! Base URL }}
-
-{{entity.id}}
-{{! Entity ID }}
-{{entity.title}}
-{{! Entity title }}
-{{entity.content}}
-{{! Rendered content }}
-{{entity.tags}}
-{{! Entity tags }}
-{{entity.created}}
-{{! Creation date }}
-{{entity.updated}}
-{{! Update date }}
-
-{{#each entities}}
-  {{! Entity list }}
-  {{this.title}}
-{{/each}}
-```
-
-## Build Process
-
-### Commands
-
-```typescript
-// Build site
-await shell.execute("site:build");
-
-// Build with watch mode
-await shell.execute("site:build", { watch: true });
-
-// Clean build
-await shell.execute("site:clean");
-
-// Preview site
-await shell.execute("site:preview", { port: 8080 });
-```
-
-### Build Options
-
-```typescript
-const plugin = new SiteBuilderPlugin({
-  buildOptions: {
-    minify: true, // Minify HTML/CSS/JS
-    optimizeImages: true, // Optimize images
-    generateSitemap: true, // Create sitemap.xml
-    generateRSS: true, // Create RSS feed
-    generateSearch: true, // Create search index
-  },
-});
-```
-
-## Content Processing
-
-### Markdown Rendering
-
-```typescript
-const plugin = new SiteBuilderPlugin({
-  markdown: {
-    gfm: true, // GitHub Flavored Markdown
-    breaks: true, // Convert \n to <br>
-    highlight: true, // Syntax highlighting
-    linkify: true, // Auto-link URLs
-  },
-});
-```
-
-### Syntax Highlighting
-
-```typescript
-const plugin = new SiteBuilderPlugin({
-  highlight: {
-    theme: "github-dark",
-    languages: ["js", "ts", "python", "rust"],
-  },
-});
-```
-
-## RSS/Atom Feeds
-
-Automatic feed generation:
-
-```xml
-<!-- /feed.xml -->
-<rss version="2.0">
-  <channel>
-    <title>Your Brain</title>
-    <link>https://yourbrain.com</link>
-    <description>Personal Knowledge Base</description>
-    <item>
-      <title>Article Title</title>
-      <link>https://yourbrain.com/article-slug</link>
-      <pubDate>Wed, 01 Jan 2024 00:00:00 GMT</pubDate>
-    </item>
-  </channel>
-</rss>
-```
-
-## Search
-
-Client-side search with Lunr.js:
-
-```javascript
-// Generated search index
-const searchIndex = {
-  documents: [...],
-  index: {...}
-};
-
-// Search implementation
-const results = searchIndex.search("query");
-```
-
-## Asset Pipeline
-
-### CSS Processing
-
-```typescript
-const plugin = new SiteBuilderPlugin({
-  css: {
-    postcss: true,
-    tailwind: true,
-    purge: true, // Remove unused CSS
-  },
-});
-```
-
-### Image Optimization
-
-```typescript
-const plugin = new SiteBuilderPlugin({
-  images: {
-    formats: ["webp", "avif"],
-    sizes: [640, 1280, 1920],
-    lazy: true,
-  },
-});
-```
-
-## Deployment
-
-### Static Hosting
-
-Deploy to various platforms:
-
-```bash
-# Netlify
-netlify deploy --dir=dist
-
-# Vercel
-vercel --prod dist
-
-# GitHub Pages
-gh-pages -d dist
-
-# S3
-aws s3 sync dist/ s3://your-bucket
-```
-
-### Build Hooks
-
-```typescript
-plugin.on("build:start", () => {
-  console.log("Building site...");
-});
-
-plugin.on("build:complete", (stats) => {
-  console.log(`Built ${stats.pages} pages in ${stats.time}ms`);
-});
-```
-
-## Testing
-
-```typescript
-import { SiteBuilderPlugin } from "@brains/site-builder";
-import { createTestSite } from "@brains/site-builder/test";
-
-const site = await createTestSite({
-  entities: [
-    { title: "Page 1", content: "Content 1" },
-    { title: "Page 2", content: "Content 2" },
-  ],
-});
-
-const plugin = new SiteBuilderPlugin({
-  outputDir: site.outputDir,
-});
-
-await plugin.build();
-
-// Verify output
-expect(site.exists("index.html")).toBe(true);
-```
-
-## Exports
-
-- `SiteBuilderPlugin` - Main plugin class
-- `TemplateEngine` - Handlebars wrapper
-- `MarkdownRenderer` - Markdown processor
-- `AssetPipeline` - Asset optimization
-- Theme and template utilities
+| Key                   | Default                  | Meaning                                                     |
+| --------------------- | ------------------------ | ----------------------------------------------------------- |
+| `previewOutputDir`    | `./dist/site-preview`    | Where preview builds are written                            |
+| `productionOutputDir` | `./dist/site-production` | Where production builds are written                         |
+| `sharedImagesDir`     | `./dist/images`          | Optimized images both builds share                          |
+| `workingDir`          | `./.react-work`          | Working directory for builds                                |
+| `siteInfo`            | `Brain`                  | Fallback site metadata when site-info answers none          |
+| `themeCSS`            | none                     | Theme CSS injected into every build                         |
+| `headScripts`         | `[]`                     | Scripts injected into every page head                       |
+| `analyticsScript`     | none                     | The older analytics script, when no head script replaces it |
+| `templates`           | none                     | Templates to register                                       |
+| `routes`              | none                     | Routes to register                                          |
+| `layouts`             | none                     | Layout components (`default` required to render a route)    |
+| `autoRebuild`         | `true`                   | Rebuild when content changes                                |
+| `rebuildDebounce`     | `5000`                   | Milliseconds to wait before an automatic rebuild            |
+| `staticAssets`        | none                     | Inline static assets a site package supplies                |
+| `languages`           | none                     | The site's languages, the first its default                 |
 
 ## License
 

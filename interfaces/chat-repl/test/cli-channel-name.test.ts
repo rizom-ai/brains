@@ -1,22 +1,20 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { CLIInterface } from "../src/cli-interface";
+import { startTerminal, type Terminal } from "./terminal";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { ChatContext } from "@brains/plugins";
+import { createExternalActorId } from "@brains/contracts";
 
-type MockAgentService = Parameters<
-  PluginTestHarness<CLIInterface>["setAgentService"]
->[0];
+type MockAgentService = Parameters<PluginTestHarness["setAgentService"]>[0];
 type MockAgentResponse = Awaited<ReturnType<MockAgentService["chat"]>>;
 
 describe("CLI Interface - Agent Context Integration", () => {
-  let cliInterface: CLIInterface;
-  let harness: PluginTestHarness<CLIInterface>;
+  let terminal: Terminal;
+  let harness: PluginTestHarness;
   let chatMock: ReturnType<typeof mock>;
 
   beforeEach(async () => {
-    harness = createPluginHarness<CLIInterface>();
-    cliInterface = new CLIInterface();
+    harness = createPluginHarness();
 
     // Create a mock AgentService to capture the chat context
     chatMock = mock().mockImplementation(
@@ -40,12 +38,12 @@ describe("CLI Interface - Agent Context Integration", () => {
     };
 
     harness.setAgentService(mockAgentService);
-    await harness.installPlugin(cliInterface);
+    terminal = await startTerminal(harness);
   });
 
   it("should pass 'CLI Terminal' as channel name when chatting with agent", async () => {
     // Process input which should call agent
-    await cliInterface.processInput("Hello world");
+    await terminal.processInput("Hello world");
 
     // What the CLI hands the agent service is the contract under test.
     expect(chatMock).toHaveBeenCalledWith(
@@ -59,11 +57,32 @@ describe("CLI Interface - Agent Context Integration", () => {
     );
   });
 
+  it("names the operator at the terminal as the speaker", async () => {
+    await terminal.processInput("Hello world");
+
+    // Without a speaker, work the turn queues runs as the brain's own agent,
+    // at no grant of its own, and a post's generation is refused.
+    expect(chatMock).toHaveBeenCalledWith(
+      "Hello world",
+      "cli",
+      expect.objectContaining({
+        actor: {
+          identity: {
+            kind: "external",
+            externalActorId: createExternalActorId("cli", "operator"),
+          },
+          interfaceType: "cli",
+          role: "user",
+        },
+      }),
+    );
+  });
+
   it("should use same conversation ID for all messages in session", async () => {
     // Process multiple inputs
-    await cliInterface.processInput("First message");
-    await cliInterface.processInput("Second message");
-    await cliInterface.processInput("Third message");
+    await terminal.processInput("First message");
+    await terminal.processInput("Second message");
+    await terminal.processInput("Third message");
 
     // All calls should use the same conversation ID
     expect(chatMock).toHaveBeenCalledTimes(3);

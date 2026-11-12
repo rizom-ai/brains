@@ -1,32 +1,27 @@
 import {
   MessageUploadContinuity,
   type ChatAttachment,
-  type InterfacePluginContext,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
+import type { ChatHost } from "./chat-host";
 import {
   chatAttachmentFromStoredUpload,
   type AgentInput,
 } from "./chat-input-builder";
 import type { ChatPlatform } from "./types";
-import {
-  canonicalChatUploadRefKind,
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-  createSlackChatUploadStoreScope,
-} from "./upload-store";
+import { canonicalChatUploadRefKind } from "./upload-store";
 
 interface ChatUploadCoordinatorDeps {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
   };
 }
 
 /**
- * Owns upload-store selection and cross-turn upload continuity for every Chat
- * SDK platform. Platform upload stores remain isolated; prior uploads are
- * restored from the canonical runtime upload store.
+ * Owns the upload store and cross-turn upload continuity for every Chat SDK
+ * platform: uploads are kept in, and prior uploads restored from, the
+ * runtime's shared upload store.
  */
 export class ChatUploadCoordinator {
   private readonly deps: ChatUploadCoordinatorDeps;
@@ -48,19 +43,7 @@ export class ChatUploadCoordinator {
   }
 
   getCanonicalStore(): ScopedRuntimeUploadStore | undefined {
-    return this.deps
-      .getContext()
-      ?.uploads.scoped(createCanonicalChatUploadStoreScope());
-  }
-
-  getPlatformStore(
-    platform: ChatPlatform,
-  ): ScopedRuntimeUploadStore | undefined {
-    const scope =
-      platform === "discord"
-        ? createDiscordChatUploadStoreScope()
-        : createSlackChatUploadStoreScope();
-    return this.deps.getContext()?.uploads.scoped(scope);
+    return this.deps.getContext()?.sharedUploads();
   }
 
   async selectPriorUploads(input: {

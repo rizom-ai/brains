@@ -88,6 +88,8 @@ function createSeededSystemServices(
 
 /** Every upload ref reads as the PDF `brief.pdf`. */
 const briefPdfUploads: MockServices["runtimeUploads"] = {
+  // No retired namespace holds anything here.
+  retire: async (): Promise<boolean> => false,
   scoped: () => ({
     readRecord: async (id: string) => ({
       id,

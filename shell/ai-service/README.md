@@ -19,7 +19,7 @@ import { AIService } from "@brains/ai-service";
 
 const aiService = AIService.getInstance(
   {
-    apiKey: process.env.AI_API_KEY,
+    providerKeys: { anthropic: process.env.ANTHROPIC_API_KEY },
     model: "claude-haiku-4-5",
   },
   logger,

@@ -1,4 +1,4 @@
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
 /**

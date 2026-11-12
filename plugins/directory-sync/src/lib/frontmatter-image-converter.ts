@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
 import { z } from "@brains/utils/zod";
@@ -65,12 +65,12 @@ export interface CoverImageDetection {
  * 3. Replaces coverImage with coverImageId in the frontmatter
  */
 export class FrontmatterImageConverter {
-  private entityService: EntityServiceClient;
+  private entityService: ServiceEntityMirrorClient;
   private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
-    entityService: EntityServiceClient,
+    entityService: ServiceEntityMirrorClient,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {

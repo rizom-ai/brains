@@ -44,12 +44,14 @@ export const mediaBundle: CapabilityBundleDefinition = defineBundle({
 
 export const automationBundle: CapabilityBundleDefinition = defineBundle({
   id: AUTOMATION_BUNDLE_ID,
-  members: ["playbook", "playbooks", "onboarding"],
+  members: ["playbooks", "onboarding"],
 });
 
 export const webBundle: CapabilityBundleDefinition = defineBundle({
   id: WEB_BUNDLE_ID,
-  members: ["webserver", "auth-service", "admin", "dashboard", "studio"],
+  members: ["auth-service", "admin", "dashboard", "studio"],
+  // The runtime serves the web surface, health and the built site over HTTP.
+  http: true,
   config: [{ member: "dashboard", value: { routePath: "/" } }],
   permissions: [
     {
@@ -70,7 +72,7 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
       },
     },
   ],
-  evalDisable: ["webserver", "dashboard"],
+  evalDisable: ["dashboard"],
 });
 
 export const chatBundle: CapabilityBundleDefinition = defineBundle({
@@ -99,7 +101,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
 
 export const siteBundle: CapabilityBundleDefinition = defineBundle({
   id: SITE_BUNDLE_ID,
-  members: ["site-info", "site-content", "site-builder", "analytics"],
+  members: ["site-info", "site-content", "site-builder", "form", "analytics"],
   config: [
     {
       member: "dashboard",

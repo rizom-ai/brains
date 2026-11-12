@@ -1,3 +1,4 @@
+import { siteContentDepsOf } from "../site-content-deps";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentService } from "../../src/lib/site-content-service";
@@ -38,7 +39,7 @@ describe("SiteContentService", () => {
     context = createMockServicePluginContext();
     context.messaging.answer(siteBuilderRoutesContract, async () => testRoutes);
 
-    service = new SiteContentService(context);
+    service = new SiteContentService(siteContentDepsOf(context));
   });
 
   describe("generateContent", () => {
@@ -58,6 +59,7 @@ describe("SiteContentService", () => {
           { jobId: "job-1", routeId: "landing", sectionId: "hero" },
           { jobId: "job-2", routeId: "landing", sectionId: "features" },
         ],
+        planned: [],
         totalSections: 2,
         queuedSections: 2,
         batchId: "batch-123",
@@ -84,6 +86,7 @@ describe("SiteContentService", () => {
           { jobId: "job-1", routeId: "landing", sectionId: "hero" },
           { jobId: "job-2", routeId: "landing", sectionId: "features" },
         ],
+        planned: [],
         totalSections: 2,
         queuedSections: 2,
         batchId: "batch-123",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { resolveRuntimeSyncPath } from "../src/plugin";
+import { resolveRuntimeSyncPath } from "../src/service";
 
 describe("directory-sync runtime checkout path", () => {
   it("uses the broker-owned absolute checkout instead of resolving a relative shell default again", () => {

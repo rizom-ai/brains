@@ -22,7 +22,6 @@ import {
   TopicMergeSynthesizer,
   type ITopicMergeSynthesizer,
 } from "./topic-merge-synthesizer";
-import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
 import { topicBatchSourcePolicy } from "./topic-source-policy";
 
 /**
@@ -82,10 +81,6 @@ export interface ExtractTopicsBatchedResult {
  * `additionalCandidates` so a later topic in the same run can merge with one
  * created earlier — covering the gap where embeddings for fresh writes are
  * still queued in the background.
- *
- * Emits `TOPICS_BATCH_COMPLETED_EVENT` once at the end when any topic was
- * created or merged, so downstream subscribers can react to the wave rather
- * than per topic.
  */
 export async function extractTopicsBatched(
   entities: BaseEntity[],
@@ -307,14 +302,6 @@ export async function extractTopicsBatched(
     }),
     ...(outcome.failedItems > 0 && { failedItems: outcome.failedItems }),
   };
-
-  if (outcome.created > 0 || outcome.merged > 0) {
-    await context.messaging.send({
-      type: TOPICS_BATCH_COMPLETED_EVENT,
-      payload: summary,
-      broadcast: true,
-    });
-  }
 
   return summary;
 }
