@@ -1485,8 +1485,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
   /**
    * The declared Inbox in the shape the Inbox reads. Listing reads as the
-   * package; opening and acting read as the actor, and acting writes only
-   * through edits the actor is allowed.
+   * package; opening and acting are refused below admin, read as the actor,
+   * and acting writes only through edits the actor is allowed.
    */
   private inboxSource(
     context: EntityPluginContext,
@@ -1503,6 +1503,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         records: this.records(context, scope),
         entities: createEntityReader(context.entityService, scope),
       };
+    };
+    // An Inbox item is the operator's to open and act on, whichever surface
+    // reaches it, so the source itself refuses anyone below admin.
+    const requireAdmin = (actor: InboxActor): void => {
+      if (actor.permissionLevel !== "admin") {
+        throw new Error(`${declared.displayName} requires admin permission`);
+      }
     };
     const resolveDetail = declared.resolveDetail?.bind(declared);
     return {
@@ -1525,18 +1532,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           itemId: string,
           actor: InboxActor,
           signal: AbortSignal,
-        ): Promise<InboxItemDetail> =>
-          resolveDetail(itemId, Object.freeze({ ...asActor(actor), signal })),
+        ): Promise<InboxItemDetail> => {
+          requireAdmin(actor);
+          return resolveDetail(
+            itemId,
+            Object.freeze({ ...asActor(actor), signal }),
+          );
+        },
       }),
-      act: (itemId: string, actionId: string, actor: InboxActor) =>
-        declared.act(
+      act: async (
+        itemId: string,
+        actionId: string,
+        actor: InboxActor,
+      ): Promise<void> => {
+        requireAdmin(actor);
+        return declared.act(
           itemId,
           actionId,
           Object.freeze({
             ...asActor(actor),
             edits: this.inboxEdits(context, actor),
           }),
-        ),
+        );
+      },
     };
   }
 
