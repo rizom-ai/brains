@@ -1,5 +1,9 @@
 # @brains/http-signatures
 
+## 0.2.0-alpha.690
+
+No changes in this release.
+
 ## 0.2.0-alpha.689
 
 No changes in this release.

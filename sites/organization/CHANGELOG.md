@@ -1,5 +1,21 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.690
+
+### Patch Changes
+
+- [#810](https://github.com/rizom-ai/brains/pull/810) [`ffb6f42`](https://github.com/rizom-ai/brains/commit/ffb6f4213aeb8714012eb8b9550b5c40bacfabff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The organization site keeps its publishing archives out of the main navigation: series, projects, social posts, newsletters and summaries are listed in the footer, so an organization brain with the publishing bundle no longer gets a top bar link for each of them. Social posts are labelled "Social Posts" instead of "Social-posts".
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.690
+  - @brains/faq@0.2.0-alpha.690
+  - @rizom/brain-ui@0.2.0-alpha.690
+  - @brains/profile@0.2.0-alpha.690
+  - @brains/site-atlas@0.2.0-alpha.690
+  - @brains/site-composition@0.2.0-alpha.690
+  - @brains/utils@0.2.0-alpha.690
+  - @brains/plugins@0.2.0-alpha.690
+  - @brains/templates@0.2.0-alpha.690
+
 ## 0.2.0-alpha.689
 
 ### Patch Changes
