@@ -36,7 +36,7 @@ export interface ResolvedCohort {
   bundlesOverride?: CanonicalBundleId[];
   addOverride?: string[];
   removeOverride?: string[];
-  aiApiKeyOverride?: string;
+  openaiApiKeyOverride?: string;
   gitSyncTokenOverride?: string;
 }
 
@@ -125,7 +125,7 @@ export interface ResolvedUserIdentity {
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
   discordAnchorUserId?: string;
-  effectiveAiApiKey: string;
+  effectiveOpenaiApiKey: string;
   effectiveGitSyncToken: string;
   setup?: ResolvedSetupDelivery;
   atproto?: ResolvedAtprotoConfig;
@@ -185,7 +185,7 @@ export async function loadPilotRegistry(
         bundlesOverride: cohortFile.data.bundlesOverride,
         addOverride: cohortFile.data.addOverride,
         removeOverride: cohortFile.data.removeOverride,
-        aiApiKeyOverride: cohortFile.data.aiApiKeyOverride,
+        openaiApiKeyOverride: cohortFile.data.openaiApiKeyOverride,
         gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride,
       }),
     }))
@@ -274,8 +274,10 @@ export function resolveUserIdentity(
     }),
     discordEnabled: user.discord.enabled,
     ...definedFields({ discordAnchorUserId: user.discord.anchorUserId }),
-    effectiveAiApiKey:
-      user.aiApiKeyOverride ?? cohort.data.aiApiKeyOverride ?? pilot.aiApiKey,
+    effectiveOpenaiApiKey:
+      user.openaiApiKeyOverride ??
+      cohort.data.openaiApiKeyOverride ??
+      pilot.openaiApiKey,
     effectiveGitSyncToken:
       user.gitSyncTokenOverride ??
       cohort.data.gitSyncTokenOverride ??

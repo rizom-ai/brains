@@ -7,7 +7,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
-import { resolveProviderKey } from "./multi-model";
+import { readProviderKeys } from "@brains/ai-service";
 import { prepareEvalEnvironment } from "./eval-environment";
 import { runEvalSession } from "./eval-session";
 import {
@@ -185,12 +185,8 @@ export async function runMultiModelEvaluation(
 function createJudgeAiService(judge: string | undefined): IAIService {
   // LLM judge — uses explicit judge model from YAML, or defaults to anthropic.
   const judgeModel = judge ?? "claude-haiku-4-5";
-  const judgeKey = resolveProviderKey(judgeModel, process.env);
   return AIService.createFresh(
-    {
-      ...(judgeKey ? { apiKey: judgeKey } : {}),
-      model: judgeModel,
-    },
+    { providerKeys: readProviderKeys(process.env), model: judgeModel },
     ConsoleLogger.getInstance(),
   );
 }
@@ -206,11 +202,6 @@ async function runSingleModelIteration(
       ? ` (sample ${sampleIndex + 1}/${options.samples})`
       : "";
   console.log(`\n▶ Model: ${model}${sampleLabel}\n${"─".repeat(40)}`);
-
-  const providerKey = resolveProviderKey(model, process.env);
-  if (providerKey) {
-    process.env["AI_API_KEY"] = providerKey;
-  }
 
   const evalDbBase = prepareEvalEnvironment({
     brainModelPath: options.brainModelPath,

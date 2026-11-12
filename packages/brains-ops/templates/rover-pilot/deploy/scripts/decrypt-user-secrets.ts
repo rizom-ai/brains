@@ -18,7 +18,7 @@ const plaintext = await decrypter.decrypt(decoded, "text");
 const secrets = parseStringYamlMapping(plaintext);
 const pilot = parseStringYamlMapping(readFileSync("pilot.yaml", "utf8"));
 
-writeSecretGitHubEnv("AI_API_KEY", secrets["aiApiKey"]);
+writeSecretGitHubEnv("OPENAI_API_KEY", secrets["openaiApiKey"]);
 writeSecretGitHubEnv("GIT_SYNC_TOKEN", secrets["gitSyncToken"]);
 writeSecretGitHubEnv(
   "STUDIO_CONTENT_REPO_PAT",
@@ -63,8 +63,8 @@ function assertPemShape(name: string, value: string | undefined): void {
 }
 
 writeGitHubOutput(
-  "shared_ai_api_key_secret_name",
-  requireFlatValue(pilot, "aiApiKey", "pilot.yaml"),
+  "shared_openai_api_key_secret_name",
+  requireFlatValue(pilot, "openaiApiKey", "pilot.yaml"),
 );
 writeGitHubOutput(
   "shared_git_sync_token_secret_name",

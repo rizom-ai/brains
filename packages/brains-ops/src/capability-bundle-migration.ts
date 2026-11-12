@@ -1,3 +1,4 @@
+import { renameProviderKeyFields } from "./provider-key-migration";
 import { parseYamlDocument } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import { isMap, parseDocument } from "yaml";
@@ -129,6 +130,7 @@ export function migrateCanonicalPilotYaml(
 
   document.set("bundleContract", CAPABILITY_BUNDLE_CONTRACT);
   document.set("bundles", review.targetBundles);
+  renameProviderKeyFields(document);
   pilotSchema.parse(document.toJS());
   return document.toString({ lineWidth: 0 });
 }
@@ -156,6 +158,7 @@ export function migrateCanonicalCohortYaml(
     assertReviewedSource(`cohort ${cohortId}`, source.bundlesOverride, review);
     document.set("bundlesOverride", review.targetBundles);
   }
+  renameProviderKeyFields(document);
 
   cohortSchema.parse(document.toJS());
   return document.toString({ lineWidth: 0 });

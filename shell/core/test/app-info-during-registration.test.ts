@@ -85,7 +85,11 @@ it("reports the configured embedding model", async () => {
     plugins: [reader],
     ai: {
       model: "claude-haiku-4-5",
-      apiKey: "test-key",
+      providerKeys: {
+        anthropic: "test-key",
+        openai: "test-key",
+        google: "test-key",
+      },
       embeddingModel: "openai:text-embedding-3-large",
     },
   });

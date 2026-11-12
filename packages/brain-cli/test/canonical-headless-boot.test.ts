@@ -96,7 +96,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        OPENAI_API_KEY: "placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
         CANONICAL_HEADLESS_AI_SCENARIO: "read",
       },
@@ -173,7 +173,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        OPENAI_API_KEY: "placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
         CANONICAL_HEADLESS_AI_SCENARIO: "write-confirm-read",
       },
@@ -307,7 +307,7 @@ plugins:
       cwd: instanceDirectory,
       env: {
         ...getDefaultEnvironment(),
-        AI_API_KEY: "placeholder-headless-test",
+        OPENAI_API_KEY: "placeholder-headless-test",
         XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
       },
       stderr: "pipe",

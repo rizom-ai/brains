@@ -185,7 +185,7 @@ ollama pull embeddinggemma-2:270m
 ollama serve
 ```
 
-A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`.
+A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without a provider key.
 
 ```sh
 ollama pull qwen3:14b
@@ -331,7 +331,7 @@ plugins:
     botToken: ${DISCORD_BOT_TOKEN}
 ```
 
-Common variables include `AI_API_KEY`, `AI_IMAGE_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
+Common variables include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
 
 ## Recipes
 

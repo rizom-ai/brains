@@ -2,6 +2,7 @@ import {
   DEFAULT_EMBEDDING_MODEL,
   findEmbeddingProfile,
   isSupportedTextModel,
+  providerKeysSchema,
   selectImageProvider,
   selectTextProvider,
   unsupportedEmbeddingModelMessage,
@@ -88,8 +89,7 @@ export const shellConfigSchema: z.ZodObject<{
   runtimeStateDatabase: typeof dbConfigSchema;
   embeddingDatabase: typeof dbConfigSchema;
   ai: z.ZodObject<{
-    apiKey: z.ZodDefault<z.ZodString>;
-    imageApiKey: z.ZodOptional<z.ZodString>;
+    providerKeys: z.ZodDefault<typeof providerKeysSchema>;
     model: z.ZodString;
     embeddingModel: z.ZodDefault<z.ZodString>;
     modelRuntimeUrl: z.ZodOptional<z.ZodString>;
@@ -142,9 +142,8 @@ export const shellConfigSchema: z.ZodObject<{
 
   ai: z
     .object({
-      /** Absent when the AI provider is configured later or not at all. */
-      apiKey: z.string().default(""),
-      imageApiKey: z.string().optional(),
+      /** Each provider's key; empty when none is configured yet. */
+      providerKeys: providerKeysSchema.default({}),
       model: z.string().refine(isSupportedTextModel, {
         error: (issue) => `Unsupported model "${String(issue.input)}"`,
       }),

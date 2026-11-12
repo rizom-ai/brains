@@ -127,7 +127,12 @@ for (const model of ["gpt-6-luna", "openai:gpt-6-luna"]) {
   it(`sends low reasoning without temperature for text generation (${model})`, async () => {
     const requests = captureRequests("Answer");
     const service = AIService.createFresh(
-      { apiKey: "test-key", model, reasoningEffort: "low", temperature: 0.7 },
+      {
+        providerKeys: { openai: "test-key" },
+        model,
+        reasoningEffort: "low",
+        temperature: 0.7,
+      },
       createSilentLogger(),
     );
     expect((await service.generateText("System", "Question")).text).toBe(
@@ -142,7 +147,11 @@ it("does not force a non-reasoning model when effort is inherited", async () => 
   const requests = captureRequests("Answer");
   const warnings = captureWarnings();
   const service = AIService.createFresh(
-    { apiKey: "test-key", model: "gpt-4o-mini", reasoningEffort: "low" },
+    {
+      providerKeys: { openai: "test-key" },
+      model: "gpt-4o-mini",
+      reasoningEffort: "low",
+    },
     createSilentLogger(),
   );
   expect((await service.generateText("System", "Question")).text).toBe(
@@ -160,7 +169,11 @@ it("does not force a non-reasoning model when effort is inherited", async () => 
 it("sends low reasoning without temperature for structured generation", async () => {
   const requests = captureRequests('{"answer":"Answer"}');
   const service = AIService.createFresh(
-    { apiKey: "test-key", model: "gpt-6-luna", reasoningEffort: "low" },
+    {
+      providerKeys: { openai: "test-key" },
+      model: "gpt-6-luna",
+      reasoningEffort: "low",
+    },
     createSilentLogger(),
   );
   expect(
@@ -183,7 +196,7 @@ for (const guest of [false, true]) {
       // gpt-4o-mini cannot reason: the provider warns and drops the effort.
       captureWarnings();
       const service = AIService.createFresh(
-        { apiKey: "test-key", model },
+        { providerKeys: { openai: "test-key" }, model },
         createSilentLogger(),
       );
       const agent = createBrainAgentFactory({
@@ -246,7 +259,7 @@ for (const guest of [false, true]) {
       }),
     };
     const service = AIService.createFresh(
-      { apiKey: "test-key", model: "gpt-6-luna" },
+      { providerKeys: { openai: "test-key" }, model: "gpt-6-luna" },
       createSilentLogger(),
     );
     const agent = createBrainAgentFactory({
@@ -307,7 +320,7 @@ it("holds an OpenAI model to each tool's strict schema", async () => {
     handler: async () => ({ success: true as const, data: {} }),
   };
   const service = AIService.createFresh(
-    { apiKey: "test-key", model: "gpt-6-luna" },
+    { providerKeys: { openai: "test-key" }, model: "gpt-6-luna" },
     createSilentLogger(),
   );
   const agent = createBrainAgentFactory({

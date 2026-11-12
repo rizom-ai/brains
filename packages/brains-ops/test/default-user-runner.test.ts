@@ -16,7 +16,7 @@ const baseUser: ResolvedUser = {
   discordEnabled: false,
   dnsStatus: "unknown",
   domain: "rizom.ai",
-  effectiveAiApiKey: "AI_API_KEY",
+  effectiveOpenaiApiKey: "OPENAI_API_KEY",
   effectiveGitSyncToken: "GIT_SYNC_TOKEN",
   handle: "rizom-ai",
   mcpStatus: "unknown",

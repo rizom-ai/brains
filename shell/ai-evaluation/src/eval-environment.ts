@@ -71,7 +71,7 @@ export function serveSeedPeers(options: {
 
 /**
  * Boot an App with optional AI model override.
- * API key comes from process.env.AI_API_KEY (set per model iteration).
+ * Provider keys come from process.env (OPENAI_API_KEY, ANTHROPIC_API_KEY, …).
  */
 export async function bootEvalApp(options: BootEvalAppOptions): Promise<App> {
   const { evalDbBase, config, evalHandlerRegistry, model } = options;

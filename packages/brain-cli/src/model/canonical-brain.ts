@@ -70,6 +70,7 @@ import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
 import webChatInterface from "@brains/web-chat";
 import wishlistPackage from "@brains/wishlist";
+import { CANONICAL_CHAT_MODEL } from "./canonical-model";
 import packageJson from "../../package.json" with { type: "json" };
 import {
   automationBundle,
@@ -195,7 +196,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
   version: packageJson.version,
   bundleContract: CANONICAL_BUNDLE_CONTRACT,
-  model: "gpt-6-luna",
+  model: CANONICAL_CHAT_MODEL,
   reasoningEffort: "low",
   capabilities: [
     packageCapability("prompt", "@brains/prompt", promptPackage, {

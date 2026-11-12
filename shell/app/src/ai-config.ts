@@ -2,19 +2,19 @@
  * Resolve AI configuration from environment and brain.yaml overrides.
  *
  * Env vars:
- *   AI_API_KEY   — primary key for text generation (and images if no override)
- *   AI_IMAGE_KEY — optional override for image generation (different provider)
+ *   OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY — each
+ *     provider's own key; a model runs only on a provider with one
  *   MODEL_RUNTIME_URL — the model runtime a deploy runs beside the brain
  *
  * The model fields determine the provider (resolved by AI service at runtime).
  */
 
+import { readProviderKeys, type ProviderKeys } from "@brains/core";
 import type { ReasoningEffort } from "./types";
 
 /** Fields that resolveAIConfig adds to AppConfig */
 export interface AIConfigFields {
-  aiApiKey?: string;
-  aiImageKey?: string;
+  aiProviderKeys?: ProviderKeys;
   aiModel?: string;
   aiEmbeddingModel?: string;
   aiModelRuntimeUrl?: string;
@@ -36,16 +36,11 @@ export function resolveAIConfig(
     reasoningEffort?: ReasoningEffort;
   },
 ): AIConfigFields {
-  const apiKey = env["AI_API_KEY"];
-  const imageKey = env["AI_IMAGE_KEY"];
-
   const result: AIConfigFields = {};
 
-  if (apiKey) {
-    result.aiApiKey = apiKey;
-  }
-  if (imageKey) {
-    result.aiImageKey = imageKey;
+  const providerKeys = readProviderKeys(env);
+  if (Object.keys(providerKeys).length > 0) {
+    result.aiProviderKeys = providerKeys;
   }
 
   // Models keep an explicit provider prefix ("openai:gpt-4o-mini"); the AI

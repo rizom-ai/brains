@@ -85,7 +85,7 @@ export const pilotSchema: z.ZodObject<
     githubOrg: z.ZodString;
     contentRepoPrefix: z.ZodString;
     domainSuffix: z.ZodString;
-    aiApiKey: z.ZodString;
+    openaiApiKey: z.ZodString;
     gitSyncToken: z.ZodString;
     contentRepoAdminToken: z.ZodString;
     agePublicKey: z.ZodString;
@@ -101,7 +101,7 @@ export const pilotSchema: z.ZodObject<
     githubOrg: z.string().min(1),
     contentRepoPrefix: z.string().min(1),
     domainSuffix: z.string().min(1),
-    aiApiKey: secretNameSchema,
+    openaiApiKey: secretNameSchema,
     gitSyncToken: secretNameSchema,
     contentRepoAdminToken: secretNameSchema,
     agePublicKey: agePublicKeySchema,
@@ -125,7 +125,7 @@ export const cohortSchema: z.ZodObject<
     bundlesOverride: z.ZodOptional<typeof canonicalBundlesSchema>;
     addOverride: z.ZodOptional<typeof memberIdsSchema>;
     removeOverride: z.ZodOptional<typeof memberIdsSchema>;
-    aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+    openaiApiKeyOverride: z.ZodOptional<z.ZodString>;
     gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
   },
   z.core.$strict
@@ -136,7 +136,7 @@ export const cohortSchema: z.ZodObject<
     bundlesOverride: canonicalBundlesSchema.optional(),
     addOverride: memberIdsSchema.optional(),
     removeOverride: memberIdsSchema.optional(),
-    aiApiKeyOverride: secretNameSchema.optional(),
+    openaiApiKeyOverride: secretNameSchema.optional(),
     gitSyncTokenOverride: secretNameSchema.optional(),
   })
   .superRefine((value, context) => {
@@ -322,7 +322,7 @@ export const userSchema: z.ZodObject<{
     enabled: z.ZodBoolean;
     anchorUserId: z.ZodOptional<z.ZodString>;
   }>;
-  aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+  openaiApiKeyOverride: z.ZodOptional<z.ZodString>;
   gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
   domainOverride: z.ZodOptional<z.ZodString>;
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
@@ -349,7 +349,7 @@ export const userSchema: z.ZodObject<{
     enabled: z.boolean(),
     anchorUserId: z.string().min(1).optional(),
   }),
-  aiApiKeyOverride: secretNameSchema.optional(),
+  openaiApiKeyOverride: secretNameSchema.optional(),
   gitSyncTokenOverride: secretNameSchema.optional(),
   domainOverride: z.string().min(1).optional(),
   cloudflareZoneId: z.string().min(1).optional(),

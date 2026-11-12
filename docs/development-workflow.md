@@ -26,7 +26,7 @@ bun install
 # `brain init` scaffolds a `.env.example` into the brain directory; copy it to
 # `.env` and fill in your keys.
 cd ~/Documents/yeehaa-io
-cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
+cp .env.example .env   # then edit .env and add OPENAI_API_KEY at minimum
 bunx brain start
 
 # During framework development you can still run the in-tree CLI from another instance dir.
@@ -129,11 +129,11 @@ Do not bypass hooks. Fix the failing checks instead.
 ### Required Environment Variables
 
 ```bash
-# AI Service — single key for all providers (auto-detected from model name)
-AI_API_KEY=your-api-key-here
-
-# Optional: separate key for image generation (defaults to AI_API_KEY)
-# AI_IMAGE_KEY=your-image-key-here
+# AI Service — one key per provider; set the ones your models use.
+# The default chat, image and embedding models are OpenAI's.
+OPENAI_API_KEY=your-openai-key
+# ANTHROPIC_API_KEY=your-anthropic-key
+# GOOGLE_GENERATIVE_AI_API_KEY=your-google-key
 
 # Optional: git-backed sync of brain content
 GIT_SYNC_TOKEN=ghp_...
@@ -266,7 +266,7 @@ bun run eval --suite network
 Cases tagged `requires-supervised-git` need the supervised Git broker, which an in-process eval brain does not run. They run against the publishing test app through its MCP endpoint, authenticated with a local development token:
 
 ```bash
-# Terminal 1: needs AI_API_KEY, from the environment or test-apps/publishing/.env;
+# Terminal 1: needs OPENAI_API_KEY, from the environment or test-apps/publishing/.env;
 # the app seeds itself and creates its local git remote on first boot
 MCP_AUTH_TOKEN=dev-token sh scripts/start-test-app.sh publishing
 

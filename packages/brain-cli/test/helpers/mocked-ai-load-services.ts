@@ -216,7 +216,7 @@ export class MockLoadAIService implements IAIService {
   private readonly model: LanguageModel;
   private config: AIModelConfig = {
     model: MOCK_LOAD_MODEL,
-    apiKey: MOCK_LOAD_API_KEY,
+    providerKeys: { openai: MOCK_LOAD_API_KEY },
   };
 
   constructor(tracker: MockLoadTracker, options: MockLoadServiceOptions) {

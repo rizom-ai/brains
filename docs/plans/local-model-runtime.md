@@ -8,7 +8,7 @@ In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 ha
 - Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`); `reasoningEffort` reaches the runtime as `reasoning_effort`, and `none` turns a model's thinking off.
 - Answer model: `answerModel` names a `local:` model that writes while `model` chooses tools: it answers tool results and runs text and object generation (background derivations, drafts). Without it, a local `model` answers tool results with reasoning off. A local text model's searches return five hits of at most 800 characters.
 - Vision model: `visionModel` names a `local:` model that describes uploaded images for a local `model`; the description, cached per image, reaches `model` in place of the image, and without it an image reaches a local `model` as its name and type.
-- No key: a brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
+- No key: a brain whose `model` and `embeddingModel` are both `local:` starts without a provider key; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
 - Sidecar: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; `local:` embeddings are priced at zero. No fleet brain has opted in.
 - Images: open. `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
 
@@ -138,5 +138,5 @@ Build:
 ## Validation
 
 - Phase 0: the embedding table carries the non-Gemma row, the eval tables carry the local candidates and the laptop duration, and the no-key boot test passes.
-- Test bed: the separate brain on the Z13, holding only the rover's public entities, boots with every model `local:` and no `AI_API_KEY`; readiness reaches ready, and the headless and personal suites pass at the cloud model's rate.
+- Test bed: the separate brain on the Z13, holding only the rover's public entities, boots with every model `local:` and no provider key; readiness reaches ready, and the headless and personal suites pass at the cloud model's rate.
 - Phase 3: readiness reaches ready and search smoke queries pass on the smoke rover, then rizom.ai.

@@ -1,5 +1,6 @@
 import type { LanguageModel } from "ai";
 import type { ZodType } from "@brains/utils/zod";
+import type { ProviderKeys } from "./providers";
 
 export type ReasoningEffort =
   "none" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -12,10 +13,8 @@ export interface AIModelConfig {
   model?: string;
   /** Image model — determines provider automatically. e.g. "gpt-image-1.5", "gemini-3-pro-image-preview" */
   imageModel?: string;
-  /** Single API key — used for whichever provider is configured */
-  apiKey?: string;
-  /** Optional separate key for image generation (defaults to apiKey) */
-  imageApiKey?: string;
+  /** Each provider's API key; a model runs only on a provider with one. */
+  providerKeys?: ProviderKeys;
   temperature?: number;
   webSearch?: boolean;
   /** OpenAI reasoning effort. Ignored by providers that do not support it. */

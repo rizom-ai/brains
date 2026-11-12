@@ -161,8 +161,8 @@ function formatCohortFile(cohort: CohortConfig): string {
     ...(cohort.removeOverride
       ? ["removeOverride:", ...cohort.removeOverride.map((id) => `  - ${id}`)]
       : []),
-    ...(cohort.aiApiKeyOverride
-      ? [`aiApiKeyOverride: ${cohort.aiApiKeyOverride}`]
+    ...(cohort.openaiApiKeyOverride
+      ? [`openaiApiKeyOverride: ${cohort.openaiApiKeyOverride}`]
       : []),
     ...(cohort.gitSyncTokenOverride
       ? [`gitSyncTokenOverride: ${cohort.gitSyncTokenOverride}`]

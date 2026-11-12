@@ -264,12 +264,14 @@ describe("resolve", () => {
     });
 
     const config = resolve(def, {
-      AI_API_KEY: "sk-test-123",
-      AI_IMAGE_KEY: "sk-img-456",
+      OPENAI_API_KEY: "sk-test-123",
+      GOOGLE_GENERATIVE_AI_API_KEY: "AIza-img-456",
     });
 
-    expect(config.aiApiKey).toBe("sk-test-123");
-    expect(config.aiImageKey).toBe("sk-img-456");
+    expect(config.aiProviderKeys).toEqual({
+      openai: "sk-test-123",
+      google: "AIza-img-456",
+    });
   });
 
   test("should resolve model and provider from overrides", () => {
@@ -282,7 +284,7 @@ describe("resolve", () => {
 
     const config = resolve(
       def,
-      { AI_API_KEY: "sk-test" },
+      { OPENAI_API_KEY: "sk-test" },
       { model: "gpt-4o-mini" },
     );
 

@@ -232,7 +232,10 @@ describe("projection burst causal evidence", () => {
         runtimeStateDatabase: { url: runtimeStateDatabaseUrl },
         embeddingDatabase: { url: embeddingDatabaseUrl },
         dataDir,
-        ai: { apiKey: MOCK_LOAD_API_KEY, model: MOCK_LOAD_MODEL },
+        ai: {
+          providerKeys: { openai: MOCK_LOAD_API_KEY },
+          model: MOCK_LOAD_MODEL,
+        },
         embedding: { enabled: true },
         logging: { level: "error", context: "projection-causality" },
         ...(resolved.identity ? { identity: resolved.identity } : {}),

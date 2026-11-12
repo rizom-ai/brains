@@ -15,6 +15,19 @@ export {
 } from "./provider-selection";
 export type { ResolvedModelProvider } from "./provider-selection";
 export {
+  isKeyProviderId,
+  isProviderId,
+  KEY_PROVIDER_IDS,
+  keyEnvVar,
+  keyMismatchWarning,
+  PROVIDERS,
+  providerKeysSchema,
+  readProviderKeys,
+} from "./providers";
+export type { KeyProviderId, ProviderId, ProviderKeys } from "./providers";
+export { checkModels, createProviderClients } from "./provider-clients";
+export type { ModelProblem, ModelSelection } from "./provider-clients";
+export {
   DEFAULT_EMBEDDING_MODEL,
   findEmbeddingProfile,
   resolveEmbeddingProfile,
