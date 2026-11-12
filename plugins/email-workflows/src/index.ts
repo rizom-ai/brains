@@ -13,10 +13,7 @@ export type { EmailContext, EmailEntityService } from "./lib/email-context";
 const emailWorkflowsPackage: ReturnType<typeof createEmailWorkflowsPackage> =
   createEmailWorkflowsPackage();
 export default emailWorkflowsPackage;
-export {
-  MailItemAdapter,
-  mailItemAdapter,
-} from "./entity/adapters/mail-item-adapter";
+export { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 export {
   mailCategorySchema,
   mailPrioritySchema,

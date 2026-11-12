@@ -1,5 +1,5 @@
 import type { InboundEmail } from "@brains/contracts";
-import type { IEntityAINamespace } from "@brains/plugins";
+import type { ServiceAI } from "@brains/sdk/internal/service-runtime";
 import { sha256Hex } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import {
@@ -87,7 +87,7 @@ export type MailClassifier = (
 ) => Promise<MailTriageDecision>;
 
 export function createMailClassifier(
-  ai: Pick<IEntityAINamespace, "generateObject">,
+  ai: Pick<ServiceAI, "generateObject">,
   classificationPrompt: string,
 ): MailClassifier {
   return async (email): Promise<MailTriageDecision> => {

@@ -76,6 +76,7 @@ const convertedPackages = [
   "plugins/atproto-registry",
   "plugins/contact",
   "plugins/content-pipeline",
+  "plugins/email-workflows",
   "plugins/knowledge-map",
   "plugins/newsletter",
   "plugins/notifications",

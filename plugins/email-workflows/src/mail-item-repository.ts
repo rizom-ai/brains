@@ -1,4 +1,4 @@
-import { internalFullScope } from "@brains/plugins";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
 import type { EmailEntityService } from "./lib/email-context";
 import { mailItemSchema } from "./entity/schemas/mail-item";
 import type { MailItemProjection } from "./lib/mail-item-projection";

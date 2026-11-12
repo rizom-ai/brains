@@ -2,10 +2,13 @@ import {
   emailSourceReadContract,
   type EmailSourceReadResponse,
 } from "@brains/contracts";
-import { inboxActorSchema, inboxItemIdSchema } from "@brains/plugins";
+import {
+  inboxActorSchema,
+  inboxItemIdSchema,
+  type ServiceClassMessaging,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { MailTriageOperatorService } from "./operator-service";
-import type { ServiceClassMessaging } from "@brains/sdk/internal/service-runtime";
 
 const abortSignalSchema: z.ZodCustom<AbortSignal, AbortSignal> =
   z.custom<AbortSignal>(

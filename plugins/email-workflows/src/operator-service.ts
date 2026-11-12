@@ -1,8 +1,8 @@
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
 import {
-  permissionToVisibilityScope,
   internalFullScope,
   assertStudioWorkspaceAdmin,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,

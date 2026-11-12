@@ -1,6 +1,8 @@
 import { inboundEmailContract } from "@brains/contracts";
-import { defineServicePlugin } from "@brains/sdk/services";
-import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import {
   serviceRuntime,
   withTools,

@@ -1,5 +1,5 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import { generateMarkdownWithFrontmatter } from "@brains/plugins";
+import { generateMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
 import { emailReplyDraftAdapter } from "./adapter";
 import {
   emailReplyDraftFrontmatterSchema,

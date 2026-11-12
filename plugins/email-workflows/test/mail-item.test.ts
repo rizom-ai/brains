@@ -367,17 +367,10 @@ describe("mail item restricted export round-trip", () => {
     );
     const partial = mailItemAdapter.fromMarkdown(content);
     if (!partial.metadata) throw new Error("Expected mail metadata");
-    const serialized = mailItemAdapter.toMarkdown({
-      id: "mail-round-trip",
-      entityType: "mail-item",
-      content,
-      metadata: partial.metadata,
-      created: receivedAt,
-      updated: receivedAt,
-      contentHash: "hash",
-      visibility: "restricted",
-    });
-    const exported = applyVisibilityToMarkdown(serialized, "restricted");
+    // The stored document, exported with its visibility, as the declared
+    // type exports it (the export round-trip on the real store is pinned in
+    // packages/brain-cli/test/email-workflows-runtime.test.ts).
+    const exported = applyVisibilityToMarkdown(content, "restricted");
 
     const parsed = mailItemAdapter.parseMailItemContent(exported);
 

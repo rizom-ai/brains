@@ -1,12 +1,14 @@
 import {
   inboxItemListSchema,
-  type InboxAction,
-  type InboxActor,
-  type InboxFacetDefinition,
-  type InboxItem,
-  type InboxItemDetail,
   type InboxSource,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type {
+  InboxAction,
+  InboxActor,
+  InboxFacetDefinition,
+  InboxItem,
+  InboxItemDetail,
+} from "@brains/sdk/entities";
 import type { MailTriageOperatorService } from "./operator-service";
 import {
   mailTriageStatusActionSchema,

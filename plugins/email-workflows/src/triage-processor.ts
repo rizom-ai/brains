@@ -1,5 +1,8 @@
 import { inboundEmailSchema, type InboundEmail } from "@brains/contracts";
-import type { IRuntimeStateStore, MessageResponse } from "@brains/plugins";
+import type {
+  MessageResponse,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { isDeterministicBulkMail } from "./lib/bulk-filter";
 import {
@@ -29,7 +32,7 @@ export interface EmailTriageProcessorDependencies {
       writer: (projection: MailItemProjection) => Promise<void>,
     ): Promise<void>;
   };
-  attempts: IRuntimeStateStore<number>;
+  attempts: ClassRuntimeStateStore<number>;
   classify: MailClassifier;
   logger: Logger;
 }
@@ -37,7 +40,7 @@ export interface EmailTriageProcessorDependencies {
 export class EmailTriageProcessor {
   private readonly repository: MailItemRepository;
   private readonly threadOrdinals: EmailTriageProcessorDependencies["threadOrdinals"];
-  private readonly attempts: IRuntimeStateStore<number>;
+  private readonly attempts: ClassRuntimeStateStore<number>;
   private readonly classify: MailClassifier;
   private readonly logger: Logger;
 
