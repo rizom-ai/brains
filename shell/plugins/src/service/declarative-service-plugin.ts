@@ -2022,6 +2022,8 @@ function entityMutationsOf(
     applyEntityMutationOnce: (request) =>
       entityService.applyEntityMutationOnce(request),
     foldEntity: (request) => entityService.foldEntity(request),
+    releaseProjectionOwnership: (request) =>
+      entityService.releaseProjectionOwnership(request),
   } satisfies ServiceEntityMutations);
 }
 

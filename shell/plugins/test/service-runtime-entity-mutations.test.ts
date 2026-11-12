@@ -96,6 +96,12 @@ describe("a first-party service's conditional and once-only writes", () => {
         calls.push(["foldEntity", request]);
         return { entityId: request.entity.id, jobId: "", skipped: false };
       },
+      releaseProjectionOwnership: async (request: {
+        entityType: string;
+        id: string;
+      }) => {
+        calls.push(["releaseProjectionOwnership", request]);
+      },
       searchWithDistances: async (request: SearchWithDistancesRequest) => {
         calls.push(["searchWithDistances", request]);
         return [{ entityId: "reach", entityType: "faq", distance: 0.1 }];
@@ -129,6 +135,11 @@ describe("a first-party service's conditional and once-only writes", () => {
       entity: faq,
     };
     await runtime.entityMutations.foldEntity(fold);
+    // A retired projection rule's ownership released, as topics released it.
+    await runtime.entityMutations.releaseProjectionOwnership({
+      entityType: "topic",
+      id: "tides",
+    });
     const search: SearchWithDistancesRequest = {
       query: "How?",
       types: ["faq"],
@@ -144,6 +155,7 @@ describe("a first-party service's conditional and once-only writes", () => {
       ["getEntityMutationReceipt", receipt],
       ["applyEntityMutationOnce", once],
       ["foldEntity", fold],
+      ["releaseProjectionOwnership", { entityType: "topic", id: "tides" }],
       ["searchWithDistances", search],
     ]);
     expect(Object.keys(runtime.entityMutations).sort()).toEqual([
@@ -151,6 +163,7 @@ describe("a first-party service's conditional and once-only writes", () => {
       "foldEntity",
       "getEntityMutationReceipt",
       "getEntityWriteSnapshot",
+      "releaseProjectionOwnership",
     ]);
   });
 });

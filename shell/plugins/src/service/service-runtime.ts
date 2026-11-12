@@ -529,7 +529,8 @@ export interface ServiceRuntime {
    * The entity service's conditional and once-only writes, as the class
    * made them through `context.entityService`: the snapshot a guarded write
    * reads, a mutation's receipt, a mutation applied once under its receipt,
-   * and a fold of one record into another. Each request is handed on as
+   * a fold of one record into another, and a retired projection rule's
+   * ownership of a record released, its content kept. Each request is handed on as
    * written, attributed to whoever it names and to nobody otherwise, with no
    * check beyond the store's own.
    */
@@ -769,6 +770,7 @@ export type ServiceEntityMutations = Pick<
   | "getEntityMutationReceipt"
   | "applyEntityMutationOnce"
   | "foldEntity"
+  | "releaseProjectionOwnership"
 >;
 
 /** The conversation reads a class made, and nothing that lists or writes. */
