@@ -459,6 +459,42 @@ describe("brain init (end-to-end)", () => {
     expect(existsSync(join(outDir, "README.md"))).toBe(true);
   });
 
+  it("scaffolds an absolute target at that path, not under cwd", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const cwd = join(testDir, "elsewhere");
+    mkdirSync(cwd);
+    const outDir = join(testDir, "absolute-brain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: { recipe: "personal", "no-interactive": true },
+        args: [outDir],
+      },
+      cwd,
+    );
+
+    expect(result.success).toBe(true);
+    expect(existsSync(join(outDir, "brain.yaml"))).toBe(true);
+    expect(existsSync(join(cwd, outDir))).toBe(false);
+  });
+
+  it("resolves a relative target against cwd", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: { recipe: "personal", "no-interactive": true },
+        args: ["nested/../relative-brain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(existsSync(join(testDir, "relative-brain", "brain.yaml"))).toBe(
+      true,
+    );
+  });
+
   it("should write .env when --openai-api-key is provided non-interactively", async () => {
     const { runCommand } = await import("../src/run-command");
     const outDir = join(testDir, "mybrain");
