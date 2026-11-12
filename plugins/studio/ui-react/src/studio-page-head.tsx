@@ -8,8 +8,8 @@ import type {
   RuntimeStudioOperatorView,
   RuntimeStudioOperatorViewFact,
   RuntimeStudioOperatorViewStatus,
-  UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import type { ReactElement, ReactNode } from "react";
 import type { StudioWorkspaceInfo } from "./api";
 import {

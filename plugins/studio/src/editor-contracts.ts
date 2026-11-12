@@ -3,10 +3,8 @@ import type {
   AuthPrincipal,
 } from "@brains/contracts";
 import type { ActorRef } from "@brains/contracts";
-import type {
-  ContentVisibility,
-  EntityTypeClassification,
-} from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { EntityTypeClassification } from "@brains/sdk/entities";
 import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
 import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";

@@ -1,5 +1,8 @@
-import { decodeEntityIdPath } from "@brains/plugins";
-import type { BaseEntity, EntityIdPath } from "@brains/plugins";
+import {
+  decodeEntityIdPath,
+  type BaseEntity,
+  type EntityIdPath,
+} from "@brains/sdk/internal/entity-runtime";
 import { getTypeCapabilities } from "./editor-access";
 import type { StudioRequestAccess } from "./editor-contracts";
 import type { StudioContext } from "./studio-context";

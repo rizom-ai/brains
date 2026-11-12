@@ -1,4 +1,4 @@
-import { isGroupingContributor } from "@brains/plugins";
+import { isGroupingContributor } from "@brains/sdk/internal/entity-runtime";
 import type {
   ServiceAI,
   ServiceClassMessaging,

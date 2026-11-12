@@ -4,21 +4,19 @@ import {
   SdkError,
   consoleJumpDestinationsContract,
 } from "@brains/contracts";
-import type { UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
   studioOverviewContributionRegisterContract,
   studioOverviewContributionUnregisterContract,
   studioWorkspaceRegisterContract,
   studioWorkspaceUnregisterContract,
-} from "@brains/plugins";
+  serviceRuntime,
+  withWebRoutes,
+} from "@brains/sdk/internal/service-runtime";
 import {
   defineServicePlugin,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
-import {
-  serviceRuntime,
-  withWebRoutes,
-} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
 import {

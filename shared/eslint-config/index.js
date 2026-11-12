@@ -76,6 +76,7 @@ const convertedPackages = [
   "plugins/atproto-registry",
   "plugins/contact",
   "plugins/content-pipeline",
+  "plugins/dashboard",
   "plugins/directory-sync",
   "plugins/email-workflows",
   "plugins/knowledge-map",
@@ -90,6 +91,7 @@ const convertedPackages = [
   "plugins/site-content",
   "plugins/site-info",
   "plugins/stock-photo",
+  "plugins/studio",
   "plugins/unified-inbox",
 ];
 

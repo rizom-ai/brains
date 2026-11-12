@@ -5,12 +5,10 @@ import {
   preserveSourceFrontmatter,
   getPublishBoundaryState,
   entityIdPathSchema,
-} from "@brains/plugins";
-import type {
-  BaseEntity,
-  EntityIdPath,
-  GetEntityRequest,
-} from "@brains/plugins";
+  type BaseEntity,
+  type EntityIdPath,
+  type GetEntityRequest,
+} from "@brains/sdk/internal/entity-runtime";
 import {
   directorySyncPathContract,
   type directorySyncPathResponseSchema,

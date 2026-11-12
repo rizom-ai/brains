@@ -1,5 +1,8 @@
-import { internalFullScope, type BaseEntity } from "@brains/plugins";
-import type { ServiceGroupings } from "@brains/sdk/internal/service-runtime";
+import {
+  internalFullScope,
+  type ServiceGroupings,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {

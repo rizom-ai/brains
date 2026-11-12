@@ -1,4 +1,4 @@
-import type { StudioWorkspaceActor } from "@brains/plugins";
+import type { StudioWorkspaceActor } from "@brains/sdk/internal/service-runtime";
 import { jsonResponse } from "./editor-response";
 import { getErrorMessage } from "@brains/utils/error";
 import type {

@@ -21,7 +21,7 @@ export type {
   WidgetVisibility,
 } from "./widget-registry";
 // Part of this plugin's surface; the dashboard namespace owns the type.
-export type { DashboardDigestLine } from "@brains/plugins";
+export type { DashboardDigestLine } from "@brains/sdk/internal/service-runtime";
 
 // DataSource exports
 export { DashboardDataSource } from "./dashboard-datasource";

@@ -5,7 +5,7 @@ import {
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
 import type {

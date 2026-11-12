@@ -1,9 +1,9 @@
-import { decodeEntityIdPath } from "@brains/plugins";
-import type {
-  BaseEntity,
-  ContentVisibility,
-  EntityIdPath,
-} from "@brains/plugins";
+import {
+  decodeEntityIdPath,
+  type BaseEntity,
+  type EntityIdPath,
+} from "@brains/sdk/internal/entity-runtime";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 import type { StudioContext } from "./studio-context";
 
 interface Folder {

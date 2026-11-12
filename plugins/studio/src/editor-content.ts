@@ -1,8 +1,6 @@
-import type { ContentVisibility } from "@brains/plugins";
-import {
-  contentVisibilitySchema,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import { contentVisibilitySchema } from "@brains/sdk/internal/presentation";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";

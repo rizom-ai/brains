@@ -1,15 +1,12 @@
 import {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
-  PermissionService,
   entityCreatedChannel,
   entityDeletedChannel,
   entityUpdatedChannel,
-  jobProgressChannel,
   safeParseRuntimeDashboardWidgetData,
   studioOverviewContributionSchema,
   type DashboardDigestLine,
   type EntityChangePayload,
-  type JobProgressEvent,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
   type RuntimeOperatorLinkTarget,
@@ -22,8 +19,14 @@ import {
   type StudioOverviewContributionUnregistration,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+  hasPermission,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import {
+  jobProgressChannel,
+  type JobProgressEvent,
+} from "@brains/sdk/internal/interface-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import type { z } from "@brains/utils/zod";
 import {
   capitalize,
@@ -38,7 +41,6 @@ import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
 } from "./overview-constants";
 import type { StudioContext } from "./studio-context";
-import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 
 export {
   STUDIO_OVERVIEW_REFRESH_MS,
@@ -337,10 +339,7 @@ async function brainFacts(
   const failed = queue?.totals.failed ?? 0;
   const visibleInteractions =
     appInfo?.interactions.filter((interaction) =>
-      PermissionService.hasPermission(
-        actor.userPermissionLevel,
-        interaction.visibility,
-      ),
+      hasPermission(actor.userPermissionLevel, interaction.visibility),
     ).length ?? 0;
   let channels = 0;
   let inboxSources = 0;

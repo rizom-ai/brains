@@ -1,18 +1,16 @@
-import type { WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import {
-  PermissionService,
   dashboardWidgetRegisterContract,
   dashboardWidgetUnregisterContract,
-} from "@brains/plugins";
-import {
-  defineServicePlugin,
-  type ServicePackageDefinition,
-} from "@brains/sdk/services";
-import {
+  hasPermission,
   serviceRuntime,
   withWebRoutes,
   type ServiceRuntime,
 } from "@brains/sdk/internal/service-runtime";
+import {
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import { consoleJumpDestinationsContract } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -250,15 +248,13 @@ function dashboardRoutes(
           daemons: [],
           endpoints: appInfo.endpoints.filter(
             (endpoint) =>
-              PermissionService.hasPermission("public", endpoint.visibility) &&
+              hasPermission("public", endpoint.visibility) &&
               endpoint.requiresActiveSession !== true,
           ),
           interactions: appInfo.interactions.filter(
             (interaction) =>
-              PermissionService.hasPermission(
-                "public",
-                interaction.visibility,
-              ) && interaction.requiresActiveSession !== true,
+              hasPermission("public", interaction.visibility) &&
+              interaction.requiresActiveSession !== true,
           ),
         };
 

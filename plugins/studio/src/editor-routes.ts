@@ -2,15 +2,18 @@ import {
   issuerFromRequest,
   requireSameOriginJson,
   requireSameOriginRequest,
-  PermissionService,
+  permissionToVisibilityScope,
+  type WebRouteDefinition,
+} from "@brains/sdk/internal/interface-runtime";
+import {
   canWriteVisibility,
   entityTypeClassificationSchema,
-  permissionToVisibilityScope,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
+import { hasPermission } from "@brains/sdk/internal/service-runtime";
 import { join } from "node:path";
 import { sdkErrorHttpStatus, toSdkError } from "@brains/contracts";
 import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
-import type { UserPermissionLevel, WebRouteDefinition } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
   MCP_INTERACTION_ID,
   directorySyncStatusContract,
@@ -886,7 +889,7 @@ async function resolveMcpUrl(
     (interaction) =>
       interaction.id === MCP_INTERACTION_ID && interaction.href.startsWith("/"),
   );
-  if (!mcp || !PermissionService.hasPermission(role, mcp.visibility)) {
+  if (!mcp || !hasPermission(role, mcp.visibility)) {
     return undefined;
   }
   return `${issuerFromRequest(request)}${mcp.href}`;
