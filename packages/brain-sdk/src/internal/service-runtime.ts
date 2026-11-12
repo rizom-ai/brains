@@ -178,6 +178,15 @@ export {
   type ToolResult,
 } from "@brains/plugins";
 export {
+  conversationMessageMetadataSchema,
+  jobProgressChannel,
+  matchSpaceSelector,
+  permissionToVisibilityScope,
+  type Conversation,
+  type ConversationMessageActor,
+  type JobProgressEvent,
+} from "@brains/plugins";
+export {
   SemanticIndexingDisabledError,
   isVisibleWithinScope,
   scopedDerivedId,
