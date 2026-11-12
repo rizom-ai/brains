@@ -19,6 +19,12 @@ export interface AppRuntimeOptions {
   /** The line to the runtime's other processes, when supervised. */
   peerChannel?: PeerChannel;
   onRuntimeReady?: () => void;
+  /**
+   * Run the terminal chat interface, as `--cli` on the command line does. A
+   * caller whose command line carries no `--cli`, such as a bundled
+   * `brain chat`, asks for it here.
+   */
+  cli?: boolean;
 }
 
 export class App {
@@ -77,8 +83,14 @@ export class App {
     );
   }
 
-  private async registerCLIInterface(): Promise<void> {
-    if (!this.hasCLI) return;
+  private wantsCLI(runtimeOptions?: AppRuntimeOptions): boolean {
+    return this.hasCLI || runtimeOptions?.cli === true;
+  }
+
+  private async registerCLIInterface(
+    runtimeOptions?: AppRuntimeOptions,
+  ): Promise<void> {
+    if (!this.wantsCLI(runtimeOptions)) return;
 
     const pluginManager = this.getShell().getPluginManager();
     for (const plugin of await createCliInterface(this.config.cliConfig)) {
@@ -97,7 +109,7 @@ export class App {
       this.createShell(options, runtimeOptions);
     }
 
-    await this.registerCLIInterface();
+    await this.registerCLIInterface(runtimeOptions);
 
     // Initialize shell (which will initialize all plugins including interfaces)
     await this.getShell().initialize(options);
@@ -133,14 +145,15 @@ export class App {
     const logLevel =
       logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
 
+    const hasCLI = this.wantsCLI(runtimeOptions);
     const logger = ConsoleLogger.createFresh({
       level: logLevel,
       context: this.config.name,
-      useStderr: this.hasCLI, // Use stderr when CLI is active to avoid interfering with Ink UI
+      useStderr: hasCLI, // Use stderr when CLI is active to avoid interfering with Ink UI
     });
 
     // Configure global logger instance to also use stderr if CLI is active
-    if (this.hasCLI) {
+    if (hasCLI) {
       ConsoleLogger.getInstance().setUseStderr(true);
     }
 
