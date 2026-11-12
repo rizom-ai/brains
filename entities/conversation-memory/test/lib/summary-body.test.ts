@@ -9,6 +9,7 @@ import {
 import { summary } from "../../src/summary-entity";
 import type { SummaryBody, SummaryEntry } from "../../src/schemas/summary";
 import { defaultSummaryMetadata } from "../fixtures/summary-entities";
+import { typeAdapter } from "../conversation-memory-plugins";
 
 const entry: SummaryEntry = {
   title: "Architecture Direction",
@@ -35,14 +36,25 @@ describe("the summary type", () => {
     );
   });
 
-  it("names a summary by where and when its conversation happened", () => {
+  it("names a summary by where and when its conversation happened", async () => {
+    const adapter = await typeAdapter("summary");
+    const stored = {
+      id: "test-conv",
+      entityType: "summary",
+      content: "",
+      contentHash: "hash",
+      visibility: "restricted" as const,
+      created: "2026-03-04T05:06:07.000Z",
+      updated: "2026-03-04T05:06:07.000Z",
+    };
     expect(
-      summary.displayTitle?.({ content: "", metadata: defaultSummaryMetadata }),
+      adapter.displayTitle?.({ ...stored, metadata: defaultSummaryMetadata }),
     ).toBe("Test Channel · 2026-01-01");
     const { timeRange: _timeRange, ...withoutRange } = defaultSummaryMetadata;
-    expect(
-      summary.displayTitle?.({ content: "", metadata: withoutRange }),
-    ).toBe("Test Channel");
+    // One that records no start is named by the day it was stored.
+    expect(adapter.displayTitle?.({ ...stored, metadata: withoutRange })).toBe(
+      "Test Channel · 2026-03-04",
+    );
   });
 
   it("writes the body from its entries and its metadata as frontmatter", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { decision } from "../src/memory-entities";
-import { summary } from "../src/summary-entity";
+import { typeAdapter } from "./conversation-memory-plugins";
 import { decisionMetadataSchema } from "../src/schemas/conversation-memory";
 import { summaryMetadataSchema } from "../src/schemas/summary";
 
@@ -46,10 +46,16 @@ describe("conversation memory in Studio", () => {
     });
   });
 
-  it("names a summary by its channel and day", () => {
+  it("names a summary by its channel and day", async () => {
     expect(
-      summary.displayTitle?.({
+      (await typeAdapter("summary")).displayTitle?.({
+        id: "team-poc-sync",
+        entityType: "summary",
         content: "# Conversation Summary\n",
+        contentHash: "hash",
+        visibility: "shared",
+        created: "2026-05-06T10:18:00.000Z",
+        updated: "2026-05-06T10:18:00.000Z",
         metadata: {
           channelId: "team-poc",
           channelName: "team-poc",

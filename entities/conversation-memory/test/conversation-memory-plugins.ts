@@ -7,7 +7,7 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import type { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { conversationMemoryPackage, type SummaryConfigInput } from "../src";
 import packageJson from "../package.json";
@@ -83,4 +83,16 @@ export function asStored<T extends BaseEntity>(entity: T): T {
       entity.content,
     ),
   };
+}
+
+/** A type's adapter, as the installed package registers it. */
+export async function typeAdapter(
+  entityType: string,
+): Promise<
+  ReturnType<ReturnType<MockShell["getEntityRegistry"]>["getAdapter"]>
+> {
+  const shell = createMockShell();
+  for (const plugin of createConversationMemoryPlugins())
+    await plugin.register(shell);
+  return shell.getEntityRegistry().getAdapter(entityType);
 }

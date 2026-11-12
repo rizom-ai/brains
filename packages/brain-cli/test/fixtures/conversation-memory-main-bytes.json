@@ -1,4 +1,14 @@
 {
+  "titles": {
+    "summaryCurrent": {
+      "created": "2026-03-04T05:06:07.000Z",
+      "title": "CLI Terminal · 2026-01-01"
+    },
+    "summaryLegacy": {
+      "created": "2026-03-04T05:06:07.000Z",
+      "title": "discord-1 · 2026-03-04"
+    }
+  },
   "source": "main f61f73989e, the conversation-memory entity plugin class on the entity store",
   "summaryCurrent": {
     "id": "cli-terminal-2026-01-01",

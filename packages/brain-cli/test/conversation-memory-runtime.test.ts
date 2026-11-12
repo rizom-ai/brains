@@ -43,6 +43,10 @@ const rowSchema = z.object({
 const importedSchema = rowSchema.extend({ file: z.string() });
 const main = z
   .object({
+    titles: z.record(
+      z.string(),
+      z.object({ created: z.string(), title: z.string() }),
+    ),
     summaryCurrent: importedSchema,
     summaryLegacy: importedSchema,
     summaryMalformed: z.object({ file: z.string(), refused: z.string() }),
@@ -202,6 +206,32 @@ describe("the declared conversation memory types on the entity store", () => {
       }),
     ).rejects.toThrow();
     expect(await opened.stored("summary", "malformed")).toBeNull();
+  });
+
+  test("name a summary as main named it, by the day it was stored when it records no start", async () => {
+    const opened = await store();
+    for (const row of [main.summaryCurrent, main.summaryLegacy]) {
+      await opened.service.createEntityFromMarkdown({
+        input: { entityType: "summary", id: row.id, markdown: row.file },
+      });
+    }
+    for (const key of ["summaryCurrent", "summaryLegacy"] as const) {
+      const expected = main.titles[key];
+      if (!expected) throw new Error(`No title captured for ${key}`);
+      await opened.setCreated(
+        "summary",
+        main[key].id,
+        Date.parse(expected.created),
+      );
+      const read = await opened.service.getEntity({
+        entityType: "summary",
+        id: main[key].id,
+        ...EVERY,
+      });
+      // As Studio and listings name a record: by its type's adapter.
+      const adapter = opened.shell.getEntityRegistry().getAdapter("summary");
+      expect(read && adapter.displayTitle?.(read)).toBe(expected.title);
+    }
   });
 
   test("store imported decisions as the decision adapter wrote them", async () => {
