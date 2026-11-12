@@ -109,3 +109,68 @@ export {
   type RuntimeStudioWorkspaceData,
   type StudioWorkspaceActor,
 } from "@brains/plugins";
+export {
+  studioWorkspaceRegisterContract,
+  studioWorkspaceRegistrationSchema,
+  studioWorkspaceUnregisterContract,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionSchema,
+  studioOverviewContributionUnregisterContract,
+  type StudioWorkspaceDescriptor,
+  type StudioWorkspaceRegistration,
+  type StudioOverviewContributionRegistration,
+  type StudioOverviewContributionUnregistration,
+} from "@brains/plugins";
+export {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  dashboardDigestLineSchema,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+  safeParseRuntimeDashboardWidgetData,
+  type DashboardDigestLine,
+  type DashboardWidgetProviderContext,
+  type DashboardWidgetRenderer,
+  type RuntimeDashboardOperatorPanelBlock,
+  type RuntimeDashboardOperatorView,
+  type RuntimeDashboardWidgetData,
+  type RuntimeOperatorLaunchIntent,
+  type RuntimeOperatorLinkTarget,
+  type RuntimeStudioOperatorCardBlock,
+  type RuntimeStudioOperatorView,
+  type RuntimeStudioOperatorViewFact,
+  type RuntimeStudioOperatorViewStatus,
+} from "@brains/plugins";
+export {
+  defineAnalyticsReport,
+  type AnalyticsReportContext,
+  type AnalyticsReportDefinition,
+} from "@brains/plugins";
+export {
+  inboxActorSchema,
+  inboxItemListSchema,
+  type ChannelDeliveryProvider,
+  type MessageResponse,
+} from "@brains/plugins";
+export type {
+  AppInfo,
+  EntityCount,
+  InitialSyncOutcome,
+  InteractionInfo,
+  PluginsRegisteredAnswer,
+  RuntimeHealthCheck,
+} from "@brains/plugins";
+export type {
+  ApiRouteDefinition,
+  BatchOperation,
+  EnqueueJobRequest,
+  JobInfo,
+} from "@brains/plugins";
+export {
+  createTool,
+  toolError,
+  toolSuccess,
+  type Tool,
+  type ToolContext,
+  type ToolResponse,
+  type ToolResult,
+} from "@brains/plugins";
