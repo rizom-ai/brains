@@ -34,12 +34,12 @@ registerPackage("@brains/theme-rizom", rizomTheme);
 
 // ─── Register boot function ───────────────────────────────────────────────
 
-import { setBootFn } from "../src/lib/boot";
+import { setBootFn, type BootedBrain } from "../src/lib/boot";
 import { startWorkerHeartbeat } from "../src/lib/process-supervisor";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-setBootFn(async (cwd, definition, flags) => {
+setBootFn(async (cwd, definition, flags): Promise<BootedBrain | void> => {
   // Data, cache and dist paths default relative to the process, and the
   // supervised children already run in the instance directory. Boot there
   // too, or a CLI launched elsewhere (dev scripts set INIT_CWD) migrates and
@@ -101,40 +101,43 @@ setBootFn(async (cwd, definition, flags) => {
   }
 
   if (flags.chat) {
-    await handleCLI({ ...config, args: ["--cli"] });
-  } else {
-    await handleCLI(config, {
-      ...(flags.migrationsCompleted && { migrationsCompleted: true }),
-      ...(flags.childRole && {
-        processRole: flags.childRole,
-        // Tells the other app role, through the supervisor, what this one changed.
-        peerChannel: processPeerChannel(process),
-      }),
-      ...(flags.childRole && {
-        onRuntimeReady: (): void => {
-          const sendSupervisorMessage = (
-            type: "runtime-ready" | "worker-ready" | "worker-heartbeat",
-          ): void => {
-            if (!process.send) {
-              throw new Error(
-                `Supervised Brain ${flags.childRole} child has no IPC channel`,
-              );
-            }
-            process.send({ type });
-          };
+    // `brain chat` carries no `--cli` on its command line, so the REPL is
+    // asked for here.
+    await handleCLI(config, { cli: true });
+    return;
+  }
 
-          sendSupervisorMessage(
-            flags.childRole === "web" ? "runtime-ready" : "worker-ready",
-          );
-          if (flags.childRole === "worker") {
-            startWorkerHeartbeat((): void =>
-              sendSupervisorMessage("worker-heartbeat"),
+  await handleCLI(config, {
+    ...(flags.migrationsCompleted && { migrationsCompleted: true }),
+    ...(flags.childRole && {
+      processRole: flags.childRole,
+      // Tells the other app role, through the supervisor, what this one changed.
+      peerChannel: processPeerChannel(process),
+    }),
+    ...(flags.childRole && {
+      onRuntimeReady: (): void => {
+        const sendSupervisorMessage = (
+          type: "runtime-ready" | "worker-ready" | "worker-heartbeat",
+        ): void => {
+          if (!process.send) {
+            throw new Error(
+              `Supervised Brain ${flags.childRole} child has no IPC channel`,
             );
           }
-        },
-      }),
-    });
-  }
+          process.send({ type });
+        };
+
+        sendSupervisorMessage(
+          flags.childRole === "web" ? "runtime-ready" : "worker-ready",
+        );
+        if (flags.childRole === "worker") {
+          startWorkerHeartbeat((): void =>
+            sendSupervisorMessage("worker-heartbeat"),
+          );
+        }
+      },
+    }),
+  });
 });
 
 // ─── Run CLI ──────────────────────────────────────────────────────

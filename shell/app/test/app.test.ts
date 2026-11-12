@@ -173,6 +173,31 @@ describe("App", () => {
       expect(mockShell.initialize).toHaveBeenCalled();
     });
 
+    it("registers the terminal chat interface when the runtime asks for it", async () => {
+      // A bundled `brain chat` carries `chat`, not `--cli`, on its command
+      // line; the runtime option is its only way to ask for the REPL.
+      expect(process.argv).not.toContain("--cli");
+      const mockShell = createMockShell();
+      const app = App.create({ logLevel: "error" }, mockShell);
+
+      await app.initialize(undefined, { cli: true });
+
+      expect(mockShell.getPluginManager().registerPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "cli", type: "interface" }),
+      );
+    });
+
+    it("registers no terminal chat interface unless asked", async () => {
+      const mockShell = createMockShell();
+      const app = App.create({ logLevel: "error" }, mockShell);
+
+      await app.initialize();
+
+      expect(
+        mockShell.getPluginManager().registerPlugin,
+      ).not.toHaveBeenCalled();
+    });
+
     it("skips child migrations only after the supervisor schema barrier", async () => {
       const mockShell = createMockShell();
       const migrationSpy = spyOn(
