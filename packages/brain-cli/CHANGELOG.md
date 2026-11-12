@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.687
+
+### Patch Changes
+
+- [#925](https://github.com/rizom-ai/brains/pull/925) [`46f36c5`](https://github.com/rizom-ai/brains/commit/46f36c5d40114a2a3bc308e63c2b37de8176a6cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain upgraded past the release that made declared types read their frontmatter as metadata no longer fails its first sync from git. Startup brought stored rows up to their types only after directory sync had begun planning its import, so a row the old entity class wrote, such as the style guide, could not be read and the whole initial sync failed; ready-state defaults were then skipped until the next start. Stored rows are now reconciled before the import is queued.
+
 ## 0.2.0-alpha.686
 
 ### Patch Changes
