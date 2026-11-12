@@ -378,12 +378,27 @@ function encodeEntityMarkdown(
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
-/** A document's body; content with no frontmatter is a body already. */
-function documentBody(content: string): string {
+/**
+ * The body a type writes for content handed to it: a body as it is, and a
+ * whole document's body as the type reads it, so a field its old files kept
+ * in frontmatter and its reading moves into the body is written there, as
+ * its class's adapter rewrote it. A document whose header the type refuses
+ * keeps its body as written: its metadata was decoded, or refused, already.
+ */
+function bodyAsRead(definition: AnyEntityDefinition, content: string): string {
   const document = readMarkdownFrontmatter(content);
-  return isPlainRecord(document.data) && Object.keys(document.data).length > 0
-    ? document.content
-    : content;
+  if (!isPlainRecord(document.data) || Object.keys(document.data).length === 0)
+    return content;
+  if (!definition.markdown) return document.content;
+  try {
+    return definition.markdown.decode({
+      content: document.content,
+      frontmatter: document.data,
+    }).content;
+  } catch {
+    // Writing never fails on a header the read path has already judged.
+    return document.content;
+  }
 }
 
 /**
@@ -457,7 +472,7 @@ function markdownStorage(
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, {
         ...entity,
-        content: documentBody(entity.content),
+        content: bodyAsRead(definition, entity.content),
       });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {

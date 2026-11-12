@@ -621,6 +621,54 @@ describe("a generation refuses a link its declared target cannot hold", () => {
   });
 });
 
+describe("a whole document a declared type is handed to store", () => {
+  // A type whose reading moves a field its old files kept in frontmatter
+  // into its body, as FAQs moved their sources.
+  const legacyMetadata = z.object({ title: z.string() });
+  const legacy = defineEntity({
+    type: "legacy",
+    purpose: "A record whose old files kept its notes in frontmatter",
+    metadata: legacyMetadata,
+    markdown: {
+      decode: ({ content, frontmatter: raw }) => {
+        const { title, notes } = z
+          .object({ title: z.string(), notes: z.string().optional() })
+          .parse(raw);
+        return {
+          content:
+            notes === undefined
+              ? content
+              : `${content}\n\n## Notes\n\n${notes}\n`,
+          metadata: { title },
+        };
+      },
+      encode: ({ content, metadata }) => ({
+        content,
+        frontmatter: { title: metadata.title },
+      }),
+    },
+  });
+
+  it("is stored with its body as the type reads it", async () => {
+    const { service } = await realShell([legacy]);
+    await service.createEntityFromMarkdown({
+      input: {
+        entityType: "legacy",
+        id: "old",
+        markdown: "---\ntitle: Old\nnotes: Kept up top.\n---\nThe text.\n",
+      },
+    });
+    const stored = await service.getEntityRaw({
+      entityType: "legacy",
+      id: "old",
+      source: true,
+    });
+    expect(parseMarkdown(stored?.content ?? "").content.trim()).toBe(
+      "The text.\n\n\n## Notes\n\nKept up top.",
+    );
+  });
+});
+
 describe("a declared type's authored source", () => {
   // `owner` is authored frontmatter the card type does not own.
   const authored =
