@@ -215,6 +215,7 @@ export {
   type RelatedEntityReader,
 } from "@brains/plugins";
 export {
+  ConfirmationArgsStore,
   PluginConfigValidationError,
   SerialQueue,
   SerializedStatusStore,
