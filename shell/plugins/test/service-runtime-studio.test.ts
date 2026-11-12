@@ -79,10 +79,14 @@ describe("a first-party service reaching what Studio's class did", () => {
 
   it("reads the brain's readiness, as its class read context.readiness", async () => {
     const shell = createMockShell();
-    const { runtime } = await runtimeOn(shell);
-    expect(await runtime.readiness()).toEqual(
-      await shell.getRuntimeReadiness(),
+    const readiness = await shell.getRuntimeReadiness();
+    // One reading, so the comparison does not race the clock it stamps.
+    const read = spyOn(shell, "getRuntimeReadiness").mockResolvedValue(
+      readiness,
     );
+    const { runtime } = await runtimeOn(shell);
+    expect(await runtime.readiness()).toBe(readiness);
+    expect(read).toHaveBeenCalledTimes(1);
   });
 
   it("lists the channel descriptors other packages registered, as its class did", async () => {
