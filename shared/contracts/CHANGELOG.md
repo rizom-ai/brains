@@ -1,5 +1,13 @@
 # @brains/contracts
 
+## 0.2.0-alpha.691
+
+### Patch Changes
+
+- [#812](https://github.com/rizom-ai/brains/pull/812) [`dd6b1c7`](https://github.com/rizom-ai/brains/commit/dd6b1c722f7502a7fcfb2915a35dbf578a136298) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Switching guest chat on or off builds the site again, so the homepage Ask box appears or goes with the switch. The site rendered the box from a record Web Chat updates on each switch, but builds only followed entity changes, so the box waited for the next content edit or restart. Web Chat now sends the `siteBuildRequestContract` command after updating the record, and the site builder builds every environment it has already built, as it does after a start.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.691
+
 ## 0.2.0-alpha.690
 
 ### Patch Changes
