@@ -30,6 +30,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { Channel } from "@brains/contracts";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { AuthBackend } from "../contracts/auth";
+import type { ClassRuntimeState } from "../service/service-runtime";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   attachFirstPartyRuntime,
@@ -136,7 +137,7 @@ export interface InterfaceRuntime {
    * (`email.inbound.uid-cursor`) rather than one qualified by the package,
    * so the records stored before the conversion are the ones it reads after.
    */
-  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly classRuntimeState: ClassRuntimeState;
   /**
    * Run once the brain is ready, where the class's onReady ran: after every
    * plugin has registered and the shell prepared its ready state. Handlers

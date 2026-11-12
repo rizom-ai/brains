@@ -1019,6 +1019,8 @@ export {
   firstPartyTool,
   serviceRuntime,
   type ClaimedSystemType,
+  type ClassRuntimeState,
+  type ClassRuntimeStateStore,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,

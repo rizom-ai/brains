@@ -9,7 +9,10 @@ import type {
   EnqueueJobFn,
   JobInfo,
 } from "@brains/job-queue";
-import type { IRuntimeStateNamespace } from "@brains/runtime-state";
+import type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+} from "@brains/runtime-state";
 import type { EvalHandler } from "../contracts/handlers";
 import type { IShell } from "../interfaces";
 import type { RegisteredWebRoute } from "../types/web-routes";
@@ -510,7 +513,7 @@ export interface ServiceRuntime {
    * (`playbooks.runs`) rather than one qualified by the package's name, so
    * the records stored before the conversion are the ones it reads after.
    */
-  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly classRuntimeState: ClassRuntimeState;
   /**
    * Register an eval handler under the plugin's id (`playbooks:goalCheck`),
    * as the class registered it through `context.eval`; a worker registers
@@ -606,6 +609,18 @@ export interface ServiceRuntime {
 export interface ServiceTemplateOptions {
   readonly namespace?: string | undefined;
 }
+
+/**
+ * The runtime state a first-party package's class stored, under the
+ * namespace the class named, as `classRuntimeState` reaches it.
+ */
+export type ClassRuntimeState = Pick<IRuntimeStateNamespace, "scoped">;
+
+/** One store of that state, as `classRuntimeState.scoped(...)` opens it. */
+export type ClassRuntimeStateStore<T, TInput = T> = IRuntimeStateStore<
+  T,
+  TInput
+>;
 
 /** What a running tool call says about itself, as a class's handler read it. */
 export type ServiceToolCall = Pick<
@@ -871,7 +886,7 @@ export interface ServiceRuntimeBinding {
     options: ConsoleSurfaceOptions,
   ) => ConsoleSurface[];
   readonly toolCall: () => ServiceToolCall | undefined;
-  readonly classRuntimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly classRuntimeState: ClassRuntimeState;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
   readonly entityReads: ServiceEntityReads;
   readonly permissions: ServicePermissions;

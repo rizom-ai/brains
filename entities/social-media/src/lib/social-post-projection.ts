@@ -1,10 +1,10 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   ProjectionJsonObjectSchema,
   defineProjectionRule,
-  type BaseEntity,
   type ProjectionRule,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import {
   formatVoiceGuidance,
   frontmatterRecordFields,

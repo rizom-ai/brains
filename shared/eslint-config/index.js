@@ -27,71 +27,63 @@ const contextServedPackages = [
 const shellImportMessage =
   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.";
 
-function shellImportBan(packages, extraPaths = []) {
+function shellImportBan(packages, message = shellImportMessage) {
   return [
     "error",
     {
-      paths: [
-        ...packages.map((name) => ({ name, message: shellImportMessage })),
-        ...extraPaths,
-      ],
+      paths: packages.map((name) => ({ name, message })),
       patterns: [
         {
           group: packages.map((name) => `${name}/*`),
-          message: shellImportMessage,
+          message,
         },
       ],
     },
   ];
 }
+
 /**
- * The plugin class bases. A package converted to a declarative definition
- * imports none of them: it declares what it is, and the runtime alone
- * carries those bases until they are removed.
+ * Packages converted to declarative definitions, each added by its
+ * conversion. A converted package imports nothing from @brains/plugins: it
+ * declares what it is with @brains/sdk and reaches what the public contract
+ * does not offer through @brains/sdk/internal/*, while the runtime alone
+ * carries the class API until it is removed.
  */
-const pluginClassBases = [
-  "BasePlugin",
-  "EntityPlugin",
-  "HookedPublicPlugin",
-  "InterfacePlugin",
-  "MessageInterfacePlugin",
-  "PublicPlugin",
-  "ServicePlugin",
+const convertedPackages = [
+  "entities/ask-content",
+  "entities/blog",
+  "entities/decks",
+  "entities/doc",
+  "entities/document",
+  "entities/image",
+  "entities/link",
+  "entities/note",
+  "entities/portfolio",
+  "entities/prompt",
+  "entities/series",
+  "entities/social-media",
+  "entities/style-guide",
+  "entities/wishlist",
+  "interfaces/a2a",
+  "interfaces/chat",
+  "interfaces/chat-repl",
+  "interfaces/email",
+  "interfaces/mcp",
+  "interfaces/web-chat",
+  "plugins/admin",
+  "plugins/atproto-registry",
+  "plugins/knowledge-map",
+  "plugins/notifications",
+  "plugins/obsidian-vault",
+  "plugins/onboarding",
+  "plugins/playbooks",
+  "plugins/profile",
+  "plugins/site-info",
+  "plugins/unified-inbox",
 ];
 
-/** Interface packages converted to declarative definitions. */
-const convertedInterfacePackages = [
-  "chat-repl",
-  "email",
-  "mcp",
-  "a2a",
-  "chat",
-  "web-chat",
-];
-
-/** Service packages converted to declarative definitions. */
-const convertedServicePackages = [
-  "stock-photo",
-  "site-builder",
-  "site-content",
-  "content-pipeline",
-  "newsletter",
-  "atproto",
-  "email-workflows",
-  "analytics",
-  "contact",
-  "quiz",
-  "directory-sync",
-  "studio",
-  "dashboard",
-];
-
-const classBaseBan = {
-  name: "@brains/plugins",
-  importNames: pluginClassBases,
-  message:
-    "A converted package is a declarative definition: declare it with @brains/sdk and reach first-party runtime capabilities through @brains/sdk/internal/*, never a plugin class base.",
-};
+const convertedImportMessage =
+  "A converted package is a declarative definition: declare it with @brains/sdk and reach first-party runtime capabilities through @brains/sdk/internal/*, never @brains/plugins or a shell package.";
 
 /** Syntax banned everywhere; see each entry for why. */
 const restrictedSyntax = [
@@ -152,7 +144,7 @@ const restrictedSyntax = [
 const rawFullScope = {
   selector: 'Property[key.name="visibilityScope"][value.value="restricted"]',
   message:
-    "Use internalFullScope(reason) from @brains/plugins for a deliberate full-scope read, or pass the caller's scope.",
+    "Use internalFullScope(reason) from @brains/plugins (@brains/sdk/internal/service-runtime in a converted package) for a deliberate full-scope read, or pass the caller's scope.",
 };
 
 /**
@@ -181,7 +173,7 @@ const messagingObject =
 const castSubscription = {
   selector: `CallExpression[typeArguments] > MemberExpression.callee[property.name=/^(subscribe|observe|subscribeExecution)$/]${messagingObject}`,
   message:
-    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins) instead of type arguments, which cast a payload nobody validated.",
+    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins, or @brains/sdk/internal/service-runtime in a converted package) instead of type arguments, which cast a payload nobody validated.",
 };
 
 module.exports = {
@@ -255,32 +247,25 @@ module.exports = {
       },
     },
     {
-      // A converted interface's production code also imports no plugin class
-      // base. Restates the import restrictions above for these files.
-      files: convertedInterfacePackages.flatMap((name) => [
-        `**/interfaces/${name}/src/**/*.ts`,
-        `**/interfaces/${name}/src/**/*.tsx`,
+      // A converted package's production code, its browser UI included,
+      // imports nothing from @brains/plugins either. Restates the import
+      // restrictions above for these files; its tests may still build what
+      // they need through the plugins package.
+      files: convertedPackages.flatMap((path) => [
+        `**/${path}/src/**/*.ts`,
+        `**/${path}/src/**/*.tsx`,
+        `**/${path}/ui-react/src/**/*.ts`,
+        `**/${path}/ui-react/src/**/*.tsx`,
       ]),
       excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
       rules: {
         "no-restricted-imports": shellImportBan(
-          [...shellServicePackages, ...contextServedPackages],
-          [classBaseBan],
-        ),
-      },
-    },
-    {
-      // A converted service's production code imports no plugin class base
-      // either. Restates the import restrictions above for these files.
-      files: convertedServicePackages.flatMap((name) => [
-        `**/plugins/${name}/src/**/*.ts`,
-        `**/plugins/${name}/src/**/*.tsx`,
-      ]),
-      excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
-      rules: {
-        "no-restricted-imports": shellImportBan(
-          [...shellServicePackages, ...contextServedPackages],
-          [classBaseBan],
+          [
+            "@brains/plugins",
+            ...shellServicePackages,
+            ...contextServedPackages,
+          ],
+          convertedImportMessage,
         ),
       },
     },

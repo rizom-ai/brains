@@ -2,7 +2,7 @@ import {
   MessageUploadContinuity,
   type ChatAttachment,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { ChatHost } from "./chat-host";
 import {
   chatAttachmentFromStoredUpload,

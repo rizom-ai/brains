@@ -1,8 +1,10 @@
 /**
  * Internal, first-party only: runtime capabilities a first-party entity
  * definition reaches from the callback context it was handed, through
- * `entityRuntime(context)`, and the entity-text helpers its create routes
- * read a writer's text with. No public entry exports this module; the
+ * `entityRuntime(context)`, the entity-text helpers its create routes
+ * read a writer's text with, and the stored record, its parser schema, the
+ * markdown frontmatter codec and the validation error its codecs and
+ * imports read and write it with. No public entry exports this module; the
  * public context types never name what it reaches.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
@@ -50,4 +52,13 @@ export {
   statedDateSchema,
   uploadTitle,
   type EntityTextResult,
+} from "@brains/plugins";
+export {
+  EntityValidationError,
+  baseEntityParserSchema,
+  generateMarkdownWithFrontmatter,
+  isTextUploadMediaType,
+  parseMarkdownWithFrontmatter,
+  type BaseEntity,
+  type ResolvedRuntimeUpload,
 } from "@brains/plugins";

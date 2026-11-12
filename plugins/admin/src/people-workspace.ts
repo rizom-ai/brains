@@ -1,16 +1,16 @@
 import type {
   AuthBackend,
   ServiceRuntime,
+  RuntimeStudioOperatorBlock,
+  RuntimeStudioOperatorPanelBlock,
+  RuntimeStudioOperatorRegionBlock,
 } from "@brains/sdk/internal/service-runtime";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorPanelBlock,
-  type RuntimeStudioOperatorRegionBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {

@@ -7,20 +7,18 @@ import {
   type EmailSourceReadResponse,
   type InboundEmailSender,
 } from "@brains/contracts";
-import type {
-  ChannelDeliveryInput,
-  DaemonHealth,
-  IRuntimeStateStore,
-} from "@brains/plugins";
-import type { PluginPackageDefinition } from "@brains/sdk";
-import { defineInterface } from "@brains/sdk/interfaces";
 import {
   interfaceRuntime,
   withChannels,
   withDaemon,
   type FirstPartySlotContext,
   type InterfaceRuntime,
+  type ChannelDeliveryInput,
+  type DaemonHealth,
+  type ClassRuntimeStateStore,
 } from "@brains/sdk/internal/interface-runtime";
+import type { PluginPackageDefinition } from "@brains/sdk";
+import { defineInterface } from "@brains/sdk/interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
@@ -152,7 +150,7 @@ export interface EmailInterfaceDependencies {
 /** What a mailbox keeps: the IMAP cursor and where each source can be read. */
 interface InboundStores {
   readonly config: EmailImapConfig;
-  readonly cursor: IRuntimeStateStore<InboundEmailCursor>;
+  readonly cursor: ClassRuntimeStateStore<InboundEmailCursor>;
   readonly sourceLocators: EmailSourceLocatorStore;
 }
 

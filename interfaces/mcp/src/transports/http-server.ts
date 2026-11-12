@@ -1,8 +1,8 @@
 import {
-  type IMCPTransport,
+  type InterfaceRuntime,
   type ToolVisibility,
   ToolVisibilitySchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { timingSafeEqual } from "node:crypto";
 import {
   createMcpHandler,
@@ -74,7 +74,7 @@ function requestOrigin(request: Request): string {
  * registry or permission changes.
  */
 export class StreamableHTTPServer {
-  private mcpTransport: IMCPTransport | null = null;
+  private mcpTransport: InterfaceRuntime["mcpTransport"] | null = null;
   private mcpHandler: McpHttpHandler | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private boundPort: number | null = null;
@@ -367,7 +367,7 @@ export class StreamableHTTPServer {
 
   public connectMCPServer(
     mcpServer: McpServer,
-    mcpTransport?: IMCPTransport,
+    mcpTransport?: InterfaceRuntime["mcpTransport"],
   ): void {
     this.mcpTransport = mcpTransport ?? null;
     this.mcpHandler = createMcpHandler(

@@ -3,7 +3,7 @@ import {
   isTextUploadMediaType,
   uploadTitle,
   type ResolvedRuntimeUpload,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
 import { bufferView } from "@brains/utils/bytes";
 import { generateMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";

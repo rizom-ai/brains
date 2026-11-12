@@ -1,9 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
   coerceConversationMetadata,
-  type IRuntimeStateNamespace,
-  type IRuntimeStateStore,
-} from "@brains/plugins";
+  type ClassRuntimeState,
+  type ClassRuntimeStateStore,
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { WebChatConversation } from "./conversation-access";
 import {
@@ -54,13 +54,13 @@ type StoredVisitor = z.output<typeof storedVisitorSchema>;
  * Leases are fixed and bounded by idle expiry; reads never extend them.
  */
 export class GuestVisitorStore {
-  private readonly store: IRuntimeStateStore<StoredVisitor>;
+  private readonly store: ClassRuntimeStateStore<StoredVisitor>;
   private readonly issuance: GuestIssuance;
   private readonly policy: GuestPolicy;
   private readonly now: () => number;
 
   constructor(
-    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
+    runtimeState: ClassRuntimeState,
     policy: GuestPolicy,
     now: () => number = Date.now,
   ) {

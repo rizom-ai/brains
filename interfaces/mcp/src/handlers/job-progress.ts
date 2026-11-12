@@ -1,6 +1,8 @@
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+import {
+  type InterfaceRuntime,
+  jobProgressChannel,
+} from "@brains/sdk/internal/interface-runtime";
 import type { Logger } from "@brains/utils/logger";
-import { jobProgressChannel } from "@brains/plugins";
 
 /**
  * Set up listener for job progress events

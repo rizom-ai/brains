@@ -1,19 +1,19 @@
 import {
-  type UserPermissionLevel,
-  isLoopbackIssuer,
-  issuerFromRequest,
-  type WebRouteDefinition,
-} from "@brains/plugins";
-import type { PluginPackageDefinition } from "@brains/sdk";
-import { defineInterface } from "@brains/sdk/interfaces";
-import {
   interfaceRuntime,
   withDaemon,
   withTools,
   withWebRoutes,
   type FirstPartySlotContext,
   type InterfaceRuntime,
+  isLoopbackIssuer,
+  issuerFromRequest,
+  type WebRouteDefinition,
 } from "@brains/sdk/internal/interface-runtime";
+import {
+  defineInterface,
+  type UserPermissionLevel,
+} from "@brains/sdk/interfaces";
+import type { PluginPackageDefinition } from "@brains/sdk";
 import {
   JwksResolver,
   signRequest,

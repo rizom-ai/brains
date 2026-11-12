@@ -1,5 +1,16 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.687
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.687
+  - @brains/app-ui-react@0.2.0-alpha.687
+  - @brains/console-theme@0.2.0-alpha.687
+  - @brains/contracts@0.2.0-alpha.687
+  - @brains/utils@0.2.0-alpha.687
+
 ## 0.2.0-alpha.686
 
 ### Patch Changes

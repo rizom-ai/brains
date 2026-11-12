@@ -27,8 +27,8 @@ import {
   internalFullScope,
   serviceRuntime,
   type ServiceRuntime,
+  conversationMessageAddedChannel,
 } from "@brains/sdk/internal/service-runtime";
-import { conversationMessageAddedChannel } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { definedFields } from "@brains/utils/strip-undefined";
